@@ -8,6 +8,7 @@
 
 :root {
 	--nav-sub-mobile-padding: 8px;
+	--search-typename-width: 6.75rem;
 }
 
 /* See FiraSans-LICENSE.txt for the Fira Sans license. */
@@ -213,7 +214,7 @@ a.anchor,
 h1 a,
 .search-results a,
 .stab,
-.result-name .primitive > i, .result-name .keyword > i {
+.result-name i {
 	color: var(--main-color);
 }
 
@@ -869,14 +870,11 @@ so that we can apply CSS-filters to change the arrow color in themes */
 	gap: 1em;
 }
 
-.search-results > a > div {
-	flex: 1;
-}
-
 .search-results > a > div.desc {
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	overflow: hidden;
+	flex: 2;
 }
 
 .search-results a:hover,
@@ -884,11 +882,27 @@ so that we can apply CSS-filters to change the arrow color in themes */
 	background-color: var(--search-result-link-focus-background-color);
 }
 
+.search-results .result-name {
+	display: flex;
+	align-items: center;
+	justify-content: start;
+	flex: 3;
+}
 .search-results .result-name span.alias {
 	color: var(--search-results-alias-color);
 }
-.search-results .result-name span.grey {
+.search-results .result-name .grey {
 	color: var(--search-results-grey-color);
+}
+.search-results .result-name .typename {
+	color: var(--search-results-grey-color);
+	font-size: 0.875rem;
+	width: var(--search-typename-width);
+}
+.search-results .result-name .path {
+	word-break: break-all;
+	max-width: calc(100% - var(--search-typename-width));
+	display: inline-block;
 }
 
 .popover {
@@ -957,6 +971,8 @@ so that we can apply CSS-filters to change the arrow color in themes */
 	display: flex;
 	padding: 3px;
 	margin-bottom: 5px;
+	align-items: center;
+	vertical-align: text-bottom;
 }
 .item-name .stab {
 	margin-left: 0.3125em;
@@ -968,11 +984,9 @@ so that we can apply CSS-filters to change the arrow color in themes */
 	color: var(--main-color);
 	background-color: var(--stab-background-color);
 	width: fit-content;
-	align-items: center;
 	white-space: pre-wrap;
 	border-radius: 3px;
-	display: inline-flex;
-	vertical-align: text-bottom;
+	display: inline;
 }
 
 .stab.portability > code {
@@ -1179,6 +1193,10 @@ a.test-arrow:hover {
 	position: relative;
 }
 
+.code-header a.tooltip:hover {
+	color: var(--link-color);
+}
+
 /* placeholder thunk so that the mouse can easily travel from "(i)" to popover
 	the resulting "hover tunnel" is a stepped triangle, approximating
 	https://bjk5.com/post/44698559168/breaking-down-amazons-mega-dropdown */
@@ -1189,6 +1207,14 @@ a.tooltip:hover::after {
 	right: -15px;
 	height: 20px;
 	content: "\00a0";
+}
+
+/* This animation is layered onto the mistake-proofing delay for dismissing
+	a hovered tooltip, to ensure it feels responsive even with the delay.
+	*/
+.fade-out {
+	opacity: 0;
+	transition: opacity 0.45s cubic-bezier(0, 0, 0.1, 1.0);
 }
 
 .popover.tooltip .content {
@@ -1711,6 +1737,16 @@ in source-script.js
 	}
 	.search-results > a > div.desc, .item-table > li > div.desc {
 		padding-left: 2em;
+	}
+	.search-results .result-name {
+		display: block;
+	}
+	.search-results .result-name .typename {
+		width: initial;
+		margin-right: 0;
+	}
+	.search-results .result-name .typename, .search-results .result-name .path {
+		display: inline;
 	}
 
 	.source-sidebar-expanded .source .sidebar {

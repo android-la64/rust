@@ -311,7 +311,7 @@ fn needs_exact_match(percentage: Option<f32>) -> bool {
     percentage.map_or(true, |p| p >= 1.0)
 }
 
-/// <src_idx, src, possibly diff stat>
+/// <`src_idx`, src, possibly diff stat>
 type SourceTuple<'a> = (usize, &'a Item, Option<DiffLineStats>);
 
 /// Find `item` in our set of items ignoring `item_idx` to avoid finding ourselves, by similarity indicated by `percentage`.
@@ -337,8 +337,7 @@ fn find_match<'a>(
             let end = items
                 .iter()
                 .position(|a| a.change.oid() != item_id)
-                .map(|idx| first_idx + idx)
-                .unwrap_or(items.len());
+                .map_or(items.len(), |idx| first_idx + idx);
             first_idx..end
         }) {
             Some(range) => range,

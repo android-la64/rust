@@ -1,6 +1,10 @@
 // Implementation derived from `weak` in Rust's
 // library/std/src/sys/unix/weak.rs at revision
 // fd0cb0cdc21dd9c06025277d772108f8d42cb25f.
+//
+// Ideally we should update to a newer version which doesn't need `dlsym`,
+// however that depends on the `extern_weak` feature which is currently
+// unstable.
 
 #![cfg_attr(linux_raw, allow(unsafe_code))]
 
@@ -108,15 +112,38 @@ impl<F> Weak<F> {
     }
 }
 
+// To avoid having the `linux_raw` backend depend on the libc crate, just
+// declare the few things we need in a module called `libc` so that `fetch`
+// uses it.
+#[cfg(linux_raw)]
+mod libc {
+    use core::ptr;
+    use linux_raw_sys::ctypes::{c_char, c_void};
+
+    #[cfg(all(target_os = "android", target_pointer_width = "32"))]
+    pub(super) const RTLD_DEFAULT: *mut c_void = -1isize as *mut c_void;
+    #[cfg(not(all(target_os = "android", target_pointer_width = "32")))]
+    pub(super) const RTLD_DEFAULT: *mut c_void = ptr::null_mut();
+
+    extern "C" {
+        pub(super) fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
+    }
+
+    #[test]
+    fn test_abi() {
+        assert_eq!(self::RTLD_DEFAULT, ::libc::RTLD_DEFAULT);
+    }
+}
+
 unsafe fn fetch(name: &str) -> *mut c_void {
     let name = match CStr::from_bytes_with_nul(name.as_bytes()) {
         Ok(c_str) => c_str,
         Err(..) => return null_mut(),
     };
-    libc::dlsym(libc::RTLD_DEFAULT, name.as_ptr())
+    libc::dlsym(libc::RTLD_DEFAULT, name.as_ptr().cast())
 }
 
-#[cfg(not(any(target_os = "android", target_os = "linux")))]
+#[cfg(not(linux_kernel))]
 macro_rules! syscall {
     (fn $name:ident($($arg_name:ident: $t:ty),*) via $_sys_name:ident -> $ret:ty) => (
         unsafe fn $name($($arg_name: $t),*) -> $ret {
@@ -132,11 +159,11 @@ macro_rules! syscall {
     )
 }
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(linux_kernel)]
 macro_rules! syscall {
     (fn $name:ident($($arg_name:ident: $t:ty),*) via $sys_name:ident -> $ret:ty) => (
         unsafe fn $name($($arg_name:$t),*) -> $ret {
-            // This looks like a hack, but concat_idents only accepts idents
+            // This looks like a hack, but `concat_idents` only accepts idents
             // (not paths).
             use libc::*;
 
@@ -157,28 +184,59 @@ macro_rules! syscall {
 
             // Pass `BorrowedFd` values as the integer value.
             impl AsSyscallArg for $crate::fd::BorrowedFd<'_> {
-                type SyscallArgType = c::c_long;
+                type SyscallArgType = ::libc::c_long;
                 fn into_syscall_arg(self) -> Self::SyscallArgType {
                     $crate::fd::AsRawFd::as_raw_fd(&self) as _
                 }
             }
 
             // Coerce integer values into `c_long`.
+            impl AsSyscallArg for i8 {
+                type SyscallArgType = ::libc::c_long;
+                fn into_syscall_arg(self) -> Self::SyscallArgType { self as _ }
+            }
+            impl AsSyscallArg for u8 {
+                type SyscallArgType = ::libc::c_long;
+                fn into_syscall_arg(self) -> Self::SyscallArgType { self as _ }
+            }
+            impl AsSyscallArg for i16 {
+                type SyscallArgType = ::libc::c_long;
+                fn into_syscall_arg(self) -> Self::SyscallArgType { self as _ }
+            }
+            impl AsSyscallArg for u16 {
+                type SyscallArgType = ::libc::c_long;
+                fn into_syscall_arg(self) -> Self::SyscallArgType { self as _ }
+            }
             impl AsSyscallArg for i32 {
-                type SyscallArgType = c::c_long;
+                type SyscallArgType = ::libc::c_long;
                 fn into_syscall_arg(self) -> Self::SyscallArgType { self as _ }
             }
             impl AsSyscallArg for u32 {
-                type SyscallArgType = c::c_long;
+                type SyscallArgType = ::libc::c_long;
                 fn into_syscall_arg(self) -> Self::SyscallArgType { self as _ }
             }
             impl AsSyscallArg for usize {
-                type SyscallArgType = c::c_long;
+                type SyscallArgType = ::libc::c_long;
                 fn into_syscall_arg(self) -> Self::SyscallArgType { self as _ }
             }
 
-            // `concat_idents is unstable, so we take an extra `sys_name`
+            // On 64-bit platforms, also coerce `i64` and `u64` since `c_long`
+            // is 64-bit and can hold those values.
+            #[cfg(target_pointer_width = "64")]
+            impl AsSyscallArg for i64 {
+                type SyscallArgType = ::libc::c_long;
+                fn into_syscall_arg(self) -> Self::SyscallArgType { self as _ }
+            }
+            #[cfg(target_pointer_width = "64")]
+            impl AsSyscallArg for u64 {
+                type SyscallArgType = ::libc::c_long;
+                fn into_syscall_arg(self) -> Self::SyscallArgType { self as _ }
+            }
+
+            // `concat_idents` is [unstable], so we take an extra `sys_name`
             // parameter and have our users do the concat for us for now.
+            //
+            // [unstable]: https://github.com/rust-lang/rust/issues/29599
             /*
             syscall(
                 concat_idents!(SYS_, $name),

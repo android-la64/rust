@@ -205,9 +205,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         if let Some(span) = result.illegal_sized_bound {
             let mut needs_mut = false;
             if let ty::Ref(region, t_type, mutability) = self_ty.kind() {
-                let trait_type = self
-                    .tcx
-                    .mk_ref(*region, ty::TypeAndMut { ty: *t_type, mutbl: mutability.invert() });
+                let trait_type = Ty::new_ref(
+                    self.tcx,
+                    *region,
+                    ty::TypeAndMut { ty: *t_type, mutbl: mutability.invert() },
+                );
                 // We probe again to see if there might be a borrow mutability discrepancy.
                 match self.lookup_probe(
                     segment.ident,
@@ -252,6 +254,27 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
 
         Ok(result.callee)
+    }
+
+    pub fn lookup_method_for_diagnostic(
+        &self,
+        self_ty: Ty<'tcx>,
+        segment: &hir::PathSegment<'_>,
+        span: Span,
+        call_expr: &'tcx hir::Expr<'tcx>,
+        self_expr: &'tcx hir::Expr<'tcx>,
+    ) -> Result<MethodCallee<'tcx>, MethodError<'tcx>> {
+        let pick = self.lookup_probe_for_diagnostic(
+            segment.ident,
+            self_ty,
+            call_expr,
+            ProbeScope::TraitsInScope,
+            None,
+        )?;
+
+        Ok(self
+            .confirm_method_for_diagnostic(span, self_expr, call_expr, self_ty, &pick, segment)
+            .callee)
     }
 
     #[instrument(level = "debug", skip(self, call_expr))]
@@ -443,7 +466,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         ));
 
         // Also add an obligation for the method type being well-formed.
-        let method_ty = tcx.mk_fn_ptr(ty::Binder::dummy(fn_sig));
+        let method_ty = Ty::new_fn_ptr(tcx, ty::Binder::dummy(fn_sig));
         debug!(
             "lookup_in_trait_adjusted: matched method method_ty={:?} obligation={:?}",
             method_ty, obligation
@@ -452,7 +475,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             tcx,
             obligation.cause,
             self.param_env,
-            ty::Binder::dummy(ty::PredicateKind::WellFormed(method_ty.into())),
+            ty::Binder::dummy(ty::PredicateKind::Clause(ty::ClauseKind::WellFormed(
+                method_ty.into(),
+            ))),
         ));
 
         let callee = MethodCallee { def_id, substs, sig: fn_sig };

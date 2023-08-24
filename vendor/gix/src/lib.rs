@@ -14,7 +14,7 @@
 //! Most extensions to existing objects provide an `obj_with_extension.attach(&repo).an_easier_version_of_a_method()` for simpler
 //! call signatures.
 //!
-//! ## ThreadSafe Mode
+//! ## `ThreadSafe` Mode
 //!
 //! By default, the [`Repository`] isn't `Sync` and thus can't be used in certain contexts which require the `Sync` trait.
 //!
@@ -37,7 +37,7 @@
 //!
 //! ### Terminology
 //!
-//! #### WorkingTree and WorkTree
+//! #### `WorkingTree` and `WorkTree`
 //!
 //! When reading the documentation of the canonical gix-worktree program one gets the impression work tree and working tree are used
 //! interchangeably. We use the term _work tree_ only and try to do so consistently as its shorter and assumed to be the same.
@@ -68,6 +68,7 @@
 // APIs/instances anyway.
 pub use gix_actor as actor;
 pub use gix_attributes as attrs;
+pub use gix_commitgraph as commitgraph;
 pub use gix_credentials as credentials;
 pub use gix_date as date;
 pub use gix_features as features;
@@ -80,6 +81,7 @@ pub use gix_ignore as ignore;
 #[doc(inline)]
 pub use gix_index as index;
 pub use gix_lock as lock;
+pub use gix_negotiate as negotiate;
 pub use gix_object as objs;
 pub use gix_object::bstr;
 pub use gix_odb as odb;
@@ -119,8 +121,7 @@ pub(crate) type Config = OwnShared<gix_config::File<'static>>;
 ///
 mod types;
 pub use types::{
-    Commit, Head, Id, Kind, Object, ObjectDetached, Reference, Remote, Repository, Tag, ThreadSafeRepository, Tree,
-    Worktree,
+    Commit, Head, Id, Object, ObjectDetached, Reference, Remote, Repository, Tag, ThreadSafeRepository, Tree, Worktree,
 };
 
 ///
@@ -130,7 +131,7 @@ pub mod head;
 pub mod id;
 pub mod object;
 pub mod reference;
-mod repository;
+pub mod repository;
 pub mod tag;
 
 ///
@@ -139,7 +140,7 @@ pub mod progress;
 ///
 pub mod diff;
 
-/// See [ThreadSafeRepository::discover()], but returns a [`Repository`] instead.
+/// See [`ThreadSafeRepository::discover()`], but returns a [`Repository`] instead.
 ///
 /// # Note
 ///
@@ -154,13 +155,13 @@ pub fn discover(directory: impl AsRef<std::path::Path>) -> Result<Repository, di
     ThreadSafeRepository::discover(directory).map(Into::into)
 }
 
-/// See [ThreadSafeRepository::init()], but returns a [`Repository`] instead.
+/// See [`ThreadSafeRepository::init()`], but returns a [`Repository`] instead.
 #[allow(clippy::result_large_err)]
 pub fn init(directory: impl AsRef<std::path::Path>) -> Result<Repository, init::Error> {
     ThreadSafeRepository::init(directory, create::Kind::WithWorktree, create::Options::default()).map(Into::into)
 }
 
-/// See [ThreadSafeRepository::init()], but returns a [`Repository`] instead.
+/// See [`ThreadSafeRepository::init()`], but returns a [`Repository`] instead.
 #[allow(clippy::result_large_err)]
 pub fn init_bare(directory: impl AsRef<std::path::Path>) -> Result<Repository, init::Error> {
     ThreadSafeRepository::init(directory, create::Kind::Bare, create::Options::default()).map(Into::into)
@@ -169,7 +170,7 @@ pub fn init_bare(directory: impl AsRef<std::path::Path>) -> Result<Repository, i
 /// Create a platform for configuring a bare clone from `url` to the local `path`, using default options for opening it (but
 /// amended with using configuration from the git installation to ensure all authentication options are honored).
 ///
-/// See [`clone::PrepareFetch::new()] for a function to take full control over all options.
+/// See [`clone::PrepareFetch::new()`] for a function to take full control over all options.
 #[allow(clippy::result_large_err)]
 pub fn prepare_clone_bare<Url, E>(
     url: Url,
@@ -191,7 +192,7 @@ where
 /// Create a platform for configuring a clone with main working tree from `url` to the local `path`, using default options for opening it
 /// (but amended with using configuration from the git installation to ensure all authentication options are honored).
 ///
-/// See [`clone::PrepareFetch::new()] for a function to take full control over all options.
+/// See [`clone::PrepareFetch::new()`] for a function to take full control over all options.
 #[allow(clippy::result_large_err)]
 pub fn prepare_clone<Url, E>(url: Url, path: impl AsRef<std::path::Path>) -> Result<clone::PrepareFetch, clone::Error>
 where
@@ -214,13 +215,13 @@ fn open_opts_with_git_binary_config() -> open::Options {
     opts
 }
 
-/// See [ThreadSafeRepository::open()], but returns a [`Repository`] instead.
+/// See [`ThreadSafeRepository::open()`], but returns a [`Repository`] instead.
 #[allow(clippy::result_large_err)]
 pub fn open(directory: impl Into<std::path::PathBuf>) -> Result<Repository, open::Error> {
     ThreadSafeRepository::open(directory).map(Into::into)
 }
 
-/// See [ThreadSafeRepository::open_opts()], but returns a [`Repository`] instead.
+/// See [`ThreadSafeRepository::open_opts()`], but returns a [`Repository`] instead.
 #[allow(clippy::result_large_err)]
 pub fn open_opts(directory: impl Into<std::path::PathBuf>, options: open::Options) -> Result<Repository, open::Error> {
     ThreadSafeRepository::open_opts(directory, options).map(Into::into)
@@ -259,5 +260,3 @@ pub mod shallow;
 pub mod discover;
 
 pub mod env;
-
-mod kind;

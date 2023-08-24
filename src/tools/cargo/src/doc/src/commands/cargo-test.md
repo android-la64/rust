@@ -59,11 +59,18 @@ on writing doc tests.
 
 ### Working directory of tests
 
-The working directory of every test is set to the root directory of the package 
-the test belongs to.
-Setting the working directory of tests to the package's root directory makes it 
+The working directory when running each unit and integration test is set to the
+root directory of the package the test belongs to.
+Setting the working directory of tests to the package's root directory makes it
 possible for tests to reliably access the package's files using relative paths,
 regardless from where `cargo test` was executed from.
+
+For documentation tests, the working directory when invoking `rustdoc` is set to
+the workspace root directory, and is also the directory `rustdoc` uses as the
+compilation directory of each documentation test.
+The working directory when running each documentation test is set to the root
+directory of the package the test belongs to, and is controlled via `rustdoc`'s
+`--test-run-directory` option.
 
 ## OPTIONS
 
@@ -503,7 +510,8 @@ includes an option to control the number of threads used:
 <dd class="option-desc">Number of parallel jobs to run. May also be specified with the
 <code>build.jobs</code> <a href="../reference/config.html">config value</a>. Defaults to
 the number of logical CPUs. If negative, it sets the maximum number of
-parallel jobs to the number of logical CPUs plus provided value.
+parallel jobs to the number of logical CPUs plus provided value. If
+a string <code>default</code> is provided, it sets the value back to defaults.
 Should not be 0.</dd>
 
 

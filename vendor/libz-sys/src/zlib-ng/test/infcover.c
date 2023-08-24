@@ -11,11 +11,17 @@
 #undef NDEBUG
 #include <assert.h>
 #include <inttypes.h>
+#include <stdint.h>
 
 /* get definition of internal structure so we can mess with it (see pull()),
    and so we can call inflate_trees() (see cover5()) */
+#define ZLIB_INTERNAL
 #include "zbuild.h"
-#include "zutil.h"
+#ifdef ZLIB_COMPAT
+#  include "zlib.h"
+#else
+#  include "zlib-ng.h"
+#endif
 #include "inftrees.h"
 #include "inflate.h"
 
@@ -664,6 +670,10 @@ static void cover_fast(void) {
         Z_STREAM_END);
 }
 
+static void cover_cve_2022_37434(void) {
+    inf("1f 8b 08 04 61 62 63 64 61 62 52 51 1f 8b 08 04 61 62 63 64 61 62 52 51 1f 8b 08 04 61 62 63 64 61 62 52 51 1f 8b 08 04 61 62 63 64 61 62 52 51", "wtf", 13, 47, 12, Z_OK);
+}
+
 int main(void) {
     fprintf(stderr, "%s\n", zVersion());
     cover_support();
@@ -672,5 +682,6 @@ int main(void) {
     cover_inflate();
     cover_trees();
     cover_fast();
+    cover_cve_2022_37434();
     return 0;
 }

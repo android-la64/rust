@@ -77,7 +77,7 @@ use rustc_infer::traits::specialization_graph::Node;
 use rustc_middle::ty::subst::{GenericArg, InternalSubsts, SubstsRef};
 use rustc_middle::ty::trait_def::TraitSpecializationKind;
 use rustc_middle::ty::{self, TyCtxt, TypeVisitableExt};
-use rustc_span::Span;
+use rustc_span::{ErrorGuaranteed, Span};
 use rustc_trait_selection::traits::error_reporting::TypeErrCtxtExt;
 use rustc_trait_selection::traits::outlives_bounds::InferCtxtExt as _;
 use rustc_trait_selection::traits::{self, translate_substs_with_cause, wf, ObligationCtxt};
@@ -113,7 +113,7 @@ fn check_always_applicable(tcx: TyCtxt<'_>, impl1_def_id: LocalDefId, impl2_node
     let span = tcx.def_span(impl1_def_id);
     check_has_items(tcx, impl1_def_id, impl2_node, span);
 
-    if let Some((impl1_substs, impl2_substs)) = get_impl_substs(tcx, impl1_def_id, impl2_node) {
+    if let Ok((impl1_substs, impl2_substs)) = get_impl_substs(tcx, impl1_def_id, impl2_node) {
         let impl2_def_id = impl2_node.def_id();
         debug!(?impl2_def_id, ?impl2_substs);
 
@@ -171,16 +171,14 @@ fn get_impl_substs(
     tcx: TyCtxt<'_>,
     impl1_def_id: LocalDefId,
     impl2_node: Node,
-) -> Option<(SubstsRef<'_>, SubstsRef<'_>)> {
+) -> Result<(SubstsRef<'_>, SubstsRef<'_>), ErrorGuaranteed> {
     let infcx = &tcx.infer_ctxt().build();
     let ocx = ObligationCtxt::new(infcx);
     let param_env = tcx.param_env(impl1_def_id);
-
-    let assumed_wf_types =
-        ocx.assumed_wf_types(param_env, tcx.def_span(impl1_def_id), impl1_def_id);
+    let impl1_span = tcx.def_span(impl1_def_id);
+    let assumed_wf_types = ocx.assumed_wf_types_and_report_errors(param_env, impl1_def_id)?;
 
     let impl1_substs = InternalSubsts::identity_for_item(tcx, impl1_def_id);
-    let impl1_span = tcx.def_span(impl1_def_id);
     let impl2_substs = translate_substs_with_cause(
         infcx,
         param_env,
@@ -198,8 +196,8 @@ fn get_impl_substs(
 
     let errors = ocx.select_all_or_error();
     if !errors.is_empty() {
-        ocx.infcx.err_ctxt().report_fulfillment_errors(&errors);
-        return None;
+        let guar = ocx.infcx.err_ctxt().report_fulfillment_errors(&errors);
+        return Err(guar);
     }
 
     let implied_bounds = infcx.implied_bounds_tys(param_env, impl1_def_id, assumed_wf_types);
@@ -207,10 +205,10 @@ fn get_impl_substs(
     let _ = ocx.resolve_regions_and_report_errors(impl1_def_id, &outlives_env);
     let Ok(impl2_substs) = infcx.fully_resolve(impl2_substs) else {
         let span = tcx.def_span(impl1_def_id);
-        tcx.sess.emit_err(SubstsOnOverriddenImpl { span });
-        return None;
+        let guar = tcx.sess.emit_err(SubstsOnOverriddenImpl { span });
+        return Err(guar);
     };
-    Some((impl1_substs, impl2_substs))
+    Ok((impl1_substs, impl2_substs))
 }
 
 /// Returns a list of all of the unconstrained subst of the given impl.
@@ -235,10 +233,8 @@ fn unconstrained_parent_impl_substs<'tcx>(
     // what we want here. We want only a list of constrained parameters while
     // the functions in `cgp` add the constrained parameters to a list of
     // unconstrained parameters.
-    for (predicate, _) in impl_generic_predicates.predicates.iter() {
-        if let ty::PredicateKind::Clause(ty::Clause::Projection(proj)) =
-            predicate.kind().skip_binder()
-        {
+    for (clause, _) in impl_generic_predicates.predicates.iter() {
+        if let ty::ClauseKind::Projection(proj) = clause.kind().skip_binder() {
             let projection_ty = proj.projection_ty;
             let projected_ty = proj.term;
 
@@ -340,8 +336,11 @@ fn check_predicates<'tcx>(
     impl2_substs: SubstsRef<'tcx>,
     span: Span,
 ) {
-    let instantiated = tcx.predicates_of(impl1_def_id).instantiate(tcx, impl1_substs);
-    let impl1_predicates: Vec<_> = traits::elaborate(tcx, instantiated.into_iter()).collect();
+    let impl1_predicates: Vec<_> = traits::elaborate(
+        tcx,
+        tcx.predicates_of(impl1_def_id).instantiate(tcx, impl1_substs).into_iter(),
+    )
+    .collect();
 
     let mut impl2_predicates = if impl2_node.is_from_trait() {
         // Always applicable traits have to be always applicable without any
@@ -352,8 +351,8 @@ fn check_predicates<'tcx>(
             tcx,
             tcx.predicates_of(impl2_node.def_id())
                 .instantiate(tcx, impl2_substs)
-                .predicates
-                .into_iter(),
+                .into_iter()
+                .map(|(c, _s)| c.as_predicate()),
         )
         .collect()
     };
@@ -377,13 +376,13 @@ fn check_predicates<'tcx>(
     let always_applicable_traits = impl1_predicates
         .iter()
         .copied()
-        .filter(|&(predicate, _)| {
+        .filter(|(clause, _span)| {
             matches!(
-                trait_predicate_kind(tcx, predicate),
+                trait_predicate_kind(tcx, clause.as_predicate()),
                 Some(TraitSpecializationKind::AlwaysApplicable)
             )
         })
-        .map(|(pred, _span)| pred);
+        .map(|(c, _span)| c.as_predicate());
 
     // Include the well-formed predicates of the type parameters of the impl.
     for arg in tcx.impl_trait_ref(impl1_def_id).unwrap().subst_identity().substs {
@@ -398,9 +397,12 @@ fn check_predicates<'tcx>(
     }
     impl2_predicates.extend(traits::elaborate(tcx, always_applicable_traits));
 
-    for (predicate, span) in impl1_predicates {
-        if !impl2_predicates.iter().any(|pred2| trait_predicates_eq(tcx, predicate, *pred2, span)) {
-            check_specialization_on(tcx, predicate, span)
+    for (clause, span) in impl1_predicates {
+        if !impl2_predicates
+            .iter()
+            .any(|pred2| trait_predicates_eq(tcx, clause.as_predicate(), *pred2, span))
+        {
+            check_specialization_on(tcx, clause.as_predicate(), span)
         }
     }
 }
@@ -438,8 +440,8 @@ fn trait_predicates_eq<'tcx>(
     let pred2_kind = predicate2.kind().skip_binder();
     let (trait_pred1, trait_pred2) = match (pred1_kind, pred2_kind) {
         (
-            ty::PredicateKind::Clause(ty::Clause::Trait(pred1)),
-            ty::PredicateKind::Clause(ty::Clause::Trait(pred2)),
+            ty::PredicateKind::Clause(ty::ClauseKind::Trait(pred1)),
+            ty::PredicateKind::Clause(ty::ClauseKind::Trait(pred2)),
         ) => (pred1, pred2),
         // Just use plain syntactic equivalence if either of the predicates aren't
         // trait predicates or have bound vars.
@@ -478,7 +480,7 @@ fn check_specialization_on<'tcx>(tcx: TyCtxt<'tcx>, predicate: ty::Predicate<'tc
         _ if predicate.is_global() => (),
         // We allow specializing on explicitly marked traits with no associated
         // items.
-        ty::PredicateKind::Clause(ty::Clause::Trait(ty::TraitPredicate {
+        ty::PredicateKind::Clause(ty::ClauseKind::Trait(ty::TraitPredicate {
             trait_ref,
             constness: _,
             polarity: _,
@@ -498,7 +500,7 @@ fn check_specialization_on<'tcx>(tcx: TyCtxt<'tcx>, predicate: ty::Predicate<'tc
                     .emit();
             }
         }
-        ty::PredicateKind::Clause(ty::Clause::Projection(ty::ProjectionPredicate {
+        ty::PredicateKind::Clause(ty::ClauseKind::Projection(ty::ProjectionPredicate {
             projection_ty,
             term,
         })) => {
@@ -509,7 +511,7 @@ fn check_specialization_on<'tcx>(tcx: TyCtxt<'tcx>, predicate: ty::Predicate<'tc
                 )
                 .emit();
         }
-        ty::PredicateKind::Clause(ty::Clause::ConstArgHasType(..)) => {
+        ty::PredicateKind::Clause(ty::ClauseKind::ConstArgHasType(..)) => {
             // FIXME(min_specialization), FIXME(const_generics):
             // It probably isn't right to allow _every_ `ConstArgHasType` but I am somewhat unsure
             // about the actual rules that would be sound. Can't just always error here because otherwise
@@ -532,24 +534,23 @@ fn trait_predicate_kind<'tcx>(
     predicate: ty::Predicate<'tcx>,
 ) -> Option<TraitSpecializationKind> {
     match predicate.kind().skip_binder() {
-        ty::PredicateKind::Clause(ty::Clause::Trait(ty::TraitPredicate {
+        ty::PredicateKind::Clause(ty::ClauseKind::Trait(ty::TraitPredicate {
             trait_ref,
             constness: _,
             polarity: _,
         })) => Some(tcx.trait_def(trait_ref.def_id).specialization_kind),
-        ty::PredicateKind::Clause(ty::Clause::RegionOutlives(_))
-        | ty::PredicateKind::Clause(ty::Clause::TypeOutlives(_))
-        | ty::PredicateKind::Clause(ty::Clause::Projection(_))
-        | ty::PredicateKind::Clause(ty::Clause::ConstArgHasType(..))
+        ty::PredicateKind::Clause(ty::ClauseKind::RegionOutlives(_))
+        | ty::PredicateKind::Clause(ty::ClauseKind::TypeOutlives(_))
+        | ty::PredicateKind::Clause(ty::ClauseKind::Projection(_))
+        | ty::PredicateKind::Clause(ty::ClauseKind::ConstArgHasType(..))
         | ty::PredicateKind::AliasRelate(..)
-        | ty::PredicateKind::WellFormed(_)
+        | ty::PredicateKind::Clause(ty::ClauseKind::WellFormed(_))
         | ty::PredicateKind::Subtype(_)
         | ty::PredicateKind::Coerce(_)
         | ty::PredicateKind::ObjectSafe(_)
         | ty::PredicateKind::ClosureKind(..)
-        | ty::PredicateKind::ConstEvaluatable(..)
+        | ty::PredicateKind::Clause(ty::ClauseKind::ConstEvaluatable(..))
         | ty::PredicateKind::ConstEquate(..)
-        | ty::PredicateKind::Ambiguous
-        | ty::PredicateKind::TypeWellFormedFromEnv(..) => None,
+        | ty::PredicateKind::Ambiguous => None,
     }
 }

@@ -18,7 +18,7 @@ cargo-install --- Build and install a Rust binary
 This command manages Cargo's local set of installed binary crates. Only
 packages which have executable `[[bin]]` or `[[example]]` targets can be
 installed, and all executables are installed into the installation root's
-`bin` folder.
+`bin` folder. By default only binaries, not examples, are installed.
 
 The installation root is determined, in order of precedence:
 
@@ -150,7 +150,7 @@ same time.</dd>
 
 
 <dt class="option-term" id="option-cargo-install---bins"><a class="option-anchor" href="#option-cargo-install---bins"></a><code>--bins</code></dt>
-<dd class="option-desc">Install all binaries.</dd>
+<dd class="option-desc">Install all binaries. This is the default behavior.</dd>
 
 
 <dt class="option-term" id="option-cargo-install---example"><a class="option-anchor" href="#option-cargo-install---example"></a><code>--example</code> <em>name</em>…</dt>
@@ -312,7 +312,8 @@ offline.</p>
 <dd class="option-desc">Number of parallel jobs to run. May also be specified with the
 <code>build.jobs</code> <a href="../reference/config.html">config value</a>. Defaults to
 the number of logical CPUs. If negative, it sets the maximum number of
-parallel jobs to the number of logical CPUs plus provided value.
+parallel jobs to the number of logical CPUs plus provided value. If
+a string <code>default</code> is provided, it sets the value back to defaults.
 Should not be 0.</dd>
 
 

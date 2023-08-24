@@ -1,8 +1,6 @@
 use super::BackendTypes;
-use crate::mir::place::PlaceRef;
 use rustc_middle::mir::interpret::{ConstAllocation, Scalar};
-use rustc_middle::ty::layout::TyAndLayout;
-use rustc_target::abi::{self, Size};
+use rustc_target::abi;
 
 pub trait ConstMethods<'tcx>: BackendTypes {
     // Constant constructors
@@ -17,6 +15,7 @@ pub trait ConstMethods<'tcx>: BackendTypes {
     fn const_i32(&self, i: i32) -> Self::Value;
     fn const_u32(&self, i: u32) -> Self::Value;
     fn const_u64(&self, i: u64) -> Self::Value;
+    fn const_u128(&self, i: u128) -> Self::Value;
     fn const_usize(&self, i: u64) -> Self::Value;
     fn const_u8(&self, i: u8) -> Self::Value;
     fn const_real(&self, t: Self::Type, val: f64) -> Self::Value;
@@ -30,12 +29,8 @@ pub trait ConstMethods<'tcx>: BackendTypes {
     fn const_data_from_alloc(&self, alloc: ConstAllocation<'tcx>) -> Self::Value;
 
     fn scalar_to_backend(&self, cv: Scalar, layout: abi::Scalar, llty: Self::Type) -> Self::Value;
-    fn from_const_alloc(
-        &self,
-        layout: TyAndLayout<'tcx>,
-        alloc: ConstAllocation<'tcx>,
-        offset: Size,
-    ) -> PlaceRef<'tcx, Self::Value>;
 
     fn const_ptrcast(&self, val: Self::Value, ty: Self::Type) -> Self::Value;
+    fn const_bitcast(&self, val: Self::Value, ty: Self::Type) -> Self::Value;
+    fn const_ptr_byte_offset(&self, val: Self::Value, offset: abi::Size) -> Self::Value;
 }

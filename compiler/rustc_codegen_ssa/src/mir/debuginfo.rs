@@ -5,6 +5,7 @@ use rustc_middle::mir;
 use rustc_middle::ty;
 use rustc_middle::ty::layout::TyAndLayout;
 use rustc_middle::ty::layout::{HasTyCtxt, LayoutOf};
+use rustc_middle::ty::Ty;
 use rustc_session::config::DebugInfo;
 use rustc_span::symbol::{kw, Symbol};
 use rustc_span::{BytePos, Span};
@@ -248,7 +249,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
     }
 
     fn spill_operand_to_stack(
-        operand: &OperandRef<'tcx, Bx::Value>,
+        operand: OperandRef<'tcx, Bx::Value>,
         name: Option<String>,
         bx: &mut Bx,
     ) -> PlaceRef<'tcx, Bx::Value> {
@@ -352,6 +353,9 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         bx.set_var_name(a, &(name.clone() + ".0"));
                         bx.set_var_name(b, &(name.clone() + ".1"));
                     }
+                    OperandValue::ZeroSized => {
+                        // These never have a value to talk about
+                    }
                 },
                 LocalRef::PendingOperand => {}
             }
@@ -372,7 +376,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     return;
                 }
 
-                Self::spill_operand_to_stack(operand, name, bx)
+                Self::spill_operand_to_stack(*operand, name, bx)
             }
 
             LocalRef::Place(place) => *place,
@@ -418,9 +422,10 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
 
         let create_alloca = |bx: &mut Bx, place: PlaceRef<'tcx, Bx::Value>, refcount| {
             // Create a variable which will be a pointer to the actual value
-            let ptr_ty = bx
-                .tcx()
-                .mk_ptr(ty::TypeAndMut { mutbl: mir::Mutability::Mut, ty: place.layout.ty });
+            let ptr_ty = Ty::new_ptr(
+                bx.tcx(),
+                ty::TypeAndMut { mutbl: mir::Mutability::Mut, ty: place.layout.ty },
+            );
             let ptr_layout = bx.layout_of(ptr_ty);
             let alloca = PlaceRef::alloca(bx, ptr_layout);
             bx.set_var_name(alloca.llval, &format!("{}.ref{}.dbg.spill", var.name, refcount));
@@ -522,8 +527,10 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 };
 
                 for _ in 0..var.references {
-                    var_ty =
-                        bx.tcx().mk_ptr(ty::TypeAndMut { mutbl: mir::Mutability::Mut, ty: var_ty });
+                    var_ty = Ty::new_ptr(
+                        bx.tcx(),
+                        ty::TypeAndMut { mutbl: mir::Mutability::Mut, ty: var_ty },
+                    );
                 }
 
                 self.cx.create_dbg_var(var.name, var_ty, dbg_scope, var_kind, span)
@@ -547,7 +554,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         if let Ok(operand) = self.eval_mir_constant_to_operand(bx, &c) {
                             self.set_debug_loc(bx, var.source_info);
                             let base = Self::spill_operand_to_stack(
-                                &operand,
+                                operand,
                                 Some(var.name.to_string()),
                                 bx,
                             );

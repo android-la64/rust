@@ -230,7 +230,7 @@ struct TransformVisitor<'tcx> {
 
     // Mapping from Local to (type of local, generator struct index)
     // FIXME(eddyb) This should use `IndexVec<Local, Option<_>>`.
-    remap: FxHashMap<Local, (Ty<'tcx>, VariantIdx, usize)>,
+    remap: FxHashMap<Local, (Ty<'tcx>, VariantIdx, FieldIdx)>,
 
     // A map from a suspension point in a block to the locals which have live storage at that point
     storage_liveness: IndexVec<BasicBlock, Option<BitSet<Local>>>,
@@ -295,11 +295,11 @@ impl<'tcx> TransformVisitor<'tcx> {
     }
 
     // Create a Place referencing a generator struct field
-    fn make_field(&self, variant_index: VariantIdx, idx: usize, ty: Ty<'tcx>) -> Place<'tcx> {
+    fn make_field(&self, variant_index: VariantIdx, idx: FieldIdx, ty: Ty<'tcx>) -> Place<'tcx> {
         let self_place = Place::from(SELF_ARG);
         let base = self.tcx.mk_place_downcast_unnamed(self_place, variant_index);
         let mut projection = base.projection.to_vec();
-        projection.push(ProjectionElem::Field(FieldIdx::new(idx), ty));
+        projection.push(ProjectionElem::Field(idx, ty));
 
         Place { local: base.local, projection: self.tcx.mk_place_elems(&projection) }
     }
@@ -413,8 +413,11 @@ impl<'tcx> MutVisitor<'tcx> for TransformVisitor<'tcx> {
 fn make_generator_state_argument_indirect<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
     let gen_ty = body.local_decls.raw[1].ty;
 
-    let ref_gen_ty =
-        tcx.mk_ref(tcx.lifetimes.re_erased, ty::TypeAndMut { ty: gen_ty, mutbl: Mutability::Mut });
+    let ref_gen_ty = Ty::new_ref(
+        tcx,
+        tcx.lifetimes.re_erased,
+        ty::TypeAndMut { ty: gen_ty, mutbl: Mutability::Mut },
+    );
 
     // Replace the by value generator argument
     body.local_decls.raw[1].ty = ref_gen_ty;
@@ -429,7 +432,7 @@ fn make_generator_state_argument_pinned<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body
     let pin_did = tcx.require_lang_item(LangItem::Pin, Some(body.span));
     let pin_adt_ref = tcx.adt_def(pin_did);
     let substs = tcx.mk_substs(&[ref_gen_ty.into()]);
-    let pin_ref_gen_ty = tcx.mk_adt(pin_adt_ref, substs);
+    let pin_ref_gen_ty = Ty::new_adt(tcx, pin_adt_ref, substs);
 
     // Replace the by ref generator argument
     body.local_decls.raw[1].ty = pin_ref_gen_ty;
@@ -481,7 +484,7 @@ fn replace_local<'tcx>(
 /// still using the `ResumeTy` indirection for the time being, and that indirection
 /// is removed here. After this transform, the generator body only knows about `&mut Context<'_>`.
 fn transform_async_context<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
-    let context_mut_ref = tcx.mk_task_context();
+    let context_mut_ref = Ty::new_task_context(tcx);
 
     // replace the type of the `resume` argument
     replace_resume_ty_local(tcx, body, Local::new(2), context_mut_ref);
@@ -597,16 +600,15 @@ fn locals_live_across_suspend_points<'tcx>(
     let borrowed_locals_results =
         MaybeBorrowedLocals.into_engine(tcx, body_ref).pass_name("generator").iterate_to_fixpoint();
 
-    let mut borrowed_locals_cursor =
-        rustc_mir_dataflow::ResultsCursor::new(body_ref, &borrowed_locals_results);
+    let mut borrowed_locals_cursor = borrowed_locals_results.cloned_results_cursor(body_ref);
 
     // Calculate the MIR locals that we actually need to keep storage around
     // for.
-    let requires_storage_results = MaybeRequiresStorage::new(body, &borrowed_locals_results)
-        .into_engine(tcx, body_ref)
-        .iterate_to_fixpoint();
-    let mut requires_storage_cursor =
-        rustc_mir_dataflow::ResultsCursor::new(body_ref, &requires_storage_results);
+    let mut requires_storage_results =
+        MaybeRequiresStorage::new(borrowed_locals_results.cloned_results_cursor(body))
+            .into_engine(tcx, body_ref)
+            .iterate_to_fixpoint();
+    let mut requires_storage_cursor = requires_storage_results.as_results_cursor(body_ref);
 
     // Calculate the liveness of MIR locals ignoring borrows.
     let mut liveness = MaybeLiveLocals
@@ -747,7 +749,7 @@ fn compute_storage_conflicts<'mir, 'tcx>(
     body: &'mir Body<'tcx>,
     saved_locals: &GeneratorSavedLocals,
     always_live_locals: BitSet<Local>,
-    requires_storage: rustc_mir_dataflow::Results<'tcx, MaybeRequiresStorage<'mir, 'tcx>>,
+    mut requires_storage: rustc_mir_dataflow::Results<'tcx, MaybeRequiresStorage<'_, 'mir, 'tcx>>,
 ) -> BitMatrix<GeneratorSavedLocal, GeneratorSavedLocal> {
     assert_eq!(body.local_decls.len(), saved_locals.domain_size());
 
@@ -802,13 +804,14 @@ struct StorageConflictVisitor<'mir, 'tcx, 's> {
     local_conflicts: BitMatrix<Local, Local>,
 }
 
-impl<'mir, 'tcx> rustc_mir_dataflow::ResultsVisitor<'mir, 'tcx>
+impl<'mir, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'mir, 'tcx, R>
     for StorageConflictVisitor<'mir, 'tcx, '_>
 {
     type FlowState = BitSet<Local>;
 
     fn visit_statement_before_primary_effect(
         &mut self,
+        _results: &R,
         state: &Self::FlowState,
         _statement: &'mir Statement<'tcx>,
         loc: Location,
@@ -818,6 +821,7 @@ impl<'mir, 'tcx> rustc_mir_dataflow::ResultsVisitor<'mir, 'tcx>
 
     fn visit_terminator_before_primary_effect(
         &mut self,
+        _results: &R,
         state: &Self::FlowState,
         _terminator: &'mir Terminator<'tcx>,
         loc: Location,
@@ -903,7 +907,7 @@ fn compute_layout<'tcx>(
     liveness: LivenessInfo,
     body: &Body<'tcx>,
 ) -> (
-    FxHashMap<Local, (Ty<'tcx>, VariantIdx, usize)>,
+    FxHashMap<Local, (Ty<'tcx>, VariantIdx, FieldIdx)>,
     GeneratorLayout<'tcx>,
     IndexVec<BasicBlock, Option<BitSet<Local>>>,
 ) {
@@ -981,6 +985,7 @@ fn compute_layout<'tcx>(
             // just use the first one here. That's fine; fields do not move
             // around inside generators, so it doesn't matter which variant
             // index we access them by.
+            let idx = FieldIdx::from_usize(idx);
             remap.entry(locals[saved_local]).or_insert((tys[saved_local].ty, variant_index, idx));
         }
         variant_fields.push(fields);
@@ -989,8 +994,23 @@ fn compute_layout<'tcx>(
     debug!("generator variant_fields = {:?}", variant_fields);
     debug!("generator storage_conflicts = {:#?}", storage_conflicts);
 
-    let layout =
-        GeneratorLayout { field_tys: tys, variant_fields, variant_source_info, storage_conflicts };
+    let mut field_names = IndexVec::from_elem(None, &tys);
+    for var in &body.var_debug_info {
+        let VarDebugInfoContents::Place(place) = &var.value else { continue };
+        let Some(local) = place.as_local() else { continue };
+        let Some(&(_, variant, field)) = remap.get(&local) else { continue };
+
+        let saved_local = variant_fields[variant][field];
+        field_names.get_or_insert_with(saved_local, || var.name);
+    }
+
+    let layout = GeneratorLayout {
+        field_tys: tys,
+        field_names,
+        variant_fields,
+        variant_source_info,
+        storage_conflicts,
+    };
     debug!(?layout);
 
     (remap, layout, storage_liveness)
@@ -1113,13 +1133,13 @@ fn create_generator_drop_shim<'tcx>(
     }
 
     // Replace the return variable
-    body.local_decls[RETURN_PLACE] = LocalDecl::with_source_info(tcx.mk_unit(), source_info);
+    body.local_decls[RETURN_PLACE] = LocalDecl::with_source_info(Ty::new_unit(tcx), source_info);
 
     make_generator_state_argument_indirect(tcx, &mut body);
 
     // Change the generator argument from &mut to *mut
     body.local_decls[SELF_ARG] = LocalDecl::with_source_info(
-        tcx.mk_ptr(ty::TypeAndMut { ty: gen_ty, mutbl: hir::Mutability::Mut }),
+        Ty::new_ptr(tcx, ty::TypeAndMut { ty: gen_ty, mutbl: hir::Mutability::Mut }),
         source_info,
     );
 
@@ -1476,7 +1496,7 @@ impl<'tcx> MirPass<'tcx> for StateTransform {
             let state_substs = tcx.mk_substs(&[yield_ty.into(), body.return_ty().into()]);
             (state_adt_ref, state_substs)
         };
-        let ret_ty = tcx.mk_adt(state_adt_ref, state_substs);
+        let ret_ty = Ty::new_adt(tcx, state_adt_ref, state_substs);
 
         // We rename RETURN_PLACE which has type mir.return_ty to new_ret_local
         // RETURN_PLACE then is a fresh unused local with type ret_ty.
@@ -1492,8 +1512,11 @@ impl<'tcx> MirPass<'tcx> for StateTransform {
         // case there is no `Assign` to it that the transform can turn into a store to the generator
         // state. After the yield the slot in the generator state would then be uninitialized.
         let resume_local = Local::new(2);
-        let resume_ty =
-            if is_async_kind { tcx.mk_task_context() } else { body.local_decls[resume_local].ty };
+        let resume_ty = if is_async_kind {
+            Ty::new_task_context(tcx)
+        } else {
+            body.local_decls[resume_local].ty
+        };
         let new_resume_local = replace_local(resume_local, resume_ty, body, tcx);
 
         // When first entering the generator, move the resume argument into its new local.
@@ -1691,7 +1714,7 @@ impl<'tcx> Visitor<'tcx> for EnsureGeneratorFieldAssignmentsNeverAlias<'_> {
                 destination,
                 target: Some(_),
                 unwind: _,
-                from_hir_call: _,
+                call_source: _,
                 fn_span: _,
             } => {
                 self.check_assigned_place(*destination, |this| {
@@ -1807,7 +1830,7 @@ fn check_must_not_suspend_ty<'tcx>(
             let mut has_emitted = false;
             for &(predicate, _) in tcx.explicit_item_bounds(def).skip_binder() {
                 // We only look at the `DefId`, so it is safe to skip the binder here.
-                if let ty::PredicateKind::Clause(ty::Clause::Trait(ref poly_trait_predicate)) =
+                if let ty::ClauseKind::Trait(ref poly_trait_predicate) =
                     predicate.kind().skip_binder()
                 {
                     let def_id = poly_trait_predicate.trait_ref.def_id;

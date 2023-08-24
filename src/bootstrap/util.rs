@@ -3,6 +3,7 @@
 //! Simple things like testing the various filesystem operations here and there,
 //! not a lot of interesting happenings here unfortunately.
 
+use build_helper::util::{fail, try_run};
 use std::env;
 use std::fs;
 use std::io;
@@ -133,17 +134,17 @@ pub(crate) fn program_out_of_date(stamp: &Path, key: &str) -> bool {
 
 /// Symlinks two directories, using junctions on Windows and normal symlinks on
 /// Unix.
-pub fn symlink_dir(config: &Config, src: &Path, dest: &Path) -> io::Result<()> {
+pub fn symlink_dir(config: &Config, original: &Path, link: &Path) -> io::Result<()> {
     if config.dry_run() {
         return Ok(());
     }
-    let _ = fs::remove_dir(dest);
-    return symlink_dir_inner(src, dest);
+    let _ = fs::remove_dir(link);
+    return symlink_dir_inner(original, link);
 
     #[cfg(not(windows))]
-    fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
+    fn symlink_dir_inner(original: &Path, link: &Path) -> io::Result<()> {
         use std::os::unix::fs;
-        fs::symlink(src, dest)
+        fs::symlink(original, link)
     }
 
     #[cfg(windows)]
@@ -158,8 +159,6 @@ pub fn symlink_dir(config: &Config, src: &Path, dest: &Path) -> io::Result<()> {
 pub enum CiEnv {
     /// Not a CI environment.
     None,
-    /// The Azure Pipelines environment, for Linux (including Docker), Windows, and macOS builds.
-    AzurePipelines,
     /// The GitHub Actions environment, for Linux (including Docker), Windows and macOS builds.
     GitHubActions,
 }
@@ -229,24 +228,9 @@ pub fn is_valid_test_suite_arg<'a, P: AsRef<Path>>(
 }
 
 pub fn run(cmd: &mut Command, print_cmd_on_fail: bool) {
-    if !try_run(cmd, print_cmd_on_fail) {
-        crate::detail_exit(1);
+    if try_run(cmd, print_cmd_on_fail).is_err() {
+        crate::detail_exit_macro!(1);
     }
-}
-
-pub fn try_run(cmd: &mut Command, print_cmd_on_fail: bool) -> bool {
-    let status = match cmd.status() {
-        Ok(status) => status,
-        Err(e) => fail(&format!("failed to execute command: {:?}\nerror: {}", cmd, e)),
-    };
-    if !status.success() && print_cmd_on_fail {
-        println!(
-            "\n\ncommand did not execute successfully: {:?}\n\
-             expected success, got: {}\n\n",
-            cmd, status
-        );
-    }
-    status.success()
 }
 
 pub fn check_run(cmd: &mut Command, print_cmd_on_fail: bool) -> bool {
@@ -269,7 +253,7 @@ pub fn check_run(cmd: &mut Command, print_cmd_on_fail: bool) -> bool {
 
 pub fn run_suppressed(cmd: &mut Command) {
     if !try_run_suppressed(cmd) {
-        crate::detail_exit(1);
+        crate::detail_exit_macro!(1);
     }
 }
 
@@ -372,11 +356,6 @@ fn dir_up_to_date(src: &Path, threshold: SystemTime) -> bool {
             meta.modified().unwrap_or(UNIX_EPOCH) < threshold
         }
     })
-}
-
-fn fail(s: &str) -> ! {
-    eprintln!("\n\n{}\n\n", s);
-    crate::detail_exit(1);
 }
 
 /// Copied from `std::path::absolute` until it stabilizes.

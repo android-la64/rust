@@ -14,7 +14,7 @@ use rustc_span::hygiene::MacroKind;
 use rustc_span::symbol::{kw, sym, Symbol};
 use rustc_span::Span;
 
-use std::{iter, mem};
+use std::mem;
 
 use crate::clean::{cfg::Cfg, reexport_chain, AttributesExt, NestedAttributesExt};
 use crate::core;
@@ -147,9 +147,9 @@ impl<'a, 'tcx> RustdocVisitor<'a, 'tcx> {
 
         // `#[macro_export] macro_rules!` items are reexported at the top level of the
         // crate, regardless of where they're defined. We want to document the
-        // top level rexport of the macro, not its original definition, since
-        // the rexport defines the path that a user will actually see. Accordingly,
-        // we add the rexport as an item here, and then skip over the original
+        // top level re-export of the macro, not its original definition, since
+        // the re-export defines the path that a user will actually see. Accordingly,
+        // we add the re-export as an item here, and then skip over the original
         // definition in `visit_item()` below.
         //
         // We also skip `#[macro_export] macro_rules!` that have already been inserted,
@@ -246,7 +246,7 @@ impl<'a, 'tcx> RustdocVisitor<'a, 'tcx> {
         glob: bool,
         please_inline: bool,
     ) -> bool {
-        debug!("maybe_inline_local res: {:?}", res);
+        debug!("maybe_inline_local (renamed: {renamed:?}) res: {res:?}");
 
         if renamed == Some(kw::Underscore) {
             // We never inline `_` reexports.
@@ -267,6 +267,10 @@ impl<'a, 'tcx> RustdocVisitor<'a, 'tcx> {
         let is_no_inline = use_attrs.lists(sym::doc).has_word(sym::no_inline)
             || use_attrs.lists(sym::doc).has_word(sym::hidden);
 
+        if is_no_inline {
+            return false;
+        }
+
         // For cross-crate impl inlining we need to know whether items are
         // reachable in documentation -- a previously unreachable item can be
         // made reachable by cross-crate inlining which we're checking here.
@@ -281,31 +285,27 @@ impl<'a, 'tcx> RustdocVisitor<'a, 'tcx> {
         };
 
         let is_private = !self.cx.cache.effective_visibilities.is_directly_public(tcx, ori_res_did);
-        let is_hidden = inherits_doc_hidden(tcx, res_did, None);
+        let is_hidden = tcx.is_doc_hidden(ori_res_did);
+        let item = tcx.hir().get_by_def_id(res_did);
 
-        // Only inline if requested or if the item would otherwise be stripped.
-        if (!please_inline && !is_private && !is_hidden) || is_no_inline {
-            return false;
-        }
-
-        if !please_inline &&
-            let Some(item_def_id) = reexport_chain(tcx, def_id, res_did).iter()
-                .flat_map(|reexport| reexport.id()).map(|id| id.expect_local())
-                .chain(iter::once(res_did)).nth(1) &&
-            item_def_id != def_id &&
-            self
-                .cx
-                .cache
-                .effective_visibilities
-                .is_directly_public(tcx, item_def_id.to_def_id()) &&
-            !inherits_doc_hidden(tcx, item_def_id, None)
-        {
-            // The imported item is public and not `doc(hidden)` so no need to inline it.
-            return false;
+        if !please_inline {
+            let inherits_hidden = inherits_doc_hidden(tcx, res_did, None);
+            // Only inline if requested or if the item would otherwise be stripped.
+            if (!is_private && !inherits_hidden) || (
+                is_hidden &&
+                // If it's a doc hidden module, we need to keep it in case some of its inner items
+                // are re-exported.
+                !matches!(item, Node::Item(&hir::Item { kind: hir::ItemKind::Mod(_), .. }))
+            ) ||
+                // The imported item is public and not `doc(hidden)` so no need to inline it.
+                self.reexport_public_and_not_hidden(def_id, res_did)
+            {
+                return false;
+            }
         }
 
         let is_bang_macro = matches!(
-            tcx.hir().get_by_def_id(res_did),
+            item,
             Node::Item(&hir::Item { kind: hir::ItemKind::Macro(_, MacroKind::Bang), .. })
         );
 
@@ -313,16 +313,11 @@ impl<'a, 'tcx> RustdocVisitor<'a, 'tcx> {
             return false;
         }
 
-        let ret = match tcx.hir().get_by_def_id(res_did) {
+        let inlined = match tcx.hir().get_by_def_id(res_did) {
             // Bang macros are handled a bit on their because of how they are handled by the
             // compiler. If they have `#[doc(hidden)]` and the re-export doesn't have
             // `#[doc(inline)]`, then we don't inline it.
-            Node::Item(_)
-                if is_bang_macro
-                    && !please_inline
-                    && renamed.is_some()
-                    && self.cx.tcx.is_doc_hidden(ori_res_did) =>
-            {
+            Node::Item(_) if is_bang_macro && !please_inline && renamed.is_some() && is_hidden => {
                 return false;
             }
             Node::Item(&hir::Item { kind: hir::ItemKind::Mod(ref m), .. }) if glob => {
@@ -349,7 +344,32 @@ impl<'a, 'tcx> RustdocVisitor<'a, 'tcx> {
             _ => false,
         };
         self.view_item_stack.remove(&res_did);
-        ret
+        if inlined {
+            self.cx.cache.inlined_items.insert(res_did.to_def_id());
+        }
+        inlined
+    }
+
+    /// Returns `true` if the item is visible, meaning it's not `#[doc(hidden)]` or private.
+    ///
+    /// This function takes into account the entire re-export `use` chain, so it needs the
+    /// ID of the "leaf" `use` and the ID of the "root" item.
+    fn reexport_public_and_not_hidden(
+        &self,
+        import_def_id: LocalDefId,
+        target_def_id: LocalDefId,
+    ) -> bool {
+        let tcx = self.cx.tcx;
+        let item_def_id = reexport_chain(tcx, import_def_id, target_def_id)
+            .iter()
+            .flat_map(|reexport| reexport.id())
+            .map(|id| id.expect_local())
+            .nth(1)
+            .unwrap_or(target_def_id);
+        item_def_id != import_def_id
+            && self.cx.cache.effective_visibilities.is_directly_public(tcx, item_def_id.to_def_id())
+            && !tcx.is_doc_hidden(item_def_id)
+            && !inherits_doc_hidden(tcx, item_def_id, None)
     }
 
     #[inline]
@@ -455,6 +475,7 @@ impl<'a, 'tcx> RustdocVisitor<'a, 'tcx> {
                             is_glob,
                             please_inline,
                         ) {
+                            debug!("Inlining {:?}", item.owner_id.def_id);
                             continue;
                         }
                     }

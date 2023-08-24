@@ -9,6 +9,8 @@ codegen_ssa_archive_build_failure =
 
 codegen_ssa_atomic_compare_exchange = Atomic compare-exchange intrinsic missing failure memory ordering
 
+codegen_ssa_binary_output_to_tty = option `-o` or `--emit` is used to write binary output type `{$shorthand}` to stdout, but stdout is a tty
+
 codegen_ssa_check_installed_visual_studio = please ensure that Visual Studio 2017 or later, or Build Tools for Visual Studio were installed with the Visual C++ option.
 
 codegen_ssa_copy_path = could not copy {$from} to {$to}: {$error}
@@ -18,6 +20,8 @@ codegen_ssa_copy_path_buf = unable to copy {$source_file} to {$output_path}: {$e
 codegen_ssa_create_temp_dir = couldn't create a temp dir: {$error}
 
 codegen_ssa_erroneous_constant = erroneous constant encountered
+
+codegen_ssa_error_creating_remark_dir = failed to create remark directory: {$error}
 
 codegen_ssa_expected_used_symbol = expected `used`, `used(compiler)` or `used(linker)`
 

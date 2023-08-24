@@ -3272,6 +3272,43 @@ declare_lint! {
     "ambiguous glob re-exports",
 }
 
+declare_lint! {
+    /// The `hidden_glob_reexports` lint detects cases where glob re-export items are shadowed by
+    /// private items.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    /// #![deny(hidden_glob_reexports)]
+    ///
+    /// pub mod upstream {
+    ///     mod inner { pub struct Foo {}; pub struct Bar {}; }
+    ///     pub use self::inner::*;
+    ///     struct Foo {} // private item shadows `inner::Foo`
+    /// }
+    ///
+    /// // mod downstream {
+    /// //     fn test() {
+    /// //         let _ = crate::upstream::Foo; // inaccessible
+    /// //     }
+    /// // }
+    ///
+    /// pub fn main() {}
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// This was previously accepted without any errors or warnings but it could silently break a
+    /// crate's downstream user code. If the `struct Foo` was added, `dep::inner::Foo` would
+    /// silently become inaccessible and trigger a "`struct `Foo` is private`" visibility error at
+    /// the downstream use site.
+    pub HIDDEN_GLOB_REEXPORTS,
+    Warn,
+    "name introduced by a private item shadows a name introduced by a public glob re-export",
+}
+
 declare_lint_pass! {
     /// Does nothing as a lint pass, but registers some `Lint`s
     /// that are used by other parts of the compiler.
@@ -3304,6 +3341,7 @@ declare_lint_pass! {
         FORBIDDEN_LINT_GROUPS,
         FUNCTION_ITEM_REFERENCES,
         FUZZY_PROVENANCE_CASTS,
+        HIDDEN_GLOB_REEXPORTS,
         ILL_FORMED_ATTRIBUTE_INPUT,
         ILLEGAL_FLOATING_POINT_LITERAL_PATTERN,
         IMPLIED_BOUNDS_ENTAILMENT,
@@ -3319,6 +3357,7 @@ declare_lint_pass! {
         LARGE_ASSIGNMENTS,
         LATE_BOUND_LIFETIME_ARGUMENTS,
         LEGACY_DERIVE_HELPERS,
+        LONG_RUNNING_CONST_EVAL,
         LOSSY_PROVENANCE_CASTS,
         MACRO_EXPANDED_MACRO_EXPORTS_ACCESSED_BY_ABSOLUTE_PATHS,
         MACRO_USE_EXTERN_CRATE,
@@ -3333,7 +3372,9 @@ declare_lint_pass! {
         OVERLAPPING_RANGE_ENDPOINTS,
         PATTERNS_IN_FNS_WITHOUT_BODY,
         POINTER_STRUCTURAL_MATCH,
+        PRIVATE_BOUNDS,
         PRIVATE_IN_PUBLIC,
+        PRIVATE_INTERFACES,
         PROC_MACRO_BACK_COMPAT,
         PROC_MACRO_DERIVE_RESOLUTION_FALLBACK,
         PUB_USE_OF_PRIVATE_EXTERN_CRATE,
@@ -3360,6 +3401,7 @@ declare_lint_pass! {
         UNINHABITED_STATIC,
         UNKNOWN_CRATE_TYPES,
         UNKNOWN_LINTS,
+        UNNAMEABLE_TYPES,
         UNREACHABLE_CODE,
         UNREACHABLE_PATTERNS,
         UNSAFE_OP_IN_UNSAFE_FN,
@@ -3367,6 +3409,7 @@ declare_lint_pass! {
         UNSTABLE_SYNTAX_PRE_EXPANSION,
         UNSUPPORTED_CALLING_CONVENTIONS,
         UNUSED_ASSIGNMENTS,
+        UNUSED_ASSOCIATED_TYPE_BOUNDS,
         UNUSED_ATTRIBUTES,
         UNUSED_CRATE_DEPENDENCIES,
         UNUSED_EXTERN_CRATES,
@@ -3386,6 +3429,70 @@ declare_lint_pass! {
         WHERE_CLAUSES_OBJECT_SAFETY,
         // tidy-alphabetical-end
     ]
+}
+
+declare_lint! {
+    /// The `long_running_const_eval` lint is emitted when const
+    /// eval is running for a long time to ensure rustc terminates
+    /// even if you accidentally wrote an infinite loop.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    /// const FOO: () = loop {};
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// Loops allow const evaluation to compute arbitrary code, but may also
+    /// cause infinite loops or just very long running computations.
+    /// Users can enable long running computations by allowing the lint
+    /// on individual constants or for entire crates.
+    ///
+    /// ### Unconditional warnings
+    ///
+    /// Note that regardless of whether the lint is allowed or set to warn,
+    /// the compiler will issue warnings if constant evaluation runs significantly
+    /// longer than this lint's limit. These warnings are also shown to downstream
+    /// users from crates.io or similar registries. If you are above the lint's limit,
+    /// both you and downstream users might be exposed to these warnings.
+    /// They might also appear on compiler updates, as the compiler makes minor changes
+    /// about how complexity is measured: staying below the limit ensures that there
+    /// is enough room, and given that the lint is disabled for people who use your
+    /// dependency it means you will be the only one to get the warning and can put
+    /// out an update in your own time.
+    pub LONG_RUNNING_CONST_EVAL,
+    Deny,
+    "detects long const eval operations",
+    report_in_external_macro
+}
+
+declare_lint! {
+    /// The `unused_associated_type_bounds` lint is emitted when an
+    /// associated type bound is added to a trait object, but the associated
+    /// type has a `where Self: Sized` bound, and is thus unavailable on the
+    /// trait object anyway.
+    ///
+    /// ### Example
+    ///
+    /// ```rust
+    /// trait Foo {
+    ///     type Bar where Self: Sized;
+    /// }
+    /// type Mop = dyn Foo<Bar = ()>;
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// Just like methods with `Self: Sized` bounds are unavailable on trait
+    /// objects, associated types can be removed from the trait object.
+    pub UNUSED_ASSOCIATED_TYPE_BOUNDS,
+    Warn,
+    "detects unused `Foo = Bar` bounds in `dyn Trait<Foo = Bar>`"
 }
 
 declare_lint! {
@@ -4174,4 +4281,102 @@ declare_lint! {
     pub INVALID_MACRO_EXPORT_ARGUMENTS,
     Warn,
     "\"invalid_parameter\" isn't a valid argument for `#[macro_export]`",
+}
+
+declare_lint! {
+    /// The `private_interfaces` lint detects types in a primary interface of an item,
+    /// that are more private than the item itself. Primary interface of an item is all
+    /// its interface except for bounds on generic parameters and where clauses.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    /// # #![feature(type_privacy_lints)]
+    /// # #![allow(unused)]
+    /// # #![allow(private_in_public)]
+    /// #![deny(private_interfaces)]
+    /// struct SemiPriv;
+    ///
+    /// mod m1 {
+    ///     struct Priv;
+    ///     impl crate::SemiPriv {
+    ///         pub fn f(_: Priv) {}
+    ///     }
+    /// }
+    ///
+    /// # fn main() {}
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// Having something private in primary interface guarantees that
+    /// the item will be unusable from outer modules due to type privacy.
+    pub PRIVATE_INTERFACES,
+    Allow,
+    "private type in primary interface of an item",
+    @feature_gate = sym::type_privacy_lints;
+}
+
+declare_lint! {
+    /// The `private_bounds` lint detects types in a secondary interface of an item,
+    /// that are more private than the item itself. Secondary interface of an item consists of
+    /// bounds on generic parameters and where clauses, including supertraits for trait items.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    /// # #![feature(type_privacy_lints)]
+    /// # #![allow(private_in_public)]
+    /// # #![allow(unused)]
+    /// #![deny(private_bounds)]
+    ///
+    /// struct PrivTy;
+    /// pub struct S
+    ///     where PrivTy:
+    /// {}
+    /// # fn main() {}
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// Having private types or traits in item bounds makes it less clear what interface
+    /// the item actually provides.
+    pub PRIVATE_BOUNDS,
+    Allow,
+    "private type in secondary interface of an item",
+    @feature_gate = sym::type_privacy_lints;
+}
+
+declare_lint! {
+    /// The `unnameable_types` lint detects types for which you can get objects of that type,
+    /// but cannot name the type itself.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    /// # #![feature(type_privacy_lints)]
+    /// # #![allow(unused)]
+    /// #![deny(unnameable_types)]
+    /// mod m {
+    ///     pub struct S;
+    /// }
+    ///
+    /// pub fn get_voldemort() -> m::S { m::S }
+    /// # fn main() {}
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// It is often expected that if you can obtain an object of type `T`, then
+    /// you can name the type `T` as well, this lint attempts to enforce this rule.
+    pub UNNAMEABLE_TYPES,
+    Allow,
+    "effective visibility of a type is larger than the area in which it can be named",
+    @feature_gate = sym::type_privacy_lints;
 }

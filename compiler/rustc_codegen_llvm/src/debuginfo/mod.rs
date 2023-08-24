@@ -263,7 +263,7 @@ impl CodegenCx<'_, '_> {
     pub fn lookup_debug_loc(&self, pos: BytePos) -> DebugLoc {
         let (file, line, col) = match self.sess().source_map().lookup_line(pos) {
             Ok(SourceFileAndLine { sf: file, line }) => {
-                let line_pos = file.line_begin_pos(pos);
+                let line_pos = file.lines(|lines| lines[line]);
 
                 // Use 1-based indexing.
                 let line = (line + 1) as u32;
@@ -332,7 +332,7 @@ impl<'ll, 'tcx> DebugInfoMethods<'tcx> for CodegenCx<'ll, 'tcx> {
             llvm::LLVMRustDIBuilderCreateSubroutineType(DIB(self), fn_signature)
         };
 
-        let mut name = String::new();
+        let mut name = String::with_capacity(64);
         type_names::push_item_name(tcx, def_id, false, &mut name);
 
         // Find the enclosing function, in case this is a closure.
@@ -454,7 +454,7 @@ impl<'ll, 'tcx> DebugInfoMethods<'tcx> for CodegenCx<'ll, 'tcx> {
                         ty::Array(ct, _)
                             if (*ct == cx.tcx.types.u8) || cx.layout_of(*ct).is_zst() =>
                         {
-                            cx.tcx.mk_imm_ptr(*ct)
+                            Ty::new_imm_ptr(cx.tcx, *ct)
                         }
                         _ => t,
                     };

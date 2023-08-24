@@ -16,7 +16,7 @@ use self::State::*;
 pub(crate) struct Blocking<T> {
     inner: Option<T>,
     state: State<T>,
-    /// `true` if the lower IO layer needs flushing
+    /// `true` if the lower IO layer needs flushing.
     need_flush: bool,
 }
 
@@ -26,7 +26,7 @@ pub(crate) struct Buf {
     pos: usize,
 }
 
-pub(crate) const MAX_BUF: usize = 16 * 1024;
+pub(crate) const MAX_BUF: usize = 2 * 1024 * 1024;
 
 #[derive(Debug)]
 enum State<T> {
@@ -34,8 +34,9 @@ enum State<T> {
     Busy(sys::Blocking<(io::Result<usize>, Buf, T)>),
 }
 
-cfg_io_std! {
+cfg_io_blocking! {
     impl<T> Blocking<T> {
+        #[cfg_attr(feature = "fs", allow(dead_code))]
         pub(crate) fn new(inner: T) -> Blocking<T> {
             Blocking {
                 inner: Some(inner),
@@ -175,7 +176,7 @@ where
     }
 }
 
-/// Repeats operations that are interrupted
+/// Repeats operations that are interrupted.
 macro_rules! uninterruptibly {
     ($e:expr) => {{
         loop {

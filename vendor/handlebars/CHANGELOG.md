@@ -1,5 +1,28 @@
 # Change Log
 
+## [4.3.7](https://github.com/sunng87/handlebars-rust/compare/4.3.6...4.3.7) - 2023-05-11
+
+* [Fixed] Use full quanlified name of `Result` in `handlebars_helper` macro [#578]
+* [Fixed] Allow single-quote JSON literal [#577]
+
+## [4.3.6](https://github.com/sunng87/handlebars-rust/compare/4.3.5...4.3.6) - 2022-12-21
+
+* [Fixed] Loading template files with multiple extensions, a bug introduced in
+  4.3.0 when refactoring directory source.
+
+## [4.3.5](https://github.com/sunng87/handlebars-rust/compare/4.3.4...4.3.5) - 2022-10-05
+
+* [Fixed] Partial context not affected when using with hash context, within a
+  each/with block [#536]
+
+## [4.3.4](https://github.com/sunng87/handlebars-rust/compare/4.3.3...4.3.4) - 2022-09-11
+
+* [Added] New `write_fmt` function for `Output` [#522]
+* [Added] `reason()` method for `TemplateError` to access underlying reason,
+  this replaces original direct `.reason` access.
+* [Changed] Direct access to `TemplateError`'s `reason` field is depreacted will
+  be removed in future.
+
 ## [4.3.3](https://github.com/sunng87/handlebars-rust/compare/4.3.2...4.3.3) - 2022-07-20
 
 * [Fixed] Disable partial expression indentation with `{{~> partial}}` to

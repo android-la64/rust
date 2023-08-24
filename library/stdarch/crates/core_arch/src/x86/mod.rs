@@ -258,6 +258,7 @@ types! {
     ///
     /// Note that this means that an instance of `__m512i` typically just means
     /// a "bag of bits" which is left up to interpretation at the point of use.
+    #[stable(feature = "simd_avx512_types", since = "CURRENT_RUSTC_VERSION")]
     pub struct __m512i(i64, i64, i64, i64, i64, i64, i64, i64);
 
     /// 512-bit wide set of sixteen `f32` types, x86-specific
@@ -275,6 +276,7 @@ types! {
     /// Most intrinsics using `__m512` are prefixed with `_mm512_` and are
     /// suffixed with "ps" (or otherwise contain "ps"). Not to be confused with
     /// "pd" which is used for `__m512d`.
+    #[stable(feature = "simd_avx512_types", since = "CURRENT_RUSTC_VERSION")]
     pub struct __m512(
         f32, f32, f32, f32, f32, f32, f32, f32,
         f32, f32, f32, f32, f32, f32, f32, f32,
@@ -295,6 +297,7 @@ types! {
     /// Most intrinsics using `__m512d` are prefixed with `_mm512_` and are
     /// suffixed with "pd" (or otherwise contain "pd"). Not to be confused with
     /// "ps" which is used for `__m512`.
+    #[stable(feature = "simd_avx512_types", since = "CURRENT_RUSTC_VERSION")]
     pub struct __m512d(f64, f64, f64, f64, f64, f64, f64, f64);
 
     /// 128-bit wide set of eight 'u16' types, x86-specific
@@ -803,13 +806,6 @@ pub use self::adx::*;
 
 #[cfg(test)]
 use stdarch_test::assert_instr;
-
-/// Generates the trap instruction `UD2`
-#[cfg_attr(test, assert_instr(ud2))]
-#[inline]
-pub unsafe fn ud2() -> ! {
-    intrinsics::abort()
-}
 
 mod avx512f;
 pub use self::avx512f::*;

@@ -353,6 +353,7 @@ parse_int_literal_too_large = integer literal is too large
 
 parse_invalid_block_macro_segment = cannot use a `block` macro fragment here
     .label = the `block` fragment is within this context
+    .suggestion = wrap this in another block
 
 parse_invalid_char_in_escape = {parse_invalid_char_in_escape_msg}: `{$ch}`
     .label = {parse_invalid_char_in_escape_msg}
@@ -695,7 +696,7 @@ parse_struct_literal_body_without_path =
 
 parse_struct_literal_needing_parens =
     invalid struct literal
-    .suggestion = you might need to surround the struct literal in parentheses
+    .suggestion = you might need to surround the struct literal with parentheses
 
 parse_struct_literal_not_allowed_here = struct literals are not allowed here
     .suggestion = surround the struct literal with parentheses

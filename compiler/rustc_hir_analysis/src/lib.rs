@@ -59,8 +59,6 @@ This API is completely unstable and subject to change.
 #![doc(html_root_url = "https://doc.rust-lang.org/nightly/nightly-rustc/")]
 #![feature(box_patterns)]
 #![feature(control_flow_enum)]
-#![feature(drain_filter)]
-#![feature(hash_drain_filter)]
 #![feature(if_let_guard)]
 #![feature(is_sorted)]
 #![feature(iter_intersperse)]
@@ -321,16 +319,19 @@ fn check_main_fn_ty(tcx: TyCtxt<'_>, main_def_id: DefId) {
         expected_return_type = main_fnsig.output();
     } else {
         // standard () main return type
-        expected_return_type = ty::Binder::dummy(tcx.mk_unit());
+        expected_return_type = ty::Binder::dummy(Ty::new_unit(tcx));
     }
 
     if error {
         return;
     }
 
-    let se_ty = tcx.mk_fn_ptr(expected_return_type.map_bound(|expected_return_type| {
-        tcx.mk_fn_sig([], expected_return_type, false, hir::Unsafety::Normal, Abi::Rust)
-    }));
+    let se_ty = Ty::new_fn_ptr(
+        tcx,
+        expected_return_type.map_bound(|expected_return_type| {
+            tcx.mk_fn_sig([], expected_return_type, false, hir::Unsafety::Normal, Abi::Rust)
+        }),
+    );
 
     require_same_types(
         tcx,
@@ -341,7 +342,7 @@ fn check_main_fn_ty(tcx: TyCtxt<'_>, main_def_id: DefId) {
         ),
         param_env,
         se_ty,
-        tcx.mk_fn_ptr(main_fnsig),
+        Ty::new_fn_ptr(tcx, main_fnsig),
     );
 }
 fn check_start_fn_ty(tcx: TyCtxt<'_>, start_def_id: DefId) {
@@ -399,13 +400,16 @@ fn check_start_fn_ty(tcx: TyCtxt<'_>, start_def_id: DefId) {
                 }
             }
 
-            let se_ty = tcx.mk_fn_ptr(ty::Binder::dummy(tcx.mk_fn_sig(
-                [tcx.types.isize, tcx.mk_imm_ptr(tcx.mk_imm_ptr(tcx.types.u8))],
-                tcx.types.isize,
-                false,
-                hir::Unsafety::Normal,
-                Abi::Rust,
-            )));
+            let se_ty = Ty::new_fn_ptr(
+                tcx,
+                ty::Binder::dummy(tcx.mk_fn_sig(
+                    [tcx.types.isize, Ty::new_imm_ptr(tcx, Ty::new_imm_ptr(tcx, tcx.types.u8))],
+                    tcx.types.isize,
+                    false,
+                    hir::Unsafety::Normal,
+                    Abi::Rust,
+                )),
+            );
 
             require_same_types(
                 tcx,
@@ -416,7 +420,7 @@ fn check_start_fn_ty(tcx: TyCtxt<'_>, start_def_id: DefId) {
                 ),
                 ty::ParamEnv::empty(), // start should not have any where bounds.
                 se_ty,
-                tcx.mk_fn_ptr(tcx.fn_sig(start_def_id).subst_identity()),
+                Ty::new_fn_ptr(tcx, tcx.fn_sig(start_def_id).subst_identity()),
             );
         }
         _ => {

@@ -63,7 +63,7 @@ impl<T> ReadHalf<T> {
     /// Checks if this `ReadHalf` and some `WriteHalf` were split from the same
     /// stream.
     pub fn is_pair_of(&self, other: &WriteHalf<T>) -> bool {
-        other.is_pair_of(&self)
+        other.is_pair_of(self)
     }
 
     /// Reunites with a previously split `WriteHalf`.
@@ -74,7 +74,11 @@ impl<T> ReadHalf<T> {
     /// same `split` operation this method will panic.
     /// This can be checked ahead of time by comparing the stream ID
     /// of the two halves.
-    pub fn unsplit(self, wr: WriteHalf<T>) -> T {
+    #[track_caller]
+    pub fn unsplit(self, wr: WriteHalf<T>) -> T
+    where
+        T: Unpin,
+    {
         if self.is_pair_of(&wr) {
             drop(wr);
 
@@ -90,7 +94,7 @@ impl<T> ReadHalf<T> {
 }
 
 impl<T> WriteHalf<T> {
-    /// Check if this `WriteHalf` and some `ReadHalf` were split from the same
+    /// Checks if this `WriteHalf` and some `ReadHalf` were split from the same
     /// stream.
     pub fn is_pair_of(&self, other: &ReadHalf<T>) -> bool {
         Arc::ptr_eq(&self.inner, &other.inner)

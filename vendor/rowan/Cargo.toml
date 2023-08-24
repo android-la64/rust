@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "rowan"
-version = "0.15.10"
+version = "0.15.11"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 exclude = [
     ".github/",
@@ -33,7 +33,7 @@ features = ["inline-more"]
 default-features = false
 
 [dependencies.memoffset]
-version = "0.6"
+version = "0.8"
 
 [dependencies.rustc-hash]
 version = "1.0.1"

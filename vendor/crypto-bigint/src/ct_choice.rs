@@ -9,10 +9,10 @@ use crate::Word;
 pub struct CtChoice(Word);
 
 impl CtChoice {
-    /// The falsy vaue.
+    /// The falsy value.
     pub const FALSE: Self = Self(0);
 
-    /// The truthy vaue.
+    /// The truthy value.
     pub const TRUE: Self = Self(Word::MAX);
 
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
@@ -25,7 +25,7 @@ impl CtChoice {
     /// Returns the truthy value if `value == 1`, and the falsy value if `value == 0`.
     /// Panics for other values.
     pub(crate) const fn from_lsb(value: Word) -> Self {
-        debug_assert!(value == Self::FALSE.0 || value == 1);
+        debug_assert!(value == 0 || value == 1);
         Self(value.wrapping_neg())
     }
 
@@ -35,10 +35,6 @@ impl CtChoice {
 
     pub(crate) const fn and(&self, other: Self) -> Self {
         Self(self.0 & other.0)
-    }
-
-    pub(crate) const fn or(&self, other: Self) -> Self {
-        Self(self.0 | other.0)
     }
 
     /// Return `b` if `self` is truthy, otherwise return `a`.

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.56"
 name = "notify"
-version = "5.0.0"
+version = "5.1.0"
 authors = [
     "Félix Saparelli <me@passcod.name>",
     "Daniel Faust <hessijames@gmail.com>",
@@ -103,14 +103,13 @@ version = "0.8"
 features = ["os-ext"]
 optional = true
 
-[target."cfg(windows)".dependencies.winapi]
-version = "0.3.8"
+[target."cfg(windows)".dependencies.windows-sys]
+version = "0.42.0"
 features = [
-    "fileapi",
-    "handleapi",
-    "ioapiset",
-    "minwinbase",
-    "synchapi",
-    "winbase",
-    "winnt",
+    "Win32_System_Threading",
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_Security",
+    "Win32_System_WindowsProgramming",
+    "Win32_System_IO",
 ]

@@ -9,10 +9,10 @@ use rustc_data_structures::fx::FxHashSet;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_hir::def::DefKind;
-use rustc_hir_analysis::astconv::InferCtxtExt as _;
 use rustc_hir_analysis::autoderef::{self, Autoderef};
 use rustc_infer::infer::canonical::OriginalQueryValues;
 use rustc_infer::infer::canonical::{Canonical, QueryResponse};
+use rustc_infer::infer::error_reporting::TypeAnnotationNeeded::E0282;
 use rustc_infer::infer::DefineOpaqueTypes;
 use rustc_infer::infer::{self, InferOk, TyCtxtInferExt};
 use rustc_middle::middle::stability;
@@ -449,15 +449,23 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     );
                 }
             } else {
-                // Encountered a real ambiguity, so abort the lookup. If `ty` is not
-                // an `Err`, report the right "type annotations needed" error pointing
-                // to it.
+                // Ended up encountering a type variable when doing autoderef,
+                // but it may not be a type variable after processing obligations
+                // in our local `FnCtxt`, so don't call `structurally_resolve_type`.
                 let ty = &bad_ty.ty;
                 let ty = self
                     .probe_instantiate_query_response(span, &orig_values, ty)
                     .unwrap_or_else(|_| span_bug!(span, "instantiating {:?} failed?", ty));
-                let ty = self.structurally_resolved_type(span, ty.value);
-                assert!(matches!(ty.kind(), ty::Error(_)));
+                let ty = self.resolve_vars_if_possible(ty.value);
+                let guar = match *ty.kind() {
+                    ty::Infer(ty::TyVar(_)) => self
+                        .err_ctxt()
+                        .emit_inference_failure_err(self.body_id, span, ty.into(), E0282, true)
+                        .emit(),
+                    ty::Error(guar) => guar,
+                    _ => bug!("unexpected bad final type in method autoderef"),
+                };
+                self.demand_eqtype(span, ty, Ty::new_error(self.tcx, guar));
                 return Err(MethodError::NoMatch(NoMatchData {
                     static_candidates: Vec::new(),
                     unsatisfied_predicates: Vec::new(),
@@ -543,7 +551,7 @@ fn method_autoderef_steps<'tcx>(
             steps.push(CandidateStep {
                 self_ty: infcx.make_query_response_ignoring_pending_obligations(
                     inference_vars,
-                    infcx.tcx.mk_slice(*elem_ty),
+                    Ty::new_slice(infcx.tcx, *elem_ty),
                 ),
                 autoderefs: dereferences,
                 // this could be from an unsafe deref if we had
@@ -826,7 +834,7 @@ impl<'a, 'tcx> ProbeContext<'a, 'tcx> {
         let bounds = self.param_env.caller_bounds().iter().filter_map(|predicate| {
             let bound_predicate = predicate.kind();
             match bound_predicate.skip_binder() {
-                ty::PredicateKind::Clause(ty::Clause::Trait(trait_predicate)) => {
+                ty::ClauseKind::Trait(trait_predicate) => {
                     match *trait_predicate.trait_ref.self_ty().kind() {
                         ty::Param(p) if p == param_ty => {
                             Some(bound_predicate.rebind(trait_predicate.trait_ref))
@@ -834,20 +842,12 @@ impl<'a, 'tcx> ProbeContext<'a, 'tcx> {
                         _ => None,
                     }
                 }
-                ty::PredicateKind::Subtype(..)
-                | ty::PredicateKind::Clause(ty::Clause::ConstArgHasType(..))
-                | ty::PredicateKind::Coerce(..)
-                | ty::PredicateKind::Clause(ty::Clause::Projection(..))
-                | ty::PredicateKind::Clause(ty::Clause::RegionOutlives(..))
-                | ty::PredicateKind::WellFormed(..)
-                | ty::PredicateKind::ObjectSafe(..)
-                | ty::PredicateKind::ClosureKind(..)
-                | ty::PredicateKind::Clause(ty::Clause::TypeOutlives(..))
-                | ty::PredicateKind::ConstEvaluatable(..)
-                | ty::PredicateKind::ConstEquate(..)
-                | ty::PredicateKind::Ambiguous
-                | ty::PredicateKind::AliasRelate(..)
-                | ty::PredicateKind::TypeWellFormedFromEnv(..) => None,
+                ty::ClauseKind::RegionOutlives(_)
+                | ty::ClauseKind::TypeOutlives(_)
+                | ty::ClauseKind::Projection(_)
+                | ty::ClauseKind::ConstArgHasType(_, _)
+                | ty::ClauseKind::WellFormed(_)
+                | ty::ClauseKind::ConstEvaluatable(_) => None,
             }
         });
 
@@ -954,7 +954,7 @@ impl<'a, 'tcx> ProbeContext<'a, 'tcx> {
         trait_def_id: DefId,
     ) {
         debug!("assemble_extension_candidates_for_trait(trait_def_id={:?})", trait_def_id);
-        let trait_substs = self.fresh_item_substs(trait_def_id);
+        let trait_substs = self.fresh_substs_for_item(self.span, trait_def_id);
         let trait_ref = ty::TraitRef::new(self.tcx, trait_def_id, trait_substs);
 
         if self.tcx.is_trait_alias(trait_def_id) {
@@ -1215,7 +1215,7 @@ impl<'a, 'tcx> ProbeContext<'a, 'tcx> {
         // In general, during probing we erase regions.
         let region = tcx.lifetimes.re_erased;
 
-        let autoref_ty = tcx.mk_ref(region, ty::TypeAndMut { ty: self_ty, mutbl });
+        let autoref_ty = Ty::new_ref(tcx, region, ty::TypeAndMut { ty: self_ty, mutbl });
         self.pick_method(autoref_ty, unstable_candidates).map(|r| {
             r.map(|mut pick| {
                 pick.autoderefs = step.autoderefs;
@@ -1245,7 +1245,7 @@ impl<'a, 'tcx> ProbeContext<'a, 'tcx> {
         };
 
         let const_self_ty = ty::TypeAndMut { ty, mutbl: hir::Mutability::Not };
-        let const_ptr_ty = self.tcx.mk_ptr(const_self_ty);
+        let const_ptr_ty = Ty::new_ptr(self.tcx, const_self_ty);
         self.pick_method(const_ptr_ty, unstable_candidates).map(|r| {
             r.map(|mut pick| {
                 pick.autoderefs = step.autoderefs;
@@ -1441,8 +1441,7 @@ impl<'a, 'tcx> ProbeContext<'a, 'tcx> {
         trait_ref: ty::TraitRef<'tcx>,
     ) -> traits::SelectionResult<'tcx, traits::Selection<'tcx>> {
         let cause = traits::ObligationCause::misc(self.span, self.body_id);
-        let predicate = ty::Binder::dummy(trait_ref);
-        let obligation = traits::Obligation::new(self.tcx, cause, self.param_env, predicate);
+        let obligation = traits::Obligation::new(self.tcx, cause, self.param_env, trait_ref);
         traits::SelectionContext::new(self).select(&obligation)
     }
 
@@ -1899,7 +1898,7 @@ impl<'a, 'tcx> ProbeContext<'a, 'tcx> {
         &self,
         impl_def_id: DefId,
     ) -> (ty::EarlyBinder<Ty<'tcx>>, SubstsRef<'tcx>) {
-        (self.tcx.type_of(impl_def_id), self.fresh_item_substs(impl_def_id))
+        (self.tcx.type_of(impl_def_id), self.fresh_substs_for_item(self.span, impl_def_id))
     }
 
     /// Replaces late-bound-regions bound by `value` with `'static` using

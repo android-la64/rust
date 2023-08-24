@@ -12,7 +12,7 @@ pub fn agent() -> &'static str {
     concat!("oxide-", env!("CARGO_PKG_VERSION"))
 }
 
-/// Equivalent to `std::env::args_os()`, but with precomposed unicode on MacOS and other apple platforms.
+/// Equivalent to `std::env::args_os()`, but with precomposed unicode on `MacOS` and other apple platforms.
 #[cfg(not(target_vendor = "apple"))]
 pub fn args_os() -> impl Iterator<Item = OsString> {
     std::env::args_os()
@@ -119,7 +119,8 @@ pub mod collate {
                     Error::Fetch(
                         crate::remote::fetch::Error::PackThreads(_)
                         | crate::remote::fetch::Error::PackIndexVersion(_)
-                        | crate::remote::fetch::Error::RemovePackKeepFile { .. },
+                        | crate::remote::fetch::Error::RemovePackKeepFile { .. }
+                        | crate::remote::fetch::Error::Negotiate(_),
                     ) => true,
                     _ => false,
                 }

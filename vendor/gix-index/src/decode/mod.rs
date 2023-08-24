@@ -10,7 +10,7 @@ mod error {
 
     use crate::{decode, extension};
 
-    /// The error returned by [State::from_bytes()][crate::State::from_bytes()].
+    /// The error returned by [`State::from_bytes()`][crate::State::from_bytes()].
     #[derive(Debug, thiserror::Error)]
     #[allow(missing_docs)]
     pub enum Error {
@@ -183,9 +183,10 @@ impl State {
                             version,
                         ),
                     };
-                    let ext_res = extension_loading
-                        .map(|thread| thread.join().unwrap())
-                        .unwrap_or_else(|| extension::decode::all(extensions_data, object_hash));
+                    let ext_res = extension_loading.map_or_else(
+                        || extension::decode::all(extensions_data, object_hash),
+                        |thread| thread.join().unwrap(),
+                    );
                     (entries_res, ext_res)
                 });
                 let (ext, data) = ext_res?;

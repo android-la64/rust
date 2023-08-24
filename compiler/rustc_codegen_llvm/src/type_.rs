@@ -52,6 +52,10 @@ impl<'ll> CodegenCx<'ll, '_> {
         unsafe { llvm::LLVMVoidTypeInContext(self.llcx) }
     }
 
+    pub(crate) fn type_token(&self) -> &'ll Type {
+        unsafe { llvm::LLVMTokenTypeInContext(self.llcx) }
+    }
+
     pub(crate) fn type_metadata(&self) -> &'ll Type {
         unsafe { llvm::LLVMMetadataTypeInContext(self.llcx) }
     }
@@ -287,6 +291,9 @@ impl<'ll, 'tcx> LayoutTypeMethods<'tcx> for CodegenCx<'ll, 'tcx> {
     }
     fn reg_backend_type(&self, ty: &Reg) -> &'ll Type {
         ty.llvm_type(self)
+    }
+    fn scalar_copy_backend_type(&self, layout: TyAndLayout<'tcx>) -> Option<Self::Type> {
+        layout.scalar_copy_llvm_type(self)
     }
 }
 

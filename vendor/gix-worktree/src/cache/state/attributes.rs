@@ -1,10 +1,12 @@
 use std::path::{Path, PathBuf};
 
-use crate::{Cache, PathIdMapping};
+use bstr::{BStr, ByteSlice};
 use gix_glob::pattern::Case;
 
-use crate::cache::state::{AttributeMatchGroup, Attributes};
-use bstr::{BStr, ByteSlice};
+use crate::{
+    cache::state::{AttributeMatchGroup, Attributes},
+    Cache, PathIdMapping,
+};
 
 /// Various aggregate numbers related [`Attributes`].
 #[derive(Default, Clone, Copy, Debug)]
@@ -45,7 +47,7 @@ pub enum Source {
 /// Initialization
 impl Attributes {
     /// Create a new instance from an attribute match group that represents `globals`. It can more easily be created with
-    /// [AttributeMatchGroup::new_globals()].
+    /// [`AttributeMatchGroup::new_globals()`].
     ///
     /// * `globals` contribute first and consist of all globally available, static files.
     /// * `info_attributes` is a path that should refer to `.git/info/attributes`, and it's not an error if the file doesn't exist.
@@ -92,6 +94,7 @@ impl Attributes {
         let attr_file_in_index = id_mappings.binary_search_by(|t| t.0.as_bstr().cmp(attr_path_relative.as_ref()));
         // Git does not follow symbolic links as per documentation.
         let no_follow_symlinks = false;
+        let read_macros_as_dir_is_root = root == dir;
 
         let mut added = false;
         match self.source {
@@ -100,8 +103,13 @@ impl Attributes {
                     let blob = find(&id_mappings[idx].1, buf)
                         .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
                     let attr_path = gix_path::from_bstring(attr_path_relative.into_owned());
-                    self.stack
-                        .add_patterns_buffer(blob.data, attr_path, Some(Path::new("")), &mut self.collection);
+                    self.stack.add_patterns_buffer(
+                        blob.data,
+                        attr_path,
+                        Some(Path::new("")),
+                        &mut self.collection,
+                        read_macros_as_dir_is_root,
+                    );
                     added = true;
                     stats.patterns_buffers += 1;
                 }
@@ -112,6 +120,7 @@ impl Attributes {
                         Some(root),
                         buf,
                         &mut self.collection,
+                        read_macros_as_dir_is_root,
                     )?;
                     stats.pattern_files += usize::from(added);
                     stats.tried_pattern_files += 1;
@@ -124,6 +133,7 @@ impl Attributes {
                     Some(root),
                     buf,
                     &mut self.collection,
+                    read_macros_as_dir_is_root,
                 )?;
                 stats.pattern_files += usize::from(added);
                 stats.tried_pattern_files += 1;
@@ -131,8 +141,13 @@ impl Attributes {
                     let blob = find(&id_mappings[idx].1, buf)
                         .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
                     let attr_path = gix_path::from_bstring(attr_path_relative.into_owned());
-                    self.stack
-                        .add_patterns_buffer(blob.data, attr_path, Some(Path::new("")), &mut self.collection);
+                    self.stack.add_patterns_buffer(
+                        blob.data,
+                        attr_path,
+                        Some(Path::new("")),
+                        &mut self.collection,
+                        read_macros_as_dir_is_root,
+                    );
                     added = true;
                     stats.patterns_buffers += 1;
                 }
@@ -142,15 +157,20 @@ impl Attributes {
         // Need one stack level per component so push and pop matches, but only if this isn't the root level which is never popped.
         if !added && self.info_attributes.is_none() {
             self.stack
-                .add_patterns_buffer(&[], Path::new("<empty dummy>"), None, &mut self.collection)
+                .add_patterns_buffer(&[], Path::new("<empty dummy>"), None, &mut self.collection, true)
         }
 
         // When reading the root, always the first call, we can try to also read the `.git/info/attributes` file which is
         // by nature never popped, and follows the root, as global.
         if let Some(info_attr) = self.info_attributes.take() {
-            let added = self
-                .stack
-                .add_patterns_file(info_attr, true, None, buf, &mut self.collection)?;
+            let added = self.stack.add_patterns_file(
+                info_attr,
+                true,
+                None,
+                buf,
+                &mut self.collection,
+                true, /* read macros */
+            )?;
             stats.pattern_files += usize::from(added);
             stats.tried_pattern_files += 1;
         }

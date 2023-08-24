@@ -1,6 +1,6 @@
 //! Values computed by queries that use MIR.
 
-use crate::mir::ConstantKind;
+use crate::mir::interpret::ConstValue;
 use crate::ty::{self, OpaqueHiddenType, Ty, TyCtxt};
 use rustc_data_structures::fx::FxIndexMap;
 use rustc_data_structures::unord::UnordSet;
@@ -9,6 +9,7 @@ use rustc_hir as hir;
 use rustc_hir::def_id::LocalDefId;
 use rustc_index::bit_set::BitMatrix;
 use rustc_index::{Idx, IndexVec};
+use rustc_span::symbol::Symbol;
 use rustc_span::Span;
 use rustc_target::abi::{FieldIdx, VariantIdx};
 use smallvec::SmallVec;
@@ -149,6 +150,9 @@ pub struct GeneratorSavedTy<'tcx> {
 pub struct GeneratorLayout<'tcx> {
     /// The type of every local stored inside the generator.
     pub field_tys: IndexVec<GeneratorSavedLocal, GeneratorSavedTy<'tcx>>,
+
+    /// The name for debuginfo.
+    pub field_names: IndexVec<GeneratorSavedLocal, Option<Symbol>>,
 
     /// Which of the above fields are in each variant. Note that one field may
     /// be stored in multiple variants.
@@ -413,7 +417,7 @@ impl<'tcx> ClosureOutlivesSubjectTy<'tcx> {
             ty::ReVar(vid) => {
                 let br =
                     ty::BoundRegion { var: ty::BoundVar::new(vid.index()), kind: ty::BrAnon(None) };
-                tcx.mk_re_late_bound(depth, br)
+                ty::Region::new_late_bound(tcx, depth, br)
             }
             _ => bug!("unexpected region in ClosureOutlivesSubjectTy: {r:?}"),
         });
@@ -440,7 +444,7 @@ impl<'tcx> ClosureOutlivesSubjectTy<'tcx> {
 #[derive(Copy, Clone, Debug, HashStable)]
 pub struct DestructuredConstant<'tcx> {
     pub variant: Option<VariantIdx>,
-    pub fields: &'tcx [ConstantKind<'tcx>],
+    pub fields: &'tcx [(ConstValue<'tcx>, Ty<'tcx>)],
 }
 
 /// Coverage information summarized from a MIR if instrumented for source code coverage (see

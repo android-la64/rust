@@ -1,9 +1,12 @@
 use std::path::Path;
 
-use crate::cache::state::Ignore;
-use crate::{cache::state::IgnoreMatchGroup, PathIdMapping};
 use bstr::{BStr, ByteSlice};
 use gix_glob::pattern::Case;
+
+use crate::{
+    cache::state::{Ignore, IgnoreMatchGroup},
+    PathIdMapping,
+};
 
 /// Decide where to read `.gitignore` files from.
 #[derive(Default, Debug, Clone, Copy)]
@@ -52,8 +55,7 @@ impl Ignore {
             stack: Default::default(),
             matched_directory_patterns_stack: Vec::with_capacity(6),
             exclude_file_name_for_directories: exclude_file_name_for_directories
-                .map(ToOwned::to_owned)
-                .unwrap_or_else(|| ".gitignore".into()),
+                .map_or_else(|| ".gitignore".into(), ToOwned::to_owned),
             source,
         }
     }
@@ -74,7 +76,7 @@ impl Ignore {
         relative_path: &BStr,
         is_dir: Option<bool>,
         case: Case,
-    ) -> Option<gix_ignore::search::Match<'_, ()>> {
+    ) -> Option<gix_ignore::search::Match<'_>> {
         let groups = self.match_groups();
         let mut dir_match = None;
         if let Some((source, mapping)) = self
@@ -90,7 +92,6 @@ impl Ignore {
         {
             let match_ = gix_ignore::search::Match {
                 pattern: &mapping.pattern,
-                value: &mapping.value,
                 sequence_number: mapping.sequence_number,
                 source,
             };

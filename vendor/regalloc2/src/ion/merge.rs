@@ -18,6 +18,7 @@ use super::{
 use crate::{
     ion::data_structures::BlockparamOut, Function, Inst, OperandConstraint, OperandKind, PReg,
 };
+use alloc::format;
 use smallvec::smallvec;
 
 impl<'a, F: Function> Env<'a, F> {
@@ -132,7 +133,7 @@ impl<'a, F: Function> Env<'a, F> {
             // `to` bundle is empty -- just move the list over from
             // `from` and set `bundle` up-link on all ranges.
             trace!(" -> to bundle{} is empty; trivial merge", to.index());
-            let list = std::mem::replace(&mut self.bundles[from.index()].ranges, smallvec![]);
+            let list = core::mem::replace(&mut self.bundles[from.index()].ranges, smallvec![]);
             for entry in &list {
                 self.ranges[entry.index.index()].bundle = to;
 
@@ -170,7 +171,7 @@ impl<'a, F: Function> Env<'a, F> {
         // Two non-empty lists of LiveRanges: concatenate and
         // sort. This is faster than a mergesort-like merge into a new
         // list, empirically.
-        let from_list = std::mem::replace(&mut self.bundles[from.index()].ranges, smallvec![]);
+        let from_list = core::mem::replace(&mut self.bundles[from.index()].ranges, smallvec![]);
         for entry in &from_list {
             self.ranges[entry.index.index()].bundle = to;
         }
@@ -213,7 +214,7 @@ impl<'a, F: Function> Env<'a, F> {
         }
 
         if self.bundles[from.index()].spillset != self.bundles[to.index()].spillset {
-            let from_vregs = std::mem::replace(
+            let from_vregs = core::mem::replace(
                 &mut self.spillsets[self.bundles[from.index()].spillset.index()].vregs,
                 smallvec![],
             );
@@ -349,28 +350,6 @@ impl<'a, F: Function> Env<'a, F> {
                 to_bundle.index()
             );
             self.merge_bundles(from_bundle, to_bundle);
-        }
-
-        // Attempt to merge move srcs/dsts.
-        for i in 0..self.prog_move_merges.len() {
-            let (src, dst) = self.prog_move_merges[i];
-            trace!("trying to merge move src LR {:?} to dst LR {:?}", src, dst);
-            let src = self.resolve_merged_lr(src);
-            let dst = self.resolve_merged_lr(dst);
-            trace!(
-                "resolved LR-construction merging chains: move-merge is now src LR {:?} to dst LR {:?}",
-                src,
-                dst
-            );
-
-            let src_bundle = self.ranges[src.index()].bundle;
-            debug_assert!(src_bundle.is_valid());
-            let dest_bundle = self.ranges[dst.index()].bundle;
-            debug_assert!(dest_bundle.is_valid());
-            self.stats.prog_move_merge_attempt += 1;
-            if self.merge_bundles(/* from */ dest_bundle, /* to */ src_bundle) {
-                self.stats.prog_move_merge_success += 1;
-            }
         }
 
         trace!("done merging bundles");

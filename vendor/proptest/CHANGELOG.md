@@ -1,5 +1,29 @@
 ## Unreleased
 
+## 1.2.0
+
+### Breaking Changes
+
+- `PROPTEST_` environment variables now take precedence over tests' non-default
+  configuration.
+
+### Bug Fixes
+
+- Don't implement Arbitrary for NonZeroU128 and NonZeroI128 on wasm targets where
+  u128 and i128 Arbitrary impls don't exist
+
+### New Features
+
+### Other Notes
+
+- Minimal failing input is now printed using debug pretty-printing
+- Made public `VarBitSet`, `SizeRange` read-only methods and num sampling
+  functions in preparation for release of a `proptest-state-machine` crate.
+- Removed dependency on `quick_error`
+- Start publishing MSRV
+
+## 1.1.0
+
 ### Bug Fixes
 
 - Sampling from large ranges of floats such as `(0f32)..` no longer panics
@@ -16,12 +40,18 @@
 - `try_reserve` is stable so removed from unstable features
 - `try_trait` has been changed to `try_trait_v2` so that was adjusted
   in `Cargo.toml`.
+- `prop_assert_ne!` now uses fully qualified `prop_assert_eq!`
+- Persisted tests are not counted against the number of cases to run
 
 ### New Features
 
 - Add `Arbitrary` impls for arrays of all sizes using const generics
 - Add `Arbitrary` impls for `core::num::NonZero*`
 - Adds ability to disable failure persistence via env var `PROPTEST_DISABLE_FAILURE_PERSISTENCE`
+
+### Other Notes
+
+- `proptest` no longer depends on the `quick-error` crate.
 
 ## 1.0.0
 
@@ -92,7 +122,7 @@
 
 ### Bug Fixes
 
-- Fixed [#186](https://github.com/AltSysrq/proptest/issues/186),
+- Fixed [#186](https://github.com/proptest-rs/proptest/issues/186),
   a Rust future-compatibility issue.
 
 ## 0.9.5
@@ -207,7 +237,7 @@ makes it possible to use an external source of entropy with Proptest.
 - There is now a work-around for a [compiler
   bug](https://github.com/rust-lang/rust/issues/52478) which prevents building
   with `-C link-dead-code`. Please see this issue for details:
-  https://github.com/AltSysrq/proptest/issues/124
+  https://github.com/proptest-rs/proptest/issues/124
 
 ### Deprecations
 
@@ -522,7 +552,7 @@ features.
 
 - Fix that failure persistence file would be written to the incorrect location
   in projects using workspaces. See
-  [#24](https://github.com/AltSysrq/proptest/issues/24) for more details and
+  [#24](https://github.com/proptest-rs/proptest/issues/24) for more details and
   instructions on how to migrate any persistence files that had been written to
   the wrong location.
 
@@ -742,7 +772,7 @@ features.
 
 - Cases where `file!()` returns a relative path, such as on Windows, are now
   handled more reasonably. See
-  [#24](https://github.com/AltSysrq/proptest/issues/24) for more details and
+  [#24](https://github.com/proptest-rs/proptest/issues/24) for more details and
   instructions on how to migrate any persistence files that had been written to
   the wrong location.
 

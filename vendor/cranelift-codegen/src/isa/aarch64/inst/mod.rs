@@ -3,7 +3,7 @@
 use crate::binemit::{Addend, CodeOffset, Reloc};
 use crate::ir::types::{F32, F64, I128, I16, I32, I64, I8, I8X16, R32, R64};
 use crate::ir::{types, ExternalName, MemFlags, Opcode, Type};
-use crate::isa::CallConv;
+use crate::isa::{CallConv, FunctionAlignment};
 use crate::machinst::*;
 use crate::{settings, CodegenError, CodegenResult};
 
@@ -812,7 +812,7 @@ fn aarch64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut Operan
             collector.reg_use(rn);
             collector.reg_use(rm);
         }
-        &Inst::VecRRRMod { rd, ri, rn, rm, .. } => {
+        &Inst::VecRRRMod { rd, ri, rn, rm, .. } | &Inst::VecFmlaElem { rd, ri, rn, rm, .. } => {
             collector.reg_reuse_def(rd, 1); // `rd` == `ri`.
             collector.reg_use(ri);
             collector.reg_use(rn);
@@ -955,22 +955,30 @@ impl MachInst for Inst {
     }
 
     fn is_included_in_clobbers(&self) -> bool {
+        let (caller_callconv, callee_callconv) = match self {
+            Inst::Args { .. } => return false,
+            Inst::Call { info } => (info.caller_callconv, info.callee_callconv),
+            Inst::CallInd { info } => (info.caller_callconv, info.callee_callconv),
+            _ => return true,
+        };
+
         // We exclude call instructions from the clobber-set when they are calls
-        // from caller to callee with the same ABI. Such calls cannot possibly
-        // force any new registers to be saved in the prologue, because anything
-        // that the callee clobbers, the caller is also allowed to clobber. This
-        // both saves work and enables us to more precisely follow the
+        // from caller to callee that both clobber the same register (such as
+        // using the same or similar ABIs). Such calls cannot possibly force any
+        // new registers to be saved in the prologue, because anything that the
+        // callee clobbers, the caller is also allowed to clobber. This both
+        // saves work and enables us to more precisely follow the
         // half-caller-save, half-callee-save SysV ABI for some vector
         // registers.
         //
         // See the note in [crate::isa::aarch64::abi::is_caller_save_reg] for
         // more information on this ABI-implementation hack.
-        match self {
-            &Inst::Args { .. } => false,
-            &Inst::Call { ref info } => info.caller_callconv != info.callee_callconv,
-            &Inst::CallInd { ref info } => info.caller_callconv != info.callee_callconv,
-            _ => true,
-        }
+        let caller_clobbers = AArch64MachineDeps::get_regs_clobbered_by_call(caller_callconv);
+        let callee_clobbers = AArch64MachineDeps::get_regs_clobbered_by_call(callee_callconv);
+
+        let mut all_clobbers = caller_clobbers;
+        all_clobbers.union_from(callee_clobbers);
+        all_clobbers != caller_clobbers
     }
 
     fn is_trap(&self) -> bool {
@@ -1022,6 +1030,7 @@ impl MachInst for Inst {
                     }
                 }
             }
+            RegClass::Vector => unreachable!(),
         }
     }
 
@@ -1075,6 +1084,7 @@ impl MachInst for Inst {
         match rc {
             RegClass::Float => types::I8X16,
             RegClass::Int => types::I64,
+            RegClass::Vector => unreachable!(),
         }
     }
 
@@ -1109,6 +1119,15 @@ impl MachInst for Inst {
             })
         } else {
             None
+        }
+    }
+
+    fn function_alignment() -> FunctionAlignment {
+        // We use 32-byte alignment for performance reasons, but for correctness
+        // we would only need 4-byte alignment.
+        FunctionAlignment {
+            minimum: 4,
+            preferred: 32,
         }
     }
 }
@@ -1191,14 +1210,16 @@ impl Inst {
                 rm,
                 ra,
             } => {
-                let op = match alu_op {
-                    ALUOp3::MAdd => "madd",
-                    ALUOp3::MSub => "msub",
+                let (op, da_size) = match alu_op {
+                    ALUOp3::MAdd => ("madd", size),
+                    ALUOp3::MSub => ("msub", size),
+                    ALUOp3::UMAddL => ("umaddl", OperandSize::Size64),
+                    ALUOp3::SMAddL => ("smaddl", OperandSize::Size64),
                 };
-                let rd = pretty_print_ireg(rd.to_reg(), size, allocs);
+                let rd = pretty_print_ireg(rd.to_reg(), da_size, allocs);
                 let rn = pretty_print_ireg(rn, size, allocs);
                 let rm = pretty_print_ireg(rm, size, allocs);
-                let ra = pretty_print_ireg(ra, size, allocs);
+                let ra = pretty_print_ireg(ra, da_size, allocs);
 
                 format!("{} {}, {}, {}, {}", op, rd, rn, rm, ra)
             }
@@ -2169,6 +2190,26 @@ impl Inst {
                 let ri = pretty_print_vreg_vector(ri, size, allocs);
                 let rn = pretty_print_vreg_vector(rn, size, allocs);
                 let rm = pretty_print_vreg_vector(rm, size, allocs);
+                format!("{} {}, {}, {}, {}", op, rd, ri, rn, rm)
+            }
+            &Inst::VecFmlaElem {
+                rd,
+                ri,
+                rn,
+                rm,
+                alu_op,
+                size,
+                idx,
+            } => {
+                let (op, size) = match alu_op {
+                    VecALUModOp::Fmla => ("fmla", size),
+                    VecALUModOp::Fmls => ("fmls", size),
+                    _ => unreachable!(),
+                };
+                let rd = pretty_print_vreg_vector(rd.to_reg(), size, allocs);
+                let ri = pretty_print_vreg_vector(ri, size, allocs);
+                let rn = pretty_print_vreg_vector(rn, size, allocs);
+                let rm = pretty_print_vreg_element(rm, idx.into(), size.lane_size(), allocs);
                 format!("{} {}, {}, {}, {}", op, rd, ri, rn, rm)
             }
             &Inst::VecRRRLong {

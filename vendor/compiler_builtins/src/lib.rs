@@ -48,6 +48,7 @@ pub mod int;
     all(target_arch = "x86_64", target_os = "uefi"),
     all(target_arch = "arm", target_os = "none"),
     all(target_arch = "xtensa", target_os = "none"),
+    all(target_arch = "mips", target_os = "none"),
     target_os = "xous",
     all(target_vendor = "fortanix", target_env = "sgx")
 ))]
@@ -56,6 +57,9 @@ pub mod mem;
 
 #[cfg(target_arch = "arm")]
 pub mod arm;
+
+#[cfg(all(target_arch = "aarch64", target_os = "linux", not(feature = "no-asm"),))]
+pub mod aarch64_linux;
 
 #[cfg(all(
     kernel_user_helpers,

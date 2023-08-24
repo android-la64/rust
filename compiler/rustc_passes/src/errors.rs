@@ -282,6 +282,10 @@ pub struct DocTestUnknown {
 }
 
 #[derive(LintDiagnostic)]
+#[diag(passes_doc_test_literal)]
+pub struct DocTestLiteral;
+
+#[derive(LintDiagnostic)]
 #[diag(passes_doc_test_takes_list)]
 pub struct DocTestTakesList;
 
@@ -604,13 +608,6 @@ pub struct RustcStdInternalSymbol {
     pub attr_span: Span,
     #[label]
     pub span: Span,
-}
-
-#[derive(Diagnostic)]
-#[diag(passes_const_trait)]
-pub struct ConstTrait {
-    #[primary_span]
-    pub attr_span: Span,
 }
 
 #[derive(Diagnostic)]
@@ -1151,14 +1148,6 @@ pub struct ExternMain {
 pub struct UnixSigpipeValues {
     #[primary_span]
     pub span: Span,
-}
-
-#[derive(Diagnostic)]
-#[diag(passes_no_main_function, code = "E0601")]
-pub struct NoMainFunction {
-    #[primary_span]
-    pub span: Span,
-    pub crate_name: String,
 }
 
 pub struct NoMainErr {

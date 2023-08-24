@@ -15,9 +15,7 @@ use this;
 use std::collections::BTreeSet;
 use std::ptr;
 
-pub fn expand_derive_deserialize(
-    input: &mut syn::DeriveInput,
-) -> Result<TokenStream, Vec<syn::Error>> {
+pub fn expand_derive_deserialize(input: &mut syn::DeriveInput) -> syn::Result<TokenStream> {
     replace_receiver(input);
 
     let ctxt = Ctxt::new();
@@ -69,8 +67,6 @@ pub fn expand_derive_deserialize(
 
     Ok(dummy::wrap_in_const(
         cont.attrs.custom_serde_path(),
-        "DESERIALIZE",
-        ident,
         impl_block,
     ))
 }
@@ -1171,6 +1167,22 @@ fn deserialize_enum(
     variants: &[Variant],
     cattrs: &attr::Container,
 ) -> Fragment {
+    // The variants have already been checked (in ast.rs) that all untagged variants appear at the end
+    match variants.iter().position(|var| var.attrs.untagged()) {
+        Some(variant_idx) => {
+            let (tagged, untagged) = variants.split_at(variant_idx);
+            let tagged_frag = Expr(deserialize_homogeneous_enum(params, tagged, cattrs));
+            deserialize_untagged_enum_after(params, untagged, cattrs, Some(tagged_frag))
+        }
+        None => deserialize_homogeneous_enum(params, variants, cattrs),
+    }
+}
+
+fn deserialize_homogeneous_enum(
+    params: &Parameters,
+    variants: &[Variant],
+    cattrs: &attr::Container,
+) -> Fragment {
     match cattrs.tag() {
         attr::TagType::External => deserialize_externally_tagged_enum(params, variants, cattrs),
         attr::TagType::Internal { tag } => {
@@ -1671,6 +1683,16 @@ fn deserialize_untagged_enum(
     variants: &[Variant],
     cattrs: &attr::Container,
 ) -> Fragment {
+    let first_attempt = None;
+    deserialize_untagged_enum_after(params, variants, cattrs, first_attempt)
+}
+
+fn deserialize_untagged_enum_after(
+    params: &Parameters,
+    variants: &[Variant],
+    cattrs: &attr::Container,
+    first_attempt: Option<Expr>,
+) -> Fragment {
     let attempts = variants
         .iter()
         .filter(|variant| !variant.attrs.skip_deserializing())
@@ -1679,12 +1701,10 @@ fn deserialize_untagged_enum(
                 params,
                 variant,
                 cattrs,
-                quote!(
-                    _serde::__private::de::ContentRefDeserializer::<__D::Error>::new(&__content)
-                ),
+                quote!(__deserializer),
             ))
         });
-
+    let attempts = first_attempt.into_iter().chain(attempts);
     // TODO this message could be better by saving the errors from the failed
     // attempts. The heuristic used by TOML was to count the number of fields
     // processed before an error, and use the error that happened after the
@@ -1699,6 +1719,7 @@ fn deserialize_untagged_enum(
 
     quote_block! {
         let __content = try!(<_serde::__private::de::Content as _serde::Deserialize>::deserialize(__deserializer));
+        let __deserializer = _serde::__private::de::ContentRefDeserializer::<__D::Error>::new(&__content);
 
         #(
             if let _serde::__private::Ok(__ok) = #attempts {
@@ -3086,23 +3107,31 @@ struct DeTypeGenerics<'a>(&'a Parameters);
 #[cfg(feature = "deserialize_in_place")]
 struct InPlaceTypeGenerics<'a>(&'a Parameters);
 
+fn de_type_generics_to_tokens(
+    mut generics: syn::Generics,
+    borrowed: &BorrowedLifetimes,
+    tokens: &mut TokenStream,
+) {
+    if borrowed.de_lifetime_param().is_some() {
+        let def = syn::LifetimeParam {
+            attrs: Vec::new(),
+            lifetime: syn::Lifetime::new("'de", Span::call_site()),
+            colon_token: None,
+            bounds: Punctuated::new(),
+        };
+        // Prepend 'de lifetime to list of generics
+        generics.params = Some(syn::GenericParam::Lifetime(def))
+            .into_iter()
+            .chain(generics.params)
+            .collect();
+    }
+    let (_, ty_generics, _) = generics.split_for_impl();
+    ty_generics.to_tokens(tokens);
+}
+
 impl<'a> ToTokens for DeTypeGenerics<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let mut generics = self.0.generics.clone();
-        if self.0.borrowed.de_lifetime_param().is_some() {
-            let def = syn::LifetimeParam {
-                attrs: Vec::new(),
-                lifetime: syn::Lifetime::new("'de", Span::call_site()),
-                colon_token: None,
-                bounds: Punctuated::new(),
-            };
-            generics.params = Some(syn::GenericParam::Lifetime(def))
-                .into_iter()
-                .chain(generics.params)
-                .collect();
-        }
-        let (_, ty_generics, _) = generics.split_for_impl();
-        ty_generics.to_tokens(tokens);
+        de_type_generics_to_tokens(self.0.generics.clone(), &self.0.borrowed, tokens);
     }
 }
 
@@ -3115,20 +3144,7 @@ impl<'a> ToTokens for InPlaceTypeGenerics<'a> {
             .chain(generics.params)
             .collect();
 
-        if self.0.borrowed.de_lifetime_param().is_some() {
-            let def = syn::LifetimeParam {
-                attrs: Vec::new(),
-                lifetime: syn::Lifetime::new("'de", Span::call_site()),
-                colon_token: None,
-                bounds: Punctuated::new(),
-            };
-            generics.params = Some(syn::GenericParam::Lifetime(def))
-                .into_iter()
-                .chain(generics.params)
-                .collect();
-        }
-        let (_, ty_generics, _) = generics.split_for_impl();
-        ty_generics.to_tokens(tokens);
+        de_type_generics_to_tokens(generics, &self.0.borrowed, tokens);
     }
 }
 

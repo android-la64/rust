@@ -211,7 +211,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 }
                 if let ty::Ref(region, t_type, mutability) = rcvr_ty.kind() {
                     if needs_mut {
-                        let trait_type = self.tcx.mk_ref(
+                        let trait_type = Ty::new_ref(
+                            self.tcx,
                             *region,
                             ty::TypeAndMut { ty: *t_type, mutbl: mutability.invert() },
                         );
@@ -473,6 +474,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let mut custom_span_label = false;
 
         let static_candidates = &mut no_match_data.static_candidates;
+
+        // `static_candidates` may have same candidates appended by
+        // inherent and extension, which may result in incorrect
+        // diagnostic.
+        static_candidates.dedup();
+
         if !static_candidates.is_empty() {
             err.note(
                 "found the following associated functions; to be used as methods, \
@@ -536,7 +543,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let mut unimplemented_traits = FxHashMap::default();
             let mut unimplemented_traits_only = true;
             for (predicate, _parent_pred, cause) in unsatisfied_predicates {
-                if let (ty::PredicateKind::Clause(ty::Clause::Trait(p)), Some(cause)) =
+                if let (ty::PredicateKind::Clause(ty::ClauseKind::Trait(p)), Some(cause)) =
                     (predicate.kind().skip_binder(), cause.as_ref())
                 {
                     if p.trait_ref.self_ty() != rcvr_ty {
@@ -563,7 +570,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             // because of some non-Clone item being iterated over.
             for (predicate, _parent_pred, _cause) in unsatisfied_predicates {
                 match predicate.kind().skip_binder() {
-                    ty::PredicateKind::Clause(ty::Clause::Trait(p))
+                    ty::PredicateKind::Clause(ty::ClauseKind::Trait(p))
                         if unimplemented_traits.contains_key(&p.trait_ref.def_id) => {}
                     _ => {
                         unimplemented_traits_only = false;
@@ -575,7 +582,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let mut collect_type_param_suggestions =
                 |self_ty: Ty<'tcx>, parent_pred: ty::Predicate<'tcx>, obligation: &str| {
                     // We don't care about regions here, so it's fine to skip the binder here.
-                    if let (ty::Param(_), ty::PredicateKind::Clause(ty::Clause::Trait(p))) =
+                    if let (ty::Param(_), ty::PredicateKind::Clause(ty::ClauseKind::Trait(p))) =
                         (self_ty.kind(), parent_pred.kind().skip_binder())
                     {
                         let hir = self.tcx.hir();
@@ -635,13 +642,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let mut format_pred = |pred: ty::Predicate<'tcx>| {
                 let bound_predicate = pred.kind();
                 match bound_predicate.skip_binder() {
-                    ty::PredicateKind::Clause(ty::Clause::Projection(pred)) => {
+                    ty::PredicateKind::Clause(ty::ClauseKind::Projection(pred)) => {
                         let pred = bound_predicate.rebind(pred);
                         // `<Foo as Iterator>::Item = String`.
                         let projection_ty = pred.skip_binder().projection_ty;
 
                         let substs_with_infer_self = tcx.mk_substs_from_iter(
-                            iter::once(tcx.mk_ty_var(ty::TyVid::from_u32(0)).into())
+                            iter::once(Ty::new_var(tcx, ty::TyVid::from_u32(0)).into())
                                 .chain(projection_ty.substs.iter().skip(1)),
                         );
 
@@ -659,7 +666,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         bound_span_label(projection_ty.self_ty(), &obligation, &quiet);
                         Some((obligation, projection_ty.self_ty()))
                     }
-                    ty::PredicateKind::Clause(ty::Clause::Trait(poly_trait_ref)) => {
+                    ty::PredicateKind::Clause(ty::ClauseKind::Trait(poly_trait_ref)) => {
                         let p = poly_trait_ref.trait_ref;
                         let self_ty = p.self_ty();
                         let path = p.print_only_trait_path();
@@ -690,7 +697,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 };
 
                 // Don't point out the span of `WellFormed` predicates.
-                if !matches!(p.kind().skip_binder(), ty::PredicateKind::Clause(_)) {
+                if !matches!(
+                    p.kind().skip_binder(),
+                    ty::PredicateKind::Clause(
+                        ty::ClauseKind::Projection(..) | ty::ClauseKind::Trait(..)
+                    )
+                ) {
                     continue;
                 };
 
@@ -731,7 +743,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         let sized_pred =
                             unsatisfied_predicates.iter().any(|(pred, _, _)| {
                                 match pred.kind().skip_binder() {
-                                    ty::PredicateKind::Clause(ty::Clause::Trait(pred)) => {
+                                    ty::PredicateKind::Clause(ty::ClauseKind::Trait(pred)) => {
                                         Some(pred.def_id()) == self.tcx.lang_items().sized_trait()
                                             && pred.polarity == ty::ImplPolarity::Positive
                                     }
@@ -2003,16 +2015,18 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     ) {
         let all_local_types_needing_impls =
             errors.iter().all(|e| match e.obligation.predicate.kind().skip_binder() {
-                ty::PredicateKind::Clause(ty::Clause::Trait(pred)) => match pred.self_ty().kind() {
-                    ty::Adt(def, _) => def.did().is_local(),
-                    _ => false,
-                },
+                ty::PredicateKind::Clause(ty::ClauseKind::Trait(pred)) => {
+                    match pred.self_ty().kind() {
+                        ty::Adt(def, _) => def.did().is_local(),
+                        _ => false,
+                    }
+                }
                 _ => false,
             });
         let mut preds: Vec<_> = errors
             .iter()
             .filter_map(|e| match e.obligation.predicate.kind().skip_binder() {
-                ty::PredicateKind::Clause(ty::Clause::Trait(pred)) => Some(pred),
+                ty::PredicateKind::Clause(ty::ClauseKind::Trait(pred)) => Some(pred),
                 _ => None,
             })
             .collect();
@@ -2083,7 +2097,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let mut derives = Vec::<(String, Span, Symbol)>::new();
         let mut traits = Vec::new();
         for (pred, _, _) in unsatisfied_predicates {
-            let Some(ty::PredicateKind::Clause(ty::Clause::Trait(trait_pred))) =
+            let Some(ty::PredicateKind::Clause(ty::ClauseKind::Trait(trait_pred))) =
                 pred.kind().no_bound_vars()
             else {
                 continue
@@ -2103,20 +2117,6 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     | sym::Copy
                     | sym::Hash
                     | sym::Debug => true,
-                    _ => false,
-                } && match trait_pred.trait_ref.substs.as_slice() {
-                    // Only suggest deriving if lhs == rhs...
-                    [lhs, rhs] => {
-                        if let Some(lhs) = lhs.as_type()
-                            && let Some(rhs) = rhs.as_type()
-                        {
-                            self.can_eq(self.param_env, lhs, rhs)
-                        } else {
-                            false
-                        }
-                    },
-                    // Unary ops can always be derived
-                    [_] => true,
                     _ => false,
                 };
                 if can_derive {
@@ -2409,8 +2409,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             // just this list.
             for (rcvr_ty, post) in &[
                 (rcvr_ty, ""),
-                (self.tcx.mk_mut_ref(self.tcx.lifetimes.re_erased, rcvr_ty), "&mut "),
-                (self.tcx.mk_imm_ref(self.tcx.lifetimes.re_erased, rcvr_ty), "&"),
+                (Ty::new_mut_ref(self.tcx, self.tcx.lifetimes.re_erased, rcvr_ty), "&mut "),
+                (Ty::new_imm_ref(self.tcx, self.tcx.lifetimes.re_erased, rcvr_ty), "&"),
             ] {
                 match self.lookup_probe_for_diagnostic(
                     item_name,
@@ -2445,10 +2445,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 }
 
                 for (rcvr_ty, pre) in &[
-                    (self.tcx.mk_lang_item(*rcvr_ty, LangItem::OwnedBox), "Box::new"),
-                    (self.tcx.mk_lang_item(*rcvr_ty, LangItem::Pin), "Pin::new"),
-                    (self.tcx.mk_diagnostic_item(*rcvr_ty, sym::Arc), "Arc::new"),
-                    (self.tcx.mk_diagnostic_item(*rcvr_ty, sym::Rc), "Rc::new"),
+                    (Ty::new_lang_item(self.tcx, *rcvr_ty, LangItem::OwnedBox), "Box::new"),
+                    (Ty::new_lang_item(self.tcx, *rcvr_ty, LangItem::Pin), "Pin::new"),
+                    (Ty::new_diagnostic_item(self.tcx, *rcvr_ty, sym::Arc), "Arc::new"),
+                    (Ty::new_diagnostic_item(self.tcx, *rcvr_ty, sym::Rc), "Rc::new"),
                 ] {
                     if let Some(new_rcvr_t) = *rcvr_ty
                         && let Ok(pick) = self.lookup_probe_for_diagnostic(
@@ -2532,10 +2532,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     match p.kind().skip_binder() {
                         // Hide traits if they are present in predicates as they can be fixed without
                         // having to implement them.
-                        ty::PredicateKind::Clause(ty::Clause::Trait(t)) => {
+                        ty::PredicateKind::Clause(ty::ClauseKind::Trait(t)) => {
                             t.def_id() == info.def_id
                         }
-                        ty::PredicateKind::Clause(ty::Clause::Projection(p)) => {
+                        ty::PredicateKind::Clause(ty::ClauseKind::Projection(p)) => {
                             p.projection_ty.def_id == info.def_id
                         }
                         _ => false,

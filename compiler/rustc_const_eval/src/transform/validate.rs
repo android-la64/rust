@@ -67,8 +67,8 @@ impl<'tcx> MirPass<'tcx> for Validator {
             unwind_edge_count: 0,
             reachable_blocks: traversal::reachable_as_bitset(body),
             storage_liveness,
-            place_cache: Vec::new(),
-            value_cache: Vec::new(),
+            place_cache: FxHashSet::default(),
+            value_cache: FxHashSet::default(),
         };
         checker.visit_body(body);
         checker.check_cleanup_control_flow();
@@ -95,8 +95,8 @@ struct TypeChecker<'a, 'tcx> {
     unwind_edge_count: usize,
     reachable_blocks: BitSet<BasicBlock>,
     storage_liveness: ResultsCursor<'a, 'tcx, MaybeStorageLive<'static>>,
-    place_cache: Vec<PlaceRef<'tcx>>,
-    value_cache: Vec<u128>,
+    place_cache: FxHashSet<PlaceRef<'tcx>>,
+    value_cache: FxHashSet<u128>,
 }
 
 impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
@@ -318,8 +318,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
 
     fn visit_projection_elem(
         &mut self,
-        local: Local,
-        proj_base: &[PlaceElem<'tcx>],
+        place_ref: PlaceRef<'tcx>,
         elem: PlaceElem<'tcx>,
         context: PlaceContext,
         location: Location,
@@ -334,7 +333,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
             ProjectionElem::Deref
                 if self.mir_phase >= MirPhase::Runtime(RuntimePhase::PostCleanup) =>
             {
-                let base_ty = Place::ty_from(local, proj_base, &self.body.local_decls, self.tcx).ty;
+                let base_ty = place_ref.ty(&self.body.local_decls, self.tcx).ty;
 
                 if base_ty.is_box() {
                     self.fail(
@@ -344,8 +343,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                 }
             }
             ProjectionElem::Field(f, ty) => {
-                let parent = Place { local, projection: self.tcx.mk_place_elems(proj_base) };
-                let parent_ty = parent.ty(&self.body.local_decls, self.tcx);
+                let parent_ty = place_ref.ty(&self.body.local_decls, self.tcx);
                 let fail_out_of_bounds = |this: &Self, location| {
                     this.fail(location, format!("Out of bounds field {:?} for {:?}", f, parent_ty));
                 };
@@ -355,7 +353,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                             location,
                             format!(
                                 "Field projection `{:?}.{:?}` specified type `{:?}`, but actual type is `{:?}`",
-                                parent, f, ty, f_ty
+                                place_ref, f, ty, f_ty
                             )
                         )
                     }
@@ -434,7 +432,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
             }
             _ => {}
         }
-        self.super_projection_elem(local, proj_base, elem, context, location);
+        self.super_projection_elem(place_ref, elem, context, location);
     }
 
     fn visit_var_debug_info(&mut self, debuginfo: &VarDebugInfo<'tcx>) {
@@ -498,8 +496,8 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
 
     fn visit_rvalue(&mut self, rvalue: &Rvalue<'tcx>, location: Location) {
         macro_rules! check_kinds {
-            ($t:expr, $text:literal, $($patterns:tt)*) => {
-                if !matches!(($t).kind(), $($patterns)*) {
+            ($t:expr, $text:literal, $typat:pat) => {
+                if !matches!(($t).kind(), $typat) {
                     self.fail(location, format!($text, $t));
                 }
             };
@@ -527,6 +525,25 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                 use BinOp::*;
                 let a = vals.0.ty(&self.body.local_decls, self.tcx);
                 let b = vals.1.ty(&self.body.local_decls, self.tcx);
+                if crate::util::binop_right_homogeneous(*op) {
+                    if let Eq | Lt | Le | Ne | Ge | Gt = op {
+                        // The function pointer types can have lifetimes
+                        if !self.mir_assign_valid_types(a, b) {
+                            self.fail(
+                                location,
+                                format!("Cannot {op:?} compare incompatible types {a:?} and {b:?}"),
+                            );
+                        }
+                    } else if a != b {
+                        self.fail(
+                            location,
+                            format!(
+                                "Cannot perform binary op {op:?} on unequal types {a:?} and {b:?}"
+                            ),
+                        );
+                    }
+                }
+
                 match op {
                     Offset => {
                         check_kinds!(a, "Cannot offset non-pointer type {:?}", ty::RawPtr(..));
@@ -538,7 +555,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                         for x in [a, b] {
                             check_kinds!(
                                 x,
-                                "Cannot compare type {:?}",
+                                "Cannot {op:?} compare type {:?}",
                                 ty::Bool
                                     | ty::Char
                                     | ty::Int(..)
@@ -548,19 +565,13 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                                     | ty::FnPtr(..)
                             )
                         }
-                        // The function pointer types can have lifetimes
-                        if !self.mir_assign_valid_types(a, b) {
-                            self.fail(
-                                location,
-                                format!("Cannot compare unequal types {:?} and {:?}", a, b),
-                            );
-                        }
                     }
-                    Shl | Shr => {
+                    AddUnchecked | SubUnchecked | MulUnchecked | Shl | ShlUnchecked | Shr
+                    | ShrUnchecked => {
                         for x in [a, b] {
                             check_kinds!(
                                 x,
-                                "Cannot shift non-integer type {:?}",
+                                "Cannot {op:?} non-integer type {:?}",
                                 ty::Uint(..) | ty::Int(..)
                             )
                         }
@@ -569,36 +580,18 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                         for x in [a, b] {
                             check_kinds!(
                                 x,
-                                "Cannot perform bitwise op on type {:?}",
+                                "Cannot perform bitwise op {op:?} on type {:?}",
                                 ty::Uint(..) | ty::Int(..) | ty::Bool
                             )
-                        }
-                        if a != b {
-                            self.fail(
-                                location,
-                                format!(
-                                    "Cannot perform bitwise op on unequal types {:?} and {:?}",
-                                    a, b
-                                ),
-                            );
                         }
                     }
                     Add | Sub | Mul | Div | Rem => {
                         for x in [a, b] {
                             check_kinds!(
                                 x,
-                                "Cannot perform arithmetic on type {:?}",
+                                "Cannot perform arithmetic {op:?} on type {:?}",
                                 ty::Uint(..) | ty::Int(..) | ty::Float(..)
                             )
-                        }
-                        if a != b {
-                            self.fail(
-                                location,
-                                format!(
-                                    "Cannot perform arithmetic on unequal types {:?} and {:?}",
-                                    a, b
-                                ),
-                            );
                         }
                     }
                 }
@@ -657,7 +650,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                     // FIXME: Add Checks for these
                     CastKind::PointerFromExposedAddress
                     | CastKind::PointerExposeAddress
-                    | CastKind::Pointer(_) => {}
+                    | CastKind::PointerCoercion(_) => {}
                     CastKind::IntToInt | CastKind::IntToFloat => {
                         let input_valid = op_ty.is_integral() || op_ty.is_char() || op_ty.is_bool();
                         let target_valid = target_type.is_numeric() || target_type.is_char();
@@ -958,10 +951,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
 
                 self.value_cache.clear();
                 self.value_cache.extend(targets.iter().map(|(value, _)| value));
-                let all_len = self.value_cache.len();
-                self.value_cache.sort_unstable();
-                self.value_cache.dedup();
-                let has_duplicates = all_len != self.value_cache.len();
+                let has_duplicates = targets.iter().len() != self.value_cache.len();
                 if has_duplicates {
                     self.fail(
                         location,
@@ -994,16 +984,14 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                 // passed by a reference to the callee. Consequently they must be non-overlapping.
                 // Currently this simply checks for duplicate places.
                 self.place_cache.clear();
-                self.place_cache.push(destination.as_ref());
+                self.place_cache.insert(destination.as_ref());
+                let mut has_duplicates = false;
                 for arg in args {
                     if let Operand::Move(place) = arg {
-                        self.place_cache.push(place.as_ref());
+                        has_duplicates |= !self.place_cache.insert(place.as_ref());
                     }
                 }
-                let all_len = self.place_cache.len();
-                let mut dedup = FxHashSet::default();
-                self.place_cache.retain(|p| dedup.insert(*p));
-                let has_duplicates = all_len != self.place_cache.len();
+
                 if has_duplicates {
                     self.fail(
                         location,

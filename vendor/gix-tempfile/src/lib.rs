@@ -13,7 +13,7 @@
 //! This also allows to control how `git-tempfiles` integrates with other handlers under application control.
 //!
 //! As a general rule of thumb, use `Default::default()` as argument to emulate the default behaviour and
-//! abort the process after cleaning temporary files. Read more about options in [signal::handler::Mode].
+//! abort the process after cleaning temporary files. Read more about options in [`signal::handler::Mode`].
 //!
 //! # Limitations
 //!
@@ -94,8 +94,7 @@ mod hashmap {
 #[cfg(not(feature = "hp-hashmap"))]
 type HashMap<K, V> = hashmap::Concurrent<K, V>;
 
-mod fs;
-pub use fs::{create_dir, remove_dir};
+pub use gix_fs::dir::{create as create_dir, remove as remove_dir};
 
 #[cfg(feature = "signals")]
 /// signal setup and reusable handlers.

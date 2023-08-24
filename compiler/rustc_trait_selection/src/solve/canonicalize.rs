@@ -208,8 +208,25 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for Canonicalizer<'_, 'tcx> {
         t
     }
 
-    fn fold_region(&mut self, r: ty::Region<'tcx>) -> ty::Region<'tcx> {
-        let r = self.infcx.shallow_resolve(r);
+    fn fold_region(&mut self, mut r: ty::Region<'tcx>) -> ty::Region<'tcx> {
+        match self.canonicalize_mode {
+            CanonicalizeMode::Input => {
+                // Don't resolve infer vars in input, since it affects
+                // caching and may cause trait selection bugs which rely
+                // on regions to be equal.
+            }
+            CanonicalizeMode::Response { .. } => {
+                if let ty::ReVar(vid) = *r {
+                    r = self
+                        .infcx
+                        .inner
+                        .borrow_mut()
+                        .unwrap_region_constraints()
+                        .opportunistic_resolve_var(self.infcx.tcx, vid);
+                }
+            }
+        }
+
         let kind = match *r {
             ty::ReLateBound(..) => return r,
 
@@ -255,7 +272,7 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for Canonicalizer<'_, 'tcx> {
             }),
         );
         let br = ty::BoundRegion { var, kind: BrAnon(None) };
-        self.interner().mk_re_late_bound(self.binder_index, br)
+        ty::Region::new_late_bound(self.interner(), self.binder_index, br)
     }
 
     fn fold_ty(&mut self, mut t: Ty<'tcx>) -> Ty<'tcx> {
@@ -266,7 +283,7 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for Canonicalizer<'_, 'tcx> {
                 // any equated inference vars correctly!
                 let root_vid = self.infcx.root_var(vid);
                 if root_vid != vid {
-                    t = self.infcx.tcx.mk_ty_var(root_vid);
+                    t = Ty::new_var(self.infcx.tcx, root_vid);
                     vid = root_vid;
                 }
 
@@ -349,7 +366,7 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for Canonicalizer<'_, 'tcx> {
             }),
         );
         let bt = ty::BoundTy { var, kind: BoundTyKind::Anon };
-        self.interner().mk_bound(self.binder_index, bt)
+        Ty::new_bound(self.infcx.tcx, self.binder_index, bt)
     }
 
     fn fold_const(&mut self, mut c: ty::Const<'tcx>) -> ty::Const<'tcx> {
@@ -360,7 +377,7 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for Canonicalizer<'_, 'tcx> {
                 // any equated inference vars correctly!
                 let root_vid = self.infcx.root_const_var(vid);
                 if root_vid != vid {
-                    c = self.infcx.tcx.mk_const(ty::InferConst::Var(root_vid), c.ty());
+                    c = ty::Const::new_var(self.infcx.tcx, root_vid, c.ty());
                     vid = root_vid;
                 }
 
@@ -409,6 +426,6 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for Canonicalizer<'_, 'tcx> {
                 var
             }),
         );
-        self.interner().mk_const(ty::ConstKind::Bound(self.binder_index, var), c.ty())
+        ty::Const::new_bound(self.infcx.tcx, self.binder_index, var, c.ty())
     }
 }

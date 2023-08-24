@@ -10,11 +10,12 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "zerofrom-derive"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 description = "Custom derive for the zerofrom crate"
+readme = "README.md"
 keywords = [
     "zerocopy",
     "serialization",
@@ -29,7 +30,9 @@ categories = [
 ]
 license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
-resolver = "2"
+
+[package.metadata.workspaces]
+independent = true
 
 [lib]
 path = "src/lib.rs"
@@ -51,10 +54,4 @@ features = [
 [dependencies.synstructure]
 version = "0.12.4"
 
-[dev-dependencies.zerofrom]
-version = "0.1"
-features = ["derive"]
-
-[dev-dependencies.zerovec]
-version = "0.9"
-features = ["yoke"]
+[dev-dependencies]

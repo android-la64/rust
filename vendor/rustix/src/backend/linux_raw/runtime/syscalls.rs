@@ -6,12 +6,11 @@
 #![allow(unsafe_code)]
 #![allow(clippy::undocumented_unsafe_blocks)]
 
-use super::super::c;
+use crate::backend::c;
 #[cfg(target_arch = "x86")]
-use super::super::conv::by_mut;
-use super::super::conv::{
-    by_ref, c_int, c_uint, ret, ret_c_int, ret_c_uint, ret_error, ret_usize_infallible, size_of,
-    zero,
+use crate::backend::conv::by_mut;
+use crate::backend::conv::{
+    by_ref, c_int, c_uint, ret, ret_c_int, ret_c_int_infallible, ret_error, size_of, zero,
 };
 #[cfg(feature = "fs")]
 use crate::fd::BorrowedFd;
@@ -19,23 +18,24 @@ use crate::ffi::CStr;
 #[cfg(feature = "fs")]
 use crate::fs::AtFlags;
 use crate::io;
-use crate::process::{Pid, RawNonZeroPid, Signal};
-use crate::runtime::{How, Sigaction, Siginfo, Sigset, Stack, Timespec};
+use crate::pid::Pid;
+use crate::runtime::{How, Sigaction, Siginfo, Sigset, Stack};
+use crate::signal::Signal;
+use crate::timespec::Timespec;
 use crate::utils::optional_as_ptr;
-#[cfg(target_pointer_width = "32")]
-use core::convert::TryInto;
 use core::mem::MaybeUninit;
 #[cfg(target_pointer_width = "32")]
 use linux_raw_sys::general::__kernel_old_timespec;
-use linux_raw_sys::general::{__kernel_pid_t, kernel_sigset_t, PR_SET_NAME, SIGCHLD};
+use linux_raw_sys::general::kernel_sigset_t;
+use linux_raw_sys::prctl::PR_SET_NAME;
 #[cfg(target_arch = "x86_64")]
-use {super::super::conv::ret_infallible, linux_raw_sys::general::ARCH_SET_FS};
+use {crate::backend::conv::ret_infallible, linux_raw_sys::general::ARCH_SET_FS};
 
 #[inline]
 pub(crate) unsafe fn fork() -> io::Result<Option<Pid>> {
-    let pid = ret_c_uint(syscall_readonly!(
+    let pid = ret_c_int(syscall_readonly!(
         __NR_clone,
-        c_uint(SIGCHLD),
+        c_int(c::SIGCHLD),
         zero(),
         zero(),
         zero(),
@@ -71,9 +71,9 @@ pub(crate) unsafe fn execve(
 }
 
 pub(crate) mod tls {
-    #[cfg(target_arch = "x86")]
-    use super::super::tls::UserDesc;
     use super::*;
+    #[cfg(target_arch = "x86")]
+    use crate::backend::runtime::tls::UserDesc;
 
     #[cfg(target_arch = "x86")]
     #[inline]
@@ -99,10 +99,8 @@ pub(crate) mod tls {
 
     #[inline]
     pub(crate) unsafe fn set_tid_address(data: *mut c::c_void) -> Pid {
-        let tid: i32 =
-            ret_usize_infallible(syscall_readonly!(__NR_set_tid_address, data)) as __kernel_pid_t;
-        debug_assert_ne!(tid, 0);
-        Pid::from_raw_nonzero(RawNonZeroPid::new_unchecked(tid as u32))
+        let tid: i32 = ret_c_int_infallible(syscall_readonly!(__NR_set_tid_address, data));
+        Pid::from_raw_unchecked(tid)
     }
 
     #[inline]
@@ -144,12 +142,13 @@ pub(crate) unsafe fn tkill(tid: Pid, sig: Signal) -> io::Result<()> {
 }
 
 #[inline]
-pub(crate) unsafe fn sigprocmask(how: How, set: &Sigset) -> io::Result<Sigset> {
+pub(crate) unsafe fn sigprocmask(how: How, new: Option<&Sigset>) -> io::Result<Sigset> {
     let mut old = MaybeUninit::<Sigset>::uninit();
+    let new = optional_as_ptr(new);
     ret(syscall!(
         __NR_rt_sigprocmask,
         how,
-        by_ref(set),
+        new,
         &mut old,
         size_of::<kernel_sigset_t, _>()
     ))?;
@@ -192,6 +191,9 @@ pub(crate) fn sigtimedwait(set: &Sigset, timeout: Option<Timespec>) -> io::Resul
     let mut info = MaybeUninit::<Siginfo>::uninit();
     let timeout_ptr = optional_as_ptr(timeout.as_ref());
 
+    // `rt_sigtimedwait_time64` was introduced in Linux 5.1. The old
+    // `rt_sigtimedwait` syscall is not y2038-compatible on 32-bit
+    // architectures.
     #[cfg(target_pointer_width = "32")]
     unsafe {
         match ret_c_int(syscall!(
@@ -246,4 +248,9 @@ unsafe fn sigtimedwait_old(
     ))?;
 
     Ok(())
+}
+
+#[inline]
+pub(crate) fn exit_group(code: c::c_int) -> ! {
+    unsafe { syscall_noreturn!(__NR_exit_group, c_int(code)) }
 }

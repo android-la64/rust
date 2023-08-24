@@ -5,12 +5,11 @@
 //! This uses raw pointers to locate and read the kernel-provided auxv array.
 #![allow(unsafe_code)]
 
-use super::super::c;
-use super::super::elf::*;
+use crate::backend::c;
+use crate::backend::elf::*;
 use crate::fd::OwnedFd;
 #[cfg(feature = "param")]
 use crate::ffi::CStr;
-#[cfg(not(target_vendor = "mustang"))]
 use crate::fs::{Mode, OFlags};
 use crate::utils::{as_ptr, check_raw_pointer};
 use alloc::vec::Vec;
@@ -32,7 +31,7 @@ pub(crate) fn page_size() -> usize {
     let mut page_size = PAGE_SIZE.load(Relaxed);
 
     if page_size == 0 {
-        init_from_proc_self_auxv();
+        init_auxv();
         page_size = PAGE_SIZE.load(Relaxed);
     }
 
@@ -45,7 +44,7 @@ pub(crate) fn clock_ticks_per_second() -> u64 {
     let mut ticks = CLOCK_TICKS_PER_SECOND.load(Relaxed);
 
     if ticks == 0 {
-        init_from_proc_self_auxv();
+        init_auxv();
         ticks = CLOCK_TICKS_PER_SECOND.load(Relaxed);
     }
 
@@ -59,7 +58,7 @@ pub(crate) fn linux_hwcap() -> (usize, usize) {
     let mut hwcap2 = HWCAP2.load(Relaxed);
 
     if hwcap == 0 || hwcap2 == 0 {
-        init_from_proc_self_auxv();
+        init_auxv();
         hwcap = HWCAP.load(Relaxed);
         hwcap2 = HWCAP2.load(Relaxed);
     }
@@ -73,7 +72,7 @@ pub(crate) fn linux_execfn() -> &'static CStr {
     let mut execfn = EXECFN.load(Relaxed);
 
     if execfn.is_null() {
-        init_from_proc_self_auxv();
+        init_auxv();
         execfn = EXECFN.load(Relaxed);
     }
 
@@ -89,7 +88,7 @@ pub(crate) fn exe_phdrs() -> (*const c::c_void, usize) {
     let mut phnum = PHNUM.load(Relaxed);
 
     if phdr.is_null() || phnum == 0 {
-        init_from_proc_self_auxv();
+        init_auxv();
         phdr = PHDR.load(Relaxed);
         phnum = PHNUM.load(Relaxed);
     }
@@ -114,7 +113,7 @@ pub(in super::super) fn sysinfo_ehdr() -> *const Elf_Ehdr {
     let mut ehdr = SYSINFO_EHDR.load(Relaxed);
 
     if ehdr.is_null() {
-        init_from_proc_self_auxv();
+        init_auxv();
         ehdr = SYSINFO_EHDR.load(Relaxed);
     }
 
@@ -130,27 +129,59 @@ static PHDR: AtomicPtr<Elf_Phdr> = AtomicPtr::new(null_mut());
 static PHNUM: AtomicUsize = AtomicUsize::new(0);
 static EXECFN: AtomicPtr<c::c_char> = AtomicPtr::new(null_mut());
 
-/// On non-Mustang platforms, we read the aux vector from /proc/self/auxv.
-#[cfg(not(target_vendor = "mustang"))]
-fn init_from_proc_self_auxv() {
+fn pr_get_auxv() -> crate::io::Result<Vec<u8>> {
+    use super::super::conv::{c_int, pass_usize, ret_usize};
+    const PR_GET_AUXV: c::c_int = 0x41555856;
+    let mut buffer = alloc::vec![0u8; 512];
+    let len = unsafe {
+        ret_usize(syscall_always_asm!(
+            __NR_prctl,
+            c_int(PR_GET_AUXV),
+            buffer.as_ptr(),
+            pass_usize(buffer.len())
+        ))?
+    };
+    if len <= buffer.len() {
+        buffer.truncate(len);
+        return Ok(buffer);
+    }
+    buffer.resize(len, 0);
+    let len = unsafe {
+        ret_usize(syscall_always_asm!(
+            __NR_prctl,
+            c_int(PR_GET_AUXV),
+            buffer.as_ptr(),
+            pass_usize(buffer.len())
+        ))?
+    };
+    assert_eq!(len, buffer.len());
+    return Ok(buffer);
+}
+
+/// On non-Mustang platforms, we read the aux vector via the `prctl`
+/// `PR_GET_AUXV`, with a fallback to /proc/self/auxv for kernels that don't
+/// support `PR_GET_AUXV`.
+fn init_auxv() {
+    match pr_get_auxv() {
+        Ok(buffer) => {
+            // SAFETY: We assume the kernel returns a valid auxv.
+            unsafe {
+                init_from_auxp(buffer.as_ptr().cast());
+            }
+            return;
+        }
+        Err(_) => {
+            // Fall back to /proc/self/auxv on error.
+        }
+    }
+
     // Open "/proc/self/auxv", either because we trust "/proc", or because
     // we're running inside QEMU and `proc_self_auxv`'s extra checking foils
     // QEMU's emulation so we need to do a plain open to get the right
     // auxv records.
-    let file = crate::fs::openat(
-        crate::fs::cwd(),
-        "/proc/self/auxv",
-        OFlags::empty(),
-        Mode::empty(),
-    )
-    .unwrap();
+    let file = crate::fs::open("/proc/self/auxv", OFlags::RDONLY, Mode::empty()).unwrap();
 
     let _ = init_from_auxv_file(file);
-}
-
-#[cfg(target_vendor = "mustang")]
-fn init_from_proc_self_auxv() {
-    panic!("mustang should have initialized the auxv values");
 }
 
 /// Process auxv entries from the open file `auxv`.
@@ -276,7 +307,7 @@ unsafe fn check_vdso_base(base: *const Elf_Ehdr) -> Option<NonNull<Elf_Ehdr>> {
     // as an arbitrary system call which writes to a buffer and fails with
     // `EFAULT` if the buffer is not writable.
     {
-        use super::super::conv::{c_uint, ret};
+        use crate::backend::conv::{c_uint, ret};
         if ret(syscall!(
             __NR_clock_getres,
             c_uint(linux_raw_sys::general::CLOCK_MONOTONIC),

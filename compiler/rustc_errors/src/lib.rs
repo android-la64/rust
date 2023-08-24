@@ -4,9 +4,8 @@
 
 #![doc(html_root_url = "https://doc.rust-lang.org/nightly/nightly-rustc/")]
 #![feature(array_windows)]
-#![feature(drain_filter)]
+#![feature(extract_if)]
 #![feature(if_let_guard)]
-#![feature(adt_const_params)]
 #![feature(let_chains)]
 #![feature(never_type)]
 #![feature(result_option_inspect)]
@@ -62,6 +61,7 @@ pub mod emitter;
 pub mod error;
 pub mod json;
 mod lock;
+pub mod markdown;
 pub mod registry;
 mod snippet;
 mod styled_buffer;
@@ -384,7 +384,7 @@ pub use diagnostic_builder::{DiagnosticBuilder, EmissionGuarantee, Noted};
 pub use diagnostic_impls::{
     DiagnosticArgFromDisplay, DiagnosticSymbolList, LabelKind, SingleLabelManySpans,
 };
-use std::backtrace::Backtrace;
+use std::backtrace::{Backtrace, BacktraceStatus};
 
 /// A handler deals with errors and other compiler output.
 /// Certain errors (fatal, bug, unimpl) may cause immediate exit,
@@ -628,7 +628,7 @@ impl Handler {
         message: DiagnosticMessage,
         args: impl Iterator<Item = DiagnosticArg<'a, 'static>>,
     ) -> SubdiagnosticMessage {
-        SubdiagnosticMessage::Eager(self.eagerly_translate_to_string(message, args))
+        SubdiagnosticMessage::Eager(Cow::from(self.eagerly_translate_to_string(message, args)))
     }
 
     /// Translate `message` eagerly with `args` to `String`.
@@ -845,7 +845,7 @@ impl Handler {
         &self,
         msg: impl Into<DiagnosticMessage>,
     ) -> DiagnosticBuilder<'_, ErrorGuaranteed> {
-        DiagnosticBuilder::new_guaranteeing_error::<_, { Level::Error { lint: false } }>(self, msg)
+        DiagnosticBuilder::new_guaranteeing_error(self, msg)
     }
 
     /// This should only be used by `rustc_middle::lint::struct_lint_level`. Do not use it for hard errors.
@@ -1332,7 +1332,7 @@ impl HandlerInner {
             // once *any* errors were emitted (and truncate `delayed_span_bugs`
             // when an error is first emitted, also), but maybe there's a case
             // in which that's not sound? otherwise this is really inefficient.
-            let backtrace = std::backtrace::Backtrace::force_capture();
+            let backtrace = std::backtrace::Backtrace::capture();
             self.delayed_span_bugs
                 .push(DelayedDiagnostic::with_backtrace(diagnostic.clone(), backtrace));
 
@@ -1400,7 +1400,7 @@ impl HandlerInner {
                     !self.emitted_diagnostics.insert(diagnostic_hash)
                 };
 
-                diagnostic.children.drain_filter(already_emitted_sub).for_each(|_| {});
+                diagnostic.children.extract_if(already_emitted_sub).for_each(|_| {});
 
                 self.emitter.emit_diagnostic(diagnostic);
                 if diagnostic.is_error() {
@@ -1450,14 +1450,14 @@ impl HandlerInner {
         self.emit_stashed_diagnostics();
 
         let warnings = match self.deduplicated_warn_count {
-            0 => String::new(),
-            1 => "1 warning emitted".to_string(),
-            count => format!("{count} warnings emitted"),
+            0 => Cow::from(""),
+            1 => Cow::from("1 warning emitted"),
+            count => Cow::from(format!("{count} warnings emitted")),
         };
         let errors = match self.deduplicated_err_count {
-            0 => String::new(),
-            1 => "aborting due to previous error".to_string(),
-            count => format!("aborting due to {count} previous errors"),
+            0 => Cow::from(""),
+            1 => Cow::from("aborting due to previous error"),
+            count => Cow::from(format!("aborting due to {count} previous errors")),
         };
         if self.treat_err_as_bug() {
             return;
@@ -1621,7 +1621,7 @@ impl HandlerInner {
         if self.flags.report_delayed_bugs {
             self.emit_diagnostic(&mut diagnostic);
         }
-        let backtrace = std::backtrace::Backtrace::force_capture();
+        let backtrace = std::backtrace::Backtrace::capture();
         self.delayed_good_path_bugs.push(DelayedDiagnostic::with_backtrace(diagnostic, backtrace));
     }
 
@@ -1740,7 +1740,17 @@ impl DelayedDiagnostic {
     }
 
     fn decorate(mut self) -> Diagnostic {
-        self.inner.note(format!("delayed at {}\n{}", self.inner.emitted_at, self.note));
+        match self.note.status() {
+            BacktraceStatus::Captured => {
+                self.inner.note(format!("delayed at {}\n{}", self.inner.emitted_at, self.note));
+            }
+            // Avoid the needless newline when no backtrace has been captured,
+            // the display impl should just be a single line.
+            _ => {
+                self.inner.note(format!("delayed at {} - {}", self.inner.emitted_at, self.note));
+            }
+        }
+
         self.inner
     }
 }

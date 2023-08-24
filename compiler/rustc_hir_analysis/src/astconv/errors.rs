@@ -122,9 +122,13 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
 
         let all_candidate_names: Vec<_> = all_candidates()
             .flat_map(|r| self.tcx().associated_items(r.def_id()).in_definition_order())
-            .filter_map(
-                |item| if item.kind == ty::AssocKind::Type { Some(item.name) } else { None },
-            )
+            .filter_map(|item| {
+                if item.opt_rpitit_info.is_none() && item.kind == ty::AssocKind::Type {
+                    Some(item.name)
+                } else {
+                    None
+                }
+            })
             .collect();
 
         if let (Some(suggested_name), true) = (
@@ -159,9 +163,13 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
             .flat_map(|trait_def_id| {
                 self.tcx().associated_items(*trait_def_id).in_definition_order()
             })
-            .filter_map(
-                |item| if item.kind == ty::AssocKind::Type { Some(item.name) } else { None },
-            )
+            .filter_map(|item| {
+                if item.opt_rpitit_info.is_none() && item.kind == ty::AssocKind::Type {
+                    Some(item.name)
+                } else {
+                    None
+                }
+            })
             .collect();
 
         if let (Some(suggested_name), true) = (
@@ -343,13 +351,13 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
         let format_pred = |pred: ty::Predicate<'tcx>| {
             let bound_predicate = pred.kind();
             match bound_predicate.skip_binder() {
-                ty::PredicateKind::Clause(ty::Clause::Projection(pred)) => {
+                ty::PredicateKind::Clause(ty::ClauseKind::Projection(pred)) => {
                     let pred = bound_predicate.rebind(pred);
                     // `<Foo as Iterator>::Item = String`.
                     let projection_ty = pred.skip_binder().projection_ty;
 
                     let substs_with_infer_self = tcx.mk_substs_from_iter(
-                        std::iter::once(tcx.mk_ty_var(ty::TyVid::from_u32(0)).into())
+                        std::iter::once(Ty::new_var(tcx, ty::TyVid::from_u32(0)).into())
                             .chain(projection_ty.substs.iter().skip(1)),
                     );
 
@@ -364,7 +372,7 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
                     bound_span_label(projection_ty.self_ty(), &obligation, &quiet);
                     Some((obligation, projection_ty.self_ty()))
                 }
-                ty::PredicateKind::Clause(ty::Clause::Trait(poly_trait_ref)) => {
+                ty::PredicateKind::Clause(ty::ClauseKind::Trait(poly_trait_ref)) => {
                     let p = poly_trait_ref.trait_ref;
                     let self_ty = p.self_ty();
                     let path = p.print_only_trait_path();

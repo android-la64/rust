@@ -13,10 +13,11 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-worktree"
-version = "0.17.0"
+version = "0.18.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
+    "LICENSE-*",
     "CHANGELOG.md",
 ]
 description = "A WIP crate of the gitoxide project dedicated implementing everything around working trees and git excludes"
@@ -58,31 +59,31 @@ optional = true
 version = "0.2.15"
 
 [dependencies.gix-attributes]
-version = "^0.12.0"
+version = "^0.13.0"
 
 [dependencies.gix-features]
-version = "^0.29.0"
+version = "^0.30.0"
 
 [dependencies.gix-fs]
-version = "^0.1.1"
-
-[dependencies.gix-glob]
-version = "^0.7.0"
-
-[dependencies.gix-hash]
-version = "^0.11.1"
-
-[dependencies.gix-ignore]
 version = "^0.2.0"
 
+[dependencies.gix-glob]
+version = "^0.8.0"
+
+[dependencies.gix-hash]
+version = "^0.11.2"
+
+[dependencies.gix-ignore]
+version = "^0.3.0"
+
 [dependencies.gix-index]
-version = "^0.16.0"
+version = "^0.17.0"
 
 [dependencies.gix-object]
-version = "^0.29.1"
+version = "^0.30.0"
 
 [dependencies.gix-path]
-version = "^0.8.0"
+version = "^0.8.1"
 
 [dependencies.io-close]
 version = "0.3.7"

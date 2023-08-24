@@ -3,7 +3,7 @@ use rustc_ast::util::parser::PREC_POSTFIX;
 use rustc_errors::MultiSpan;
 use rustc_errors::{Applicability, Diagnostic, DiagnosticBuilder, ErrorGuaranteed};
 use rustc_hir as hir;
-use rustc_hir::def::CtorKind;
+use rustc_hir::def::{CtorKind, Res};
 use rustc_hir::intravisit::Visitor;
 use rustc_hir::lang_items::LangItem;
 use rustc_hir::{is_range_literal, Node};
@@ -83,12 +83,66 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
 
         self.annotate_expected_due_to_let_ty(err, expr, error);
+
+        if self.is_destruct_assignment_desugaring(expr) {
+            return;
+        }
         self.emit_type_mismatch_suggestions(err, expr, expr_ty, expected, expected_ty_expr, error);
         self.note_type_is_not_clone(err, expected, expr_ty, expr);
         self.note_internal_mutation_in_method(err, expr, Some(expected), expr_ty);
         self.suggest_method_call_on_range_literal(err, expr, expr_ty, expected);
         self.suggest_return_binding_for_missing_tail_expr(err, expr, expr_ty, expected);
         self.note_wrong_return_ty_due_to_generic_arg(err, expr, expr_ty);
+    }
+
+    /// Really hacky heuristic to remap an `assert_eq!` error to the user
+    /// expressions provided to the macro.
+    fn adjust_expr_for_assert_eq_macro(
+        &self,
+        found_expr: &mut &'tcx hir::Expr<'tcx>,
+        expected_expr: &mut Option<&'tcx hir::Expr<'tcx>>,
+    ) {
+        let Some(expected_expr) = expected_expr else { return; };
+
+        if !found_expr.span.eq_ctxt(expected_expr.span) {
+            return;
+        }
+
+        if !found_expr
+            .span
+            .ctxt()
+            .outer_expn_data()
+            .macro_def_id
+            .is_some_and(|def_id| self.tcx.is_diagnostic_item(sym::assert_eq_macro, def_id))
+        {
+            return;
+        }
+
+        let hir::ExprKind::Unary(
+            hir::UnOp::Deref,
+            hir::Expr { kind: hir::ExprKind::Path(found_path), .. },
+        ) = found_expr.kind else { return; };
+        let hir::ExprKind::Unary(
+            hir::UnOp::Deref,
+            hir::Expr { kind: hir::ExprKind::Path(expected_path), .. },
+        ) = expected_expr.kind else { return; };
+
+        for (path, name, idx, var) in [
+            (expected_path, "left_val", 0, expected_expr),
+            (found_path, "right_val", 1, found_expr),
+        ] {
+            if let hir::QPath::Resolved(_, path) = path
+                && let [segment] = path.segments
+                && segment.ident.name.as_str() == name
+                && let Res::Local(hir_id) = path.res
+                && let Some((_, hir::Node::Expr(match_expr))) = self.tcx.hir().parent_iter(hir_id).nth(2)
+                && let hir::ExprKind::Match(scrutinee, _, _) = match_expr.kind
+                && let hir::ExprKind::Tup(exprs) = scrutinee.kind
+                && let hir::ExprKind::AddrOf(_, _, macro_arg) = exprs[idx].kind
+            {
+                *var = macro_arg;
+            }
+        }
     }
 
     /// Requires that the two types unify, and prints an error message if
@@ -156,7 +210,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub fn demand_coerce(
         &self,
-        expr: &hir::Expr<'tcx>,
+        expr: &'tcx hir::Expr<'tcx>,
         checked_ty: Ty<'tcx>,
         expected: Ty<'tcx>,
         expected_ty_expr: Option<&'tcx hir::Expr<'tcx>>,
@@ -177,10 +231,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     #[instrument(level = "debug", skip(self, expr, expected_ty_expr, allow_two_phase))]
     pub fn demand_coerce_diag(
         &self,
-        expr: &hir::Expr<'tcx>,
+        mut expr: &'tcx hir::Expr<'tcx>,
         checked_ty: Ty<'tcx>,
         expected: Ty<'tcx>,
-        expected_ty_expr: Option<&'tcx hir::Expr<'tcx>>,
+        mut expected_ty_expr: Option<&'tcx hir::Expr<'tcx>>,
         allow_two_phase: AllowTwoPhase,
     ) -> (Ty<'tcx>, Option<DiagnosticBuilder<'tcx, ErrorGuaranteed>>) {
         let expected = self.resolve_vars_with_obligations(expected);
@@ -189,6 +243,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             Ok(ty) => return (ty, None),
             Err(e) => e,
         };
+
+        self.adjust_expr_for_assert_eq_macro(&mut expr, &mut expected_ty_expr);
 
         self.set_tainted_by_errors(self.tcx.sess.delay_span_bug(
             expr.span,
@@ -318,13 +374,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     // Fudge the receiver, so we can do new inference on it.
                     let possible_rcvr_ty = possible_rcvr_ty.fold_with(&mut fudger);
                     let method = self
-                        .lookup_method(
+                        .lookup_method_for_diagnostic(
                             possible_rcvr_ty,
                             segment,
                             DUMMY_SP,
                             call_expr,
                             binding,
-                            args,
                         )
                         .ok()?;
                     // Unify the method signature with our incompatible arg, to
@@ -383,14 +438,14 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 let Some(rcvr_ty) = self.node_ty_opt(rcvr.hir_id) else { continue; };
                 let rcvr_ty = rcvr_ty.fold_with(&mut fudger);
                 let Ok(method) =
-                    self.lookup_method(rcvr_ty, segment, DUMMY_SP, parent_expr, rcvr, args)
+                    self.lookup_method_for_diagnostic(rcvr_ty, segment, DUMMY_SP, parent_expr, rcvr)
                 else {
                     continue;
                 };
 
                 let ideal_rcvr_ty = rcvr_ty.fold_with(&mut fudger);
                 let ideal_method = self
-                    .lookup_method(ideal_rcvr_ty, segment, DUMMY_SP, parent_expr, rcvr, args)
+                    .lookup_method_for_diagnostic(ideal_rcvr_ty, segment, DUMMY_SP, parent_expr, rcvr)
                     .ok()
                     .and_then(|method| {
                         let _ = self.at(&ObligationCause::dummy(), self.param_env)
@@ -1202,6 +1257,26 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         false
     }
 
+    // Returns whether the given expression is a destruct assignment desugaring.
+    // For example, `(a, b) = (1, &2);`
+    // Here we try to find the pattern binding of the expression,
+    // `default_binding_modes` is false only for destruct assignment desugaring.
+    pub(crate) fn is_destruct_assignment_desugaring(&self, expr: &hir::Expr<'_>) -> bool {
+        if let hir::ExprKind::Path(hir::QPath::Resolved(
+            _,
+            hir::Path { res: hir::def::Res::Local(bind_hir_id), .. },
+        )) = expr.kind
+        {
+            let bind = self.tcx.hir().find(*bind_hir_id);
+            let parent = self.tcx.hir().find(self.tcx.hir().parent_id(*bind_hir_id));
+            if let Some(hir::Node::Pat(hir::Pat { kind: hir::PatKind::Binding(_, _hir_id, _, _), .. })) = bind &&
+                let Some(hir::Node::Pat(hir::Pat { default_binding_modes: false, .. })) = parent {
+                    return true;
+                }
+        }
+        return false;
+    }
+
     /// This function is used to determine potential "simple" improvements or users' errors and
     /// provide them useful help. For example:
     ///
@@ -1291,10 +1366,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 // ```
                 let ref_ty = match mutability {
                     hir::Mutability::Mut => {
-                        self.tcx.mk_mut_ref(self.tcx.lifetimes.re_static, checked_ty)
+                        Ty::new_mut_ref(self.tcx,self.tcx.lifetimes.re_static, checked_ty)
                     }
                     hir::Mutability::Not => {
-                        self.tcx.mk_imm_ref(self.tcx.lifetimes.re_static, checked_ty)
+                        Ty::new_imm_ref(self.tcx,self.tcx.lifetimes.re_static, checked_ty)
                     }
                 };
                 if self.can_coerce(ref_ty, expected) {
@@ -1392,6 +1467,20 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 _,
                 &ty::Ref(_, checked, _),
             ) if self.can_sub(self.param_env, checked, expected) => {
+                let make_sugg = |start: Span, end: BytePos| {
+                    // skip `(` for tuples such as `(c) = (&123)`.
+                    // make sure we won't suggest like `(c) = 123)` which is incorrect.
+                    let sp = sm.span_extend_while(start.shrink_to_lo(), |c| c == '(' || c.is_whitespace())
+                                .map_or(start, |s| s.shrink_to_hi());
+                    Some((
+                        vec![(sp.with_hi(end), String::new())],
+                        "consider removing the borrow".to_string(),
+                        Applicability::MachineApplicable,
+                        true,
+                        true,
+                    ))
+                };
+
                 // We have `&T`, check if what was expected was `T`. If so,
                 // we may want to suggest removing a `&`.
                 if sm.is_imported(expr.span) {
@@ -1405,24 +1494,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                             .find(|&s| sp.contains(s))
                         && sm.is_span_accessible(call_span)
                     {
-                        return Some((
-                            vec![(sp.with_hi(call_span.lo()), String::new())],
-                            "consider removing the borrow".to_string(),
-                            Applicability::MachineApplicable,
-                            true,
-                            true,
-                        ));
+                        return make_sugg(sp, call_span.lo())
                     }
                     return None;
                 }
                 if sp.contains(expr.span) && sm.is_span_accessible(expr.span) {
-                    return Some((
-                        vec![(sp.with_hi(expr.span.lo()), String::new())],
-                        "consider removing the borrow".to_string(),
-                        Applicability::MachineApplicable,
-                        true,
-                        true,
-                    ));
+                    return make_sugg(sp, expr.span.lo())
                 }
             }
             (

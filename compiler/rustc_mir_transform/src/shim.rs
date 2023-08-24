@@ -32,13 +32,15 @@ fn make_shim<'tcx>(tcx: TyCtxt<'tcx>, instance: ty::InstanceDef<'tcx>) -> Body<'
     let mut result = match instance {
         ty::InstanceDef::Item(..) => bug!("item {:?} passed to make_shim", instance),
         ty::InstanceDef::VTableShim(def_id) => {
-            build_call_shim(tcx, instance, Some(Adjustment::Deref), CallKind::Direct(def_id))
+            let adjustment = Adjustment::Deref { source: DerefSource::MutPtr };
+            build_call_shim(tcx, instance, Some(adjustment), CallKind::Direct(def_id))
         }
         ty::InstanceDef::FnPtrShim(def_id, ty) => {
             let trait_ = tcx.trait_of_item(def_id).unwrap();
             let adjustment = match tcx.fn_trait_kind_from_def_id(trait_) {
                 Some(ty::ClosureKind::FnOnce) => Adjustment::Identity,
-                Some(ty::ClosureKind::FnMut | ty::ClosureKind::Fn) => Adjustment::Deref,
+                Some(ty::ClosureKind::Fn) => Adjustment::Deref { source: DerefSource::ImmRef },
+                Some(ty::ClosureKind::FnMut) => Adjustment::Deref { source: DerefSource::MutRef },
                 None => bug!("fn pointer {:?} is not an fn", ty),
             };
 
@@ -69,7 +71,7 @@ fn make_shim<'tcx>(tcx: TyCtxt<'tcx>, instance: ty::InstanceDef<'tcx>) -> Body<'
             // of this function. Is this intentional?
             if let Some(ty::Generator(gen_def_id, substs, _)) = ty.map(Ty::kind) {
                 let body = tcx.optimized_mir(*gen_def_id).generator_drop().unwrap();
-                let body = EarlyBinder(body.clone()).subst(tcx, substs);
+                let body = EarlyBinder::bind(body.clone()).subst(tcx, substs);
                 debug!("make_shim({:?}) = {:?}", instance, body);
                 return body;
             }
@@ -108,15 +110,25 @@ fn make_shim<'tcx>(tcx: TyCtxt<'tcx>, instance: ty::InstanceDef<'tcx>) -> Body<'
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+enum DerefSource {
+    /// `fn shim(&self) { inner(*self )}`.
+    ImmRef,
+    /// `fn shim(&mut self) { inner(*self )}`.
+    MutRef,
+    /// `fn shim(*mut self) { inner(*self )}`.
+    MutPtr,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 enum Adjustment {
     /// Pass the receiver as-is.
     Identity,
 
-    /// We get passed `&[mut] self` and call the target with `*self`.
+    /// We get passed a reference or a raw pointer to `self` and call the target with `*self`.
     ///
     /// This either copies `self` (if `Self: Copy`, eg. for function items), or moves out of it
     /// (for `VTableShim`, which effectively is passed `&own Self`).
-    Deref,
+    Deref { source: DerefSource },
 
     /// We get passed `self: Self` and call the target with `&mut self`.
     ///
@@ -188,7 +200,7 @@ fn build_drop_shim<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId, ty: Option<Ty<'tcx>>)
         // has been put into the body.
         let reborrow = Rvalue::Ref(
             tcx.lifetimes.re_erased,
-            BorrowKind::Mut { allow_two_phase_borrow: false },
+            BorrowKind::Mut { kind: MutBorrowKind::Default },
             tcx.mk_place_deref(dropee_ptr),
         );
         let ref_ty = reborrow.ty(body.local_decls(), tcx);
@@ -473,7 +485,7 @@ impl<'tcx> CloneShimBuilder<'tcx> {
         let tcx = self.tcx;
 
         // `func == Clone::clone(&ty) -> ty`
-        let func_ty = tcx.mk_fn_def(self.def_id, [ty]);
+        let func_ty = Ty::new_fn_def(tcx, self.def_id, [ty]);
         let func = Operand::Constant(Box::new(Constant {
             span: self.span,
             user_ty: None,
@@ -482,7 +494,11 @@ impl<'tcx> CloneShimBuilder<'tcx> {
 
         let ref_loc = self.make_place(
             Mutability::Not,
-            tcx.mk_ref(tcx.lifetimes.re_erased, ty::TypeAndMut { ty, mutbl: hir::Mutability::Not }),
+            Ty::new_ref(
+                tcx,
+                tcx.lifetimes.re_erased,
+                ty::TypeAndMut { ty, mutbl: hir::Mutability::Not },
+            ),
         );
 
         // `let ref_loc: &ty = &src;`
@@ -500,7 +516,7 @@ impl<'tcx> CloneShimBuilder<'tcx> {
                 destination: dest,
                 target: Some(next),
                 unwind: UnwindAction::Cleanup(cleanup),
-                from_hir_call: true,
+                call_source: CallSource::Normal,
                 fn_span: self.span,
             },
             false,
@@ -632,7 +648,7 @@ fn build_call_shim<'tcx>(
         let untuple_args = sig.inputs();
 
         // Create substitutions for the `Self` and `Args` generic parameters of the shim body.
-        let arg_tup = tcx.mk_tup(untuple_args);
+        let arg_tup = Ty::new_tup(tcx, untuple_args);
 
         (Some([ty.into(), arg_tup.into()]), Some(untuple_args))
     } else {
@@ -644,8 +660,11 @@ fn build_call_shim<'tcx>(
     let sig = sig.map_bound(|sig| tcx.erase_late_bound_regions(sig));
 
     assert_eq!(sig_substs.is_some(), !instance.has_polymorphic_mir_body());
-    let mut sig =
-        if let Some(sig_substs) = sig_substs { sig.subst(tcx, &sig_substs) } else { sig.0 };
+    let mut sig = if let Some(sig_substs) = sig_substs {
+        sig.subst(tcx, &sig_substs)
+    } else {
+        sig.subst_identity()
+    };
 
     if let CallKind::Indirect(fnty) = call_kind {
         // `sig` determines our local decls, and thus the callee type in the `Call` terminator. This
@@ -664,8 +683,12 @@ fn build_call_shim<'tcx>(
         let self_arg = &mut inputs_and_output[0];
         *self_arg = match rcvr_adjustment.unwrap() {
             Adjustment::Identity => fnty,
-            Adjustment::Deref => tcx.mk_imm_ptr(fnty),
-            Adjustment::RefMut => tcx.mk_mut_ptr(fnty),
+            Adjustment::Deref { source } => match source {
+                DerefSource::ImmRef => Ty::new_imm_ref(tcx, tcx.lifetimes.re_erased, fnty),
+                DerefSource::MutRef => Ty::new_mut_ref(tcx, tcx.lifetimes.re_erased, fnty),
+                DerefSource::MutPtr => Ty::new_mut_ptr(tcx, fnty),
+            },
+            Adjustment::RefMut => bug!("`RefMut` is never used with indirect calls: {instance:?}"),
         };
         sig.inputs_and_output = tcx.mk_type_list(&inputs_and_output);
     }
@@ -677,7 +700,7 @@ fn build_call_shim<'tcx>(
         let mut inputs_and_output = sig.inputs_and_output.to_vec();
         let self_arg = &mut inputs_and_output[0];
         debug_assert!(tcx.generics_of(def_id).has_self && *self_arg == tcx.types.self_param);
-        *self_arg = tcx.mk_mut_ptr(*self_arg);
+        *self_arg = Ty::new_mut_ptr(tcx, *self_arg);
         sig.inputs_and_output = tcx.mk_type_list(&inputs_and_output);
     }
 
@@ -696,12 +719,13 @@ fn build_call_shim<'tcx>(
 
     let rcvr = rcvr_adjustment.map(|rcvr_adjustment| match rcvr_adjustment {
         Adjustment::Identity => Operand::Move(rcvr_place()),
-        Adjustment::Deref => Operand::Move(tcx.mk_place_deref(rcvr_place())),
+        Adjustment::Deref { source: _ } => Operand::Move(tcx.mk_place_deref(rcvr_place())),
         Adjustment::RefMut => {
             // let rcvr = &mut rcvr;
             let ref_rcvr = local_decls.push(
                 LocalDecl::new(
-                    tcx.mk_ref(
+                    Ty::new_ref(
+                        tcx,
                         tcx.lifetimes.re_erased,
                         ty::TypeAndMut { ty: sig.inputs()[0], mutbl: hir::Mutability::Mut },
                     ),
@@ -709,7 +733,7 @@ fn build_call_shim<'tcx>(
                 )
                 .immutable(),
             );
-            let borrow_kind = BorrowKind::Mut { allow_two_phase_borrow: false };
+            let borrow_kind = BorrowKind::Mut { kind: MutBorrowKind::Default };
             statements.push(Statement {
                 source_info,
                 kind: StatementKind::Assign(Box::new((
@@ -786,7 +810,7 @@ fn build_call_shim<'tcx>(
             } else {
                 UnwindAction::Continue
             },
-            from_hir_call: true,
+            call_source: CallSource::Misc,
             fn_span: span,
         },
         false,
@@ -927,7 +951,7 @@ fn build_fn_ptr_addr_shim<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId, self_ty: Ty<'t
     let rvalue = Rvalue::Cast(
         CastKind::FnPtrToPtr,
         Operand::Move(Place::from(Local::new(1))),
-        tcx.mk_imm_ptr(tcx.types.unit),
+        Ty::new_imm_ptr(tcx, tcx.types.unit),
     );
     let stmt = Statement {
         source_info,

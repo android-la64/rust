@@ -58,6 +58,20 @@ fn simple() {
 }
 
 #[cargo_test]
+fn toolchain() {
+    pkg("foo", "0.0.1");
+
+    cargo_process("install +nightly")
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] invalid character `+` in package name: `+nightly`
+    Use `cargo +nightly install` if you meant to use the `nightly` toolchain.",
+        )
+        .run();
+}
+
+#[cargo_test]
 fn simple_with_message_format() {
     pkg("foo", "0.0.1");
 
@@ -964,7 +978,8 @@ fn compile_failure() {
             "\
 [ERROR] could not compile `foo` (bin \"foo\") due to previous error
 [ERROR] failed to compile `foo v0.0.1 ([..])`, intermediate artifacts can be \
-    found at `[..]target`
+    found at `[..]target`.\nTo reuse those artifacts with a future compilation, \
+    set the environment variable `CARGO_TARGET_DIR` to that path.
 ",
         )
         .run();
@@ -1269,7 +1284,8 @@ fn reports_unsuccessful_subcommand_result() {
         .run();
     cargo_process("fail")
         .with_status(101)
-        .with_stderr_contains("thread '[..]' panicked at 'explicit panic', [..]")
+        .with_stderr_contains("thread '[..]' panicked at [..]src/main.rs:1:[..]")
+        .with_stderr_contains("[..]explicit panic[..]")
         .run();
 }
 
@@ -2250,7 +2266,9 @@ fn failed_install_retains_temp_directory() {
     )
     .unwrap();
     compare::match_contains(
-        "error: failed to compile `foo v0.0.1`, intermediate artifacts can be found at `[..]`",
+        "error: failed to compile `foo v0.0.1`, intermediate artifacts can be found at \
+        `[..]`.\nTo reuse those artifacts with a future compilation, set the environment \
+        variable `CARGO_TARGET_DIR` to that path.",
         &stderr,
         None,
     )
@@ -2258,7 +2276,7 @@ fn failed_install_retains_temp_directory() {
 
     // Find the path in the output.
     let start = stderr.find("found at `").unwrap() + 10;
-    let end = stderr[start..].find('\n').unwrap() - 1;
+    let end = stderr[start..].find('.').unwrap() - 1;
     let path = Path::new(&stderr[start..(end + start)]);
     assert!(path.exists());
     assert!(path.join("release/deps").exists());

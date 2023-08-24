@@ -8,6 +8,9 @@ use crate::{
     OperandConstraint, OperandKind, OperandPos, PReg, PRegSet, RegClass, VReg,
 };
 
+use alloc::vec::Vec;
+use alloc::{format, vec};
+
 use super::arbitrary::Result as ArbitraryResult;
 use super::arbitrary::{Arbitrary, Unstructured};
 
@@ -124,10 +127,6 @@ impl Function for Func {
         &self.debug_value_labels[..]
     }
 
-    fn is_move(&self, _: Inst) -> Option<(Operand, Operand)> {
-        None
-    }
-
     fn inst_operands(&self, insn: Inst) -> &[Operand] {
         &self.insts[insn.index()].operands[..]
     }
@@ -147,7 +146,7 @@ impl Function for Func {
     fn spillslot_size(&self, regclass: RegClass) -> usize {
         match regclass {
             RegClass::Int => 1,
-            RegClass::Float => 2,
+            RegClass::Float | RegClass::Vector => 2,
         }
     }
 }
@@ -279,7 +278,7 @@ pub struct Options {
     pub reftypes: bool,
 }
 
-impl std::default::Default for Options {
+impl core::default::Default for Options {
     fn default() -> Self {
         Options {
             reused_inputs: false,
@@ -408,7 +407,7 @@ impl Func {
             }
             vregs_by_block.push(vregs.clone());
             vregs_by_block_to_be_defined.push(vec![]);
-            let mut max_block_params = u.int_in_range(0..=std::cmp::min(3, vregs.len() / 3))?;
+            let mut max_block_params = u.int_in_range(0..=core::cmp::min(3, vregs.len() / 3))?;
             for &vreg in &vregs {
                 if block > 0 && opts.block_params && bool::arbitrary(u)? && max_block_params > 0 {
                     block_params[block].push(vreg);
@@ -595,8 +594,8 @@ impl Func {
     }
 }
 
-impl std::fmt::Debug for Func {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Debug for Func {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{{\n")?;
         for vreg in self.reftype_vregs() {
             write!(f, "  REF: {}\n", vreg)?;
@@ -657,16 +656,18 @@ impl std::fmt::Debug for Func {
 }
 
 pub fn machine_env() -> MachineEnv {
-    fn regs(r: std::ops::Range<usize>) -> Vec<PReg> {
+    fn regs(r: core::ops::Range<usize>) -> Vec<PReg> {
         r.map(|i| PReg::new(i, RegClass::Int)).collect()
     }
-    let preferred_regs_by_class: [Vec<PReg>; 2] = [regs(0..24), vec![]];
-    let non_preferred_regs_by_class: [Vec<PReg>; 2] = [regs(24..32), vec![]];
+    let preferred_regs_by_class: [Vec<PReg>; 3] = [regs(0..24), vec![], vec![]];
+    let non_preferred_regs_by_class: [Vec<PReg>; 3] = [regs(24..32), vec![], vec![]];
+    let scratch_by_class: [Option<PReg>; 3] = [None, None, None];
     let fixed_stack_slots = regs(32..63);
     // Register 63 is reserved for use as a fixed non-allocatable register.
     MachineEnv {
         preferred_regs_by_class,
         non_preferred_regs_by_class,
+        scratch_by_class,
         fixed_stack_slots,
     }
 }

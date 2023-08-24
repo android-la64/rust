@@ -225,8 +225,13 @@ impl Context for IsleContext<'_, '_, MInst, X64Backend> {
     }
 
     #[inline]
-    fn use_sse41(&mut self, _: Type) -> bool {
+    fn use_sse41(&mut self) -> bool {
         self.backend.x64_flags.use_sse41()
+    }
+
+    #[inline]
+    fn use_sse42(&mut self) -> bool {
+        self.backend.x64_flags.use_sse42()
     }
 
     #[inline]
@@ -336,6 +341,21 @@ impl Context for IsleContext<'_, '_, MInst, X64Backend> {
     #[inline]
     fn synthetic_amode_to_reg_mem(&mut self, addr: &SyntheticAmode) -> RegMem {
         RegMem::mem(addr.clone())
+    }
+
+    #[inline]
+    fn amode_imm_reg_reg_shift(&mut self, simm32: u32, base: Gpr, index: Gpr, shift: u8) -> Amode {
+        Amode::imm_reg_reg_shift(simm32, base, index, shift)
+    }
+
+    #[inline]
+    fn amode_imm_reg(&mut self, simm32: u32, base: Gpr) -> Amode {
+        Amode::imm_reg(simm32, base.to_reg())
+    }
+
+    #[inline]
+    fn amode_with_flags(&mut self, amode: &Amode, flags: MemFlags) -> Amode {
+        amode.with_flags(flags)
     }
 
     #[inline]
@@ -629,7 +649,7 @@ impl Context for IsleContext<'_, '_, MInst, X64Backend> {
 
     fn libcall_1(&mut self, libcall: &LibCall, a: Reg) -> Reg {
         let call_conv = self.lower_ctx.abi().call_conv(self.lower_ctx.sigs());
-        let ret_ty = libcall.signature(call_conv).returns[0].value_type;
+        let ret_ty = libcall.signature(call_conv, I64).returns[0].value_type;
         let output_reg = self.lower_ctx.alloc_tmp(ret_ty).only_reg().unwrap();
 
         emit_vm_call(
@@ -647,7 +667,7 @@ impl Context for IsleContext<'_, '_, MInst, X64Backend> {
 
     fn libcall_3(&mut self, libcall: &LibCall, a: Reg, b: Reg, c: Reg) -> Reg {
         let call_conv = self.lower_ctx.abi().call_conv(self.lower_ctx.sigs());
-        let ret_ty = libcall.signature(call_conv).returns[0].value_type;
+        let ret_ty = libcall.signature(call_conv, I64).returns[0].value_type;
         let output_reg = self.lower_ctx.alloc_tmp(ret_ty).only_reg().unwrap();
 
         emit_vm_call(

@@ -277,7 +277,11 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                             .ty
                             .is_inhabited_from(this.tcx, this.parent_module, this.param_env)
                             .then_some(success),
-                        from_hir_call,
+                        call_source: if from_hir_call {
+                            CallSource::Normal
+                        } else {
+                            CallSource::OverloadedOperator
+                        },
                         fn_span,
                     },
                 );
@@ -489,7 +493,10 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                 block.unit()
             }
 
-            ExprKind::Continue { .. } | ExprKind::Break { .. } | ExprKind::Return { .. } => {
+            ExprKind::Continue { .. }
+            | ExprKind::Break { .. }
+            | ExprKind::Return { .. }
+            | ExprKind::Become { .. } => {
                 unpack!(block = this.stmt_expr(block, expr, None));
                 // No assign, as these have type `!`.
                 block.unit()
@@ -549,7 +556,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             | ExprKind::Binary { .. }
             | ExprKind::Box { .. }
             | ExprKind::Cast { .. }
-            | ExprKind::Pointer { .. }
+            | ExprKind::PointerCoercion { .. }
             | ExprKind::Repeat { .. }
             | ExprKind::Array { .. }
             | ExprKind::Tuple { .. }

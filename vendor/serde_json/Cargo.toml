@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.36"
 name = "serde_json"
-version = "1.0.95"
+version = "1.0.99"
 authors = [
     "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
     "David Tolnay <dtolnay@gmail.com>",
@@ -52,8 +52,7 @@ features = ["raw_value"]
 doc-scrape-examples = false
 
 [dependencies.indexmap]
-version = "1.5.2"
-features = ["std"]
+version = "2"
 optional = true
 
 [dependencies.itoa]

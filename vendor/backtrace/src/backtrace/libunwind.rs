@@ -66,7 +66,7 @@ impl Frame {
         //
         // Note the `skip_inner_frames.rs` test is skipped on macOS due to this
         // clause, and if this is fixed that test in theory can be run on macOS!
-        if cfg!(target_os = "macos") || cfg!(target_os = "ios") {
+        if cfg!(target_vendor = "apple") {
             self.ip()
         } else {
             unsafe { uw::_Unwind_FindEnclosingFunction(self.ip()) }
@@ -158,7 +158,8 @@ mod uw {
             not(all(target_os = "android", target_arch = "arm")),
             not(all(target_os = "freebsd", target_arch = "arm")),
             not(all(target_os = "linux", target_arch = "arm")),
-            not(all(target_os = "horizon", target_arch = "arm"))
+            not(all(target_os = "horizon", target_arch = "arm")),
+            not(all(target_os = "vita", target_arch = "arm")),
         ))] {
             extern "C" {
                 pub fn _Unwind_GetIP(ctx: *mut _Unwind_Context) -> libc::uintptr_t;

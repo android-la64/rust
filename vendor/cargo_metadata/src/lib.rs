@@ -81,7 +81,7 @@
 use camino::Utf8PathBuf;
 #[cfg(feature = "builder")]
 use derive_builder::Builder;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::env;
 use std::ffi::OsString;
 use std::fmt;
@@ -94,6 +94,8 @@ pub use camino;
 pub use semver;
 use semver::{Version, VersionReq};
 
+#[cfg(feature = "builder")]
+pub use dependency::DependencyBuilder;
 pub use dependency::{Dependency, DependencyKind};
 use diagnostic::Diagnostic;
 pub use errors::{Error, Result};
@@ -102,7 +104,12 @@ pub use messages::parse_messages;
 pub use messages::{
     Artifact, ArtifactProfile, BuildFinished, BuildScript, CompilerMessage, Message, MessageIter,
 };
-use serde::{Deserialize, Serialize};
+#[cfg(feature = "builder")]
+pub use messages::{
+    ArtifactBuilder, ArtifactProfileBuilder, BuildFinishedBuilder, BuildScriptBuilder,
+    CompilerMessageBuilder,
+};
+use serde::{Deserialize, Serialize, Serializer};
 
 mod dependency;
 pub mod diagnostic;
@@ -130,6 +137,18 @@ impl std::fmt::Display for PackageId {
 /// Helpers for default metadata fields
 fn is_null(value: &serde_json::Value) -> bool {
     matches!(value, serde_json::Value::Null)
+}
+
+/// Helper to ensure that hashmaps serialize in sorted order, to make
+/// serialization deterministic.
+fn sorted_map<S: Serializer, K: Serialize + Ord, V: Serialize>(
+    value: &HashMap<K, V>,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error> {
+    value
+        .iter()
+        .collect::<BTreeMap<_, _>>()
+        .serialize(serializer)
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -304,6 +323,7 @@ pub struct Package {
     /// Targets provided by the crate (lib, bin, example, test, ...)
     pub targets: Vec<Target>,
     /// Features provided by the crate, mapped to the features required by that feature.
+    #[serde(serialize_with = "sorted_map")]
     pub features: HashMap<String, Vec<String>>,
     /// Path containing the `Cargo.toml`
     pub manifest_path: Utf8PathBuf,
@@ -506,7 +526,7 @@ impl Target {
 /// The Rust edition
 ///
 /// As of writing this comment rust editions 2024, 2027 and 2030 are not actually a thing yet but are parsed nonetheless for future proofing.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum Edition {
     /// Edition 2015

@@ -70,8 +70,8 @@
 //! ## Kernel versions
 //!
 //! The bindings in this crate are generated from the Linux kernel headers
-//! packaged by Fedora as `kernel-headers-5.6.11-100.fc30.x86_64`, which
-//! corresponds to `PERF_EVENT_ATTR_SIZE_VER6`.
+//! packaged by Fedora as `kernel-headers-5.18.4-200.fc36`, which
+//! corresponds to `PERF_EVENT_ATTR_SIZE_VER7`.
 //!
 //! As explained above, bugs aside, it is not necessary to use the version of
 //! these structures that matches the kernel you want to run under, so it should
@@ -106,7 +106,7 @@
 //! headers should run on an older kernel, as long as it only requests features
 //! the old kernel actually supports. That is, simply compiling against newer
 //! headers should not be disqualifying - only using those new headers to
-//! request features the running kernel can't provide should cause an error.
+//! request new features the running kernel can't provide should cause an error.
 //!
 //! Consider the specific case of passing a struct like `perf_event_attr` to a
 //! system call like `perf_event_open`. In general, there are two versions of
@@ -123,7 +123,7 @@
 //!     `request` value.
 //!
 //! -   Fields are never deleted from structs. At most, newer kernel headers may
-//!     rename them to '__reserved_foo' or something like that, but once a field
+//!     rename them to `__reserved_foo` or something like that, but once a field
 //!     has been placed, its layout in the struct never changes.
 //!
 //! -   New fields are added to the end of structs.
@@ -131,11 +131,11 @@
 //! -   New fields' semantics are chosen such that filling them with zeros
 //!     preserves the old behavior. That is, turning an old struct into a new
 //!     struct by extending it with zero bytes should always give you a new
-//!     struct with the same meaning the old struct had.
+//!     struct with the same meaning as the old struct.
 //!
-//! Then, the kernel's strategy for receiving structs from userspace (explained
-//! by the kernel comments for `copy_struct_from_user` in
-//! `include/linux/uaccess.h`) is as follows:
+//! Then, the kernel's strategy for receiving structs from userspace is as
+//! follows (according to the comments for `copy_struct_from_user` in
+//! the kernel source `include/linux/uaccess.h`):
 //!
 //! -   If the kernel's struct is larger than the one passed from userspace,
 //!     then that means the kernel is newer than the userspace program. The
@@ -185,6 +185,12 @@ use std::os::raw::{c_int, c_ulong};
 /// is too small or too large, the kernel writes the size it was expecing back
 /// into that field. It might do other things as well.
 ///
+/// # Safety
+///
+/// The `attrs` argument must point to a properly initialized
+/// `perf_event_attr` struct. The measurements and other behaviors its
+/// contents request must be safe.
+///
 /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
 pub unsafe fn perf_event_open(
     attrs: *mut bindings::perf_event_attr,
@@ -225,6 +231,7 @@ pub mod ioctls {
 
     macro_rules! define_ioctl {
         ({ $name:ident, $ioctl:ident, $arg_type:ty }) => {
+            #[allow(clippy::missing_safety_doc)]
             pub unsafe fn $name(fd: c_int, arg: $arg_type) -> c_int {
                 untyped_ioctl(fd, bindings::$ioctl, arg)
             }
@@ -232,29 +239,25 @@ pub mod ioctls {
     }
 
     define_ioctls! {
-        { ENABLE, perf_event_ioctls_ENABLE, c_uint }
-        { DISABLE, perf_event_ioctls_DISABLE, c_uint }
-        { REFRESH, perf_event_ioctls_REFRESH, c_int }
-        { RESET, perf_event_ioctls_RESET, c_uint }
-        { PERIOD, perf_event_ioctls_PERIOD, u64 }
-        { SET_OUTPUT, perf_event_ioctls_SET_OUTPUT, c_int }
-        { SET_FILTER, perf_event_ioctls_SET_FILTER, *mut c_char }
-        { ID, perf_event_ioctls_ID, *mut u64 }
-        { SET_BPF, perf_event_ioctls_SET_BPF, u32 }
-        { PAUSE_OUTPUT, perf_event_ioctls_PAUSE_OUTPUT, u32 }
-        { QUERY_BPF, perf_event_ioctls_QUERY_BPF, *mut perf_event_query_bpf }
-        { MODIFY_ATTRIBUTES, perf_event_ioctls_MODIFY_ATTRIBUTES, *mut perf_event_attr }
+        { ENABLE, ENABLE, c_uint }
+        { DISABLE, DISABLE, c_uint }
+        { REFRESH, REFRESH, c_int }
+        { RESET, RESET, c_uint }
+        { PERIOD, PERIOD, u64 }
+        { SET_OUTPUT, SET_OUTPUT, c_int }
+        { SET_FILTER, SET_FILTER, *mut c_char }
+        { ID, ID, *mut u64 }
+        { SET_BPF, SET_BPF, u32 }
+        { PAUSE_OUTPUT, PAUSE_OUTPUT, u32 }
+        { QUERY_BPF, QUERY_BPF, *mut perf_event_query_bpf }
+        { MODIFY_ATTRIBUTES, MODIFY_ATTRIBUTES, *mut perf_event_attr }
     }
 
-    unsafe fn untyped_ioctl<A>(
-        fd: c_int,
-        ioctl: bindings::perf_event_ioctls,
-        arg: A,
-    ) -> c_int {
-        #[cfg(target_env = "musl")]
+    unsafe fn untyped_ioctl<A>(fd: c_int, ioctl: bindings::perf_event_ioctls, arg: A) -> c_int {
+        #[cfg(any(target_env = "musl", target_os = "android"))]
         return libc::ioctl(fd, ioctl as c_int, arg);
 
-        #[cfg(not(target_env = "musl"))]
+        #[cfg(not(any(target_env = "musl", target_os = "android")))]
         libc::ioctl(fd, ioctl as c_ulong, arg)
     }
 }

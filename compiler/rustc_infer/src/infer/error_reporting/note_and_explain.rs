@@ -139,7 +139,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                                     tcx,
                                     generics,
                                     diag,
-                                    &format!("{}", proj.self_ty()),
+                                    &proj.self_ty().to_string(),
                                     &path,
                                     None,
                                     matching_span,
@@ -153,7 +153,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                                     tcx,
                                     generics,
                                     diag,
-                                    &format!("{}", proj.self_ty()),
+                                    &proj.self_ty().to_string(),
                                     &path,
                                     None,
                                     matching_span,
@@ -234,13 +234,13 @@ impl<T> Trait<T> for X {
                         );
                     }
                     (_, ty::Alias(ty::Projection | ty::Inherent, proj_ty)) if !tcx.is_impl_trait_in_trait(proj_ty.def_id) => {
-                        let msg = format!(
+                        let msg = || format!(
                             "consider constraining the associated type `{}` to `{}`",
                             values.found, values.expected,
                         );
                         if !(self.suggest_constraining_opaque_associated_type(
                             diag,
-                            &msg,
+                            msg,
                             proj_ty,
                             values.expected,
                         ) || self.suggest_constraint(
@@ -250,17 +250,18 @@ impl<T> Trait<T> for X {
                             proj_ty,
                             values.expected,
                         )) {
-                            diag.help(msg);
+                            diag.help(msg());
                             diag.note(
                                 "for more information, visit \
                                 https://doc.rust-lang.org/book/ch19-03-advanced-traits.html",
                             );
                         }
                     }
-                    (ty::Alias(ty::Opaque, alias), _) | (_, ty::Alias(ty::Opaque, alias)) if alias.def_id.is_local() && matches!(tcx.def_kind(body_owner_def_id), DefKind::AssocFn | DefKind::AssocConst) => {
+                    (ty::Alias(ty::Opaque, alias), _) | (_, ty::Alias(ty::Opaque, alias)) if alias.def_id.is_local() && matches!(tcx.def_kind(body_owner_def_id), DefKind::Fn | DefKind::Static(_) | DefKind::Const | DefKind::AssocFn | DefKind::AssocConst) => {
                         if tcx.is_type_alias_impl_trait(alias.def_id) {
                             if !tcx.opaque_types_defined_by(body_owner_def_id.expect_local()).contains(&alias.def_id.expect_local()) {
-                                diag.span_note(tcx.def_span(body_owner_def_id), "\
+                                let sp = tcx.def_ident_span(body_owner_def_id).unwrap_or_else(|| tcx.def_span(body_owner_def_id));
+                                diag.span_note(sp, "\
                                     this item must have the opaque type in its signature \
                                     in order to be able to register hidden types");
                             }
@@ -308,7 +309,7 @@ impl<T> Trait<T> for X {
     fn suggest_constraint(
         &self,
         diag: &mut Diagnostic,
-        msg: &str,
+        msg: impl Fn() -> String,
         body_owner_def_id: DefId,
         proj_ty: &ty::AliasTy<'tcx>,
         ty: Ty<'tcx>,
@@ -340,7 +341,7 @@ impl<T> Trait<T> for X {
                         assoc,
                         assoc_substs,
                         ty,
-                        msg,
+                        &msg,
                         false,
                     ) {
                         return true;
@@ -374,10 +375,18 @@ impl<T> Trait<T> for X {
     ) {
         let tcx = self.tcx;
 
-        let msg = format!(
-            "consider constraining the associated type `{}` to `{}`",
-            values.expected, values.found
-        );
+        // Don't suggest constraining a projection to something containing itself
+        if self.tcx.erase_regions(values.found).contains(self.tcx.erase_regions(values.expected)) {
+            return;
+        }
+
+        let msg = || {
+            format!(
+                "consider constraining the associated type `{}` to `{}`",
+                values.expected, values.found
+            )
+        };
+
         let body_owner = tcx.hir().get_if_local(body_owner_def_id);
         let current_method_ident = body_owner.and_then(|n| n.ident()).map(|i| i.name);
 
@@ -428,10 +437,11 @@ impl<T> Trait<T> for X {
             if callable_scope {
                 diag.help(format!(
                     "{} or calling a method that returns `{}`",
-                    msg, values.expected
+                    msg(),
+                    values.expected
                 ));
             } else {
-                diag.help(msg);
+                diag.help(msg());
             }
             diag.note(
                 "for more information, visit \
@@ -463,7 +473,7 @@ fn foo(&self) -> Self::T { String::new() }
     fn suggest_constraining_opaque_associated_type(
         &self,
         diag: &mut Diagnostic,
-        msg: &str,
+        msg: impl Fn() -> String,
         proj_ty: &ty::AliasTy<'tcx>,
         ty: Ty<'tcx>,
     ) -> bool {
@@ -564,7 +574,9 @@ fn foo(&self) -> Self::T { String::new() }
         let Some(hir_id) = body_owner_def_id.as_local() else {
             return false;
         };
-        let hir_id = tcx.hir().local_def_id_to_hir_id(hir_id);
+        let Some(hir_id) = tcx.opt_local_def_id_to_hir_id(hir_id) else {
+            return false;
+        };
         // When `body_owner` is an `impl` or `trait` item, look in its associated types for
         // `expected` and point at it.
         let parent_id = tcx.hir().get_parent_item(hir_id);
@@ -583,7 +595,7 @@ fn foo(&self) -> Self::T { String::new() }
                             // FIXME: account for returning some type in a trait fn impl that has
                             // an assoc type as a return type (#72076).
                             if let hir::Defaultness::Default { has_value: true } =
-                                tcx.impl_defaultness(item.id.owner_id)
+                                tcx.defaultness(item.id.owner_id)
                             {
                                 let assoc_ty = tcx.type_of(item.id.owner_id).subst_identity();
                                 if self.infcx.can_eq(param_env, assoc_ty, found) {
@@ -635,7 +647,7 @@ fn foo(&self) -> Self::T { String::new() }
         assoc: ty::AssocItem,
         assoc_substs: &[ty::GenericArg<'tcx>],
         ty: Ty<'tcx>,
-        msg: &str,
+        msg: impl Fn() -> String,
         is_bound_surely_present: bool,
     ) -> bool {
         // FIXME: we would want to call `resolve_vars_if_possible` on `ty` before suggesting.
@@ -678,7 +690,7 @@ fn foo(&self) -> Self::T { String::new() }
         assoc: ty::AssocItem,
         assoc_substs: &[ty::GenericArg<'tcx>],
         ty: Ty<'tcx>,
-        msg: &str,
+        msg: impl Fn() -> String,
     ) -> bool {
         let tcx = self.tcx;
 
@@ -693,7 +705,7 @@ fn foo(&self) -> Self::T { String::new() }
                 let item_args = self.format_generic_args(assoc_substs);
                 (span.shrink_to_hi(), format!("<{}{} = {}>", assoc.ident(tcx), item_args, ty))
             };
-            diag.span_suggestion_verbose(span, msg, sugg, MaybeIncorrect);
+            diag.span_suggestion_verbose(span, msg(), sugg, MaybeIncorrect);
             return true;
         }
         false

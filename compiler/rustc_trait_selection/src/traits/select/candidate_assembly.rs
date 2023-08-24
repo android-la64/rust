@@ -10,7 +10,7 @@ use hir::def_id::DefId;
 use hir::LangItem;
 use rustc_hir as hir;
 use rustc_infer::traits::ObligationCause;
-use rustc_infer::traits::{Obligation, SelectionError, TraitObligation};
+use rustc_infer::traits::{Obligation, PolyTraitObligation, SelectionError};
 use rustc_middle::ty::fast_reject::{DeepRejectCtxt, TreatParams};
 use rustc_middle::ty::{self, Ty, TypeVisitableExt};
 
@@ -137,13 +137,13 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     #[instrument(level = "debug", skip(self, candidates))]
     fn assemble_candidates_from_projected_tys(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         // Before we go into the whole placeholder thing, just
         // quickly check if the self-type is a projection at all.
         match obligation.predicate.skip_binder().trait_ref.self_ty().kind() {
-            // Excluding IATs here as they don't have meaningful item bounds.
+            // Excluding IATs and type aliases here as they don't have meaningful item bounds.
             ty::Alias(ty::Projection | ty::Opaque, _) => {}
             ty::Infer(ty::TyVar(_)) => {
                 span_bug!(
@@ -181,7 +181,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             .caller_bounds()
             .iter()
             .filter(|p| !p.references_error())
-            .filter_map(|p| p.to_opt_poly_trait_pred());
+            .filter_map(|p| p.as_trait_clause());
 
         // Micro-optimization: filter out predicates relating to different traits.
         let matching_bounds =
@@ -206,7 +206,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
     fn assemble_generator_candidates(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         // Okay to skip binder because the substs on generator types never
@@ -231,7 +231,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
     fn assemble_future_candidates(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         let self_ty = obligation.self_ty().skip_binder();
@@ -254,7 +254,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     /// unified during the confirmation step.
     fn assemble_closure_candidates(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         let Some(kind) = self.tcx().fn_trait_kind_from_def_id(obligation.predicate.def_id()) else {
@@ -292,7 +292,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     /// Implements one of the `Fn()` family for a fn pointer.
     fn assemble_fn_pointer_candidates(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         // We provide impl of all fn traits for fn pointers.
@@ -334,7 +334,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     #[instrument(level = "debug", skip(self, candidates))]
     fn assemble_candidates_from_impls(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         // Essentially any user-written impl will match with an error type,
@@ -360,7 +360,9 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 // consider a "quick reject". This avoids creating more types
                 // and so forth that we need to.
                 let impl_trait_ref = self.tcx().impl_trait_ref(impl_def_id).unwrap();
-                if !drcx.substs_refs_may_unify(obligation_substs, impl_trait_ref.0.substs) {
+                if !drcx
+                    .substs_refs_may_unify(obligation_substs, impl_trait_ref.skip_binder().substs)
+                {
                     return;
                 }
                 if self.reject_fn_ptr_impls(
@@ -386,9 +388,9 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     /// `FnPtr`, when we wanted to report that it doesn't implement `Trait`.
     #[instrument(level = "trace", skip(self), ret)]
     fn reject_fn_ptr_impls(
-        &self,
+        &mut self,
         impl_def_id: DefId,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         impl_self_ty: Ty<'tcx>,
     ) -> bool {
         // Let `impl<T: FnPtr> Trait for Vec<T>` go through the normal rejection path.
@@ -400,7 +402,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         };
 
         for &(predicate, _) in self.tcx().predicates_of(impl_def_id).predicates {
-            let ty::PredicateKind::Clause(ty::Clause::Trait(pred))
+            let ty::ClauseKind::Trait(pred)
                 = predicate.kind().skip_binder() else { continue };
             if fn_ptr_trait != pred.trait_ref.def_id {
                 continue;
@@ -415,17 +417,15 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 // Fast path to avoid evaluating an obligation that trivially holds.
                 // There may be more bounds, but these are checked by the regular path.
                 ty::FnPtr(..) => return false,
+
                 // These may potentially implement `FnPtr`
                 ty::Placeholder(..)
                 | ty::Dynamic(_, _, _)
                 | ty::Alias(_, _)
                 | ty::Infer(_)
-                | ty::Param(..) => {}
+                | ty::Param(..)
+                | ty::Bound(_, _) => {}
 
-                ty::Bound(_, _) => span_bug!(
-                    obligation.cause.span(),
-                    "cannot have escaping bound var in self type of {obligation:#?}"
-                ),
                 // These can't possibly implement `FnPtr` as they are concrete types
                 // and not `FnPtr`
                 ty::Bool
@@ -461,10 +461,10 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 self.tcx().mk_predicate(obligation.predicate.map_bound(|mut pred| {
                     pred.trait_ref =
                         ty::TraitRef::new(self.tcx(), fn_ptr_trait, [pred.trait_ref.self_ty()]);
-                    ty::PredicateKind::Clause(ty::Clause::Trait(pred))
+                    ty::PredicateKind::Clause(ty::ClauseKind::Trait(pred))
                 })),
             );
-            if let Ok(r) = self.infcx.evaluate_obligation(&obligation) {
+            if let Ok(r) = self.evaluate_root_obligation(&obligation) {
                 if !r.may_apply() {
                     return true;
                 }
@@ -475,7 +475,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
     fn assemble_candidates_from_auto_impls(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         // Okay to skip binder here because the tests we do below do not involve bound regions.
@@ -544,13 +544,17 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     /// Searches for impls that might apply to `obligation`.
     fn assemble_candidates_from_object_ty(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         debug!(
             self_ty = ?obligation.self_ty().skip_binder(),
             "assemble_candidates_from_object_ty",
         );
+
+        if !self.tcx().trait_def(obligation.predicate.def_id()).implement_via_object {
+            return;
+        }
 
         self.infcx.probe(|_snapshot| {
             if obligation.has_non_region_late_bound() {
@@ -664,7 +668,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     /// Searches for unsizing that might apply to `obligation`.
     fn assemble_candidates_for_unsizing(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         // We currently never consider higher-ranked obligations e.g.
@@ -778,7 +782,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     #[instrument(level = "debug", skip(self, obligation, candidates))]
     fn assemble_candidates_for_transmutability(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         if obligation.predicate.has_non_region_param() {
@@ -796,7 +800,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
     #[instrument(level = "debug", skip(self, obligation, candidates))]
     fn assemble_candidates_for_trait_alias(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         // Okay to skip binder here because the tests we do below do not involve bound regions.
@@ -833,7 +837,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
     fn assemble_const_destruct_candidates(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         // If the predicate is `~const Destruct` in a non-const environment, we don't actually need
@@ -920,7 +924,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
     fn assemble_candidate_for_tuple(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         let self_ty = self.infcx.shallow_resolve(obligation.self_ty().skip_binder());
@@ -962,7 +966,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
     fn assemble_candidate_for_pointer_like(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         // The regions of a type don't affect the size of the type
@@ -987,7 +991,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
     fn assemble_candidates_for_fn_ptr_trait(
         &mut self,
-        obligation: &TraitObligation<'tcx>,
+        obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         let self_ty = self.infcx.shallow_resolve(obligation.self_ty());

@@ -69,9 +69,11 @@ use self::ConfigValue as CV;
 use crate::core::compiler::rustdoc::RustdocExternMap;
 use crate::core::shell::Verbosity;
 use crate::core::{features, CliUnstable, Shell, SourceId, Workspace, WorkspaceRootConfig};
-use crate::ops::{self, RegistryCredentialConfig};
+use crate::ops::RegistryCredentialConfig;
 use crate::util::auth::Secret;
 use crate::util::errors::CargoResult;
+use crate::util::network::http::configure_http_handle;
+use crate::util::network::http::http_handle;
 use crate::util::CanonicalUrl;
 use crate::util::{internal, toml as cargo_toml};
 use crate::util::{try_canonicalize, validate_package_name};
@@ -363,7 +365,7 @@ impl Config {
         self.registry_base_path().join("index")
     }
 
-    /// Gets the Cargo registry cache directory (`<cargo_home>/registry/path`).
+    /// Gets the Cargo registry cache directory (`<cargo_home>/registry/cache`).
     pub fn registry_cache_path(&self) -> Filesystem {
         self.registry_base_path().join("cache")
     }
@@ -1273,6 +1275,16 @@ impl Config {
                 return Ok(Vec::new());
             }
         };
+
+        for (path, abs_path, def) in &includes {
+            if abs_path.extension() != Some(OsStr::new("toml")) {
+                bail!(
+                    "expected a config include path ending with `.toml`, \
+                     but found `{path}` from `{def}`",
+                )
+            }
+        }
+
         Ok(includes)
     }
 
@@ -1706,11 +1718,11 @@ impl Config {
     pub fn http(&self) -> CargoResult<&RefCell<Easy>> {
         let http = self
             .easy
-            .try_borrow_with(|| ops::http_handle(self).map(RefCell::new))?;
+            .try_borrow_with(|| http_handle(self).map(RefCell::new))?;
         {
             let mut http = http.borrow_mut();
             http.reset();
-            let timeout = ops::configure_http_handle(self, &mut http)?;
+            let timeout = configure_http_handle(self, &mut http)?;
             timeout.configure(&mut http)?;
         }
         Ok(http)
@@ -2453,6 +2465,25 @@ pub struct CargoSshConfig {
     pub known_hosts: Option<Vec<Value<String>>>,
 }
 
+/// Configuration for `jobs` in `build` section. There are two
+/// ways to configure: An integer or a simple string expression.
+///
+/// ```toml
+/// [build]
+/// jobs = 1
+/// ```
+///
+/// ```toml
+/// [build]
+/// jobs = "default" # Currently only support "default".
+/// ```
+#[derive(Debug, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum JobsConfig {
+    Integer(i32),
+    String(String),
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CargoBuildConfig {
@@ -2462,7 +2493,7 @@ pub struct CargoBuildConfig {
     pub target_dir: Option<ConfigRelativePath>,
     pub incremental: Option<bool>,
     pub target: Option<BuildTargetConfig>,
-    pub jobs: Option<i32>,
+    pub jobs: Option<JobsConfig>,
     pub rustflags: Option<StringList>,
     pub rustdocflags: Option<StringList>,
     pub rustc_wrapper: Option<ConfigRelativePath>,

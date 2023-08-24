@@ -2,6 +2,8 @@
  * Each chunk is compressed with a user-specified level.
  */
 
+#define _POSIX_SOURCE 1  /* This file needs POSIX for fileno(). */
+
 #include "zbuild.h"
 #ifdef ZLIB_COMPAT
 #  include "zlib.h"
@@ -10,6 +12,8 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #  include <fcntl.h>

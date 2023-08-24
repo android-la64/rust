@@ -648,6 +648,15 @@ extern "C" {
         num: size_t,
         readbytes: *mut size_t,
     ) -> c_int;
+    #[cfg(ossl111)]
+    pub fn SSL_bytes_to_cipher_list(
+        s: *mut SSL,
+        bytes: *const c_uchar,
+        len: size_t,
+        isv2format: c_int,
+        sk: *mut *mut stack_st_SSL_CIPHER,
+        scsvs: *mut *mut stack_st_SSL_CIPHER,
+    ) -> c_int;
 }
 
 extern "C" {
@@ -905,9 +914,13 @@ extern "C" {
     #[cfg(ossl111)]
     pub fn SSL_set_num_tickets(s: *mut SSL, num_tickets: size_t) -> c_int;
 
-    #[cfg(ossl111)]
+    #[cfg(ossl111b)]
     pub fn SSL_CTX_get_num_tickets(ctx: *const SSL_CTX) -> size_t;
+    #[cfg(all(ossl111, not(ossl111b)))]
+    pub fn SSL_CTX_get_num_tickets(ctx: *mut SSL_CTX) -> size_t;
 
-    #[cfg(ossl111)]
+    #[cfg(ossl111b)]
     pub fn SSL_get_num_tickets(s: *const SSL) -> size_t;
+    #[cfg(all(ossl111, not(ossl111b)))]
+    pub fn SSL_get_num_tickets(s: *mut SSL) -> size_t;
 }

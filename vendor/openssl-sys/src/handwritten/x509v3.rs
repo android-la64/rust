@@ -6,6 +6,11 @@ pub enum CONF_METHOD {}
 extern "C" {
     pub fn GENERAL_NAME_new() -> *mut GENERAL_NAME;
     pub fn GENERAL_NAME_free(name: *mut GENERAL_NAME);
+    pub fn GENERAL_NAME_set0_othername(
+        gen: *mut GENERAL_NAME,
+        oid: *mut ASN1_OBJECT,
+        value: *mut ASN1_TYPE,
+    ) -> c_int;
 }
 
 #[repr(C)]
@@ -97,6 +102,8 @@ extern "C" {
     ) -> c_int;
 
     #[cfg(ossl110)]
+    pub fn X509_get_pathlen(x: *mut X509) -> c_long;
+    #[cfg(ossl110)]
     pub fn X509_get_extension_flags(x: *mut X509) -> u32;
     #[cfg(ossl110)]
     pub fn X509_get_key_usage(x: *mut X509) -> u32;
@@ -106,9 +113,9 @@ extern "C" {
     pub fn X509_get0_subject_key_id(x: *mut X509) -> *const ASN1_OCTET_STRING;
     #[cfg(ossl110)]
     pub fn X509_get0_authority_key_id(x: *mut X509) -> *const ASN1_OCTET_STRING;
-    #[cfg(ossl111)]
+    #[cfg(ossl111d)]
     pub fn X509_get0_authority_issuer(x: *mut X509) -> *const stack_st_GENERAL_NAME;
-    #[cfg(ossl111)]
+    #[cfg(ossl111d)]
     pub fn X509_get0_authority_serial(x: *mut X509) -> *const ASN1_INTEGER;
 }
 

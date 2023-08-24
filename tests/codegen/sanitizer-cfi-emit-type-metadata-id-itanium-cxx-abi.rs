@@ -61,7 +61,19 @@ pub type Type9 = impl Send;
 pub type Type10 = impl Send;
 pub type Type11 = impl Send;
 
-pub fn fn1<'a>() {
+pub fn fn1<'a>() where
+    Type1: 'static,
+    Type2: 'static,
+    Type3: 'static,
+    Type4: 'static,
+    Type5: 'static,
+    Type6: 'static,
+    Type7: 'static,
+    Type8: 'static,
+    Type9: 'static,
+    Type10: 'static,
+    Type11: 'static,
+{
     // Closure
     let closure1 = || { };
     let _: Type1 = closure1;
@@ -587,6 +599,6 @@ pub fn foo149(_: Type14<Bar>, _: Type14<Bar>, _: Type14<Bar>) { }
 // CHECK: ![[TYPE144]] = !{i64 0, !"_ZTSFvu3refIvEE"}
 // CHECK: ![[TYPE145]] = !{i64 0, !"_ZTSFvu3refIvES_E"}
 // CHECK: ![[TYPE146]] = !{i64 0, !"_ZTSFvu3refIvES_S_E"}
-// CHECK: ![[TYPE147]] = !{i64 0, !"_ZTSFvu{{[0-9]+}}NtC{{[[:print:]]+}}_51sanitizer_cfi_emit_type_metadata_id_itanium_cxx_abi3BarE
-// CHECK: ![[TYPE148]] = !{i64 0, !"_ZTSFvu{{[0-9]+}}NtC{{[[:print:]]+}}_51sanitizer_cfi_emit_type_metadata_id_itanium_cxx_abi3BarS_E
-// CHECK: ![[TYPE149]] = !{i64 0, !"_ZTSFvu{{[0-9]+}}NtC{{[[:print:]]+}}_51sanitizer_cfi_emit_type_metadata_id_itanium_cxx_abi3BarS_S_E
+// CHECK: ![[TYPE147]] = !{i64 0, !"_ZTSFvu{{[0-9]+}}NtC{{[[:print:]]+}}_51sanitizer_cfi_emit_type_metadata_id_itanium_cxx_abi3BarE"}
+// CHECK: ![[TYPE148]] = !{i64 0, !"_ZTSFvu{{[0-9]+}}NtC{{[[:print:]]+}}_51sanitizer_cfi_emit_type_metadata_id_itanium_cxx_abi3BarS_E"}
+// CHECK: ![[TYPE149]] = !{i64 0, !"_ZTSFvu{{[0-9]+}}NtC{{[[:print:]]+}}_51sanitizer_cfi_emit_type_metadata_id_itanium_cxx_abi3BarS_S_E"}

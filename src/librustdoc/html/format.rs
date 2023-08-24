@@ -347,13 +347,19 @@ pub(crate) fn print_where_clause<'a, 'tcx: 'a>(
             }
         } else {
             let mut br_with_padding = String::with_capacity(6 * indent + 28);
-            br_with_padding.push_str("\n");
+            br_with_padding.push('\n');
 
-            let padding_amount =
-                if ending == Ending::Newline { indent + 4 } else { indent + "fn where ".len() };
+            let where_indent = 3;
+            let padding_amount = if ending == Ending::Newline {
+                indent + 4
+            } else if indent == 0 {
+                4
+            } else {
+                indent + where_indent + "where ".len()
+            };
 
             for _ in 0..padding_amount {
-                br_with_padding.push_str(" ");
+                br_with_padding.push(' ');
             }
             let where_preds = where_preds.to_string().replace('\n', &br_with_padding);
 
@@ -370,7 +376,8 @@ pub(crate) fn print_where_clause<'a, 'tcx: 'a>(
                     let where_preds = where_preds.replacen(&br_with_padding, " ", 1);
 
                     let mut clause = br_with_padding;
-                    clause.truncate(clause.len() - "where ".len());
+                    // +1 is for `\n`.
+                    clause.truncate(indent + 1 + where_indent);
 
                     write!(clause, "<span class=\"where\">where{where_preds}</span>")?;
                     clause
@@ -1257,9 +1264,9 @@ impl clean::Impl {
                 };
                 primitive_link_fragment(f, PrimitiveType::Tuple, &format!("fn ({name}₁, {name}₂, …, {name}ₙ{ellipsis})"), "#trait-implementations-1", cx)?;
                 // Write output.
-                if let clean::FnRetTy::Return(ty) = &bare_fn.decl.output {
+                if !bare_fn.decl.output.is_unit() {
                     write!(f, " -> ")?;
-                    fmt_type(ty, f, use_absolute, cx)?;
+                    fmt_type(&bare_fn.decl.output, f, use_absolute, cx)?;
                 }
             } else if let Some(ty) = self.kind.as_blanket_ty() {
                 fmt_type(ty, f, use_absolute, cx)?;
@@ -1292,22 +1299,6 @@ impl clean::Arguments {
                 }
             }
             Ok(())
-        })
-    }
-}
-
-impl clean::FnRetTy {
-    pub(crate) fn print<'a, 'tcx: 'a>(
-        &'a self,
-        cx: &'a Context<'tcx>,
-    ) -> impl fmt::Display + 'a + Captures<'tcx> {
-        display_fn(move |f| match self {
-            clean::Return(clean::Tuple(tys)) if tys.is_empty() => Ok(()),
-            clean::Return(ty) if f.alternate() => {
-                write!(f, " -> {:#}", ty.print(cx))
-            }
-            clean::Return(ty) => write!(f, " -&gt; {}", ty.print(cx)),
-            clean::DefaultReturn => Ok(()),
         })
     }
 }
@@ -1366,7 +1357,7 @@ impl clean::FnDecl {
                     "({args:#}{ellipsis}){arrow:#}",
                     args = self.inputs.print(cx),
                     ellipsis = ellipsis,
-                    arrow = self.output.print(cx)
+                    arrow = self.print_output(cx)
                 )
             } else {
                 write!(
@@ -1374,7 +1365,7 @@ impl clean::FnDecl {
                     "({args}{ellipsis}){arrow}",
                     args = self.inputs.print(cx),
                     ellipsis = ellipsis,
-                    arrow = self.output.print(cx)
+                    arrow = self.print_output(cx)
                 )
             }
         })
@@ -1417,7 +1408,7 @@ impl clean::FnDecl {
         let amp = if f.alternate() { "&" } else { "&amp;" };
 
         write!(f, "(")?;
-        if let Some(n) = line_wrapping_indent {
+        if let Some(n) = line_wrapping_indent && !self.inputs.values.is_empty() {
             write!(f, "\n{}", Indent(n + 4))?;
         }
         for (i, input) in self.inputs.values.iter().enumerate() {
@@ -1464,8 +1455,21 @@ impl clean::FnDecl {
             Some(n) => write!(f, "\n{})", Indent(n))?,
         };
 
-        fmt::Display::fmt(&self.output.print(cx), f)?;
+        fmt::Display::fmt(&self.print_output(cx), f)?;
         Ok(())
+    }
+
+    fn print_output<'a, 'tcx: 'a>(
+        &'a self,
+        cx: &'a Context<'tcx>,
+    ) -> impl fmt::Display + 'a + Captures<'tcx> {
+        display_fn(move |f| match &self.output {
+            clean::Tuple(tys) if tys.is_empty() => Ok(()),
+            ty if f.alternate() => {
+                write!(f, " -> {:#}", ty.print(cx))
+            }
+            ty => write!(f, " -&gt; {}", ty.print(cx)),
+        })
     }
 }
 

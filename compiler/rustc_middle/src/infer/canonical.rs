@@ -82,15 +82,40 @@ impl CanonicalVarValues<'_> {
     }
 
     pub fn is_identity_modulo_regions(&self) -> bool {
-        self.var_values.iter().enumerate().all(|(bv, arg)| match arg.unpack() {
-            ty::GenericArgKind::Lifetime(_) => true,
-            ty::GenericArgKind::Type(ty) => {
-                matches!(*ty.kind(), ty::Bound(ty::INNERMOST, bt) if bt.var.as_usize() == bv)
+        let mut var = ty::BoundVar::from_u32(0);
+        for arg in self.var_values {
+            match arg.unpack() {
+                ty::GenericArgKind::Lifetime(r) => {
+                    if let ty::ReLateBound(ty::INNERMOST, br) = *r
+                        && var == br.var
+                    {
+                        var = var + 1;
+                    } else {
+                        // It's ok if this region var isn't unique
+                    }
+                },
+                ty::GenericArgKind::Type(ty) => {
+                    if let ty::Bound(ty::INNERMOST, bt) = *ty.kind()
+                        && var == bt.var
+                    {
+                        var = var + 1;
+                    } else {
+                        return false;
+                    }
+                }
+                ty::GenericArgKind::Const(ct) => {
+                    if let ty::ConstKind::Bound(ty::INNERMOST, bc) = ct.kind()
+                        && var == bc
+                    {
+                        var = var + 1;
+                    } else {
+                        return false;
+                    }
+                }
             }
-            ty::GenericArgKind::Const(ct) => {
-                matches!(ct.kind(), ty::ConstKind::Bound(ty::INNERMOST, bc) if bc.as_usize() == bv)
-            }
-        })
+        }
+
+        true
     }
 }
 
@@ -408,22 +433,24 @@ impl<'tcx> CanonicalVarValues<'tcx> {
                 |(i, info)| -> ty::GenericArg<'tcx> {
                     match info.kind {
                         CanonicalVarKind::Ty(_) | CanonicalVarKind::PlaceholderTy(_) => {
-                            tcx.mk_bound(ty::INNERMOST, ty::BoundVar::from_usize(i).into()).into()
+                            Ty::new_bound(tcx, ty::INNERMOST, ty::BoundVar::from_usize(i).into())
+                                .into()
                         }
                         CanonicalVarKind::Region(_) | CanonicalVarKind::PlaceholderRegion(_) => {
                             let br = ty::BoundRegion {
                                 var: ty::BoundVar::from_usize(i),
                                 kind: ty::BrAnon(None),
                             };
-                            tcx.mk_re_late_bound(ty::INNERMOST, br).into()
+                            ty::Region::new_late_bound(tcx, ty::INNERMOST, br).into()
                         }
                         CanonicalVarKind::Const(_, ty)
-                        | CanonicalVarKind::PlaceholderConst(_, ty) => tcx
-                            .mk_const(
-                                ty::ConstKind::Bound(ty::INNERMOST, ty::BoundVar::from_usize(i)),
-                                ty,
-                            )
-                            .into(),
+                        | CanonicalVarKind::PlaceholderConst(_, ty) => ty::Const::new_bound(
+                            tcx,
+                            ty::INNERMOST,
+                            ty::BoundVar::from_usize(i),
+                            ty,
+                        )
+                        .into(),
                     }
                 },
             )),

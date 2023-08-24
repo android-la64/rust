@@ -30,7 +30,7 @@ unsafe impl Send for TestResult {}
 /// and associated data.
 pub fn calc_result<'a>(
     desc: &TestDesc,
-    task_result: Result<(), &'a (dyn Any + 'static + Send)>,
+    task_result: Result<(), &'a dyn Any>,
     time_opts: &Option<time::TestTimeOptions>,
     exec_time: &Option<time::TestExecTime>,
 ) -> TestResult {

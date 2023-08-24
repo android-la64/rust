@@ -19,7 +19,7 @@
 //!
 //! ```
 //! let result = ammonia::clean(
-//!     "<b><img src='' onerror='alert(\\'hax\\')'>I'm not trying to XSS you</b>"
+//!     "<b><img src='' onerror=alert('hax')>I'm not trying to XSS you</b>"
 //! );
 //! assert_eq!(result, "<b><img src=\"\">I'm not trying to XSS you</b>");
 //! ```
@@ -47,7 +47,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::io;
 use std::iter::IntoIterator as IntoIter;
-use std::mem::replace;
+use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
 use tendril::stream::TendrilSink;
@@ -59,18 +59,21 @@ use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::{Token, TokenSink, TokenSinkResult, Tokenizer};
 pub use url;
 
-static AMMONIA: Lazy<Builder<'static>> = Lazy::new(|| Builder::default());
+static AMMONIA: Lazy<Builder<'static>> = Lazy::new(Builder::default);
 
 /// Clean HTML with a conservative set of defaults.
 ///
 /// * [tags](struct.Builder.html#defaults)
-/// * [attributes on specific tags](struct.Builder.html#defaults-1)
-/// * [attributes on all tags](struct.Builder.html#defaults-2)
-/// * [url schemes](struct.Builder.html#defaults-3)
-/// * [relative URLs are passed through, unchanged, by default](struct.Builder.html#defaults-4)
-/// * [links are marked `noopener noreferrer` by default](struct.Builder.html#defaults-5)
-/// * [all `class=""` settings are blocked by default](struct.Builder.html#defaults-6)
-/// * [comments are stripped by default](struct.Builder.html#defaults-7)
+/// * [`script` and `style` have their contents stripped](struct.Builder.html#defaults-1)
+/// * [attributes on specific tags](struct.Builder.html#defaults-2)
+/// * [attributes on all tags](struct.Builder.html#defaults-6)
+/// * [url schemes](struct.Builder.html#defaults-7)
+/// * [relative URLs are passed through, unchanged, by default](struct.Builder.html#defaults-8)
+/// * [links are marked `noopener noreferrer` by default](struct.Builder.html#defaults-9)
+/// * all `class=""` settings are blocked by default
+/// * comments are stripped by default
+/// * no generic attribute prefixes are turned on by default
+/// * no specific tag-attribute-value settings are configured by default
 ///
 /// [opener]: https://mathiasbynens.github.io/rel-noopener/
 /// [referrer]: https://en.wikipedia.org/wiki/HTTP_referer
@@ -368,7 +371,7 @@ pub struct Builder<'a> {
 
 impl<'a> Default for Builder<'a> {
     fn default() -> Self {
-        #[cfg_attr(rustfmt, rustfmt_skip)]
+        #[rustfmt::skip]
         let tags = hashset![
             "a", "abbr", "acronym", "area", "article", "aside", "b", "bdi",
             "bdo", "blockquote", "br", "caption", "center", "cite", "code",
@@ -597,7 +600,9 @@ impl<'a> Builder<'a> {
     ///
     /// # Defaults
     ///
-    /// No tags have content removed by default.
+    /// ```notest
+    /// script, style
+    /// ```
     pub fn clean_content_tags(&mut self, value: HashSet<&'a str>) -> &mut Self {
         self.clean_content_tags = value;
         self
@@ -752,7 +757,7 @@ impl<'a> Builder<'a> {
     ) -> &mut Self {
         self.tag_attributes
             .entry(tag.borrow())
-            .or_insert_with(|| HashSet::new())
+            .or_insert_with(HashSet::new)
             .extend(it.into_iter().map(Borrow::borrow));
         self
     }
@@ -1078,9 +1083,7 @@ impl<'a> Builder<'a> {
     ///
     /// # Defaults
     ///
-    /// ```notest
-    /// lang, title
-    /// ```
+    /// No attribute prefixes are allowed by default.
     pub fn generic_attribute_prefixes(&mut self, value: HashSet<&'a str>) -> &mut Self {
         self.generic_attribute_prefixes = Some(value);
         self
@@ -1478,7 +1481,7 @@ impl<'a> Builder<'a> {
     ///     a.link_rel(Some("a b"));
     ///     assert_eq!(a.get_link_rel(), Some("a b"));
     pub fn get_link_rel(&self) -> Option<&str> {
-        self.link_rel.clone()
+        self.link_rel
     }
 
     /// Sets the CSS classes that are allowed on specific tags.
@@ -1533,7 +1536,7 @@ impl<'a> Builder<'a> {
     ) -> &mut Self {
         self.allowed_classes
             .entry(tag.borrow())
-            .or_insert_with(|| HashSet::new())
+            .or_insert_with(HashSet::new)
             .extend(it.into_iter().map(Borrow::borrow));
         self
     }
@@ -1778,7 +1781,7 @@ impl<'a> Builder<'a> {
                 .is_none());
         }
         assert!(self.allowed_classes.is_empty() || !self.generic_attributes.contains("class"));
-        for (tag_name, _classes) in &self.allowed_classes {
+        for tag_name in self.allowed_classes.keys() {
             assert!(self
                 .tag_attributes
                 .get(tag_name)
@@ -1789,17 +1792,12 @@ impl<'a> Builder<'a> {
             assert!(!self.tags.contains(tag_name));
             assert!(!self.tag_attributes.contains_key(tag_name));
         }
-        let url_base = if let UrlRelative::RewriteWithBase(ref base) = self.url_relative {
-            Some(base)
-        } else {
-            None
-        };
         let body = {
             let children = dom.document.children.borrow();
             children[0].clone()
         };
         stack.extend(
-            replace(&mut *body.children.borrow_mut(), Vec::new())
+            mem::take(&mut *body.children.borrow_mut())
                 .into_iter()
                 .rev(),
         );
@@ -1815,10 +1813,10 @@ impl<'a> Builder<'a> {
                 removed.push(node);
                 continue;
             }
-            let pass_clean = self.clean_child(&mut node, url_base);
+            let pass_clean = self.clean_child(&mut node);
             let pass = pass_clean && self.check_expected_namespace(&parent, &node);
             if pass {
-                self.adjust_node_attributes(&mut node, &link_rel, url_base, self.id_prefix);
+                self.adjust_node_attributes(&mut node, &link_rel, self.id_prefix);
                 dom.append(&parent.clone(), NodeOrText::AppendNode(node.clone()));
             } else {
                 for sub in node.children.borrow_mut().iter_mut() {
@@ -1826,7 +1824,7 @@ impl<'a> Builder<'a> {
                 }
             }
             stack.extend(
-                replace(&mut *node.children.borrow_mut(), Vec::new())
+                mem::take(&mut *node.children.borrow_mut())
                     .into_iter()
                     .rev(),
             );
@@ -1838,7 +1836,7 @@ impl<'a> Builder<'a> {
         // Otherwise, we could wind up with a DoS, either caused by a memory leak,
         // or caused by a stack overflow.
         while let Some(node) = removed.pop() {
-            removed.extend_from_slice(&replace(&mut *node.children.borrow_mut(), Vec::new())[..]);
+            removed.extend_from_slice(&mem::take(&mut *node.children.borrow_mut())[..]);
         }
         Document(dom)
     }
@@ -1860,7 +1858,7 @@ impl<'a> Builder<'a> {
     /// The root node doesn't need cleaning because we create the root node ourselves,
     /// and it doesn't get serialized, and ... it just exists to give the parser
     /// a context (in this case, a div-like block context).
-    fn clean_child(&self, child: &mut Handle, url_base: Option<&Url>) -> bool {
+    fn clean_child(&self, child: &mut Handle) -> bool {
         match child.data {
             NodeData::Text { .. } => true,
             NodeData::Comment { .. } => !self.strip_comments,
@@ -1904,13 +1902,7 @@ impl<'a> Builder<'a> {
                             if let Ok(url) = url {
                                 self.url_schemes.contains(url.scheme())
                             } else if url == Err(url::ParseError::RelativeUrlWithoutBase) {
-                                if matches!(self.url_relative, UrlRelative::Deny) {
-                                    false
-                                } else if let Some(url_base) = url_base {
-                                    url_base.join(&*attr.value).is_ok()
-                                } else {
-                                    true
-                                }
+                                !matches!(self.url_relative, UrlRelative::Deny)
                             } else {
                                 false
                             }
@@ -2061,7 +2053,6 @@ impl<'a> Builder<'a> {
         &self,
         child: &mut Handle,
         link_rel: &Option<StrTendril>,
-        url_base: Option<&Url>,
         id_prefix: Option<&'a str>,
     ) {
         if let NodeData::Element {
@@ -2099,10 +2090,8 @@ impl<'a> Builder<'a> {
             }
             if let Some(ref id_prefix) = id_prefix {
                 for attr in &mut *attrs.borrow_mut() {
-                    if &attr.name.local == "id" {
-                        if !attr.value.starts_with(id_prefix) {
-                            attr.value = format_tendril!("{}{}", id_prefix, attr.value);
-                        }
+                    if &attr.name.local == "id" && !attr.value.starts_with(id_prefix) {
+                        attr.value = format_tendril!("{}{}", id_prefix, attr.value);
                     }
                 }
             }
@@ -2130,27 +2119,13 @@ impl<'a> Builder<'a> {
                     attrs.swap_remove(i);
                 }
             }
-            if let Some(ref base) = url_base {
-                for attr in &mut *attrs.borrow_mut() {
-                    if is_url_attr(&*name.local, &*attr.name.local) {
-                        let url = base
-                            .join(&*attr.value)
-                            .expect("invalid URLs should be stripped earlier");
-                        attr.value = format_tendril!("{}", url);
-                    }
-                }
-            } else if let UrlRelative::Custom(ref evaluate) = self.url_relative {
+            {
                 let mut drop_attrs = Vec::new();
                 let mut attrs = attrs.borrow_mut();
                 for (i, attr) in attrs.iter_mut().enumerate() {
                     if is_url_attr(&*name.local, &*attr.name.local) && is_url_relative(&*attr.value)
                     {
-                        let new_value = evaluate
-                            .evaluate(&*attr.value)
-                            .as_ref()
-                            .map(Cow::as_ref)
-                            .map(StrTendril::from_str)
-                            .and_then(Result::ok);
+                        let new_value = self.url_relative.evaluate(&*attr.value);
                         if let Some(new_value) = new_value {
                             attr.value = new_value;
                         } else {
@@ -2212,7 +2187,8 @@ fn is_url_attr(element: &str, attr: &str) -> bool {
 /// Given an element name, check if it's SVG
 fn is_svg_tag(element: &str) -> bool {
     // https://svgwg.org/svg2-draft/eltindex.html
-    match element {
+    matches!(
+        element,
         "a"
         | "animate"
         | "animateMotion"
@@ -2276,15 +2252,14 @@ fn is_svg_tag(element: &str) -> bool {
         | "title"
         | "tspan"
         | "use"
-        | "view" => true,
-        _ => false,
-    }
+        | "view"
+    )
 }
 
 /// Given an element name, check if it's Math
 fn is_mathml_tag(element: &str) -> bool {
     // https://svgwg.org/svg2-draft/eltindex.html
-    match element {
+    matches!(element,
         "abs"
         | "and"
         | "annotation"
@@ -2478,9 +2453,8 @@ fn is_mathml_tag(element: &str) -> bool {
         | "variance"
         | "vector"
         | "vectorproduct"
-        | "xor" => true,
-        _ => false,
-    }
+        | "xor"
+    )
 }
 
 fn is_url_relative(url: &str) -> bool {
@@ -2558,8 +2532,131 @@ pub enum UrlRelative {
     PassThrough,
     /// Relative URLs will be changed into absolute URLs, based on this base URL.
     RewriteWithBase(Url),
+    /// Force absolute and relative paths into a particular directory.
+    ///
+    /// Since the resolver does not affect fully-qualified URLs, it doesn't
+    /// prevent users from linking wherever they want. This feature only
+    /// serves to make content more portable.
+    ///
+    /// # Examples
+    ///
+    /// <table>
+    /// <thead>
+    /// <tr>
+    ///     <th>root</th>
+    ///     <th>path</th>
+    ///     <th>url</th>
+    ///     <th>result</th>
+    /// </tr>
+    /// </thead>
+    /// <tbody>
+    /// <tr>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/</td>
+    ///     <td>README.md</td>
+    ///     <td></td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/README.md</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/</td>
+    ///     <td>README.md</td>
+    ///     <td>/</td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/</td>
+    ///     <td>README.md</td>
+    ///     <td>/CONTRIBUTING.md</td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/CONTRIBUTING.md</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master</td>
+    ///     <td>README.md</td>
+    ///     <td></td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/README.md</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master</td>
+    ///     <td>README.md</td>
+    ///     <td>/</td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master</td>
+    ///     <td>README.md</td>
+    ///     <td>/CONTRIBUTING.md</td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/CONTRIBUTING.md</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/</td>
+    ///     <td></td>
+    ///     <td></td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/</td>
+    ///     <td></td>
+    ///     <td>/</td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/</td>
+    ///     <td></td>
+    ///     <td>/CONTRIBUTING.md</td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/CONTRIBUTING.md</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/</td>
+    ///     <td>rust-ammonia/ammonia/blob/master/README.md</td>
+    ///     <td></td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/README.md</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/</td>
+    ///     <td>rust-ammonia/ammonia/blob/master/README.md</td>
+    ///     <td>/</td>
+    ///     <td>https://github.com/</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/</td>
+    ///     <td>rust-ammonia/ammonia/blob/master/README.md</td>
+    ///     <td>CONTRIBUTING.md</td>
+    ///     <td>https://github.com/rust-ammonia/ammonia/blob/master/CONTRIBUTING.md</td>
+    /// </tr><tr>
+    ///     <td>https://github.com/</td>
+    ///     <td>rust-ammonia/ammonia/blob/master/README.md</td>
+    ///     <td>/CONTRIBUTING.md</td>
+    ///     <td>https://github.com/CONTRIBUTING.md</td>
+    /// </tr>
+    /// </tbody>
+    /// </table>
+    RewriteWithRoot {
+        /// The URL that is treated as the root by the resolver.
+        root: Url,
+        /// The "current path" used to resolve relative paths.
+        path: String,
+    },
     /// Rewrite URLs with a custom function.
     Custom(Box<dyn UrlRelativeEvaluate>),
+}
+
+impl UrlRelative {
+    fn evaluate(&self, url: &str) -> Option<tendril::StrTendril> {
+        match self {
+            UrlRelative::RewriteWithBase(ref url_base) => {
+                url_base.join(url).ok().and_then(|x| StrTendril::from_str(x.as_str()).ok())
+            }
+            UrlRelative::RewriteWithRoot { ref root, ref path } => {
+                (match url.as_bytes() {
+                    // Scheme-relative URL
+                    [b'/', b'/', ..] => root.join(url),
+                    // Path-absolute URL
+                    b"/" => root.join("."),
+                    [b'/', ..] => root.join(&url[1..]),
+                    // Path-relative URL
+                    _ => root.join(path).and_then(|r| r.join(url)),
+                }).ok().and_then(|x| StrTendril::from_str(x.as_str()).ok())
+            }
+            UrlRelative::Custom(ref evaluate) => {
+                evaluate
+                    .evaluate(&*url)
+                    .as_ref()
+                    .map(Cow::as_ref)
+                    .map(StrTendril::from_str)
+                    .and_then(Result::ok)
+            }
+            UrlRelative::PassThrough => StrTendril::from_str(url).ok(),
+            UrlRelative::Deny => None,
+        }
+    }
 }
 
 impl fmt::Debug for UrlRelative {
@@ -2569,6 +2666,9 @@ impl fmt::Debug for UrlRelative {
             UrlRelative::PassThrough => write!(f, "UrlRelative::PassThrough"),
             UrlRelative::RewriteWithBase(ref base) => {
                 write!(f, "UrlRelative::RewriteWithBase({})", base)
+            }
+            UrlRelative::RewriteWithRoot { ref root, ref path } => {
+                write!(f, "UrlRelative::RewriteWithRoot {{ root: {root}, path: {path} }}")
             }
             UrlRelative::Custom(_) => write!(f, "UrlRelative::Custom"),
         }
@@ -3622,5 +3722,101 @@ mod test {
     fn dont_be_bold() {
         let fragment = "<b>";
         assert!(is_html(fragment));
+    }
+
+    #[test]
+    fn rewrite_with_root() {
+        let tests = [
+            (
+                "https://github.com/rust-ammonia/ammonia/blob/master/",
+                "README.md",
+                "",
+                "https://github.com/rust-ammonia/ammonia/blob/master/README.md",
+            ),
+            (
+                "https://github.com/rust-ammonia/ammonia/blob/master/",
+                "README.md",
+                "/",
+                "https://github.com/rust-ammonia/ammonia/blob/master/",
+            ),
+            (
+                "https://github.com/rust-ammonia/ammonia/blob/master/",
+                "README.md",
+                "/CONTRIBUTING.md",
+                "https://github.com/rust-ammonia/ammonia/blob/master/CONTRIBUTING.md",
+            ),
+            (
+                "https://github.com/rust-ammonia/ammonia/blob/master",
+                "README.md",
+                "",
+                "https://github.com/rust-ammonia/ammonia/blob/README.md",
+            ),
+            (
+                "https://github.com/rust-ammonia/ammonia/blob/master",
+                "README.md",
+                "/",
+                "https://github.com/rust-ammonia/ammonia/blob/",
+            ),
+            (
+                "https://github.com/rust-ammonia/ammonia/blob/master",
+                "README.md",
+                "/CONTRIBUTING.md",
+                "https://github.com/rust-ammonia/ammonia/blob/CONTRIBUTING.md",
+            ),
+            (
+                "https://github.com/rust-ammonia/ammonia/blob/master/",
+                "",
+                "",
+                "https://github.com/rust-ammonia/ammonia/blob/master/",
+            ),
+            (
+                "https://github.com/rust-ammonia/ammonia/blob/master/",
+                "",
+                "/",
+                "https://github.com/rust-ammonia/ammonia/blob/master/",
+            ),
+            (
+                "https://github.com/rust-ammonia/ammonia/blob/master/",
+                "",
+                "/CONTRIBUTING.md",
+                "https://github.com/rust-ammonia/ammonia/blob/master/CONTRIBUTING.md",
+            ),
+            (
+                "https://github.com/",
+                "rust-ammonia/ammonia/blob/master/README.md",
+                "",
+                "https://github.com/rust-ammonia/ammonia/blob/master/README.md",
+            ),
+            (
+                "https://github.com/",
+                "rust-ammonia/ammonia/blob/master/README.md",
+                "/",
+                "https://github.com/",
+            ),
+            (
+                "https://github.com/",
+                "rust-ammonia/ammonia/blob/master/README.md",
+                "CONTRIBUTING.md",
+                "https://github.com/rust-ammonia/ammonia/blob/master/CONTRIBUTING.md",
+            ),
+            (
+                "https://github.com/",
+                "rust-ammonia/ammonia/blob/master/README.md",
+                "/CONTRIBUTING.md",
+                "https://github.com/CONTRIBUTING.md",
+            ),
+        ];
+        for (root, path, url, result) in tests {
+            let h = format!(r#"<a href="{url}">test</a>"#);
+            let r = format!(r#"<a href="{result}" rel="noopener noreferrer">test</a>"#);
+            let a = Builder::new()
+                .url_relative(UrlRelative::RewriteWithRoot { root: Url::parse(root).unwrap(), path: path.to_string() })
+                .clean(&h)
+                .to_string();
+            if r != a {
+                println!("failed to check ({root}, {path}, {url}, {result})\n{r} != {a}", r = r);
+                assert_eq!(r, a);
+            }
+        }
     }
 }

@@ -29,25 +29,52 @@ cfg_not_test_util! {
 
 cfg_test_util! {
     use crate::time::{Duration, Instant};
-    use crate::loom::sync::{Arc, Mutex};
+    use crate::loom::sync::Mutex;
+    use crate::loom::sync::atomic::Ordering;
+    use std::sync::atomic::AtomicBool as StdAtomicBool;
 
     cfg_rt! {
-        fn clock() -> Option<Clock> {
-            crate::runtime::context::clock()
+        #[track_caller]
+        fn with_clock<R>(f: impl FnOnce(Option<&Clock>) -> Result<R, &'static str>) -> R {
+            use crate::runtime::Handle;
+
+            let res = match Handle::try_current() {
+                Ok(handle) => f(Some(handle.inner.driver().clock())),
+                Err(ref e) if e.is_missing_context() => f(None),
+                Err(_) => panic!("{}", crate::util::error::THREAD_LOCAL_DESTROYED_ERROR),
+            };
+
+            match res {
+                Ok(ret) => ret,
+                Err(msg) => panic!("{}", msg),
+            }
         }
     }
 
     cfg_not_rt! {
-        fn clock() -> Option<Clock> {
-            None
+        #[track_caller]
+        fn with_clock<R>(f: impl FnOnce(Option<&Clock>) -> Result<R, &'static str>) -> R {
+            match f(None) {
+                Ok(ret) => ret,
+                Err(msg) => panic!("{}", msg),
+            }
         }
     }
 
     /// A handle to a source of time.
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub(crate) struct Clock {
-        inner: Arc<Mutex<Inner>>,
+        inner: Mutex<Inner>,
     }
+
+    // Used to track if the clock was ever paused. This is an optimization to
+    // avoid touching the mutex if `test-util` was accidentally enabled in
+    // release mode.
+    //
+    // A static is used so we can avoid accessing the thread-local as well. The
+    // `std` AtomicBool is used directly because loom does not support static
+    // atomics.
+    static DID_PAUSE_CLOCK: StdAtomicBool = StdAtomicBool::new(false);
 
     #[derive(Debug)]
     struct Inner {
@@ -57,21 +84,33 @@ cfg_test_util! {
         /// Instant to use as the clock's base instant.
         base: std::time::Instant,
 
-        /// Instant at which the clock was last unfrozen
+        /// Instant at which the clock was last unfrozen.
         unfrozen: Option<std::time::Instant>,
+
+        /// Number of `inhibit_auto_advance` calls still in effect.
+        auto_advance_inhibit_count: usize,
     }
 
-    /// Pause time
+    /// Pauses time.
     ///
     /// The current value of `Instant::now()` is saved and all subsequent calls
-    /// to `Instant::now()` until the timer wheel is checked again will return
-    /// the saved value. Once the timer wheel is checked, time will immediately
-    /// advance to the next registered `Sleep`. This is useful for running tests
-    /// that depend on time.
+    /// to `Instant::now()` will return the saved value. The saved value can be
+    /// changed by [`advance`] or by the time auto-advancing once the runtime
+    /// has no work to do. This only affects the `Instant` type in Tokio, and
+    /// the `Instant` in std continues to work as normal.
     ///
     /// Pausing time requires the `current_thread` Tokio runtime. This is the
     /// default runtime used by `#[tokio::test]`. The runtime can be initialized
     /// with time in a paused state using the `Builder::start_paused` method.
+    ///
+    /// For cases where time is immediately paused, it is better to pause
+    /// the time using the `main` or `test` macro:
+    /// ```
+    /// #[tokio::main(flavor = "current_thread", start_paused = true)]
+    /// async fn main() {
+    ///    println!("Hello world");
+    /// }
+    /// ```
     ///
     /// # Panics
     ///
@@ -86,12 +125,18 @@ cfg_test_util! {
     /// current time when awaited.
     ///
     /// [`Sleep`]: crate::time::Sleep
+    /// [`advance`]: crate::time::advance
+    #[track_caller]
     pub fn pause() {
-        let clock = clock().expect("time cannot be frozen from outside the Tokio runtime");
-        clock.pause();
+        with_clock(|maybe_clock| {
+            match maybe_clock {
+                Some(clock) => clock.pause(),
+                None => Err("time cannot be frozen from outside the Tokio runtime"),
+            }
+        })
     }
 
-    /// Resume time
+    /// Resumes time.
     ///
     /// Clears the saved `Instant::now()` value. Subsequent calls to
     /// `Instant::now()` will return the value returned by the system call.
@@ -100,21 +145,43 @@ cfg_test_util! {
     ///
     /// Panics if time is not frozen or if called from outside of the Tokio
     /// runtime.
+    #[track_caller]
     pub fn resume() {
-        let clock = clock().expect("time cannot be frozen from outside the Tokio runtime");
-        let mut inner = clock.inner.lock();
+        with_clock(|maybe_clock| {
+            let clock = match maybe_clock {
+                Some(clock) => clock,
+                None => return Err("time cannot be frozen from outside the Tokio runtime"),
+            };
 
-        if inner.unfrozen.is_some() {
-            panic!("time is not frozen");
-        }
+            let mut inner = clock.inner.lock();
 
-        inner.unfrozen = Some(std::time::Instant::now());
+            if inner.unfrozen.is_some() {
+                return Err("time is not frozen");
+            }
+
+            inner.unfrozen = Some(std::time::Instant::now());
+            Ok(())
+        })
     }
 
-    /// Advance time
+    /// Advances time.
     ///
     /// Increments the saved `Instant::now()` value by `duration`. Subsequent
     /// calls to `Instant::now()` will return the result of the increment.
+    ///
+    /// This function will make the current time jump forward by the given
+    /// duration in one jump. This means that all `sleep` calls with a deadline
+    /// before the new time will immediately complete "at the same time", and
+    /// the runtime is free to poll them in any order.  Additionally, this
+    /// method will not wait for the `sleep` calls it advanced past to complete.
+    /// If you want to do that, you should instead call [`sleep`] and rely on
+    /// the runtime's auto-advance feature.
+    ///
+    /// Note that calls to `sleep` are not guaranteed to complete the first time
+    /// they are polled after a call to `advance`. For example, this can happen
+    /// if the runtime has not yet touched the timer driver after the call to
+    /// `advance`. However if they don't, the runtime will poll the task again
+    /// shortly.
     ///
     /// # Panics
     ///
@@ -126,70 +193,107 @@ cfg_test_util! {
     /// If the time is paused and there is no work to do, the runtime advances
     /// time to the next timer. See [`pause`](pause#auto-advance) for more
     /// details.
+    ///
+    /// [`sleep`]: fn@crate::time::sleep
     pub async fn advance(duration: Duration) {
-        let clock = clock().expect("time cannot be frozen from outside the Tokio runtime");
-        clock.advance(duration);
+        with_clock(|maybe_clock| {
+            let clock = match maybe_clock {
+                Some(clock) => clock,
+                None => return Err("time cannot be frozen from outside the Tokio runtime"),
+            };
+
+            clock.advance(duration)
+        });
 
         crate::task::yield_now().await;
     }
 
-    /// Return the current instant, factoring in frozen time.
+    /// Returns the current instant, factoring in frozen time.
     pub(crate) fn now() -> Instant {
-        if let Some(clock) = clock() {
-            clock.now()
-        } else {
-            Instant::from_std(std::time::Instant::now())
+        if !DID_PAUSE_CLOCK.load(Ordering::Acquire) {
+            return Instant::from_std(std::time::Instant::now());
         }
+
+        with_clock(|maybe_clock| {
+            Ok(if let Some(clock) = maybe_clock {
+                clock.now()
+            } else {
+                Instant::from_std(std::time::Instant::now())
+            })
+        })
     }
 
     impl Clock {
-        /// Return a new `Clock` instance that uses the current execution context's
+        /// Returns a new `Clock` instance that uses the current execution context's
         /// source of time.
         pub(crate) fn new(enable_pausing: bool, start_paused: bool) -> Clock {
             let now = std::time::Instant::now();
 
             let clock = Clock {
-                inner: Arc::new(Mutex::new(Inner {
+                inner: Mutex::new(Inner {
                     enable_pausing,
                     base: now,
                     unfrozen: Some(now),
-                })),
+                    auto_advance_inhibit_count: 0,
+                }),
             };
 
             if start_paused {
-                clock.pause();
+                if let Err(msg) = clock.pause() {
+                    panic!("{}", msg);
+                }
             }
 
             clock
         }
 
-        pub(crate) fn pause(&self) {
+        pub(crate) fn pause(&self) -> Result<(), &'static str> {
             let mut inner = self.inner.lock();
 
             if !inner.enable_pausing {
                 drop(inner); // avoid poisoning the lock
-                panic!("`time::pause()` requires the `current_thread` Tokio runtime. \
+                return Err("`time::pause()` requires the `current_thread` Tokio runtime. \
                         This is the default Runtime used by `#[tokio::test].");
             }
 
-            let elapsed = inner.unfrozen.as_ref().expect("time is already frozen").elapsed();
+            // Track that we paused the clock
+            DID_PAUSE_CLOCK.store(true, Ordering::Release);
+
+            let elapsed = match inner.unfrozen.as_ref() {
+                Some(v) => v.elapsed(),
+                None => return Err("time is already frozen")
+            };
             inner.base += elapsed;
             inner.unfrozen = None;
+
+            Ok(())
         }
 
-        pub(crate) fn is_paused(&self) -> bool {
+        /// Temporarily stop auto-advancing the clock (see `tokio::time::pause`).
+        pub(crate) fn inhibit_auto_advance(&self) {
+            let mut inner = self.inner.lock();
+            inner.auto_advance_inhibit_count += 1;
+        }
+
+        pub(crate) fn allow_auto_advance(&self) {
+            let mut inner = self.inner.lock();
+            inner.auto_advance_inhibit_count -= 1;
+        }
+
+        pub(crate) fn can_auto_advance(&self) -> bool {
             let inner = self.inner.lock();
-            inner.unfrozen.is_none()
+            inner.unfrozen.is_none() && inner.auto_advance_inhibit_count == 0
         }
 
-        pub(crate) fn advance(&self, duration: Duration) {
+        pub(crate) fn advance(&self, duration: Duration) -> Result<(), &'static str> {
             let mut inner = self.inner.lock();
 
             if inner.unfrozen.is_some() {
-                panic!("time is not frozen");
+                return Err("time is not frozen");
             }
 
             inner.base += duration;
+            Ok(())
         }
 
         pub(crate) fn now(&self) -> Instant {

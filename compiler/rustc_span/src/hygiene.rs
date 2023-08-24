@@ -507,7 +507,7 @@ impl HygieneData {
             self.normalize_to_macro_rules(call_site_ctxt)
         };
 
-        if call_site_ctxt == SyntaxContext::root() {
+        if call_site_ctxt.is_root() {
             return self.apply_mark_internal(ctxt, expn_id, transparency);
         }
 
@@ -671,12 +671,17 @@ impl SyntaxContext {
     }
 
     #[inline]
-    pub(crate) fn as_u32(self) -> u32 {
+    pub const fn is_root(self) -> bool {
+        self.0 == SyntaxContext::root().as_u32()
+    }
+
+    #[inline]
+    pub(crate) const fn as_u32(self) -> u32 {
         self.0
     }
 
     #[inline]
-    pub(crate) fn from_u32(raw: u32) -> SyntaxContext {
+    pub(crate) const fn from_u32(raw: u32) -> SyntaxContext {
         SyntaxContext(raw)
     }
 
@@ -1288,7 +1293,7 @@ pub fn decode_expn_id(
     decode_data: impl FnOnce(ExpnId) -> (ExpnData, ExpnHash),
 ) -> ExpnId {
     if index == 0 {
-        debug!("decode_expn_id: deserialized root");
+        trace!("decode_expn_id: deserialized root");
         return ExpnId::root();
     }
 
@@ -1321,7 +1326,7 @@ pub fn decode_syntax_context<D: Decoder, F: FnOnce(&mut D, u32) -> SyntaxContext
 ) -> SyntaxContext {
     let raw_id: u32 = Decodable::decode(d);
     if raw_id == 0 {
-        debug!("decode_syntax_context: deserialized root");
+        trace!("decode_syntax_context: deserialized root");
         // The root is special
         return SyntaxContext::root();
     }
@@ -1500,7 +1505,7 @@ impl<CTX: HashStableContext> HashStable<CTX> for SyntaxContext {
         const TAG_EXPANSION: u8 = 0;
         const TAG_NO_EXPANSION: u8 = 1;
 
-        if *self == SyntaxContext::root() {
+        if self.is_root() {
             TAG_NO_EXPANSION.hash_stable(ctx, hasher);
         } else {
             TAG_EXPANSION.hash_stable(ctx, hasher);

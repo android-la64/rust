@@ -5,6 +5,11 @@
 
 #include "zbuild.h"
 #include "zutil.h"
+#if defined(ZLIB_COMPAT)
+#  include "zlib.h"
+#else
+#  include "zlib-ng.h"
+#endif
 
 /* ===========================================================================
  *  Architecture-specific hooks.

@@ -2,6 +2,58 @@
 
 ## [Unreleased]
 
+## [v0.10.55] - 2023-06-20
+
+### Fixed
+
+* Fixed compilation with the latest version of BoringSSL.
+* Fixed compilation when OpenSSL is compiled with `OPENSSL_NO_OCB`.
+* Fixed a segfault in `X509VerifyParamRef::set_host` when called with an empty string.
+
+### Added
+
+* Added `Deriver::set_peer_ex`.
+* Added `EcGroupRef::asn1_flag`.
+* Exposed `EcPointRef::affine_coordinates` on BoringSSL and LibreSSL.
+* Added `Nid::SM2` and `Id::SM2`
+
+## [v0.10.54] - 2023-05-31
+
+### Fixed
+
+* `PKey::private_key_to_pkcs8_passphrase` no longer panics if a `passphrase` contains a NUL byte.
+
+## [v0.10.53] - 2023-05-30
+
+### Added
+
+* Added `Dsa::from_pqg`, `Dsa::generate_key`, and `Dsa::generate_params`.
+* Added `SslRef::bytes_to_cipher_list`.
+* Added `SubjectAlternativeName::other_name2`
+
+## [v0.10.52] - 2023-04-24
+
+### Added
+
+* Added `DhRef::check_key`.
+* Added `Id::POLY1305`.
+* Added `X509Ref::subject_key_id`, `X509Ref::authority_key_id`, `X509Ref::authority_issuer`, and `X509Ref::authority_serial`.
+
+
+## [v0.10.51] - 2023-04-20
+
+### Added
+
+* Added `X509RevokedRef::issuer_name` and `X509RevokedRef::reason_code`.
+* Added `Dh::set_key` and `Dh::set_public_key`
+* Added `Asn1OctetString` and `Asn1OctetStringRef1`
+* Added `X509Extension::new_from_der`
+
+### Deprecated
+
+* Deprecated `X509Extension::new` and `X509Extension::new_nid` in favor of `X509Extension::new_from_der` and the `extensions` module.
+* Deprecated `X509Extension::add_alias`, it is not required with `new_from_der` or the `extensions` module.
+
 ## [v0.10.50] - 2023-04-09
 
 ### Added
@@ -724,7 +776,12 @@
 
 Look at the [release tags] for information about older releases.
 
-[Unreleased]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.50...master
+[Unreleased]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.55...master
+[v0.10.55]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.54...openssl-v0.10.55
+[v0.10.54]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.53...openssl-v0.10.54
+[v0.10.53]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.52...openssl-v0.10.53
+[v0.10.52]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.51...openssl-v0.10.52
+[v0.10.51]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.50...openssl-v0.10.51
 [v0.10.50]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.49...openssl-v0.10.50
 [v0.10.49]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.48...openssl-v0.10.49
 [v0.10.48]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.47...openssl-v0.10.48

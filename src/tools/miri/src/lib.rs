@@ -8,6 +8,7 @@
 #![feature(nonzero_ops)]
 #![feature(local_key_cell_methods)]
 #![feature(round_ties_even)]
+#![feature(os_str_bytes)]
 // Configure clippy and other lints
 #![allow(
     clippy::collapsible_else_if,
@@ -43,6 +44,7 @@
 
 extern crate rustc_apfloat;
 extern crate rustc_ast;
+extern crate rustc_errors;
 #[macro_use]
 extern crate rustc_middle;
 extern crate rustc_const_eval;

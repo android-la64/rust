@@ -579,10 +579,21 @@ fn extracting_malicious_tarball() {
             t!(a.append(&header, io::repeat(1).take(1)));
         };
         append("/tmp/abs_evil.txt");
-        append("//tmp/abs_evil2.txt");
+        // std parse `//` as UNC path, see rust-lang/rust#100833
+        append(
+            #[cfg(not(windows))]
+            "//tmp/abs_evil2.txt",
+            #[cfg(windows)]
+            "C://tmp/abs_evil2.txt",
+        );
         append("///tmp/abs_evil3.txt");
         append("/./tmp/abs_evil4.txt");
-        append("//./tmp/abs_evil5.txt");
+        append(
+            #[cfg(not(windows))]
+            "//./tmp/abs_evil5.txt",
+            #[cfg(windows)]
+            "C://./tmp/abs_evil5.txt",
+        );
         append("///./tmp/abs_evil6.txt");
         append("/../tmp/rel_evil.txt");
         append("../rel_evil2.txt");
@@ -757,6 +768,40 @@ fn backslash_treated_well() {
     assert!(fs::metadata(td.path().join("foo\\bar")).is_ok());
 }
 
+#[test]
+#[cfg(unix)]
+fn set_mask() {
+    use ::std::os::unix::fs::PermissionsExt;
+    let mut ar = tar::Builder::new(Vec::new());
+
+    let mut header = tar::Header::new_gnu();
+    header.set_size(0);
+    header.set_entry_type(tar::EntryType::Regular);
+    t!(header.set_path("foo"));
+    header.set_mode(0o777);
+    header.set_cksum();
+    t!(ar.append(&header, &[][..]));
+
+    let mut header = tar::Header::new_gnu();
+    header.set_size(0);
+    header.set_entry_type(tar::EntryType::Regular);
+    t!(header.set_path("bar"));
+    header.set_mode(0o421);
+    header.set_cksum();
+    t!(ar.append(&header, &[][..]));
+
+    let td = t!(TempBuilder::new().prefix("tar-rs").tempdir());
+    let bytes = t!(ar.into_inner());
+    let mut ar = tar::Archive::new(&bytes[..]);
+    ar.set_mask(0o211);
+    t!(ar.unpack(td.path()));
+
+    let md = t!(fs::metadata(td.path().join("foo")));
+    assert_eq!(md.permissions().mode(), 0o100566);
+    let md = t!(fs::metadata(td.path().join("bar")));
+    assert_eq!(md.permissions().mode(), 0o100420);
+}
+
 #[cfg(unix)]
 #[test]
 fn nul_bytes_in_path() {
@@ -792,6 +837,10 @@ fn unpack_links() {
 
     let md = t!(fs::symlink_metadata(td.path().join("lnk")));
     assert!(md.file_type().is_symlink());
+
+    let mtime = FileTime::from_last_modification_time(&md);
+    assert_eq!(mtime.unix_seconds(), 1448291033);
+
     assert_eq!(
         &*t!(fs::read_link(td.path().join("lnk"))),
         Path::new("file")
@@ -1384,4 +1433,58 @@ fn header_size_overflow() {
         "bad error: {}",
         err
     );
+}
+
+#[test]
+#[cfg(unix)]
+fn ownership_preserving() {
+    use std::os::unix::prelude::*;
+
+    let mut rdr = Vec::new();
+    let mut ar = Builder::new(&mut rdr);
+    let data: &[u8] = &[];
+    let mut header = Header::new_gnu();
+    // file 1 with uid = 580800000, gid = 580800000
+    header.set_gid(580800000);
+    header.set_uid(580800000);
+    t!(header.set_path("iamuid580800000"));
+    header.set_size(0);
+    header.set_cksum();
+    t!(ar.append(&header, data));
+    // file 2 with uid = 580800001, gid = 580800000
+    header.set_uid(580800001);
+    t!(header.set_path("iamuid580800001"));
+    header.set_cksum();
+    t!(ar.append(&header, data));
+    // file 3 with uid = 580800002, gid = 580800002
+    header.set_gid(580800002);
+    header.set_uid(580800002);
+    t!(header.set_path("iamuid580800002"));
+    header.set_cksum();
+    t!(ar.append(&header, data));
+    t!(ar.finish());
+
+    let rdr = Cursor::new(t!(ar.into_inner()));
+    let td = t!(TempBuilder::new().prefix("tar-rs").tempdir());
+    let mut ar = Archive::new(rdr);
+    ar.set_preserve_ownerships(true);
+
+    if unsafe { libc::getuid() } == 0 {
+        assert!(ar.unpack(td.path()).is_ok());
+        // validate against premade files
+        // iamuid580800001 has this ownership: 580800001:580800000
+        let meta = std::fs::metadata(td.path().join("iamuid580800000")).unwrap();
+        assert_eq!(meta.uid(), 580800000);
+        assert_eq!(meta.gid(), 580800000);
+        let meta = std::fs::metadata(td.path().join("iamuid580800001")).unwrap();
+        assert_eq!(meta.uid(), 580800001);
+        assert_eq!(meta.gid(), 580800000);
+        let meta = std::fs::metadata(td.path().join("iamuid580800002")).unwrap();
+        assert_eq!(meta.uid(), 580800002);
+        assert_eq!(meta.gid(), 580800002);
+    } else {
+        // it's not possible to unpack tar while preserving ownership
+        // without root permissions
+        assert!(ar.unpack(td.path()).is_err());
+    }
 }

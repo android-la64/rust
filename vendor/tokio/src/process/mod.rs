@@ -97,13 +97,65 @@
 //! }
 //! ```
 //!
+//! Here is another example using `sort` writing into the child process
+//! standard input, capturing the output of the sorted text.
+//!
+//! ```no_run
+//! use tokio::io::AsyncWriteExt;
+//! use tokio::process::Command;
+//!
+//! use std::process::Stdio;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let mut cmd = Command::new("sort");
+//!
+//!     // Specifying that we want pipe both the output and the input.
+//!     // Similarly to capturing the output, by configuring the pipe
+//!     // to stdin it can now be used as an asynchronous writer.
+//!     cmd.stdout(Stdio::piped());
+//!     cmd.stdin(Stdio::piped());
+//!
+//!     let mut child = cmd.spawn().expect("failed to spawn command");
+//!
+//!     // These are the animals we want to sort
+//!     let animals: &[&str] = &["dog", "bird", "frog", "cat", "fish"];
+//!
+//!     let mut stdin = child
+//!         .stdin
+//!         .take()
+//!         .expect("child did not have a handle to stdin");
+//!
+//!     // Write our animals to the child process
+//!     // Note that the behavior of `sort` is to buffer _all input_ before writing any output.
+//!     // In the general sense, it is recommended to write to the child in a separate task as
+//!     // awaiting its exit (or output) to avoid deadlocks (for example, the child tries to write
+//!     // some output but gets stuck waiting on the parent to read from it, meanwhile the parent
+//!     // is stuck waiting to write its input completely before reading the output).
+//!     stdin
+//!         .write(animals.join("\n").as_bytes())
+//!         .await
+//!         .expect("could not write to stdin");
+//!
+//!     // We drop the handle here which signals EOF to the child process.
+//!     // This tells the child process that it there is no more data on the pipe.
+//!     drop(stdin);
+//!
+//!     let op = child.wait_with_output().await?;
+//!
+//!     // Results should come back in sorted order
+//!     assert_eq!(op.stdout, "bird\ncat\ndog\nfish\nfrog\n".as_bytes());
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
 //! With some coordination, we can also pipe the output of one command into
 //! another.
 //!
 //! ```no_run
 //! use tokio::join;
 //! use tokio::process::Command;
-//! use std::convert::TryInto;
 //! use std::process::Stdio;
 //!
 //! #[tokio::main]
@@ -164,7 +216,7 @@
 //! from being spawned.
 //!
 //! The tokio runtime will, on a best-effort basis, attempt to reap and clean up
-//! any process which it has spawned. No additional guarantees are made with regards
+//! any process which it has spawned. No additional guarantees are made with regard to
 //! how quickly or how often this procedure will take place.
 //!
 //! It is recommended to avoid dropping a [`Child`] process handle before it has been
@@ -192,19 +244,25 @@ mod kill;
 use crate::io::{AsyncRead, AsyncWrite, ReadBuf};
 use crate::process::kill::Kill;
 
-use std::convert::TryInto;
 use std::ffi::OsStr;
 use std::future::Future;
 use std::io;
-#[cfg(unix)]
-use std::os::unix::process::CommandExt;
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::pin::Pin;
 use std::process::{Command as StdCommand, ExitStatus, Output, Stdio};
 use std::task::Context;
 use std::task::Poll;
+
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+cfg_windows! {
+    use crate::os::windows::io::{AsRawHandle, RawHandle};
+    #[cfg(not(tokio_no_as_fd))]
+    use crate::os::windows::io::{AsHandle, BorrowedHandle};
+}
 
 /// This structure mimics the API of [`std::process::Command`] found in the standard library, but
 /// replaces functions that create a process with an asynchronous variant. The main provided
@@ -223,9 +281,9 @@ pub struct Command {
 
 pub(crate) struct SpawnedChild {
     child: imp::Child,
-    stdin: Option<imp::ChildStdin>,
-    stdout: Option<imp::ChildStdout>,
-    stderr: Option<imp::ChildStderr>,
+    stdin: Option<imp::ChildStdio>,
+    stdout: Option<imp::ChildStdio>,
+    stderr: Option<imp::ChildStdio>,
 }
 
 impl Command {
@@ -254,7 +312,8 @@ impl Command {
     ///
     /// ```no_run
     /// use tokio::process::Command;
-    /// let command = Command::new("sh");
+    /// let mut command = Command::new("sh");
+    /// # let _ = command.output(); // assert borrow checker
     /// ```
     ///
     /// [rust-lang/rust#37519]: https://github.com/rust-lang/rust/issues/37519
@@ -262,21 +321,31 @@ impl Command {
         Self::from(StdCommand::new(program))
     }
 
+    /// Cheaply convert to a `&std::process::Command` for places where the type from the standard
+    /// library is expected.
+    pub fn as_std(&self) -> &StdCommand {
+        &self.std
+    }
+
     /// Adds an argument to pass to the program.
     ///
     /// Only one argument can be passed per use. So instead of:
     ///
     /// ```no_run
-    /// tokio::process::Command::new("sh")
-    ///   .arg("-C /path/to/repo");
+    /// let mut command = tokio::process::Command::new("sh");
+    /// command.arg("-C /path/to/repo");
+    ///
+    /// # let _ = command.output(); // assert borrow checker
     /// ```
     ///
     /// usage would be:
     ///
     /// ```no_run
-    /// tokio::process::Command::new("sh")
-    ///   .arg("-C")
-    ///   .arg("/path/to/repo");
+    /// let mut command = tokio::process::Command::new("sh");
+    /// command.arg("-C");
+    /// command.arg("/path/to/repo");
+    ///
+    /// # let _ = command.output(); // assert borrow checker
     /// ```
     ///
     /// To pass multiple arguments see [`args`].
@@ -288,11 +357,15 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use tokio::process::Command;
     ///
-    /// let command = Command::new("ls")
+    /// let output = Command::new("ls")
     ///         .arg("-l")
-    ///         .arg("-a");
+    ///         .arg("-a")
+    ///         .output().await.unwrap();
+    /// # }
+    ///
     /// ```
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Command {
         self.std.arg(arg);
@@ -310,10 +383,13 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use tokio::process::Command;
     ///
-    /// let command = Command::new("ls")
-    ///         .args(&["-l", "-a"]);
+    /// let output = Command::new("ls")
+    ///         .args(&["-l", "-a"])
+    ///         .output().await.unwrap();
+    /// # }
     /// ```
     pub fn args<I, S>(&mut self, args: I) -> &mut Command
     where
@@ -321,6 +397,22 @@ impl Command {
         S: AsRef<OsStr>,
     {
         self.std.args(args);
+        self
+    }
+
+    /// Append literal text to the command line without any quoting or escaping.
+    ///
+    /// This is useful for passing arguments to `cmd.exe /c`, which doesn't follow
+    /// `CommandLineToArgvW` escaping rules.
+    ///
+    /// **Note**: This is an [unstable API][unstable] but will be stabilised once
+    /// tokio's MSRV is sufficiently new. See [the documentation on
+    /// unstable features][unstable] for details about using unstable features.
+    #[cfg(windows)]
+    #[cfg(tokio_unstable)]
+    #[cfg_attr(docsrs, doc(cfg(all(windows, tokio_unstable))))]
+    pub fn raw_arg<S: AsRef<OsStr>>(&mut self, text_to_append_as_is: S) -> &mut Command {
+        self.std.raw_arg(text_to_append_as_is);
         self
     }
 
@@ -334,10 +426,13 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use tokio::process::Command;
     ///
-    /// let command = Command::new("ls")
-    ///         .env("PATH", "/bin");
+    /// let output = Command::new("ls")
+    ///         .env("PATH", "/bin")
+    ///         .output().await.unwrap();
+    /// # }
     /// ```
     pub fn env<K, V>(&mut self, key: K, val: V) -> &mut Command
     where
@@ -355,6 +450,7 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use tokio::process::Command;
     /// use std::process::{Stdio};
     /// use std::env;
@@ -365,11 +461,13 @@ impl Command {
     ///         k == "TERM" || k == "TZ" || k == "LANG" || k == "PATH"
     ///     ).collect();
     ///
-    /// let command = Command::new("printenv")
+    /// let output = Command::new("printenv")
     ///         .stdin(Stdio::null())
     ///         .stdout(Stdio::inherit())
     ///         .env_clear()
-    ///         .envs(&filtered_env);
+    ///         .envs(&filtered_env)
+    ///         .output().await.unwrap();
+    /// # }
     /// ```
     pub fn envs<I, K, V>(&mut self, vars: I) -> &mut Command
     where
@@ -388,10 +486,13 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use tokio::process::Command;
     ///
-    /// let command = Command::new("ls")
-    ///         .env_remove("PATH");
+    /// let output = Command::new("ls")
+    ///         .env_remove("PATH")
+    ///         .output().await.unwrap();
+    /// # }
     /// ```
     pub fn env_remove<K: AsRef<OsStr>>(&mut self, key: K) -> &mut Command {
         self.std.env_remove(key);
@@ -405,10 +506,13 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use tokio::process::Command;
     ///
-    /// let command = Command::new("ls")
-    ///         .env_clear();
+    /// let output = Command::new("ls")
+    ///         .env_clear()
+    ///         .output().await.unwrap();
+    /// # }
     /// ```
     pub fn env_clear(&mut self) -> &mut Command {
         self.std.env_clear();
@@ -432,10 +536,13 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use tokio::process::Command;
     ///
-    /// let command = Command::new("ls")
-    ///         .current_dir("/bin");
+    /// let output = Command::new("ls")
+    ///         .current_dir("/bin")
+    ///         .output().await.unwrap();
+    /// # }
     /// ```
     pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Command {
         self.std.current_dir(dir);
@@ -455,11 +562,14 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use std::process::{Stdio};
     /// use tokio::process::Command;
     ///
-    /// let command = Command::new("ls")
-    ///         .stdin(Stdio::null());
+    /// let output = Command::new("ls")
+    ///         .stdin(Stdio::null())
+    ///         .output().await.unwrap();
+    /// # }
     /// ```
     pub fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Command {
         self.std.stdin(cfg);
@@ -479,11 +589,14 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use tokio::process::Command;
     /// use std::process::Stdio;
     ///
-    /// let command = Command::new("ls")
-    ///         .stdout(Stdio::null());
+    /// let output = Command::new("ls")
+    ///         .stdout(Stdio::null())
+    ///         .output().await.unwrap();
+    /// # }
     /// ```
     pub fn stdout<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Command {
         self.std.stdout(cfg);
@@ -503,11 +616,14 @@ impl Command {
     /// Basic usage:
     ///
     /// ```no_run
+    /// # async fn test() { // allow using await
     /// use tokio::process::Command;
     /// use std::process::{Stdio};
     ///
-    /// let command = Command::new("ls")
-    ///         .stderr(Stdio::null());
+    /// let output = Command::new("ls")
+    ///         .stderr(Stdio::null())
+    ///         .output().await.unwrap();
+    /// # }
     /// ```
     pub fn stderr<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Command {
         self.std.stderr(cfg);
@@ -534,7 +650,7 @@ impl Command {
     /// operation, the resulting zombie process cannot be `.await`ed inside of the
     /// destructor to avoid blocking other tasks. The tokio runtime will, on a
     /// best-effort basis, attempt to reap and clean up such processes in the
-    /// background, but makes no additional guarantees are made with regards
+    /// background, but no additional guarantees are made with regard to
     /// how quickly or how often this procedure will take place.
     ///
     /// If stronger guarantees are required, it is recommended to avoid dropping
@@ -545,21 +661,23 @@ impl Command {
         self
     }
 
-    /// Sets the [process creation flags][1] to be passed to `CreateProcess`.
-    ///
-    /// These will always be ORed with `CREATE_UNICODE_ENVIRONMENT`.
-    ///
-    /// [1]: https://msdn.microsoft.com/en-us/library/windows/desktop/ms684863(v=vs.85).aspx
-    #[cfg(windows)]
-    pub fn creation_flags(&mut self, flags: u32) -> &mut Command {
-        self.std.creation_flags(flags);
-        self
+    cfg_windows! {
+        /// Sets the [process creation flags][1] to be passed to `CreateProcess`.
+        ///
+        /// These will always be ORed with `CREATE_UNICODE_ENVIRONMENT`.
+        ///
+        /// [1]: https://msdn.microsoft.com/en-us/library/windows/desktop/ms684863(v=vs.85).aspx
+        pub fn creation_flags(&mut self, flags: u32) -> &mut Command {
+            self.std.creation_flags(flags);
+            self
+        }
     }
 
     /// Sets the child process's user ID. This translates to a
     /// `setuid` call in the child process. Failure in the `setuid`
     /// call will cause the spawn to fail.
     #[cfg(unix)]
+    #[cfg_attr(docsrs, doc(cfg(unix)))]
     pub fn uid(&mut self, id: u32) -> &mut Command {
         self.std.uid(id);
         self
@@ -568,8 +686,23 @@ impl Command {
     /// Similar to `uid` but sets the group ID of the child process. This has
     /// the same semantics as the `uid` field.
     #[cfg(unix)]
+    #[cfg_attr(docsrs, doc(cfg(unix)))]
     pub fn gid(&mut self, id: u32) -> &mut Command {
         self.std.gid(id);
+        self
+    }
+
+    /// Sets executable argument.
+    ///
+    /// Set the first process argument, `argv[0]`, to something other than the
+    /// default executable path.
+    #[cfg(unix)]
+    #[cfg_attr(docsrs, doc(cfg(unix)))]
+    pub fn arg0<S>(&mut self, arg: S) -> &mut Command
+    where
+        S: AsRef<OsStr>,
+    {
+        self.std.arg0(arg);
         self
     }
 
@@ -603,11 +736,45 @@ impl Command {
     /// working directory have successfully been changed, so output to these
     /// locations may not appear where intended.
     #[cfg(unix)]
+    #[cfg_attr(docsrs, doc(cfg(unix)))]
     pub unsafe fn pre_exec<F>(&mut self, f: F) -> &mut Command
     where
         F: FnMut() -> io::Result<()> + Send + Sync + 'static,
     {
         self.std.pre_exec(f);
+        self
+    }
+
+    /// Sets the process group ID (PGID) of the child process. Equivalent to a
+    /// setpgid call in the child process, but may be more efficient.
+    ///
+    /// Process groups determine which processes receive signals.
+    ///
+    /// **Note**: This is an [unstable API][unstable] but will be stabilised once
+    /// tokio's MSRV is sufficiently new. See [the documentation on
+    /// unstable features][unstable] for details about using unstable features.
+    ///
+    /// If you want similar behaviour without using this unstable feature you can
+    /// create a [`std::process::Command`] and convert that into a
+    /// [`tokio::process::Command`] using the `From` trait.
+    ///
+    /// [unstable]: crate#unstable-features
+    /// [`tokio::process::Command`]: crate::process::Command
+    ///
+    /// ```no_run
+    /// # async fn test() { // allow using await
+    /// use tokio::process::Command;
+    ///
+    /// let output = Command::new("ls")
+    ///         .process_group(0)
+    ///         .output().await.unwrap();
+    /// # }
+    /// ```
+    #[cfg(unix)]
+    #[cfg(tokio_unstable)]
+    #[cfg_attr(docsrs, doc(cfg(all(unix, tokio_unstable))))]
+    pub fn process_group(&mut self, pgroup: i32) -> &mut Command {
+        self.std.process_group(pgroup);
         self
     }
 
@@ -663,7 +830,7 @@ impl Command {
     /// from being spawned.
     ///
     /// The tokio runtime will, on a best-effort basis, attempt to reap and clean up
-    /// any process which it has spawned. No additional guarantees are made with regards
+    /// any process which it has spawned. No additional guarantees are made with regard to
     /// how quickly or how often this procedure will take place.
     ///
     /// It is recommended to avoid dropping a [`Child`] process handle before it has been
@@ -844,8 +1011,9 @@ where
     type Output = Result<T, E>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        ready!(crate::trace::trace_leaf(cx));
         // Keep track of task budget
-        let coop = ready!(crate::coop::poll_proceed(cx));
+        let coop = ready!(crate::runtime::coop::poll_proceed(cx));
 
         let ret = Pin::new(&mut self.inner).poll(cx);
 
@@ -931,6 +1099,17 @@ impl Child {
         match &self.child {
             FusedChild::Child(child) => Some(child.inner.id()),
             FusedChild::Done(_) => None,
+        }
+    }
+
+    cfg_windows! {
+        /// Extracts the raw handle of the process associated with this child while
+        /// it is still running. Returns `None` if the child has exited.
+        pub fn raw_handle(&self) -> Option<RawHandle> {
+            match &self.child {
+                FusedChild::Child(c) => Some(c.inner.as_raw_handle()),
+                FusedChild::Done(_) => None,
+            }
         }
     }
 
@@ -1094,18 +1273,25 @@ impl Child {
     pub async fn wait_with_output(mut self) -> io::Result<Output> {
         use crate::future::try_join3;
 
-        async fn read_to_end<A: AsyncRead + Unpin>(io: Option<A>) -> io::Result<Vec<u8>> {
+        async fn read_to_end<A: AsyncRead + Unpin>(io: &mut Option<A>) -> io::Result<Vec<u8>> {
             let mut vec = Vec::new();
-            if let Some(mut io) = io {
-                crate::io::util::read_to_end(&mut io, &mut vec).await?;
+            if let Some(io) = io.as_mut() {
+                crate::io::util::read_to_end(io, &mut vec).await?;
             }
             Ok(vec)
         }
 
-        let stdout_fut = read_to_end(self.stdout.take());
-        let stderr_fut = read_to_end(self.stderr.take());
+        let mut stdout_pipe = self.stdout.take();
+        let mut stderr_pipe = self.stderr.take();
+
+        let stdout_fut = read_to_end(&mut stdout_pipe);
+        let stderr_fut = read_to_end(&mut stderr_pipe);
 
         let (status, stdout, stderr) = try_join3(self.wait(), stdout_fut, stderr_fut).await?;
+
+        // Drop happens after `try_join` due to <https://github.com/tokio-rs/tokio/issues/4309>
+        drop(stdout_pipe);
+        drop(stderr_pipe);
 
         Ok(Output {
             status,
@@ -1121,7 +1307,7 @@ impl Child {
 /// handle of a child process asynchronously.
 #[derive(Debug)]
 pub struct ChildStdin {
-    inner: imp::ChildStdin,
+    inner: imp::ChildStdio,
 }
 
 /// The standard output stream for spawned children.
@@ -1130,7 +1316,7 @@ pub struct ChildStdin {
 /// handle of a child process asynchronously.
 #[derive(Debug)]
 pub struct ChildStdout {
-    inner: imp::ChildStdout,
+    inner: imp::ChildStdio,
 }
 
 /// The standard error stream for spawned children.
@@ -1139,46 +1325,101 @@ pub struct ChildStdout {
 /// handle of a child process asynchronously.
 #[derive(Debug)]
 pub struct ChildStderr {
-    inner: imp::ChildStderr,
+    inner: imp::ChildStdio,
+}
+
+impl ChildStdin {
+    /// Creates an asynchronous `ChildStdin` from a synchronous one.
+    ///
+    /// # Errors
+    ///
+    /// This method may fail if an error is encountered when setting the pipe to
+    /// non-blocking mode, or when registering the pipe with the runtime's IO
+    /// driver.
+    pub fn from_std(inner: std::process::ChildStdin) -> io::Result<Self> {
+        Ok(Self {
+            inner: imp::stdio(inner)?,
+        })
+    }
+}
+
+impl ChildStdout {
+    /// Creates an asynchronous `ChildStdout` from a synchronous one.
+    ///
+    /// # Errors
+    ///
+    /// This method may fail if an error is encountered when setting the pipe to
+    /// non-blocking mode, or when registering the pipe with the runtime's IO
+    /// driver.
+    pub fn from_std(inner: std::process::ChildStdout) -> io::Result<Self> {
+        Ok(Self {
+            inner: imp::stdio(inner)?,
+        })
+    }
+}
+
+impl ChildStderr {
+    /// Creates an asynchronous `ChildStderr` from a synchronous one.
+    ///
+    /// # Errors
+    ///
+    /// This method may fail if an error is encountered when setting the pipe to
+    /// non-blocking mode, or when registering the pipe with the runtime's IO
+    /// driver.
+    pub fn from_std(inner: std::process::ChildStderr) -> io::Result<Self> {
+        Ok(Self {
+            inner: imp::stdio(inner)?,
+        })
+    }
 }
 
 impl AsyncWrite for ChildStdin {
     fn poll_write(
-        self: Pin<&mut Self>,
+        mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
-        self.inner.poll_write(cx, buf)
+        Pin::new(&mut self.inner).poll_write(cx, buf)
     }
 
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Poll::Ready(Ok(()))
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Pin::new(&mut self.inner).poll_flush(cx)
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Poll::Ready(Ok(()))
+    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Pin::new(&mut self.inner).poll_shutdown(cx)
+    }
+
+    fn poll_write_vectored(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        bufs: &[io::IoSlice<'_>],
+    ) -> Poll<Result<usize, io::Error>> {
+        Pin::new(&mut self.inner).poll_write_vectored(cx, bufs)
+    }
+
+    fn is_write_vectored(&self) -> bool {
+        self.inner.is_write_vectored()
     }
 }
 
 impl AsyncRead for ChildStdout {
     fn poll_read(
-        self: Pin<&mut Self>,
+        mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        // Safety: pipes support reading into uninitialized memory
-        unsafe { self.inner.poll_read(cx, buf) }
+        Pin::new(&mut self.inner).poll_read(cx, buf)
     }
 }
 
 impl AsyncRead for ChildStderr {
     fn poll_read(
-        self: Pin<&mut Self>,
+        mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        // Safety: pipes support reading into uninitialized memory
-        unsafe { self.inner.poll_read(cx, buf) }
+        Pin::new(&mut self.inner).poll_read(cx, buf)
     }
 }
 
@@ -1208,6 +1449,8 @@ impl TryInto<Stdio> for ChildStderr {
 
 #[cfg(unix)]
 mod sys {
+    #[cfg(not(tokio_no_as_fd))]
+    use std::os::unix::io::{AsFd, BorrowedFd};
     use std::os::unix::io::{AsRawFd, RawFd};
 
     use super::{ChildStderr, ChildStdin, ChildStdout};
@@ -1218,9 +1461,23 @@ mod sys {
         }
     }
 
+    #[cfg(not(tokio_no_as_fd))]
+    impl AsFd for ChildStdin {
+        fn as_fd(&self) -> BorrowedFd<'_> {
+            unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) }
+        }
+    }
+
     impl AsRawFd for ChildStdout {
         fn as_raw_fd(&self) -> RawFd {
             self.inner.as_raw_fd()
+        }
+    }
+
+    #[cfg(not(tokio_no_as_fd))]
+    impl AsFd for ChildStdout {
+        fn as_fd(&self) -> BorrowedFd<'_> {
+            unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) }
         }
     }
 
@@ -1229,17 +1486,26 @@ mod sys {
             self.inner.as_raw_fd()
         }
     }
+
+    #[cfg(not(tokio_no_as_fd))]
+    impl AsFd for ChildStderr {
+        fn as_fd(&self) -> BorrowedFd<'_> {
+            unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) }
+        }
+    }
 }
 
-#[cfg(windows)]
-mod sys {
-    use std::os::windows::io::{AsRawHandle, RawHandle};
-
-    use super::{ChildStderr, ChildStdin, ChildStdout};
-
+cfg_windows! {
     impl AsRawHandle for ChildStdin {
         fn as_raw_handle(&self) -> RawHandle {
             self.inner.as_raw_handle()
+        }
+    }
+
+    #[cfg(not(tokio_no_as_fd))]
+    impl AsHandle for ChildStdin {
+        fn as_handle(&self) -> BorrowedHandle<'_> {
+            unsafe { BorrowedHandle::borrow_raw(self.as_raw_handle()) }
         }
     }
 
@@ -1249,9 +1515,23 @@ mod sys {
         }
     }
 
+    #[cfg(not(tokio_no_as_fd))]
+    impl AsHandle for ChildStdout {
+        fn as_handle(&self) -> BorrowedHandle<'_> {
+            unsafe { BorrowedHandle::borrow_raw(self.as_raw_handle()) }
+        }
+    }
+
     impl AsRawHandle for ChildStderr {
         fn as_raw_handle(&self) -> RawHandle {
             self.inner.as_raw_handle()
+        }
+    }
+
+    #[cfg(not(tokio_no_as_fd))]
+    impl AsHandle for ChildStderr {
+        fn as_handle(&self) -> BorrowedHandle<'_> {
+            unsafe { BorrowedHandle::borrow_raw(self.as_raw_handle()) }
         }
     }
 }

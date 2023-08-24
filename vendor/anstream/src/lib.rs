@@ -10,6 +10,12 @@
 //! - Semver safe way of passing styled text between crates as ANSI escape codes offer more
 //!   compatibility than most crate APIs.
 //!
+//! Available styling crates:
+//! - [anstyle](https://docs.rs/anstyle) for minimal runtime styling, designed to go in public APIs
+//!   (once it hits 1.0)
+//! - [owo-colors](https://docs.rs/owo-colors) for feature-rich runtime styling
+//! - [color-print](https://docs.rs/color-print) for feature-rich compile-time styling
+//!
 //! # Example
 //!
 //! ```
@@ -68,12 +74,6 @@ pub fn stderr() -> AutoStream<std::io::Stderr> {
     AutoStream::auto(stderr)
 }
 
-/// Selection for overriding color output with [`force_color`]
+/// Selection for overriding color output
 #[cfg(feature = "auto")]
-pub use concolor_override::ColorChoice;
-
-/// Override the detected [`ColorChoice`]
-#[cfg(feature = "auto")]
-pub fn force_color(choice: ColorChoice) {
-    concolor_override::set(choice);
-}
+pub use colorchoice::ColorChoice;

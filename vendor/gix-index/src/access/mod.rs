@@ -103,14 +103,14 @@ impl State {
 
     /// Return the entry at `idx` or _panic_ if the index is out of bounds.
     ///
-    /// The `idx` is typically returned by [entry_by_path_and_stage()][State::entry_by_path_and_stage()].
+    /// The `idx` is typically returned by [`entry_by_path_and_stage()`][State::entry_by_path_and_stage()].
     pub fn entry(&self, idx: usize) -> &Entry {
         &self.entries[idx]
     }
 
     /// Returns a boolean value indicating whether the index is sparse or not.
     ///
-    /// An index is sparse if it contains at least one [Mode::DIR][entry::Mode::DIR] entry.
+    /// An index is sparse if it contains at least one [`Mode::DIR`][entry::Mode::DIR] entry.
     pub fn is_sparse(&self) -> bool {
         self.is_sparse
     }
@@ -147,6 +147,13 @@ impl State {
         })
     }
 
+    /// Return all parts that relate to entries, which includes path storage.
+    ///
+    /// This can be useful for obtaining a standalone, boxable iterator
+    pub fn into_entries(self) -> (Vec<Entry>, PathStorage) {
+        (self.entries, self.path_backing)
+    }
+
     /// Sometimes it's needed to remove the path backing to allow certain mutation to happen in the state while supporting reading the entry's
     /// path.
     pub fn take_path_backing(&mut self) -> PathStorage {
@@ -173,7 +180,7 @@ impl State {
     /// [`entry_index_by_path_and_stage_bounded()`][State::entry_index_by_path_and_stage_bounded()] is used with
     /// the `upper_bound` being the amount of entries before the first call to this method.
     ///
-    /// Alternatively, make sure to call [sort_entries()][State::sort_entries()] before entry lookup by path to restore
+    /// Alternatively, make sure to call [`sort_entries()`][State::sort_entries()] before entry lookup by path to restore
     /// the invariant.
     pub fn dangerously_push_entry(
         &mut self,

@@ -2,13 +2,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::DateTime;
 use crate::naive::{NaiveDate, NaiveTime};
-#[cfg(feature = "clock")]
-use crate::offset::Local;
 use crate::offset::{FixedOffset, TimeZone, Utc};
-use crate::oldtime::Duration;
 #[cfg(feature = "clock")]
-use crate::Datelike;
-use crate::{Days, LocalResult, Months, NaiveDateTime};
+use crate::offset::{Local, Offset};
+use crate::oldtime::Duration;
+use crate::{Datelike, Days, LocalResult, Months, NaiveDateTime};
 
 #[derive(Clone)]
 struct DstTester;
@@ -472,7 +470,7 @@ fn test_rfc3339_opts() {
 fn test_rfc3339_opts_nonexhaustive() {
     use crate::SecondsFormat;
     let dt = Utc.with_ymd_and_hms(1999, 10, 9, 1, 2, 3).unwrap();
-    dt.to_rfc3339_opts(SecondsFormat::__NonExhaustive, true);
+    let _ = dt.to_rfc3339_opts(SecondsFormat::__NonExhaustive, true);
 }
 
 #[test]
@@ -949,4 +947,65 @@ fn test_datetime_sub_assign_local() {
         datetime_sub -= Duration::days(1);
         assert_eq!(datetime_sub, datetime - Duration::days(i))
     }
+}
+
+#[test]
+#[cfg(all(target_os = "windows", feature = "clock"))]
+fn test_from_naive_date_time_windows() {
+    let min_year = NaiveDate::from_ymd_opt(1601, 1, 3).unwrap().and_hms_opt(0, 0, 0).unwrap();
+
+    let max_year = NaiveDate::from_ymd_opt(30827, 12, 29).unwrap().and_hms_opt(23, 59, 59).unwrap();
+
+    let too_low_year =
+        NaiveDate::from_ymd_opt(1600, 12, 29).unwrap().and_hms_opt(23, 59, 59).unwrap();
+
+    let too_high_year = NaiveDate::from_ymd_opt(30829, 1, 3).unwrap().and_hms_opt(0, 0, 0).unwrap();
+
+    let _ = Local.from_utc_datetime(&min_year);
+    let _ = Local.from_utc_datetime(&max_year);
+
+    let _ = Local.from_local_datetime(&min_year);
+    let _ = Local.from_local_datetime(&max_year);
+
+    let local_too_low = Local.from_local_datetime(&too_low_year);
+    let local_too_high = Local.from_local_datetime(&too_high_year);
+
+    assert_eq!(local_too_low, LocalResult::None);
+    assert_eq!(local_too_high, LocalResult::None);
+
+    let err = std::panic::catch_unwind(|| {
+        Local.from_utc_datetime(&too_low_year);
+    });
+    assert!(err.is_err());
+
+    let err = std::panic::catch_unwind(|| {
+        Local.from_utc_datetime(&too_high_year);
+    });
+    assert!(err.is_err());
+}
+
+#[test]
+#[cfg(feature = "clock")]
+fn test_datetime_local_from_preserves_offset() {
+    let naivedatetime = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap();
+
+    let datetime = Local.from_utc_datetime(&naivedatetime);
+    let offset = datetime.offset().fix();
+
+    let datetime_fixed: DateTime<FixedOffset> = datetime.into();
+    assert_eq!(&offset, datetime_fixed.offset());
+    assert_eq!(datetime.fixed_offset(), datetime_fixed);
+}
+
+#[test]
+fn test_datetime_fixed_offset() {
+    let naivedatetime = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap();
+
+    let datetime = Utc.from_utc_datetime(&naivedatetime);
+    let fixed_utc = FixedOffset::east_opt(0).unwrap();
+    assert_eq!(datetime.fixed_offset(), fixed_utc.from_local_datetime(&naivedatetime).unwrap());
+
+    let fixed_offset = FixedOffset::east_opt(3600).unwrap();
+    let datetime_fixed = fixed_offset.from_local_datetime(&naivedatetime).unwrap();
+    assert_eq!(datetime_fixed.fixed_offset(), datetime_fixed);
 }

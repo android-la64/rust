@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "regalloc2"
-version = "0.6.1"
+version = "0.8.1"
 authors = [
     "Chris Fallin <chris@cfallin.org>",
     "Mozilla SpiderMonkey Developers",
@@ -27,8 +27,8 @@ debug = true
 debug-assertions = true
 overflow-checks = true
 
-[dependencies.fxhash]
-version = "0.2.1"
+[dependencies.hashbrown]
+version = "0.13.2"
 
 [dependencies.libfuzzer-sys]
 version = "0.4.2"
@@ -38,13 +38,22 @@ optional = true
 version = "0.4.8"
 default-features = false
 
+[dependencies.rustc-hash]
+version = "1.1.0"
+default-features = false
+
 [dependencies.serde]
 version = "1.0.136"
-features = ["derive"]
+features = [
+    "derive",
+    "alloc",
+]
 optional = true
+default-features = false
 
 [dependencies.slice-group-by]
 version = "0.3.0"
+default-features = false
 
 [dependencies.smallvec]
 version = "1.6.1"
@@ -52,11 +61,12 @@ features = ["union"]
 
 [features]
 checker = []
-default = []
+default = ["std"]
 enable-serde = ["serde"]
 fuzzing = [
     "libfuzzer-sys",
     "checker",
     "trace-log",
 ]
+std = []
 trace-log = []

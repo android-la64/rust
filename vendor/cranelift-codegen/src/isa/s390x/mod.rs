@@ -1,20 +1,20 @@
 //! IBM Z 64-bit Instruction Set Architecture.
 
 use crate::dominator_tree::DominatorTree;
-use crate::ir::condcodes::IntCC;
 use crate::ir::{Function, Type};
 use crate::isa::s390x::settings as s390x_settings;
 #[cfg(feature = "unwind")]
 use crate::isa::unwind::systemv::RegisterMappingError;
-use crate::isa::{Builder as IsaBuilder, TargetIsa};
+use crate::isa::{Builder as IsaBuilder, FunctionAlignment, TargetIsa};
 use crate::machinst::{
-    compile, CompiledCode, CompiledCodeStencil, MachTextSectionBuilder, Reg, SigSet,
+    compile, CompiledCode, CompiledCodeStencil, MachInst, MachTextSectionBuilder, Reg, SigSet,
     TextSectionBuilder, VCode,
 };
 use crate::result::CodegenResult;
 use crate::settings as shared_settings;
 use alloc::{boxed::Box, vec::Vec};
 use core::fmt;
+use cranelift_control::ControlPlane;
 use regalloc2::MachineEnv;
 use target_lexicon::{Architecture, Triple};
 
@@ -58,11 +58,12 @@ impl S390xBackend {
         &self,
         func: &Function,
         domtree: &DominatorTree,
+        ctrl_plane: &mut ControlPlane,
     ) -> CodegenResult<(VCode<inst::Inst>, regalloc2::Output)> {
         let emit_info = EmitInfo::new(self.isa_flags.clone());
         let sigs = SigSet::new::<abi::S390xMachineDeps>(func, &self.flags)?;
         let abi = abi::S390xCallee::new(func, self, &self.isa_flags, &sigs)?;
-        compile::compile::<S390xBackend>(func, domtree, self, abi, emit_info, sigs)
+        compile::compile::<S390xBackend>(func, domtree, self, abi, emit_info, sigs, ctrl_plane)
     }
 }
 
@@ -72,14 +73,20 @@ impl TargetIsa for S390xBackend {
         func: &Function,
         domtree: &DominatorTree,
         want_disasm: bool,
+        ctrl_plane: &mut ControlPlane,
     ) -> CodegenResult<CompiledCodeStencil> {
         let flags = self.flags();
-        let (vcode, regalloc_result) = self.compile_vcode(func, domtree)?;
+        let (vcode, regalloc_result) = self.compile_vcode(func, domtree, ctrl_plane)?;
 
-        let emit_result = vcode.emit(&regalloc_result, want_disasm, flags.machine_code_cfg_info());
+        let emit_result = vcode.emit(
+            &regalloc_result,
+            want_disasm,
+            flags.machine_code_cfg_info(),
+            ctrl_plane,
+        );
         let frame_size = emit_result.frame_size;
         let value_labels_ranges = emit_result.value_labels_ranges;
-        let buffer = emit_result.buffer.finish();
+        let buffer = emit_result.buffer.finish(ctrl_plane);
         let sized_stackslot_offsets = emit_result.sized_stackslot_offsets;
         let dynamic_stackslot_offsets = emit_result.dynamic_stackslot_offsets;
 
@@ -124,15 +131,6 @@ impl TargetIsa for S390xBackend {
         16
     }
 
-    fn unsigned_add_overflow_condition(&self) -> IntCC {
-        // The ADD LOGICAL family of instructions set the condition code
-        // differently from normal comparisons, in a way that cannot be
-        // represented by any of the standard IntCC values.  So we use a
-        // dummy value here, which gets remapped to the correct condition
-        // code mask during lowering.
-        IntCC::UnsignedGreaterThan
-    }
-
     #[cfg(feature = "unwind")]
     fn emit_unwind_info(
         &self,
@@ -170,8 +168,8 @@ impl TargetIsa for S390xBackend {
         Box::new(MachTextSectionBuilder::<inst::Inst>::new(num_funcs))
     }
 
-    fn function_alignment(&self) -> u32 {
-        4
+    fn function_alignment(&self) -> FunctionAlignment {
+        inst::Inst::function_alignment()
     }
 
     #[cfg(feature = "disas")]

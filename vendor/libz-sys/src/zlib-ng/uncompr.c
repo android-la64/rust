@@ -3,8 +3,13 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
+#define Z_INTERNAL
 #include "zbuild.h"
-#include "zutil.h"
+#ifdef ZLIB_COMPAT
+#  include "zlib.h"
+#else
+#  include "zlib-ng.h"
+#endif
 
 /* ===========================================================================
      Decompresses the source buffer into the destination buffer.  *sourceLen is

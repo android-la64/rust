@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "libz-sys"
-version = "1.1.8"
+version = "1.1.9"
 authors = [
     "Alex Crichton <alex@alexcrichton.com>",
     "Josh Triplett <josh@joshtriplett.org>",
@@ -27,6 +27,7 @@ exclude = [
     "/systest",
 ]
 description = "Low-level bindings to the system libz library (also known as zlib)."
+readme = "README.md"
 keywords = [
     "zlib",
     "zlib-ng",

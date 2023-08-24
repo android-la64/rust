@@ -16,6 +16,7 @@ use std::io;
 #[cfg(feature = "std")]
 use std::time::SystemTime;
 
+use crate::convert::*;
 use crate::date::{MAX_YEAR, MIN_YEAR};
 #[cfg(feature = "formatting")]
 use crate::formatting::Formattable;
@@ -146,6 +147,7 @@ const fn maybe_offset_as_offset_opt<O: MaybeOffset>(
     if O::STATIC_OFFSET.is_some() {
         O::STATIC_OFFSET
     } else if O::HAS_MEMORY_OFFSET {
+        #[repr(C)] // needed to guarantee they align at the start
         union Convert<O: MaybeOffset> {
             input: O::MemoryOffsetType,
             output: UtcOffset,
@@ -171,6 +173,7 @@ const fn maybe_offset_as_offset<O: MaybeOffset + HasLogicalOffset>(
 pub(crate) const fn maybe_offset_from_offset<O: MaybeOffset>(
     offset: UtcOffset,
 ) -> O::MemoryOffsetType {
+    #[repr(C)] // needed to guarantee the types align at the start
     union Convert<O: MaybeOffset> {
         input: UtcOffset,
         output: O::MemoryOffsetType,
@@ -257,14 +260,14 @@ impl<O: MaybeOffset> DateTime<O> {
 
         // Use the unchecked method here, as the input validity has already been verified.
         let date = Date::from_julian_day_unchecked(
-            UNIX_EPOCH_JULIAN_DAY + div_floor!(timestamp, 86_400) as i32,
+            UNIX_EPOCH_JULIAN_DAY + div_floor!(timestamp, Second.per(Day) as i64) as i32,
         );
 
-        let seconds_within_day = timestamp.rem_euclid(86_400);
+        let seconds_within_day = timestamp.rem_euclid(Second.per(Day) as _);
         let time = Time::__from_hms_nanos_unchecked(
-            (seconds_within_day / 3_600) as _,
-            ((seconds_within_day % 3_600) / 60) as _,
-            (seconds_within_day % 60) as _,
+            (seconds_within_day / Second.per(Hour) as i64) as _,
+            ((seconds_within_day % Second.per(Hour) as i64) / Minute.per(Hour) as i64) as _,
+            (seconds_within_day % Second.per(Minute) as i64) as _,
             0,
         );
 
@@ -279,9 +282,10 @@ impl<O: MaybeOffset> DateTime<O> {
     where
         O: HasLogicalOffset,
     {
-        let datetime = const_try!(Self::from_unix_timestamp(
-            div_floor!(timestamp, 1_000_000_000) as i64
-        ));
+        let datetime = const_try!(Self::from_unix_timestamp(div_floor!(
+            timestamp,
+            Nanosecond.per(Second) as i128
+        ) as i64));
 
         Ok(Self {
             date: datetime.date,
@@ -289,7 +293,7 @@ impl<O: MaybeOffset> DateTime<O> {
                 datetime.hour(),
                 datetime.minute(),
                 datetime.second(),
-                timestamp.rem_euclid(1_000_000_000) as u32,
+                timestamp.rem_euclid(Nanosecond.per(Second) as _) as u32,
             ),
             offset: maybe_offset_from_offset::<O>(UtcOffset::UTC),
         })
@@ -450,9 +454,10 @@ impl<O: MaybeOffset> DateTime<O> {
     {
         let offset = maybe_offset_as_offset::<O>(self.offset).whole_seconds() as i64;
 
-        let days = (self.to_julian_day() as i64 - UNIX_EPOCH_JULIAN_DAY as i64) * 86_400;
-        let hours = self.hour() as i64 * 3_600;
-        let minutes = self.minute() as i64 * 60;
+        let days =
+            (self.to_julian_day() as i64 - UNIX_EPOCH_JULIAN_DAY as i64) * Second.per(Day) as i64;
+        let hours = self.hour() as i64 * Second.per(Hour) as i64;
+        let minutes = self.minute() as i64 * Second.per(Minute) as i64;
         let seconds = self.second() as i64;
         days + hours + minutes + seconds - offset
     }
@@ -461,7 +466,7 @@ impl<O: MaybeOffset> DateTime<O> {
     where
         O: HasLogicalOffset,
     {
-        self.unix_timestamp() as i128 * 1_000_000_000 + self.nanosecond() as i128
+        self.unix_timestamp() as i128 * Nanosecond.per(Second) as i128 + self.nanosecond() as i128
     }
     // endregion unix timestamp getters
     // endregion: getters
@@ -491,39 +496,49 @@ impl<O: MaybeOffset> DateTime<O> {
     where
         O: HasLogicalOffset,
     {
+        expect_opt!(
+            self.checked_to_offset(offset),
+            "local datetime out of valid range"
+        )
+    }
+
+    pub const fn checked_to_offset(self, offset: UtcOffset) -> Option<DateTime<offset_kind::Fixed>>
+    where
+        O: HasLogicalOffset,
+    {
         let self_offset = maybe_offset_as_offset::<O>(self.offset);
 
         if self_offset.whole_hours() == offset.whole_hours()
             && self_offset.minutes_past_hour() == offset.minutes_past_hour()
             && self_offset.seconds_past_minute() == offset.seconds_past_minute()
         {
-            return DateTime {
+            return Some(DateTime {
                 date: self.date,
                 time: self.time,
                 offset,
-            };
+            });
         }
 
         let (year, ordinal, time) = self.to_offset_raw(offset);
 
         if year > MAX_YEAR || year < MIN_YEAR {
-            panic!("local datetime out of valid range");
+            return None;
         }
 
-        DateTime {
+        Some(DateTime {
             date: Date::__from_ordinal_date_unchecked(year, ordinal),
             time,
             offset,
-        }
+        })
     }
 
     /// Equivalent to `.to_offset(UtcOffset::UTC)`, but returning the year, ordinal, and time. This
     /// avoids constructing an invalid [`Date`] if the new value is out of range.
     pub(crate) const fn to_offset_raw(self, offset: UtcOffset) -> (i32, u16, Time) {
-        guard!(let Some(from) = maybe_offset_as_offset_opt::<O>(self.offset) else {
+        let Some(from) = maybe_offset_as_offset_opt::<O>(self.offset) else {
             // No adjustment is needed because there is no offset.
             return (self.year(), self.ordinal(), self.time);
-        });
+        };
         let to = offset;
 
         // Fast path for when no conversion is necessary.
@@ -543,12 +558,12 @@ impl<O: MaybeOffset> DateTime<O> {
         let mut ordinal = ordinal as i16;
 
         // Cascade the values twice. This is needed because the values are adjusted twice above.
-        cascade!(second in 0..60 => minute);
-        cascade!(second in 0..60 => minute);
-        cascade!(minute in 0..60 => hour);
-        cascade!(minute in 0..60 => hour);
-        cascade!(hour in 0..24 => ordinal);
-        cascade!(hour in 0..24 => ordinal);
+        cascade!(second in 0..Second.per(Minute) as i16 => minute);
+        cascade!(second in 0..Second.per(Minute) as i16 => minute);
+        cascade!(minute in 0..Minute.per(Hour) as i16 => hour);
+        cascade!(minute in 0..Minute.per(Hour) as i16 => hour);
+        cascade!(hour in 0..Hour.per(Day) as i8 => ordinal);
+        cascade!(hour in 0..Hour.per(Day) as i8 => ordinal);
         cascade!(ordinal => year);
 
         debug_assert!(ordinal > 0);
@@ -807,7 +822,7 @@ impl<O: MaybeOffset> DateTime<O> {
         }
 
         let (year, ordinal, time) = self.to_offset_raw(UtcOffset::UTC);
-        guard!(let Ok(date) = Date::from_ordinal_date(year, ordinal) else { return false });
+        let Ok(date) = Date::from_ordinal_date(year, ordinal) else { return false };
 
         time.hour() == 23
             && time.minute() == 59
@@ -823,6 +838,7 @@ impl<O: MaybeOffset> DateTime<O> {
     // `OffsetDateTime` is made an alias of `DateTime<Fixed>`. Consider hiding these methods from
     // documentation in the future.
 
+    #[doc(hidden)]
     #[allow(dead_code)] // while functionally private
     #[deprecated(since = "0.3.18", note = "use `as_hms` instead")]
     pub const fn to_hms(self) -> (u8, u8, u8)
@@ -832,6 +848,7 @@ impl<O: MaybeOffset> DateTime<O> {
         self.time.as_hms()
     }
 
+    #[doc(hidden)]
     #[allow(dead_code)] // while functionally private
     #[deprecated(since = "0.3.18", note = "use `as_hms_milli` instead")]
     pub const fn to_hms_milli(self) -> (u8, u8, u8, u16)
@@ -841,6 +858,7 @@ impl<O: MaybeOffset> DateTime<O> {
         self.time.as_hms_milli()
     }
 
+    #[doc(hidden)]
     #[allow(dead_code)] // while functionally private
     #[deprecated(since = "0.3.18", note = "use `as_hms_micro` instead")]
     pub const fn to_hms_micro(self) -> (u8, u8, u8, u32)
@@ -850,6 +868,7 @@ impl<O: MaybeOffset> DateTime<O> {
         self.time.as_hms_micro()
     }
 
+    #[doc(hidden)]
     #[allow(dead_code)] // while functionally private
     #[deprecated(since = "0.3.18", note = "use `as_hms_nano` instead")]
     pub const fn to_hms_nano(self) -> (u8, u8, u8, u32)
@@ -1137,7 +1156,7 @@ impl From<DateTime<offset_kind::Fixed>> for SystemTime {
 impl From<js_sys::Date> for DateTime<offset_kind::Fixed> {
     fn from(js_date: js_sys::Date) -> Self {
         // get_time() returns milliseconds
-        let timestamp_nanos = (js_date.get_time() * 1_000_000.0) as i128;
+        let timestamp_nanos = (js_date.get_time() * Nanosecond.per(Millisecond) as f64) as i128;
         Self::from_unix_timestamp_nanos(timestamp_nanos)
             .expect("invalid timestamp: Timestamp cannot fit in range")
     }
@@ -1151,7 +1170,8 @@ impl From<js_sys::Date> for DateTime<offset_kind::Fixed> {
 impl From<DateTime<offset_kind::Fixed>> for js_sys::Date {
     fn from(datetime: DateTime<offset_kind::Fixed>) -> Self {
         // new Date() takes milliseconds
-        let timestamp = (datetime.unix_timestamp_nanos() / 1_000_000) as f64;
+        let timestamp =
+            (datetime.unix_timestamp_nanos() / Nanosecond.per(Millisecond) as i128) as f64;
         js_sys::Date::new(&timestamp.into())
     }
 }

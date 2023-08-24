@@ -4,7 +4,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 use crate::{Limb, Uint, Zero};
 
-use super::{reduction::montgomery_reduction, Retrieve};
+use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
 
 #[cfg(feature = "rand_core")]
 use crate::{rand_core::CryptoRngCore, NonZero, Random, RandomMod};
@@ -67,6 +67,12 @@ where
     phantom: PhantomData<MOD>,
 }
 
+#[cfg(feature = "zeroize")]
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> zeroize::DefaultIsZeroes
+    for Residue<MOD, LIMBS>
+{
+}
+
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// The representation of 0 mod `MOD`.
     pub const ZERO: Self = Self {
@@ -99,6 +105,18 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             &MOD::MODULUS,
             MOD::MOD_NEG_INV,
         )
+    }
+
+    /// Performs the modular division by 2, that is for given `x` returns `y`
+    /// such that `y * 2 = x mod p`. This means:
+    /// - if `x` is even, returns `x / 2`,
+    /// - if `x` is odd, returns `(x + p) / 2`
+    ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
+    pub fn div_by_2(&self) -> Self {
+        Self {
+            montgomery_form: div_by_2(&self.montgomery_form, &MOD::MODULUS),
+            phantom: PhantomData,
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::{Limb, Uint, Word};
 
-use super::{reduction::montgomery_reduction, Retrieve};
+use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
 
 /// Additions between residues with a modulus set at runtime
 mod runtime_add;
@@ -33,11 +33,16 @@ pub struct DynResidueParams<const LIMBS: usize> {
 
 impl<const LIMBS: usize> DynResidueParams<LIMBS> {
     /// Instantiates a new set of `ResidueParams` representing the given `modulus`.
-    pub fn new(modulus: &Uint<LIMBS>) -> Self {
+    pub const fn new(modulus: &Uint<LIMBS>) -> Self {
         let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
         let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
+
+        // Since we are calculating the inverse modulo (Word::MAX+1),
+        // we can take the modulo right away and calculate the inverse of the first limb only.
+        let modulus_lo = Uint::<1>::from_words([modulus.limbs[0].0]);
         let mod_neg_inv =
-            Limb(Word::MIN.wrapping_sub(modulus.inv_mod2k(Word::BITS as usize).limbs[0].0));
+            Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS as usize).limbs[0].0));
+
         let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
 
         Self {
@@ -47,6 +52,11 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
             r3,
             mod_neg_inv,
         }
+    }
+
+    /// Returns the modulus which was used to initialize these parameters.
+    pub const fn modulus(&self) -> &Uint<LIMBS> {
+        &self.modulus
     }
 }
 
@@ -95,6 +105,23 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
         Self {
             montgomery_form: residue_params.r,
             residue_params,
+        }
+    }
+
+    /// Returns the parameter struct used to initialize this residue.
+    pub const fn params(&self) -> &DynResidueParams<LIMBS> {
+        &self.residue_params
+    }
+
+    /// Performs the modular division by 2, that is for given `x` returns `y`
+    /// such that `y * 2 = x mod p`. This means:
+    /// - if `x` is even, returns `x / 2`,
+    /// - if `x` is odd, returns `(x + p) / 2`
+    ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
+    pub fn div_by_2(&self) -> Self {
+        Self {
+            montgomery_form: div_by_2(&self.montgomery_form, &self.residue_params.modulus),
+            residue_params: self.residue_params,
         }
     }
 }

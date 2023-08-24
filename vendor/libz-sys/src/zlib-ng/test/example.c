@@ -12,8 +12,12 @@
 #include "deflate.h"
 
 #include <stdio.h>
-#include <stdarg.h>
+
+#include <string.h>
+#include <stdlib.h>
 #include <inttypes.h>
+#include <stdint.h>
+#include <stdarg.h>
 
 #define TESTFILE "foo.gz"
 
@@ -547,7 +551,7 @@ void test_dict_inflate(unsigned char *compr, size_t comprLen, unsigned char *unc
     err = PREFIX(inflateGetDictionary)(&d_stream, NULL, &check_dictionary_len);
     CHECK_ERR(err, "inflateGetDictionary");
 #ifndef S390_DFLTCC_INFLATE
-    if (check_dictionary_len < sizeof(dictionary))
+    if (check_dictionary_len != sizeof(dictionary))
         error("bad dictionary length\n");
 #endif
     
@@ -962,11 +966,11 @@ int main(int argc, char *argv[]) {
         exit(1);
 
     } else if (strcmp(zVersion(), PREFIX2(VERSION)) != 0) {
-        fprintf(stderr, "warning: different zlib version\n");
+        fprintf(stderr, "warning: different zlib version linked: %s\n", zVersion());
     }
 
-    printf("zlib-ng version %s = 0x%08lx, compile flags = 0x%lx\n",
-            ZLIBNG_VERSION, ZLIBNG_VERNUM, PREFIX(zlibCompileFlags)());
+    printf("zlib version %s = 0x%04x, compile flags = 0x%lx\n",
+            PREFIX2(VERSION), PREFIX2(VERNUM), PREFIX(zlibCompileFlags)());
 
     compr    = (unsigned char*)calloc((unsigned int)comprLen, 1);
     uncompr  = (unsigned char*)calloc((unsigned int)uncomprLen, 1);

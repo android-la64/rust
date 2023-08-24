@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.60"
 name = "security-framework"
-version = "2.8.2"
+version = "2.9.1"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Kornel <kornel@geekhood.net>",
@@ -75,7 +75,7 @@ version = "0.4.3"
 optional = true
 
 [dependencies.security-framework-sys]
-version = "2.8.0"
+version = "2.9.0"
 default-features = false
 
 [dev-dependencies.env_logger]
@@ -91,7 +91,7 @@ version = "3.3.0"
 version = "0.3.17"
 
 [dev-dependencies.x509-parser]
-version = "0.14.0"
+version = "0.15.0"
 
 [features]
 OSX_10_10 = [

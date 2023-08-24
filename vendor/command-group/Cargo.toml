@@ -13,12 +13,13 @@
 edition = "2021"
 rust-version = "1.60.0"
 name = "command-group"
-version = "2.0.1"
+version = "2.1.0"
 authors = ["Félix Saparelli <felix@passcod.name>"]
 exclude = [
     "/bin",
     "/.github",
 ]
+autoexamples = false
 description = "Extension to Command to spawn in a process group"
 homepage = "https://github.com/watchexec/command-group"
 documentation = "https://docs.rs/command-group"
@@ -34,6 +35,24 @@ repository = "https://github.com/watchexec/command-group"
 
 [package.metadata.docs.rs]
 all-features = true
+
+[[example]]
+name = "basic"
+
+[[example]]
+name = "builder"
+
+[[example]]
+name = "async"
+required-features = ["with-tokio"]
+
+[[example]]
+name = "kill_on_drop"
+required-features = ["with-tokio"]
+
+[[example]]
+name = "daemon"
+required-features = ["with-tokio"]
 
 [dependencies.async-trait]
 version = "0.1.50"

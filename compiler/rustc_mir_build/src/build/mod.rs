@@ -1,4 +1,3 @@
-pub(crate) use crate::build::expr::as_constant::lit_to_mir_constant;
 use crate::build::expr::as_place::PlaceBuilder;
 use crate::build::scope::DropKind;
 use rustc_apfloat::ieee::{Double, Single};
@@ -35,6 +34,22 @@ pub(crate) fn mir_built(
     def: LocalDefId,
 ) -> &rustc_data_structures::steal::Steal<Body<'_>> {
     tcx.alloc_steal_mir(mir_build(tcx, def))
+}
+
+pub(crate) fn closure_saved_names_of_captured_variables<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    def_id: LocalDefId,
+) -> IndexVec<FieldIdx, Symbol> {
+    tcx.closure_captures(def_id)
+        .iter()
+        .map(|captured_place| {
+            let name = captured_place.to_symbol();
+            match captured_place.info.capture_kind {
+                ty::UpvarCapture::ByValue => name,
+                ty::UpvarCapture::ByRef(..) => Symbol::intern(&format!("_ref__{name}")),
+            }
+        })
+        .collect()
 }
 
 /// Construct the MIR for a given `DefId`.
@@ -557,7 +572,7 @@ fn construct_const<'a, 'tcx>(
             span,
             ..
         }) => (*span, ty.span),
-        Node::AnonConst(_) => {
+        Node::AnonConst(_) | Node::ConstBlock(_) => {
             let span = tcx.def_span(def);
             (span, span)
         }
@@ -599,7 +614,7 @@ fn construct_error(tcx: TyCtxt<'_>, def: LocalDefId, err: ErrorGuaranteed) -> Bo
     let generator_kind = tcx.generator_kind(def);
     let body_owner_kind = tcx.hir().body_owner_kind(def);
 
-    let ty = tcx.ty_error(err);
+    let ty = Ty::new_error(tcx, err);
     let num_params = match body_owner_kind {
         hir::BodyOwnerKind::Fn => tcx.fn_sig(def).skip_binder().inputs().skip_binder().len(),
         hir::BodyOwnerKind::Closure => {
@@ -927,7 +942,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         match self.unit_temp {
             Some(tmp) => tmp,
             None => {
-                let ty = self.tcx.mk_unit();
+                let ty = Ty::new_unit(self.tcx);
                 let fn_span = self.fn_span;
                 let tmp = self.temp(ty, fn_span);
                 self.unit_temp = Some(tmp);

@@ -71,11 +71,9 @@ then
   ABI_GIT_REPO=https://github.com/madler/zlib.git
   ABI_GIT_COMMIT=v1.2.11
 else
-  # Reference should be the tag for zlib-ng 2.0
-  # but until that bright, shining day, use some
-  # random recent SHA.  Annoyingly, can't shorten it.
+  # Reference is zlib-ng 2.0.0
   ABI_GIT_REPO=https://github.com/zlib-ng/zlib-ng.git
-  ABI_GIT_COMMIT=56ce27343bf295ae9457f8e3d38ec96d2f949a1c
+  ABI_GIT_COMMIT=2.0.0
 fi
 # FIXME: even when using a tag, check the hash.
 

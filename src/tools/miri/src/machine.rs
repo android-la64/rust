@@ -112,6 +112,8 @@ pub enum MiriMemoryKind {
     /// Memory for thread-local statics.
     /// This memory may leak.
     Tls,
+    /// Memory mapped directly by the program
+    Mmap,
 }
 
 impl From<MiriMemoryKind> for MemoryKind<MiriMemoryKind> {
@@ -127,7 +129,7 @@ impl MayLeak for MiriMemoryKind {
         use self::MiriMemoryKind::*;
         match self {
             Rust | Miri | C | WinHeap | Runtime => false,
-            Machine | Global | ExternStatic | Tls => true,
+            Machine | Global | ExternStatic | Tls | Mmap => true,
         }
     }
 }
@@ -145,6 +147,7 @@ impl fmt::Display for MiriMemoryKind {
             Global => write!(f, "global (static or const)"),
             ExternStatic => write!(f, "extern static"),
             Tls => write!(f, "thread-local static"),
+            Mmap => write!(f, "mmap"),
         }
     }
 }
@@ -308,12 +311,12 @@ pub struct PrimitiveLayouts<'tcx> {
 }
 
 impl<'mir, 'tcx: 'mir> PrimitiveLayouts<'tcx> {
-    fn new(layout_cx: LayoutCx<'tcx, TyCtxt<'tcx>>) -> Result<Self, LayoutError<'tcx>> {
+    fn new(layout_cx: LayoutCx<'tcx, TyCtxt<'tcx>>) -> Result<Self, &'tcx LayoutError<'tcx>> {
         let tcx = layout_cx.tcx;
-        let mut_raw_ptr = tcx.mk_ptr(TypeAndMut { ty: tcx.types.unit, mutbl: Mutability::Mut });
-        let const_raw_ptr = tcx.mk_ptr(TypeAndMut { ty: tcx.types.unit, mutbl: Mutability::Not });
+        let mut_raw_ptr = Ty::new_ptr(tcx,TypeAndMut { ty: tcx.types.unit, mutbl: Mutability::Mut });
+        let const_raw_ptr = Ty::new_ptr(tcx,TypeAndMut { ty: tcx.types.unit, mutbl: Mutability::Not });
         Ok(Self {
-            unit: layout_cx.layout_of(tcx.mk_unit())?,
+            unit: layout_cx.layout_of(Ty::new_unit(tcx,))?,
             i8: layout_cx.layout_of(tcx.types.i8)?,
             i16: layout_cx.layout_of(tcx.types.i16)?,
             i32: layout_cx.layout_of(tcx.types.i32)?,
@@ -725,6 +728,15 @@ impl<'mir, 'tcx> MiriMachine<'mir, 'tcx> {
         // the profiler, it is not possible to interpret the profile data and all measureme tools
         // will panic when given the file.
         drop(self.profiler.take());
+    }
+
+    pub(crate) fn round_up_to_multiple_of_page_size(&self, length: u64) -> Option<u64> {
+        #[allow(clippy::arithmetic_side_effects)] // page size is nonzero
+        (length.checked_add(self.page_size - 1)? / self.page_size).checked_mul(self.page_size)
+    }
+
+    pub(crate) fn page_align(&self) -> Align {
+        Align::from_bytes(self.page_size).unwrap()
     }
 }
 

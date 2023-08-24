@@ -20,13 +20,39 @@ Released YYYY-MM-DD.
 
 ### Fixed
 
-* (Included in `arbitrary_derive`  1.2.1) Fixed bug in Derive macro around `no_std` path uses [#131](https://github.com/rust-fuzz/arbitrary/pull/131)
+* TODO (or remove section if none)
 
 ### Security
 
 * TODO (or remove section if none)
 
 --------------------------------------------------------------------------------
+
+## 1.3.0
+
+Released 2023-03-13.
+
+### Added
+
+* Added the ability to manually specify derived trait bounds for
+  `Arbitrary`. See [#138](https://github.com/rust-fuzz/arbitrary/pull/138) for
+  details.
+
+### Fixed
+
+* Fixed minimal versions correctness for `syn`.
+
+--------------------------------------------------------------------------------
+
+## 1.2.3
+
+Released 2023-01-20.
+
+### Fixed
+
+* The `derive(Arbitrary)` will now annotate the generated `impl`s with a `#[automatically_derived]`
+  attribute to indicate to e.g. clippy that lints should not fire for the code within the derived
+  implementation.
 
 ## 1.2.2
 

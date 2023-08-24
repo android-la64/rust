@@ -52,21 +52,32 @@ pub trait Interner: Sized {
     type PolyFnSig: Clone + Debug + Hash + Ord;
     type ListBinderExistentialPredicate: Clone + Debug + Hash + Ord;
     type BinderListTy: Clone + Debug + Hash + Ord;
-    type ListTy: Clone + Debug + Hash + Ord;
+    type ListTy: Clone + Debug + Hash + Ord + IntoIterator<Item = Self::Ty>;
     type AliasTy: Clone + Debug + Hash + Ord;
     type ParamTy: Clone + Debug + Hash + Ord;
     type BoundTy: Clone + Debug + Hash + Ord;
     type PlaceholderType: Clone + Debug + Hash + Ord;
-    type InferTy: Clone + Debug + Hash + Ord;
     type ErrorGuaranteed: Clone + Debug + Hash + Ord;
     type PredicateKind: Clone + Debug + Hash + PartialEq + Eq;
     type AllocId: Clone + Debug + Hash + Ord;
+
+    type InferConst: Clone + Debug + Hash + Ord;
+    type AliasConst: Clone + Debug + Hash + Ord;
+    type PlaceholderConst: Clone + Debug + Hash + Ord;
+    type ParamConst: Clone + Debug + Hash + Ord;
+    type BoundConst: Clone + Debug + Hash + Ord;
+    type InferTy: Clone + Debug + Hash + Ord;
+    type ValueConst: Clone + Debug + Hash + Ord;
+    type ExprConst: Clone + Debug + Hash + Ord;
 
     type EarlyBoundRegion: Clone + Debug + Hash + Ord;
     type BoundRegion: Clone + Debug + Hash + Ord;
     type FreeRegion: Clone + Debug + Hash + Ord;
     type RegionVid: Clone + Debug + Hash + Ord;
     type PlaceholderRegion: Clone + Debug + Hash + Ord;
+
+    fn ty_and_mut_to_parts(ty_and_mut: Self::TypeAndMut) -> (Self::Ty, Self::Mutability);
+    fn mutability_is_mut(mutbl: Self::Mutability) -> bool;
 }
 
 /// Imagine you have a function `F: FnOnce(&[T]) -> R`, plus an iterator `iter`
@@ -390,7 +401,19 @@ impl DebruijnIndex {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub fn debug_bound_var<T: std::fmt::Write>(
+    fmt: &mut T,
+    debruijn: DebruijnIndex,
+    var: impl std::fmt::Debug,
+) -> Result<(), std::fmt::Error> {
+    if debruijn == INNERMOST {
+        write!(fmt, "^{:?}", var)
+    } else {
+        write!(fmt, "^{}_{:?}", debruijn.index(), var)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Encodable, Decodable, HashStable_Generic)]
 pub enum IntTy {
     Isize,
@@ -448,7 +471,7 @@ impl IntTy {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Copy)]
 #[derive(Encodable, Decodable, HashStable_Generic)]
 pub enum UintTy {
     Usize,
@@ -506,7 +529,7 @@ impl UintTy {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Encodable, Decodable, HashStable_Generic)]
 pub enum FloatTy {
     F32,

@@ -10,7 +10,7 @@
 #![allow(unsafe_code)]
 #![cfg_attr(not(rustc_attrs), allow(unused_unsafe))]
 
-use super::super::c;
+use crate::backend::c;
 use crate::backend::fd::RawFd;
 use crate::backend::reg::{RetNumber, RetReg};
 use crate::io;
@@ -62,12 +62,12 @@ impl Errno {
 
     /// Convert from a C `errno` value (which is positive) to an `Errno`.
     const fn from_errno(raw: u32) -> Self {
-        // We store error values in negated form, so that we don't have to negate
-        // them after every syscall.
+        // We store error values in negated form, so that we don't have to
+        // negate them after every syscall.
         let encoded = raw.wrapping_neg() as u16;
 
         // TODO: Use Range::contains, once that's `const`.
-        const_assert!(encoded >= 0xf001);
+        assert!(encoded >= 0xf001);
 
         // SAFETY: Linux syscalls return negated error values in the range
         // `-4095..0`, which we just asserted.
@@ -237,6 +237,13 @@ pub(in crate::backend) fn decode_usize_infallible<Num: RetNumber>(raw: RetReg<Nu
 }
 
 /// Return the contained `c_int` value.
+#[cfg(not(debug_assertions))]
+#[inline]
+pub(in crate::backend) fn decode_c_int_infallible<Num: RetNumber>(raw: RetReg<Num>) -> c::c_int {
+    raw.decode_c_int()
+}
+
+/// Return the contained `c_uint` value.
 #[cfg(not(debug_assertions))]
 #[inline]
 pub(in crate::backend) fn decode_c_uint_infallible<Num: RetNumber>(raw: RetReg<Num>) -> c::c_uint {

@@ -10,9 +10,7 @@ use internals::{attr, replace_receiver, Ctxt, Derive};
 use pretend;
 use this;
 
-pub fn expand_derive_serialize(
-    input: &mut syn::DeriveInput,
-) -> Result<TokenStream, Vec<syn::Error>> {
+pub fn expand_derive_serialize(input: &mut syn::DeriveInput) -> syn::Result<TokenStream> {
     replace_receiver(input);
 
     let ctxt = Ctxt::new();
@@ -59,8 +57,6 @@ pub fn expand_derive_serialize(
 
     Ok(dummy::wrap_in_const(
         cont.attrs.custom_serde_path(),
-        "SERIALIZE",
-        ident,
         impl_block,
     ))
 }
@@ -477,17 +473,19 @@ fn serialize_variant(
             }
         };
 
-        let body = Match(match cattrs.tag() {
-            attr::TagType::External => {
+        let body = Match(match (cattrs.tag(), variant.attrs.untagged()) {
+            (attr::TagType::External, false) => {
                 serialize_externally_tagged_variant(params, variant, variant_index, cattrs)
             }
-            attr::TagType::Internal { tag } => {
+            (attr::TagType::Internal { tag }, false) => {
                 serialize_internally_tagged_variant(params, variant, cattrs, tag)
             }
-            attr::TagType::Adjacent { tag, content } => {
+            (attr::TagType::Adjacent { tag, content }, false) => {
                 serialize_adjacently_tagged_variant(params, variant, cattrs, tag, content)
             }
-            attr::TagType::None => serialize_untagged_variant(params, variant, cattrs),
+            (attr::TagType::None, _) | (_, true) => {
+                serialize_untagged_variant(params, variant, cattrs)
+            }
         });
 
         quote! {

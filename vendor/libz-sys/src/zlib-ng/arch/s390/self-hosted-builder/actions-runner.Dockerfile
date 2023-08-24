@@ -11,17 +11,16 @@ FROM s390x/ubuntu:20.04
 # Packages for zlib-ng testing.
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get -y install \
+        clang-11 \
         cmake \
         curl \
         gcc \
         git \
         jq \
-        libxml2-dev \
-        libxslt-dev \
+        llvm-11-tools \
         ninja-build \
         python-is-python3 \
         python3 \
-        python3-dev \
         python3-pip
 
 # amd64 dependencies.
@@ -34,7 +33,7 @@ ENV QEMU_LD_PREFIX=/usr/x86_64-linux-gnu
 RUN useradd -m actions-runner
 USER actions-runner
 WORKDIR /home/actions-runner
-RUN curl -L https://github.com/actions/runner/releases/download/v2.287.1/actions-runner-linux-x64-2.287.1.tar.gz | tar -xz
+RUN curl -L https://github.com/actions/runner/releases/download/v2.283.2/actions-runner-linux-x64-2.283.2.tar.gz | tar -xz
 VOLUME /home/actions-runner
 
 # Scripts.

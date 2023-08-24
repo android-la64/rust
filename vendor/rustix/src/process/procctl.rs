@@ -5,6 +5,8 @@
 
 #![allow(unsafe_code)]
 
+use alloc::vec;
+use alloc::vec::Vec;
 use core::mem::MaybeUninit;
 use core::ptr;
 
@@ -12,9 +14,11 @@ use bitflags::bitflags;
 
 use crate::backend::c::{c_int, c_uint, c_void};
 use crate::backend::process::syscalls;
-use crate::backend::process::types::{RawId, Signal};
+use crate::backend::process::types::RawId;
 use crate::io;
 use crate::process::{Pid, RawPid};
+use crate::signal::Signal;
+use crate::utils::{as_mut_ptr, as_ptr};
 
 //
 // Helper functions.
@@ -59,7 +63,7 @@ pub(crate) unsafe fn procctl_set<P>(
     process: ProcSelector,
     data: &P,
 ) -> io::Result<()> {
-    procctl(option, process, (data as *const P as *mut P).cast())
+    procctl(option, process, (as_ptr(data) as *mut P).cast())
 }
 
 #[inline]
@@ -180,7 +184,7 @@ pub fn trace_status(process: ProcSelector) -> io::Result<TracingStatus> {
         -1 => Ok(TracingStatus::NotTraceble),
         0 => Ok(TracingStatus::Tracable),
         pid => {
-            let pid = unsafe { Pid::from_raw(pid as RawPid) }.ok_or(io::Errno::RANGE)?;
+            let pid = Pid::from_raw(pid as RawPid).ok_or(io::Errno::RANGE)?;
             Ok(TracingStatus::BeingTraced(pid))
         }
     }
@@ -218,6 +222,8 @@ const PROC_REAP_STATUS: c_int = 4;
 
 bitflags! {
     /// `REAPER_STATUS_*`.
+    #[repr(transparent)]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     pub struct ReaperStatusFlags: c_uint {
         /// The process has acquired reaper status.
         const OWNED = 1;
@@ -249,7 +255,7 @@ pub struct ReaperStatus {
     /// The pid of the reaper for the specified process id.
     pub reaper: Pid,
     /// The pid of one reaper child if there are any descendants.
-    pub pid: Pid,
+    pub pid: Option<Pid>,
 }
 
 /// Get information about the reaper of the specified process (or the process
@@ -263,11 +269,15 @@ pub struct ReaperStatus {
 pub fn get_reaper_status(process: ProcSelector) -> io::Result<ReaperStatus> {
     let raw = unsafe { procctl_get_optional::<procctl_reaper_status>(PROC_REAP_STATUS, process) }?;
     Ok(ReaperStatus {
-        flags: ReaperStatusFlags::from_bits_truncate(raw.rs_flags),
+        flags: ReaperStatusFlags::from_bits_retain(raw.rs_flags),
         children: raw.rs_children as _,
         descendants: raw.rs_descendants as _,
-        reaper: unsafe { Pid::from_raw(raw.rs_reaper) }.ok_or(io::Errno::RANGE)?,
-        pid: unsafe { Pid::from_raw(raw.rs_pid) }.ok_or(io::Errno::RANGE)?,
+        reaper: Pid::from_raw(raw.rs_reaper).ok_or(io::Errno::RANGE)?,
+        pid: if raw.rs_pid == -1 {
+            None
+        } else {
+            Some(Pid::from_raw(raw.rs_pid).ok_or(io::Errno::RANGE)?)
+        },
     })
 }
 
@@ -275,12 +285,15 @@ const PROC_REAP_GETPIDS: c_int = 5;
 
 bitflags! {
     /// `REAPER_PIDINFO_*`.
+    #[repr(transparent)]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     pub struct PidInfoFlags: c_uint {
         /// This structure was filled by the kernel.
         const VALID = 1;
         /// The pid field identifies a direct child of the reaper.
         const CHILD = 2;
-        /// The reported process is itself a reaper. Descendants of a subordinate reaper are not reported.
+        /// The reported process is itself a reaper. Descendants of a
+        /// subordinate reaper are not reported.
         const REAPER = 4;
         /// The reported process is in the zombie state.
         const ZOMBIE = 8;
@@ -335,23 +348,17 @@ pub fn get_reaper_pids(process: ProcSelector) -> io::Result<Vec<PidInfo>> {
         rp_pad0: [0; 15],
         rp_pids: pids.as_mut_slice().as_mut_ptr(),
     };
-    unsafe {
-        procctl(
-            PROC_REAP_GETPIDS,
-            process,
-            (&mut pinfo as *mut procctl_reaper_pids).cast(),
-        )?
-    };
+    unsafe { procctl(PROC_REAP_GETPIDS, process, as_mut_ptr(&mut pinfo).cast())? };
     let mut result = Vec::new();
     for raw in pids.into_iter() {
-        let flags = PidInfoFlags::from_bits_truncate(raw.pi_flags);
+        let flags = PidInfoFlags::from_bits_retain(raw.pi_flags);
         if !flags.contains(PidInfoFlags::VALID) {
             break;
         }
         result.push(PidInfo {
             flags,
-            subtree: unsafe { Pid::from_raw(raw.pi_subtree) }.ok_or(io::Errno::RANGE)?,
-            pid: unsafe { Pid::from_raw(raw.pi_pid) }.ok_or(io::Errno::RANGE)?,
+            subtree: Pid::from_raw(raw.pi_subtree).ok_or(io::Errno::RANGE)?,
+            pid: Pid::from_raw(raw.pi_pid).ok_or(io::Errno::RANGE)?,
         });
     }
     Ok(result)
@@ -361,6 +368,8 @@ const PROC_REAP_KILL: c_int = 6;
 
 bitflags! {
     /// `REAPER_KILL_*`.
+    #[repr(transparent)]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     struct KillFlags: c_uint {
         const CHILDREN = 1;
         const SUBTREE = 2;
@@ -409,20 +418,10 @@ pub fn reaper_kill(
         rk_fpid: 0,
         rk_pad0: [0; 15],
     };
-    unsafe {
-        procctl(
-            PROC_REAP_KILL,
-            process,
-            (&mut req as *mut procctl_reaper_kill).cast(),
-        )?
-    };
+    unsafe { procctl(PROC_REAP_KILL, process, as_mut_ptr(&mut req).cast())? };
     Ok(KillResult {
         killed: req.rk_killed as _,
-        first_failed: if req.rk_fpid == -1 {
-            None
-        } else {
-            unsafe { Pid::from_raw(req.rk_fpid) }
-        },
+        first_failed: Pid::from_raw(req.rk_fpid),
     })
 }
 

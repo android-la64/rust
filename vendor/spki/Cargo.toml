@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "spki"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["RustCrypto Developers"]
 description = """
 X.509 Subject Public Key Info (RFC5280) describing public keys as well as their
@@ -60,7 +60,7 @@ optional = true
 default-features = false
 
 [dev-dependencies.hex-literal]
-version = "0.3"
+version = "0.4"
 
 [dev-dependencies.tempfile]
 version = "3"

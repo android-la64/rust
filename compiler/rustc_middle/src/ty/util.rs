@@ -1,7 +1,6 @@
 //! Miscellaneous type-system utilities that are too small to deserve their own modules.
 
 use crate::middle::codegen_fn_attrs::CodegenFnAttrFlags;
-use crate::mir;
 use crate::query::Providers;
 use crate::ty::layout::IntegerExt;
 use crate::ty::{
@@ -11,13 +10,12 @@ use crate::ty::{
 use crate::ty::{GenericArgKind, SubstsRef};
 use rustc_apfloat::Float as _;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
-use rustc_data_structures::stable_hasher::{Hash64, HashStable, StableHasher};
+use rustc_data_structures::stable_hasher::{Hash128, HashStable, StableHasher};
 use rustc_errors::ErrorGuaranteed;
 use rustc_hir as hir;
 use rustc_hir::def::{CtorOf, DefKind, Res};
-use rustc_hir::def_id::{DefId, LocalDefId};
+use rustc_hir::def_id::{CrateNum, DefId, LocalDefId};
 use rustc_index::bit_set::GrowableBitSet;
-use rustc_index::{Idx, IndexVec};
 use rustc_macros::HashStable;
 use rustc_session::Limit;
 use rustc_span::sym;
@@ -129,7 +127,7 @@ impl IntTypeExt for IntegerType {
 impl<'tcx> TyCtxt<'tcx> {
     /// Creates a hash of the type `Ty` which will be the same no matter what crate
     /// context it's calculated within. This is used by the `type_id` intrinsic.
-    pub fn type_id_hash(self, ty: Ty<'tcx>) -> Hash64 {
+    pub fn type_id_hash(self, ty: Ty<'tcx>) -> Hash128 {
         // We want the type_id be independent of the types free regions, so we
         // erase them. The erase_regions() call will also anonymize bound
         // regions, which is desirable too.
@@ -171,18 +169,6 @@ impl<'tcx> TyCtxt<'tcx> {
             Res::Err => None,
             _ => None,
         }
-    }
-
-    pub fn has_error_field(self, ty: Ty<'tcx>) -> bool {
-        if let ty::Adt(def, substs) = *ty.kind() {
-            for field in def.all_fields() {
-                let field_ty = field.ty(self, substs);
-                if let ty::Error(_) = field_ty.kind() {
-                    return true;
-                }
-            }
-        }
-        false
     }
 
     /// Attempts to returns the deeply last field of nested structures, but
@@ -237,14 +223,14 @@ impl<'tcx> TyCtxt<'tcx> {
                 };
                 let reported =
                     self.sess.emit_err(crate::error::RecursionLimitReached { ty, suggested_limit });
-                return self.ty_error(reported);
+                return Ty::new_error(self, reported);
             }
             match *ty.kind() {
                 ty::Adt(def, substs) => {
                     if !def.is_struct() {
                         break;
                     }
-                    match def.non_enum_variant().fields.raw.last() {
+                    match def.non_enum_variant().tail_opt() {
                         Some(field) => {
                             f();
                             ty = field.ty(self, substs);
@@ -318,7 +304,7 @@ impl<'tcx> TyCtxt<'tcx> {
                 (&ty::Adt(a_def, a_substs), &ty::Adt(b_def, b_substs))
                     if a_def == b_def && a_def.is_struct() =>
                 {
-                    if let Some(f) = a_def.non_enum_variant().fields.raw.last() {
+                    if let Some(f) = a_def.non_enum_variant().tail_opt() {
                         a = f.ty(self, a_substs);
                         b = f.ty(self, b_substs);
                     } else {
@@ -624,12 +610,12 @@ impl<'tcx> TyCtxt<'tcx> {
         closure_substs: SubstsRef<'tcx>,
         env_region: ty::Region<'tcx>,
     ) -> Option<Ty<'tcx>> {
-        let closure_ty = self.mk_closure(closure_def_id, closure_substs);
+        let closure_ty = Ty::new_closure(self, closure_def_id, closure_substs);
         let closure_kind_ty = closure_substs.as_closure().kind_ty();
         let closure_kind = closure_kind_ty.to_opt_closure_kind()?;
         let env_ty = match closure_kind {
-            ty::ClosureKind::Fn => self.mk_imm_ref(env_region, closure_ty),
-            ty::ClosureKind::FnMut => self.mk_mut_ref(env_region, closure_ty),
+            ty::ClosureKind::Fn => Ty::new_imm_ref(self, env_region, closure_ty),
+            ty::ClosureKind::FnMut => Ty::new_mut_ref(self, env_region, closure_ty),
             ty::ClosureKind::FnOnce => closure_ty,
         };
         Some(env_ty)
@@ -670,12 +656,12 @@ impl<'tcx> TyCtxt<'tcx> {
     pub fn thread_local_ptr_ty(self, def_id: DefId) -> Ty<'tcx> {
         let static_ty = self.type_of(def_id).subst_identity();
         if self.is_mutable_static(def_id) {
-            self.mk_mut_ptr(static_ty)
+            Ty::new_mut_ptr(self, static_ty)
         } else if self.is_foreign_item(def_id) {
-            self.mk_imm_ptr(static_ty)
+            Ty::new_imm_ptr(self, static_ty)
         } else {
             // FIXME: These things don't *really* have 'static lifetime.
-            self.mk_imm_ref(self.lifetimes.re_static, static_ty)
+            Ty::new_imm_ref(self, self.lifetimes.re_static, static_ty)
         }
     }
 
@@ -690,11 +676,11 @@ impl<'tcx> TyCtxt<'tcx> {
         // Make sure that accesses to unsafe statics end up using raw pointers.
         // For thread-locals, this needs to be kept in sync with `Rvalue::ty`.
         if self.is_mutable_static(def_id) {
-            self.mk_mut_ptr(static_ty)
+            Ty::new_mut_ptr(self, static_ty)
         } else if self.is_foreign_item(def_id) {
-            self.mk_imm_ptr(static_ty)
+            Ty::new_imm_ptr(self, static_ty)
         } else {
-            self.mk_imm_ref(self.lifetimes.re_erased, static_ty)
+            Ty::new_imm_ref(self, self.lifetimes.re_erased, static_ty)
         }
     }
 
@@ -709,7 +695,7 @@ impl<'tcx> TyCtxt<'tcx> {
             .as_ref()
             .map_or_else(|| [].iter(), |l| l.field_tys.iter())
             .filter(|decl| !decl.ignore_for_traits)
-            .map(|decl| ty::EarlyBinder(decl.ty))
+            .map(|decl| ty::EarlyBinder::bind(decl.ty))
     }
 
     /// Normalizes all opaque types in the given value, replacing them
@@ -750,80 +736,6 @@ impl<'tcx> TyCtxt<'tcx> {
         if visitor.found_recursion { Err(expanded_type) } else { Ok(expanded_type) }
     }
 
-    /// Returns names of captured upvars for closures and generators.
-    ///
-    /// Here are some examples:
-    ///  - `name__field1__field2` when the upvar is captured by value.
-    ///  - `_ref__name__field` when the upvar is captured by reference.
-    ///
-    /// For generators this only contains upvars that are shared by all states.
-    pub fn closure_saved_names_of_captured_variables(
-        self,
-        def_id: DefId,
-    ) -> SmallVec<[String; 16]> {
-        let body = self.optimized_mir(def_id);
-
-        body.var_debug_info
-            .iter()
-            .filter_map(|var| {
-                let is_ref = match var.value {
-                    mir::VarDebugInfoContents::Place(place)
-                        if place.local == mir::Local::new(1) =>
-                    {
-                        // The projection is either `[.., Field, Deref]` or `[.., Field]`. It
-                        // implies whether the variable is captured by value or by reference.
-                        matches!(place.projection.last().unwrap(), mir::ProjectionElem::Deref)
-                    }
-                    _ => return None,
-                };
-                let prefix = if is_ref { "_ref__" } else { "" };
-                Some(prefix.to_owned() + var.name.as_str())
-            })
-            .collect()
-    }
-
-    // FIXME(eddyb) maybe precompute this? Right now it's computed once
-    // per generator monomorphization, but it doesn't depend on substs.
-    pub fn generator_layout_and_saved_local_names(
-        self,
-        def_id: DefId,
-    ) -> (
-        &'tcx ty::GeneratorLayout<'tcx>,
-        IndexVec<mir::GeneratorSavedLocal, Option<rustc_span::Symbol>>,
-    ) {
-        let tcx = self;
-        let body = tcx.optimized_mir(def_id);
-        let generator_layout = body.generator_layout().unwrap();
-        let mut generator_saved_local_names =
-            IndexVec::from_elem(None, &generator_layout.field_tys);
-
-        let state_arg = mir::Local::new(1);
-        for var in &body.var_debug_info {
-            let mir::VarDebugInfoContents::Place(place) = &var.value else { continue };
-            if place.local != state_arg {
-                continue;
-            }
-            match place.projection[..] {
-                [
-                    // Deref of the `Pin<&mut Self>` state argument.
-                    mir::ProjectionElem::Field(..),
-                    mir::ProjectionElem::Deref,
-                    // Field of a variant of the state.
-                    mir::ProjectionElem::Downcast(_, variant),
-                    mir::ProjectionElem::Field(field, _),
-                ] => {
-                    let name = &mut generator_saved_local_names
-                        [generator_layout.variant_fields[variant][field]];
-                    if name.is_none() {
-                        name.replace(var.name);
-                    }
-                }
-                _ => {}
-            }
-        }
-        (generator_layout, generator_saved_local_names)
-    }
-
     /// Query and get an English description for the item's kind.
     pub fn def_descr(self, def_id: DefId) -> &'static str {
         self.def_kind_descr(self.def_kind(def_id), def_id)
@@ -856,6 +768,26 @@ impl<'tcx> TyCtxt<'tcx> {
             },
             _ => def_kind.article(),
         }
+    }
+
+    /// Return `true` if the supplied `CrateNum` is "user-visible," meaning either a [public]
+    /// dependency, or a [direct] private dependency. This is used to decide whether the crate can
+    /// be shown in `impl` suggestions.
+    ///
+    /// [public]: TyCtxt::is_private_dep
+    /// [direct]: rustc_session::cstore::ExternCrate::is_direct
+    pub fn is_user_visible_dep(self, key: CrateNum) -> bool {
+        // | Private | Direct | Visible |                    |
+        // |---------|--------|---------|--------------------|
+        // | Yes     | Yes    | Yes     | !true || true   |
+        // | No      | Yes    | Yes     | !false || true  |
+        // | Yes     | No     | No      | !true || false  |
+        // | No      | No     | Yes     | !false || false |
+        !self.is_private_dep(key)
+            // If `extern_crate` is `None`, then the crate was injected (e.g., by the allocator).
+            // Treat that kind of crate as "indirect", since it's an implementation detail of
+            // the language.
+            || self.extern_crate(key.as_def_id()).map_or(false, |e| e.is_direct())
     }
 }
 
@@ -922,7 +854,7 @@ impl<'tcx> OpaqueTypeExpander<'tcx> {
                         let hidden_ty = bty.subst(self.tcx, substs);
                         self.fold_ty(hidden_ty);
                     }
-                    let expanded_ty = self.tcx.mk_generator_witness_mir(def_id, substs);
+                    let expanded_ty = Ty::new_generator_witness_mir(self.tcx, def_id, substs);
                     self.expanded_cache.insert((def_id, substs), expanded_ty);
                     expanded_ty
                 }
@@ -964,7 +896,7 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for OpaqueTypeExpander<'tcx> {
 
     fn fold_predicate(&mut self, p: ty::Predicate<'tcx>) -> ty::Predicate<'tcx> {
         if let ty::PredicateKind::Clause(clause) = p.kind().skip_binder()
-            && let ty::Clause::Projection(projection_pred) = clause
+            && let ty::ClauseKind::Projection(projection_pred) = clause
         {
             p.kind()
                 .rebind(ty::ProjectionPredicate {
@@ -1374,7 +1306,7 @@ pub fn needs_drop_components<'tcx>(
         ty::Array(elem_ty, size) => {
             match needs_drop_components(*elem_ty, target_layout) {
                 Ok(v) if v.is_empty() => Ok(v),
-                res => match size.kind().try_to_bits(target_layout.pointer_size) {
+                res => match size.try_to_bits(target_layout.pointer_size) {
                     // Arrays of size zero don't need drop, even if their element
                     // type does.
                     Some(0) => Ok(SmallVec::new()),
@@ -1487,8 +1419,8 @@ pub struct AlwaysRequiresDrop;
 /// with their underlying types.
 pub fn reveal_opaque_types_in_bounds<'tcx>(
     tcx: TyCtxt<'tcx>,
-    val: &'tcx ty::List<ty::Predicate<'tcx>>,
-) -> &'tcx ty::List<ty::Predicate<'tcx>> {
+    val: &'tcx ty::List<ty::Clause<'tcx>>,
+) -> &'tcx ty::List<ty::Clause<'tcx>> {
     let mut visitor = OpaqueTypeExpander {
         seen_opaque_tys: FxHashSet::default(),
         expanded_cache: FxHashMap::default(),

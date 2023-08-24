@@ -218,6 +218,7 @@ provide! { tcx, def_id, other, cdata,
     thir_abstract_const => { table }
     optimized_mir => { table }
     mir_for_ctfe => { table }
+    closure_saved_names_of_captured_variables => { table }
     mir_generator_witnesses => { table }
     promoted_mir => { table }
     def_span => { table }
@@ -231,7 +232,7 @@ provide! { tcx, def_id, other, cdata,
     opt_def_kind => { table_direct }
     impl_parent => { table }
     impl_polarity => { table_direct }
-    impl_defaultness => { table_direct }
+    defaultness => { table_direct }
     constness => { table_direct }
     coerce_unsized_info => { table }
     mir_const_qualif => { table }
@@ -285,7 +286,13 @@ provide! { tcx, def_id, other, cdata,
     is_ctfe_mir_available => { cdata.is_ctfe_mir_available(def_id.index) }
 
     dylib_dependency_formats => { cdata.get_dylib_dependency_formats(tcx) }
-    is_private_dep => { cdata.private_dep }
+    is_private_dep => {
+        // Parallel compiler needs to synchronize type checking and linting (which use this flag)
+        // so that they happen strictly crate loading. Otherwise, the full list of available
+        // impls aren't loaded yet.
+        use std::sync::atomic::Ordering;
+        cdata.private_dep.load(Ordering::Acquire)
+    }
     is_panic_runtime => { cdata.root.panic_runtime }
     is_compiler_builtins => { cdata.root.compiler_builtins }
     has_global_allocator => { cdata.root.has_global_allocator }
@@ -317,9 +324,9 @@ provide! { tcx, def_id, other, cdata,
     }
     native_libraries => { cdata.get_native_libraries(tcx.sess).collect() }
     foreign_modules => { cdata.get_foreign_modules(tcx.sess).map(|m| (m.def_id, m)).collect() }
-    crate_hash => { cdata.root.hash }
+    crate_hash => { cdata.root.header.hash }
     crate_host_hash => { cdata.host_hash }
-    crate_name => { cdata.root.name }
+    crate_name => { cdata.root.header.name }
 
     extra_filename => { cdata.root.extra_filename.clone() }
 
@@ -339,6 +346,7 @@ provide! { tcx, def_id, other, cdata,
     stability_implications => {
         cdata.get_stability_implications(tcx).iter().copied().collect()
     }
+    stripped_cfg_items => { cdata.get_stripped_cfg_items(cdata.cnum, tcx) }
     is_intrinsic => { cdata.get_is_intrinsic(def_id.index) }
     defined_lang_items => { cdata.get_lang_items(tcx) }
     diagnostic_items => { cdata.get_diagnostic_items() }
@@ -581,7 +589,7 @@ impl CrateStore for CStore {
     }
 
     fn crate_name(&self, cnum: CrateNum) -> Symbol {
-        self.get_crate_data(cnum).root.name
+        self.get_crate_data(cnum).root.header.name
     }
 
     fn stable_crate_id(&self, cnum: CrateNum) -> StableCrateId {

@@ -13,11 +13,12 @@
 edition = "2021"
 rust-version = "1.64.0"
 name = "anstyle-wincon"
-version = "0.2.0"
+version = "1.0.1"
 include = [
     "build.rs",
     "src/**/*",
     "Cargo.toml",
+    "Cargo.lock",
     "LICENSE*",
     "README.md",
     "benches/**/*",
@@ -37,56 +38,56 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-cli/anstyle.git"
 
 [package.metadata.docs.rs]
+features = ["unstable-doc"]
 rustdoc-args = [
     "--cfg",
     "docsrs",
 ]
-features = ["unstable-doc"]
 targets = ["x86_64-pc-windows-msvc"]
 
 [[package.metadata.release.pre-release-replacements]]
 file = "CHANGELOG.md"
-search = "Unreleased"
+min = 1
 replace = "{{version}}"
-min = 1
+search = "Unreleased"
 
 [[package.metadata.release.pre-release-replacements]]
-file = "CHANGELOG.md"
-search = '\.\.\.HEAD'
-replace = "...{{tag_name}}"
 exactly = 1
+file = "CHANGELOG.md"
+replace = "...{{tag_name}}"
+search = '\.\.\.HEAD'
 
 [[package.metadata.release.pre-release-replacements]]
 file = "CHANGELOG.md"
-search = "ReleaseDate"
-replace = "{{date}}"
 min = 1
+replace = "{{date}}"
+search = "ReleaseDate"
 
 [[package.metadata.release.pre-release-replacements]]
+exactly = 1
 file = "CHANGELOG.md"
-search = "<!-- next-header -->"
 replace = """
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 """
-exactly = 1
+search = "<!-- next-header -->"
 
 [[package.metadata.release.pre-release-replacements]]
+exactly = 1
 file = "CHANGELOG.md"
-search = "<!-- next-url -->"
 replace = """
 <!-- next-url -->
 [Unreleased]: https://github.com/rust-cli/anstyle/compare/{{tag_name}}...HEAD"""
-exactly = 1
+search = "<!-- next-url -->"
 
 [dependencies.anstyle]
-version = "0.3.0"
+version = "1.0.0"
 
 [dev-dependencies.lexopt]
 version = "0.3.0"
 
 [target."cfg(windows)".dependencies.windows-sys]
-version = "0.45.0"
+version = "0.48.0"
 features = [
     "Win32_System_Console",
     "Win32_Foundation",

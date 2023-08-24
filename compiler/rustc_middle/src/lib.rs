@@ -48,12 +48,13 @@
 #![feature(associated_type_bounds)]
 #![feature(rustc_attrs)]
 #![feature(control_flow_enum)]
+#![feature(trait_upcasting)]
 #![feature(trusted_step)]
 #![feature(try_blocks)]
 #![feature(try_reserve_kind)]
 #![feature(nonzero_ops)]
 #![feature(decl_macro)]
-#![feature(drain_filter)]
+#![feature(extract_if)]
 #![feature(intra_doc_pointers)]
 #![feature(yeet_expr)]
 #![feature(result_option_inspect)]
@@ -86,7 +87,7 @@ mod macros;
 
 #[macro_use]
 pub mod arena;
-pub(crate) mod error;
+pub mod error;
 pub mod hir;
 pub mod infer;
 pub mod lint;

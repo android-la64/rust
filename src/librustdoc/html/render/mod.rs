@@ -421,11 +421,10 @@ fn document<'a, 'cx: 'a>(
     display_fn(move |f| {
         document_item_info(cx, item, parent).render_into(f).unwrap();
         if parent.is_none() {
-            write!(f, "{}", document_full_collapsible(item, cx, heading_offset))?;
+            write!(f, "{}", document_full_collapsible(item, cx, heading_offset))
         } else {
-            write!(f, "{}", document_full(item, cx, heading_offset))?;
+            write!(f, "{}", document_full(item, cx, heading_offset))
         }
-        Ok(())
     })
 }
 
@@ -787,10 +786,12 @@ fn assoc_type(
     indent: usize,
     cx: &Context<'_>,
 ) {
+    let tcx = cx.tcx();
     write!(
         w,
-        "{indent}type <a{href} class=\"associatedtype\">{name}</a>{generics}",
+        "{indent}{vis}type <a{href} class=\"associatedtype\">{name}</a>{generics}",
         indent = " ".repeat(indent),
+        vis = visibility_print_with_space(it.visibility(tcx), it.item_id, cx),
         href = assoc_href_attr(it, link, cx),
         name = it.name.as_ref().unwrap(),
         generics = generics.print(cx),
@@ -798,10 +799,11 @@ fn assoc_type(
     if !bounds.is_empty() {
         write!(w, ": {}", print_generic_bounds(bounds, cx))
     }
-    write!(w, "{}", print_where_clause(generics, cx, indent, Ending::NoNewline));
+    // Render the default before the where-clause which aligns with the new recommended style. See #89122.
     if let Some(default) = default {
         write!(w, " = {}", default.print(cx))
     }
+    write!(w, "{}", print_where_clause(generics, cx, indent, Ending::NoNewline));
 }
 
 fn assoc_method(
@@ -844,7 +846,7 @@ fn assoc_method(
         + name.as_str().len()
         + generics_len;
 
-    let notable_traits = d.output.as_return().and_then(|output| notable_traits_button(output, cx));
+    let notable_traits = notable_traits_button(&d.output, cx);
 
     let (indent, indent_str, end_newline) = if parent == ItemType::Trait {
         header_len += 4;
@@ -858,8 +860,8 @@ fn assoc_method(
     w.reserve(header_len + "<a href=\"\" class=\"fn\">{".len() + "</a>".len());
     write!(
         w,
-        "{indent}{vis}{constness}{asyncness}{unsafety}{defaultness}{abi}fn <a{href} class=\"fn\">{name}</a>\
-         {generics}{decl}{notable_traits}{where_clause}",
+        "{indent}{vis}{constness}{asyncness}{unsafety}{defaultness}{abi}fn \
+         <a{href} class=\"fn\">{name}</a>{generics}{decl}{notable_traits}{where_clause}",
         indent = indent_str,
         vis = vis,
         constness = constness,
@@ -1038,9 +1040,9 @@ fn render_attributes_in_pre<'a, 'b: 'a>(
 
 // When an attribute is rendered inside a <code> tag, it is formatted using
 // a div to produce a newline after it.
-fn render_attributes_in_code(w: &mut Buffer, it: &clean::Item, tcx: TyCtxt<'_>) {
-    for a in it.attributes(tcx, false) {
-        write!(w, "<div class=\"code-attribute\">{}</div>", a);
+fn render_attributes_in_code(w: &mut impl fmt::Write, it: &clean::Item, tcx: TyCtxt<'_>) {
+    for attr in it.attributes(tcx, false) {
+        write!(w, "<div class=\"code-attribute\">{attr}</div>").unwrap();
     }
 }
 
@@ -1281,6 +1283,11 @@ fn should_render_item(item: &clean::Item, deref_mut_: bool, tcx: TyCtxt<'_>) -> 
 
 pub(crate) fn notable_traits_button(ty: &clean::Type, cx: &mut Context<'_>) -> Option<String> {
     let mut has_notable_trait = false;
+
+    if ty.is_unit() {
+        // Very common fast path.
+        return None;
+    }
 
     let did = ty.def_id(cx.cache())?;
 

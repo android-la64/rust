@@ -11,8 +11,9 @@
 
 [package]
 edition = "2018"
+rust-version = "1.60"
 name = "proptest"
-version = "1.1.0"
+version = "1.2.0"
 authors = ["Jason Lingle"]
 exclude = [
     "/gen-*.sh",
@@ -21,8 +22,8 @@ exclude = [
 description = """
 Hypothesis-like property-based testing and shrinking.
 """
-homepage = "https://altsysrq.github.io/proptest-book/proptest/index.html"
-documentation = "https://altsysrq.github.io/rustdoc/proptest/1.0.0/proptest/"
+homepage = "https://proptest-rs.github.io/proptest/proptest/index.html"
+documentation = "https://docs.rs/proptest/latest/proptest/"
 readme = "README.md"
 keywords = [
     "property",
@@ -34,6 +35,13 @@ keywords = [
 categories = ["development-tools::testing"]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/proptest-rs/proptest"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = [
+    "--cfg",
+    "docsrs",
+]
 
 [dependencies.bit-set]
 version = "0.5.0"
@@ -54,10 +62,6 @@ optional = true
 version = "0.2.15"
 features = ["libm"]
 default-features = false
-
-[dependencies.quick-error]
-version = "2.0.0"
-optional = true
 
 [dependencies.rand]
 version = "0.8"
@@ -121,7 +125,6 @@ std = [
     "rand/std",
     "byteorder/std",
     "lazy_static",
-    "quick-error",
     "regex-syntax",
     "num-traits/std",
 ]

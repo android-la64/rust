@@ -214,6 +214,7 @@ impl<'a, 'tcx> DropRangeVisitor<'a, 'tcx> {
             | ExprKind::Break(..)
             | ExprKind::Continue(..)
             | ExprKind::Ret(..)
+            | ExprKind::Become(..)
             | ExprKind::InlineAsm(..)
             | ExprKind::OffsetOf(..)
             | ExprKind::Struct(..)
@@ -270,6 +271,7 @@ impl<'a, 'tcx> DropRangeVisitor<'a, 'tcx> {
                 | hir::Node::Variant(..)
                 | hir::Node::Field(..)
                 | hir::Node::AnonConst(..)
+                | hir::Node::ConstBlock(..)
                 | hir::Node::Stmt(..)
                 | hir::Node::PathSegment(..)
                 | hir::Node::Ty(..)
@@ -449,6 +451,8 @@ impl<'a, 'tcx> Visitor<'tcx> for DropRangeVisitor<'a, 'tcx> {
                     self.visit_expr(value);
                 }
             }
+
+            ExprKind::Become(_call) => bug!("encountered a tail-call inside a generator"),
 
             ExprKind::Call(f, args) => {
                 self.visit_expr(f);

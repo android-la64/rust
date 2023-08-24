@@ -83,6 +83,12 @@ impl IntoDiagnosticArg for DebugArgPath<'_> {
 }
 
 #[derive(Diagnostic)]
+#[diag(codegen_ssa_binary_output_to_tty)]
+pub struct BinaryOutputToTty {
+    pub shorthand: &'static str,
+}
+
+#[derive(Diagnostic)]
 #[diag(codegen_ssa_ignoring_emit_path)]
 pub struct IgnoringEmitPath {
     pub extension: String,
@@ -336,7 +342,7 @@ pub struct LinkingFailed<'a> {
     pub linker_path: &'a PathBuf,
     pub exit_status: ExitStatus,
     pub command: &'a Command,
-    pub escaped_output: &'a str,
+    pub escaped_output: String,
 }
 
 impl IntoDiagnostic<'_> for LinkingFailed<'_> {
@@ -345,11 +351,13 @@ impl IntoDiagnostic<'_> for LinkingFailed<'_> {
         diag.set_arg("linker_path", format!("{}", self.linker_path.display()));
         diag.set_arg("exit_status", format!("{}", self.exit_status));
 
-        diag.note(format!("{:?}", self.command)).note(self.escaped_output);
+        let contains_undefined_ref = self.escaped_output.contains("undefined reference to");
+
+        diag.note(format!("{:?}", self.command)).note(self.escaped_output.to_string());
 
         // Trying to match an error from OS linkers
         // which by now we have no way to translate.
-        if self.escaped_output.contains("undefined reference to") {
+        if contains_undefined_ref {
             diag.note(fluent::codegen_ssa_extern_funcs_not_found)
                 .note(fluent::codegen_ssa_specify_libraries_to_link)
                 .note(fluent::codegen_ssa_use_cargo_directive);
@@ -1014,4 +1022,10 @@ pub struct TargetFeatureSafeTrait {
     pub span: Span,
     #[label(codegen_ssa_label_def)]
     pub def: Span,
+}
+
+#[derive(Diagnostic)]
+#[diag(codegen_ssa_error_creating_remark_dir)]
+pub struct ErrorCreatingRemarkDir {
+    pub error: std::io::Error,
 }

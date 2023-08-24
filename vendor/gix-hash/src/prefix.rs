@@ -2,7 +2,7 @@ use std::{cmp::Ordering, convert::TryFrom};
 
 use crate::{oid, ObjectId, Prefix};
 
-/// The error returned by [Prefix::new()].
+/// The error returned by [`Prefix::new()`].
 #[derive(Debug, thiserror::Error)]
 #[allow(missing_docs)]
 pub enum Error {
@@ -17,7 +17,7 @@ pub enum Error {
 
 ///
 pub mod from_hex {
-    /// The error returned by [Prefix::from_hex][super::Prefix::from_hex()].
+    /// The error returned by [`Prefix::from_hex`][super::Prefix::from_hex()].
     #[derive(Debug, Eq, PartialEq, thiserror::Error)]
     #[allow(missing_docs)]
     pub enum Error {
@@ -110,7 +110,7 @@ impl Prefix {
             let mut buf = [0u8; crate::Kind::longest().len_in_hex()];
             buf[..value.len()].copy_from_slice(value.as_bytes());
             buf[value.len()] = b'0';
-            Vec::from_hex(&buf[..value.len() + 1])
+            Vec::from_hex(&buf[..=value.len()])
         }
         .map_err(|e| match e {
             hex::FromHexError::InvalidHexCharacter { c, index } => from_hex::Error::Invalid { c, index },

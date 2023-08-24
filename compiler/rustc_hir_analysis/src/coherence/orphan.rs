@@ -200,35 +200,32 @@ fn do_orphan_check_impl<'tcx>(
                 NonlocalImpl::DisallowOther,
             ),
 
-            // trait Id { type This: ?Sized; }
-            // impl<T: ?Sized> Id for T {
-            //     type This = T;
-            // }
-            // impl<T: ?Sized> AutoTrait for <T as Id>::This {}
-            ty::Alias(AliasKind::Projection, _) => (
-                LocalImpl::Disallow { problematic_kind: "associated type" },
-                NonlocalImpl::DisallowOther,
-            ),
-
-            // ```
-            // struct S<T>(T);
-            // impl<T: ?Sized> S<T> {
-            //     type This = T;
-            // }
-            // impl<T: ?Sized> AutoTrait for S<T>::This {}
-            // ```
-            // FIXME(inherent_associated_types): The example code above currently leads to a cycle
-            ty::Alias(AliasKind::Inherent, _) => (
-                LocalImpl::Disallow { problematic_kind: "associated type" },
-                NonlocalImpl::DisallowOther,
-            ),
-
-            // type Opaque = impl Trait;
-            // impl AutoTrait for Opaque {}
-            ty::Alias(AliasKind::Opaque, _) => (
-                LocalImpl::Disallow { problematic_kind: "opaque type" },
-                NonlocalImpl::DisallowOther,
-            ),
+            ty::Alias(kind, _) => {
+                let problematic_kind = match kind {
+                    // trait Id { type This: ?Sized; }
+                    // impl<T: ?Sized> Id for T {
+                    //     type This = T;
+                    // }
+                    // impl<T: ?Sized> AutoTrait for <T as Id>::This {}
+                    AliasKind::Projection => "associated type",
+                    // type Foo = (impl Sized, bool)
+                    // impl AutoTrait for Foo {}
+                    AliasKind::Weak => "type alias",
+                    // type Opaque = impl Trait;
+                    // impl AutoTrait for Opaque {}
+                    AliasKind::Opaque => "opaque type",
+                    // ```
+                    // struct S<T>(T);
+                    // impl<T: ?Sized> S<T> {
+                    //     type This = T;
+                    // }
+                    // impl<T: ?Sized> AutoTrait for S<T>::This {}
+                    // ```
+                    // FIXME(inherent_associated_types): The example code above currently leads to a cycle
+                    AliasKind::Inherent => "associated type",
+                };
+                (LocalImpl::Disallow { problematic_kind }, NonlocalImpl::DisallowOther)
+            }
 
             ty::Bool
             | ty::Char
@@ -346,7 +343,7 @@ fn emit_orphan_check_error<'tcx>(
                     // That way if we had `Vec<MyType>`, we will properly attribute the
                     // problem to `Vec<T>` and avoid confusing the user if they were to see
                     // `MyType` in the error.
-                    ty::Adt(def, _) => tcx.mk_adt(*def, ty::List::empty()),
+                    ty::Adt(def, _) => Ty::new_adt(tcx, *def, ty::List::empty()),
                     _ => ty,
                 };
                 let msg = |ty: &str, postfix: &str| {
@@ -608,7 +605,9 @@ fn fast_reject_auto_impl<'tcx>(tcx: TyCtxt<'tcx>, trait_def_id: DefId, self_ty: 
     }
 
     let self_ty_root = match self_ty.kind() {
-        ty::Adt(def, _) => tcx.mk_adt(*def, InternalSubsts::identity_for_item(tcx, def.did())),
+        ty::Adt(def, _) => {
+            Ty::new_adt(tcx, *def, InternalSubsts::identity_for_item(tcx, def.did()))
+        }
         _ => unimplemented!("unexpected self ty {:?}", self_ty),
     };
 

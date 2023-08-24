@@ -1,5 +1,5 @@
 use super::operand::OperandRef;
-use super::operand::OperandValue::{Immediate, Pair, Ref};
+use super::operand::OperandValue::{Immediate, Pair, Ref, ZeroSized};
 use super::place::PlaceRef;
 use super::{CachedLlbb, FunctionCx, LocalRef};
 
@@ -79,8 +79,8 @@ impl<'a, 'tcx> TerminatorCodegenHelper<'tcx> {
             lltarget = fx.landing_pad_for(target);
         }
         if is_cleanupret {
-            // MSVC cross-funclet jump - need a trampoline
-            debug_assert!(base::wants_msvc_seh(fx.cx.tcx().sess));
+            // Cross-funclet jump - need a trampoline
+            debug_assert!(base::wants_new_eh_instructions(fx.cx.tcx().sess));
             debug!("llbb_with_cleanup: creating cleanup trampoline for {:?}", target);
             let name = &format!("{:?}_cleanup_trampoline_{:?}", self.bb, target);
             let trampoline_llbb = Bx::append_block(fx.cx, fx.llfn, name);
@@ -177,9 +177,16 @@ impl<'a, 'tcx> TerminatorCodegenHelper<'tcx> {
             mir::UnwindAction::Continue => None,
             mir::UnwindAction::Unreachable => None,
             mir::UnwindAction::Terminate => {
-                if fx.mir[self.bb].is_cleanup && base::wants_msvc_seh(fx.cx.tcx().sess) {
-                    // SEH will abort automatically if an exception tries to
+                if fx.mir[self.bb].is_cleanup && base::wants_new_eh_instructions(fx.cx.tcx().sess) {
+                    // MSVC SEH will abort automatically if an exception tries to
                     // propagate out from cleanup.
+
+                    // FIXME(@mirkootter): For wasm, we currently do not support terminate during
+                    // cleanup, because this requires a few more changes: The current code
+                    // caches the `terminate_block` for each function; funclet based code - however -
+                    // requires a different terminate_block for each funclet
+                    // Until this is implemented, we just do not unwind inside cleanup blocks
+
                     None
                 } else {
                     Some(fx.terminate_block())
@@ -427,6 +434,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         assert_eq!(align, op.layout.align.abi, "return place is unaligned!");
                         llval
                     }
+                    ZeroSized => bug!("ZST return value shouldn't be in PassMode::Cast"),
                 };
                 let ty = bx.cast_backend_type(cast_ty);
                 let addr = bx.pointercast(llslot, bx.type_ptr_to(ty));
@@ -615,7 +623,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             AssertKind::MisalignedPointerDereference { ref required, ref found } => {
                 let required = self.codegen_operand(bx, required).immediate();
                 let found = self.codegen_operand(bx, found).immediate();
-                // It's `fn panic_bounds_check(index: usize, len: usize)`,
+                // It's `fn panic_misaligned_pointer_dereference(required: usize, found: usize)`,
                 // and `#[track_caller]` adds an implicit third argument.
                 (LangItem::PanicMisalignedPointerDereference, vec![required, found, location])
             }
@@ -862,13 +870,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         // promotes any complex rvalues to constants.
                         if i == 2 && intrinsic.as_str().starts_with("simd_shuffle") {
                             if let mir::Operand::Constant(constant) = arg {
-                                let c = self.eval_mir_constant(constant);
-                                let (llval, ty) = self.simd_shuffle_indices(
-                                    &bx,
-                                    constant.span,
-                                    self.monomorphize(constant.ty()),
-                                    c,
-                                );
+                                let (llval, ty) = self.simd_shuffle_indices(&bx, constant);
                                 return OperandRef {
                                     val: Immediate(llval),
                                     layout: bx.layout_of(ty),
@@ -1279,7 +1281,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 destination,
                 target,
                 unwind,
-                from_hir_call: _,
+                call_source: _,
                 fn_span,
             } => self.codegen_call_terminator(
                 helper,
@@ -1386,6 +1388,16 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     (llval, align, true)
                 }
             }
+            ZeroSized => match arg.mode {
+                PassMode::Indirect { .. } => {
+                    // Though `extern "Rust"` doesn't pass ZSTs, some ABIs pass
+                    // a pointer for `repr(C)` structs even when empty, so get
+                    // one from an `alloca` (which can be left uninitialized).
+                    let scratch = PlaceRef::alloca(bx, arg.layout);
+                    (scratch.llval, scratch.align, true)
+                }
+                _ => bug!("ZST {op:?} wasn't ignored, but was passed with abi {arg:?}"),
+            },
         };
 
         if by_ref && !arg.is_indirect() {
@@ -1493,9 +1505,10 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         if let Some(slot) = self.personality_slot {
             slot
         } else {
-            let layout = cx.layout_of(
-                cx.tcx().mk_tup(&[cx.tcx().mk_mut_ptr(cx.tcx().types.u8), cx.tcx().types.i32]),
-            );
+            let layout = cx.layout_of(Ty::new_tup(
+                cx.tcx(),
+                &[Ty::new_mut_ptr(cx.tcx(), cx.tcx().types.u8), cx.tcx().types.i32],
+            ));
             let slot = PlaceRef::alloca(bx, layout);
             self.personality_slot = Some(slot);
             slot
@@ -1517,7 +1530,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
     // FIXME(eddyb) rename this to `eh_pad_for_uncached`.
     fn landing_pad_for_uncached(&mut self, bb: mir::BasicBlock) -> Bx::BasicBlock {
         let llbb = self.llbb(bb);
-        if base::wants_msvc_seh(self.cx.sess()) {
+        if base::wants_new_eh_instructions(self.cx.sess()) {
             let cleanup_bb = Bx::append_block(self.cx, self.llfn, &format!("funclet_{:?}", bb));
             let mut cleanup_bx = Bx::build(self.cx, cleanup_bb);
             let funclet = cleanup_bx.cleanup_pad(None, &[]);
@@ -1576,6 +1589,15 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 //      } catch (...) {
                 //          bar();
                 //      }
+                //
+                // which creates an IR snippet like
+                //
+                //      cs_terminate:
+                //         %cs = catchswitch within none [%cp_terminate] unwind to caller
+                //      cp_terminate:
+                //         %cp = catchpad within %cs [null, i32 64, null]
+                //         ...
+
                 llbb = Bx::append_block(self.cx, self.llfn, "cs_terminate");
                 let cp_llbb = Bx::append_block(self.cx, self.llfn, "cp_terminate");
 
@@ -1718,7 +1740,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             IndirectOperand(tmp, index) => {
                 let op = bx.load_operand(tmp);
                 tmp.storage_dead(bx);
-                self.locals[index] = LocalRef::Operand(op);
+                self.overwrite_local(index, LocalRef::Operand(op));
                 self.debug_introduce_local(bx, index);
             }
             DirectOperand(index) => {
@@ -1733,7 +1755,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 } else {
                     OperandRef::from_immediate_or_packed_pair(bx, llval, ret_abi.layout)
                 };
-                self.locals[index] = LocalRef::Operand(op);
+                self.overwrite_local(index, LocalRef::Operand(op));
                 self.debug_introduce_local(bx, index);
             }
         }

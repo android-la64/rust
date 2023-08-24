@@ -188,14 +188,14 @@ pub(crate) mod rustc {
         /// The layout of the type is unspecified.
         Unspecified,
         /// This error will be surfaced elsewhere by rustc, so don't surface it.
-        Unknown,
+        UnknownLayout,
         TypeError(ErrorGuaranteed),
     }
 
-    impl<'tcx> From<LayoutError<'tcx>> for Err {
-        fn from(err: LayoutError<'tcx>) -> Self {
+    impl<'tcx> From<&LayoutError<'tcx>> for Err {
+        fn from(err: &LayoutError<'tcx>) -> Self {
             match err {
-                LayoutError::Unknown(..) => Self::Unknown,
+                LayoutError::Unknown(..) => Self::UnknownLayout,
                 err => unimplemented!("{:?}", err),
             }
         }
@@ -221,7 +221,7 @@ pub(crate) mod rustc {
     }
 
     impl LayoutSummary {
-        fn from_ty<'tcx>(ty: Ty<'tcx>, ctx: TyCtxt<'tcx>) -> Result<Self, LayoutError<'tcx>> {
+        fn from_ty<'tcx>(ty: Ty<'tcx>, ctx: TyCtxt<'tcx>) -> Result<Self, &'tcx LayoutError<'tcx>> {
             use rustc_middle::ty::ParamEnvAnd;
             use rustc_target::abi::{TyAndLayout, Variants};
 
@@ -365,6 +365,17 @@ pub(crate) mod rustc {
                         }
                     }))
                 }
+
+                ty::Ref(lifetime, ty, mutability) => {
+                    let align = layout_of(tcx, *ty)?.align();
+                    Ok(Tree::Ref(Ref {
+                        lifetime: *lifetime,
+                        ty: *ty,
+                        mutability: *mutability,
+                        align,
+                    }))
+                }
+
                 _ => Err(Err::Unspecified),
             }
         }
@@ -471,7 +482,7 @@ pub(crate) mod rustc {
     fn layout_of<'tcx>(
         ctx: TyCtxt<'tcx>,
         ty: Ty<'tcx>,
-    ) -> Result<alloc::Layout, LayoutError<'tcx>> {
+    ) -> Result<alloc::Layout, &'tcx LayoutError<'tcx>> {
         use rustc_middle::ty::ParamEnvAnd;
         use rustc_target::abi::TyAndLayout;
 

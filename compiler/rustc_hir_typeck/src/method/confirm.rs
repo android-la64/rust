@@ -10,7 +10,7 @@ use rustc_hir_analysis::astconv::generics::{
 use rustc_hir_analysis::astconv::{AstConv, CreateSubstsForGenericArgsCtxt, IsMethodCall};
 use rustc_infer::infer::{self, DefineOpaqueTypes, InferOk};
 use rustc_middle::traits::{ObligationCauseCode, UnifyReceiverContext};
-use rustc_middle::ty::adjustment::{Adjust, Adjustment, PointerCast};
+use rustc_middle::ty::adjustment::{Adjust, Adjustment, PointerCoercion};
 use rustc_middle::ty::adjustment::{AllowTwoPhase, AutoBorrow, AutoBorrowMutability};
 use rustc_middle::ty::fold::TypeFoldable;
 use rustc_middle::ty::subst::{self, SubstsRef};
@@ -26,6 +26,7 @@ struct ConfirmContext<'a, 'tcx> {
     span: Span,
     self_expr: &'tcx hir::Expr<'tcx>,
     call_expr: &'tcx hir::Expr<'tcx>,
+    skip_record_for_diagnostics: bool,
 }
 
 impl<'a, 'tcx> Deref for ConfirmContext<'a, 'tcx> {
@@ -59,6 +60,20 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let mut confirm_cx = ConfirmContext::new(self, span, self_expr, call_expr);
         confirm_cx.confirm(unadjusted_self_ty, pick, segment)
     }
+
+    pub fn confirm_method_for_diagnostic(
+        &self,
+        span: Span,
+        self_expr: &'tcx hir::Expr<'tcx>,
+        call_expr: &'tcx hir::Expr<'tcx>,
+        unadjusted_self_ty: Ty<'tcx>,
+        pick: &probe::Pick<'tcx>,
+        segment: &hir::PathSegment<'_>,
+    ) -> ConfirmResult<'tcx> {
+        let mut confirm_cx = ConfirmContext::new(self, span, self_expr, call_expr);
+        confirm_cx.skip_record_for_diagnostics = true;
+        confirm_cx.confirm(unadjusted_self_ty, pick, segment)
+    }
 }
 
 impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
@@ -68,7 +83,7 @@ impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
         self_expr: &'tcx hir::Expr<'tcx>,
         call_expr: &'tcx hir::Expr<'tcx>,
     ) -> ConfirmContext<'a, 'tcx> {
-        ConfirmContext { fcx, span, self_expr, call_expr }
+        ConfirmContext { fcx, span, self_expr, call_expr, skip_record_for_diagnostics: false }
     }
 
     fn confirm(
@@ -128,7 +143,7 @@ impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
         // a custom error in that case.
         if illegal_sized_bound.is_none() {
             self.add_obligations(
-                self.tcx.mk_fn_ptr(method_sig),
+                Ty::new_fn_ptr(self.tcx, method_sig),
                 all_substs,
                 method_predicates,
                 pick.item.def_id,
@@ -156,7 +171,7 @@ impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
         // time writing the results into the various typeck results.
         let mut autoderef = self.autoderef(self.call_expr.span, unadjusted_self_ty);
         let Some((ty, n)) = autoderef.nth(pick.autoderefs) else {
-            return self.tcx.ty_error_with_message(
+            return Ty::new_error_with_message(self.tcx,
                 rustc_span::DUMMY_SP,
                 format!("failed autoderef {}", pick.autoderefs),
             );
@@ -164,7 +179,7 @@ impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
         assert_eq!(n, pick.autoderefs);
 
         let mut adjustments = self.adjust_steps(&autoderef);
-        let mut target = self.structurally_resolved_type(autoderef.span(), ty);
+        let mut target = self.structurally_resolve_type(autoderef.span(), ty);
 
         match pick.autoref_or_ptr_adjustment {
             Some(probe::AutorefOrPtrAdjustment::Autoref { mutbl, unsize }) => {
@@ -172,7 +187,7 @@ impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
                 // Type we're wrapping in a reference, used later for unsizing
                 let base_ty = target;
 
-                target = self.tcx.mk_ref(region, ty::TypeAndMut { mutbl, ty: target });
+                target = Ty::new_ref(self.tcx, region, ty::TypeAndMut { mutbl, ty: target });
 
                 // Method call receivers are the primary use case
                 // for two-phase borrows.
@@ -185,31 +200,35 @@ impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
 
                 if unsize {
                     let unsized_ty = if let ty::Array(elem_ty, _) = base_ty.kind() {
-                        self.tcx.mk_slice(*elem_ty)
+                        Ty::new_slice(self.tcx, *elem_ty)
                     } else {
                         bug!(
                             "AutorefOrPtrAdjustment's unsize flag should only be set for array ty, found {}",
                             base_ty
                         )
                     };
-                    target = self
-                        .tcx
-                        .mk_ref(region, ty::TypeAndMut { mutbl: mutbl.into(), ty: unsized_ty });
-                    adjustments
-                        .push(Adjustment { kind: Adjust::Pointer(PointerCast::Unsize), target });
+                    target = Ty::new_ref(
+                        self.tcx,
+                        region,
+                        ty::TypeAndMut { mutbl: mutbl.into(), ty: unsized_ty },
+                    );
+                    adjustments.push(Adjustment {
+                        kind: Adjust::Pointer(PointerCoercion::Unsize),
+                        target,
+                    });
                 }
             }
             Some(probe::AutorefOrPtrAdjustment::ToConstPtr) => {
                 target = match target.kind() {
                     &ty::RawPtr(ty::TypeAndMut { ty, mutbl }) => {
                         assert!(mutbl.is_mut());
-                        self.tcx.mk_ptr(ty::TypeAndMut { mutbl: hir::Mutability::Not, ty })
+                        Ty::new_ptr(self.tcx, ty::TypeAndMut { mutbl: hir::Mutability::Not, ty })
                     }
                     other => panic!("Cannot adjust receiver type {:?} to const ptr", other),
                 };
 
                 adjustments.push(Adjustment {
-                    kind: Adjust::Pointer(PointerCast::MutToConstPointer),
+                    kind: Adjust::Pointer(PointerCoercion::MutToConstPointer),
                     target,
                 });
             }
@@ -219,7 +238,9 @@ impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
         self.register_predicates(autoderef.into_obligations());
 
         // Write out the final adjustments.
-        self.apply_adjustments(self.self_expr, adjustments);
+        if !self.skip_record_for_diagnostics {
+            self.apply_adjustments(self.self_expr, adjustments);
+        }
 
         target
     }
@@ -453,7 +474,10 @@ impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
             });
 
             debug!("instantiate_method_substs: user_type_annotation={:?}", user_type_annotation);
-            self.fcx.write_user_type_annotation(self.call_expr.hir_id, user_type_annotation);
+
+            if !self.skip_record_for_diagnostics {
+                self.fcx.write_user_type_annotation(self.call_expr.hir_id, user_type_annotation);
+            }
         }
 
         self.normalize(self.span, substs)
@@ -586,9 +610,7 @@ impl<'a, 'tcx> ConfirmContext<'a, 'tcx> {
         traits::elaborate(self.tcx, predicates.predicates.iter().copied())
             // We don't care about regions here.
             .filter_map(|pred| match pred.kind().skip_binder() {
-                ty::PredicateKind::Clause(ty::Clause::Trait(trait_pred))
-                    if trait_pred.def_id() == sized_def_id =>
-                {
+                ty::ClauseKind::Trait(trait_pred) if trait_pred.def_id() == sized_def_id => {
                     let span = predicates
                         .iter()
                         .find_map(|(p, span)| if p == pred { Some(span) } else { None })

@@ -34,6 +34,8 @@ pub(crate) mod root {
         pub const DIFF: sections::Diff = sections::Diff;
         /// The `extensions` section.
         pub const EXTENSIONS: sections::Extensions = sections::Extensions;
+        /// The `fetch` section.
+        pub const FETCH: sections::Fetch = sections::Fetch;
         /// The `gitoxide` section.
         pub const GITOXIDE: sections::Gitoxide = sections::Gitoxide;
         /// The `http` section.
@@ -69,6 +71,7 @@ pub(crate) mod root {
                 &Self::CREDENTIAL,
                 &Self::DIFF,
                 &Self::EXTENSIONS,
+                &Self::FETCH,
                 &Self::GITOXIDE,
                 &Self::HTTP,
                 &Self::INDEX,
@@ -87,9 +90,9 @@ pub(crate) mod root {
 
 mod sections;
 pub use sections::{
-    branch, checkout, core, credential, diff, extensions, gitoxide, http, index, protocol, remote, ssh, Author, Branch,
-    Checkout, Clone, Committer, Core, Credential, Diff, Extensions, Gitoxide, Http, Index, Init, Pack, Protocol,
-    Remote, Safe, Ssh, Url, User,
+    branch, checkout, core, credential, diff, extensions, fetch, gitoxide, http, index, protocol, remote, ssh, Author,
+    Branch, Checkout, Clone, Committer, Core, Credential, Diff, Extensions, Fetch, Gitoxide, Http, Index, Init, Pack,
+    Protocol, Remote, Safe, Ssh, Url, User,
 };
 
 /// Generic value implementations for static instantiation.
@@ -99,7 +102,7 @@ pub mod keys;
 pub mod key {
     ///
     pub mod validate {
-        /// The error returned by [Key::validate()][crate::config::tree::Key::validate()].
+        /// The error returned by [`Key::validate()`][crate::config::tree::Key::validate()].
         #[derive(Debug, thiserror::Error)]
         #[error(transparent)]
         #[allow(missing_docs)]
@@ -110,7 +113,7 @@ pub mod key {
     }
     ///
     pub mod validate_assignment {
-        /// The error returned by [Key::validated_assignment*()][crate::config::tree::Key::validated_assignment_fmt()].
+        /// The error returned by [`Key::validated_assignment`*()][crate::config::tree::Key::validated_assignment_fmt()].
         #[derive(Debug, thiserror::Error)]
         #[allow(missing_docs)]
         pub enum Error {

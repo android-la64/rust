@@ -31,6 +31,7 @@ pub struct EntryFields<'a> {
     pub long_pathname: Option<Vec<u8>>,
     pub long_linkname: Option<Vec<u8>>,
     pub pax_extensions: Option<Vec<u8>>,
+    pub mask: u32,
     pub header: Header,
     pub size: u64,
     pub header_pos: u64,
@@ -38,6 +39,7 @@ pub struct EntryFields<'a> {
     pub data: Vec<EntryIo<'a>>,
     pub unpack_xattrs: bool,
     pub preserve_permissions: bool,
+    pub preserve_ownerships: bool,
     pub preserve_mtime: bool,
     pub overwrite: bool,
 }
@@ -228,6 +230,20 @@ impl<'a, R: Read> Entry<'a, R> {
     /// ```
     pub fn unpack_in<P: AsRef<Path>>(&mut self, dst: P) -> io::Result<bool> {
         self.fields.unpack_in(dst.as_ref())
+    }
+
+    /// Set the mask of the permission bits when unpacking this entry.
+    ///
+    /// The mask will be inverted when applying against a mode, similar to how
+    /// `umask` works on Unix. In logical notation it looks like:
+    ///
+    /// ```text
+    /// new_mode = old_mode & (~mask)
+    /// ```
+    ///
+    /// The mask is 0 by default and is currently only implemented on Unix.
+    pub fn set_mask(&mut self, mask: u32) {
+        self.fields.mask = mask;
     }
 
     /// Indicate whether extended file attributes (xattrs on Unix) are preserved
@@ -444,13 +460,51 @@ impl<'a> EntryFields<'a> {
 
     /// Returns access to the header of this entry in the archive.
     fn unpack(&mut self, target_base: Option<&Path>, dst: &Path) -> io::Result<Unpacked> {
+        fn set_perms_ownerships(
+            dst: &Path,
+            f: Option<&mut std::fs::File>,
+            header: &Header,
+            mask: u32,
+            perms: bool,
+            ownerships: bool,
+        ) -> io::Result<()> {
+            // ownerships need to be set first to avoid stripping SUID bits in the permissions ...
+            if ownerships {
+                set_ownerships(dst, &f, header.uid()?, header.gid()?)?;
+            }
+            // ... then set permissions, SUID bits set here is kept
+            if let Ok(mode) = header.mode() {
+                set_perms(dst, f, mode, mask, perms)?;
+            }
+
+            Ok(())
+        }
+
+        fn get_mtime(header: &Header) -> Option<FileTime> {
+            header.mtime().ok().map(|mtime| {
+                // For some more information on this see the comments in
+                // `Header::fill_platform_from`, but the general idea is that
+                // we're trying to avoid 0-mtime files coming out of archives
+                // since some tools don't ingest them well. Perhaps one day
+                // when Cargo stops working with 0-mtime archives we can remove
+                // this.
+                let mtime = if mtime == 0 { 1 } else { mtime };
+                FileTime::from_unix_time(mtime as i64, 0)
+            })
+        }
+
         let kind = self.header.entry_type();
 
         if kind.is_dir() {
             self.unpack_dir(dst)?;
-            if let Ok(mode) = self.header.mode() {
-                set_perms(dst, None, mode, self.preserve_permissions)?;
-            }
+            set_perms_ownerships(
+                dst,
+                None,
+                &self.header,
+                self.mask,
+                self.preserve_permissions,
+                self.preserve_ownerships,
+            )?;
             return Ok(Unpacked::__Nonexhaustive);
         } else if kind.is_hard_link() || kind.is_symlink() {
             let src = match self.link_name()? {
@@ -522,7 +576,14 @@ impl<'a> EntryFields<'a> {
                             ),
                         )
                     })?;
-            };
+                if self.preserve_mtime {
+                    if let Some(mtime) = get_mtime(&self.header) {
+                        filetime::set_symlink_file_times(dst, mtime, mtime).map_err(|e| {
+                            TarError::new(format!("failed to set mtime for `{}`", dst.display()), e)
+                        })?;
+                    }
+                }
+            }
             return Ok(Unpacked::__Nonexhaustive);
 
             #[cfg(target_arch = "wasm32")]
@@ -553,9 +614,14 @@ impl<'a> EntryFields<'a> {
         // Only applies to old headers.
         if self.header.as_ustar().is_none() && self.path_bytes().ends_with(b"/") {
             self.unpack_dir(dst)?;
-            if let Ok(mode) = self.header.mode() {
-                set_perms(dst, None, mode, self.preserve_permissions)?;
-            }
+            set_perms_ownerships(
+                dst,
+                None,
+                &self.header,
+                self.mask,
+                self.preserve_permissions,
+                self.preserve_ownerships,
+            )?;
             return Ok(Unpacked::__Nonexhaustive);
         }
 
@@ -618,35 +684,105 @@ impl<'a> EntryFields<'a> {
         })?;
 
         if self.preserve_mtime {
-            if let Ok(mtime) = self.header.mtime() {
-                // For some more information on this see the comments in
-                // `Header::fill_platform_from`, but the general idea is that
-                // we're trying to avoid 0-mtime files coming out of archives
-                // since some tools don't ingest them well. Perhaps one day
-                // when Cargo stops working with 0-mtime archives we can remove
-                // this.
-                let mtime = if mtime == 0 { 1 } else { mtime };
-                let mtime = FileTime::from_unix_time(mtime as i64, 0);
+            if let Some(mtime) = get_mtime(&self.header) {
                 filetime::set_file_handle_times(&f, Some(mtime), Some(mtime)).map_err(|e| {
                     TarError::new(format!("failed to set mtime for `{}`", dst.display()), e)
                 })?;
             }
         }
-        if let Ok(mode) = self.header.mode() {
-            set_perms(dst, Some(&mut f), mode, self.preserve_permissions)?;
-        }
+        set_perms_ownerships(
+            dst,
+            Some(&mut f),
+            &self.header,
+            self.mask,
+            self.preserve_permissions,
+            self.preserve_ownerships,
+        )?;
         if self.unpack_xattrs {
             set_xattrs(self, dst)?;
         }
         return Ok(Unpacked::File(f));
 
+        fn set_ownerships(
+            dst: &Path,
+            f: &Option<&mut std::fs::File>,
+            uid: u64,
+            gid: u64,
+        ) -> Result<(), TarError> {
+            _set_ownerships(dst, f, uid, gid).map_err(|e| {
+                TarError::new(
+                    format!(
+                        "failed to set ownerships to uid={:?}, gid={:?} \
+                         for `{}`",
+                        uid,
+                        gid,
+                        dst.display()
+                    ),
+                    e,
+                )
+            })
+        }
+
+        #[cfg(unix)]
+        fn _set_ownerships(
+            dst: &Path,
+            f: &Option<&mut std::fs::File>,
+            uid: u64,
+            gid: u64,
+        ) -> io::Result<()> {
+            use std::convert::TryInto;
+            use std::os::unix::prelude::*;
+
+            let uid: libc::uid_t = uid.try_into().map_err(|_| {
+                io::Error::new(io::ErrorKind::Other, format!("UID {} is too large!", uid))
+            })?;
+            let gid: libc::gid_t = gid.try_into().map_err(|_| {
+                io::Error::new(io::ErrorKind::Other, format!("GID {} is too large!", gid))
+            })?;
+            match f {
+                Some(f) => unsafe {
+                    let fd = f.as_raw_fd();
+                    if libc::fchown(fd, uid, gid) != 0 {
+                        Err(io::Error::last_os_error())
+                    } else {
+                        Ok(())
+                    }
+                },
+                None => unsafe {
+                    let path = std::ffi::CString::new(dst.as_os_str().as_bytes()).map_err(|e| {
+                        io::Error::new(
+                            io::ErrorKind::Other,
+                            format!("path contains null character: {:?}", e),
+                        )
+                    })?;
+                    if libc::lchown(path.as_ptr(), uid, gid) != 0 {
+                        Err(io::Error::last_os_error())
+                    } else {
+                        Ok(())
+                    }
+                },
+            }
+        }
+
+        // Windows does not support posix numeric ownership IDs
+        #[cfg(any(windows, target_arch = "wasm32"))]
+        fn _set_ownerships(
+            _: &Path,
+            _: &Option<&mut std::fs::File>,
+            _: u64,
+            _: u64,
+        ) -> io::Result<()> {
+            Ok(())
+        }
+
         fn set_perms(
             dst: &Path,
             f: Option<&mut std::fs::File>,
             mode: u32,
+            mask: u32,
             preserve: bool,
         ) -> Result<(), TarError> {
-            _set_perms(dst, f, mode, preserve).map_err(|e| {
+            _set_perms(dst, f, mode, mask, preserve).map_err(|e| {
                 TarError::new(
                     format!(
                         "failed to set permissions to {:o} \
@@ -664,11 +800,13 @@ impl<'a> EntryFields<'a> {
             dst: &Path,
             f: Option<&mut std::fs::File>,
             mode: u32,
+            mask: u32,
             preserve: bool,
         ) -> io::Result<()> {
             use std::os::unix::prelude::*;
 
             let mode = if preserve { mode } else { mode & 0o777 };
+            let mode = mode & !mask;
             let perm = fs::Permissions::from_mode(mode as _);
             match f {
                 Some(f) => f.set_permissions(perm),
@@ -681,6 +819,7 @@ impl<'a> EntryFields<'a> {
             dst: &Path,
             f: Option<&mut std::fs::File>,
             mode: u32,
+            _mask: u32,
             _preserve: bool,
         ) -> io::Result<()> {
             if mode & 0o200 == 0o200 {
@@ -706,6 +845,7 @@ impl<'a> EntryFields<'a> {
             dst: &Path,
             f: Option<&mut std::fs::File>,
             mode: u32,
+            mask: u32,
             _preserve: bool,
         ) -> io::Result<()> {
             Err(io::Error::new(io::ErrorKind::Other, "Not implemented"))

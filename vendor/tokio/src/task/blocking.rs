@@ -70,11 +70,12 @@ cfg_rt_multi_thread! {
     /// This function panics if called from a [`current_thread`] runtime.
     ///
     /// [`current_thread`]: fn@crate::runtime::Builder::new_current_thread
+    #[track_caller]
     pub fn block_in_place<F, R>(f: F) -> R
     where
         F: FnOnce() -> R,
     {
-        crate::runtime::thread_pool::block_in_place(f)
+        crate::runtime::scheduler::multi_thread::block_in_place(f)
     }
 }
 
@@ -89,50 +90,117 @@ cfg_rt! {
     ///
     /// Tokio will spawn more blocking threads when they are requested through this
     /// function until the upper limit configured on the [`Builder`] is reached.
-    /// This limit is very large by default, because `spawn_blocking` is often used
-    /// for various kinds of IO operations that cannot be performed asynchronously.
-    /// When you run CPU-bound code using `spawn_blocking`, you should keep this
-    /// large upper limit in mind. When running many CPU-bound computations, a
-    /// semaphore or some other synchronization primitive should be used to limit
-    /// the number of computation executed in parallel. Specialized CPU-bound
-    /// executors, such as [rayon], may also be a good fit.
+    /// After reaching the upper limit, the tasks are put in a queue.
+    /// The thread limit is very large by default, because `spawn_blocking` is often
+    /// used for various kinds of IO operations that cannot be performed
+    /// asynchronously.  When you run CPU-bound code using `spawn_blocking`, you
+    /// should keep this large upper limit in mind. When running many CPU-bound
+    /// computations, a semaphore or some other synchronization primitive should be
+    /// used to limit the number of computation executed in parallel. Specialized
+    /// CPU-bound executors, such as [rayon], may also be a good fit.
     ///
     /// This function is intended for non-async operations that eventually finish on
     /// their own. If you want to spawn an ordinary thread, you should use
     /// [`thread::spawn`] instead.
     ///
-    /// Closures spawned using `spawn_blocking` cannot be cancelled. When you shut
-    /// down the executor, it will wait indefinitely for all blocking operations to
+    /// Closures spawned using `spawn_blocking` cannot be cancelled abruptly; there
+    /// is no standard low level API to cause a thread to stop running.  However,
+    /// a useful pattern is to pass some form of "cancellation token" into
+    /// the thread.  This could be an [`AtomicBool`] that the task checks periodically.
+    /// Another approach is to have the thread primarily read or write from a channel,
+    /// and to exit when the channel closes; assuming the other side of the channel is dropped
+    /// when cancellation occurs, this will cause the blocking task thread to exit
+    /// soon after as well.
+    ///
+    /// When you shut down the executor, it will wait indefinitely for all blocking operations to
     /// finish. You can use [`shutdown_timeout`] to stop waiting for them after a
     /// certain timeout. Be aware that this will still not cancel the tasks — they
-    /// are simply allowed to keep running after the method returns.
+    /// are simply allowed to keep running after the method returns.  It is possible
+    /// for a blocking task to be cancelled if it has not yet started running, but this
+    /// is not guaranteed.
     ///
     /// Note that if you are using the single threaded runtime, this function will
-    /// still spawn additional threads for blocking operations. The basic
+    /// still spawn additional threads for blocking operations. The current-thread
     /// scheduler's single thread is only used for asynchronous code.
+    ///
+    /// # Related APIs and patterns for bridging asynchronous and blocking code
+    ///
+    /// In simple cases, it is sufficient to have the closure accept input
+    /// parameters at creation time and return a single value (or struct/tuple, etc.).
+    ///
+    /// For more complex situations in which it is desirable to stream data to or from
+    /// the synchronous context, the [`mpsc channel`] has `blocking_send` and
+    /// `blocking_recv` methods for use in non-async code such as the thread created
+    /// by `spawn_blocking`.
+    ///
+    /// Another option is [`SyncIoBridge`] for cases where the synchronous context
+    /// is operating on byte streams.  For example, you might use an asynchronous
+    /// HTTP client such as [hyper] to fetch data, but perform complex parsing
+    /// of the payload body using a library written for synchronous I/O.
+    ///
+    /// Finally, see also [Bridging with sync code][bridgesync] for discussions
+    /// around the opposite case of using Tokio as part of a larger synchronous
+    /// codebase.
     ///
     /// [`Builder`]: struct@crate::runtime::Builder
     /// [blocking]: ../index.html#cpu-bound-tasks-and-blocking-code
     /// [rayon]: https://docs.rs/rayon
+    /// [`mpsc channel`]: crate::sync::mpsc
+    /// [`SyncIoBridge`]: https://docs.rs/tokio-util/latest/tokio_util/io/struct.SyncIoBridge.html
+    /// [hyper]: https://docs.rs/hyper
     /// [`thread::spawn`]: fn@std::thread::spawn
     /// [`shutdown_timeout`]: fn@crate::runtime::Runtime::shutdown_timeout
+    /// [bridgesync]: https://tokio.rs/tokio/topics/bridging
+    /// [`AtomicBool`]: struct@std::sync::atomic::AtomicBool
     ///
     /// # Examples
+    ///
+    /// Pass an input value and receive result of computation:
     ///
     /// ```
     /// use tokio::task;
     ///
     /// # async fn docs() -> Result<(), Box<dyn std::error::Error>>{
+    /// // Initial input
+    /// let mut v = "Hello, ".to_string();
     /// let res = task::spawn_blocking(move || {
-    ///     // do some compute-heavy work or call synchronous code
-    ///     "done computing"
+    ///     // Stand-in for compute-heavy work or using synchronous APIs
+    ///     v.push_str("world");
+    ///     // Pass ownership of the value back to the asynchronous context
+    ///     v
     /// }).await?;
     ///
-    /// assert_eq!(res, "done computing");
+    /// // `res` is the value returned from the thread
+    /// assert_eq!(res.as_str(), "Hello, world");
     /// # Ok(())
     /// # }
     /// ```
-    #[cfg_attr(tokio_track_caller, track_caller)]
+    ///
+    /// Use a channel:
+    ///
+    /// ```
+    /// use tokio::task;
+    /// use tokio::sync::mpsc;
+    ///
+    /// # async fn docs() {
+    /// let (tx, mut rx) = mpsc::channel(2);
+    /// let start = 5;
+    /// let worker = task::spawn_blocking(move || {
+    ///     for x in 0..10 {
+    ///         // Stand in for complex computation
+    ///         tx.blocking_send(start + x).unwrap();
+    ///     }
+    /// });
+    ///
+    /// let mut acc = 0;
+    /// while let Some(v) = rx.recv().await {
+    ///     acc += v;
+    /// }
+    /// assert_eq!(acc, 95);
+    /// worker.await.unwrap();
+    /// # }
+    /// ```
+    #[track_caller]
     pub fn spawn_blocking<F, R>(f: F) -> JoinHandle<R>
     where
         F: FnOnce() -> R + Send + 'static,

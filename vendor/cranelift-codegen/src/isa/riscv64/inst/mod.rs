@@ -4,12 +4,13 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 
+use super::lower::isle::generated_code::{VecAMode, VecElementWidth};
 use crate::binemit::{Addend, CodeOffset, Reloc};
 pub use crate::ir::condcodes::IntCC;
-use crate::ir::types::{F32, F64, I128, I16, I32, I64, I8, R32, R64};
+use crate::ir::types::{self, F32, F64, I128, I16, I32, I64, I8, R32, R64};
 
 pub use crate::ir::{ExternalName, MemFlags, Opcode, SourceLoc, Type, ValueLabel};
-use crate::isa::CallConv;
+use crate::isa::{CallConv, FunctionAlignment};
 use crate::machinst::*;
 use crate::{settings, CodegenError, CodegenResult};
 
@@ -29,6 +30,10 @@ pub mod args;
 pub use self::args::*;
 pub mod emit;
 pub use self::emit::*;
+pub mod vector;
+pub use self::vector::*;
+pub mod encode;
+pub use self::encode::*;
 pub mod unwind;
 
 use crate::isa::riscv64::abi::Riscv64MachineDeps;
@@ -41,7 +46,7 @@ use std::fmt::{Display, Formatter};
 pub(crate) type OptionReg = Option<Reg>;
 pub(crate) type OptionImm12 = Option<Imm12>;
 pub(crate) type VecBranchTarget = Vec<BranchTarget>;
-pub(crate) type OptionUimm5 = Option<Uimm5>;
+pub(crate) type OptionUimm5 = Option<UImm5>;
 pub(crate) type OptionFloatRoundingMode = Option<FRM>;
 pub(crate) type VecU8 = Vec<u8>;
 pub(crate) type VecWritableReg = Vec<Writable<Reg>>;
@@ -50,7 +55,7 @@ pub(crate) type VecWritableReg = Vec<Writable<Reg>>;
 
 use crate::isa::riscv64::lower::isle::generated_code::MInst;
 pub use crate::isa::riscv64::lower::isle::generated_code::{
-    AluOPRRI, AluOPRRR, AtomicOP, CsrOP, FClassResult, FFlagsException, FenceFm, FloatRoundOP,
+    AluOPRRI, AluOPRRR, AtomicOP, FClassResult, FFlagsException, FenceFm, FloatRoundOP,
     FloatSelectOP, FpuOPRR, FpuOPRRR, FpuOPRRRR, IntSelectOP, LoadOP, MInst as Inst, StoreOP, FRM,
 };
 
@@ -313,21 +318,41 @@ impl Inst {
 
     /// Generic constructor for a load (zero-extending where appropriate).
     pub fn gen_load(into_reg: Writable<Reg>, mem: AMode, ty: Type, flags: MemFlags) -> Inst {
-        Inst::Load {
-            rd: into_reg,
-            op: LoadOP::from_type(ty),
-            from: mem,
-            flags,
+        if ty.is_vector() {
+            Inst::VecLoad {
+                eew: VecElementWidth::from_type(ty),
+                to: into_reg,
+                from: VecAMode::UnitStride { base: mem },
+                flags,
+                vstate: VState::from_type(ty),
+            }
+        } else {
+            Inst::Load {
+                rd: into_reg,
+                op: LoadOP::from_type(ty),
+                from: mem,
+                flags,
+            }
         }
     }
 
     /// Generic constructor for a store.
     pub fn gen_store(mem: AMode, from_reg: Reg, ty: Type, flags: MemFlags) -> Inst {
-        Inst::Store {
-            src: from_reg,
-            op: StoreOP::from_type(ty),
-            to: mem,
-            flags,
+        if ty.is_vector() {
+            Inst::VecStore {
+                eew: VecElementWidth::from_type(ty),
+                to: VecAMode::UnitStride { base: mem },
+                from: from_reg,
+                flags,
+                vstate: VState::from_type(ty),
+            }
+        } else {
+            Inst::Store {
+                src: from_reg,
+                op: StoreOP::from_type(ty),
+                to: mem,
+                flags,
+            }
         }
     }
 }
@@ -496,13 +521,6 @@ fn riscv64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut Operan
             }
         }
 
-        &Inst::Csr { rd, rs, .. } => {
-            if let Some(rs) = rs {
-                collector.reg_use(rs);
-            }
-            collector.reg_def(rd);
-        }
-
         &Inst::Icmp { rd, a, b, .. } => {
             collector.reg_uses(a.regs());
             collector.reg_uses(b.regs());
@@ -525,18 +543,6 @@ fn riscv64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut Operan
             collector.reg_use(rs);
             collector.reg_early_def(tmp);
             collector.reg_early_def(rd);
-        }
-        &Inst::SelectIf {
-            ref rd,
-            test,
-            ref x,
-            ref y,
-            ..
-        } => {
-            collector.reg_use(test);
-            collector.reg_uses(x.regs());
-            collector.reg_uses(y.regs());
-            rd.iter().for_each(|r| collector.reg_early_def(*r));
         }
         &Inst::RawData { .. } => {}
         &Inst::AtomicStore { src, p, .. } => {
@@ -635,6 +641,26 @@ fn riscv64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut Operan
             // gen_prologue is called at emit stage.
             // no need let reg alloc know.
         }
+        &Inst::VecAluRRR { vd, vs1, vs2, .. } => {
+            collector.reg_use(vs1);
+            collector.reg_use(vs2);
+            collector.reg_def(vd);
+        }
+        &Inst::VecAluRRImm5 { vd, vs2, .. } => {
+            collector.reg_use(vs2);
+            collector.reg_def(vd);
+        }
+        &Inst::VecSetState { rd, .. } => {
+            collector.reg_def(rd);
+        }
+        &Inst::VecLoad { to, ref from, .. } => {
+            collector.reg_use(from.get_base_register());
+            collector.reg_def(to);
+        }
+        &Inst::VecStore { ref to, from, .. } => {
+            collector.reg_use(to.get_base_register());
+            collector.reg_use(from);
+        }
     }
 }
 
@@ -654,6 +680,7 @@ impl MachInst for Inst {
         match rc {
             regalloc2::RegClass::Int => I64,
             regalloc2::RegClass::Float => F64,
+            regalloc2::RegClass::Vector => unreachable!(),
         }
     }
 
@@ -739,6 +766,25 @@ impl MachInst for Inst {
             F32 => Ok((&[RegClass::Float], &[F32])),
             F64 => Ok((&[RegClass::Float], &[F64])),
             I128 => Ok((&[RegClass::Int, RegClass::Int], &[I64, I64])),
+            _ if ty.is_vector() => {
+                debug_assert!(ty.bits() <= 512);
+
+                // Here we only need to return a SIMD type with the same size as `ty`.
+                // We use these types for spills and reloads, so prefer types with lanes <= 31
+                // since that fits in the immediate field of `vsetivli`.
+                const SIMD_TYPES: [[Type; 1]; 6] = [
+                    [types::I8X2],
+                    [types::I8X4],
+                    [types::I8X8],
+                    [types::I8X16],
+                    [types::I16X16],
+                    [types::I32X16],
+                ];
+                let idx = (ty.bytes().ilog2() - 1) as usize;
+                let ty = &SIMD_TYPES[idx][..];
+
+                Ok((&[RegClass::Float], ty))
+            }
             _ => Err(CodegenError::Unsupported(format!(
                 "Unexpected SSA-value type: {}",
                 ty
@@ -759,6 +805,13 @@ impl MachInst for Inst {
 
     fn ref_type_regclass(_settings: &settings::Flags) -> RegClass {
         RegClass::Int
+    }
+
+    fn function_alignment() -> FunctionAlignment {
+        FunctionAlignment {
+            minimum: 4,
+            preferred: 4,
+        }
     }
 }
 
@@ -790,7 +843,19 @@ pub fn reg_name(reg: Reg) -> String {
                 28..=31 => format!("ft{}", real.hw_enc() - 20),
                 _ => unreachable!(),
             },
+            RegClass::Vector => unreachable!(),
         },
+        None => {
+            format!("{:?}", reg)
+        }
+    }
+}
+pub fn vec_reg_name(reg: Reg) -> String {
+    match reg.to_real_reg() {
+        Some(real) => {
+            assert_eq!(real.class(), RegClass::Float);
+            format!("v{}", real.hw_enc())
+        }
         None => {
             format!("{:?}", reg)
         }
@@ -806,6 +871,16 @@ impl Inst {
         let format_reg = |reg: Reg, allocs: &mut AllocationConsumer<'_>| -> String {
             let reg = allocs.next(reg);
             reg_name(reg)
+        };
+        let format_vec_reg = |reg: Reg, allocs: &mut AllocationConsumer<'_>| -> String {
+            let reg = allocs.next(reg);
+            vec_reg_name(reg)
+        };
+
+        let format_vec_amode = |amode: &VecAMode, allocs: &mut AllocationConsumer<'_>| -> String {
+            match amode {
+                VecAMode::UnitStride { base } => base.to_string_with_alloc(allocs),
+            }
         };
 
         let format_regs = |regs: &[Reg], allocs: &mut AllocationConsumer<'_>| -> String {
@@ -851,6 +926,7 @@ impl Inst {
                 "".into()
             }
         }
+
         match self {
             &Inst::Nop0 => {
                 format!("##zero length nop")
@@ -1010,31 +1086,6 @@ impl Inst {
                 format!(
                     "brev8 {},{}##tmp={} tmp2={} step={} ty={}",
                     rd, rs, tmp, tmp2, step, ty
-                )
-            }
-            &Inst::SelectIf {
-                if_spectre_guard,
-                ref rd,
-                test,
-                ref x,
-                ref y,
-            } => {
-                let test = format_reg(test, allocs);
-                let x = format_regs(x.regs(), allocs);
-                let y = format_regs(y.regs(), allocs);
-                let rd: Vec<_> = rd.iter().map(|r| r.to_reg()).collect();
-                let rd = format_regs(&rd[..], allocs);
-                format!(
-                    "selectif{} {},{},{}##test={}",
-                    if if_spectre_guard {
-                        "_spectre_guard"
-                    } else {
-                        ""
-                    },
-                    rd,
-                    x,
-                    y,
-                    test
                 )
             }
             &Inst::Popcnt {
@@ -1286,21 +1337,6 @@ impl Inst {
                     )
                 }
             }
-            &Inst::Csr {
-                csr_op,
-                rd,
-                rs,
-                imm,
-                csr,
-            } => {
-                let rs = rs.map_or("".into(), |r| format_reg(r, allocs));
-                let rd = format_reg(rd.to_reg(), allocs);
-                if csr_op.need_rs() {
-                    format!("{} {},{},{}", csr_op.op_name(), rd, csr, rs)
-                } else {
-                    format!("{} {},{},{}", csr_op.op_name(), rd, csr, imm.unwrap())
-                }
-            }
             &Inst::FpuRRRR {
                 alu_op,
                 rd,
@@ -1538,6 +1574,60 @@ impl Inst {
             &MInst::Udf { trap_code } => format!("udf##trap_code={}", trap_code),
             &MInst::EBreak {} => String::from("ebreak"),
             &MInst::ECall {} => String::from("ecall"),
+            &Inst::VecAluRRR {
+                op,
+                vd,
+                vs1,
+                vs2,
+                ref vstate,
+            } => {
+                let vs1_s = format_vec_reg(vs1, allocs);
+                let vs2_s = format_vec_reg(vs2, allocs);
+                let vd_s = format_vec_reg(vd.to_reg(), allocs);
+
+                // Note: vs2 and vs1 here are opposite to the standard scalar ordering.
+                // This is noted in Section 10.1 of the RISC-V Vector spec.
+                format!("{} {},{},{} {}", op, vd_s, vs2_s, vs1_s, vstate)
+            }
+            &Inst::VecAluRRImm5 {
+                op,
+                vd,
+                imm,
+                vs2,
+                ref vstate,
+            } => {
+                let vs2_s = format_vec_reg(vs2, allocs);
+                let vd_s = format_vec_reg(vd.to_reg(), allocs);
+
+                format!("{} {},{},{} {}", op, vd_s, vs2_s, imm, vstate)
+            }
+            &Inst::VecSetState { rd, ref vstate } => {
+                let rd_s = format_reg(rd.to_reg(), allocs);
+                assert!(vstate.avl.is_static());
+                format!("vsetivli {}, {}, {}", rd_s, vstate.avl, vstate.vtype)
+            }
+            Inst::VecLoad {
+                eew,
+                to,
+                from,
+                ref vstate,
+                ..
+            } => {
+                let base = format_vec_amode(from, allocs);
+                let vd = format_vec_reg(to.to_reg(), allocs);
+                format!("vl{}.v {},{} {}", eew, vd, base, vstate)
+            }
+            Inst::VecStore {
+                eew,
+                to,
+                from,
+                ref vstate,
+                ..
+            } => {
+                let dst = format_vec_amode(to, allocs);
+                let vs3 = format_vec_reg(*from, allocs);
+                format!("vs{}.v {},{} {}", eew, vs3, dst, vstate)
+            }
         }
     }
 }

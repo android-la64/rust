@@ -1,7 +1,7 @@
 //! This module contains all code sporting `gitoxide` for operations on `git` repositories and it mirrors
 //! `utils` closely for now. One day it can be renamed into `utils` once `git2` isn't required anymore.
 
-use crate::ops::HttpTimeout;
+use crate::util::network::http::HttpTimeout;
 use crate::util::{human_readable_bytes, network, MetricsCounter, Progress};
 use crate::{CargoResult, Config};
 use cargo_util::paths;
@@ -353,6 +353,8 @@ pub fn cargo_config_to_gitoxide_overrides(config: &Config) -> CargoResult<Vec<BS
     Ok(values)
 }
 
+/// Reinitializes a given Git repository. This is useful when a Git repoistory
+/// seems corrupted and we want to start over.
 pub fn reinitialize(git_dir: &Path) -> CargoResult<()> {
     fn init(path: &Path, bare: bool) -> CargoResult<()> {
         let mut opts = git2::RepositoryInitOptions::new();

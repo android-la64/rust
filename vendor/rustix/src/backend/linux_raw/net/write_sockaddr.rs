@@ -2,7 +2,7 @@
 //! we can interpret the rest of a `sockaddr` produced by the kernel.
 #![allow(unsafe_code)]
 
-use super::super::c;
+use crate::backend::c;
 use crate::net::{SocketAddrAny, SocketAddrStorage, SocketAddrUnix, SocketAddrV4, SocketAddrV6};
 use core::mem::size_of;
 
@@ -40,7 +40,7 @@ pub(crate) unsafe fn encode_sockaddr_v6(v6: &SocketAddrV6) -> c::sockaddr_in6 {
         sin6_port: u16::to_be(v6.port()),
         sin6_flowinfo: u32::to_be(v6.flowinfo()),
         sin6_addr: c::in6_addr {
-            in6_u: linux_raw_sys::general::in6_addr__bindgen_ty_1 {
+            in6_u: linux_raw_sys::net::in6_addr__bindgen_ty_1 {
                 u6_addr8: v6.ip().octets(),
             },
         },

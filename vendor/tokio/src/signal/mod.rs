@@ -1,4 +1,4 @@
-//! Asynchronous signal handling for Tokio
+//! Asynchronous signal handling for Tokio.
 //!
 //! Note that signal handling is in general a very tricky topic and should be
 //! used with great care. This crate attempts to implement 'best practice' for
@@ -48,7 +48,7 @@ use std::task::{Context, Poll};
 mod ctrl_c;
 pub use ctrl_c::ctrl_c;
 
-mod registry;
+pub(crate) mod registry;
 
 mod os {
     #[cfg(unix)]

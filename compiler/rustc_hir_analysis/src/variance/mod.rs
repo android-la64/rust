@@ -51,20 +51,19 @@ fn variances_of(tcx: TyCtxt<'_>, item_def_id: LocalDefId) -> &[ty::Variance] {
         | DefKind::Struct
         | DefKind::Union
         | DefKind::Variant
-        | DefKind::Ctor(..) => {}
+        | DefKind::Ctor(..) => {
+            // These are inferred.
+            let crate_map = tcx.crate_variances(());
+            return crate_map.variances.get(&item_def_id.to_def_id()).copied().unwrap_or(&[]);
+        }
         DefKind::OpaqueTy | DefKind::ImplTraitPlaceholder => {
             return variance_of_opaque(tcx, item_def_id);
         }
-        _ => {
-            // Variance not relevant.
-            span_bug!(tcx.def_span(item_def_id), "asked to compute variance for wrong kind of item")
-        }
+        _ => {}
     }
 
-    // Everything else must be inferred.
-
-    let crate_map = tcx.crate_variances(());
-    crate_map.variances.get(&item_def_id.to_def_id()).copied().unwrap_or(&[])
+    // Variance not relevant.
+    span_bug!(tcx.def_span(item_def_id), "asked to compute variance for wrong kind of item");
 }
 
 #[instrument(level = "trace", skip(tcx), ret)]
@@ -119,7 +118,8 @@ fn variance_of_opaque(tcx: TyCtxt<'_>, item_def_id: LocalDefId) -> &[ty::Varianc
                 // FIXME(-Zlower-impl-trait-in-trait-to-assoc-ty) check whether this is necessary
                 // at all for RPITITs.
                 ty::Alias(_, ty::AliasTy { def_id, substs, .. })
-                    if self.tcx.is_impl_trait_in_trait(*def_id) =>
+                    if self.tcx.is_impl_trait_in_trait(*def_id)
+                        && !self.tcx.lower_impl_trait_in_trait_to_assoc_ty() =>
                 {
                     self.visit_opaque(*def_id, substs)
                 }
@@ -162,28 +162,25 @@ fn variance_of_opaque(tcx: TyCtxt<'_>, item_def_id: LocalDefId) -> &[ty::Varianc
         // which thus mentions `'a` and should thus accept hidden types that borrow 'a
         // instead of requiring an additional `+ 'a`.
         match pred.kind().skip_binder() {
-            ty::PredicateKind::Clause(ty::Clause::Trait(ty::TraitPredicate {
+            ty::ClauseKind::Trait(ty::TraitPredicate {
                 trait_ref: ty::TraitRef { def_id: _, substs, .. },
                 constness: _,
                 polarity: _,
-            })) => {
+            }) => {
                 for subst in &substs[1..] {
                     subst.visit_with(&mut collector);
                 }
             }
-            ty::PredicateKind::Clause(ty::Clause::Projection(ty::ProjectionPredicate {
+            ty::ClauseKind::Projection(ty::ProjectionPredicate {
                 projection_ty: ty::AliasTy { substs, .. },
                 term,
-            })) => {
+            }) => {
                 for subst in &substs[1..] {
                     subst.visit_with(&mut collector);
                 }
                 term.visit_with(&mut collector);
             }
-            ty::PredicateKind::Clause(ty::Clause::TypeOutlives(ty::OutlivesPredicate(
-                _,
-                region,
-            ))) => {
+            ty::ClauseKind::TypeOutlives(ty::OutlivesPredicate(_, region)) => {
                 region.visit_with(&mut collector);
             }
             _ => {

@@ -11,6 +11,8 @@ use crate::io;
 
 bitflags! {
     /// Thread name space type.
+    #[repr(transparent)]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     pub struct ThreadNameSpaceType: u32 {
         /// Time name space.
         const TIME = CLONE_NEWTIME;
@@ -55,6 +57,8 @@ pub enum LinkNameSpaceType {
 
 bitflags! {
     /// `CLONE_*` for use with [`unshare`].
+    #[repr(transparent)]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     pub struct UnshareFlags: u32 {
         /// `CLONE_FILES`.
         const FILES = CLONE_FILES;

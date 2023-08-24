@@ -4,7 +4,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! notify = "5.0.0"
+//! notify = "5.1.0"
 //! ```
 //! 
 //! If you want debounced events, see [notify-debouncer-mini](https://github.com/notify-rs/notify/tree/main/notify-debouncer-mini)
@@ -23,7 +23,7 @@
 //! Events are serialisable via [serde](https://serde.rs) if the `serde` feature is enabled:
 //!
 //! ```toml
-//! notify = { version = "5.0.0", features = ["serde"] }
+//! notify = { version = "5.1.0", features = ["serde"] }
 //! ```
 //! 
 //! ### Crossbeam-Channel & Tokio
@@ -34,7 +34,7 @@
 //! You can disable crossbeam-channel, letting notify fallback to std channels via
 //! 
 //! ```toml
-//! notify = { version = "5.0.0", default-features = false, feature=["macos_kqueue"] }
+//! notify = { version = "5.1.0", default-features = false, features = ["macos_kqueue"] }
 //! // Alternatively macos_fsevent instead of macos_kqueue
 //! ```
 //! Note the `macos_kqueue` requirement here, otherwise no backend is available on macos.
@@ -72,7 +72,7 @@
 //! ### Linux: Bad File Descriptor / No space left on device
 //! 
 //! This may be the case of running into the max-files watched limits of your user or system.
-//! (Files also includes folders.) Note that for recusive watched folder each file and folder inside counts towards the limit.
+//! (Files also includes folders.) Note that for recursive watched folders each file and folder inside counts towards the limit.
 //! 
 //! You may increase this limit in linux via
 //! ```sh

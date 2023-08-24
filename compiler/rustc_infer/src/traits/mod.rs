@@ -62,7 +62,8 @@ impl<'tcx, P> From<Obligation<'tcx, P>> for solve::Goal<'tcx, P> {
 }
 
 pub type PredicateObligation<'tcx> = Obligation<'tcx, ty::Predicate<'tcx>>;
-pub type TraitObligation<'tcx> = Obligation<'tcx, ty::PolyTraitPredicate<'tcx>>;
+pub type TraitObligation<'tcx> = Obligation<'tcx, ty::TraitPredicate<'tcx>>;
+pub type PolyTraitObligation<'tcx> = Obligation<'tcx, ty::PolyTraitPredicate<'tcx>>;
 
 impl<'tcx> PredicateObligation<'tcx> {
     /// Flips the polarity of the inner predicate.
@@ -79,14 +80,14 @@ impl<'tcx> PredicateObligation<'tcx> {
 
     pub fn without_const(mut self, tcx: TyCtxt<'tcx>) -> PredicateObligation<'tcx> {
         self.param_env = self.param_env.without_const();
-        if let ty::PredicateKind::Clause(ty::Clause::Trait(trait_pred)) = self.predicate.kind().skip_binder() && trait_pred.is_const_if_const() {
-            self.predicate = tcx.mk_predicate(self.predicate.kind().map_bound(|_| ty::PredicateKind::Clause(ty::Clause::Trait(trait_pred.without_const()))));
+        if let ty::PredicateKind::Clause(ty::ClauseKind::Trait(trait_pred)) = self.predicate.kind().skip_binder() && trait_pred.is_const_if_const() {
+            self.predicate = tcx.mk_predicate(self.predicate.kind().map_bound(|_| ty::PredicateKind::Clause(ty::ClauseKind::Trait(trait_pred.without_const()))));
         }
         self
     }
 }
 
-impl<'tcx> TraitObligation<'tcx> {
+impl<'tcx> PolyTraitObligation<'tcx> {
     /// Returns `true` if the trait predicate is considered `const` in its ParamEnv.
     pub fn is_const(&self) -> bool {
         matches!(
@@ -193,7 +194,7 @@ impl<'tcx> FulfillmentError<'tcx> {
     }
 }
 
-impl<'tcx> TraitObligation<'tcx> {
+impl<'tcx> PolyTraitObligation<'tcx> {
     pub fn polarity(&self) -> ty::ImplPolarity {
         self.predicate.skip_binder().polarity
     }

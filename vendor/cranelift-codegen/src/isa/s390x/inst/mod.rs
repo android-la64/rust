@@ -3,7 +3,7 @@
 use crate::binemit::{Addend, CodeOffset, Reloc};
 use crate::ir::{types, ExternalName, Opcode, Type};
 use crate::isa::s390x::abi::S390xMachineDeps;
-use crate::isa::CallConv;
+use crate::isa::{CallConv, FunctionAlignment};
 use crate::machinst::*;
 use crate::{settings, CodegenError, CodegenResult};
 use alloc::boxed::Box;
@@ -1117,6 +1117,7 @@ impl MachInst for Inst {
         match rc {
             RegClass::Int => types::I64,
             RegClass::Float => types::I8X16,
+            RegClass::Vector => unreachable!(),
         }
     }
 
@@ -1141,6 +1142,13 @@ impl MachInst for Inst {
 
     fn gen_dummy_use(reg: Reg) -> Inst {
         Inst::DummyUse { reg }
+    }
+
+    fn function_alignment() -> FunctionAlignment {
+        FunctionAlignment {
+            minimum: 4,
+            preferred: 4,
+        }
     }
 }
 

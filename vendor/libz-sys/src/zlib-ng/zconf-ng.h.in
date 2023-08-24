@@ -6,10 +6,16 @@
 #ifndef ZCONFNG_H
 #define ZCONFNG_H
 
-#include "zlib_name_mangling-ng.h"
-
 #if !defined(_WIN32) && defined(__WIN32__)
 #  define _WIN32
+#endif
+
+#ifdef __STDC_VERSION__
+#  if __STDC_VERSION__ >= 199901L
+#    ifndef STDC99
+#      define STDC99
+#    endif
+#  endif
 #endif
 
 /* Clang macro for detecting declspec support
@@ -113,7 +119,6 @@ typedef PTRDIFF_TYPE ptrdiff_t;
 #endif
 
 #include <sys/types.h>      /* for off_t */
-#include <stdarg.h>         /* for va_list */
 
 #include <stddef.h>         /* for wchar_t and NULL */
 

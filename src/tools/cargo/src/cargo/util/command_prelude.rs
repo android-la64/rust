@@ -15,6 +15,7 @@ use crate::CargoResult;
 use anyhow::bail;
 use cargo_util::paths;
 use std::ffi::{OsStr, OsString};
+use std::path::Path;
 use std::path::PathBuf;
 
 pub use crate::core::compiler::CompileMode;
@@ -22,6 +23,8 @@ pub use crate::{CliError, CliResult, Config};
 pub use clap::{value_parser, Arg, ArgAction, ArgMatches};
 
 pub use clap::Command;
+
+use super::config::JobsConfig;
 
 pub trait CommandExt: Sized {
     fn _arg(self, arg: Arg) -> Self;
@@ -66,7 +69,7 @@ pub trait CommandExt: Sized {
 
     fn arg_jobs(self) -> Self {
         self._arg(
-            opt("jobs", "Number of parallel jobs, defaults to # of CPUs")
+            opt("jobs", "Number of parallel jobs, defaults to # of CPUs.")
                 .short('j')
                 .value_name("N")
                 .allow_hyphen_values(true),
@@ -337,22 +340,7 @@ pub trait ArgMatchesExt {
     }
 
     fn root_manifest(&self, config: &Config) -> CargoResult<PathBuf> {
-        if let Some(path) = self.value_of_path("manifest-path", config) {
-            // In general, we try to avoid normalizing paths in Cargo,
-            // but in this particular case we need it to fix #3586.
-            let path = paths::normalize_path(&path);
-            if !path.ends_with("Cargo.toml") {
-                anyhow::bail!("the manifest-path must be a path to a Cargo.toml file")
-            }
-            if !path.exists() {
-                anyhow::bail!(
-                    "manifest path `{}` does not exist",
-                    self._value_of("manifest-path").unwrap()
-                )
-            }
-            return Ok(path);
-        }
-        find_root_manifest_for_wd(config.cwd())
+        root_manifest(self._value_of("manifest-path").map(Path::new), config)
     }
 
     fn workspace<'a>(&self, config: &'a Config) -> CargoResult<Workspace<'a>> {
@@ -364,8 +352,16 @@ pub trait ArgMatchesExt {
         Ok(ws)
     }
 
-    fn jobs(&self) -> CargoResult<Option<i32>> {
-        self.value_of_i32("jobs")
+    fn jobs(&self) -> CargoResult<Option<JobsConfig>> {
+        let arg = match self._value_of("jobs") {
+            None => None,
+            Some(arg) => match arg.parse::<i32>() {
+                Ok(j) => Some(JobsConfig::Integer(j)),
+                Err(_) => Some(JobsConfig::String(arg.to_string())),
+            },
+        };
+
+        Ok(arg)
     }
 
     fn verbose(&self) -> u32 {
@@ -780,6 +776,33 @@ pub fn values(args: &ArgMatches, name: &str) -> Vec<String> {
 
 pub fn values_os(args: &ArgMatches, name: &str) -> Vec<OsString> {
     args._values_of_os(name)
+}
+
+pub fn root_manifest(manifest_path: Option<&Path>, config: &Config) -> CargoResult<PathBuf> {
+    if let Some(manifest_path) = manifest_path {
+        let path = config.cwd().join(manifest_path);
+        // In general, we try to avoid normalizing paths in Cargo,
+        // but in this particular case we need it to fix #3586.
+        let path = paths::normalize_path(&path);
+        if !path.ends_with("Cargo.toml") && !crate::util::toml::is_embedded(&path) {
+            anyhow::bail!("the manifest-path must be a path to a Cargo.toml file")
+        }
+        if !path.exists() {
+            anyhow::bail!("manifest path `{}` does not exist", manifest_path.display())
+        }
+        if path.is_dir() {
+            anyhow::bail!(
+                "manifest path `{}` is a directory but expected a file",
+                manifest_path.display()
+            )
+        }
+        if crate::util::toml::is_embedded(&path) && !config.cli_unstable().script {
+            anyhow::bail!("embedded manifest `{}` requires `-Zscript`", path.display())
+        }
+        Ok(path)
+    } else {
+        find_root_manifest_for_wd(config.cwd())
+    }
 }
 
 #[track_caller]

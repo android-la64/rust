@@ -15,7 +15,7 @@ use rustc_hir::HirId;
 use rustc_hir::Node;
 use rustc_middle::middle::region;
 use rustc_middle::thir::*;
-use rustc_middle::ty::{self, RvalueScopes, TyCtxt};
+use rustc_middle::ty::{self, RvalueScopes, Ty, TyCtxt};
 use rustc_span::Span;
 
 pub(crate) fn thir_body(
@@ -40,7 +40,7 @@ pub(crate) fn thir_body(
         // It will always be `()` in this case.
         if tcx.def_kind(owner_def) == DefKind::Generator && body.params.is_empty() {
             cx.thir.params.push(Param {
-                ty: tcx.mk_unit(),
+                ty: Ty::new_unit(tcx),
                 pat: None,
                 ty_span: None,
                 self_kind: None,
@@ -142,7 +142,7 @@ impl<'tcx> Cx<'tcx> {
                     var: ty::BoundVar::from_usize(bound_vars.len() - 1),
                     kind: ty::BrEnv,
                 };
-                let env_region = self.tcx.mk_re_late_bound(ty::INNERMOST, br);
+                let env_region = ty::Region::new_late_bound(self.tcx, ty::INNERMOST, br);
                 let closure_env_ty =
                     self.tcx.closure_env_ty(closure_def_id, closure_substs, env_region).unwrap();
                 let liberated_closure_env_ty = self.tcx.erase_late_bound_regions(

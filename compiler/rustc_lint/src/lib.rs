@@ -60,6 +60,7 @@ mod expect;
 mod for_loops_over_fallibles;
 pub mod hidden_unicode_codepoints;
 mod internal;
+mod invalid_from_utf8;
 mod late;
 mod let_underscore;
 mod levels;
@@ -75,6 +76,7 @@ mod opaque_hidden_inferred_bound;
 mod pass_by_value;
 mod passes;
 mod redundant_semicolon;
+mod reference_casting;
 mod traits;
 mod types;
 mod unused;
@@ -102,6 +104,7 @@ use enum_intrinsics_non_enums::EnumIntrinsicsNonEnums;
 use for_loops_over_fallibles::*;
 use hidden_unicode_codepoints::*;
 use internal::*;
+use invalid_from_utf8::*;
 use let_underscore::*;
 use map_unit_fn::*;
 use methods::*;
@@ -113,6 +116,7 @@ use noop_method_call::*;
 use opaque_hidden_inferred_bound::*;
 use pass_by_value::*;
 use redundant_semicolon::*;
+use reference_casting::*;
 use traits::*;
 use types::*;
 use unused::*;
@@ -207,10 +211,12 @@ late_lint_methods!(
             HardwiredLints: HardwiredLints,
             ImproperCTypesDeclarations: ImproperCTypesDeclarations,
             ImproperCTypesDefinitions: ImproperCTypesDefinitions,
+            InvalidFromUtf8: InvalidFromUtf8,
             VariantSizeDifferences: VariantSizeDifferences,
             BoxPointers: BoxPointers,
             PathStatements: PathStatements,
             LetUnderscore: LetUnderscore,
+            InvalidReferenceCasting: InvalidReferenceCasting,
             // Depends on referenced function signatures in expressions
             UnusedResults: UnusedResults,
             NonUpperCaseGlobals: NonUpperCaseGlobals,

@@ -8,7 +8,7 @@ use std::fs::{self, File};
 use std::hash::Hash;
 use std::io::{BufRead, BufReader};
 use std::ops::Deref;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 
@@ -103,11 +103,14 @@ impl RunConfig<'_> {
     }
 
     /// Return a list of crate names selected by `run.paths`.
+    #[track_caller]
     pub fn cargo_crates_in_set(&self) -> Interned<Vec<String>> {
         let mut crates = Vec::new();
         for krate in &self.paths {
             let path = krate.assert_single_path();
-            let crate_name = self.builder.crate_paths[&path.path];
+            let Some(crate_name) = self.builder.crate_paths.get(&path.path) else {
+                panic!("missing crate for path {}", path.path.display())
+            };
             crates.push(crate_name.to_string());
         }
         INTERNER.intern_list(crates)
@@ -145,29 +148,6 @@ struct StepDescription {
 pub struct TaskPath {
     pub path: PathBuf,
     pub kind: Option<Kind>,
-}
-
-impl TaskPath {
-    pub fn parse(path: impl Into<PathBuf>) -> TaskPath {
-        let mut kind = None;
-        let mut path = path.into();
-
-        let mut components = path.components();
-        if let Some(Component::Normal(os_str)) = components.next() {
-            if let Some(str) = os_str.to_str() {
-                if let Some((found_kind, found_prefix)) = str.split_once("::") {
-                    if found_kind.is_empty() {
-                        panic!("empty kind in task path {}", path.display());
-                    }
-                    kind = Kind::parse(found_kind);
-                    assert!(kind.is_some());
-                    path = Path::new(found_prefix).join(components.as_path());
-                }
-            }
-        }
-
-        TaskPath { path, kind }
-    }
 }
 
 impl Debug for TaskPath {
@@ -213,7 +193,7 @@ impl PathSet {
         PathSet::Set(set)
     }
 
-    fn has(&self, needle: &Path, module: Option<Kind>) -> bool {
+    fn has(&self, needle: &Path, module: Kind) -> bool {
         match self {
             PathSet::Set(set) => set.iter().any(|p| Self::check(p, needle, module)),
             PathSet::Suite(suite) => Self::check(suite, needle, module),
@@ -221,9 +201,9 @@ impl PathSet {
     }
 
     // internal use only
-    fn check(p: &TaskPath, needle: &Path, module: Option<Kind>) -> bool {
-        if let (Some(p_kind), Some(kind)) = (&p.kind, module) {
-            p.path.ends_with(needle) && *p_kind == kind
+    fn check(p: &TaskPath, needle: &Path, module: Kind) -> bool {
+        if let Some(p_kind) = &p.kind {
+            p.path.ends_with(needle) && *p_kind == module
         } else {
             p.path.ends_with(needle)
         }
@@ -235,11 +215,7 @@ impl PathSet {
     /// This is used for `StepDescription::krate`, which passes all matching crates at once to
     /// `Step::make_run`, rather than calling it many times with a single crate.
     /// See `tests.rs` for examples.
-    fn intersection_removing_matches(
-        &self,
-        needles: &mut Vec<&Path>,
-        module: Option<Kind>,
-    ) -> PathSet {
+    fn intersection_removing_matches(&self, needles: &mut Vec<&Path>, module: Kind) -> PathSet {
         let mut check = |p| {
             for (i, n) in needles.iter().enumerate() {
                 let matched = Self::check(p, n, module);
@@ -304,7 +280,7 @@ impl StepDescription {
     }
 
     fn is_excluded(&self, builder: &Builder<'_>, pathset: &PathSet) -> bool {
-        if builder.config.exclude.iter().any(|e| pathset.has(&e.path, e.kind)) {
+        if builder.config.exclude.iter().any(|e| pathset.has(&e, builder.kind)) {
             println!("Skipping {:?} because it is excluded", pathset);
             return true;
         }
@@ -378,7 +354,7 @@ impl StepDescription {
             eprintln!(
                 "note: if you are adding a new Step to bootstrap itself, make sure you register it with `describe!`"
             );
-            crate::detail_exit(1);
+            crate::detail_exit_macro!(1);
         }
     }
 }
@@ -430,25 +406,6 @@ impl<'a> ShouldRun<'a> {
     /// Indicates it should run if the command-line selects the given crate or
     /// any of its (local) dependencies.
     ///
-    /// Compared to `krate`, this treats the dependencies as aliases for the
-    /// same job. Generally it is preferred to use `krate`, and treat each
-    /// individual path separately. For example `./x.py test src/liballoc`
-    /// (which uses `krate`) will test just `liballoc`. However, `./x.py check
-    /// src/liballoc` (which uses `all_krates`) will check all of `libtest`.
-    /// `all_krates` should probably be removed at some point.
-    pub fn all_krates(mut self, name: &str) -> Self {
-        let mut set = BTreeSet::new();
-        for krate in self.builder.in_tree_crates(name, None) {
-            let path = krate.local_path(self.builder);
-            set.insert(TaskPath { path, kind: Some(self.kind) });
-        }
-        self.paths.insert(PathSet::Set(set));
-        self
-    }
-
-    /// Indicates it should run if the command-line selects the given crate or
-    /// any of its (local) dependencies.
-    ///
     /// `make_run` will be called a single time with all matching command-line paths.
     pub fn crate_or_deps(self, name: &str) -> Self {
         let crates = self.builder.in_tree_crates(name, None);
@@ -458,6 +415,8 @@ impl<'a> ShouldRun<'a> {
     /// Indicates it should run if the command-line selects any of the given crates.
     ///
     /// `make_run` will be called a single time with all matching command-line paths.
+    ///
+    /// Prefer [`ShouldRun::crate_or_deps`] to this function where possible.
     pub(crate) fn crates(mut self, crates: Vec<&Crate>) -> Self {
         for krate in crates {
             let path = krate.local_path(self.builder);
@@ -487,7 +446,15 @@ impl<'a> ShouldRun<'a> {
         self.paths(&[path])
     }
 
-    // multiple aliases for the same job
+    /// Multiple aliases for the same job.
+    ///
+    /// This differs from [`path`] in that multiple calls to path will end up calling `make_run`
+    /// multiple times, whereas a single call to `paths` will only ever generate a single call to
+    /// `paths`.
+    ///
+    /// This is analogous to `all_krates`, although `all_krates` is gone now. Prefer [`path`] where possible.
+    ///
+    /// [`path`]: ShouldRun::path
     pub fn paths(mut self, paths: &[&str]) -> Self {
         static SUBMODULES_PATHS: OnceCell<Vec<String>> = OnceCell::new();
 
@@ -568,7 +535,7 @@ impl<'a> ShouldRun<'a> {
     ) -> Vec<PathSet> {
         let mut sets = vec![];
         for pathset in &self.paths {
-            let subset = pathset.intersection_removing_matches(paths, Some(kind));
+            let subset = pathset.intersection_removing_matches(paths, kind);
             if subset != PathSet::empty() {
                 sets.push(subset);
             }
@@ -577,7 +544,7 @@ impl<'a> ShouldRun<'a> {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Kind {
     #[clap(alias = "b")]
     Build,
@@ -641,12 +608,19 @@ impl Kind {
         }
     }
 
-    pub fn test_description(&self) -> &'static str {
+    pub fn description(&self) -> String {
         match self {
             Kind::Test => "Testing",
             Kind::Bench => "Benchmarking",
-            _ => panic!("not a test command: {}!", self.as_str()),
+            Kind::Doc => "Documenting",
+            Kind::Run => "Running",
+            Kind::Suggest => "Suggesting",
+            _ => {
+                let title_letter = self.as_str()[0..1].to_ascii_uppercase();
+                return format!("{title_letter}{}ing", &self.as_str()[1..]);
+            }
         }
+        .to_owned()
     }
 }
 
@@ -702,8 +676,8 @@ impl<'a> Builder<'a> {
                 check::CargoMiri,
                 check::MiroptTestTools,
                 check::Rls,
-                check::RustAnalyzer,
                 check::Rustfmt,
+                check::RustAnalyzer,
                 check::Bootstrap
             ),
             Kind::Test => describe!(
@@ -712,6 +686,7 @@ impl<'a> Builder<'a> {
                 test::Tidy,
                 test::Ui,
                 test::RunPassValgrind,
+                test::RunCoverage,
                 test::MirOpt,
                 test::Codegen,
                 test::CodegenUnits,
@@ -720,6 +695,7 @@ impl<'a> Builder<'a> {
                 test::Debuginfo,
                 test::UiFullDeps,
                 test::Rustdoc,
+                test::RunCoverageRustdoc,
                 test::Pretty,
                 test::Crate,
                 test::CrateLibrustc,
@@ -994,7 +970,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn sysroot(&self, compiler: Compiler) -> Interned<PathBuf> {
-        self.ensure(compile::Sysroot { compiler })
+        self.ensure(compile::Sysroot::new(compiler))
     }
 
     /// Returns the libdir where the standard library and other artifacts are
@@ -1231,7 +1207,7 @@ impl<'a> Builder<'a> {
             assert_eq!(target, compiler.host);
         }
 
-        if self.config.rust_optimize {
+        if self.config.rust_optimize.is_release() {
             // FIXME: cargo bench/install do not accept `--release`
             if cmd != "bench" && cmd != "install" {
                 cargo.arg("--release");
@@ -1287,7 +1263,7 @@ impl<'a> Builder<'a> {
         }
 
         let profile_var = |name: &str| {
-            let profile = if self.config.rust_optimize { "RELEASE" } else { "DEV" };
+            let profile = if self.config.rust_optimize.is_release() { "RELEASE" } else { "DEV" };
             format!("CARGO_PROFILE_{}_{}", profile, name)
         };
 
@@ -1357,7 +1333,7 @@ impl<'a> Builder<'a> {
                         "error: `x.py clippy` requires a host `rustc` toolchain with the `clippy` component"
                     );
                     eprintln!("help: try `rustup component add clippy`");
-                    crate::detail_exit(1);
+                    crate::detail_exit_macro!(1);
                 });
                 if !t!(std::str::from_utf8(&output.stdout)).contains("nightly") {
                     rustflags.arg("--cfg=bootstrap");
@@ -1634,7 +1610,7 @@ impl<'a> Builder<'a> {
                 // flesh out rpath support more fully in the future.
                 rustflags.arg("-Zosx-rpath-install-name");
                 Some("-Wl,-rpath,@loader_path/../lib")
-            } else if !target.contains("windows") {
+            } else if !target.contains("windows") && !target.contains("aix") {
                 rustflags.arg("-Clink-args=-Wl,-z,origin");
                 Some("-Wl,-rpath,$ORIGIN/../lib")
             } else {
@@ -1676,6 +1652,13 @@ impl<'a> Builder<'a> {
             }
         };
         cargo.env(profile_var("DEBUG"), debuginfo_level.to_string());
+        if let Some(opt_level) = &self.config.rust_optimize.get_opt_level() {
+            cargo.env(profile_var("OPT_LEVEL"), opt_level);
+        }
+        if !self.config.dry_run() && self.cc.borrow()[&target].args().iter().any(|arg| arg == "-gz")
+        {
+            rustflags.arg("-Clink-arg=-gz");
+        }
         cargo.env(
             profile_var("DEBUG_ASSERTIONS"),
             if mode == Mode::Std {
@@ -1785,7 +1768,10 @@ impl<'a> Builder<'a> {
             cargo.env("RUSTC_TLS_MODEL_INITIAL_EXEC", "1");
         }
 
-        if self.config.incremental {
+        // Ignore incremental modes except for stage0, since we're
+        // not guaranteeing correctness across builds if the compiler
+        // is changing under your feet.
+        if self.config.incremental && compiler.stage == 0 {
             cargo.env("CARGO_INCREMENTAL", "1");
         } else {
             // Don't rely on any default setting for incr. comp. in Cargo
@@ -2126,7 +2112,7 @@ impl<'a> Builder<'a> {
         let should_run = (desc.should_run)(ShouldRun::new(self, desc.kind));
 
         for path in &self.paths {
-            if should_run.paths.iter().any(|s| s.has(path, Some(desc.kind)))
+            if should_run.paths.iter().any(|s| s.has(path, desc.kind))
                 && !desc.is_excluded(
                     self,
                     &PathSet::Suite(TaskPath { path: path.clone(), kind: Some(desc.kind) }),

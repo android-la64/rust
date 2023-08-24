@@ -15,13 +15,13 @@ use std::fmt::Debug;
 use std::ops::ControlFlow;
 
 #[derive(Clone, Debug)]
-pub(super) enum VtblSegment<'tcx> {
+pub enum VtblSegment<'tcx> {
     MetadataDSA,
     TraitOwnEntries { trait_ref: ty::PolyTraitRef<'tcx>, emit_vptr: bool },
 }
 
 /// Prepare the segments for a vtable
-pub(super) fn prepare_vtable_segments<'tcx, T>(
+pub fn prepare_vtable_segments<'tcx, T>(
     tcx: TyCtxt<'tcx>,
     trait_ref: ty::PolyTraitRef<'tcx>,
     mut segment_visitor: impl FnMut(VtblSegment<'tcx>) -> ControlFlow<T>,
@@ -115,7 +115,7 @@ pub(super) fn prepare_vtable_segments<'tcx, T>(
                     .predicates
                     .into_iter()
                     .filter_map(move |(pred, _)| {
-                        pred.subst_supertrait(tcx, &inner_most_trait_ref).to_opt_poly_trait_pred()
+                        pred.subst_supertrait(tcx, &inner_most_trait_ref).as_trait_clause()
                     });
 
                 'diving_in_skip_visited_traits: loop {
@@ -362,7 +362,7 @@ pub(crate) fn vtable_trait_upcasting_coercion_new_vptr_slot<'tcx>(
 
     let trait_ref = ty::TraitRef::new(tcx, unsize_trait_did, [source, target]);
 
-    match tcx.codegen_select_candidate((ty::ParamEnv::reveal_all(), ty::Binder::dummy(trait_ref))) {
+    match tcx.codegen_select_candidate((ty::ParamEnv::reveal_all(), trait_ref)) {
         Ok(ImplSource::TraitUpcasting(implsrc_traitcasting)) => {
             implsrc_traitcasting.vtable_vptr_slot
         }

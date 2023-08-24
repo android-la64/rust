@@ -311,6 +311,7 @@ extern "C" {
     pub fn EVP_des_ede3_cbc() -> *const EVP_CIPHER;
     pub fn EVP_des_ede3_cfb64() -> *const EVP_CIPHER;
     pub fn EVP_des_cbc() -> *const EVP_CIPHER;
+    #[cfg(not(osslconf = "OPENSSL_NO_RC4"))]
     pub fn EVP_rc4() -> *const EVP_CIPHER;
     pub fn EVP_bf_ecb() -> *const EVP_CIPHER;
     pub fn EVP_bf_cbc() -> *const EVP_CIPHER;
@@ -521,6 +522,12 @@ extern "C" {
 
     pub fn EVP_PKEY_derive_init(ctx: *mut EVP_PKEY_CTX) -> c_int;
     pub fn EVP_PKEY_derive_set_peer(ctx: *mut EVP_PKEY_CTX, peer: *mut EVP_PKEY) -> c_int;
+    #[cfg(ossl300)]
+    pub fn EVP_PKEY_derive_set_peer_ex(
+        ctx: *mut EVP_PKEY_CTX,
+        peer: *mut EVP_PKEY,
+        validate_peer: c_int,
+    ) -> c_int;
     pub fn EVP_PKEY_derive(ctx: *mut EVP_PKEY_CTX, key: *mut c_uchar, size: *mut size_t) -> c_int;
 
     #[cfg(ossl300)]

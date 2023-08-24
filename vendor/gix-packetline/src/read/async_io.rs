@@ -37,7 +37,7 @@ where
     }
 
     /// This function is needed to help the borrow checker allow us to return references all the time
-    /// It contains a bunch of logic shared between peek and read_line invocations.
+    /// It contains a bunch of logic shared between peek and `read_line` invocations.
     async fn read_line_inner_exhaustive<'a>(
         reader: &mut T,
         buf: &'a mut Vec<u8>,
@@ -51,7 +51,7 @@ where
             Some(match Self::read_line_inner(reader, buf).await {
                 Ok(Ok(line)) => {
                     if delimiters.contains(&line) {
-                        let stopped_at = delimiters.iter().find(|l| **l == line).cloned();
+                        let stopped_at = delimiters.iter().find(|l| **l == line).copied();
                         buf.clear();
                         return (true, stopped_at, None);
                     } else if fail_on_err_lines {
@@ -68,10 +68,7 @@ where
                             );
                         }
                     }
-                    let len = line
-                        .as_slice()
-                        .map(|s| s.len() + U16_HEX_BYTES)
-                        .unwrap_or(U16_HEX_BYTES);
+                    let len = line.as_slice().map_or(U16_HEX_BYTES, |s| s.len() + U16_HEX_BYTES);
                     if buf_resize {
                         buf.resize(len, 0);
                     }

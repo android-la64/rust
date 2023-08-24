@@ -29,6 +29,7 @@ macro_rules! p {
 #[macro_use]
 mod dlsym;
 
+pub mod access_control;
 #[cfg(target_os = "macos")]
 pub mod authorization;
 pub mod base;
@@ -45,6 +46,7 @@ pub mod item;
 pub mod key;
 pub mod os;
 pub mod passwords;
+pub mod passwords_options;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub mod policy;
 pub mod random;

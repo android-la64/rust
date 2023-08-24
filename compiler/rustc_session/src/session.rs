@@ -1,8 +1,10 @@
 use crate::cgu_reuse_tracker::CguReuseTracker;
 use crate::code_stats::CodeStats;
 pub use crate::code_stats::{DataTypeKind, FieldInfo, FieldKind, SizeKind, VariantInfo};
-use crate::config::Input;
-use crate::config::{self, CrateType, InstrumentCoverage, OptLevel, OutputType, SwitchWithOptPath};
+use crate::config::{
+    self, CrateType, InstrumentCoverage, OptLevel, OutFileName, OutputType, SwitchWithOptPath,
+};
+use crate::config::{ErrorOutputType, Input};
 use crate::errors;
 use crate::parse::{add_feature_diagnostics, ParseSess};
 use crate::search_paths::{PathKind, SearchPath};
@@ -23,7 +25,7 @@ use rustc_errors::json::JsonEmitter;
 use rustc_errors::registry::Registry;
 use rustc_errors::{
     error_code, fallback_fluent_bundle, DiagnosticBuilder, DiagnosticId, DiagnosticMessage,
-    ErrorGuaranteed, FluentBundle, IntoDiagnostic, LazyFallbackBundle, MultiSpan, Noted,
+    ErrorGuaranteed, FluentBundle, Handler, IntoDiagnostic, LazyFallbackBundle, MultiSpan, Noted,
     TerminalUrl,
 };
 use rustc_macros::HashStable_Generic;
@@ -128,14 +130,12 @@ pub struct Limits {
     pub move_size_limit: Limit,
     /// The maximum length of types during monomorphization.
     pub type_length_limit: Limit,
-    /// The maximum blocks a const expression can evaluate.
-    pub const_eval_limit: Limit,
 }
 
 pub struct CompilerIO {
     pub input: Input,
     pub output_dir: Option<PathBuf>,
-    pub output_file: Option<PathBuf>,
+    pub output_file: Option<OutFileName>,
     pub temps_dir: Option<PathBuf>,
 }
 
@@ -232,6 +232,27 @@ pub enum MetadataKind {
     None,
     Uncompressed,
     Compressed,
+}
+
+#[derive(Clone, Copy)]
+pub enum CodegenUnits {
+    /// Specified by the user. In this case we try fairly hard to produce the
+    /// number of CGUs requested.
+    User(usize),
+
+    /// A default value, i.e. not specified by the user. In this case we take
+    /// more liberties about CGU formation, e.g. avoid producing very small
+    /// CGUs.
+    Default(usize),
+}
+
+impl CodegenUnits {
+    pub fn as_usize(self) -> usize {
+        match self {
+            CodegenUnits::User(n) => n,
+            CodegenUnits::Default(n) => n,
+        }
+    }
 }
 
 impl Session {
@@ -988,11 +1009,11 @@ impl Session {
         self.edition().rust_2024()
     }
 
-    /// Returns `true` if we cannot skip the PLT for shared library calls.
+    /// Returns `true` if we should use the PLT for shared library calls.
     pub fn needs_plt(&self) -> bool {
-        // Check if the current target usually needs PLT to be enabled.
+        // Check if the current target usually wants PLT to be enabled.
         // The user can use the command line flag to override it.
-        let needs_plt = self.target.needs_plt;
+        let want_plt = self.target.plt_by_default;
 
         let dbg_opts = &self.opts.unstable_opts;
 
@@ -1004,8 +1025,8 @@ impl Session {
         let full_relro = RelroLevel::Full == relro_level;
 
         // If user didn't explicitly forced us to use / skip the PLT,
-        // then try to skip it where possible.
-        dbg_opts.plt.unwrap_or(needs_plt || !full_relro)
+        // then use it unless the target doesn't want it by default or the full relro forces it on.
+        dbg_opts.plt.unwrap_or(want_plt || !full_relro)
     }
 
     /// Checks if LLVM lifetime markers should be emitted.
@@ -1104,7 +1125,7 @@ impl Session {
 
         // If there's only one codegen unit and LTO isn't enabled then there's
         // no need for ThinLTO so just return false.
-        if self.codegen_units() == 1 {
+        if self.codegen_units().as_usize() == 1 {
             return config::Lto::No;
         }
 
@@ -1206,19 +1227,19 @@ impl Session {
 
     /// Returns the number of codegen units that should be used for this
     /// compilation
-    pub fn codegen_units(&self) -> usize {
+    pub fn codegen_units(&self) -> CodegenUnits {
         if let Some(n) = self.opts.cli_forced_codegen_units {
-            return n;
+            return CodegenUnits::User(n);
         }
         if let Some(n) = self.target.default_codegen_units {
-            return n as usize;
+            return CodegenUnits::Default(n as usize);
         }
 
         // If incremental compilation is turned on, we default to a high number
         // codegen units in order to reduce the "collateral damage" small
         // changes cause.
         if self.opts.incremental.is_some() {
-            return 256;
+            return CodegenUnits::Default(256);
         }
 
         // Why is 16 codegen units the default all the time?
@@ -1271,7 +1292,7 @@ impl Session {
         // As a result 16 was chosen here! Mostly because it was a power of 2
         // and most benchmarks agreed it was roughly a local optimum. Not very
         // scientific.
-        16
+        CodegenUnits::Default(16)
     }
 
     pub fn teach(&self, code: &DiagnosticId) -> bool {
@@ -1361,6 +1382,7 @@ fn default_emitter(
 // JUSTIFICATION: literally session construction
 #[allow(rustc::bad_opt_access)]
 pub fn build_session(
+    handler: &EarlyErrorHandler,
     sopts: config::Options,
     io: CompilerIO,
     bundle: Option<Lrc<rustc_errors::FluentBundle>>,
@@ -1387,13 +1409,12 @@ pub fn build_session(
         None => filesearch::get_or_default_sysroot().expect("Failed finding sysroot"),
     };
 
-    let target_cfg = config::build_target_config(&sopts, target_override, &sysroot);
+    let target_cfg = config::build_target_config(handler, &sopts, target_override, &sysroot);
     let host_triple = TargetTriple::from_triple(config::host_triple());
-    let (host, target_warnings) = Target::search(&host_triple, &sysroot).unwrap_or_else(|e| {
-        early_error(sopts.error_format, format!("Error loading host specification: {e}"))
-    });
+    let (host, target_warnings) = Target::search(&host_triple, &sysroot)
+        .unwrap_or_else(|e| handler.early_error(format!("Error loading host specification: {e}")));
     for warning in target_warnings.warning_messages() {
-        early_warn(sopts.error_format, warning)
+        handler.early_warn(warning)
     }
 
     let loader = file_loader.unwrap_or_else(|| Box::new(RealFileLoader));
@@ -1435,7 +1456,7 @@ pub fn build_session(
         match profiler {
             Ok(profiler) => Some(Arc::new(profiler)),
             Err(e) => {
-                early_warn(sopts.error_format, format!("failed to create profiler: {e}"));
+                handler.early_warn(format!("failed to create profiler: {e}"));
                 None
             }
         }
@@ -1675,6 +1696,13 @@ fn validate_commandline_args_with_session_available(sess: &Session) {
     if sess.opts.unstable_opts.instrument_xray.is_some() && !sess.target.options.supports_xray {
         sess.emit_err(errors::InstrumentationNotSupported { us: "XRay".to_string() });
     }
+
+    if let Some(flavor) = sess.opts.cg.linker_flavor {
+        if let Some(compatible_list) = sess.target.linker_flavor.check_compatibility(flavor) {
+            let flavor = flavor.desc();
+            sess.emit_err(errors::IncompatibleLinkerFlavor { flavor, compatible_list });
+        }
+    }
 }
 
 /// Holds data on the current incremental compilation session, if there is one.
@@ -1695,7 +1723,64 @@ pub enum IncrCompSession {
     InvalidBecauseOfErrors { session_directory: PathBuf },
 }
 
-fn early_error_handler(output: config::ErrorOutputType) -> rustc_errors::Handler {
+/// A wrapper around an [`Handler`] that is used for early error emissions.
+pub struct EarlyErrorHandler {
+    handler: Handler,
+}
+
+impl EarlyErrorHandler {
+    pub fn new(output: ErrorOutputType) -> Self {
+        let emitter = mk_emitter(output);
+        Self { handler: rustc_errors::Handler::with_emitter(true, None, emitter) }
+    }
+
+    pub fn abort_if_errors(&self) {
+        self.handler.abort_if_errors()
+    }
+
+    /// Swap out the underlying handler once we acquire the user's preference on error emission
+    /// format. Any errors prior to that will cause an abort and all stashed diagnostics of the
+    /// previous handler will be emitted.
+    pub fn abort_if_error_and_set_error_format(&mut self, output: ErrorOutputType) {
+        self.handler.abort_if_errors();
+
+        let emitter = mk_emitter(output);
+        self.handler = Handler::with_emitter(true, None, emitter);
+    }
+
+    #[allow(rustc::untranslatable_diagnostic)]
+    #[allow(rustc::diagnostic_outside_of_impl)]
+    pub fn early_note(&self, msg: impl Into<DiagnosticMessage>) {
+        self.handler.struct_note_without_error(msg).emit()
+    }
+
+    #[allow(rustc::untranslatable_diagnostic)]
+    #[allow(rustc::diagnostic_outside_of_impl)]
+    pub fn early_help(&self, msg: impl Into<DiagnosticMessage>) {
+        self.handler.struct_help(msg).emit()
+    }
+
+    #[allow(rustc::untranslatable_diagnostic)]
+    #[allow(rustc::diagnostic_outside_of_impl)]
+    #[must_use = "ErrorGuaranteed must be returned from `run_compiler` in order to exit with a non-zero status code"]
+    pub fn early_error_no_abort(&self, msg: impl Into<DiagnosticMessage>) -> ErrorGuaranteed {
+        self.handler.struct_err(msg).emit()
+    }
+
+    #[allow(rustc::untranslatable_diagnostic)]
+    #[allow(rustc::diagnostic_outside_of_impl)]
+    pub fn early_error(&self, msg: impl Into<DiagnosticMessage>) -> ! {
+        self.handler.struct_fatal(msg).emit()
+    }
+
+    #[allow(rustc::untranslatable_diagnostic)]
+    #[allow(rustc::diagnostic_outside_of_impl)]
+    pub fn early_warn(&self, msg: impl Into<DiagnosticMessage>) {
+        self.handler.struct_warn(msg).emit()
+    }
+}
+
+fn mk_emitter(output: ErrorOutputType) -> Box<dyn Emitter + sync::Send + 'static> {
     // FIXME(#100717): early errors aren't translated at the moment, so this is fine, but it will
     // need to reference every crate that might emit an early error for translation to work.
     let fallback_bundle =
@@ -1727,27 +1812,5 @@ fn early_error_handler(output: config::ErrorOutputType) -> rustc_errors::Handler
             TerminalUrl::No,
         )),
     };
-    rustc_errors::Handler::with_emitter(true, None, emitter)
-}
-
-#[allow(rustc::untranslatable_diagnostic)]
-#[allow(rustc::diagnostic_outside_of_impl)]
-#[must_use = "ErrorGuaranteed must be returned from `run_compiler` in order to exit with a non-zero status code"]
-pub fn early_error_no_abort(
-    output: config::ErrorOutputType,
-    msg: impl Into<DiagnosticMessage>,
-) -> ErrorGuaranteed {
-    early_error_handler(output).struct_err(msg).emit()
-}
-
-#[allow(rustc::untranslatable_diagnostic)]
-#[allow(rustc::diagnostic_outside_of_impl)]
-pub fn early_error(output: config::ErrorOutputType, msg: impl Into<DiagnosticMessage>) -> ! {
-    early_error_handler(output).struct_fatal(msg).emit()
-}
-
-#[allow(rustc::untranslatable_diagnostic)]
-#[allow(rustc::diagnostic_outside_of_impl)]
-pub fn early_warn(output: config::ErrorOutputType, msg: impl Into<DiagnosticMessage>) {
-    early_error_handler(output).struct_warn(msg).emit()
+    emitter
 }

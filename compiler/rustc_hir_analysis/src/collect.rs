@@ -380,7 +380,7 @@ impl<'tcx> AstConv<'tcx> for ItemCtxt<'tcx> {
     }
 
     fn ty_infer(&self, _: Option<&ty::GenericParamDef>, span: Span) -> Ty<'tcx> {
-        self.tcx().ty_error_with_message(span, "bad placeholder type")
+        Ty::new_error_with_message(self.tcx(), span, "bad placeholder type")
     }
 
     fn ct_infer(&self, ty: Ty<'tcx>, _: Option<&ty::GenericParamDef>, span: Span) -> Const<'tcx> {
@@ -390,7 +390,7 @@ impl<'tcx> AstConv<'tcx> for ItemCtxt<'tcx> {
             // left alone.
             r => bug!("unexpected region: {r:?}"),
         });
-        self.tcx().const_error_with_message(ty, span, "bad placeholder constant")
+        ty::Const::new_error_with_message(self.tcx(), ty, span, "bad placeholder constant")
     }
 
     fn projected_ty_from_poly_trait_ref(
@@ -407,7 +407,7 @@ impl<'tcx> AstConv<'tcx> for ItemCtxt<'tcx> {
                 item_segment,
                 trait_ref.substs,
             );
-            self.tcx().mk_projection(item_def_id, item_substs)
+            Ty::new_projection(self.tcx(), item_def_id, item_substs)
         } else {
             // There are no late-bound regions; we can just ignore the binder.
             let (mut mpart_sugg, mut inferred_sugg) = (None, None);
@@ -440,7 +440,7 @@ impl<'tcx> AstConv<'tcx> for ItemCtxt<'tcx> {
                                     self.tcx.replace_late_bound_regions_uncached(
                                         poly_trait_ref,
                                         |_| {
-                                            self.tcx.mk_re_early_bound(ty::EarlyBoundRegion {
+                                            ty::Region::new_early_bound(self.tcx, ty::EarlyBoundRegion {
                                                 def_id: item_def_id,
                                                 index: 0,
                                                 name: Symbol::intern(&lt_name),
@@ -471,14 +471,15 @@ impl<'tcx> AstConv<'tcx> for ItemCtxt<'tcx> {
                 }
                 _ => {}
             }
-            self.tcx().ty_error(self.tcx().sess.emit_err(
-                errors::AssociatedTypeTraitUninferredGenericParams {
+            Ty::new_error(
+                self.tcx(),
+                self.tcx().sess.emit_err(errors::AssociatedTypeTraitUninferredGenericParams {
                     span,
                     inferred_sugg,
                     bound,
                     mpart_sugg,
-                },
-            ))
+                }),
+            )
         }
     }
 
@@ -666,17 +667,15 @@ fn convert_trait_item(tcx: TyCtxt<'_>, trait_item_id: hir::TraitItemId) {
             tcx.ensure().fn_sig(def_id);
         }
 
-        hir::TraitItemKind::Const(.., Some(_)) => {
+        hir::TraitItemKind::Const(ty, body_id) => {
             tcx.ensure().type_of(def_id);
-        }
-
-        hir::TraitItemKind::Const(hir_ty, _) => {
-            tcx.ensure().type_of(def_id);
-            // Account for `const C: _;`.
-            let mut visitor = HirPlaceholderCollector::default();
-            visitor.visit_trait_item(trait_item);
-            if !tcx.sess.diagnostic().has_stashed_diagnostic(hir_ty.span, StashKey::ItemNoType) {
-                placeholder_type_error(tcx, None, visitor.0, false, None, "constant");
+            if !tcx.sess.diagnostic().has_stashed_diagnostic(ty.span, StashKey::ItemNoType)
+                && !(is_suggestable_infer_ty(ty) && body_id.is_some())
+            {
+                // Account for `const C: _;`.
+                let mut visitor = HirPlaceholderCollector::default();
+                visitor.visit_trait_item(trait_item);
+                placeholder_type_error(tcx, None, visitor.0, false, None, "associated constant");
             }
         }
 
@@ -721,7 +720,14 @@ fn convert_impl_item(tcx: TyCtxt<'_>, impl_item_id: hir::ImplItemId) {
 
             placeholder_type_error(tcx, None, visitor.0, false, None, "associated type");
         }
-        hir::ImplItemKind::Const(..) => {}
+        hir::ImplItemKind::Const(ty, _) => {
+            // Account for `const T: _ = ..;`
+            if !is_suggestable_infer_ty(ty) {
+                let mut visitor = HirPlaceholderCollector::default();
+                visitor.visit_impl_item(impl_item);
+                placeholder_type_error(tcx, None, visitor.0, false, None, "associated constant");
+            }
+        }
     }
 }
 
@@ -941,7 +947,7 @@ fn trait_def(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::TraitDef {
 
                 match item {
                     Some(item) if matches!(item.kind, hir::AssocItemKind::Fn { .. }) => {
-                        if !tcx.impl_defaultness(item.id.owner_id).has_value() {
+                        if !tcx.defaultness(item.id.owner_id).has_value() {
                             tcx.sess.emit_err(errors::FunctionNotHaveDefaultImplementation {
                                 span: item.span,
                                 note_span: attr_span,
@@ -986,6 +992,50 @@ fn trait_def(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::TraitDef {
             no_dups.then_some(list)
         });
 
+    let mut deny_explicit_impl = false;
+    let mut implement_via_object = true;
+    if let Some(attr) = tcx.get_attr(def_id, sym::rustc_deny_explicit_impl) {
+        deny_explicit_impl = true;
+        let mut seen_attr = false;
+        for meta in attr.meta_item_list().iter().flatten() {
+            if let Some(meta) = meta.meta_item()
+                && meta.name_or_empty() == sym::implement_via_object
+                && let Some(lit) = meta.name_value_literal()
+            {
+                if seen_attr {
+                    tcx.sess.span_err(
+                        meta.span,
+                        "duplicated `implement_via_object` meta item",
+                    );
+                }
+                seen_attr = true;
+
+                match lit.symbol {
+                    kw::True => {
+                        implement_via_object = true;
+                    }
+                    kw::False => {
+                        implement_via_object = false;
+                    }
+                    _ => {
+                        tcx.sess.span_err(
+                            meta.span,
+                            format!("unknown literal passed to `implement_via_object` attribute: {}", lit.symbol),
+                        );
+                    }
+                }
+            } else {
+                tcx.sess.span_err(
+                    meta.span(),
+                    format!("unknown meta item passed to `rustc_deny_explicit_impl` {:?}", meta),
+                );
+            }
+        }
+        if !seen_attr {
+            tcx.sess.span_err(attr.span, "missing `implement_via_object` meta item");
+        }
+    }
+
     ty::TraitDef {
         def_id: def_id.to_def_id(),
         unsafety,
@@ -996,6 +1046,8 @@ fn trait_def(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::TraitDef {
         skip_array_during_method_dispatch,
         specialization_kind,
         must_implement_one_of,
+        implement_via_object,
+        deny_explicit_impl,
     }
 }
 
@@ -1124,7 +1176,7 @@ fn fn_sig(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::EarlyBinder<ty::PolyFnSig<
             bug!("unexpected sort of node in fn_sig(): {:?}", x);
         }
     };
-    ty::EarlyBinder(output)
+    ty::EarlyBinder::bind(output)
 }
 
 fn infer_return_ty_for_fn_sig<'tcx>(
@@ -1188,7 +1240,7 @@ fn infer_return_ty_for_fn_sig<'tcx>(
             } else {
                 ty::Binder::dummy(tcx.mk_fn_sig(
                     fn_sig.inputs().iter().copied(),
-                    tcx.ty_error(guar),
+                    Ty::new_error(tcx, guar),
                     fn_sig.c_variadic,
                     fn_sig.unsafety,
                     fn_sig.abi,
@@ -1277,11 +1329,11 @@ fn suggest_impl_trait<'tcx>(
         {
             continue;
         }
-        let ocx = ObligationCtxt::new_in_snapshot(&infcx);
+        let ocx = ObligationCtxt::new(&infcx);
         let item_ty = ocx.normalize(
             &ObligationCause::misc(span, def_id),
             param_env,
-            tcx.mk_projection(assoc_item_def_id, substs),
+            Ty::new_projection(tcx, assoc_item_def_id, substs),
         );
         // FIXME(compiler-errors): We may benefit from resolving regions here.
         if ocx.select_where_possible().is_empty()
@@ -1312,7 +1364,7 @@ fn impl_trait_ref(
                 check_impl_constness(tcx, impl_.constness, ast_trait_ref),
             )
         })
-        .map(ty::EarlyBinder)
+        .map(ty::EarlyBinder::bind)
 }
 
 fn check_impl_constness(

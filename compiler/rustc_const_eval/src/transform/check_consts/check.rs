@@ -9,8 +9,8 @@ use rustc_infer::traits::{ImplSource, Obligation, ObligationCause};
 use rustc_middle::mir::visit::{MutatingUseContext, NonMutatingUseContext, PlaceContext, Visitor};
 use rustc_middle::mir::*;
 use rustc_middle::ty::subst::{GenericArgKind, InternalSubsts};
-use rustc_middle::ty::{self, adjustment::PointerCast, Instance, InstanceDef, Ty, TyCtxt};
-use rustc_middle::ty::{Binder, TraitRef, TypeVisitableExt};
+use rustc_middle::ty::{self, adjustment::PointerCoercion, Instance, InstanceDef, Ty, TyCtxt};
+use rustc_middle::ty::{TraitRef, TypeVisitableExt};
 use rustc_mir_dataflow::{self, Analysis};
 use rustc_span::{sym, Span, Symbol};
 use rustc_trait_selection::traits::error_reporting::TypeErrCtxtExt as _;
@@ -412,7 +412,6 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                         BorrowKind::Shallow => {
                             PlaceContext::NonMutatingUse(NonMutatingUseContext::ShallowBorrow)
                         }
-                        BorrowKind::Unique => PlaceContext::MutatingUse(MutatingUseContext::Borrow),
                         BorrowKind::Mut { .. } => {
                             PlaceContext::MutatingUse(MutatingUseContext::Borrow)
                         }
@@ -457,7 +456,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                 }
             }
 
-            Rvalue::Ref(_, kind @ (BorrowKind::Mut { .. } | BorrowKind::Unique), place) => {
+            Rvalue::Ref(_, BorrowKind::Mut { .. }, place) => {
                 let ty = place.ty(self.body, self.tcx).ty;
                 let is_allowed = match ty.kind() {
                     // Inside a `static mut`, `&mut [...]` is allowed.
@@ -478,11 +477,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                 };
 
                 if !is_allowed {
-                    if let BorrowKind::Mut { .. } = kind {
-                        self.check_mut_borrow(place.local, hir::BorrowKind::Ref)
-                    } else {
-                        self.check_op(ops::CellBorrow);
-                    }
+                    self.check_mut_borrow(place.local, hir::BorrowKind::Ref)
                 }
             }
 
@@ -526,12 +521,12 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
             }
 
             Rvalue::Cast(
-                CastKind::Pointer(
-                    PointerCast::MutToConstPointer
-                    | PointerCast::ArrayToPointer
-                    | PointerCast::UnsafeFnPointer
-                    | PointerCast::ClosureFnPointer(_)
-                    | PointerCast::ReifyFnPointer,
+                CastKind::PointerCoercion(
+                    PointerCoercion::MutToConstPointer
+                    | PointerCoercion::ArrayToPointer
+                    | PointerCoercion::UnsafeFnPointer
+                    | PointerCoercion::ClosureFnPointer(_)
+                    | PointerCoercion::ReifyFnPointer,
                 ),
                 _,
                 _,
@@ -539,7 +534,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                 // These are all okay; they only change the type, not the data.
             }
 
-            Rvalue::Cast(CastKind::Pointer(PointerCast::Unsize), _, _) => {
+            Rvalue::Cast(CastKind::PointerCoercion(PointerCoercion::Unsize), _, _) => {
                 // Unsizing is implemented for CTFE.
             }
 
@@ -617,30 +612,28 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
     }
     fn visit_projection_elem(
         &mut self,
-        place_local: Local,
-        proj_base: &[PlaceElem<'tcx>],
+        place_ref: PlaceRef<'tcx>,
         elem: PlaceElem<'tcx>,
         context: PlaceContext,
         location: Location,
     ) {
         trace!(
-            "visit_projection_elem: place_local={:?} proj_base={:?} elem={:?} \
+            "visit_projection_elem: place_ref={:?} elem={:?} \
             context={:?} location={:?}",
-            place_local,
-            proj_base,
+            place_ref,
             elem,
             context,
             location,
         );
 
-        self.super_projection_elem(place_local, proj_base, elem, context, location);
+        self.super_projection_elem(place_ref, elem, context, location);
 
         match elem {
             ProjectionElem::Deref => {
-                let base_ty = Place::ty_from(place_local, proj_base, self.body, self.tcx).ty;
+                let base_ty = place_ref.ty(self.body, self.tcx).ty;
                 if base_ty.is_unsafe_ptr() {
-                    if proj_base.is_empty() {
-                        let decl = &self.body.local_decls[place_local];
+                    if place_ref.projection.is_empty() {
+                        let decl = &self.body.local_decls[place_ref.local];
                         if let LocalInfo::StaticRef { def_id, .. } = *decl.local_info() {
                             let span = decl.source_info.span;
                             self.check_static(def_id, span);
@@ -702,7 +695,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
         self.super_terminator(terminator, location);
 
         match &terminator.kind {
-            TerminatorKind::Call { func, args, fn_span, from_hir_call, .. } => {
+            TerminatorKind::Call { func, args, fn_span, call_source, .. } => {
                 let ConstCx { tcx, body, param_env, .. } = *self.ccx;
                 let caller = self.def_id();
 
@@ -755,17 +748,16 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                             callee,
                             substs,
                             span: *fn_span,
-                            from_hir_call: *from_hir_call,
+                            call_source: *call_source,
                             feature: Some(sym::const_trait_impl),
                         });
                         return;
                     }
 
                     let trait_ref = TraitRef::from_method(tcx, trait_id, substs);
-                    let poly_trait_pred =
-                        Binder::dummy(trait_ref).with_constness(ty::BoundConstness::ConstIfConst);
+                    let trait_ref = trait_ref.with_constness(ty::BoundConstness::ConstIfConst);
                     let obligation =
-                        Obligation::new(tcx, ObligationCause::dummy(), param_env, poly_trait_pred);
+                        Obligation::new(tcx, ObligationCause::dummy(), param_env, trait_ref);
 
                     let implsrc = {
                         let infcx = tcx.infer_ctxt().build();
@@ -781,14 +773,23 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                             );
                             return;
                         }
-                        Ok(Some(ImplSource::Closure(data))) => {
-                            if !tcx.is_const_fn_raw(data.closure_def_id) {
+                        // Closure: Fn{Once|Mut}
+                        Ok(Some(ImplSource::Builtin(_)))
+                            if trait_ref.self_ty().is_closure()
+                                && tcx.fn_trait_kind_from_def_id(trait_id).is_some() =>
+                        {
+                            let ty::Closure(closure_def_id, substs) =
+                                *trait_ref.self_ty().kind()
+                            else {
+                                unreachable!()
+                            };
+                            if !tcx.is_const_fn_raw(closure_def_id) {
                                 self.check_op(ops::FnCallNonConst {
                                     caller,
                                     callee,
                                     substs,
                                     span: *fn_span,
-                                    from_hir_call: *from_hir_call,
+                                    call_source: *call_source,
                                     feature: None,
                                 });
 
@@ -814,7 +815,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                                     callee,
                                     substs,
                                     span: *fn_span,
-                                    from_hir_call: *from_hir_call,
+                                    call_source: *call_source,
                                     feature: None,
                                 });
                                 return;
@@ -838,7 +839,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                                     tcx,
                                     ObligationCause::dummy_with_span(*fn_span),
                                     param_env,
-                                    poly_trait_pred,
+                                    trait_ref,
                                 );
 
                                 // improve diagnostics by showing what failed. Our requirements are stricter this time
@@ -857,7 +858,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                                     callee,
                                     substs,
                                     span: *fn_span,
-                                    from_hir_call: *from_hir_call,
+                                    call_source: *call_source,
                                     feature: None,
                                 });
                                 return;
@@ -917,7 +918,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                             callee,
                             substs,
                             span: *fn_span,
-                            from_hir_call: *from_hir_call,
+                            call_source: *call_source,
                             feature: None,
                         });
                         return;

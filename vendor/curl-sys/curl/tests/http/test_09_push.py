@@ -28,14 +28,12 @@ import logging
 import os
 import pytest
 
-from testenv import Env, CurlClient
+from testenv import Env, CurlClient, LocalClient
 
 
 log = logging.getLogger(__name__)
 
 
-@pytest.mark.skipif(condition=Env.setup_incomplete(),
-                    reason=f"missing: {Env.incomplete_reason()}")
 class TestPush:
 
     @pytest.fixture(autouse=True, scope='class')
@@ -43,9 +41,9 @@ class TestPush:
         push_dir = os.path.join(httpd.docs_dir, 'push')
         if not os.path.exists(push_dir):
             os.makedirs(push_dir)
-        env.make_data_file(indir=push_dir, fname="data1", fsize=100*1024)
-        env.make_data_file(indir=push_dir, fname="data2", fsize=100*1024)
-        env.make_data_file(indir=push_dir, fname="data3", fsize=100*1024)
+        env.make_data_file(indir=push_dir, fname="data1", fsize=1*1024)
+        env.make_data_file(indir=push_dir, fname="data2", fsize=1*1024)
+        env.make_data_file(indir=push_dir, fname="data3", fsize=1*1024)
         httpd.set_extra_config(env.domain1, [
             f'H2EarlyHints on',
             f'<Location /push/data1>',
@@ -63,13 +61,24 @@ class TestPush:
         httpd.reload()
 
     # download a file that triggers a "103 Early Hints" response
-    def test_09_01_early_hints(self, env: Env, httpd, repeat):
+    def test_09_01_h2_early_hints(self, env: Env, httpd, repeat):
         curl = CurlClient(env=env)
         url = f'https://{env.domain1}:{env.https_port}/push/data1'
         r = curl.http_download(urls=[url], alpn_proto='h2', with_stats=False,
                                with_headers=True)
-        assert r.exit_code == 0, f'{r}'
+        r.check_exit_code(0)  
         assert len(r.responses) == 2, f'{r.responses}'
         assert r.responses[0]['status'] == 103, f'{r.responses}'
         assert 'link' in r.responses[0]['header'], f'{r.responses[0]}'
         assert r.responses[0]['header']['link'] == '</push/data2>; rel=preload', f'{r.responses[0]}'
+
+    def test_09_02_h2_push(self, env: Env, httpd, repeat):
+        # use localhost as we do not have resolve support in local client
+        url = f'https://localhost:{env.https_port}/push/data1'
+        client = LocalClient(name='h2-serverpush', env=env)
+        if not client.exists():
+            pytest.skip(f'example client not built: {client.name}')
+        r = client.run(args=[url])
+        r.check_exit_code(0)
+        assert os.path.exists(client.download_file(0))
+        assert os.path.exists(os.path.join(client.run_dir, 'push0')), r.dump_logs()

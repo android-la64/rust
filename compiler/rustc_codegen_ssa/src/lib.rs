@@ -4,6 +4,7 @@
 #![feature(if_let_guard)]
 #![feature(int_roundings)]
 #![feature(let_chains)]
+#![feature(negative_impls)]
 #![feature(never_type)]
 #![feature(strict_provenance)]
 #![feature(try_blocks)]
@@ -47,7 +48,6 @@ pub mod back;
 pub mod base;
 pub mod codegen_attrs;
 pub mod common;
-pub mod coverageinfo;
 pub mod debuginfo;
 pub mod errors;
 pub mod glue;

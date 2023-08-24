@@ -51,7 +51,7 @@ impl<'a> CommitRefIter<'a> {
         Token::try_into_id(tree_id).ok_or_else(missing_field)
     }
 
-    /// Return all parent_ids as iterator.
+    /// Return all `parent_ids` as iterator.
     ///
     /// Parsing errors are ignored quietly.
     pub fn parent_ids(self) -> impl Iterator<Item = gix_hash::ObjectId> + 'a {
@@ -68,7 +68,7 @@ impl<'a> CommitRefIter<'a> {
     /// Errors are not the common case - if an error needs to be detectable, use this instance as iterator.
     pub fn signatures(self) -> impl Iterator<Item = gix_actor::SignatureRef<'a>> + 'a {
         self.filter_map(|t| match t {
-            Ok(Token::Author { signature }) | Ok(Token::Committer { signature }) => Some(signature),
+            Ok(Token::Author { signature } | Token::Committer { signature }) => Some(signature),
             _ => None,
         })
     }

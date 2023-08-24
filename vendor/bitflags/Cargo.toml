@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.56.0"
 name = "bitflags"
-version = "2.2.1"
+version = "2.3.3"
 authors = ["The Rust Project Developers"]
 exclude = [
     "tests",
@@ -82,6 +82,9 @@ version = "1.0"
 
 [dev-dependencies.trybuild]
 version = "1.0"
+
+[dev-dependencies.zerocopy]
+version = "0.6"
 
 [features]
 example_generated = []

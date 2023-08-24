@@ -1,8 +1,7 @@
-use super::super::c;
-use super::super::conv::owned_fd;
-use super::super::offset::libc_ino_t;
 #[cfg(not(any(solarish, target_os = "haiku")))]
 use super::types::FileType;
+use crate::backend::c;
+use crate::backend::conv::owned_fd;
 use crate::fd::{AsFd, BorrowedFd};
 use crate::ffi::{CStr, CString};
 use crate::fs::{fcntl_getfl, fstat, openat, Mode, OFlags, Stat};
@@ -18,8 +17,8 @@ use crate::fs::{fstatfs, StatFs};
 use crate::fs::{fstatvfs, StatVfs};
 use crate::io;
 #[cfg(not(any(target_os = "fuchsia", target_os = "wasi")))]
+#[cfg(feature = "process")]
 use crate::process::fchdir;
-#[cfg(target_os = "wasi")]
 use alloc::borrow::ToOwned;
 #[cfg(not(linux_like))]
 use c::readdir as libc_readdir;
@@ -139,7 +138,9 @@ impl Dir {
     }
 
     /// `fchdir(self)`
+    #[cfg(feature = "process")]
     #[cfg(not(any(target_os = "fuchsia", target_os = "wasi")))]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "process")))]
     #[inline]
     pub fn chdir(&self) -> io::Result<()> {
         fchdir(unsafe { BorrowedFd::borrow_raw(c::dirfd(self.0.as_ptr())) })
@@ -183,10 +184,10 @@ pub struct DirEntry {
     d_type: u8,
 
     #[cfg(not(any(freebsdlike, netbsdlike)))]
-    d_ino: libc_ino_t,
+    d_ino: c::ino_t,
 
     #[cfg(any(freebsdlike, netbsdlike))]
-    d_fileno: libc_ino_t,
+    d_fileno: c::ino_t,
 
     name: CString,
 }

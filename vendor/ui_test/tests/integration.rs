@@ -17,20 +17,16 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     eprintln!("\n{} `{name}` tests in mode {mode}", "Running".green());
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join(name);
-    let bless = std::env::args().any(|arg| arg == "--bless");
+    let bless = std::env::args().all(|arg| arg != "--check");
     let mut config = Config {
-        root_dir: root_dir.clone(),
         trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
-        program: CommandBuilder::cmd("cargo"),
-        output_conflict_handling: if bless {
-            OutputConflictHandling::Bless
-        } else {
-            OutputConflictHandling::Error
-        },
         mode,
-        edition: None,
-        ..Config::default()
+        ..Config::cargo(root_dir.clone())
     };
+
+    if bless {
+        config.output_conflict_handling = OutputConflictHandling::Bless;
+    }
 
     config.program.args = vec![
         "test".into(),
@@ -40,9 +36,6 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         "--jobs".into(),
         "1".into(),
         "--no-fail-fast".into(),
-        "--target-dir".into(),
-        path.parent().unwrap().join("target").into(),
-        "--manifest-path".into(),
     ];
 
     config
@@ -71,8 +64,16 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("\\.exe", b"");
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.stderr_filter("   [0-9]: .*", "");
-    config.stderr_filter("/target/[^/]+/debug", "/target/$$TRIPLE/debug");
+    config.stderr_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
+    config.stderr_filter("/target/[^/]+/tests", "/target/$$TMP/tests");
+    // Normalize proc macro filenames on windows to their linux repr
+    config.stderr_filter("/([^/\\.]+)\\.dll", "/lib$1.so");
+    // Normalize proc macro filenames on mac to their linux repr
+    config.stderr_filter("/([^/\\.]+)\\.dylib", "/$1.so");
     config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
+    config.stderr_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
+    config.stderr_filter("program not found", "No such file or directory");
+    config.stderr_filter(" \\(os error [0-9]+\\)", "");
 
     run_tests_generic(
         config,
@@ -101,6 +102,11 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                 }
         },
         |_, _| None,
-        ui_test::status_emitter::TextAndGha,
+        (
+            ui_test::status_emitter::Text,
+            ui_test::status_emitter::Gha::<true> {
+                name: format!("{mode:?}"),
+            },
+        ),
     )
 }

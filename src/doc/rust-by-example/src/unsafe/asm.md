@@ -254,7 +254,8 @@ fn main() {
     // String is stored as ascii in ebx, edx, ecx in order
     // Because ebx is reserved, the asm needs to preserve the value of it.
     // So we push and pop it around the main asm.
-    // (in 64 bit mode for 64 bit processors, 32 bit processors would use ebx)
+    // 64 bit mode on 64 bit processors does not allow pushing/popping of
+    // 32 bit registers (like ebx), so we have to use the extended rbx register instead.
 
     unsafe {
         asm!(
@@ -474,4 +475,4 @@ Options can be provided as an optional final argument to the `asm!` macro. We sp
 
 These allow the compiler to better optimize code using `asm!`, for example by eliminating pure `asm!` blocks whose outputs are not needed.
 
-See the [reference](../../reference/inline-assembly.html) for the full list of available options and their effects.
+See the [reference](https://doc.rust-lang.org/stable/reference/inline-assembly.html) for the full list of available options and their effects.

@@ -1,7 +1,7 @@
 //! OSX specific extensions to identity functionality.
 use core_foundation::array::CFArray;
 use core_foundation::base::TCFType;
-use security_framework_sys::identity::*;
+use security_framework_sys::identity::SecIdentityCreateWithCertificate;
 use std::ptr;
 
 use crate::base::Result;
@@ -14,9 +14,9 @@ use crate::os::macos::keychain::SecKeychain;
 pub trait SecIdentityExt {
     /// Creates an identity corresponding to a certificate, looking in the
     /// provided keychains for the corresponding private key.
-    /// 
+    ///
     /// To search the default keychains, use an empty slice for `keychains`.
-    /// 
+    ///
     /// <https://developer.apple.com/documentation/security/1401160-secidentitycreatewithcertificate>
     fn with_certificate(
         keychains: &[SecKeychain],
@@ -25,10 +25,7 @@ pub trait SecIdentityExt {
 }
 
 impl SecIdentityExt for SecIdentity {
-    fn with_certificate(
-        keychains: &[SecKeychain],
-        certificate: &SecCertificate,
-    ) -> Result<Self> {
+    fn with_certificate(keychains: &[SecKeychain], certificate: &SecCertificate) -> Result<Self> {
         let keychains = CFArray::from_CFTypes(keychains);
         unsafe {
             let mut identity = ptr::null_mut();

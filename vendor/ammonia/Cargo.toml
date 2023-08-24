@@ -12,15 +12,24 @@
 [package]
 edition = "2018"
 name = "ammonia"
-version = "3.2.0"
+version = "3.3.0"
 authors = ["Michael Howell <michael@notriddle.com>"]
 description = "HTML Sanitization"
 documentation = "https://docs.rs/ammonia/"
 readme = "README.md"
-keywords = ["sanitization", "html", "security", "xss"]
-categories = ["web-programming", "text-processing"]
+keywords = [
+    "sanitization",
+    "html",
+    "security",
+    "xss",
+]
+categories = [
+    "web-programming",
+    "text-processing",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-ammonia/ammonia"
+
 [dependencies.html5ever]
 version = "0.26"
 
@@ -35,8 +44,9 @@ version = "0.4"
 
 [dependencies.url]
 version = "2"
+
 [dev-dependencies.env_logger]
-version = "0.9"
+version = "0.10"
 
 [dev-dependencies.version-sync]
 version = "0.9"

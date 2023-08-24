@@ -38,7 +38,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let ty =
             if !lhs_ty.is_ty_var() && !rhs_ty.is_ty_var() && is_builtin_binop(lhs_ty, rhs_ty, op) {
                 self.enforce_builtin_binop_types(lhs.span, lhs_ty, rhs.span, rhs_ty, op);
-                self.tcx.mk_unit()
+                Ty::new_unit(self.tcx)
             } else {
                 return_ty
             };
@@ -297,7 +297,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             }
             // error types are considered "builtin"
             Err(_) if lhs_ty.references_error() || rhs_ty.references_error() => {
-                self.tcx.ty_error_misc()
+                Ty::new_misc_error(self.tcx)
             }
             Err(errors) => {
                 let (_, trait_def_id) =
@@ -521,8 +521,54 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         }
                     }
                 }
+
+                // Suggest using `add`, `offset` or `offset_from` for pointer - {integer},
+                // pointer + {integer} or pointer - pointer.
+                if op.span.can_be_used_for_suggestions() {
+                    match op.node {
+                        hir::BinOpKind::Add if lhs_ty.is_unsafe_ptr() && rhs_ty.is_integral() => {
+                            err.multipart_suggestion(
+                                "consider using `wrapping_add` or `add` for pointer + {integer}",
+                                vec![
+                                    (
+                                        lhs_expr.span.between(rhs_expr.span),
+                                        ".wrapping_add(".to_owned(),
+                                    ),
+                                    (rhs_expr.span.shrink_to_hi(), ")".to_owned()),
+                                ],
+                                Applicability::MaybeIncorrect,
+                            );
+                        }
+                        hir::BinOpKind::Sub => {
+                            if lhs_ty.is_unsafe_ptr() && rhs_ty.is_integral() {
+                                err.multipart_suggestion(
+                                    "consider using `wrapping_sub` or `sub` for pointer - {integer}",
+                                    vec![
+                                        (lhs_expr.span.between(rhs_expr.span), ".wrapping_sub(".to_owned()),
+                                        (rhs_expr.span.shrink_to_hi(), ")".to_owned()),
+                                    ],
+                                    Applicability::MaybeIncorrect
+                                );
+                            }
+
+                            if lhs_ty.is_unsafe_ptr() && rhs_ty.is_unsafe_ptr() {
+                                err.multipart_suggestion(
+                                    "consider using `offset_from` for pointer - pointer if the pointers point to the same allocation",
+                                    vec![
+                                        (lhs_expr.span.shrink_to_lo(), "unsafe { ".to_owned()),
+                                        (lhs_expr.span.between(rhs_expr.span), ".offset_from(".to_owned()),
+                                        (rhs_expr.span.shrink_to_hi(), ") }".to_owned()),
+                                    ],
+                                    Applicability::MaybeIncorrect
+                                );
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
                 let reported = err.emit();
-                self.tcx.ty_error(reported)
+                Ty::new_error(self.tcx, reported)
             }
         };
 
@@ -706,7 +752,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     }
                     err.emit()
                 });
-                self.tcx.ty_error(guar)
+                Ty::new_error(self.tcx, guar)
             }
         }
     }

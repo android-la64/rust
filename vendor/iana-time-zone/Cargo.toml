@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "iana-time-zone"
-version = "0.1.56"
+version = "0.1.57"
 authors = [
     "Andrew Straw <strawman@astraw.com>",
     "René Kijewski <rene.kijewski@fu-berlin.de>",

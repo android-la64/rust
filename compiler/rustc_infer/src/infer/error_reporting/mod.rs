@@ -76,6 +76,7 @@ use rustc_middle::ty::{
 };
 use rustc_span::{sym, symbol::kw, BytePos, DesugaringKind, Pos, Span};
 use rustc_target::spec::abi;
+use std::borrow::Cow;
 use std::ops::{ControlFlow, Deref};
 use std::path::PathBuf;
 use std::{cmp, fmt, iter};
@@ -314,7 +315,7 @@ pub fn unexpected_hidden_region_diagnostic<'tcx>(
 ) -> DiagnosticBuilder<'tcx, ErrorGuaranteed> {
     let mut err = tcx.sess.create_err(errors::OpaqueCapturesLifetime {
         span,
-        opaque_ty: tcx.mk_opaque(opaque_ty_key.def_id.to_def_id(), opaque_ty_key.substs),
+        opaque_ty: Ty::new_opaque(tcx, opaque_ty_key.def_id.to_def_id(), opaque_ty_key.substs),
         opaque_ty_span: tcx.def_span(opaque_ty_key.def_id),
     });
 
@@ -407,7 +408,7 @@ impl<'tcx> InferCtxt<'tcx> {
                 predicate
                     .kind()
                     .map_bound(|kind| match kind {
-                        ty::PredicateKind::Clause(ty::Clause::Projection(projection_predicate))
+                        ty::ClauseKind::Projection(projection_predicate)
                             if projection_predicate.projection_ty.def_id == item_def_id =>
                         {
                             projection_predicate.term.ty()
@@ -846,7 +847,25 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                 ) {
                     err.subdiagnostic(subdiag);
                 }
-                if let Some(ret_sp) = opt_suggest_box_span {
+                // don't suggest wrapping either blocks in `if .. {} else {}`
+                let is_empty_arm = |id| {
+                    let hir::Node::Block(blk) = self.tcx.hir().get(id)
+                    else {
+                        return false;
+                    };
+                    if blk.expr.is_some() || !blk.stmts.is_empty() {
+                        return false;
+                    }
+                    let Some((_, hir::Node::Expr(expr))) = self.tcx.hir().parent_iter(id).nth(1)
+                    else {
+                        return false;
+                    };
+                    matches!(expr.kind, hir::ExprKind::If(..))
+                };
+                if let Some(ret_sp) = opt_suggest_box_span
+                    && !is_empty_arm(then_id)
+                    && !is_empty_arm(else_id)
+                {
                     self.suggest_boxing_for_return_impl_trait(
                         err,
                         ret_sp,
@@ -1470,7 +1489,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
         &self,
         diag: &mut Diagnostic,
         cause: &ObligationCause<'tcx>,
-        secondary_span: Option<(Span, String)>,
+        secondary_span: Option<(Span, Cow<'static, str>)>,
         mut values: Option<ValuePairs<'tcx>>,
         terr: TypeError<'tcx>,
         swap_secondary_and_primary: bool,
@@ -1629,7 +1648,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
             }
         };
 
-        let mut label_or_note = |span: Span, msg: &str| {
+        let mut label_or_note = |span: Span, msg: Cow<'static, str>| {
             if (prefer_label && is_simple_error) || &[span] == diag.span.primary_spans() {
                 diag.span_label(span, msg);
             } else {
@@ -1643,15 +1662,15 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                     ..
                 })) = values
                 {
-                    format!("expected this to be `{}`", expected)
+                    Cow::from(format!("expected this to be `{}`", expected))
                 } else {
-                    terr.to_string(self.tcx).to_string()
+                    terr.to_string(self.tcx)
                 };
-                label_or_note(sp, &terr);
-                label_or_note(span, &msg);
+                label_or_note(sp, terr);
+                label_or_note(span, msg);
             } else {
-                label_or_note(span, &terr.to_string(self.tcx));
-                label_or_note(sp, &msg);
+                label_or_note(span, terr.to_string(self.tcx));
+                label_or_note(sp, msg);
             }
         } else {
             if let Some(values) = values
@@ -1663,12 +1682,12 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                 let expected = with_forced_trimmed_paths!(e.sort_string(self.tcx));
                 let found = with_forced_trimmed_paths!(f.sort_string(self.tcx));
                 if expected == found {
-                    label_or_note(span, &terr.to_string(self.tcx));
+                    label_or_note(span, terr.to_string(self.tcx));
                 } else {
-                    label_or_note(span, &format!("expected {expected}, found {found}"));
+                    label_or_note(span, Cow::from(format!("expected {expected}, found {found}")));
                 }
             } else {
-                label_or_note(span, &terr.to_string(self.tcx));
+                label_or_note(span, terr.to_string(self.tcx));
             }
         }
 
@@ -1896,7 +1915,6 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
 
             if should_suggest_fixes {
                 self.suggest_tuple_pattern(cause, &exp_found, diag);
-                self.suggest_as_ref_where_appropriate(span, &exp_found, diag);
                 self.suggest_accessing_field_where_appropriate(cause, &exp_found, diag);
                 self.suggest_await_on_expect_found(cause, span, &exp_found, diag);
                 self.suggest_function_pointers(cause, span, &exp_found, diag);
@@ -2357,6 +2375,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                 ty::AliasKind::Projection | ty::AliasKind::Inherent => {
                     format!("the associated type `{}`", p)
                 }
+                ty::AliasKind::Weak => format!("the type alias `{}`", p),
                 ty::AliasKind::Opaque => format!("the opaque type `{}`", p),
             },
         };

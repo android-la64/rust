@@ -163,7 +163,7 @@ mod arguments {
         async fn include_tag() {
             let mut out = Vec::new();
             let mut t = transport(&mut out, true);
-            let mut arguments = arguments_v1(["include-tag", "feature-b"].iter().cloned());
+            let mut arguments = arguments_v1(["include-tag", "feature-b"].iter().copied());
             assert!(arguments.can_use_include_tag());
 
             arguments.use_include_tag();
@@ -171,8 +171,7 @@ mod arguments {
             arguments.send(&mut t, true).await.expect("sending to buffer to work");
             assert_eq!(
                 out.as_bstr(),
-                b"0048want ff333369de1221f9bfbbe03a3a13e9a09bc1ffff include-tag feature-b
-0010include-tag
+                b"0048want ff333369de1221f9bfbbe03a3a13e9a09bc1ffff feature-b include-tag
 00000009done
 "
                 .as_bstr()
@@ -180,10 +179,29 @@ mod arguments {
         }
 
         #[maybe_async::test(feature = "blocking-client", async(feature = "async-client", async_std::test))]
+        async fn no_include_tag() {
+            let mut out = Vec::new();
+            let mut t = transport(&mut out, true);
+            let mut arguments = arguments_v1(["include-tag", "feature-b"].iter().copied());
+            assert!(arguments.can_use_include_tag());
+
+            arguments.want(id("ff333369de1221f9bfbbe03a3a13e9a09bc1ffff"));
+            arguments.send(&mut t, true).await.expect("sending to buffer to work");
+            assert_eq!(
+                out.as_bstr(),
+                b"003cwant ff333369de1221f9bfbbe03a3a13e9a09bc1ffff feature-b
+00000009done
+"
+                .as_bstr(),
+                "it's possible to not have it enabled, even though it's advertised by the server"
+            );
+        }
+
+        #[maybe_async::test(feature = "blocking-client", async(feature = "async-client", async_std::test))]
         async fn haves_and_wants_for_clone() {
             let mut out = Vec::new();
             let mut t = transport(&mut out, true);
-            let mut arguments = arguments_v1(["feature-a", "feature-b"].iter().cloned());
+            let mut arguments = arguments_v1(["feature-a", "feature-b"].iter().copied());
             assert!(
                 !arguments.can_use_include_tag(),
                 "needs to be enabled by features in V1"
@@ -298,6 +316,8 @@ mod arguments {
             let mut out = Vec::new();
             let mut t = transport(&mut out, true);
             let mut arguments = arguments_v2(["feature-a", "shallow"].iter().copied());
+            assert!(arguments.is_stateless(true), "V2 is stateless…");
+            assert!(arguments.is_stateless(false), "…in all cases");
 
             arguments.deepen(1);
             arguments.deepen_relative();

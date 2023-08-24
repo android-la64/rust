@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.60"
 name = "pest_generator"
-version = "2.5.7"
+version = "2.7.0"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>"]
 description = "pest code generator"
 homepage = "https://pest.rs/"
@@ -28,11 +28,11 @@ license = "MIT/Apache-2.0"
 repository = "https://github.com/pest-parser/pest"
 
 [dependencies.pest]
-version = "2.5.7"
+version = "2.7.0"
 default-features = false
 
 [dependencies.pest_meta]
-version = "2.5.7"
+version = "2.7.0"
 
 [dependencies.proc-macro2]
 version = "1.0"
@@ -45,4 +45,6 @@ version = "2.0"
 
 [features]
 default = ["std"]
+grammar-extras = ["pest_meta/grammar-extras"]
+not-bootstrap-in-src = ["pest_meta/not-bootstrap-in-src"]
 std = ["pest/std"]

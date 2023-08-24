@@ -54,11 +54,18 @@ and may change in the future; beware of depending on it.
 See the \fIrustdoc book\fR <https://doc.rust\-lang.org/rustdoc/> for more information
 on writing doc tests.
 .SS "Working directory of tests"
-The working directory of every test is set to the root directory of the package 
-the test belongs to.
-Setting the working directory of tests to the package\[cq]s root directory makes it 
+The working directory when running each unit and integration test is set to the
+root directory of the package the test belongs to.
+Setting the working directory of tests to the package\[cq]s root directory makes it
 possible for tests to reliably access the package\[cq]s files using relative paths,
 regardless from where \fBcargo test\fR was executed from.
+.sp
+For documentation tests, the working directory when invoking \fBrustdoc\fR is set to
+the workspace root directory, and is also the directory \fBrustdoc\fR uses as the
+compilation directory of each documentation test.
+The working directory when running each documentation test is set to the root
+directory of the package the test belongs to, and is controlled via \fBrustdoc\fR\[cq]s
+\fB\-\-test\-run\-directory\fR option.
 .SH "OPTIONS"
 .SS "Test Options"
 .sp
@@ -523,7 +530,8 @@ cargo test \-j 2 \-\- \-\-test\-threads=2
 Number of parallel jobs to run. May also be specified with the
 \fBbuild.jobs\fR \fIconfig value\fR <https://doc.rust\-lang.org/cargo/reference/config.html>\&. Defaults to
 the number of logical CPUs. If negative, it sets the maximum number of
-parallel jobs to the number of logical CPUs plus provided value.
+parallel jobs to the number of logical CPUs plus provided value. If
+a string \fBdefault\fR is provided, it sets the value back to defaults.
 Should not be 0.
 .RE
 .sp

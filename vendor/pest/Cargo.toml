@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.60"
 name = "pest"
-version = "2.5.7"
+version = "2.7.0"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>"]
 description = "The Elegant Parser"
 homepage = "https://pest.rs/"
@@ -53,10 +53,10 @@ default-features = false
 const_prec_climber = []
 default = ["std"]
 pretty-print = [
-    "serde",
-    "serde_json",
+    "dep:serde",
+    "dep:serde_json",
 ]
 std = [
     "ucd-trie/std",
-    "thiserror",
+    "dep:thiserror",
 ]

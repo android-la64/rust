@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "spdx-rs"
-version = "0.5.2"
+version = "0.5.3"
 authors = ["Mikko Murto <mikko.murto@hhpartners.fi>"]
 exclude = [
     "/tests/",
@@ -61,6 +61,9 @@ version = "1"
 [dependencies.uuid]
 version = "1"
 features = ["v4"]
+
+[dev-dependencies.anyhow]
+version = "1"
 
 [dev-dependencies.serde_json]
 version = "1"

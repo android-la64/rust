@@ -13,10 +13,11 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-index"
-version = "0.16.0"
+version = "0.17.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
+    "LICENSE-*",
     "README.md",
     "CHANGELOG.md",
 ]
@@ -29,7 +30,7 @@ repository = "https://github.com/Byron/gitoxide"
 [package.metadata.docs.rs]
 features = [
     "document-features",
-    "dep:serde",
+    "serde",
 ]
 rustdoc-args = [
     "--cfg",
@@ -58,26 +59,26 @@ optional = true
 version = "0.2.15"
 
 [dependencies.gix-bitmap]
-version = "^0.2.3"
+version = "^0.2.4"
 
 [dependencies.gix-features]
-version = "^0.29.0"
+version = "^0.30.0"
 features = [
     "rustsha1",
     "progress",
 ]
 
 [dependencies.gix-hash]
-version = "^0.11.1"
+version = "^0.11.2"
 
 [dependencies.gix-lock]
-version = "^5.0.0"
+version = "^6.0.0"
 
 [dependencies.gix-object]
-version = "^0.29.1"
+version = "^0.30.0"
 
 [dependencies.gix-traverse]
-version = "^0.25.0"
+version = "^0.26.0"
 
 [dependencies.itoa]
 version = "1.0.3"

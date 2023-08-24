@@ -13,10 +13,11 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-refspec"
-version = "0.10.1"
+version = "0.11.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
+    "LICENSE-*",
     "CHANGELOG.md",
     "README.md",
 ]
@@ -34,13 +35,13 @@ features = ["std"]
 default-features = false
 
 [dependencies.gix-hash]
-version = "^0.11.1"
+version = "^0.11.2"
 
 [dependencies.gix-revision]
-version = "^0.13.0"
+version = "^0.15.0"
 
 [dependencies.gix-validate]
-version = "^0.7.3"
+version = "^0.7.5"
 
 [dependencies.smallvec]
 version = "1.9.0"

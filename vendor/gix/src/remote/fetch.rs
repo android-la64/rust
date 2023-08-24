@@ -1,3 +1,18 @@
+///
+pub mod negotiate {
+    pub use gix_negotiate::Algorithm;
+
+    #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
+    pub use super::super::connection::fetch::negotiate::Error;
+    #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
+    pub(crate) use super::super::connection::fetch::negotiate::{
+        add_wants, mark_complete_and_common_ref, one_round, Action,
+    };
+}
+
+#[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
+pub use super::connection::fetch::{prepare, refs, Error, Outcome, Prepare, ProgressId, RefLogMessage, Status};
+
 /// If `Yes`, don't really make changes but do as much as possible to get an idea of what would be done.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
@@ -53,6 +68,8 @@ impl Tags {
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum Shallow {
     /// Fetch all changes from the remote without affecting the shallow boundary at all.
+    ///
+    /// This also means that repositories that aren't shallow will remain like that.
     #[default]
     NoChange,
     /// Receive update to `depth` commits in the history of the refs to fetch (from the viewpoint of the remote),
@@ -126,12 +143,23 @@ pub enum Source {
 #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
 impl Source {
     /// Return either the direct object id we refer to or the direct target that a reference refers to.
-    /// The latter may be a direct or a symbolic reference, and we degenerate this to the peeled object id.
+    /// The latter may be a direct or a symbolic reference.
     /// If unborn, `None` is returned.
     pub fn as_id(&self) -> Option<&gix_hash::oid> {
         match self {
             Source::ObjectId(id) => Some(id),
             Source::Ref(r) => r.unpack().1,
+        }
+    }
+
+    /// Returns the peeled id of this instance, that is the object that can't be de-referenced anymore.
+    pub fn peeled_id(&self) -> Option<&gix_hash::oid> {
+        match self {
+            Source::ObjectId(id) => Some(id),
+            Source::Ref(r) => {
+                let (_name, target, peeled) = r.unpack();
+                peeled.or(target)
+            }
         }
     }
 
@@ -195,8 +223,3 @@ pub struct Mapping {
     /// The index into the fetch ref-specs used to produce the mapping, allowing it to be recovered.   
     pub spec_index: SpecIndex,
 }
-
-#[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
-pub use super::connection::fetch::{
-    negotiate, prepare, refs, Error, Outcome, Prepare, ProgressId, RefLogMessage, Status,
-};

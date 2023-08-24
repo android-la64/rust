@@ -2,7 +2,10 @@
 use std::borrow::Cow;
 
 use crate::fluent_generated as fluent;
-use rustc_errors::{AddToDiagnostic, Applicability, Diagnostic, MultiSpan, SubdiagnosticMessage};
+use rustc_errors::{
+    AddToDiagnostic, Applicability, Diagnostic, DiagnosticArgValue, IntoDiagnosticArg, MultiSpan,
+    SubdiagnosticMessage,
+};
 use rustc_macros::{Diagnostic, Subdiagnostic};
 use rustc_middle::ty::Ty;
 use rustc_span::{
@@ -31,6 +34,24 @@ pub struct ReturnStmtOutsideOfFnBody {
     pub encl_body_span: Option<Span>,
     #[label(hir_typeck_encl_fn_label)]
     pub encl_fn_span: Option<Span>,
+    pub statement_kind: ReturnLikeStatementKind,
+}
+
+pub enum ReturnLikeStatementKind {
+    Return,
+    Become,
+}
+
+impl IntoDiagnosticArg for ReturnLikeStatementKind {
+    fn into_diagnostic_arg(self) -> DiagnosticArgValue<'static> {
+        let kind = match self {
+            Self::Return => "return",
+            Self::Become => "become",
+        }
+        .into();
+
+        DiagnosticArgValue::Str(kind)
+    }
 }
 
 #[derive(Diagnostic)]
@@ -298,6 +319,17 @@ pub enum SuggestBoxing {
     },
 }
 
+#[derive(Subdiagnostic)]
+#[suggestion(
+    hir_typeck_suggest_ptr_null_mut,
+    applicability = "maybe-incorrect",
+    code = "core::ptr::null_mut()"
+)]
+pub struct SuggestPtrNullMut {
+    #[primary_span]
+    pub span: Span,
+}
+
 #[derive(Diagnostic)]
 #[diag(hir_typeck_no_associated_item, code = "E0599")]
 pub struct NoAssociatedItem {
@@ -326,4 +358,20 @@ pub struct CtorIsPrivate {
     #[primary_span]
     pub span: Span,
     pub def: String,
+}
+
+#[derive(Subdiagnostic)]
+#[multipart_suggestion(
+    hir_typeck_convert_using_method,
+    applicability = "machine-applicable",
+    style = "verbose"
+)]
+pub struct SuggestConvertViaMethod<'tcx> {
+    #[suggestion_part(code = "{sugg}")]
+    pub span: Span,
+    #[suggestion_part(code = "")]
+    pub borrow_removal_span: Option<Span>,
+    pub sugg: &'static str,
+    pub expected: Ty<'tcx>,
+    pub found: Ty<'tcx>,
 }

@@ -30,7 +30,7 @@ bitflags! {
 
 /// Describes whether to match a path case sensitively or not.
 ///
-/// Used in [Pattern::matches_repo_relative_path()].
+/// Used in [`Pattern::matches_repo_relative_path()`].
 #[derive(Default, Debug, PartialOrd, PartialEq, Copy, Clone, Hash, Ord, Eq)]
 pub enum Case {
     /// The case affects the match
@@ -116,8 +116,7 @@ impl Pattern {
                     value
                         .len()
                         .checked_sub(text.len())
-                        .map(|start| text.eq_ignore_ascii_case(&value[start..]))
-                        .unwrap_or(false)
+                        .map_or(false, |start| text.eq_ignore_ascii_case(&value[start..]))
                 } else {
                     value.ends_with(text.as_ref())
                 }

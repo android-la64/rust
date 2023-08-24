@@ -19,12 +19,13 @@ use rustc_middle::ty::{
     self, InternalSubsts, Ty, TypeFoldable, TypeFolder, TypeSuperFoldable, TypeVisitableExt,
 };
 use rustc_middle::ty::{GenericParamDefKind, ToPredicate, TyCtxt};
-use rustc_span::Span;
+use rustc_span::{Span, DUMMY_SP};
 use rustc_trait_selection::traits::error_reporting::TypeErrCtxtExt;
 use rustc_trait_selection::traits::outlives_bounds::InferCtxtExt as _;
 use rustc_trait_selection::traits::{
     self, ObligationCause, ObligationCauseCode, ObligationCtxt, Reveal,
 };
+use std::borrow::Cow;
 use std::iter;
 
 /// Checks that a method from an impl conforms to the signature of
@@ -44,12 +45,7 @@ pub(super) fn compare_impl_method<'tcx>(
     debug!("compare_impl_method(impl_trait_ref={:?})", impl_trait_ref);
 
     let _: Result<_, ErrorGuaranteed> = try {
-        compare_self_type(tcx, impl_m, trait_m, impl_trait_ref)?;
-        compare_number_of_generics(tcx, impl_m, trait_m, false)?;
-        compare_generic_param_kinds(tcx, impl_m, trait_m, false)?;
-        compare_number_of_method_arguments(tcx, impl_m, trait_m)?;
-        compare_synthetic_generics(tcx, impl_m, trait_m)?;
-        compare_asyncness(tcx, impl_m, trait_m)?;
+        check_method_is_structurally_compatible(tcx, impl_m, trait_m, impl_trait_ref, false)?;
         compare_method_predicate_entailment(
             tcx,
             impl_m,
@@ -58,6 +54,26 @@ pub(super) fn compare_impl_method<'tcx>(
             CheckImpliedWfMode::Check,
         )?;
     };
+}
+
+/// Checks a bunch of different properties of the impl/trait methods for
+/// compatibility, such as asyncness, number of argument, self receiver kind,
+/// and number of early- and late-bound generics.
+fn check_method_is_structurally_compatible<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    impl_m: ty::AssocItem,
+    trait_m: ty::AssocItem,
+    impl_trait_ref: ty::TraitRef<'tcx>,
+    delay: bool,
+) -> Result<(), ErrorGuaranteed> {
+    compare_self_type(tcx, impl_m, trait_m, impl_trait_ref, delay)?;
+    compare_number_of_generics(tcx, impl_m, trait_m, delay)?;
+    compare_generic_param_kinds(tcx, impl_m, trait_m, delay)?;
+    compare_number_of_method_arguments(tcx, impl_m, trait_m, delay)?;
+    compare_synthetic_generics(tcx, impl_m, trait_m, delay)?;
+    compare_asyncness(tcx, impl_m, trait_m, delay)?;
+    check_region_bounds_on_impl_item(tcx, impl_m, trait_m, delay)?;
+    Ok(())
 }
 
 /// This function is best explained by example. Consider a trait with it's implementation:
@@ -176,9 +192,6 @@ fn compare_method_predicate_entailment<'tcx>(
     let impl_m_predicates = tcx.predicates_of(impl_m.def_id);
     let trait_m_predicates = tcx.predicates_of(trait_m.def_id);
 
-    // Check region bounds.
-    check_region_bounds_on_impl_item(tcx, impl_m, trait_m, false)?;
-
     // Create obligations for each predicate declared by the impl
     // definition in the context of the trait's parameter
     // environment. We can't just use `impl_env.caller_bounds`,
@@ -207,7 +220,7 @@ fn compare_method_predicate_entailment<'tcx>(
     // the new hybrid bounds we computed.
     let normalize_cause = traits::ObligationCause::misc(impl_m_span, impl_m_def_id);
     let param_env = ty::ParamEnv::new(
-        tcx.mk_predicates(&hybrid_preds.predicates),
+        tcx.mk_clauses(&hybrid_preds.predicates),
         Reveal::UserFacing,
         hir::Constness::NotConst,
     );
@@ -258,7 +271,7 @@ fn compare_method_predicate_entailment<'tcx>(
         infer::HigherRankedType,
         tcx.fn_sig(impl_m.def_id).subst_identity(),
     );
-    let unnormalized_impl_fty = tcx.mk_fn_ptr(ty::Binder::dummy(unnormalized_impl_sig));
+    let unnormalized_impl_fty = Ty::new_fn_ptr(tcx, ty::Binder::dummy(unnormalized_impl_sig));
 
     let norm_cause = ObligationCause::misc(impl_m_span, impl_m_def_id);
     let impl_sig = ocx.normalize(&norm_cause, param_env, unnormalized_impl_sig);
@@ -275,7 +288,7 @@ fn compare_method_predicate_entailment<'tcx>(
     // We also have to add the normalized trait signature
     // as we don't normalize during implied bounds computation.
     wf_tys.extend(trait_sig.inputs_and_output.iter());
-    let trait_fty = tcx.mk_fn_ptr(ty::Binder::dummy(trait_sig));
+    let trait_fty = Ty::new_fn_ptr(tcx, ty::Binder::dummy(trait_sig));
 
     debug!("compare_impl_method: trait_fty={:?}", trait_fty);
 
@@ -301,14 +314,16 @@ fn compare_method_predicate_entailment<'tcx>(
         return Err(emitted);
     }
 
-    if check_implied_wf == CheckImpliedWfMode::Check {
+    if check_implied_wf == CheckImpliedWfMode::Check && !(impl_sig, trait_sig).references_error() {
         // We need to check that the impl's args are well-formed given
         // the hybrid param-env (impl + trait method where-clauses).
         ocx.register_obligation(traits::Obligation::new(
             infcx.tcx,
             ObligationCause::dummy(),
             param_env,
-            ty::Binder::dummy(ty::PredicateKind::WellFormed(unnormalized_impl_fty.into())),
+            ty::Binder::dummy(ty::PredicateKind::Clause(ty::ClauseKind::WellFormed(
+                unnormalized_impl_fty.into(),
+            ))),
         ));
     }
 
@@ -471,7 +486,8 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for RemapLateBound<'_, 'tcx> {
 
     fn fold_region(&mut self, r: ty::Region<'tcx>) -> ty::Region<'tcx> {
         if let ty::ReFree(fr) = *r {
-            self.tcx.mk_re_free(
+            ty::Region::new_free(
+                self.tcx,
                 fr.scope,
                 self.mapping.get(&fr.bound_region).copied().unwrap_or(fr.bound_region),
             )
@@ -532,6 +548,7 @@ fn compare_asyncness<'tcx>(
     tcx: TyCtxt<'tcx>,
     impl_m: ty::AssocItem,
     trait_m: ty::AssocItem,
+    delay: bool,
 ) -> Result<(), ErrorGuaranteed> {
     if tcx.asyncness(trait_m.def_id) == hir::IsAsync::Async {
         match tcx.fn_sig(impl_m.def_id).skip_binder().skip_binder().output().kind() {
@@ -542,11 +559,14 @@ fn compare_asyncness<'tcx>(
                 // We don't know if it's ok, but at least it's already an error.
             }
             _ => {
-                return Err(tcx.sess.emit_err(crate::errors::AsyncTraitImplShouldBeAsync {
-                    span: tcx.def_span(impl_m.def_id),
-                    method_name: trait_m.name,
-                    trait_item_span: tcx.hir().span_if_local(trait_m.def_id),
-                }));
+                return Err(tcx
+                    .sess
+                    .create_err(crate::errors::AsyncTraitImplShouldBeAsync {
+                        span: tcx.def_span(impl_m.def_id),
+                        method_name: trait_m.name,
+                        trait_item_span: tcx.hir().span_if_local(trait_m.def_id),
+                    })
+                    .emit_unless(delay));
             }
         };
     }
@@ -600,9 +620,7 @@ pub(super) fn collect_return_position_impl_trait_in_trait_tys<'tcx>(
 
     // First, check a few of the same things as `compare_impl_method`,
     // just so we don't ICE during substitution later.
-    compare_number_of_generics(tcx, impl_m, trait_m, true)?;
-    compare_generic_param_kinds(tcx, impl_m, trait_m, true)?;
-    check_region_bounds_on_impl_item(tcx, impl_m, trait_m, true)?;
+    check_method_is_structurally_compatible(tcx, impl_m, trait_m, impl_trait_ref, true)?;
 
     let trait_to_impl_substs = impl_trait_ref.substs;
 
@@ -633,11 +651,7 @@ pub(super) fn collect_return_position_impl_trait_in_trait_tys<'tcx>(
     let impl_sig = ocx.normalize(
         &norm_cause,
         param_env,
-        infcx.instantiate_binder_with_fresh_vars(
-            return_span,
-            infer::HigherRankedType,
-            tcx.fn_sig(impl_m.def_id).subst_identity(),
-        ),
+        tcx.liberate_late_bound_regions(impl_m.def_id, tcx.fn_sig(impl_m.def_id).subst_identity()),
     );
     impl_sig.error_reported()?;
     let impl_return_ty = impl_sig.output();
@@ -647,18 +661,21 @@ pub(super) fn collect_return_position_impl_trait_in_trait_tys<'tcx>(
     // them with inference variables.
     // We will use these inference variables to collect the hidden types of RPITITs.
     let mut collector = ImplTraitInTraitCollector::new(&ocx, return_span, param_env, impl_m_def_id);
-    let unnormalized_trait_sig = tcx
-        .liberate_late_bound_regions(
-            impl_m.def_id,
+    let unnormalized_trait_sig = infcx
+        .instantiate_binder_with_fresh_vars(
+            return_span,
+            infer::HigherRankedType,
             tcx.fn_sig(trait_m.def_id).subst(tcx, trait_to_placeholder_substs),
         )
         .fold_with(&mut collector);
 
-    debug_assert_ne!(
-        collector.types.len(),
-        0,
-        "expect >1 RPITITs in call to `collect_return_position_impl_trait_in_trait_tys`"
-    );
+    if !unnormalized_trait_sig.output().references_error() {
+        debug_assert_ne!(
+            collector.types.len(),
+            0,
+            "expect >1 RPITITs in call to `collect_return_position_impl_trait_in_trait_tys`"
+        );
+    }
 
     let trait_sig = ocx.normalize(&norm_cause, param_env, unnormalized_trait_sig);
     trait_sig.error_reported()?;
@@ -684,7 +701,7 @@ pub(super) fn collect_return_position_impl_trait_in_trait_tys<'tcx>(
                 &cause,
                 hir.get_if_local(impl_m.def_id)
                     .and_then(|node| node.fn_decl())
-                    .map(|decl| (decl.output.span(), "return type in trait".to_owned())),
+                    .map(|decl| (decl.output.span(), Cow::from("return type in trait"))),
                 Some(infer::ValuePairs::Terms(ExpectedFound {
                     expected: trait_return_ty.into(),
                     found: impl_return_ty.into(),
@@ -742,15 +759,17 @@ pub(super) fn collect_return_position_impl_trait_in_trait_tys<'tcx>(
 
     let mut collected_tys = FxHashMap::default();
     for (def_id, (ty, substs)) in collected_types {
-        match infcx.fully_resolve(ty) {
-            Ok(ty) => {
+        match infcx.fully_resolve((ty, substs)) {
+            Ok((ty, substs)) => {
                 // `ty` contains free regions that we created earlier while liberating the
                 // trait fn signature. However, projection normalization expects `ty` to
                 // contains `def_id`'s early-bound regions.
                 let id_substs = InternalSubsts::identity_for_item(tcx, def_id);
                 debug!(?id_substs, ?substs);
-                let map: FxHashMap<ty::GenericArg<'tcx>, ty::GenericArg<'tcx>> =
-                    std::iter::zip(substs, id_substs).collect();
+                let map: FxHashMap<_, _> = std::iter::zip(substs, id_substs)
+                    .skip(tcx.generics_of(trait_m.def_id).count())
+                    .filter_map(|(a, b)| Some((a.as_region()?, b.as_region()?)))
+                    .collect();
                 debug!(?map);
 
                 // NOTE(compiler-errors): RPITITs, like all other RPITs, have early-bound
@@ -775,33 +794,27 @@ pub(super) fn collect_return_position_impl_trait_in_trait_tys<'tcx>(
                 // same generics.
                 let num_trait_substs = trait_to_impl_substs.len();
                 let num_impl_substs = tcx.generics_of(impl_m.container_id(tcx)).params.len();
-                let ty = tcx.fold_regions(ty, |region, _| {
-                    match region.kind() {
-                        // Remap all free regions, which correspond to late-bound regions in the function.
-                        ty::ReFree(_) => {}
-                        // Remap early-bound regions as long as they don't come from the `impl` itself.
-                        ty::ReEarlyBound(ebr) if tcx.parent(ebr.def_id) != impl_m.container_id(tcx) => {}
-                        _ => return region,
-                    }
-                    let Some(ty::ReEarlyBound(e)) = map.get(&region.into()).map(|r| r.expect_region().kind())
-                    else {
-                        return tcx.mk_re_error_with_message(return_span, "expected ReFree to map to ReEarlyBound")
-                    };
-                    tcx.mk_re_early_bound(ty::EarlyBoundRegion {
-                        def_id: e.def_id,
-                        name: e.name,
-                        index: (e.index as usize - num_trait_substs + num_impl_substs) as u32,
-                    })
-                });
-                debug!(%ty);
-                collected_tys.insert(def_id, ty::EarlyBinder(ty));
+                let ty = match ty.try_fold_with(&mut RemapHiddenTyRegions {
+                    tcx,
+                    map,
+                    num_trait_substs,
+                    num_impl_substs,
+                    def_id,
+                    impl_def_id: impl_m.container_id(tcx),
+                    ty,
+                    return_span,
+                }) {
+                    Ok(ty) => ty,
+                    Err(guar) => Ty::new_error(tcx, guar),
+                };
+                collected_tys.insert(def_id, ty::EarlyBinder::bind(ty));
             }
             Err(err) => {
                 let reported = tcx.sess.delay_span_bug(
                     return_span,
                     format!("could not fully resolve: {ty} => {err:?}"),
                 );
-                collected_tys.insert(def_id, ty::EarlyBinder(tcx.ty_error(reported)));
+                collected_tys.insert(def_id, ty::EarlyBinder::bind(Ty::new_error(tcx, reported)));
             }
         }
     }
@@ -877,6 +890,97 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for ImplTraitInTraitCollector<'_, 'tcx> {
     }
 }
 
+struct RemapHiddenTyRegions<'tcx> {
+    tcx: TyCtxt<'tcx>,
+    map: FxHashMap<ty::Region<'tcx>, ty::Region<'tcx>>,
+    num_trait_substs: usize,
+    num_impl_substs: usize,
+    def_id: DefId,
+    impl_def_id: DefId,
+    ty: Ty<'tcx>,
+    return_span: Span,
+}
+
+impl<'tcx> ty::FallibleTypeFolder<TyCtxt<'tcx>> for RemapHiddenTyRegions<'tcx> {
+    type Error = ErrorGuaranteed;
+
+    fn interner(&self) -> TyCtxt<'tcx> {
+        self.tcx
+    }
+
+    fn try_fold_ty(&mut self, t: Ty<'tcx>) -> Result<Ty<'tcx>, Self::Error> {
+        if let ty::Alias(ty::Opaque, ty::AliasTy { substs, def_id, .. }) = *t.kind() {
+            let mut mapped_substs = Vec::with_capacity(substs.len());
+            for (arg, v) in std::iter::zip(substs, self.tcx.variances_of(def_id)) {
+                mapped_substs.push(match (arg.unpack(), v) {
+                    // Skip uncaptured opaque substs
+                    (ty::GenericArgKind::Lifetime(_), ty::Bivariant) => arg,
+                    _ => arg.try_fold_with(self)?,
+                });
+            }
+            Ok(Ty::new_opaque(self.tcx, def_id, self.tcx.mk_substs(&mapped_substs)))
+        } else {
+            t.try_super_fold_with(self)
+        }
+    }
+
+    fn try_fold_region(
+        &mut self,
+        region: ty::Region<'tcx>,
+    ) -> Result<ty::Region<'tcx>, Self::Error> {
+        match region.kind() {
+            // Remap all free regions, which correspond to late-bound regions in the function.
+            ty::ReFree(_) => {}
+            // Remap early-bound regions as long as they don't come from the `impl` itself,
+            // in which case we don't really need to renumber them.
+            ty::ReEarlyBound(ebr) if self.tcx.parent(ebr.def_id) != self.impl_def_id => {}
+            _ => return Ok(region),
+        }
+
+        let e = if let Some(region) = self.map.get(&region) {
+            if let ty::ReEarlyBound(e) = region.kind() { e } else { bug!() }
+        } else {
+            let guar = match region.kind() {
+                ty::ReEarlyBound(ty::EarlyBoundRegion { def_id, .. })
+                | ty::ReFree(ty::FreeRegion {
+                    bound_region: ty::BoundRegionKind::BrNamed(def_id, _),
+                    ..
+                }) => {
+                    let return_span = if let ty::Alias(ty::Opaque, opaque_ty) = self.ty.kind() {
+                        self.tcx.def_span(opaque_ty.def_id)
+                    } else {
+                        self.return_span
+                    };
+                    self.tcx
+                        .sess
+                        .struct_span_err(
+                            return_span,
+                            "return type captures more lifetimes than trait definition",
+                        )
+                        .span_label(self.tcx.def_span(def_id), "this lifetime was captured")
+                        .span_note(
+                            self.tcx.def_span(self.def_id),
+                            "hidden type must only reference lifetimes captured by this impl trait",
+                        )
+                        .note(format!("hidden type inferred to be `{}`", self.ty))
+                        .emit()
+                }
+                _ => self.tcx.sess.delay_span_bug(DUMMY_SP, "should've been able to remap region"),
+            };
+            return Err(guar);
+        };
+
+        Ok(ty::Region::new_early_bound(
+            self.tcx,
+            ty::EarlyBoundRegion {
+                def_id: e.def_id,
+                name: e.name,
+                index: (e.index as usize - self.num_trait_substs + self.num_impl_substs) as u32,
+            },
+        ))
+    }
+}
+
 fn report_trait_method_mismatch<'tcx>(
     infcx: &InferCtxt<'tcx>,
     mut cause: ObligationCause<'tcx>,
@@ -901,7 +1005,7 @@ fn report_trait_method_mismatch<'tcx>(
             if trait_m.fn_has_self_parameter =>
         {
             let ty = trait_sig.inputs()[0];
-            let sugg = match ExplicitSelf::determine(ty, |_| ty == impl_trait_ref.self_ty()) {
+            let sugg = match ExplicitSelf::determine(ty, |ty| ty == impl_trait_ref.self_ty()) {
                 ExplicitSelf::ByValue => "self".to_owned(),
                 ExplicitSelf::ByReference(_, hir::Mutability::Not) => "&self".to_owned(),
                 ExplicitSelf::ByReference(_, hir::Mutability::Mut) => "&mut self".to_owned(),
@@ -963,7 +1067,7 @@ fn report_trait_method_mismatch<'tcx>(
     infcx.err_ctxt().note_type_err(
         &mut diag,
         &cause,
-        trait_err_span.map(|sp| (sp, "type in trait".to_owned())),
+        trait_err_span.map(|sp| (sp, Cow::from("type in trait"))),
         Some(infer::ValuePairs::Sigs(ExpectedFound { expected: trait_sig, found: impl_sig })),
         terr,
         false,
@@ -1095,6 +1199,7 @@ fn compare_self_type<'tcx>(
     impl_m: ty::AssocItem,
     trait_m: ty::AssocItem,
     impl_trait_ref: ty::TraitRef<'tcx>,
+    delay: bool,
 ) -> Result<(), ErrorGuaranteed> {
     // Try to give more informative error messages about self typing
     // mismatches. Note that any mismatch will also be detected
@@ -1143,7 +1248,7 @@ fn compare_self_type<'tcx>(
             } else {
                 err.note_trait_signature(trait_m.name, trait_m.signature(tcx));
             }
-            return Err(err.emit());
+            return Err(err.emit_unless(delay));
         }
 
         (true, false) => {
@@ -1164,7 +1269,7 @@ fn compare_self_type<'tcx>(
                 err.note_trait_signature(trait_m.name, trait_m.signature(tcx));
             }
 
-            return Err(err.emit());
+            return Err(err.emit_unless(delay));
         }
     }
 
@@ -1214,7 +1319,7 @@ fn compare_number_of_generics<'tcx>(
     // has mismatched type or const generic arguments, then the method that it's
     // inheriting the generics from will also have mismatched arguments, and
     // we'll report an error for that instead. Delay a bug for safety, though.
-    if tcx.opt_rpitit_info(trait_.def_id).is_some() {
+    if trait_.opt_rpitit_info.is_some() {
         return Err(tcx.sess.delay_span_bug(
             rustc_span::DUMMY_SP,
             "errors comparing numbers of generics of trait/impl functions were not emitted",
@@ -1350,6 +1455,7 @@ fn compare_number_of_method_arguments<'tcx>(
     tcx: TyCtxt<'tcx>,
     impl_m: ty::AssocItem,
     trait_m: ty::AssocItem,
+    delay: bool,
 ) -> Result<(), ErrorGuaranteed> {
     let impl_m_fty = tcx.fn_sig(impl_m.def_id);
     let trait_m_fty = tcx.fn_sig(trait_m.def_id);
@@ -1420,7 +1526,7 @@ fn compare_number_of_method_arguments<'tcx>(
             ),
         );
 
-        return Err(err.emit());
+        return Err(err.emit_unless(delay));
     }
 
     Ok(())
@@ -1430,6 +1536,7 @@ fn compare_synthetic_generics<'tcx>(
     tcx: TyCtxt<'tcx>,
     impl_m: ty::AssocItem,
     trait_m: ty::AssocItem,
+    delay: bool,
 ) -> Result<(), ErrorGuaranteed> {
     // FIXME(chrisvittal) Clean up this function, list of FIXME items:
     //     1. Better messages for the span labels
@@ -1549,7 +1656,7 @@ fn compare_synthetic_generics<'tcx>(
                 }
                 _ => unreachable!(),
             }
-            error_found = Some(err.emit());
+            error_found = Some(err.emit_unless(delay));
         }
     }
     if let Some(reported) = error_found { Err(reported) } else { Ok(()) }
@@ -1731,7 +1838,7 @@ pub(super) fn compare_impl_const_raw(
         infcx.err_ctxt().note_type_err(
             &mut diag,
             &cause,
-            trait_c_span.map(|span| (span, "type in trait".to_owned())),
+            trait_c_span.map(|span| (span, Cow::from("type in trait"))),
             Some(infer::ValuePairs::Terms(ExpectedFound {
                 expected: trait_ty.into(),
                 found: impl_ty.into(),
@@ -1814,7 +1921,7 @@ fn compare_type_predicate_entailment<'tcx>(
     let impl_ty_span = tcx.def_span(impl_ty_def_id);
     let normalize_cause = traits::ObligationCause::misc(impl_ty_span, impl_ty_def_id);
     let param_env = ty::ParamEnv::new(
-        tcx.mk_predicates(&hybrid_preds.predicates),
+        tcx.mk_clauses(&hybrid_preds.predicates),
         Reveal::UserFacing,
         hir::Constness::NotConst,
     );
@@ -1922,7 +2029,8 @@ pub(super) fn check_type_bounds<'tcx>(
                 let kind = ty::BoundTyKind::Param(param.def_id, param.name);
                 let bound_var = ty::BoundVariableKind::Ty(kind);
                 bound_vars.push(bound_var);
-                tcx.mk_bound(
+                Ty::new_bound(
+                    tcx,
                     ty::INNERMOST,
                     ty::BoundTy { var: ty::BoundVar::from_usize(bound_vars.len() - 1), kind },
                 )
@@ -1932,7 +2040,8 @@ pub(super) fn check_type_bounds<'tcx>(
                 let kind = ty::BoundRegionKind::BrNamed(param.def_id, param.name);
                 let bound_var = ty::BoundVariableKind::Region(kind);
                 bound_vars.push(bound_var);
-                tcx.mk_re_late_bound(
+                ty::Region::new_late_bound(
+                    tcx,
                     ty::INNERMOST,
                     ty::BoundRegion { var: ty::BoundVar::from_usize(bound_vars.len() - 1), kind },
                 )
@@ -1941,11 +2050,10 @@ pub(super) fn check_type_bounds<'tcx>(
             GenericParamDefKind::Const { .. } => {
                 let bound_var = ty::BoundVariableKind::Const;
                 bound_vars.push(bound_var);
-                tcx.mk_const(
-                    ty::ConstKind::Bound(
-                        ty::INNERMOST,
-                        ty::BoundVar::from_usize(bound_vars.len() - 1),
-                    ),
+                ty::Const::new_bound(
+                    tcx,
+                    ty::INNERMOST,
+                    ty::BoundVar::from_usize(bound_vars.len() - 1),
                     tcx.type_of(param.def_id)
                         .no_bound_vars()
                         .expect("const parameter types cannot be generic"),
@@ -1989,7 +2097,7 @@ pub(super) fn check_type_bounds<'tcx>(
                 .to_predicate(tcx),
             ),
         };
-        ty::ParamEnv::new(tcx.mk_predicates(&predicates), Reveal::UserFacing, param_env.constness())
+        ty::ParamEnv::new(tcx.mk_clauses(&predicates), Reveal::UserFacing, param_env.constness())
     };
     debug!(?normalize_param_env);
 
@@ -2003,7 +2111,7 @@ pub(super) fn check_type_bounds<'tcx>(
     // A synthetic impl Trait for RPITIT desugaring has no HIR, which we currently use to get the
     // span for an impl's associated type. Instead, for these, use the def_span for the synthesized
     // associated type.
-    let impl_ty_span = if tcx.opt_rpitit_info(impl_ty.def_id).is_some() {
+    let impl_ty_span = if impl_ty.opt_rpitit_info.is_some() {
         tcx.def_span(impl_ty_def_id)
     } else {
         match tcx.hir().get_by_def_id(impl_ty_def_id) {
@@ -2015,7 +2123,7 @@ pub(super) fn check_type_bounds<'tcx>(
             _ => bug!(),
         }
     };
-    let assumed_wf_types = ocx.assumed_wf_types(param_env, impl_ty_span, impl_ty_def_id);
+    let assumed_wf_types = ocx.assumed_wf_types_and_report_errors(param_env, impl_ty_def_id)?;
 
     let normalize_cause = ObligationCause::new(
         impl_ty_span,

@@ -1,6 +1,10 @@
 //! Low-level implementation details for libc-like runtime libraries such as
 //! [origin].
 //!
+//! Do not use the functions in this module unless you've read all of their
+//! code, *and* you know all the relevant internal implementation details of
+//! any libc in the process they'll be used.
+//!
 //! These functions are for implementing thread-local storage (TLS), managing
 //! threads, loaded libraries, and other process-wide resources. Most of
 //! `rustix` doesn't care about what other libraries are linked into the
@@ -28,7 +32,9 @@ use crate::fs::AtFlags;
 #[cfg(linux_raw)]
 use crate::io;
 #[cfg(linux_raw)]
-use crate::process::{Pid, Signal};
+use crate::pid::Pid;
+#[cfg(linux_raw)]
+use crate::signal::Signal;
 #[cfg(linux_raw)]
 #[cfg(feature = "fs")]
 use backend::fd::AsFd;
@@ -51,7 +57,7 @@ pub type Sigset = linux_raw_sys::general::kernel_sigset_t;
 #[cfg(linux_raw)]
 pub type Siginfo = linux_raw_sys::general::siginfo_t;
 
-pub use backend::time::types::{Nsecs, Secs, Timespec};
+pub use crate::timespec::{Nsecs, Secs, Timespec};
 
 /// `SIG_*` constants for use with [`sigprocmask`].
 #[cfg(linux_raw)]
@@ -67,28 +73,36 @@ pub enum How {
     SETMASK = linux_raw_sys::general::SIG_SETMASK,
 }
 
-#[cfg(linux_raw)]
 #[cfg(target_arch = "x86")]
 #[inline]
 pub unsafe fn set_thread_area(u_info: &mut UserDesc) -> io::Result<()> {
     backend::runtime::syscalls::tls::set_thread_area(u_info)
 }
 
-#[cfg(linux_raw)]
 #[cfg(target_arch = "arm")]
 #[inline]
 pub unsafe fn arm_set_tls(data: *mut c_void) -> io::Result<()> {
     backend::runtime::syscalls::tls::arm_set_tls(data)
 }
 
-#[cfg(linux_raw)]
+/// `prctl(PR_SET_FS, data)`—Set the x86_64 `fs` register.
+///
+/// # Safety
+///
+/// This is a very low-level feature for implementing threading libraries.
+/// See the references links above.
 #[cfg(target_arch = "x86_64")]
 #[inline]
 pub unsafe fn set_fs(data: *mut c_void) {
     backend::runtime::syscalls::tls::set_fs(data)
 }
 
-#[cfg(linux_raw)]
+/// Set the x86_64 thread ID address.
+///
+/// # Safety
+///
+/// This is a very low-level feature for implementing threading libraries.
+/// See the references links above.
 #[inline]
 pub unsafe fn set_tid_address(data: *mut c_void) -> Pid {
     backend::runtime::syscalls::tls::set_tid_address(data)
@@ -105,7 +119,6 @@ pub unsafe fn set_tid_address(data: *mut c_void) -> Pid {
 /// See the references links above.
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/prctl.2.html
-#[cfg(linux_raw)]
 #[inline]
 pub unsafe fn set_thread_name(name: &CStr) -> io::Result<()> {
     backend::runtime::syscalls::tls::set_thread_name(name)
@@ -120,7 +133,6 @@ pub use backend::runtime::tls::UserDesc;
 /// # Safety
 ///
 /// This is a very low-level feature for implementing threading libraries.
-#[cfg(linux_raw)]
 #[inline]
 pub unsafe fn exit_thread(status: i32) -> ! {
     backend::runtime::syscalls::tls::exit_thread(status)
@@ -146,12 +158,11 @@ pub unsafe fn exit_thread(status: i32) -> ! {
 #[doc(alias = "_Exit")]
 #[inline]
 pub fn exit_group(status: i32) -> ! {
-    backend::process::syscalls::exit_group(status)
+    backend::runtime::syscalls::exit_group(status)
 }
 
 /// Return fields from the main executable segment headers ("phdrs") relevant
 /// to initializing TLS provided to the program at startup.
-#[cfg(linux_raw)]
 #[inline]
 pub fn startup_tls_info() -> StartupTlsInfo {
     backend::runtime::tls::startup_tls_info()
@@ -164,8 +175,6 @@ pub fn startup_tls_info() -> StartupTlsInfo {
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man3/getauxval.3.html
-#[cfg(linux_raw)]
-#[cfg(any(target_os = "android", target_os = "linux"))]
 #[inline]
 pub fn exe_phdrs() -> (*const c_void, usize) {
     backend::param::auxv::exe_phdrs()
@@ -251,7 +260,6 @@ pub use backend::runtime::tls::StartupTlsInfo;
 /// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fork.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/fork.2.html
 /// [async-signal-safe]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html#tag_15_04_03
-#[cfg(linux_raw)]
 pub unsafe fn fork() -> io::Result<Option<Pid>> {
     backend::runtime::syscalls::fork()
 }
@@ -268,7 +276,6 @@ pub unsafe fn fork() -> io::Result<Option<Pid>> {
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/execveat.2.html
-#[cfg(linux_raw)]
 #[inline]
 #[cfg(feature = "fs")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "fs")))]
@@ -294,7 +301,6 @@ pub unsafe fn execveat<Fd: AsFd>(
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/execve.2.html
-#[cfg(linux_raw)]
 #[inline]
 pub unsafe fn execve(path: &CStr, argv: *const *const u8, envp: *const *const u8) -> io::Errno {
     backend::runtime::syscalls::execve(path, argv, envp)
@@ -305,7 +311,8 @@ pub unsafe fn execve(path: &CStr, argv: *const *const u8, envp: *const *const u8
 /// # Safety
 ///
 /// You're on your own. And on top of all the troubles with signal handlers,
-/// this implementation is highly experimental.
+/// this implementation is highly experimental. Even further, it differs from
+/// the libc `sigaction` in several non-obvious and unsafe ways.
 ///
 /// # References
 ///  - [POSIX]
@@ -313,7 +320,6 @@ pub unsafe fn execve(path: &CStr, argv: *const *const u8, envp: *const *const u8
 ///
 /// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sigaction.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/sigaction.2.html
-#[cfg(linux_raw)]
 #[inline]
 pub unsafe fn sigaction(signal: Signal, new: Option<Sigaction>) -> io::Result<Sigaction> {
     backend::runtime::syscalls::sigaction(signal, new)
@@ -332,7 +338,6 @@ pub unsafe fn sigaction(signal: Signal, new: Option<Sigaction>) -> io::Result<Si
 ///
 /// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sigaltstack.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/sigaltstack.2.html
-#[cfg(linux_raw)]
 #[inline]
 pub unsafe fn sigaltstack(new: Option<Stack>) -> io::Result<Stack> {
     backend::runtime::syscalls::sigaltstack(new)
@@ -343,13 +348,13 @@ pub unsafe fn sigaltstack(new: Option<Stack>) -> io::Result<Stack> {
 /// # Safety
 ///
 /// You're on your own. And on top of all the troubles with signal handlers,
-/// this implementation is highly experimental.
+/// this implementation is highly experimental. The warning about the hazard
+/// of recycled thread ID's applies.
 ///
 /// # References
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/tkill.2.html
-#[cfg(linux_raw)]
 #[inline]
 pub unsafe fn tkill(tid: Pid, sig: Signal) -> io::Result<()> {
     backend::runtime::syscalls::tkill(tid, sig)
@@ -360,7 +365,8 @@ pub unsafe fn tkill(tid: Pid, sig: Signal) -> io::Result<()> {
 /// # Safety
 ///
 /// You're on your own. And on top of all the troubles with signal handlers,
-/// this implementation is highly experimental.
+/// this implementation is highly experimental. Even further, it differs from
+/// the libc `sigprocmask` in several non-obvious and unsafe ways.
 ///
 /// # References
 ///  - [Linux `sigprocmask`]
@@ -368,45 +374,59 @@ pub unsafe fn tkill(tid: Pid, sig: Signal) -> io::Result<()> {
 ///
 /// [Linux `sigprocmask`]: https://man7.org/linux/man-pages/man2/sigprocmask.2.html
 /// [Linux `pthread_sigmask`]: https://man7.org/linux/man-pages/man3/pthread_sigmask.3.html
-#[cfg(linux_raw)]
 #[inline]
 #[doc(alias = "pthread_sigmask")]
-pub unsafe fn sigprocmask(how: How, set: &Sigset) -> io::Result<Sigset> {
+pub unsafe fn sigprocmask(how: How, set: Option<&Sigset>) -> io::Result<Sigset> {
     backend::runtime::syscalls::sigprocmask(how, set)
 }
 
 /// `sigwait(set)`—Wait for signals.
 ///
+/// # Safety
+///
+/// If code elsewhere in the process is depending on delivery of a signal to
+/// prevent it from executing some code, this could cause it to miss that
+/// signal and execute that code.
+///
 /// # References
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man3/sigwait.3.html
-#[cfg(linux_raw)]
 #[inline]
-pub fn sigwait(set: &Sigset) -> io::Result<Signal> {
+pub unsafe fn sigwait(set: &Sigset) -> io::Result<Signal> {
     backend::runtime::syscalls::sigwait(set)
 }
 
 /// `sigwait(set)`—Wait for signals, returning a [`Siginfo`].
 ///
+/// # Safety
+///
+/// If code elsewhere in the process is depending on delivery of a signal to
+/// prevent it from executing some code, this could cause it to miss that
+/// signal and execute that code.
+///
 /// # References
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/sigwaitinfo.2.html
-#[cfg(linux_raw)]
 #[inline]
-pub fn sigwaitinfo(set: &Sigset) -> io::Result<Siginfo> {
+pub unsafe fn sigwaitinfo(set: &Sigset) -> io::Result<Siginfo> {
     backend::runtime::syscalls::sigwaitinfo(set)
 }
 
 /// `sigtimedwait(set)`—Wait for signals, optionally with a timeout.
 ///
+/// # Safety
+///
+/// If code elsewhere in the process is depending on delivery of a signal to
+/// prevent it from executing some code, this could cause it to miss that
+/// signal and execute that code.
+///
 /// # References
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/sigtimedwait.2.html
-#[cfg(linux_raw)]
 #[inline]
-pub fn sigtimedwait(set: &Sigset, timeout: Option<Timespec>) -> io::Result<Siginfo> {
+pub unsafe fn sigtimedwait(set: &Sigset, timeout: Option<Timespec>) -> io::Result<Siginfo> {
     backend::runtime::syscalls::sigtimedwait(set, timeout)
 }

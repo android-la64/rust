@@ -102,9 +102,6 @@ passes_const_impl_const_trait =
     const `impl`s must be for traits marked with `#[const_trait]`
     .note = this trait must be annotated with `#[const_trait]`
 
-passes_const_trait =
-    attribute should be applied to a trait
-
 passes_continue_labeled_block =
     `continue` pointing to a labeled block
     .label = labeled blocks cannot be `continue`'d
@@ -210,6 +207,8 @@ passes_doc_keyword_not_mod =
 
 passes_doc_keyword_only_impl =
     `#[doc(keyword = "...")]` should be used on impl blocks
+
+passes_doc_test_literal = `#![doc(test(...)]` does not take a literal
 
 passes_doc_test_takes_list =
     `#[doc(test(...)]` takes a list of attributes

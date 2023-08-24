@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.60"
 name = "pest_derive"
-version = "2.5.7"
+version = "2.7.0"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>"]
 description = "pest's derive macro"
 homepage = "https://pest.rs/"
@@ -34,15 +34,17 @@ name = "pest_derive"
 proc-macro = true
 
 [dependencies.pest]
-version = "2.5.7"
+version = "2.7.0"
 default-features = false
 
 [dependencies.pest_generator]
-version = "2.5.7"
+version = "2.7.0"
 default-features = false
 
 [features]
 default = ["std"]
+grammar-extras = ["pest_generator/grammar-extras"]
+not-bootstrap-in-src = ["pest_generator/not-bootstrap-in-src"]
 std = [
     "pest/std",
     "pest_generator/std",

@@ -81,9 +81,18 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
 
         // Try to display a sensible error with as much information as possible.
-        let skeleton_string = |ty: Ty<'tcx>, sk| match sk {
-            Ok(SizeSkeleton::Known(size)) => format!("{} bits", size.bits()),
+        let skeleton_string = |ty: Ty<'tcx>, sk: Result<_, &_>| match sk {
             Ok(SizeSkeleton::Pointer { tail, .. }) => format!("pointer to `{tail}`"),
+            Ok(SizeSkeleton::Known(size)) => {
+                if let Some(v) = u128::from(size.bytes()).checked_mul(8) {
+                    format!("{} bits", v)
+                } else {
+                    // `u128` should definitely be able to hold the size of different architectures
+                    // larger sizes should be reported as error `are too big for the current architecture`
+                    // otherwise we have a bug somewhere
+                    bug!("{:?} overflow for u128", size)
+                }
+            }
             Ok(SizeSkeleton::Generic(size)) => {
                 if let Some(size) = size.try_eval_target_usize(tcx, self.param_env) {
                     format!("{size} bytes")
@@ -92,7 +101,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 }
             }
             Err(LayoutError::Unknown(bad)) => {
-                if bad == ty {
+                if *bad == ty {
                     "this type does not have a fixed size".to_owned()
                 } else {
                     format!("size can vary because of {bad}")

@@ -1,6 +1,4 @@
-//! # Note
-//!
-//! This module is a bit 'misplaced' if spelled out like 'gix_pack::cache::object::*' but is best placed here for code re-use and
+//! This module is a bit 'misplaced' if spelled out like '`gix_pack::cache::object::`*' but is best placed here for code re-use and
 //! general usefulness.
 use crate::cache;
 
@@ -58,23 +56,25 @@ mod memory {
         /// Put the object going by `id` of `kind` with `data` into the cache.
         fn put(&mut self, id: gix_hash::ObjectId, kind: gix_object::Kind, data: &[u8]) {
             self.debug.put();
-            if let Ok(Some(previous_entry)) = self.inner.put_with_weight(
+            let res = self.inner.put_with_weight(
                 id,
                 Entry {
-                    data: self
-                        .free_list
-                        .pop()
-                        .map(|mut v| {
+                    data: self.free_list.pop().map_or_else(
+                        || Vec::from(data),
+                        |mut v| {
                             v.clear();
                             v.resize(data.len(), 0);
                             v.copy_from_slice(data);
                             v
-                        })
-                        .unwrap_or_else(|| Vec::from(data)),
+                        },
+                    ),
                     kind,
                 },
-            ) {
-                self.free_list.push(previous_entry.data)
+            );
+            match res {
+                Ok(Some(previous_entry)) => self.free_list.push(previous_entry.data),
+                Ok(None) => {}
+                Err((_key, value)) => self.free_list.push(value.data),
             }
         }
 

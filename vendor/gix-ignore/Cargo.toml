@@ -13,10 +13,11 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-ignore"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
+    "LICENSE-*",
     "CHANGELOG.md",
 ]
 description = "A WIP crate of the gitoxide project dealing .gitignore files"
@@ -47,10 +48,10 @@ version = "0.2.1"
 optional = true
 
 [dependencies.gix-glob]
-version = "^0.7.0"
+version = "^0.8.0"
 
 [dependencies.gix-path]
-version = "^0.8.0"
+version = "^0.8.1"
 
 [dependencies.serde]
 version = "1.0.114"

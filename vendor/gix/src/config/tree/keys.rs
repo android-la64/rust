@@ -179,10 +179,10 @@ pub type Url = Any<validate::Url>;
 /// A key that represents a UTF-8 string.
 pub type String = Any<validate::String>;
 
-/// A key that represents a RefSpec for pushing.
+/// A key that represents a `RefSpec` for pushing.
 pub type PushRefSpec = Any<validate::PushRefSpec>;
 
-/// A key that represents a RefSpec for fetching.
+/// A key that represents a `RefSpec` for fetching.
 pub type FetchRefSpec = Any<validate::FetchRefSpec>;
 
 mod duration {
@@ -511,7 +511,8 @@ pub mod validate {
                 gix_config::Integer::try_from(value)?
                     .to_decimal()
                     .ok_or_else(|| format!("integer {value} cannot be represented as `usize`"))?,
-            )?;
+            )
+            .map_err(|_| "cannot use sign for unsigned integer")?;
             Ok(())
         }
     }

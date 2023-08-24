@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "backtrace"
-version = "0.3.67"
+version = "0.3.68"
 authors = ["The Rust Project Developers"]
 build = "build.rs"
 autoexamples = true
@@ -63,7 +63,7 @@ harness = false
 required-features = ["std"]
 
 [dependencies.addr2line]
-version = "0.19.0"
+version = "0.20.0"
 default-features = false
 
 [dependencies.cfg-if]
@@ -76,15 +76,15 @@ optional = true
 default-features = false
 
 [dependencies.libc]
-version = "0.2.94"
+version = "0.2.146"
 default-features = false
 
 [dependencies.miniz_oxide]
-version = "0.6.0"
+version = "0.7.0"
 default-features = false
 
 [dependencies.object]
-version = "0.30.0"
+version = "0.31.1"
 features = [
     "read_core",
     "elf",

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "ecdsa"
-version = "0.16.6"
+version = "0.16.7"
 authors = ["RustCrypto Developers"]
 description = """
 Pure Rust implementation of the Elliptic Curve Digital Signature Algorithm
@@ -53,7 +53,7 @@ optional = true
 default-features = false
 
 [dependencies.elliptic-curve]
-version = "0.13.3"
+version = "0.13.4"
 features = [
     "digest",
     "sec1",
@@ -81,6 +81,11 @@ version = "2.0, <2.2"
 features = ["rand_core"]
 default-features = false
 
+[dependencies.spki]
+version = "0.7.2"
+optional = true
+default-features = false
+
 [dev-dependencies.elliptic-curve]
 version = "0.13"
 features = ["dev"]
@@ -97,6 +102,7 @@ default-features = false
 alloc = [
     "elliptic-curve/alloc",
     "signature/alloc",
+    "spki/alloc",
 ]
 arithmetic = ["elliptic-curve/arithmetic"]
 default = ["digest"]

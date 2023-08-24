@@ -10,8 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2018"
+rust-version = "1.65"
 name = "addr2line"
-version = "0.19.0"
+version = "0.21.0"
 exclude = [
     "/benches/*",
     "/fixtures/*",
@@ -40,12 +42,12 @@ debug = true
 
 [[example]]
 name = "addr2line"
-required-features = ["std-object"]
+required-features = ["default"]
 
 [[test]]
 name = "output_equivalence"
 harness = false
-required-features = ["std-object"]
+required-features = ["default"]
 
 [[test]]
 name = "correctness"
@@ -76,17 +78,21 @@ optional = true
 default-features = false
 
 [dependencies.fallible-iterator]
-version = "0.2"
+version = "0.3.0"
 optional = true
 default-features = false
 
 [dependencies.gimli]
-version = "0.27.0"
+version = "0.28.0"
 features = ["read"]
 default-features = false
 
+[dependencies.memmap2]
+version = "0.5.5"
+optional = true
+
 [dependencies.object]
-version = "0.30.0"
+version = "0.32.0"
 features = ["read"]
 optional = true
 default-features = false
@@ -104,16 +110,14 @@ default-features = false
 version = "0.3.13"
 
 [dev-dependencies.clap]
-version = "3.1.6"
+version = "4.3.21"
+features = ["wrap_help"]
 
 [dev-dependencies.findshlibs]
 version = "0.10"
 
-[dev-dependencies.memmap2]
-version = "0.5.5"
-
-[dev-dependencies.rustc-test]
-version = "0.3"
+[dev-dependencies.libtest-mimic]
+version = "0.6.1"
 
 [dev-dependencies.typed-arena]
 version = "2"
@@ -125,6 +129,7 @@ default = [
     "std-object",
     "fallible-iterator",
     "smallvec",
+    "memmap2",
 ]
 rustc-dep-of-std = [
     "core",

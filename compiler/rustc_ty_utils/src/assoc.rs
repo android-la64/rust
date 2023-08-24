@@ -5,7 +5,7 @@ use rustc_hir::def_id::{DefId, DefIdMap, LocalDefId};
 use rustc_hir::definitions::DefPathData;
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_middle::query::Providers;
-use rustc_middle::ty::{self, ImplTraitInTraitData, InternalSubsts, TyCtxt};
+use rustc_middle::ty::{self, ImplTraitInTraitData, InternalSubsts, Ty, TyCtxt};
 use rustc_span::symbol::kw;
 
 pub fn provide(providers: &mut Providers) {
@@ -259,7 +259,7 @@ fn associated_type_for_impl_trait_in_trait(
     opaque_ty_def_id: LocalDefId,
 ) -> LocalDefId {
     let (hir::OpaqueTyOrigin::FnReturn(fn_def_id) | hir::OpaqueTyOrigin::AsyncFn(fn_def_id)) =
-        tcx.hir().expect_item(opaque_ty_def_id).expect_opaque_ty().origin
+        tcx.opaque_type_origin(opaque_ty_def_id)
     else {
         bug!("expected opaque for {opaque_ty_def_id:?}");
     };
@@ -297,11 +297,12 @@ fn associated_type_for_impl_trait_in_trait(
     // Copy visility of the containing function.
     trait_assoc_ty.visibility(tcx.visibility(fn_def_id));
 
-    // Copy impl_defaultness of the containing function.
-    trait_assoc_ty.impl_defaultness(tcx.impl_defaultness(fn_def_id));
+    // Copy defaultness of the containing function.
+    trait_assoc_ty.defaultness(tcx.defaultness(fn_def_id));
 
     // Copy type_of of the opaque.
-    trait_assoc_ty.type_of(ty::EarlyBinder(tcx.mk_opaque(
+    trait_assoc_ty.type_of(ty::EarlyBinder::bind(Ty::new_opaque(
+        tcx,
         opaque_ty_def_id.to_def_id(),
         InternalSubsts::identity_for_item(tcx, opaque_ty_def_id),
     )));
@@ -337,13 +338,8 @@ fn associated_type_for_impl_trait_in_trait(
             param_def_id_to_index,
             has_self: opaque_ty_generics.has_self,
             has_late_bound_regions: opaque_ty_generics.has_late_bound_regions,
+            host_effect_index: parent_generics.host_effect_index,
         }
-    });
-
-    // There are no predicates for the synthesized associated type.
-    trait_assoc_ty.explicit_predicates_of(ty::GenericPredicates {
-        parent: Some(trait_def_id.to_def_id()),
-        predicates: &[],
     });
 
     // There are no inferred outlives for the synthesized associated type.
@@ -393,8 +389,8 @@ fn associated_type_for_impl_trait_in_impl(
     // Copy visility of the containing function.
     impl_assoc_ty.visibility(tcx.visibility(impl_fn_def_id));
 
-    // Copy impl_defaultness of the containing function.
-    impl_assoc_ty.impl_defaultness(tcx.impl_defaultness(impl_fn_def_id));
+    // Copy defaultness of the containing function.
+    impl_assoc_ty.defaultness(tcx.defaultness(impl_fn_def_id));
 
     // Copy generics_of the trait's associated item but the impl as the parent.
     // FIXME(-Zlower-impl-trait-in-trait-to-assoc-ty) resolves to the trait instead of the impl
@@ -421,13 +417,8 @@ fn associated_type_for_impl_trait_in_impl(
             param_def_id_to_index,
             has_self: false,
             has_late_bound_regions: trait_assoc_generics.has_late_bound_regions,
+            host_effect_index: parent_generics.host_effect_index,
         }
-    });
-
-    // There are no predicates for the synthesized associated type.
-    impl_assoc_ty.explicit_predicates_of(ty::GenericPredicates {
-        parent: Some(impl_local_def_id.to_def_id()),
-        predicates: &[],
     });
 
     // There are no inferred outlives for the synthesized associated type.

@@ -286,7 +286,9 @@ impl<'tcx> LateLintPass<'tcx> for NonShorthandFieldPatterns {
 }
 
 declare_lint! {
-    /// The `unsafe_code` lint catches usage of `unsafe` code.
+    /// The `unsafe_code` lint catches usage of `unsafe` code and other
+    /// potentially unsound constructs like `no_mangle`, `export_name`,
+    /// and `link_section`.
     ///
     /// ### Example
     ///
@@ -297,17 +299,29 @@ declare_lint! {
     ///
     ///     }
     /// }
+    ///
+    /// #[no_mangle]
+    /// fn func_0() { }
+    ///
+    /// #[export_name = "exported_symbol_name"]
+    /// pub fn name_in_rust() { }
+    ///
+    /// #[no_mangle]
+    /// #[link_section = ".example_section"]
+    /// pub static VAR1: u32 = 1;
     /// ```
     ///
     /// {{produces}}
     ///
     /// ### Explanation
     ///
-    /// This lint is intended to restrict the usage of `unsafe`, which can be
-    /// difficult to use correctly.
+    /// This lint is intended to restrict the usage of `unsafe` blocks and other
+    /// constructs (including, but not limited to `no_mangle`, `link_section`
+    /// and `export_name` attributes) wrong usage of which causes undefined
+    /// behavior.
     UNSAFE_CODE,
     Allow,
-    "usage of `unsafe` code"
+    "usage of `unsafe` code and other potentially unsound constructs"
 }
 
 declare_lint_pass!(UnsafeCode => [UNSAFE_CODE]);
@@ -651,9 +665,7 @@ declare_lint_pass!(MissingCopyImplementations => [MISSING_COPY_IMPLEMENTATIONS])
 
 impl<'tcx> LateLintPass<'tcx> for MissingCopyImplementations {
     fn check_item(&mut self, cx: &LateContext<'_>, item: &hir::Item<'_>) {
-        if !(cx.effective_visibilities.is_reachable(item.owner_id.def_id)
-            && cx.tcx.local_visibility(item.owner_id.def_id).is_public())
-        {
+        if !cx.effective_visibilities.is_reachable(item.owner_id.def_id) {
             return;
         }
         let (def, ty) = match item.kind {
@@ -662,21 +674,21 @@ impl<'tcx> LateLintPass<'tcx> for MissingCopyImplementations {
                     return;
                 }
                 let def = cx.tcx.adt_def(item.owner_id);
-                (def, cx.tcx.mk_adt(def, ty::List::empty()))
+                (def, Ty::new_adt(cx.tcx, def, ty::List::empty()))
             }
             hir::ItemKind::Union(_, ref ast_generics) => {
                 if !ast_generics.params.is_empty() {
                     return;
                 }
                 let def = cx.tcx.adt_def(item.owner_id);
-                (def, cx.tcx.mk_adt(def, ty::List::empty()))
+                (def, Ty::new_adt(cx.tcx, def, ty::List::empty()))
             }
             hir::ItemKind::Enum(_, ref ast_generics) => {
                 if !ast_generics.params.is_empty() {
                     return;
                 }
                 let def = cx.tcx.adt_def(item.owner_id);
-                (def, cx.tcx.mk_adt(def, ty::List::empty()))
+                (def, Ty::new_adt(cx.tcx, def, ty::List::empty()))
             }
             _ => return,
         };
@@ -772,9 +784,7 @@ impl_lint_pass!(MissingDebugImplementations => [MISSING_DEBUG_IMPLEMENTATIONS]);
 
 impl<'tcx> LateLintPass<'tcx> for MissingDebugImplementations {
     fn check_item(&mut self, cx: &LateContext<'_>, item: &hir::Item<'_>) {
-        if !(cx.effective_visibilities.is_reachable(item.owner_id.def_id)
-            && cx.tcx.local_visibility(item.owner_id.def_id).is_public())
-        {
+        if !cx.effective_visibilities.is_reachable(item.owner_id.def_id) {
             return;
         }
 
@@ -1321,10 +1331,14 @@ declare_lint! {
     ///
     /// ### Explanation
     ///
-    /// A bare `pub` visibility may be misleading if the item is not actually
-    /// publicly exported from the crate. The `pub(crate)` visibility is
-    /// recommended to be used instead, which more clearly expresses the intent
-    /// that the item is only visible within its own crate.
+    /// The `pub` keyword both expresses an intent for an item to be publicly available, and also
+    /// signals to the compiler to make the item publicly accessible. The intent can only be
+    /// satisfied, however, if all items which contain this item are *also* publicly accessible.
+    /// Thus, this lint serves to identify situations where the intent does not match the reality.
+    ///
+    /// If you wish the item to be accessible elsewhere within the crate, but not outside it, the
+    /// `pub(crate)` visibility is recommended to be used instead. This more clearly expresses the
+    /// intent that the item is only visible within its own crate.
     ///
     /// This lint is "allow" by default because it will trigger for a large
     /// amount existing Rust code, and has some false-positives. Eventually it
@@ -1447,8 +1461,8 @@ impl<'tcx> LateLintPass<'tcx> for TypeAliasBounds {
         let hir::ItemKind::TyAlias(ty, type_alias_generics) = &item.kind else {
             return
         };
-        if let hir::TyKind::OpaqueDef(..) = ty.kind {
-            // Bounds are respected for `type X = impl Trait`
+        if cx.tcx.type_of(item.owner_id.def_id).skip_binder().has_opaque_types() {
+            // Bounds are respected for `type X = impl Trait` and `type X = (impl Trait, Y);`
             return;
         }
         if cx.tcx.type_of(item.owner_id).skip_binder().has_inherent_projections() {
@@ -1574,34 +1588,25 @@ declare_lint_pass!(
 
 impl<'tcx> LateLintPass<'tcx> for TrivialConstraints {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item<'tcx>) {
-        use rustc_middle::ty::Clause;
-        use rustc_middle::ty::PredicateKind::*;
+        use rustc_middle::ty::ClauseKind;
 
         if cx.tcx.features().trivial_bounds {
             let predicates = cx.tcx.predicates_of(item.owner_id);
             for &(predicate, span) in predicates.predicates {
                 let predicate_kind_name = match predicate.kind().skip_binder() {
-                    Clause(Clause::Trait(..)) => "trait",
-                    Clause(Clause::TypeOutlives(..)) |
-                    Clause(Clause::RegionOutlives(..)) => "lifetime",
+                    ClauseKind::Trait(..) => "trait",
+                    ClauseKind::TypeOutlives(..) |
+                    ClauseKind::RegionOutlives(..) => "lifetime",
 
                     // `ConstArgHasType` is never global as `ct` is always a param
-                    Clause(Clause::ConstArgHasType(..)) |
+                    ClauseKind::ConstArgHasType(..)
                     // Ignore projections, as they can only be global
                     // if the trait bound is global
-                    Clause(Clause::Projection(..)) |
-                    AliasRelate(..) |
+                    | ClauseKind::Projection(..)
                     // Ignore bounds that a user can't type
-                    WellFormed(..) |
-                    ObjectSafe(..) |
-                    ClosureKind(..) |
-                    Subtype(..) |
-                    Coerce(..) |
+                    | ClauseKind::WellFormed(..)
                     // FIXME(generic_const_exprs): `ConstEvaluatable` can be written
-                    ConstEvaluatable(..) |
-                    ConstEquate(..) |
-                    Ambiguous |
-                    TypeWellFormedFromEnv(..) => continue,
+                    | ClauseKind::ConstEvaluatable(..)  => continue,
                 };
                 if predicate.is_global() {
                     cx.emit_spanned_lint(
@@ -1971,8 +1976,8 @@ impl ExplicitOutlivesRequirements {
     ) -> Vec<ty::Region<'tcx>> {
         inferred_outlives
             .iter()
-            .filter_map(|(clause, _)| match *clause {
-                ty::Clause::RegionOutlives(ty::OutlivesPredicate(a, b)) => match *a {
+            .filter_map(|(clause, _)| match clause.kind().skip_binder() {
+                ty::ClauseKind::RegionOutlives(ty::OutlivesPredicate(a, b)) => match *a {
                     ty::ReEarlyBound(ebr) if ebr.def_id == def_id => Some(b),
                     _ => None,
                 },
@@ -1987,8 +1992,8 @@ impl ExplicitOutlivesRequirements {
     ) -> Vec<ty::Region<'tcx>> {
         inferred_outlives
             .iter()
-            .filter_map(|(clause, _)| match *clause {
-                ty::Clause::TypeOutlives(ty::OutlivesPredicate(a, b)) => {
+            .filter_map(|(clause, _)| match clause.kind().skip_binder() {
+                ty::ClauseKind::TypeOutlives(ty::OutlivesPredicate(a, b)) => {
                     a.is_param(index).then_some(b)
                 }
                 _ => None,
@@ -2106,12 +2111,16 @@ impl<'tcx> LateLintPass<'tcx> for ExplicitOutlivesRequirements {
             }
 
             let ty_generics = cx.tcx.generics_of(def_id);
+            let num_where_predicates = hir_generics
+                .predicates
+                .iter()
+                .filter(|predicate| predicate.in_where_clause())
+                .count();
 
             let mut bound_count = 0;
             let mut lint_spans = Vec::new();
             let mut where_lint_spans = Vec::new();
-            let mut dropped_predicate_count = 0;
-            let num_predicates = hir_generics.predicates.len();
+            let mut dropped_where_predicate_count = 0;
             for (i, where_predicate) in hir_generics.predicates.iter().enumerate() {
                 let (relevant_lifetimes, bounds, predicate_span, in_where_clause) =
                     match where_predicate {
@@ -2168,8 +2177,8 @@ impl<'tcx> LateLintPass<'tcx> for ExplicitOutlivesRequirements {
                 bound_count += bound_spans.len();
 
                 let drop_predicate = bound_spans.len() == bounds.len();
-                if drop_predicate {
-                    dropped_predicate_count += 1;
+                if drop_predicate && in_where_clause {
+                    dropped_where_predicate_count += 1;
                 }
 
                 if drop_predicate {
@@ -2178,7 +2187,7 @@ impl<'tcx> LateLintPass<'tcx> for ExplicitOutlivesRequirements {
                     } else if predicate_span.from_expansion() {
                         // Don't try to extend the span if it comes from a macro expansion.
                         where_lint_spans.push(predicate_span);
-                    } else if i + 1 < num_predicates {
+                    } else if i + 1 < num_where_predicates {
                         // If all the bounds on a predicate were inferable and there are
                         // further predicates, we want to eat the trailing comma.
                         let next_predicate_span = hir_generics.predicates[i + 1].span();
@@ -2206,9 +2215,10 @@ impl<'tcx> LateLintPass<'tcx> for ExplicitOutlivesRequirements {
                 }
             }
 
-            // If all predicates are inferable, drop the entire clause
+            // If all predicates in where clause are inferable, drop the entire clause
             // (including the `where`)
-            if hir_generics.has_where_clause_predicates && dropped_predicate_count == num_predicates
+            if hir_generics.has_where_clause_predicates
+                && dropped_where_predicate_count == num_where_predicates
             {
                 let where_span = hir_generics.where_clause_span;
                 // Extend the where clause back to the closing `>` of the

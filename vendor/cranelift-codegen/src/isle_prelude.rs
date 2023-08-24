@@ -304,6 +304,11 @@ macro_rules! isle_common_prelude_methods {
         }
 
         #[inline]
+        fn ty_int_ref_scalar_64_extract(&mut self, ty: Type) -> Option<Type> {
+            self.ty_int_ref_scalar_64(ty)
+        }
+
+        #[inline]
         fn ty_32(&mut self, ty: Type) -> Option<Type> {
             if ty.bits() == 32 {
                 Some(ty)
@@ -351,6 +356,14 @@ macro_rules! isle_common_prelude_methods {
         fn ty_int_ref_64(&mut self, ty: Type) -> Option<Type> {
             match ty {
                 I64 | R64 => Some(ty),
+                _ => None,
+            }
+        }
+
+        #[inline]
+        fn ty_int_ref_16_to_64(&mut self, ty: Type) -> Option<Type> {
+            match ty {
+                I16 | I32 | I64 | R64 => Some(ty),
                 _ => None,
             }
         }
@@ -686,11 +699,6 @@ macro_rules! isle_common_prelude_methods {
         fn offset32_to_u32(&mut self, offset: Offset32) -> u32 {
             let offset: i32 = offset.into();
             offset as u32
-        }
-
-        #[inline]
-        fn u32_to_offset32(&mut self, offset: u32) -> Offset32 {
-            Offset32::new(offset as i32)
         }
 
         fn range(&mut self, start: usize, end: usize) -> Range {

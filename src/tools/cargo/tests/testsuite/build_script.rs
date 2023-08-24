@@ -1755,7 +1755,7 @@ fn build_cmd_with_a_build_cmd() {
     --extern a=[..]liba[..].rlib`
 [RUNNING] `[..]/foo-[..]/build-script-build`
 [RUNNING] `rustc --crate-name foo [..]lib.rs [..]--crate-type lib \
-    --emit=[..]link[..]-C debuginfo=2 \
+    --emit=[..]link[..]-C debuginfo=2 [..]\
     -C metadata=[..] \
     --out-dir [..] \
     -L [..]target/debug/deps`
@@ -1926,7 +1926,6 @@ fn output_separate_lines_new() {
         .run();
 }
 
-#[cfg(not(windows))] // FIXME(#867)
 #[cargo_test]
 fn code_generation() {
     let p = project()
@@ -1976,7 +1975,7 @@ fn code_generation() {
             "\
 [COMPILING] foo v0.5.0 ([CWD])
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
-[RUNNING] `target/debug/foo`",
+[RUNNING] `target/debug/foo[EXE]`",
         )
         .with_stdout("Hello, World!")
         .run();
@@ -5108,7 +5107,7 @@ fn duplicate_script_with_extra_env() {
         p.cargo("test --workspace -Z doctest-xcompile --doc --target")
             .arg(&target)
             .masquerade_as_nightly_cargo(&["doctest-xcompile"])
-            .with_stdout_contains("test src/lib.rs - (line 2) ... ok")
+            .with_stdout_contains("test foo/src/lib.rs - (line 2) ... ok")
             .run();
     }
 }

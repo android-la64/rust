@@ -11,6 +11,12 @@
  */
 
 #![allow(dead_code)]
+#![no_std]
+
+#[cfg(feature = "std")]
+extern crate std;
+
+extern crate alloc;
 
 // Even when trace logging is disabled, the trace macro has a significant
 // performance cost so we disable it in release builds.
@@ -28,6 +34,11 @@ macro_rules! trace_enabled {
     };
 }
 
+use core::hash::BuildHasherDefault;
+use rustc_hash::FxHasher;
+type FxHashMap<K, V> = hashbrown::HashMap<K, V, BuildHasherDefault<FxHasher>>;
+type FxHashSet<V> = hashbrown::HashSet<V, BuildHasherDefault<FxHasher>>;
+
 pub(crate) mod cfg;
 pub(crate) mod domtree;
 pub mod indexset;
@@ -38,6 +49,8 @@ pub mod ssa;
 
 #[macro_use]
 mod index;
+
+use alloc::vec::Vec;
 pub use index::{Block, Inst, InstRange, InstRangeIter};
 
 pub mod checker;
@@ -55,17 +68,18 @@ use serde::{Deserialize, Serialize};
 /// class; i.e., they are disjoint.
 ///
 /// For tight bit-packing throughout our data structures, we support
-/// only two classes, "int" and "float". This will usually be enough
-/// on modern machines, as they have one class of general-purpose
+/// only three classes, "int", "float" and "vector". Usually two will
+/// be enough on modern machines, as they have one class of general-purpose
 /// integer registers of machine width (e.g. 64 bits), and another
 /// class of float/vector registers used both for FP and for vector
-/// operations. If needed, we could adjust bitpacking to allow for
-/// more classes in the future.
+/// operations. Additionally for machines with totally separate vector
+/// registers a third class is provided.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub enum RegClass {
     Int = 0,
     Float = 1,
+    Vector = 2,
 }
 
 /// A physical register. Contains a physical register number and a class.
@@ -91,7 +105,7 @@ pub struct PReg {
 impl PReg {
     pub const MAX_BITS: usize = 6;
     pub const MAX: usize = (1 << Self::MAX_BITS) - 1;
-    pub const NUM_INDEX: usize = 1 << (Self::MAX_BITS + 1); // including RegClass bit
+    pub const NUM_INDEX: usize = 1 << (Self::MAX_BITS + 2); // including RegClass bits
 
     /// Create a new PReg. The `hw_enc` range is 6 bits.
     #[inline(always)]
@@ -111,10 +125,11 @@ impl PReg {
     /// The register class.
     #[inline(always)]
     pub const fn class(self) -> RegClass {
-        if self.bits & (1 << Self::MAX_BITS) == 0 {
-            RegClass::Int
-        } else {
-            RegClass::Float
+        match (self.bits >> Self::MAX_BITS) & 0b11 {
+            0 => RegClass::Int,
+            1 => RegClass::Float,
+            2 => RegClass::Vector,
+            _ => unreachable!(),
         }
     }
 
@@ -142,8 +157,8 @@ impl PReg {
     }
 }
 
-impl std::fmt::Debug for PReg {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Debug for PReg {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(
             f,
             "PReg(hw = {}, class = {:?}, index = {})",
@@ -154,11 +169,12 @@ impl std::fmt::Debug for PReg {
     }
 }
 
-impl std::fmt::Display for PReg {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for PReg {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let class = match self.class() {
             RegClass::Int => "i",
             RegClass::Float => "f",
+            RegClass::Vector => "v",
         };
         write!(f, "p{}{}", self.hw_enc(), class)
     }
@@ -172,49 +188,54 @@ impl std::fmt::Display for PReg {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub struct PRegSet {
-    bits: u128,
+    bits: [u128; 2],
 }
 
 impl PRegSet {
     /// Create an empty set.
     pub const fn empty() -> Self {
-        Self { bits: 0 }
+        Self { bits: [0; 2] }
     }
 
     /// Returns whether the given register is part of the set.
     pub fn contains(&self, reg: PReg) -> bool {
-        let bit = reg.index();
-        debug_assert!(bit < 128);
-        self.bits & 1u128 << bit != 0
+        debug_assert!(reg.index() < 256);
+        let bit = reg.index() & 127;
+        let index = reg.index() >> 7;
+        self.bits[index] & (1u128 << bit) != 0
     }
 
     /// Add a physical register (PReg) to the set, returning the new value.
     pub const fn with(self, reg: PReg) -> Self {
-        let bit = reg.index();
-        debug_assert!(bit < 128);
-        Self {
-            bits: self.bits | (1u128 << bit),
-        }
+        debug_assert!(reg.index() < 256);
+        let bit = reg.index() & 127;
+        let index = reg.index() >> 7;
+        let mut out = self;
+        out.bits[index] |= 1u128 << bit;
+        out
     }
 
     /// Add a physical register (PReg) to the set.
     pub fn add(&mut self, reg: PReg) {
-        let bit = reg.index();
-        debug_assert!(bit < 128);
-        self.bits |= 1u128 << bit;
+        debug_assert!(reg.index() < 256);
+        let bit = reg.index() & 127;
+        let index = reg.index() >> 7;
+        self.bits[index] |= 1u128 << bit;
     }
 
     /// Remove a physical register (PReg) from the set.
     pub fn remove(&mut self, reg: PReg) {
-        let bit = reg.index();
-        debug_assert!(bit < 128);
-        self.bits &= !(1u128 << bit);
+        debug_assert!(reg.index() < 256);
+        let bit = reg.index() & 127;
+        let index = reg.index() >> 7;
+        self.bits[index] &= !(1u128 << bit);
     }
 
     /// Add all of the registers in one set to this one, mutating in
     /// place.
     pub fn union_from(&mut self, other: PRegSet) {
-        self.bits |= other.bits;
+        self.bits[0] |= other.bits[0];
+        self.bits[1] |= other.bits[1];
     }
 }
 
@@ -227,18 +248,22 @@ impl IntoIterator for PRegSet {
 }
 
 pub struct PRegSetIter {
-    bits: u128,
+    bits: [u128; 2],
 }
 
 impl Iterator for PRegSetIter {
     type Item = PReg;
     fn next(&mut self) -> Option<PReg> {
-        if self.bits == 0 {
-            None
-        } else {
-            let index = self.bits.trailing_zeros();
-            self.bits &= !(1u128 << index);
+        if self.bits[0] != 0 {
+            let index = self.bits[0].trailing_zeros();
+            self.bits[0] &= !(1u128 << index);
             Some(PReg::from_index(index as usize))
+        } else if self.bits[1] != 0 {
+            let index = self.bits[1].trailing_zeros();
+            self.bits[1] &= !(1u128 << index);
+            Some(PReg::from_index(index as usize + 128))
+        } else {
+            None
         }
     }
 }
@@ -266,8 +291,7 @@ impl From<&MachineEnv> for PRegSet {
 /// A virtual register. Contains a virtual register number and a
 /// class.
 ///
-/// A virtual register ("vreg") corresponds to an SSA value for SSA
-/// input, or just a register when we allow for non-SSA input. All
+/// A virtual register ("vreg") corresponds to an SSA value. All
 /// dataflow in the input program is specified via flow through a
 /// virtual register; even uses of specially-constrained locations,
 /// such as fixed physical registers, are done by using vregs, because
@@ -287,21 +311,22 @@ impl VReg {
     pub const fn new(virt_reg: usize, class: RegClass) -> Self {
         debug_assert!(virt_reg <= VReg::MAX);
         VReg {
-            bits: ((virt_reg as u32) << 1) | (class as u8 as u32),
+            bits: ((virt_reg as u32) << 2) | (class as u8 as u32),
         }
     }
 
     #[inline(always)]
     pub const fn vreg(self) -> usize {
-        let vreg = (self.bits >> 1) as usize;
+        let vreg = (self.bits >> 2) as usize;
         vreg
     }
 
     #[inline(always)]
     pub const fn class(self) -> RegClass {
-        match self.bits & 1 {
+        match self.bits & 0b11 {
             0 => RegClass::Int,
             1 => RegClass::Float,
+            2 => RegClass::Vector,
             _ => unreachable!(),
         }
     }
@@ -312,8 +337,8 @@ impl VReg {
     }
 }
 
-impl std::fmt::Debug for VReg {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Debug for VReg {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(
             f,
             "VReg(vreg = {}, class = {:?})",
@@ -323,8 +348,8 @@ impl std::fmt::Debug for VReg {
     }
 }
 
-impl std::fmt::Display for VReg {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for VReg {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "v{}", self.vreg())
     }
 }
@@ -383,8 +408,8 @@ impl SpillSlot {
     }
 }
 
-impl std::fmt::Display for SpillSlot {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for SpillSlot {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "stack{}", self.index())
     }
 }
@@ -414,8 +439,8 @@ pub enum OperandConstraint {
     Reuse(usize),
 }
 
-impl std::fmt::Display for OperandConstraint {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for OperandConstraint {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
             Self::Any => write!(f, "any"),
             Self::Reg => write!(f, "reg"),
@@ -722,6 +747,7 @@ impl Operand {
         match class_field {
             0 => RegClass::Int,
             1 => RegClass::Float,
+            2 => RegClass::Vector,
             _ => unreachable!(),
         }
     }
@@ -797,14 +823,17 @@ impl Operand {
     }
 }
 
-impl std::fmt::Debug for Operand {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        std::fmt::Display::fmt(self, f)
+impl core::fmt::Debug for Operand {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        core::fmt::Display::fmt(self, f)
     }
 }
 
-impl std::fmt::Display for Operand {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for Operand {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if let Some(preg) = self.as_fixed_nonallocatable() {
+            return write!(f, "Fixed: {preg}");
+        }
         match (self.kind(), self.pos()) {
             (OperandKind::Def, OperandPos::Late) | (OperandKind::Use, OperandPos::Early) => {
                 write!(f, "{:?}", self.kind())?;
@@ -820,6 +849,7 @@ impl std::fmt::Display for Operand {
             match self.class() {
                 RegClass::Int => "i",
                 RegClass::Float => "f",
+                RegClass::Vector => "v",
             },
             self.constraint()
         )
@@ -837,14 +867,14 @@ pub struct Allocation {
     bits: u32,
 }
 
-impl std::fmt::Debug for Allocation {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        std::fmt::Display::fmt(self, f)
+impl core::fmt::Debug for Allocation {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        core::fmt::Display::fmt(self, f)
     }
 }
 
-impl std::fmt::Display for Allocation {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for Allocation {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self.kind() {
             AllocationKind::None => write!(f, "none"),
             AllocationKind::Reg => write!(f, "{}", self.as_reg().unwrap()),
@@ -1029,10 +1059,6 @@ pub trait Function {
         false
     }
 
-    /// Determine whether an instruction is a move; if so, return the
-    /// Operands for (src, dst).
-    fn is_move(&self, insn: Inst) -> Option<(Operand, Operand)>;
-
     // --------------------------
     // Instruction register slots
     // --------------------------
@@ -1178,8 +1204,8 @@ pub struct ProgPoint {
     bits: u32,
 }
 
-impl std::fmt::Debug for ProgPoint {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Debug for ProgPoint {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(
             f,
             "progpoint{}{}",
@@ -1326,19 +1352,43 @@ impl<'a> Iterator for OutputIter<'a> {
 pub struct MachineEnv {
     /// Preferred physical registers for each class. These are the
     /// registers that will be allocated first, if free.
-    pub preferred_regs_by_class: [Vec<PReg>; 2],
+    ///
+    /// If an explicit scratch register is provided in `scratch_by_class` then
+    /// it must not appear in this list.
+    pub preferred_regs_by_class: [Vec<PReg>; 3],
 
     /// Non-preferred physical registers for each class. These are the
     /// registers that will be allocated if a preferred register is
     /// not available; using one of these is considered suboptimal,
     /// but still better than spilling.
-    pub non_preferred_regs_by_class: [Vec<PReg>; 2],
+    ///
+    /// If an explicit scratch register is provided in `scratch_by_class` then
+    /// it must not appear in this list.
+    pub non_preferred_regs_by_class: [Vec<PReg>; 3],
+
+    /// Optional dedicated scratch register per class. This is needed to perform
+    /// moves between registers when cyclic move patterns occur. The
+    /// register should not be placed in either the preferred or
+    /// non-preferred list (i.e., it is not otherwise allocatable).
+    ///
+    /// Note that the register allocator will freely use this register
+    /// between instructions, but *within* the machine code generated
+    /// by a single (regalloc-level) instruction, the client is free
+    /// to use the scratch register. E.g., if one "instruction" causes
+    /// the emission of two machine-code instructions, this lowering
+    /// can use the scratch register between them.
+    ///
+    /// If a scratch register is not provided then the register allocator will
+    /// automatically allocate one as needed, spilling a value to the stack if
+    /// necessary.
+    pub scratch_by_class: [Option<PReg>; 3],
 
     /// Some `PReg`s can be designated as locations on the stack rather than
     /// actual registers. These can be used to tell the register allocator about
     /// pre-defined stack slots used for function arguments and return values.
     ///
-    /// `PReg`s in this list cannot be used as an allocatable register.
+    /// `PReg`s in this list cannot be used as an allocatable or scratch
+    /// register.
     pub fixed_stack_slots: Vec<PReg>,
 }
 
@@ -1403,9 +1453,9 @@ impl Output {
                 // binary_search_by returns the index of where it would have
                 // been inserted in Err.
                 if pos < ProgPoint::before(inst_range.first()) {
-                    std::cmp::Ordering::Less
+                    core::cmp::Ordering::Less
                 } else {
-                    std::cmp::Ordering::Greater
+                    core::cmp::Ordering::Greater
                 }
             })
             .unwrap_err();
@@ -1444,12 +1494,13 @@ pub enum RegAllocError {
     TooManyLiveRegs,
 }
 
-impl std::fmt::Display for RegAllocError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for RegAllocError {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for RegAllocError {}
 
 /// Run the allocator.

@@ -9,6 +9,7 @@
 #  include <arm_neon.h>
 #endif
 #include "../../zbuild.h"
+#include "../../zutil.h"
 
 typedef uint8x16_t chunk_t;
 
@@ -20,19 +21,19 @@ typedef uint8x16_t chunk_t;
 
 static inline void chunkmemset_2(uint8_t *from, chunk_t *chunk) {
     uint16_t tmp;
-    zmemcpy_2(&tmp, from);
+    memcpy(&tmp, from, sizeof(tmp));
     *chunk = vreinterpretq_u8_u16(vdupq_n_u16(tmp));
 }
 
 static inline void chunkmemset_4(uint8_t *from, chunk_t *chunk) {
     uint32_t tmp;
-    zmemcpy_4(&tmp, from);
+    memcpy(&tmp, from, sizeof(tmp));
     *chunk = vreinterpretq_u8_u32(vdupq_n_u32(tmp));
 }
 
 static inline void chunkmemset_8(uint8_t *from, chunk_t *chunk) {
     uint64_t tmp;
-    zmemcpy_8(&tmp, from);
+    memcpy(&tmp, from, sizeof(tmp));
     *chunk = vreinterpretq_u8_u64(vdupq_n_u64(tmp));
 }
 

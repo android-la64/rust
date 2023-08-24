@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64.0"
 name = "clap_builder"
-version = "4.2.4"
+version = "4.3.10"
 include = [
     "build.rs",
     "src/**/*",
@@ -37,22 +37,22 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/clap-rs/clap"
 
 [package.metadata.docs.rs]
+cargo-args = [
+    "-Zunstable-options",
+    "-Zrustdoc-scrape-examples",
+]
 features = ["unstable-doc"]
 rustdoc-args = [
     "--cfg",
     "docsrs",
-]
-cargo-args = [
-    "-Zunstable-options",
-    "-Zrustdoc-scrape-examples",
 ]
 
 [package.metadata.playground]
 features = ["unstable-doc"]
 
 [package.metadata.release]
-shared-version = true
 dependent-version = "upgrade"
+shared-version = true
 tag-name = "v{{version}}"
 
 [lib]
@@ -69,11 +69,8 @@ version = "1.0.0"
 version = "0.3.67"
 optional = true
 
-[dependencies.bitflags]
-version = "1.2.0"
-
 [dependencies.clap_lex]
-version = "0.4.0"
+version = "0.5.0"
 
 [dependencies.once_cell]
 version = "1.12.0"
@@ -108,16 +105,16 @@ version = "1.0.12"
 version = "1.1.0"
 
 [dev-dependencies.snapbox]
-version = "0.4.10"
+version = "0.4.11"
 
 [dev-dependencies.static_assertions]
 version = "1.1.0"
 
 [dev-dependencies.trybuild]
-version = "1.0.77"
+version = "1.0.80"
 
 [dev-dependencies.trycmd]
-version = "0.14.15"
+version = "0.14.16"
 features = [
     "color-auto",
     "diff",

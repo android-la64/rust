@@ -25,8 +25,9 @@
 
 #![no_std]
 #![deny(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
-#[cfg(test)]
+#[cfg(any(test, feature = "std"))]
 #[macro_use]
 extern crate std;
 
@@ -142,6 +143,75 @@ pub fn demangle(mut s: &str) -> Demangle {
         original: s,
         suffix,
     }
+}
+
+#[cfg(feature = "std")]
+fn demangle_line(
+    line: &str,
+    output: &mut impl std::io::Write,
+    include_hash: bool,
+) -> std::io::Result<()> {
+    let mut head = 0;
+    while head < line.len() {
+        // Move to the next potential match
+        let next_head = match (line[head..].find("_ZN"), line[head..].find("_R")) {
+            (Some(idx), None) | (None, Some(idx)) => head + idx,
+            (Some(idx1), Some(idx2)) => head + idx1.min(idx2),
+            (None, None) => {
+                // No more matches...
+                line.len()
+            }
+        };
+        output.write_all(line[head..next_head].as_bytes())?;
+        head = next_head;
+        // Find the non-matching character.
+        //
+        // If we do not find a character, then until the end of the line is the
+        // thing to demangle.
+        let match_end = line[head..]
+            .find(|ch: char| !(ch == '$' || ch == '.' || ch == '_' || ch.is_ascii_alphanumeric()))
+            .map(|idx| head + idx)
+            .unwrap_or(line.len());
+
+        let mangled = &line[head..match_end];
+        head = head + mangled.len();
+        if let Ok(demangled) = try_demangle(mangled) {
+            if include_hash {
+                write!(output, "{}", demangled)?;
+            } else {
+                write!(output, "{:#}", demangled)?;
+            }
+        } else {
+            output.write_all(mangled.as_bytes())?;
+        }
+    }
+    Ok(())
+}
+
+/// Process a stream of data from `input` into the provided `output`, demangling any symbols found
+/// within.
+///
+/// Note that the underlying implementation will perform many relatively small writes to the
+/// output. If the output is expensive to write to (e.g., requires syscalls), consider using
+/// `std::io::BufWriter`.
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+pub fn demangle_stream<R: std::io::BufRead, W: std::io::Write>(
+    input: &mut R,
+    output: &mut W,
+    include_hash: bool,
+) -> std::io::Result<()> {
+    let mut buf = std::string::String::new();
+    // We read in lines to reduce the memory usage at any time.
+    //
+    // demangle_line is also more efficient with relatively small buffers as it will copy around
+    // trailing data during demangling. In the future we might directly stream to the output but at
+    // least right now that seems to be less efficient.
+    while input.read_line(&mut buf)? > 0 {
+        demangle_line(&buf, output, include_hash)?;
+        buf.clear();
+    }
+    Ok(())
 }
 
 /// Error returned from the `try_demangle` function below when demangling fails.
@@ -488,6 +558,31 @@ mod tests {
         assert_ends_with!(
             super::demangle("_RMC0FGZZZ_Eu").to_string(),
             "{size limit reached}"
+        );
+    }
+
+    #[cfg(feature = "std")]
+    fn demangle_str(input: &str) -> String {
+        let mut output = Vec::new();
+        super::demangle_line(input, &mut output, false);
+        String::from_utf8(output).unwrap()
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn find_multiple() {
+        assert_eq!(
+            demangle_str("_ZN3fooE.llvm moocow _ZN3fooE.llvm"),
+            "foo.llvm moocow foo.llvm"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn interleaved_new_legacy() {
+        assert_eq!(
+            demangle_str("_ZN3fooE.llvm moocow _RNvMNtNtNtNtCs8a2262Dv4r_3mio3sys4unix8selector5epollNtB2_8Selector6select _ZN3fooE.llvm"),
+            "foo.llvm moocow <mio::sys::unix::selector::epoll::Selector>::select foo.llvm"
         );
     }
 }

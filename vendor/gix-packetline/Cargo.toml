@@ -13,10 +13,11 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-packetline"
-version = "0.16.0"
+version = "0.16.2"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
+    "LICENSE-*",
     "CHANGELOG.md",
 ]
 description = "A WIP crate of the gitoxide project implementing the pkt-line serialization format"
@@ -27,7 +28,7 @@ repository = "https://github.com/Byron/gitoxide"
 features = [
     "document-features",
     "blocking-io",
-    "dep:serde",
+    "serde",
 ]
 rustdoc-args = [
     "--cfg",

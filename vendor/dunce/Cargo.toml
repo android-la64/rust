@@ -10,9 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "dunce"
-version = "1.0.3"
+version = "1.0.4"
 authors = ["Kornel <kornel@geekhood.net>"]
 description = "Normalize Windows paths to the most compatible format, avoiding UNC where possible"
 homepage = "https://lib.rs/crates/dunce"
@@ -26,7 +26,7 @@ keywords = [
     "deunc",
 ]
 categories = ["filesystem"]
-license = "CC0-1.0 OR MIT-0"
+license = "CC0-1.0 OR MIT-0 OR Apache-2.0"
 repository = "https://gitlab.com/kornelski/dunce"
 
 [package.metadata.docs.rs]

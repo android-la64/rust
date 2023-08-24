@@ -105,7 +105,7 @@ pub struct Terminator<'tcx> {
     pub kind: TerminatorKind<'tcx>,
 }
 
-pub type Successors<'a> = impl Iterator<Item = BasicBlock> + 'a;
+pub type Successors<'a> = impl DoubleEndedIterator<Item = BasicBlock> + 'a;
 pub type SuccessorsMut<'a> =
     iter::Chain<std::option::IntoIter<&'a mut BasicBlock>, slice::IterMut<'a, BasicBlock>>;
 
@@ -272,7 +272,8 @@ impl<'tcx> Debug for TerminatorKind<'tcx> {
 
         let unwind = match self.unwind() {
             // Not needed or included in successors
-            None | Some(UnwindAction::Continue) | Some(UnwindAction::Cleanup(_)) => None,
+            None | Some(UnwindAction::Cleanup(_)) => None,
+            Some(UnwindAction::Continue) => Some("unwind continue"),
             Some(UnwindAction::Unreachable) => Some("unwind unreachable"),
             Some(UnwindAction::Terminate) => Some("unwind terminate"),
         };

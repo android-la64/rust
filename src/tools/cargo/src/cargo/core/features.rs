@@ -687,6 +687,26 @@ macro_rules! unstable_cli_options {
                 fields
             }
         }
+
+        #[cfg(test)]
+        mod test {
+            #[test]
+            fn ensure_sorted() {
+                // This will be printed out if the fields are not sorted.
+                let location = std::panic::Location::caller();
+                println!(
+                    "\nTo fix this test, sort the features inside the macro at {}:{}\n",
+                    location.file(),
+                    location.line()
+                );
+                let mut expected = vec![$(stringify!($element)),*];
+                expected[2..].sort();
+                snapbox::assert_eq(
+                    format!("{:#?}", expected),
+                    format!("{:#?}", vec![$(stringify!($element)),*])
+                );
+            }
+        }
     }
 }
 
@@ -696,7 +716,7 @@ unstable_cli_options!(
     print_im_a_teapot: bool = (HIDDEN),
 
     // All other unstable features.
-    // Please keep this list lexiographically ordered.
+    // Please keep this list lexicographically ordered.
     advanced_env: bool = (HIDDEN),
     avoid_dev_deps: bool = ("Avoid installing dev-dependencies if possible"),
     binary_dep_depinfo: bool = ("Track changes to dependency artifacts"),
@@ -704,34 +724,34 @@ unstable_cli_options!(
     #[serde(deserialize_with = "deserialize_build_std")]
     build_std: Option<Vec<String>>  = ("Enable Cargo to compile the standard library itself as part of a crate graph compilation"),
     build_std_features: Option<Vec<String>>  = ("Configure features enabled for the standard library itself when building the standard library"),
+    #[serde(deserialize_with = "deserialize_check_cfg")]
+    check_cfg: Option<(/*features:*/ bool, /*well_known_names:*/ bool, /*well_known_values:*/ bool, /*output:*/ bool)> = ("Specify scope of compile-time checking of `cfg` names/values"),
     codegen_backend: bool = ("Enable the `codegen-backend` option in profiles in .cargo/config.toml file"),
     config_include: bool = ("Enable the `include` key in config files"),
     credential_process: bool = ("Add a config setting to fetch registry authentication tokens by calling an external process"),
-    #[serde(deserialize_with = "deserialize_check_cfg")]
-    check_cfg: Option<(/*features:*/ bool, /*well_known_names:*/ bool, /*well_known_values:*/ bool, /*output:*/ bool)> = ("Specify scope of compile-time checking of `cfg` names/values"),
-    doctest_in_workspace: bool = ("Compile doctests with paths relative to the workspace root"),
+    direct_minimal_versions: bool = ("Resolve minimal dependency versions instead of maximum (direct dependencies only)"),
     doctest_xcompile: bool = ("Compile and run doctests for non-host target using runner config"),
     dual_proc_macros: bool = ("Build proc-macros for both the host and the target"),
     features: Option<Vec<String>>  = (HIDDEN),
     gitoxide: Option<GitoxideFeatures> = ("Use gitoxide for the given git interactions, or all of them if no argument is given"),
-    jobserver_per_rustc: bool = (HIDDEN),
+    host_config: bool = ("Enable the [host] section in the .cargo/config.toml file"),
+    lints: bool = ("Pass `[lints]` to the linting tools"),
     minimal_versions: bool = ("Resolve minimal dependency versions instead of maximum"),
-    direct_minimal_versions: bool = ("Resolve minimal dependency versions instead of maximum (direct dependencies only)"),
+    msrv_policy: bool = ("Enable rust-version aware policy within cargo"),
     mtime_on_use: bool = ("Configure Cargo to update the mtime of used files"),
+    next_lockfile_bump: bool = (HIDDEN),
     no_index_update: bool = ("Do not update the registry index even if the cache is outdated"),
     panic_abort_tests: bool = ("Enable support to run tests with -Cpanic=abort"),
     profile_rustflags: bool = ("Enable the `rustflags` option in profiles in .cargo/config.toml file"),
-    host_config: bool = ("Enable the [host] section in the .cargo/config.toml file"),
-    registry_auth: bool = ("Authentication for alternative registries, and generate registry authentication tokens using asymmetric cryptography"),
-    target_applies_to_host: bool = ("Enable the `target-applies-to-host` key in the .cargo/config.toml file"),
-    rustdoc_map: bool = ("Allow passing external documentation mappings to rustdoc"),
-    separate_nightlies: bool = (HIDDEN),
     publish_timeout: bool = ("Enable the `publish.timeout` key in .cargo/config.toml file"),
-    unstable_options: bool = ("Allow the usage of unstable options"),
-    skip_rustdoc_fingerprint: bool = (HIDDEN),
+    registry_auth: bool = ("Authentication for alternative registries, and generate registry authentication tokens using asymmetric cryptography"),
+    rustdoc_map: bool = ("Allow passing external documentation mappings to rustdoc"),
     rustdoc_scrape_examples: bool = ("Allows Rustdoc to scrape code examples from reverse-dependencies"),
-    msrv_policy: bool = ("Enable rust-version aware policy within cargo"),
-    lints: bool = ("Pass `[lints]` to the linting tools"),
+    script: bool = ("Enable support for single-file, `.rs` packages"),
+    separate_nightlies: bool = (HIDDEN),
+    skip_rustdoc_fingerprint: bool = (HIDDEN),
+    target_applies_to_host: bool = ("Enable the `target-applies-to-host` key in the .cargo/config.toml file"),
+    unstable_options: bool = ("Allow the usage of unstable options"),
 );
 
 const STABILIZED_COMPILE_PROGRESS: &str = "The progress bar is now always \
@@ -778,6 +798,9 @@ const STABILIZED_PATCH_IN_CONFIG: &str = "The patch-in-config feature is now alw
 const STABILIZED_NAMED_PROFILES: &str = "The named-profiles feature is now always enabled.\n\
     See https://doc.rust-lang.org/nightly/cargo/reference/profiles.html#custom-profiles \
     for more information";
+
+const STABILIZED_DOCTEST_IN_WORKSPACE: &str =
+    "The doctest-in-workspace feature is now always enabled.";
 
 const STABILIZED_FUTURE_INCOMPAT_REPORT: &str =
     "The future-incompat-report feature is now always enabled.";
@@ -1011,41 +1034,19 @@ impl CliUnstable {
         }
 
         match k {
-            "print-im-a-teapot" => self.print_im_a_teapot = parse_bool(k, v)?,
+            // Permanently unstable features
+            // Sorted alphabetically:
             "allow-features" => self.allow_features = Some(parse_features(v).into_iter().collect()),
-            "unstable-options" => self.unstable_options = parse_empty(k, v)?,
-            "no-index-update" => self.no_index_update = parse_empty(k, v)?,
-            "avoid-dev-deps" => self.avoid_dev_deps = parse_empty(k, v)?,
-            "minimal-versions" => self.minimal_versions = parse_empty(k, v)?,
-            "direct-minimal-versions" => self.direct_minimal_versions = parse_empty(k, v)?,
-            "advanced-env" => self.advanced_env = parse_empty(k, v)?,
-            "config-include" => self.config_include = parse_empty(k, v)?,
-            "check-cfg" => {
-                self.check_cfg = v.map_or(Ok(None), |v| parse_check_cfg(v.split(',')))?
-            }
-            "dual-proc-macros" => self.dual_proc_macros = parse_empty(k, v)?,
-            // can also be set in .cargo/config or with and ENV
-            "mtime-on-use" => self.mtime_on_use = parse_empty(k, v)?,
-            "named-profiles" => stabilized_warn(k, "1.57", STABILIZED_NAMED_PROFILES),
-            "binary-dep-depinfo" => self.binary_dep_depinfo = parse_empty(k, v)?,
-            "bindeps" => self.bindeps = parse_empty(k, v)?,
-            "build-std" => {
-                self.build_std = Some(crate::core::compiler::standard_lib::parse_unstable_flag(v))
-            }
-            "build-std-features" => self.build_std_features = Some(parse_features(v)),
-            "doctest-xcompile" => self.doctest_xcompile = parse_empty(k, v)?,
-            "doctest-in-workspace" => self.doctest_in_workspace = parse_empty(k, v)?,
-            "panic-abort-tests" => self.panic_abort_tests = parse_empty(k, v)?,
-            "jobserver-per-rustc" => self.jobserver_per_rustc = parse_empty(k, v)?,
-            "gitoxide" => {
-                self.gitoxide = v.map_or_else(
-                    || Ok(Some(GitoxideFeatures::all())),
-                    |v| parse_gitoxide(v.split(',')),
-                )?
-            }
-            "host-config" => self.host_config = parse_empty(k, v)?,
-            "target-applies-to-host" => self.target_applies_to_host = parse_empty(k, v)?,
-            "publish-timeout" => self.publish_timeout = parse_empty(k, v)?,
+            "print-im-a-teapot" => self.print_im_a_teapot = parse_bool(k, v)?,
+
+            // Stabilized features
+            // Sorted by version, then alphabetically:
+            "compile-progress" => stabilized_warn(k, "1.30", STABILIZED_COMPILE_PROGRESS),
+            "offline" => stabilized_err(k, "1.36", STABILIZED_OFFLINE)?,
+            "cache-messages" => stabilized_warn(k, "1.40", STABILIZED_CACHE_MESSAGES),
+            "install-upgrade" => stabilized_warn(k, "1.41", STABILIZED_INSTALL_UPGRADE),
+            "config-profile" => stabilized_warn(k, "1.43", STABILIZED_CONFIG_PROFILE),
+            "crate-versions" => stabilized_warn(k, "1.47", STABILIZED_CRATE_VERSIONS),
             "features" => {
                 // `-Z features` has been stabilized since 1.51,
                 // but `-Z features=compare` is still allowed for convenience
@@ -1067,35 +1068,66 @@ impl CliUnstable {
                 }
                 self.features = Some(feats);
             }
-            "separate-nightlies" => self.separate_nightlies = parse_empty(k, v)?,
-            "multitarget" => stabilized_warn(k, "1.64", STABILISED_MULTITARGET),
-            "rustdoc-map" => self.rustdoc_map = parse_empty(k, v)?,
-            "terminal-width" => stabilized_warn(k, "1.68", STABILIZED_TERMINAL_WIDTH),
-            "sparse-registry" => stabilized_warn(k, "1.68", STABILISED_SPARSE_REGISTRY),
-            "registry-auth" => self.registry_auth = parse_empty(k, v)?,
-            "namespaced-features" => stabilized_warn(k, "1.60", STABILISED_NAMESPACED_FEATURES),
-            "weak-dep-features" => stabilized_warn(k, "1.60", STABILIZED_WEAK_DEP_FEATURES),
-            "credential-process" => self.credential_process = parse_empty(k, v)?,
-            "rustdoc-scrape-examples" => self.rustdoc_scrape_examples = parse_empty(k, v)?,
-            "skip-rustdoc-fingerprint" => self.skip_rustdoc_fingerprint = parse_empty(k, v)?,
-            "compile-progress" => stabilized_warn(k, "1.30", STABILIZED_COMPILE_PROGRESS),
-            "offline" => stabilized_err(k, "1.36", STABILIZED_OFFLINE)?,
-            "cache-messages" => stabilized_warn(k, "1.40", STABILIZED_CACHE_MESSAGES),
-            "install-upgrade" => stabilized_warn(k, "1.41", STABILIZED_INSTALL_UPGRADE),
-            "config-profile" => stabilized_warn(k, "1.43", STABILIZED_CONFIG_PROFILE),
-            "crate-versions" => stabilized_warn(k, "1.47", STABILIZED_CRATE_VERSIONS),
             "package-features" => stabilized_warn(k, "1.51", STABILIZED_PACKAGE_FEATURES),
-            "extra-link-arg" => stabilized_warn(k, "1.56", STABILIZED_EXTRA_LINK_ARG),
             "configurable-env" => stabilized_warn(k, "1.56", STABILIZED_CONFIGURABLE_ENV),
+            "extra-link-arg" => stabilized_warn(k, "1.56", STABILIZED_EXTRA_LINK_ARG),
             "patch-in-config" => stabilized_warn(k, "1.56", STABILIZED_PATCH_IN_CONFIG),
+            "named-profiles" => stabilized_warn(k, "1.57", STABILIZED_NAMED_PROFILES),
             "future-incompat-report" => {
                 stabilized_warn(k, "1.59.0", STABILIZED_FUTURE_INCOMPAT_REPORT)
             }
+            "namespaced-features" => stabilized_warn(k, "1.60", STABILISED_NAMESPACED_FEATURES),
             "timings" => stabilized_warn(k, "1.60", STABILIZED_TIMINGS),
+            "weak-dep-features" => stabilized_warn(k, "1.60", STABILIZED_WEAK_DEP_FEATURES),
+            "multitarget" => stabilized_warn(k, "1.64", STABILISED_MULTITARGET),
+            "sparse-registry" => stabilized_warn(k, "1.68", STABILISED_SPARSE_REGISTRY),
+            "terminal-width" => stabilized_warn(k, "1.68", STABILIZED_TERMINAL_WIDTH),
+            "doctest-in-workspace" => stabilized_warn(k, "1.72", STABILIZED_DOCTEST_IN_WORKSPACE),
+
+            // Unstable features
+            // Sorted alphabetically:
+            "advanced-env" => self.advanced_env = parse_empty(k, v)?,
+            "avoid-dev-deps" => self.avoid_dev_deps = parse_empty(k, v)?,
+            "binary-dep-depinfo" => self.binary_dep_depinfo = parse_empty(k, v)?,
+            "bindeps" => self.bindeps = parse_empty(k, v)?,
+            "build-std" => {
+                self.build_std = Some(crate::core::compiler::standard_lib::parse_unstable_flag(v))
+            }
+            "build-std-features" => self.build_std_features = Some(parse_features(v)),
+            "check-cfg" => {
+                self.check_cfg = v.map_or(Ok(None), |v| parse_check_cfg(v.split(',')))?
+            }
             "codegen-backend" => self.codegen_backend = parse_empty(k, v)?,
-            "profile-rustflags" => self.profile_rustflags = parse_empty(k, v)?,
-            "msrv-policy" => self.msrv_policy = parse_empty(k, v)?,
+            "config-include" => self.config_include = parse_empty(k, v)?,
+            "credential-process" => self.credential_process = parse_empty(k, v)?,
+            "direct-minimal-versions" => self.direct_minimal_versions = parse_empty(k, v)?,
+            "doctest-xcompile" => self.doctest_xcompile = parse_empty(k, v)?,
+            "dual-proc-macros" => self.dual_proc_macros = parse_empty(k, v)?,
+            "gitoxide" => {
+                self.gitoxide = v.map_or_else(
+                    || Ok(Some(GitoxideFeatures::all())),
+                    |v| parse_gitoxide(v.split(',')),
+                )?
+            }
+            "host-config" => self.host_config = parse_empty(k, v)?,
             "lints" => self.lints = parse_empty(k, v)?,
+            "next-lockfile-bump" => self.next_lockfile_bump = parse_empty(k, v)?,
+            "minimal-versions" => self.minimal_versions = parse_empty(k, v)?,
+            "msrv-policy" => self.msrv_policy = parse_empty(k, v)?,
+            // can also be set in .cargo/config or with and ENV
+            "mtime-on-use" => self.mtime_on_use = parse_empty(k, v)?,
+            "no-index-update" => self.no_index_update = parse_empty(k, v)?,
+            "panic-abort-tests" => self.panic_abort_tests = parse_empty(k, v)?,
+            "profile-rustflags" => self.profile_rustflags = parse_empty(k, v)?,
+            "publish-timeout" => self.publish_timeout = parse_empty(k, v)?,
+            "registry-auth" => self.registry_auth = parse_empty(k, v)?,
+            "rustdoc-map" => self.rustdoc_map = parse_empty(k, v)?,
+            "rustdoc-scrape-examples" => self.rustdoc_scrape_examples = parse_empty(k, v)?,
+            "separate-nightlies" => self.separate_nightlies = parse_empty(k, v)?,
+            "skip-rustdoc-fingerprint" => self.skip_rustdoc_fingerprint = parse_empty(k, v)?,
+            "script" => self.script = parse_empty(k, v)?,
+            "target-applies-to-host" => self.target_applies_to_host = parse_empty(k, v)?,
+            "unstable-options" => self.unstable_options = parse_empty(k, v)?,
             _ => bail!("unknown `-Z` flag specified: {}", k),
         }
 

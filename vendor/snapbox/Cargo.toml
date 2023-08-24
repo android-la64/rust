@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64.0"
 name = "snapbox"
-version = "0.4.10"
+version = "0.4.11"
 include = [
     "build.rs",
     "src/**/*",
@@ -87,11 +87,11 @@ exactly = 1
 name = "snap-fixture"
 
 [dependencies.anstream]
-version = "0.2.1"
+version = "0.3.0"
 optional = true
 
 [dependencies.anstyle]
-version = "0.3.1"
+version = "1.0.0"
 
 [dependencies.backtrace]
 version = "0.3"
@@ -142,7 +142,7 @@ features = ["inline"]
 optional = true
 
 [dependencies.snapbox-macros]
-version = "0.3.3"
+version = "0.3.4"
 
 [dependencies.tempfile]
 version = "3.0"
@@ -183,7 +183,10 @@ harness = [
     "dep:libtest-mimic",
     "dep:ignore",
 ]
-json = ["structured-data"]
+json = [
+    "structured-data",
+    "dep:serde_json",
+]
 path = [
     "dep:tempfile",
     "dep:walkdir",

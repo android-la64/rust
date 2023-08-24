@@ -952,6 +952,10 @@ pub trait LintContext: Sized {
                     db.span_label(first_reexport_span, format!("the name `{}` in the {} namespace is first re-exported here", name, namespace));
                     db.span_label(duplicate_reexport_span, format!("but the name `{}` in the {} namespace is also re-exported here", name, namespace));
                 }
+                BuiltinLintDiagnostics::HiddenGlobReexports { name, namespace, glob_reexport_span, private_item_span } => {
+                    db.span_note(glob_reexport_span, format!("the name `{}` in the {} namespace is supposed to be publicly re-exported here", name, namespace));
+                    db.span_note(private_item_span, "but the private item here shadows it".to_owned());
+                }
             }
             // Rewrap `db`, and pass control to the user.
             decorate(db)
@@ -1341,7 +1345,7 @@ impl<'tcx> LateContext<'tcx> {
         tcx.associated_items(trait_id)
             .find_by_name_and_kind(tcx, Ident::from_str(name), ty::AssocKind::Type, trait_id)
             .and_then(|assoc| {
-                let proj = tcx.mk_projection(assoc.def_id, [self_ty]);
+                let proj = Ty::new_projection(tcx, assoc.def_id, [self_ty]);
                 tcx.try_normalize_erasing_regions(self.param_env, proj).ok()
             })
     }

@@ -42,9 +42,6 @@ macro_rules! bug {
 
 #[macro_use]
 mod quote;
-#[cfg(any(feature = "formatting", feature = "parsing"))]
-#[macro_use]
-mod shim;
 
 mod date;
 mod datetime;
@@ -231,36 +228,41 @@ pub fn serde_format_description(input: TokenStream) -> TokenStream {
         // We now have two options. The user can either provide a format description as a string or
         // they can provide a path to a format description. If the latter, all remaining tokens are
         // assumed to be part of the path.
-        let (format, raw_format_string) = match tokens.peek() {
+        let (format, format_description_display) = match tokens.peek() {
             // string literal
             Some(TokenTree::Literal(_)) => {
                 let (span, format_string) = helpers::get_string_literal(tokens)?;
                 let items = format_description::parse_with_version(version, &format_string, span)?;
                 let items: TokenStream =
                     items.into_iter().map(|item| quote! { #S(item), }).collect();
-                let items = quote! { &[#S(items)] };
+                let items = quote! {
+                    const ITEMS: &[::time::format_description::FormatItem<'_>] = &[#S(items)];
+                    ITEMS
+                };
 
-                (
-                    items,
-                    Some(String::from_utf8_lossy(&format_string).into_owned()),
-                )
+                (items, String::from_utf8_lossy(&format_string).into_owned())
             }
             // path
-            Some(_) => (
-                quote! {{
-                    // We can't just do `super::path` because the path could be an absolute path. In
-                    // that case, we'd be generating `super::::path`, which is invalid. Even if we
-                    // took that into account, it's not possible to know if it's an external crate,
-                    // which would just require emitting `path` directly. By taking this approach,
-                    // we can leave it to the compiler to do the actual resolution.
-                    mod __path_hack {
-                        pub(super) use super::super::*;
-                        pub(super) use #S(tokens.collect::<TokenStream>()) as FORMAT;
-                    }
-                    __path_hack::FORMAT
-                }},
-                None,
-            ),
+            Some(_) => {
+                let tokens = tokens.collect::<TokenStream>();
+                let tokens_string = tokens.to_string();
+                (
+                    quote! {{
+                        // We can't just do `super::path` because the path could be an absolute
+                        // path. In that case, we'd be generating `super::::path`, which is invalid.
+                        // Even if we took that into account, it's not possible to know if it's an
+                        // external crate, which would just require emitting `path` directly. By
+                        // taking this approach, we can leave it to the compiler to do the actual
+                        // resolution.
+                        mod __path_hack {
+                            pub(super) use super::super::*;
+                            pub(super) use #S(tokens) as FORMAT;
+                        }
+                        __path_hack::FORMAT
+                    }},
+                    tokens_string,
+                )
+            }
             None => return Err(Error::UnexpectedEndOfInput),
         };
 
@@ -268,7 +270,7 @@ pub fn serde_format_description(input: TokenStream) -> TokenStream {
             mod_name,
             formattable,
             format,
-            raw_format_string,
+            format_description_display,
         ))
     })()
     .unwrap_or_else(|err: Error| err.to_compile_error_standalone())

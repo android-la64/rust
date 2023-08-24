@@ -172,7 +172,7 @@ impl Qualif for NeedsNonConstDrop {
 
         if !matches!(
             impl_src,
-            ImplSource::ConstDestruct(_) | ImplSource::Param(_, ty::BoundConstness::ConstIfConst)
+            ImplSource::Builtin(_) | ImplSource::Param(_, ty::BoundConstness::ConstIfConst)
         ) {
             // If our const destruct candidate is not ConstDestruct or implied by the param env,
             // then it's bad
@@ -223,7 +223,7 @@ impl Qualif for CustomEq {
         def: AdtDef<'tcx>,
         substs: SubstsRef<'tcx>,
     ) -> bool {
-        let ty = cx.tcx.mk_adt(def, substs);
+        let ty = Ty::new_adt(cx.tcx, def, substs);
         !ty.is_structural_eq_shallow(cx.tcx)
     }
 }
@@ -344,15 +344,18 @@ where
     };
 
     // Check the qualifs of the value of `const` items.
-    // FIXME(valtrees): check whether const qualifs should behave the same
-    // way for type and mir constants.
     let uneval = match constant.literal {
         ConstantKind::Ty(ct)
-            if matches!(ct.kind(), ty::ConstKind::Param(_) | ty::ConstKind::Error(_)) =>
+            if matches!(
+                ct.kind(),
+                ty::ConstKind::Param(_) | ty::ConstKind::Error(_) | ty::ConstKind::Value(_)
+            ) =>
         {
             None
         }
-        ConstantKind::Ty(c) => bug!("expected ConstKind::Param here, found {:?}", c),
+        ConstantKind::Ty(c) => {
+            bug!("expected ConstKind::Param or ConstKind::Value here, found {:?}", c)
+        }
         ConstantKind::Unevaluated(uv, _) => Some(uv),
         ConstantKind::Val(..) => None,
     };

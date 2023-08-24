@@ -12,7 +12,7 @@
 //! This is the reference documentation for the proptest API.
 //!
 //! For documentation on how to get started with proptest and general usage
-//! advice, please refer to the [Proptest Book](https://altsysrq.github.io/proptest-book/intro.html).
+//! advice, please refer to the [Proptest Book](https://proptest-rs.github.io/proptest/intro.html).
 
 #![forbid(future_incompatible)]
 #![deny(missing_docs, bare_trait_objects)]
@@ -31,6 +31,7 @@
     all(feature = "alloc", not(feature = "std")),
     feature(core_intrinsics)
 )]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 // std_facade is used in a few macros, so it needs to be public.
 #[macro_use]
@@ -66,11 +67,6 @@ extern crate bit_set;
 #[macro_use]
 extern crate lazy_static;
 
-// Only required for the string module.
-#[cfg(feature = "std")]
-#[macro_use]
-extern crate quick_error;
-
 #[cfg(feature = "fork")]
 #[macro_use]
 extern crate rusty_fork;
@@ -97,6 +93,7 @@ pub mod option;
 pub mod result;
 pub mod sample;
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod string;
 
 pub mod prelude;

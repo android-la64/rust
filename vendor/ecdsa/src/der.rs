@@ -1,4 +1,7 @@
-//! Support for ECDSA signatures encoded as ASN.1 DER.
+//! Support for ASN.1 DER-encoded ECDSA signatures as specified in
+//! [RFC5912 Appendix A].
+//!
+//! [RFC5912 Appendix A]: https://www.rfc-editor.org/rfc/rfc5912#appendix-A
 
 use crate::{Error, Result};
 use core::{
@@ -16,6 +19,7 @@ use elliptic_curve::{
 use {
     alloc::{boxed::Box, vec::Vec},
     signature::SignatureEncoding,
+    spki::{der::asn1::BitString, SignatureBitStringEncoding},
 };
 
 #[cfg(feature = "serde")]
@@ -43,9 +47,16 @@ pub type MaxSize<C> = <<FieldBytesSize<C> as Add>::Output as Add<MaxOverhead>>::
 /// Byte array containing a serialized ASN.1 signature
 type SignatureBytes<C> = GenericArray<u8, MaxSize<C>>;
 
-/// ASN.1 DER-encoded signature.
+/// ASN.1 DER-encoded signature as specified in [RFC5912 Appendix A]:
 ///
-/// Generic over the scalar size of the elliptic curve.
+/// ```text
+/// ECDSA-Sig-Value ::= SEQUENCE {
+///   r  INTEGER,
+///   s  INTEGER
+/// }
+/// ```
+///
+/// [RFC5912 Appendix A]: https://www.rfc-editor.org/rfc/rfc5912#appendix-A
 pub struct Signature<C>
 where
     C: PrimeCurve,
@@ -296,6 +307,18 @@ where
 
     fn to_vec(&self) -> Vec<u8> {
         self.as_bytes().into()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<C> SignatureBitStringEncoding for Signature<C>
+where
+    C: PrimeCurve,
+    MaxSize<C>: ArrayLength<u8>,
+    <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
+{
+    fn to_bitstring(&self) -> der::Result<BitString> {
+        BitString::new(0, self.to_vec())
     }
 }
 

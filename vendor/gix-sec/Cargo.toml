@@ -13,10 +13,11 @@
 edition = "2021"
 rust-version = "1.64"
 name = "gix-sec"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
+    "LICENSE-*",
     "CHANGELOG.md",
 ]
 description = "A WIP crate of the gitoxide project providing a shared trust model"
@@ -63,7 +64,7 @@ serde = [
 version = "0.2.123"
 
 [target."cfg(windows)".dependencies.gix-path]
-version = "^0.8.0"
+version = "^0.8.1"
 
 [target."cfg(windows)".dependencies.windows]
 version = "0.48"

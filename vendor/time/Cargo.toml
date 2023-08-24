@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.63.0"
+rust-version = "1.65.0"
 name = "time"
-version = "0.3.20"
+version = "0.3.22"
 authors = [
     "Jacob Pratt <open-source@jhpratt.dev>",
     "Time contributors",
@@ -81,10 +81,10 @@ optional = true
 default-features = false
 
 [dependencies.time-core]
-version = "=0.1.0"
+version = "=0.1.1"
 
 [dependencies.time-macros]
-version = "=0.2.8"
+version = "=0.2.9"
 optional = true
 
 [dev-dependencies.quickcheck_macros]
@@ -106,7 +106,7 @@ version = "1.0.68"
 version = "1.0.126"
 
 [dev-dependencies.time-macros]
-version = "=0.2.8"
+version = "=0.2.9"
 
 [features]
 alloc = ["serde?/alloc"]

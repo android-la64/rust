@@ -1,7 +1,7 @@
 use std::sync::{self, MutexGuard, TryLockError};
 
 /// Adapter for `std::Mutex` that removes the poisoning aspects
-// from its api
+/// from its api.
 #[derive(Debug)]
 pub(crate) struct Mutex<T: ?Sized>(sync::Mutex<T>);
 
@@ -9,6 +9,12 @@ pub(crate) struct Mutex<T: ?Sized>(sync::Mutex<T>);
 impl<T> Mutex<T> {
     #[inline]
     pub(crate) fn new(t: T) -> Mutex<T> {
+        Mutex(sync::Mutex::new(t))
+    }
+
+    #[inline]
+    #[cfg(not(tokio_no_const_mutex_new))]
+    pub(crate) const fn const_new(t: T) -> Mutex<T> {
         Mutex(sync::Mutex::new(t))
     }
 

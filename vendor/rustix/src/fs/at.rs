@@ -1,9 +1,9 @@
 //! POSIX-style `*at` functions.
 //!
 //! The `dirfd` argument to these functions may be a file descriptor for a
-//! directory, or the special value returned by [`cwd`].
+//! directory, or the special value [`CWD`].
 //!
-//! [`cwd`]: crate::fs::cwd
+//! [`cwd`]: crate::fs::cwd::CWD
 
 use crate::fd::OwnedFd;
 use crate::ffi::{CStr, CString};
@@ -11,16 +11,16 @@ use crate::ffi::{CStr, CString};
 use crate::fs::CloneFlags;
 #[cfg(not(any(apple, target_os = "wasi")))]
 use crate::fs::FileType;
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(linux_kernel)]
 use crate::fs::RenameFlags;
 use crate::fs::{Access, AtFlags, Mode, OFlags, Stat, Timestamps};
-use crate::path::SMALL_PATH_BUFFER_SIZE;
 #[cfg(not(target_os = "wasi"))]
-use crate::process::{Gid, Uid};
+use crate::fs::{Gid, Uid};
+use crate::path::SMALL_PATH_BUFFER_SIZE;
+use crate::timespec::Nsecs;
 use crate::{backend, io, path};
 use alloc::vec::Vec;
 use backend::fd::{AsFd, BorrowedFd};
-use backend::time::types::Nsecs;
 
 pub use backend::fs::types::{Dev, RawMode};
 
@@ -49,7 +49,7 @@ pub const UTIME_OMIT: Nsecs = backend::c::UTIME_OMIT as Nsecs;
 ///  - [Linux]
 ///
 /// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/openat.html
-/// [Linux]: https://man7.org/linux/man-pages/man2/open.2.html
+/// [Linux]: https://man7.org/linux/man-pages/man2/openat.2.html
 #[inline]
 pub fn openat<P: path::Arg, Fd: AsFd>(
     dirfd: Fd,
@@ -64,7 +64,7 @@ pub fn openat<P: path::Arg, Fd: AsFd>(
 
 /// `readlinkat(fd, path)`—Reads the contents of a symlink.
 ///
-/// If `reuse` is non-empty, reuse its buffer to store the result if possible.
+/// If `reuse` already has available capacity, reuse it if possible.
 ///
 /// # References
 ///  - [POSIX]
@@ -81,24 +81,44 @@ pub fn readlinkat<P: path::Arg, Fd: AsFd, B: Into<Vec<u8>>>(
     path.into_with_c_str(|path| _readlinkat(dirfd.as_fd(), path, reuse.into()))
 }
 
+#[allow(unsafe_code)]
 fn _readlinkat(dirfd: BorrowedFd<'_>, path: &CStr, mut buffer: Vec<u8>) -> io::Result<CString> {
-    // This code would benefit from having a better way to read into
-    // uninitialized memory, but that requires `unsafe`.
     buffer.clear();
     buffer.reserve(SMALL_PATH_BUFFER_SIZE);
-    buffer.resize(buffer.capacity(), 0_u8);
 
     loop {
-        let nread = backend::fs::syscalls::readlinkat(dirfd.as_fd(), path, &mut buffer)?;
+        let nread =
+            backend::fs::syscalls::readlinkat(dirfd.as_fd(), path, buffer.spare_capacity_mut())?;
 
-        let nread = nread as usize;
-        assert!(nread <= buffer.len());
-        if nread < buffer.len() {
-            buffer.resize(nread, 0_u8);
-            return Ok(CString::new(buffer).unwrap());
+        debug_assert!(nread <= buffer.capacity());
+        if nread < buffer.capacity() {
+            // SAFETY from the man page:
+            // "On success, these calls return the number of bytes placed in buf."
+            unsafe {
+                buffer.set_len(nread);
+            }
+
+            // SAFETY:
+            // - "readlink places the contents of the symbolic link pathname in the buffer
+            //   buf"
+            // - [POSIX definition 3.271: Pathname]: "A string that is used to identify a
+            //   file."
+            // - [POSIX definition 3.375: String]: "A contiguous sequence of bytes
+            //   terminated by and including the first null byte."
+            // - "readlink does not append a terminating null byte to buf."
+            //
+            // Thus, there will be no NUL bytes in the string.
+            //
+            // [POSIX definition 3.271: Pathname]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_271
+            // [POSIX definition 3.375: String]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_375
+            unsafe {
+                return Ok(CString::from_vec_unchecked(buffer));
+            }
         }
-        buffer.reserve(1); // use `Vec` reallocation strategy to grow capacity exponentially
-        buffer.resize(buffer.capacity(), 0_u8);
+
+        buffer.reserve(buffer.capacity() + 1); // use `Vec` reallocation
+                                               // strategy to grow capacity
+                                               // exponentially
     }
 }
 
@@ -197,7 +217,7 @@ pub fn renameat<P: path::Arg, Q: path::Arg, PFd: AsFd, QFd: AsFd>(
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/renameat2.2.html
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(linux_kernel)]
 #[inline]
 #[doc(alias = "renameat2")]
 pub fn renameat_with<P: path::Arg, Q: path::Arg, PFd: AsFd, QFd: AsFd>(
@@ -263,6 +283,13 @@ pub fn statat<P: path::Arg, Fd: AsFd>(dirfd: Fd, path: P, flags: AtFlags) -> io:
 /// `faccessat(dirfd, path, access, flags)`—Tests permissions for a file or
 /// directory.
 ///
+/// On Linux before 5.8, this function uses the `faccessat` system call which
+/// doesn't support any flags. This function emulates support for the
+/// [`AtFlags::EACCESS`] flag by checking whether the uid and gid of the
+/// process match the effective uid and gid, in which case the `EACCESS` flag
+/// can be ignored. In Linux 5.8 and beyond `faccessat2` is used, which
+/// supports flags.
+///
 /// # References
 ///  - [POSIX]
 ///  - [Linux]
@@ -298,23 +325,6 @@ pub fn utimensat<P: path::Arg, Fd: AsFd>(
     path.into_with_c_str(|path| backend::fs::syscalls::utimensat(dirfd.as_fd(), path, times, flags))
 }
 
-/// `fchmodat(dirfd, path, mode, 0)`—Sets file or directory permissions.
-///
-/// See `fchmodat_with` for a version that does take flags.
-///
-/// # References
-///  - [POSIX]
-///  - [Linux]
-///
-/// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fchmodat.html
-/// [Linux]: https://man7.org/linux/man-pages/man2/fchmodat.2.html
-#[cfg(not(target_os = "wasi"))]
-#[inline]
-#[doc(alias = "fchmodat")]
-pub fn chmodat<P: path::Arg, Fd: AsFd>(dirfd: Fd, path: P, mode: Mode) -> io::Result<()> {
-    chmodat_with(dirfd, path, mode, AtFlags::empty())
-}
-
 /// `fchmodat(dirfd, path, mode, flags)`—Sets file or directory permissions.
 ///
 /// Platform support for flags varies widely, for example on Linux
@@ -329,8 +339,8 @@ pub fn chmodat<P: path::Arg, Fd: AsFd>(dirfd: Fd, path: P, mode: Mode) -> io::Re
 /// [Linux]: https://man7.org/linux/man-pages/man2/fchmodat.2.html
 #[cfg(not(target_os = "wasi"))]
 #[inline]
-#[doc(alias = "fchmodat_with")]
-pub fn chmodat_with<P: path::Arg, Fd: AsFd>(
+#[doc(alias = "fchmodat")]
+pub fn chmodat<P: path::Arg, Fd: AsFd>(
     dirfd: Fd,
     path: P,
     mode: Mode,

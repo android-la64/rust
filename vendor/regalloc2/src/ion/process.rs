@@ -22,12 +22,11 @@ use crate::{
         CodeRange, BUNDLE_MAX_NORMAL_SPILL_WEIGHT, MAX_SPLITS_PER_SPILLSET,
         MINIMAL_BUNDLE_SPILL_WEIGHT, MINIMAL_FIXED_BUNDLE_SPILL_WEIGHT,
     },
-    Allocation, Function, Inst, InstPosition, OperandConstraint, OperandKind, PReg, ProgPoint,
-    RegAllocError,
+    Allocation, Function, FxHashSet, Inst, InstPosition, OperandConstraint, OperandKind, PReg,
+    ProgPoint, RegAllocError,
 };
-use fxhash::FxHashSet;
+use core::fmt::Debug;
 use smallvec::{smallvec, SmallVec};
-use std::fmt::Debug;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AllocRegResult {
@@ -159,7 +158,7 @@ impl<'a, F: Function> Env<'a, F> {
                     trace!("   -> conflict bundle {:?}", conflict_bundle);
                     if self.conflict_set.insert(conflict_bundle) {
                         conflicts.push(conflict_bundle);
-                        max_conflict_weight = std::cmp::max(
+                        max_conflict_weight = core::cmp::max(
                             max_conflict_weight,
                             self.bundles[conflict_bundle.index()].cached_spill_weight(),
                         );
@@ -172,7 +171,7 @@ impl<'a, F: Function> Env<'a, F> {
                     }
 
                     if first_conflict.is_none() {
-                        first_conflict = Some(ProgPoint::from_index(std::cmp::max(
+                        first_conflict = Some(ProgPoint::from_index(core::cmp::max(
                             preg_key.from,
                             key.from,
                         )));
@@ -334,7 +333,7 @@ impl<'a, F: Function> Env<'a, F> {
                     self.bundles[bundle.index()].prio,
                     final_weight
                 );
-                std::cmp::min(BUNDLE_MAX_NORMAL_SPILL_WEIGHT, final_weight)
+                core::cmp::min(BUNDLE_MAX_NORMAL_SPILL_WEIGHT, final_weight)
             } else {
                 0
             }
@@ -796,9 +795,7 @@ impl<'a, F: Function> Env<'a, F> {
         let mut last_inst: Option<Inst> = None;
         let mut last_vreg: Option<VRegIndex> = None;
 
-        for entry_idx in 0..self.bundles[bundle.index()].ranges.len() {
-            // Iterate manually; don't borrow `self`.
-            let entry = self.bundles[bundle.index()].ranges[entry_idx];
+        for entry in core::mem::take(&mut self.bundles[bundle.index()].ranges) {
             let lr_from = entry.range.from;
             let lr_to = entry.range.to;
 
@@ -808,8 +805,7 @@ impl<'a, F: Function> Env<'a, F> {
             trace!(" -> removing old LR {:?} for vreg {:?}", entry.index, vreg);
 
             let mut last_live_pos = entry.range.from;
-            for use_idx in 0..self.ranges[entry.index.index()].uses.len() {
-                let u = self.ranges[entry.index.index()].uses[use_idx];
+            for u in core::mem::take(&mut self.ranges[entry.index.index()].uses) {
                 trace!("   -> use {:?} (last_live_pos {:?})", u, last_live_pos);
 
                 // If we just created a LR for this inst at the last
@@ -824,7 +820,7 @@ impl<'a, F: Function> Env<'a, F> {
                 // (up to the Before of the next inst), *unless*
                 // the original LR was only over the Before (up to
                 // the After) of this inst.
-                let to = std::cmp::min(ProgPoint::before(u.pos.inst().next()), lr_to);
+                let to = core::cmp::min(ProgPoint::before(u.pos.inst().next()), lr_to);
 
                 // If the last bundle was at the same inst, add a new
                 // LR to the same bundle; otherwise, create a LR and a
@@ -863,7 +859,7 @@ impl<'a, F: Function> Env<'a, F> {
 
                 // Otherwise, create a new LR.
                 let pos = ProgPoint::before(u.pos.inst());
-                let pos = std::cmp::max(lr_from, pos);
+                let pos = core::cmp::max(lr_from, pos);
                 let cr = CodeRange { from: pos, to };
                 let lr = self.create_liverange(cr);
                 new_lrs.push((vreg, lr));
@@ -931,9 +927,6 @@ impl<'a, F: Function> Env<'a, F> {
                 last_vreg = Some(vreg);
             }
 
-            // Clear the use-list from the original LR.
-            self.ranges[entry.index.index()].uses = Default::default();
-
             // If there is space from the last use to the end of the
             // LR, put that in the spill bundle too.
             if entry.range.to > last_live_pos {
@@ -958,10 +951,6 @@ impl<'a, F: Function> Env<'a, F> {
                 );
             }
         }
-
-        // Clear the LR list in the original bundle.
-        self.bundles[bundle.index()].ranges.clear();
-        self.bundles[bundle.index()].ranges.shrink_to_fit();
 
         // Remove all of the removed LRs from respective vregs' lists.
         for vreg in removed_lrs_vregs {
@@ -1036,7 +1025,7 @@ impl<'a, F: Function> Env<'a, F> {
                     self.get_or_create_spill_bundle(bundle, /* create_if_absent = */ false)
                 {
                     let mut list =
-                        std::mem::replace(&mut self.bundles[bundle.index()].ranges, smallvec![]);
+                        core::mem::replace(&mut self.bundles[bundle.index()].ranges, smallvec![]);
                     for entry in &list {
                         self.ranges[entry.index.index()].bundle = spill;
                     }
@@ -1107,7 +1096,7 @@ impl<'a, F: Function> Env<'a, F> {
                     lowest_cost_evict_conflict_cost,
                     lowest_cost_split_conflict_cost,
                 ) {
-                    (Some(a), Some(b)) => Some(std::cmp::max(a, b)),
+                    (Some(a), Some(b)) => Some(core::cmp::max(a, b)),
                     _ => None,
                 };
                 match self.try_to_allocate_bundle_to_reg(bundle, preg_idx, scan_limit_cost) {
@@ -1291,7 +1280,7 @@ impl<'a, F: Function> Env<'a, F> {
                 );
                 let bundle_start = self.bundles[bundle.index()].ranges[0].range.from;
                 let mut split_at_point =
-                    std::cmp::max(lowest_cost_split_conflict_point, bundle_start);
+                    core::cmp::max(lowest_cost_split_conflict_point, bundle_start);
                 let requeue_with_reg = lowest_cost_split_conflict_reg;
 
                 // Adjust `split_at_point` if it is within a deeper loop

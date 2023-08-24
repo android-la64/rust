@@ -6,9 +6,9 @@ use core_foundation::data::CFData;
 use core_foundation::dictionary::CFMutableDictionary;
 use core_foundation::string::CFString;
 use core_foundation_sys::base::kCFAllocatorDefault;
-use security_framework_sys::base::{errSecParam, SecCertificateRef};
 #[cfg(target_os = "ios")]
-use security_framework_sys::base::{errSecSuccess, errSecNotTrusted};
+use security_framework_sys::base::{errSecNotTrusted, errSecSuccess};
+use security_framework_sys::base::{errSecParam, SecCertificateRef};
 use security_framework_sys::certificate::*;
 use security_framework_sys::keychain_item::SecItemDelete;
 use std::fmt;
@@ -26,7 +26,7 @@ use core_foundation::error::{CFError, CFErrorRef};
 use core_foundation::number::CFNumber;
 #[cfg(feature = "serial-number-bigint")]
 use num_bigint::BigUint;
-use security_framework_sys::item::*;
+use security_framework_sys::item::kSecValueRef;
 #[cfg(any(feature = "OSX_10_12", target_os = "ios"))]
 use std::ops::Deref;
 
@@ -149,6 +149,9 @@ impl SecCertificate {
     #[cfg(any(feature = "OSX_10_12", target_os = "ios"))]
     #[must_use]
     fn pk_to_der(&self, public_key: key::SecKey) -> Option<Vec<u8>> {
+        use security_framework_sys::item::kSecAttrKeyType;
+        use security_framework_sys::item::kSecAttrKeySizeInBits;
+
         let public_key_attributes = public_key.attributes();
         let public_key_type = public_key_attributes
             .find(unsafe { kSecAttrKeyType }.cast::<std::os::raw::c_void>())?;
@@ -187,7 +190,7 @@ impl SecCertificate {
         trust.copy_public_key()
     }
 
-    /// Translates to SecItemDelete, passing in the SecCertificateRef
+    /// Translates to `SecItemDelete`, passing in the `SecCertificateRef`
     pub fn delete(&self) -> Result<(), Error> {
         let query = CFMutableDictionary::from_CFType_pairs(&[(
             unsafe { kSecValueRef }.to_void(),
@@ -200,6 +203,9 @@ impl SecCertificate {
 
 #[cfg(any(feature = "OSX_10_12", target_os = "ios"))]
 fn get_asn1_header_bytes(pkt: CFString, ksz: u32) -> Option<&'static [u8]> {
+    use security_framework_sys::item::kSecAttrKeyTypeRSA;
+    use security_framework_sys::item::kSecAttrKeyTypeECSECPrimeRandom;
+
     if pkt == unsafe { CFString::wrap_under_get_rule(kSecAttrKeyTypeRSA) } && ksz == 2048 {
         return Some(&RSA_2048_ASN1_HEADER);
     }

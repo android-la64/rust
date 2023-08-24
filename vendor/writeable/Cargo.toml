@@ -10,9 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "writeable"
-version = "0.5.1"
+version = "0.5.2"
 authors = ["The ICU4X Project Developers"]
 include = [
     "src/**/*",
@@ -27,7 +27,6 @@ description = "A more efficient alternative to fmt::Display"
 readme = "README.md"
 license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
-resolver = "2"
 
 [package.metadata.workspaces]
 independent = true
@@ -47,7 +46,7 @@ name = "writeable"
 harness = false
 
 [dev-dependencies.criterion]
-version = "0.3"
+version = "0.4"
 
 [dev-dependencies.rand]
 version = "0.8"

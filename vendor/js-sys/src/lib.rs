@@ -610,6 +610,64 @@ extern "C" {
     pub fn unshift(this: &Array, value: &JsValue) -> u32;
 }
 
+/// Iterator returned by `Array::into_iter`
+#[derive(Debug, Clone)]
+pub struct ArrayIntoIter {
+    range: std::ops::Range<u32>,
+    array: Array,
+}
+
+impl std::iter::Iterator for ArrayIntoIter {
+    type Item = JsValue;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let index = self.range.next()?;
+        Some(self.array.get(index))
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
+
+    #[inline]
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.range.count()
+    }
+
+    #[inline]
+    fn last(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+    {
+        let Self { range, array } = self;
+        range.last().map(|index| array.get(index))
+    }
+
+    #[inline]
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.range.nth(n).map(|index| self.array.get(index))
+    }
+}
+
+impl std::iter::DoubleEndedIterator for ArrayIntoIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let index = self.range.next_back()?;
+        Some(self.array.get(index))
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.range.nth_back(n).map(|index| self.array.get(index))
+    }
+}
+
+impl std::iter::FusedIterator for ArrayIntoIter {}
+
+impl std::iter::ExactSizeIterator for ArrayIntoIter {}
+
 /// Iterator returned by `Array::iter`
 #[derive(Debug, Clone)]
 pub struct ArrayIter<'a> {
@@ -629,12 +687,38 @@ impl<'a> std::iter::Iterator for ArrayIter<'a> {
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.range.size_hint()
     }
+
+    #[inline]
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.range.count()
+    }
+
+    #[inline]
+    fn last(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+    {
+        let Self { range, array } = self;
+        range.last().map(|index| array.get(index))
+    }
+
+    #[inline]
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.range.nth(n).map(|index| self.array.get(index))
+    }
 }
 
 impl<'a> std::iter::DoubleEndedIterator for ArrayIter<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let index = self.range.next_back()?;
         Some(self.array.get(index))
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.range.nth_back(n).map(|index| self.array.get(index))
     }
 }
 
@@ -662,6 +746,18 @@ impl Array {
         }
 
         output
+    }
+}
+
+impl std::iter::IntoIterator for Array {
+    type Item = JsValue;
+    type IntoIter = ArrayIntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ArrayIntoIter {
+            range: 0..self.length(),
+            array: self,
+        }
     }
 }
 
@@ -1022,7 +1118,7 @@ pub mod Atomics {
         #[wasm_bindgen(js_namespace = Atomics, catch, js_name = store)]
         pub fn store_bigint(typed_array: &JsValue, index: u32, value: i64) -> Result<i64, JsValue>;
 
-        /// The static `Atomics.sub()` method substracts a given value at a
+        /// The static `Atomics.sub()` method subtracts a given value at a
         /// given position in the array and returns the old value at that position.
         /// This atomic operation guarantees that no other write happens
         /// until the modified value is written back.
@@ -1033,7 +1129,7 @@ pub mod Atomics {
         #[wasm_bindgen(js_namespace = Atomics, catch)]
         pub fn sub(typed_array: &JsValue, index: u32, value: i32) -> Result<i32, JsValue>;
 
-        /// The static `Atomics.sub()` method substracts a given value at a
+        /// The static `Atomics.sub()` method subtracts a given value at a
         /// given position in the array and returns the old value at that position.
         /// This atomic operation guarantees that no other write happens
         /// until the modified value is written back.
@@ -4425,7 +4521,7 @@ pub mod WebAssembly {
         #[wasm_bindgen(method, getter, js_namespace = WebAssembly)]
         pub fn buffer(this: &Memory) -> JsValue;
 
-        /// The `grow()` protoype method of the `Memory` object increases the
+        /// The `grow()` prototype method of the `Memory` object increases the
         /// size of the memory instance by a specified number of WebAssembly
         /// pages.
         ///
@@ -5053,9 +5149,9 @@ impl JsString {
     ///
     /// This method will call `char_code_at` for each code in this JS string,
     /// returning an iterator of the codes in sequence.
-    pub fn iter<'a>(
-        &'a self,
-    ) -> impl ExactSizeIterator<Item = u16> + DoubleEndedIterator<Item = u16> + 'a {
+    pub fn iter(
+        &self,
+    ) -> impl ExactSizeIterator<Item = u16> + DoubleEndedIterator<Item = u16> + '_ {
         (0..self.length()).map(move |i| self.char_code_at(i) as u16)
     }
 
@@ -5091,6 +5187,7 @@ impl JsString {
 }
 
 impl PartialEq<str> for JsString {
+    #[allow(clippy::cmp_owned)] // prevent infinite recursion
     fn eq(&self, other: &str) -> bool {
         String::from(self) == other
     }
@@ -5964,7 +6061,7 @@ macro_rules! arrays {
             /// the returned value here to be invalidated. Use with caution!
             ///
             /// Additionally the returned object can be safely mutated,
-            /// the changes are guranteed to be reflected in the input array.
+            /// the changes are guaranteed to be reflected in the input array.
             pub unsafe fn view_mut_raw(ptr: *mut $ty, length: usize) -> $name {
                 let buf = wasm_bindgen::memory();
                 let mem = buf.unchecked_ref::<WebAssembly::Memory>();

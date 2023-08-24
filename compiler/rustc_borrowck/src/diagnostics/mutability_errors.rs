@@ -123,13 +123,7 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
                     item_msg = access_place_desc;
                     debug_assert!(self.body.local_decls[ty::CAPTURE_STRUCT_LOCAL].ty.is_ref());
                     debug_assert!(is_closure_or_generator(
-                        Place::ty_from(
-                            the_place_err.local,
-                            the_place_err.projection,
-                            self.body,
-                            self.infcx.tcx
-                        )
-                        .ty
+                        the_place_err.ty(self.body, self.infcx.tcx).ty
                     ));
 
                     reason = if self.is_upvar_field_projection(access_place.as_ref()).is_some() {
@@ -234,7 +228,7 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
                     borrow_spans.var_subdiag(
                     None,
                     &mut err,
-                    Some(mir::BorrowKind::Mut { allow_two_phase_borrow: false }),
+                    Some(mir::BorrowKind::Mut { kind: mir::MutBorrowKind::Default }),
                     |_kind, var_span| {
                         let place = self.describe_any_place(access_place.as_ref());
                         crate::session_diagnostics::CaptureVarCause::MutableBorrowUsePlaceClosure {
@@ -300,7 +294,7 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
                             _,
                             mir::Rvalue::Ref(
                                 _,
-                                mir::BorrowKind::Mut { allow_two_phase_borrow: false },
+                                mir::BorrowKind::Mut { kind: mir::MutBorrowKind::Default },
                                 _,
                             ),
                         )),
@@ -416,12 +410,28 @@ impl<'a, 'tcx> MirBorrowckCtxt<'a, 'tcx> {
                         _,
                     ) = pat.kind
                 {
-                    err.span_suggestion(
-                        upvar_ident.span,
-                        "consider changing this to be mutable",
-                        format!("mut {}", upvar_ident.name),
-                        Applicability::MachineApplicable,
-                    );
+                    if upvar_ident.name == kw::SelfLower {
+                        for (_, node) in self.infcx.tcx.hir().parent_iter(upvar_hir_id) {
+                            if let Some(fn_decl) = node.fn_decl() {
+                                if !matches!(fn_decl.implicit_self, hir::ImplicitSelfKind::ImmRef | hir::ImplicitSelfKind::MutRef) {
+                                    err.span_suggestion(
+                                        upvar_ident.span,
+                                        "consider changing this to be mutable",
+                                        format!("mut {}", upvar_ident.name),
+                                        Applicability::MachineApplicable,
+                                    );
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        err.span_suggestion(
+                            upvar_ident.span,
+                            "consider changing this to be mutable",
+                            format!("mut {}", upvar_ident.name),
+                            Applicability::MachineApplicable,
+                        );
+                    }
                 }
 
                 let tcx = self.infcx.tcx;

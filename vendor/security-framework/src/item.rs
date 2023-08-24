@@ -11,7 +11,7 @@ use core_foundation::string::CFString;
 use core_foundation_sys::base::{CFCopyDescription, CFGetTypeID, CFRelease, CFTypeRef};
 use core_foundation_sys::string::CFStringRef;
 use security_framework_sys::item::*;
-use security_framework_sys::keychain_item::{SecItemCopyMatching, SecItemAdd};
+use security_framework_sys::keychain_item::{SecItemAdd, SecItemCopyMatching};
 use std::collections::HashMap;
 use std::fmt;
 use std::ptr;
@@ -31,31 +31,36 @@ pub struct ItemClass(CFStringRef);
 impl ItemClass {
     /// Look for `SecKeychainItem`s corresponding to generic passwords.
     #[inline(always)]
-    #[must_use] pub fn generic_password() -> Self {
+    #[must_use]
+    pub fn generic_password() -> Self {
         unsafe { Self(kSecClassGenericPassword) }
     }
 
     /// Look for `SecKeychainItem`s corresponding to internet passwords.
     #[inline(always)]
-    #[must_use] pub fn internet_password() -> Self {
+    #[must_use]
+    pub fn internet_password() -> Self {
         unsafe { Self(kSecClassInternetPassword) }
     }
 
     /// Look for `SecCertificate`s.
     #[inline(always)]
-    #[must_use] pub fn certificate() -> Self {
+    #[must_use]
+    pub fn certificate() -> Self {
         unsafe { Self(kSecClassCertificate) }
     }
 
     /// Look for `SecKey`s.
     #[inline(always)]
-    #[must_use] pub fn key() -> Self {
+    #[must_use]
+    pub fn key() -> Self {
         unsafe { Self(kSecClassKey) }
     }
 
     /// Look for `SecIdentity`s.
     #[inline(always)]
-    #[must_use] pub fn identity() -> Self {
+    #[must_use]
+    pub fn identity() -> Self {
         unsafe { Self(kSecClassIdentity) }
     }
 
@@ -70,25 +75,25 @@ impl ItemClass {
 pub struct KeyClass(CFStringRef);
 
 impl KeyClass {
-    /// kSecAttrKeyClassPublic
+    /// `kSecAttrKeyClassPublic`
     #[inline(always)]
-    pub fn public() -> Self {
+    #[must_use] pub fn public() -> Self {
         unsafe { Self(kSecAttrKeyClassPublic) }
     }
-    /// kSecAttrKeyClassPrivate
+    /// `kSecAttrKeyClassPrivate`
     #[inline(always)]
-    pub fn private() -> Self {
+    #[must_use] pub fn private() -> Self {
         unsafe { Self(kSecAttrKeyClassPrivate) }
     }
-    /// kSecAttrKeyClassSymmetric
+    /// `kSecAttrKeyClassSymmetric`
     #[inline(always)]
-    pub fn symmetric() -> Self {
+    #[must_use] pub fn symmetric() -> Self {
         unsafe { Self(kSecAttrKeyClassSymmetric) }
     }
 
     #[inline]
     fn to_value(self) -> CFType {
-        unsafe { CFType::wrap_under_get_rule(self.0 as *const _) }
+        unsafe { CFType::wrap_under_get_rule(self.0.cast()) }
     }
 }
 
@@ -106,8 +111,8 @@ impl Limit {
     #[inline]
     fn to_value(self) -> CFType {
         match self {
-            Self::All => unsafe { CFString::wrap_under_get_rule(kSecMatchLimitAll).as_CFType() },
-            Self::Max(l) => CFNumber::from(l).as_CFType(),
+            Self::All => unsafe { CFString::wrap_under_get_rule(kSecMatchLimitAll).into_CFType() },
+            Self::Max(l) => CFNumber::from(l).into_CFType(),
         }
     }
 }
@@ -133,6 +138,8 @@ pub struct ItemSearchOptions {
     load_data: bool,
     limit: Option<Limit>,
     label: Option<CFString>,
+    service: Option<CFString>,
+    account: Option<CFString>,
     access_group: Option<CFString>,
     pub_key_hash: Option<CFData>,
     app_label: Option<CFData>,
@@ -150,7 +157,8 @@ impl crate::ItemSearchOptionsInternals for ItemSearchOptions {
 impl ItemSearchOptions {
     /// Creates a new builder with default options.
     #[inline(always)]
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self::default()
     }
 
@@ -210,6 +218,20 @@ impl ItemSearchOptions {
         self
     }
 
+    /// Search for an item with the given service.
+    #[inline(always)]
+    pub fn service(&mut self, service: &str) -> &mut Self {
+        self.service = Some(CFString::new(service));
+        self
+    }
+
+    /// Search for an item with the given account.
+    #[inline(always)]
+    pub fn account(&mut self, account: &str) -> &mut Self {
+        self.account = Some(CFString::new(account));
+        self
+    }
+
     /// Sets `kSecAttrAccessGroup` to `kSecAttrAccessGroupToken`
     #[inline(always)]
     pub fn access_group_token(&mut self) -> &mut Self {
@@ -218,9 +240,9 @@ impl ItemSearchOptions {
     }
 
     /// Search for a certificate with the given public key hash.
-    /// 
-    /// This is only compatible with [ItemClass::certificate], to search for 
-    /// a key by public key hash use [ItemSearchOptions::application_label]
+    ///
+    /// This is only compatible with [`ItemClass::certificate`], to search for
+    /// a key by public key hash use [`ItemSearchOptions::application_label`]
     /// instead.
     #[inline(always)]
     pub fn pub_key_hash(&mut self, pub_key_hash: &[u8]) -> &mut Self {
@@ -229,9 +251,9 @@ impl ItemSearchOptions {
     }
 
     /// Search for a key with the given public key hash.
-    /// 
-    /// This is only compatible with [ItemClass::key], to search for a 
-    /// certificate by the public key hash use [ItemSearchOptions::pub_key_hash] 
+    ///
+    /// This is only compatible with [`ItemClass::key`], to search for a
+    /// certificate by the public key hash use [`ItemSearchOptions::pub_key_hash`]
     /// instead.
     #[inline(always)]
     pub fn application_label(&mut self, app_label: &[u8]) -> &mut Self {
@@ -262,21 +284,21 @@ impl ItemSearchOptions {
             if self.load_refs {
                 params.push((
                     CFString::wrap_under_get_rule(kSecReturnRef),
-                    CFBoolean::true_value().as_CFType(),
+                    CFBoolean::true_value().into_CFType(),
                 ));
             }
 
             if self.load_attributes {
                 params.push((
                     CFString::wrap_under_get_rule(kSecReturnAttributes),
-                    CFBoolean::true_value().as_CFType(),
+                    CFBoolean::true_value().into_CFType(),
                 ));
             }
 
             if self.load_data {
                 params.push((
                     CFString::wrap_under_get_rule(kSecReturnData),
-                    CFBoolean::true_value().as_CFType(),
+                    CFBoolean::true_value().into_CFType(),
                 ));
             }
 
@@ -291,6 +313,20 @@ impl ItemSearchOptions {
                 params.push((
                     CFString::wrap_under_get_rule(kSecAttrLabel),
                     label.as_CFType(),
+                ));
+            }
+
+            if let Some(ref service) = self.service {
+                params.push((
+                    CFString::wrap_under_get_rule(kSecAttrService),
+                    service.as_CFType(),
+                ));
+            }
+
+            if let Some(ref account) = self.account {
+                params.push((
+                    CFString::wrap_under_get_rule(kSecAttrAccount),
+                    account.as_CFType(),
                 ));
             }
 
@@ -444,7 +480,8 @@ impl SearchResult {
     /// `HashMap<String, String>`. This transformation isn't
     /// comprehensive, it only supports `CFString`, `CFDate`, and `CFData`
     /// value types.
-    #[must_use] pub fn simplify_dict(&self) -> Option<HashMap<String, String>> {
+    #[must_use]
+    pub fn simplify_dict(&self) -> Option<HashMap<String, String>> {
         match *self {
             Self::Dict(ref d) => unsafe {
                 let mut retmap = HashMap::new();
@@ -480,7 +517,7 @@ impl SearchResult {
 /// wrapper).
 ///
 /// When finished populating options, call `to_dictionary()` and pass the
-/// resulting CFDictionary to `add_item`.
+/// resulting `CFDictionary` to `add_item`.
 pub struct ItemAddOptions {
     /// The value (by ref or data) of the item to add, required.
     pub value: ItemAddValue,
@@ -492,10 +529,10 @@ pub struct ItemAddOptions {
 
 impl ItemAddOptions {
     /// Specifies the item to add.
-    pub fn new(value: ItemAddValue) -> Self {
+    #[must_use] pub fn new(value: ItemAddValue) -> Self {
         Self{ value, label: None, location: None }
     }
-    /// Specifies the kSecAttrLabel attribute.
+    /// Specifies the `kSecAttrLabel` attribute.
     pub fn set_label(&mut self, label: impl Into<String>) -> &mut Self {
         self.label = Some(label.into());
         self
@@ -505,7 +542,7 @@ impl ItemAddOptions {
         self.location = Some(location);
         self
     }
-    /// Populates a CFDictionary to be passed to
+    /// Populates a `CFDictionary` to be passed to
     pub fn to_dictionary(&self) -> CFDictionary {
         let mut dict = CFMutableDictionary::from_CFType_pairs(&[]);
 
@@ -514,25 +551,27 @@ impl ItemAddOptions {
             ItemAddValue::Data { class, .. } => Some(*class),
         };
         if let Some(class) = class_opt {
-            dict.add(&unsafe{kSecClass}.to_void(), &class.0.to_void());
+            dict.add(&unsafe { kSecClass }.to_void(), &class.0.to_void());
         }
 
-        let value_pair = match &self.value{
-            ItemAddValue::Ref(ref_) => (unsafe {kSecValueRef}.to_void(), ref_.ref_()),
-            ItemAddValue::Data { data, ..} => (unsafe {kSecValueData}.to_void(), data.to_void()),
+        let value_pair = match &self.value {
+            ItemAddValue::Ref(ref_) => (unsafe { kSecValueRef }.to_void(), ref_.ref_()),
+            ItemAddValue::Data { data, .. } => (unsafe { kSecValueData }.to_void(), data.to_void()),
         };
         dict.add(&value_pair.0, &value_pair.1);
 
-
         if let Some(location) = &self.location {
-            match location{
-                #[cfg(any(feature = "OSX_10_15", target_os="ios"))]
+            match location {
+                #[cfg(any(feature = "OSX_10_15", target_os = "ios"))]
                 Location::DataProtectionKeychain => {
-                    dict.add(&unsafe { kSecUseDataProtectionKeychain }.to_void(), &CFBoolean::true_value().to_void());
-                },
-                #[cfg(target_os="macos")]
-                Location::DefaultFileKeychain => {},
-                #[cfg(target_os="macos")]
+                    dict.add(
+                        &unsafe { kSecUseDataProtectionKeychain }.to_void(),
+                        &CFBoolean::true_value().to_void(),
+                    );
+                }
+                #[cfg(target_os = "macos")]
+                Location::DefaultFileKeychain => {}
+                #[cfg(target_os = "macos")]
                 Location::FileKeychain(keychain) => {
                     dict.add(&unsafe { kSecUseKeychain }.to_void(), &keychain.to_void());
                 },
@@ -541,7 +580,7 @@ impl ItemAddOptions {
 
         let label = self.label.as_deref().map(CFString::from);
         if let Some(label) = &label {
-            dict.add(&unsafe {kSecAttrLabel}.to_void(), &label.to_void());
+            dict.add(&unsafe { kSecAttrLabel }.to_void(), &label.to_void());
         }
 
         dict.to_immutable()
@@ -553,14 +592,13 @@ pub enum ItemAddValue {
     /// Pass item by Ref (kSecValueRef)
     Ref(AddRef),
     /// Pass item by Data (kSecValueData)
-    Data{
+    Data {
         /// The item class (kSecClass).
         class: ItemClass,
         /// The item data.
-        data: CFData
+        data: CFData,
     },
 }
-
 
 /// Type of Ref to add to the keychain.
 pub enum AddRef {
@@ -603,18 +641,18 @@ pub enum Location {
     /// This keychain requires the calling binary to be codesigned with
     /// entitlements for the KeychainAccessGroups it is supposed to
     /// access.
-    #[cfg(any(feature = "OSX_10_15", target_os="ios"))]
+    #[cfg(any(feature = "OSX_10_15", target_os = "ios"))]
     DataProtectionKeychain,
     /// Store the key in the default file-based keychain. On macOS, defaults to
     /// the Login keychain.
-    #[cfg(target_os="macos")]
+    #[cfg(target_os = "macos")]
     DefaultFileKeychain,
     /// Store the key in a specific file-based keychain.
-    #[cfg(target_os="macos")]
-    FileKeychain(crate::os::macos::keychain::SecKeychain)
+    #[cfg(target_os = "macos")]
+    FileKeychain(crate::os::macos::keychain::SecKeychain),
 }
 
-/// Translates to SecItemAdd. Use `ItemAddOptions` to build an `add_params`
+/// Translates to `SecItemAdd`. Use `ItemAddOptions` to build an `add_params`
 /// `CFDictionary`.
 pub fn add_item(add_params: CFDictionary) -> Result<()> {
     cvt(unsafe { SecItemAdd(add_params.as_concrete_TypeRef(), std::ptr::null_mut()) })

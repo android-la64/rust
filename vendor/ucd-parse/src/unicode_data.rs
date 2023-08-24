@@ -4,7 +4,7 @@ use std::ops::Range;
 use std::path::Path;
 use std::str::FromStr;
 
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::common::{Codepoint, CodepointIter, UcdFile, UcdFileByCodepoint};
@@ -14,7 +14,7 @@ use crate::error::Error;
 ///
 /// These fields were taken from UAX44, Table 9, as part of the documentation
 /// for the
-/// [`UnicodeData.txt` file](http://www.unicode.org/reports/tr44/#UnicodeData.txt).
+/// [`UnicodeData.txt` file](https://www.unicode.org/reports/tr44/#UnicodeData.txt).
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct UnicodeData {
     /// The codepoint corresponding to this row.
@@ -26,12 +26,12 @@ pub struct UnicodeData {
     /// The class of this codepoint used in the Canonical Ordering Algorithm.
     ///
     /// Note that some classes map to a particular symbol. See
-    /// [UAX44, Table 15](http://www.unicode.org/reports/tr44/#Canonical_Combining_Class_Values).
+    /// [UAX44, Table 15](https://www.unicode.org/reports/tr44/#Canonical_Combining_Class_Values).
     pub canonical_combining_class: u8,
     /// The bidirectional class of this codepoint.
     ///
     /// Possible values are listed in
-    /// [UAX44, Table 13](http://www.unicode.org/reports/tr44/#Bidi_Class_Values).
+    /// [UAX44, Table 13](https://www.unicode.org/reports/tr44/#Bidi_Class_Values).
     pub bidi_class: String,
     /// The decomposition mapping for this codepoint. This includes its
     /// formatting tag (if present).
@@ -99,8 +99,8 @@ impl FromStr for UnicodeData {
     type Err = Error;
 
     fn from_str(line: &str) -> Result<UnicodeData, Error> {
-        lazy_static! {
-            static ref PARTS: Regex = Regex::new(
+        static PARTS: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(
                 r"(?x)
                 ^
                 ([A-Z0-9]+);  #  1; codepoint
@@ -119,10 +119,10 @@ impl FromStr for UnicodeData {
                 ([^;]*);      # 14; simple lowercase mapping
                 ([^;]*)       # 15; simple titlecase mapping
                 $
-                "
+                ",
             )
-            .unwrap();
-        };
+            .unwrap()
+        });
         let caps = match PARTS.captures(line.trim()) {
             Some(caps) => caps,
             None => return err!("invalid UnicodeData line"),
@@ -301,13 +301,12 @@ impl FromStr for UnicodeDataDecomposition {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<UnicodeDataDecomposition, Error> {
-        lazy_static! {
-            static ref WITH_TAG: Regex = Regex::new(
-                r"^(?:<(?P<tag>[^>]+)>)?\s*(?P<chars>[\s0-9A-F]+)$"
-            )
-            .unwrap();
-            static ref CHARS: Regex = Regex::new(r"[0-9A-F]+").unwrap();
-        };
+        static WITH_TAG: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(r"^(?:<(?P<tag>[^>]+)>)?\s*(?P<chars>[\s0-9A-F]+)$")
+                .unwrap()
+        });
+        static CHARS: Lazy<Regex> =
+            Lazy::new(|| Regex::new(r"[0-9A-F]+").unwrap());
         if s.is_empty() {
             return err!(
                 "expected non-empty string for \
@@ -352,7 +351,7 @@ impl fmt::Display for UnicodeDataDecomposition {
 /// The formatting tag on a decomposition mapping.
 ///
 /// This is taken from
-/// [UAX44, Table 14](http://www.unicode.org/reports/tr44/#Character_Decomposition_Mappings).
+/// [UAX44, Table 14](https://www.unicode.org/reports/tr44/#Character_Decomposition_Mappings).
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UnicodeDataDecompositionTag {
     /// <font>

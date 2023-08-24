@@ -8,11 +8,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::env;
-use std::ffi::OsString;
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::{
+    env,
+    ffi::OsString,
+    fs, io,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 include!("src/env.rs");
 
@@ -27,13 +29,30 @@ macro_rules! warning {
 }
 
 fn read_and_watch_env(name: &str) -> Result<String, env::VarError> {
-    println!("cargo:rerun-if-env-changed={}", name);
+    println!("cargo:rerun-if-env-changed={name}");
     env::var(name)
 }
 
 fn read_and_watch_env_os(name: &str) -> Option<OsString> {
-    println!("cargo:rerun-if-env-changed={}", name);
+    println!("cargo:rerun-if-env-changed={name}");
     env::var_os(name)
+}
+
+fn copy_recursively(src: &Path, dst: &Path) -> io::Result<()> {
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ft = entry.file_type()?;
+        if ft.is_dir() {
+            // There should be very few layer in the project, use recusion to keep simple.
+            copy_recursively(&entry.path(), &dst.join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }
 
 // TODO: split main functions and remove following allow.
@@ -123,10 +142,7 @@ fn main() {
         fs::remove_dir_all(build_dir.clone()).unwrap();
     }
     // Copy jemalloc submodule to the OUT_DIR
-    let mut copy_options = fs_extra::dir::CopyOptions::new();
-    copy_options.overwrite = true;
-    copy_options.copy_inside = true;
-    fs_extra::dir::copy(&jemalloc_repo_dir, &build_dir, &copy_options)
+    copy_recursively(&jemalloc_repo_dir, &build_dir)
         .expect("failed to copy jemalloc source code to OUT_DIR");
     assert!(build_dir.exists());
 
@@ -196,27 +212,27 @@ fn main() {
 
     if !malloc_conf.is_empty() {
         info!("--with-malloc-conf={}", malloc_conf);
-        cmd.arg(format!("--with-malloc-conf={}", malloc_conf));
+        cmd.arg(format!("--with-malloc-conf={malloc_conf}"));
     }
 
     if let Ok(lg_page) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_PAGE") {
         info!("--with-lg-page={}", lg_page);
-        cmd.arg(format!("--with-lg-page={}", lg_page));
+        cmd.arg(format!("--with-lg-page={lg_page}"));
     }
 
     if let Ok(lg_hugepage) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_HUGEPAGE") {
         info!("--with-lg-hugepage={}", lg_hugepage);
-        cmd.arg(format!("--with-lg-hugepage={}", lg_hugepage));
+        cmd.arg(format!("--with-lg-hugepage={lg_hugepage}"));
     }
 
     if let Ok(lg_quantum) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_QUANTUM") {
         info!("--with-lg-quantum={}", lg_quantum);
-        cmd.arg(format!("--with-lg-quantum={}", lg_quantum));
+        cmd.arg(format!("--with-lg-quantum={lg_quantum}"));
     }
 
     if let Ok(lg_vaddr) = read_and_watch_env("JEMALLOC_SYS_WITH_LG_VADDR") {
         info!("--with-lg-vaddr={}", lg_vaddr);
-        cmd.arg(format!("--with-lg-vaddr={}", lg_vaddr));
+        cmd.arg(format!("--with-lg-vaddr={lg_vaddr}"));
     }
 
     if use_prefix {
@@ -320,7 +336,7 @@ fn run(cmd: &mut Command) {
 }
 
 fn execute(cmd: &mut Command, on_fail: impl FnOnce()) {
-    println!("running: {:?}", cmd);
+    println!("running: {cmd:?}");
     let status = match cmd.status() {
         Ok(status) => status,
         Err(e) => panic!("failed to execute command: {}", e),

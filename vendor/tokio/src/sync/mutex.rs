@@ -1,12 +1,15 @@
 #![cfg_attr(not(feature = "sync"), allow(unreachable_pub, dead_code))]
 
 use crate::sync::batch_semaphore as semaphore;
+#[cfg(all(tokio_unstable, feature = "tracing"))]
+use crate::util::trace;
 
 use std::cell::UnsafeCell;
 use std::error::Error;
+use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
-use std::{fmt, marker, mem};
+use std::{fmt, mem, ptr};
 
 /// An asynchronous `Mutex`-like type.
 ///
@@ -124,6 +127,8 @@ use std::{fmt, marker, mem};
 /// [`Send`]: trait@std::marker::Send
 /// [`lock`]: method@Mutex::lock
 pub struct Mutex<T: ?Sized> {
+    #[cfg(all(tokio_unstable, feature = "tracing"))]
+    resource_span: tracing::Span,
     s: semaphore::Semaphore,
     c: UnsafeCell<T>,
 }
@@ -137,7 +142,13 @@ pub struct Mutex<T: ?Sized> {
 ///
 /// The lock is automatically released whenever the guard is dropped, at which
 /// point `lock` will succeed yet again.
+#[clippy::has_significant_drop]
+#[must_use = "if unused the Mutex will immediately unlock"]
 pub struct MutexGuard<'a, T: ?Sized> {
+    // When changing the fields in this struct, make sure to update the
+    // `skip_drop` method.
+    #[cfg(all(tokio_unstable, feature = "tracing"))]
+    resource_span: tracing::Span,
     lock: &'a Mutex<T>,
 }
 
@@ -156,7 +167,12 @@ pub struct MutexGuard<'a, T: ?Sized> {
 /// point `lock` will succeed yet again.
 ///
 /// [`Arc`]: std::sync::Arc
+#[clippy::has_significant_drop]
 pub struct OwnedMutexGuard<T: ?Sized> {
+    // When changing the fields in this struct, make sure to update the
+    // `skip_drop` method.
+    #[cfg(all(tokio_unstable, feature = "tracing"))]
+    resource_span: tracing::Span,
     lock: Arc<Mutex<T>>,
 }
 
@@ -165,12 +181,71 @@ pub struct OwnedMutexGuard<T: ?Sized> {
 /// This can be used to hold a subfield of the protected data.
 ///
 /// [`MutexGuard::map`]: method@MutexGuard::map
+#[clippy::has_significant_drop]
 #[must_use = "if unused the Mutex will immediately unlock"]
 pub struct MappedMutexGuard<'a, T: ?Sized> {
+    // When changing the fields in this struct, make sure to update the
+    // `skip_drop` method.
+    #[cfg(all(tokio_unstable, feature = "tracing"))]
+    resource_span: tracing::Span,
     s: &'a semaphore::Semaphore,
     data: *mut T,
     // Needed to tell the borrow checker that we are holding a `&mut T`
-    marker: marker::PhantomData<&'a mut T>,
+    marker: PhantomData<&'a mut T>,
+}
+
+/// A owned handle to a held `Mutex` that has had a function applied to it via
+/// [`OwnedMutexGuard::map`].
+///
+/// This can be used to hold a subfield of the protected data.
+///
+/// [`OwnedMutexGuard::map`]: method@OwnedMutexGuard::map
+#[clippy::has_significant_drop]
+#[must_use = "if unused the Mutex will immediately unlock"]
+pub struct OwnedMappedMutexGuard<T: ?Sized, U: ?Sized = T> {
+    // When changing the fields in this struct, make sure to update the
+    // `skip_drop` method.
+    #[cfg(all(tokio_unstable, feature = "tracing"))]
+    resource_span: tracing::Span,
+    data: *mut U,
+    lock: Arc<Mutex<T>>,
+}
+
+/// A helper type used when taking apart a `MutexGuard` without running its
+/// Drop implementation.
+#[allow(dead_code)] // Unused fields are still used in Drop.
+struct MutexGuardInner<'a, T: ?Sized> {
+    #[cfg(all(tokio_unstable, feature = "tracing"))]
+    resource_span: tracing::Span,
+    lock: &'a Mutex<T>,
+}
+
+/// A helper type used when taking apart a `OwnedMutexGuard` without running
+/// its Drop implementation.
+struct OwnedMutexGuardInner<T: ?Sized> {
+    #[cfg(all(tokio_unstable, feature = "tracing"))]
+    resource_span: tracing::Span,
+    lock: Arc<Mutex<T>>,
+}
+
+/// A helper type used when taking apart a `MappedMutexGuard` without running
+/// its Drop implementation.
+#[allow(dead_code)] // Unused fields are still used in Drop.
+struct MappedMutexGuardInner<'a, T: ?Sized> {
+    #[cfg(all(tokio_unstable, feature = "tracing"))]
+    resource_span: tracing::Span,
+    s: &'a semaphore::Semaphore,
+    data: *mut T,
+}
+
+/// A helper type used when taking apart a `OwnedMappedMutexGuard` without running
+/// its Drop implementation.
+#[allow(dead_code)] // Unused fields are still used in Drop.
+struct OwnedMappedMutexGuardInner<T: ?Sized, U: ?Sized> {
+    #[cfg(all(tokio_unstable, feature = "tracing"))]
+    resource_span: tracing::Span,
+    data: *mut U,
+    lock: Arc<Mutex<T>>,
 }
 
 // As long as T: Send, it's fine to send and share Mutex<T> between threads.
@@ -183,6 +258,19 @@ unsafe impl<T> Sync for OwnedMutexGuard<T> where T: ?Sized + Send + Sync {}
 unsafe impl<'a, T> Sync for MappedMutexGuard<'a, T> where T: ?Sized + Sync + 'a {}
 unsafe impl<'a, T> Send for MappedMutexGuard<'a, T> where T: ?Sized + Send + 'a {}
 
+unsafe impl<T, U> Sync for OwnedMappedMutexGuard<T, U>
+where
+    T: ?Sized + Send + Sync,
+    U: ?Sized + Send + Sync,
+{
+}
+unsafe impl<T, U> Send for OwnedMappedMutexGuard<T, U>
+where
+    T: ?Sized + Send,
+    U: ?Sized + Send,
+{
+}
+
 /// Error returned from the [`Mutex::try_lock`], [`RwLock::try_read`] and
 /// [`RwLock::try_write`] functions.
 ///
@@ -191,8 +279,8 @@ unsafe impl<'a, T> Send for MappedMutexGuard<'a, T> where T: ?Sized + Send + 'a 
 /// `RwLock::try_read` operation will only fail if the lock is currently held
 /// by an exclusive writer.
 ///
-/// `RwLock::try_write` operation will if lock is held by any reader or by an
-/// exclusive writer.
+/// `RwLock::try_write` operation will only fail if the lock is currently held
+/// by any reader or by an exclusive writer.
 ///
 /// [`Mutex::try_lock`]: Mutex::try_lock
 /// [`RwLock::try_read`]: fn@super::RwLock::try_read
@@ -242,13 +330,42 @@ impl<T: ?Sized> Mutex<T> {
     ///
     /// let lock = Mutex::new(5);
     /// ```
+    #[track_caller]
     pub fn new(t: T) -> Self
     where
         T: Sized,
     {
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        let resource_span = {
+            let location = std::panic::Location::caller();
+
+            tracing::trace_span!(
+                "runtime.resource",
+                concrete_type = "Mutex",
+                kind = "Sync",
+                loc.file = location.file(),
+                loc.line = location.line(),
+                loc.col = location.column(),
+            )
+        };
+
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        let s = resource_span.in_scope(|| {
+            tracing::trace!(
+                target: "runtime::resource::state_update",
+                locked = false,
+            );
+            semaphore::Semaphore::new(1)
+        });
+
+        #[cfg(any(not(tokio_unstable), not(feature = "tracing")))]
+        let s = semaphore::Semaphore::new(1);
+
         Self {
             c: UnsafeCell::new(t),
-            s: semaphore::Semaphore::new(1),
+            s,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span,
         }
     }
 
@@ -270,6 +387,8 @@ impl<T: ?Sized> Mutex<T> {
         Self {
             c: UnsafeCell::new(t),
             s: semaphore::Semaphore::const_new(1),
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: tracing::Span::none(),
         }
     }
 
@@ -297,8 +416,147 @@ impl<T: ?Sized> Mutex<T> {
     /// }
     /// ```
     pub async fn lock(&self) -> MutexGuard<'_, T> {
-        self.acquire().await;
-        MutexGuard { lock: self }
+        let acquire_fut = async {
+            self.acquire().await;
+
+            MutexGuard {
+                lock: self,
+                #[cfg(all(tokio_unstable, feature = "tracing"))]
+                resource_span: self.resource_span.clone(),
+            }
+        };
+
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        let acquire_fut = trace::async_op(
+            move || acquire_fut,
+            self.resource_span.clone(),
+            "Mutex::lock",
+            "poll",
+            false,
+        );
+
+        #[allow(clippy::let_and_return)] // this lint triggers when disabling tracing
+        let guard = acquire_fut.await;
+
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        self.resource_span.in_scope(|| {
+            tracing::trace!(
+                target: "runtime::resource::state_update",
+                locked = true,
+            );
+        });
+
+        guard
+    }
+
+    /// Blockingly locks this `Mutex`. When the lock has been acquired, function returns a
+    /// [`MutexGuard`].
+    ///
+    /// This method is intended for use cases where you
+    /// need to use this mutex in asynchronous code as well as in synchronous code.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if called within an asynchronous execution context.
+    ///
+    ///   - If you find yourself in an asynchronous execution context and needing
+    ///     to call some (synchronous) function which performs one of these
+    ///     `blocking_` operations, then consider wrapping that call inside
+    ///     [`spawn_blocking()`][crate::runtime::Handle::spawn_blocking]
+    ///     (or [`block_in_place()`][crate::task::block_in_place]).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::sync::Arc;
+    /// use tokio::sync::Mutex;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let mutex =  Arc::new(Mutex::new(1));
+    ///     let lock = mutex.lock().await;
+    ///
+    ///     let mutex1 = Arc::clone(&mutex);
+    ///     let blocking_task = tokio::task::spawn_blocking(move || {
+    ///         // This shall block until the `lock` is released.
+    ///         let mut n = mutex1.blocking_lock();
+    ///         *n = 2;
+    ///     });
+    ///
+    ///     assert_eq!(*lock, 1);
+    ///     // Release the lock.
+    ///     drop(lock);
+    ///
+    ///     // Await the completion of the blocking task.
+    ///     blocking_task.await.unwrap();
+    ///
+    ///     // Assert uncontended.
+    ///     let n = mutex.try_lock().unwrap();
+    ///     assert_eq!(*n, 2);
+    /// }
+    ///
+    /// ```
+    #[track_caller]
+    #[cfg(feature = "sync")]
+    #[cfg_attr(docsrs, doc(alias = "lock_blocking"))]
+    pub fn blocking_lock(&self) -> MutexGuard<'_, T> {
+        crate::future::block_on(self.lock())
+    }
+
+    /// Blockingly locks this `Mutex`. When the lock has been acquired, function returns an
+    /// [`OwnedMutexGuard`].
+    ///
+    /// This method is identical to [`Mutex::blocking_lock`], except that the returned
+    /// guard references the `Mutex` with an [`Arc`] rather than by borrowing
+    /// it. Therefore, the `Mutex` must be wrapped in an `Arc` to call this
+    /// method, and the guard will live for the `'static` lifetime, as it keeps
+    /// the `Mutex` alive by holding an `Arc`.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if called within an asynchronous execution context.
+    ///
+    ///   - If you find yourself in an asynchronous execution context and needing
+    ///     to call some (synchronous) function which performs one of these
+    ///     `blocking_` operations, then consider wrapping that call inside
+    ///     [`spawn_blocking()`][crate::runtime::Handle::spawn_blocking]
+    ///     (or [`block_in_place()`][crate::task::block_in_place]).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::sync::Arc;
+    /// use tokio::sync::Mutex;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let mutex =  Arc::new(Mutex::new(1));
+    ///     let lock = mutex.lock().await;
+    ///
+    ///     let mutex1 = Arc::clone(&mutex);
+    ///     let blocking_task = tokio::task::spawn_blocking(move || {
+    ///         // This shall block until the `lock` is released.
+    ///         let mut n = mutex1.blocking_lock_owned();
+    ///         *n = 2;
+    ///     });
+    ///
+    ///     assert_eq!(*lock, 1);
+    ///     // Release the lock.
+    ///     drop(lock);
+    ///
+    ///     // Await the completion of the blocking task.
+    ///     blocking_task.await.unwrap();
+    ///
+    ///     // Assert uncontended.
+    ///     let n = mutex.try_lock().unwrap();
+    ///     assert_eq!(*n, 2);
+    /// }
+    ///
+    /// ```
+    #[track_caller]
+    #[cfg(feature = "sync")]
+    pub fn blocking_lock_owned(self: Arc<Self>) -> OwnedMutexGuard<T> {
+        crate::future::block_on(self.lock_owned())
     }
 
     /// Locks this mutex, causing the current task to yield until the lock has
@@ -334,11 +592,45 @@ impl<T: ?Sized> Mutex<T> {
     ///
     /// [`Arc`]: std::sync::Arc
     pub async fn lock_owned(self: Arc<Self>) -> OwnedMutexGuard<T> {
-        self.acquire().await;
-        OwnedMutexGuard { lock: self }
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        let resource_span = self.resource_span.clone();
+
+        let acquire_fut = async {
+            self.acquire().await;
+
+            OwnedMutexGuard {
+                #[cfg(all(tokio_unstable, feature = "tracing"))]
+                resource_span: self.resource_span.clone(),
+                lock: self,
+            }
+        };
+
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        let acquire_fut = trace::async_op(
+            move || acquire_fut,
+            resource_span,
+            "Mutex::lock_owned",
+            "poll",
+            false,
+        );
+
+        #[allow(clippy::let_and_return)] // this lint triggers when disabling tracing
+        let guard = acquire_fut.await;
+
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        guard.resource_span.in_scope(|| {
+            tracing::trace!(
+                target: "runtime::resource::state_update",
+                locked = true,
+            );
+        });
+
+        guard
     }
 
     async fn acquire(&self) {
+        crate::trace::async_trace_leaf().await;
+
         self.s.acquire(1).await.unwrap_or_else(|_| {
             // The semaphore was closed. but, we never explicitly close it, and
             // we own it exclusively, which means that this can never happen.
@@ -365,7 +657,23 @@ impl<T: ?Sized> Mutex<T> {
     /// ```
     pub fn try_lock(&self) -> Result<MutexGuard<'_, T>, TryLockError> {
         match self.s.try_acquire(1) {
-            Ok(_) => Ok(MutexGuard { lock: self }),
+            Ok(_) => {
+                let guard = MutexGuard {
+                    lock: self,
+                    #[cfg(all(tokio_unstable, feature = "tracing"))]
+                    resource_span: self.resource_span.clone(),
+                };
+
+                #[cfg(all(tokio_unstable, feature = "tracing"))]
+                self.resource_span.in_scope(|| {
+                    tracing::trace!(
+                        target: "runtime::resource::state_update",
+                        locked = true,
+                    );
+                });
+
+                Ok(guard)
+            }
             Err(_) => Err(TryLockError(())),
         }
     }
@@ -420,7 +728,23 @@ impl<T: ?Sized> Mutex<T> {
     /// # }
     pub fn try_lock_owned(self: Arc<Self>) -> Result<OwnedMutexGuard<T>, TryLockError> {
         match self.s.try_acquire(1) {
-            Ok(_) => Ok(OwnedMutexGuard { lock: self }),
+            Ok(_) => {
+                let guard = OwnedMutexGuard {
+                    #[cfg(all(tokio_unstable, feature = "tracing"))]
+                    resource_span: self.resource_span.clone(),
+                    lock: self,
+                };
+
+                #[cfg(all(tokio_unstable, feature = "tracing"))]
+                guard.resource_span.in_scope(|| {
+                    tracing::trace!(
+                        target: "runtime::resource::state_update",
+                        locked = true,
+                    );
+                });
+
+                Ok(guard)
+            }
             Err(_) => Err(TryLockError(())),
         }
     }
@@ -462,14 +786,14 @@ where
     }
 }
 
-impl<T> std::fmt::Debug for Mutex<T>
+impl<T: ?Sized> std::fmt::Debug for Mutex<T>
 where
     T: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut d = f.debug_struct("Mutex");
         match self.try_lock() {
-            Ok(inner) => d.field("data", &*inner),
+            Ok(inner) => d.field("data", &&*inner),
             Err(_) => d.field("data", &format_args!("<locked>")),
         };
         d.finish()
@@ -479,6 +803,17 @@ where
 // === impl MutexGuard ===
 
 impl<'a, T: ?Sized> MutexGuard<'a, T> {
+    fn skip_drop(self) -> MutexGuardInner<'a, T> {
+        let me = mem::ManuallyDrop::new(self);
+        // SAFETY: This duplicates the `resource_span` and then forgets the
+        // original. In the end, we have not duplicated or forgotten any values.
+        MutexGuardInner {
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: unsafe { std::ptr::read(&me.resource_span) },
+            lock: me.lock,
+        }
+    }
+
     /// Makes a new [`MappedMutexGuard`] for a component of the locked data.
     ///
     /// This operation cannot fail as the [`MutexGuard`] passed in already locked the mutex.
@@ -515,12 +850,13 @@ impl<'a, T: ?Sized> MutexGuard<'a, T> {
         F: FnOnce(&mut T) -> &mut U,
     {
         let data = f(&mut *this) as *mut U;
-        let s = &this.lock.s;
-        mem::forget(this);
+        let inner = this.skip_drop();
         MappedMutexGuard {
-            s,
+            s: &inner.lock.s,
             data,
-            marker: marker::PhantomData,
+            marker: PhantomData,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: inner.resource_span,
         }
     }
 
@@ -565,19 +901,54 @@ impl<'a, T: ?Sized> MutexGuard<'a, T> {
             Some(data) => data as *mut U,
             None => return Err(this),
         };
-        let s = &this.lock.s;
-        mem::forget(this);
+        let inner = this.skip_drop();
         Ok(MappedMutexGuard {
-            s,
+            s: &inner.lock.s,
             data,
-            marker: marker::PhantomData,
+            marker: PhantomData,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: inner.resource_span,
         })
+    }
+
+    /// Returns a reference to the original `Mutex`.
+    ///
+    /// ```
+    /// use tokio::sync::{Mutex, MutexGuard};
+    ///
+    /// async fn unlock_and_relock<'l>(guard: MutexGuard<'l, u32>) -> MutexGuard<'l, u32> {
+    ///     println!("1. contains: {:?}", *guard);
+    ///     let mutex = MutexGuard::mutex(&guard);
+    ///     drop(guard);
+    ///     let guard = mutex.lock().await;
+    ///     println!("2. contains: {:?}", *guard);
+    ///     guard
+    /// }
+    /// #
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// #     let mutex = Mutex::new(0u32);
+    /// #     let guard = mutex.lock().await;
+    /// #     let _guard = unlock_and_relock(guard).await;
+    /// # }
+    /// ```
+    #[inline]
+    pub fn mutex(this: &Self) -> &'a Mutex<T> {
+        this.lock
     }
 }
 
 impl<T: ?Sized> Drop for MutexGuard<'_, T> {
     fn drop(&mut self) {
-        self.lock.s.release(1)
+        self.lock.s.release(1);
+
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        self.resource_span.in_scope(|| {
+            tracing::trace!(
+                target: "runtime::resource::state_update",
+                locked = false,
+            );
+        });
     }
 }
 
@@ -608,9 +979,156 @@ impl<T: ?Sized + fmt::Display> fmt::Display for MutexGuard<'_, T> {
 
 // === impl OwnedMutexGuard ===
 
+impl<T: ?Sized> OwnedMutexGuard<T> {
+    fn skip_drop(self) -> OwnedMutexGuardInner<T> {
+        let me = mem::ManuallyDrop::new(self);
+        // SAFETY: This duplicates the values in every field of the guard, then
+        // forgets the originals, so in the end no value is duplicated.
+        unsafe {
+            OwnedMutexGuardInner {
+                lock: ptr::read(&me.lock),
+                #[cfg(all(tokio_unstable, feature = "tracing"))]
+                resource_span: ptr::read(&me.resource_span),
+            }
+        }
+    }
+
+    /// Makes a new [`OwnedMappedMutexGuard`] for a component of the locked data.
+    ///
+    /// This operation cannot fail as the [`OwnedMutexGuard`] passed in already locked the mutex.
+    ///
+    /// This is an associated function that needs to be used as `OwnedMutexGuard::map(...)`. A method
+    /// would interfere with methods of the same name on the contents of the locked data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use tokio::sync::{Mutex, OwnedMutexGuard};
+    /// use std::sync::Arc;
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    /// struct Foo(u32);
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let foo = Arc::new(Mutex::new(Foo(1)));
+    ///
+    /// {
+    ///     let mut mapped = OwnedMutexGuard::map(foo.clone().lock_owned().await, |f| &mut f.0);
+    ///     *mapped = 2;
+    /// }
+    ///
+    /// assert_eq!(Foo(2), *foo.lock().await);
+    /// # }
+    /// ```
+    ///
+    /// [`OwnedMutexGuard`]: struct@OwnedMutexGuard
+    /// [`OwnedMappedMutexGuard`]: struct@OwnedMappedMutexGuard
+    #[inline]
+    pub fn map<U, F>(mut this: Self, f: F) -> OwnedMappedMutexGuard<T, U>
+    where
+        F: FnOnce(&mut T) -> &mut U,
+    {
+        let data = f(&mut *this) as *mut U;
+        let inner = this.skip_drop();
+        OwnedMappedMutexGuard {
+            data,
+            lock: inner.lock,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: inner.resource_span,
+        }
+    }
+
+    /// Attempts to make a new [`OwnedMappedMutexGuard`] for a component of the locked data. The
+    /// original guard is returned if the closure returns `None`.
+    ///
+    /// This operation cannot fail as the [`OwnedMutexGuard`] passed in already locked the mutex.
+    ///
+    /// This is an associated function that needs to be used as `OwnedMutexGuard::try_map(...)`. A
+    /// method would interfere with methods of the same name on the contents of the locked data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use tokio::sync::{Mutex, OwnedMutexGuard};
+    /// use std::sync::Arc;
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    /// struct Foo(u32);
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let foo = Arc::new(Mutex::new(Foo(1)));
+    ///
+    /// {
+    ///     let mut mapped = OwnedMutexGuard::try_map(foo.clone().lock_owned().await, |f| Some(&mut f.0))
+    ///         .expect("should not fail");
+    ///     *mapped = 2;
+    /// }
+    ///
+    /// assert_eq!(Foo(2), *foo.lock().await);
+    /// # }
+    /// ```
+    ///
+    /// [`OwnedMutexGuard`]: struct@OwnedMutexGuard
+    /// [`OwnedMappedMutexGuard`]: struct@OwnedMappedMutexGuard
+    #[inline]
+    pub fn try_map<U, F>(mut this: Self, f: F) -> Result<OwnedMappedMutexGuard<T, U>, Self>
+    where
+        F: FnOnce(&mut T) -> Option<&mut U>,
+    {
+        let data = match f(&mut *this) {
+            Some(data) => data as *mut U,
+            None => return Err(this),
+        };
+        let inner = this.skip_drop();
+        Ok(OwnedMappedMutexGuard {
+            data,
+            lock: inner.lock,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: inner.resource_span,
+        })
+    }
+
+    /// Returns a reference to the original `Arc<Mutex>`.
+    ///
+    /// ```
+    /// use std::sync::Arc;
+    /// use tokio::sync::{Mutex, OwnedMutexGuard};
+    ///
+    /// async fn unlock_and_relock(guard: OwnedMutexGuard<u32>) -> OwnedMutexGuard<u32> {
+    ///     println!("1. contains: {:?}", *guard);
+    ///     let mutex: Arc<Mutex<u32>> = OwnedMutexGuard::mutex(&guard).clone();
+    ///     drop(guard);
+    ///     let guard = mutex.lock_owned().await;
+    ///     println!("2. contains: {:?}", *guard);
+    ///     guard
+    /// }
+    /// #
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// #     let mutex = Arc::new(Mutex::new(0u32));
+    /// #     let guard = mutex.lock_owned().await;
+    /// #     unlock_and_relock(guard).await;
+    /// # }
+    /// ```
+    #[inline]
+    pub fn mutex(this: &Self) -> &Arc<Mutex<T>> {
+        &this.lock
+    }
+}
+
 impl<T: ?Sized> Drop for OwnedMutexGuard<T> {
     fn drop(&mut self) {
-        self.lock.s.release(1)
+        self.lock.s.release(1);
+
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        self.resource_span.in_scope(|| {
+            tracing::trace!(
+                target: "runtime::resource::state_update",
+                locked = false,
+            );
+        });
     }
 }
 
@@ -642,6 +1160,16 @@ impl<T: ?Sized + fmt::Display> fmt::Display for OwnedMutexGuard<T> {
 // === impl MappedMutexGuard ===
 
 impl<'a, T: ?Sized> MappedMutexGuard<'a, T> {
+    fn skip_drop(self) -> MappedMutexGuardInner<'a, T> {
+        let me = mem::ManuallyDrop::new(self);
+        MappedMutexGuardInner {
+            s: me.s,
+            data: me.data,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: unsafe { std::ptr::read(&me.resource_span) },
+        }
+    }
+
     /// Makes a new [`MappedMutexGuard`] for a component of the locked data.
     ///
     /// This operation cannot fail as the [`MappedMutexGuard`] passed in already locked the mutex.
@@ -656,12 +1184,13 @@ impl<'a, T: ?Sized> MappedMutexGuard<'a, T> {
         F: FnOnce(&mut T) -> &mut U,
     {
         let data = f(&mut *this) as *mut U;
-        let s = this.s;
-        mem::forget(this);
+        let inner = this.skip_drop();
         MappedMutexGuard {
-            s,
+            s: inner.s,
             data,
-            marker: marker::PhantomData,
+            marker: PhantomData,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: inner.resource_span,
         }
     }
 
@@ -683,19 +1212,28 @@ impl<'a, T: ?Sized> MappedMutexGuard<'a, T> {
             Some(data) => data as *mut U,
             None => return Err(this),
         };
-        let s = this.s;
-        mem::forget(this);
+        let inner = this.skip_drop();
         Ok(MappedMutexGuard {
-            s,
+            s: inner.s,
             data,
-            marker: marker::PhantomData,
+            marker: PhantomData,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: inner.resource_span,
         })
     }
 }
 
 impl<'a, T: ?Sized> Drop for MappedMutexGuard<'a, T> {
     fn drop(&mut self) {
-        self.s.release(1)
+        self.s.release(1);
+
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        self.resource_span.in_scope(|| {
+            tracing::trace!(
+                target: "runtime::resource::state_update",
+                locked = false,
+            );
+        });
     }
 }
 
@@ -719,6 +1257,114 @@ impl<'a, T: ?Sized + fmt::Debug> fmt::Debug for MappedMutexGuard<'a, T> {
 }
 
 impl<'a, T: ?Sized + fmt::Display> fmt::Display for MappedMutexGuard<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&**self, f)
+    }
+}
+
+// === impl OwnedMappedMutexGuard ===
+
+impl<T: ?Sized, U: ?Sized> OwnedMappedMutexGuard<T, U> {
+    fn skip_drop(self) -> OwnedMappedMutexGuardInner<T, U> {
+        let me = mem::ManuallyDrop::new(self);
+        // SAFETY: This duplicates the values in every field of the guard, then
+        // forgets the originals, so in the end no value is duplicated.
+        unsafe {
+            OwnedMappedMutexGuardInner {
+                data: me.data,
+                lock: ptr::read(&me.lock),
+                #[cfg(all(tokio_unstable, feature = "tracing"))]
+                resource_span: ptr::read(&me.resource_span),
+            }
+        }
+    }
+
+    /// Makes a new [`OwnedMappedMutexGuard`] for a component of the locked data.
+    ///
+    /// This operation cannot fail as the [`OwnedMappedMutexGuard`] passed in already locked the mutex.
+    ///
+    /// This is an associated function that needs to be used as `OwnedMappedMutexGuard::map(...)`. A method
+    /// would interfere with methods of the same name on the contents of the locked data.
+    ///
+    /// [`OwnedMappedMutexGuard`]: struct@OwnedMappedMutexGuard
+    #[inline]
+    pub fn map<S, F>(mut this: Self, f: F) -> OwnedMappedMutexGuard<T, S>
+    where
+        F: FnOnce(&mut U) -> &mut S,
+    {
+        let data = f(&mut *this) as *mut S;
+        let inner = this.skip_drop();
+        OwnedMappedMutexGuard {
+            data,
+            lock: inner.lock,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: inner.resource_span,
+        }
+    }
+
+    /// Attempts to make a new [`OwnedMappedMutexGuard`] for a component of the locked data. The
+    /// original guard is returned if the closure returns `None`.
+    ///
+    /// This operation cannot fail as the [`OwnedMutexGuard`] passed in already locked the mutex.
+    ///
+    /// This is an associated function that needs to be used as `OwnedMutexGuard::try_map(...)`. A
+    /// method would interfere with methods of the same name on the contents of the locked data.
+    ///
+    /// [`OwnedMutexGuard`]: struct@OwnedMutexGuard
+    /// [`OwnedMappedMutexGuard`]: struct@OwnedMappedMutexGuard
+    #[inline]
+    pub fn try_map<S, F>(mut this: Self, f: F) -> Result<OwnedMappedMutexGuard<T, S>, Self>
+    where
+        F: FnOnce(&mut U) -> Option<&mut S>,
+    {
+        let data = match f(&mut *this) {
+            Some(data) => data as *mut S,
+            None => return Err(this),
+        };
+        let inner = this.skip_drop();
+        Ok(OwnedMappedMutexGuard {
+            data,
+            lock: inner.lock,
+            #[cfg(all(tokio_unstable, feature = "tracing"))]
+            resource_span: inner.resource_span,
+        })
+    }
+}
+
+impl<T: ?Sized, U: ?Sized> Drop for OwnedMappedMutexGuard<T, U> {
+    fn drop(&mut self) {
+        self.lock.s.release(1);
+
+        #[cfg(all(tokio_unstable, feature = "tracing"))]
+        self.resource_span.in_scope(|| {
+            tracing::trace!(
+                target: "runtime::resource::state_update",
+                locked = false,
+            );
+        });
+    }
+}
+
+impl<T: ?Sized, U: ?Sized> Deref for OwnedMappedMutexGuard<T, U> {
+    type Target = U;
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.data }
+    }
+}
+
+impl<T: ?Sized, U: ?Sized> DerefMut for OwnedMappedMutexGuard<T, U> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.data }
+    }
+}
+
+impl<T: ?Sized, U: ?Sized + fmt::Debug> fmt::Debug for OwnedMappedMutexGuard<T, U> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&**self, f)
+    }
+}
+
+impl<T: ?Sized, U: ?Sized + fmt::Display> fmt::Display for OwnedMappedMutexGuard<T, U> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&**self, f)
     }

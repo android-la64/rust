@@ -199,7 +199,7 @@ fn vtable_ptr_ty<'tcx, Cx: CodegenMethods<'tcx>>(
     cx.scalar_pair_element_backend_type(
         cx.layout_of(match kind {
             // vtable is the second field of `*mut dyn Trait`
-            ty::Dyn => cx.tcx().mk_mut_ptr(target),
+            ty::Dyn => Ty::new_mut_ptr(cx.tcx(), target),
             // vtable is the second field of `dyn* Trait`
             ty::DynStar => target,
         }),
@@ -295,7 +295,7 @@ pub fn coerce_unsized_into<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
             let (base, info) = match bx.load_operand(src).val {
                 OperandValue::Pair(base, info) => unsize_ptr(bx, base, src_ty, dst_ty, Some(info)),
                 OperandValue::Immediate(base) => unsize_ptr(bx, base, src_ty, dst_ty, None),
-                OperandValue::Ref(..) => bug!(),
+                OperandValue::Ref(..) | OperandValue::ZeroSized => bug!(),
             };
             OperandValue::Pair(base, info).store(bx, dst);
         }
@@ -357,6 +357,13 @@ pub fn cast_shift_expr_rhs<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
     }
 }
 
+// Returns `true` if this session's target will use native wasm
+// exceptions. This means that the VM does the unwinding for
+// us
+pub fn wants_wasm_eh(sess: &Session) -> bool {
+    sess.target.is_like_wasm && sess.target.os != "emscripten"
+}
+
 /// Returns `true` if this session's target will use SEH-based unwinding.
 ///
 /// This is only true for MSVC targets, and even then the 64-bit MSVC target
@@ -364,6 +371,13 @@ pub fn cast_shift_expr_rhs<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
 /// 64-bit MinGW) instead of "full SEH".
 pub fn wants_msvc_seh(sess: &Session) -> bool {
     sess.target.is_like_msvc
+}
+
+/// Returns `true` if this session's target requires the new exception
+/// handling LLVM IR instructions (catchpad / cleanuppad / ... instead
+/// of landingpad)
+pub fn wants_new_eh_instructions(sess: &Session) -> bool {
+    wants_wasm_eh(sess) || wants_msvc_seh(sess)
 }
 
 pub fn memcpy_ty<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
@@ -380,7 +394,19 @@ pub fn memcpy_ty<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
         return;
     }
 
-    bx.memcpy(dst, dst_align, src, src_align, bx.cx().const_usize(size), flags);
+    if flags == MemFlags::empty()
+        && let Some(bty) = bx.cx().scalar_copy_backend_type(layout)
+    {
+        // I look forward to only supporting opaque pointers
+        let pty = bx.type_ptr_to(bty);
+        let src = bx.pointercast(src, pty);
+        let dst = bx.pointercast(dst, pty);
+
+        let temp = bx.load(bty, src, src_align);
+        bx.store(temp, dst, dst_align);
+    } else {
+        bx.memcpy(dst, dst_align, src, src_align, bx.cx().const_usize(size), flags);
+    }
 }
 
 pub fn codegen_instance<'a, 'tcx: 'a, Bx: BuilderMethods<'a, 'tcx>>(
@@ -568,7 +594,7 @@ pub fn codegen_crate<B: ExtraBackendMethods>(
 ) -> OngoingCodegen<B> {
     // Skip crate items and just output metadata in -Z no-codegen mode.
     if tcx.sess.opts.unstable_opts.no_codegen || !tcx.sess.opts.output_types.should_codegen() {
-        let ongoing_codegen = start_async_codegen(backend, tcx, target_cpu, metadata, None, 1);
+        let ongoing_codegen = start_async_codegen(backend, tcx, target_cpu, metadata, None);
 
         ongoing_codegen.codegen_finished(tcx);
 
@@ -619,14 +645,8 @@ pub fn codegen_crate<B: ExtraBackendMethods>(
         })
     });
 
-    let ongoing_codegen = start_async_codegen(
-        backend.clone(),
-        tcx,
-        target_cpu,
-        metadata,
-        metadata_module,
-        codegen_units.len(),
-    );
+    let ongoing_codegen =
+        start_async_codegen(backend.clone(), tcx, target_cpu, metadata, metadata_module);
 
     // Codegen an allocator shim, if necessary.
     if let Some(kind) = allocator_kind_for_codegen(tcx) {

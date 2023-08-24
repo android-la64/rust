@@ -295,6 +295,29 @@ extern "C" {
     fn vctsxs(a: vector_float, b: i32) -> vector_signed_int;
     #[link_name = "llvm.ppc.altivec.vctuxs"]
     fn vctuxs(a: vector_float, b: i32) -> vector_unsigned_int;
+
+    #[link_name = "llvm.ppc.altivec.vpkshss"]
+    fn vpkshss(a: vector_signed_short, b: vector_signed_short) -> vector_signed_char;
+    #[link_name = "llvm.ppc.altivec.vpkshus"]
+    fn vpkshus(a: vector_signed_short, b: vector_signed_short) -> vector_unsigned_char;
+    #[link_name = "llvm.ppc.altivec.vpkuhus"]
+    fn vpkuhus(a: vector_unsigned_short, b: vector_unsigned_short) -> vector_unsigned_char;
+    #[link_name = "llvm.ppc.altivec.vpkswss"]
+    fn vpkswss(a: vector_signed_int, b: vector_signed_int) -> vector_signed_short;
+    #[link_name = "llvm.ppc.altivec.vpkswus"]
+    fn vpkswus(a: vector_signed_int, b: vector_signed_int) -> vector_unsigned_short;
+    #[link_name = "llvm.ppc.altivec.vpkuwus"]
+    fn vpkuwus(a: vector_unsigned_int, b: vector_unsigned_int) -> vector_unsigned_short;
+
+    #[link_name = "llvm.ppc.altivec.vupkhsb"]
+    fn vupkhsb(a: vector_signed_char) -> vector_signed_short;
+    #[link_name = "llvm.ppc.altivec.vupklsb"]
+    fn vupklsb(a: vector_signed_char) -> vector_signed_short;
+
+    #[link_name = "llvm.ppc.altivec.vupkhsh"]
+    fn vupkhsh(a: vector_signed_short) -> vector_signed_int;
+    #[link_name = "llvm.ppc.altivec.vupklsh"]
+    fn vupklsh(a: vector_signed_short) -> vector_signed_int;
 }
 
 macro_rules! s_t_l {
@@ -385,6 +408,7 @@ impl_neg! { i16x8 : 0 }
 impl_neg! { i32x4 : 0 }
 impl_neg! { f32x4 : 0f32 }
 
+#[macro_use]
 mod sealed {
     use super::*;
 
@@ -1137,6 +1161,83 @@ mod sealed {
     impl_abss! { vec_abss_i8, i8x16 }
     impl_abss! { vec_abss_i16, i16x8 }
     impl_abss! { vec_abss_i32, i32x4 }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vspltb, IMM4 = 15))]
+    unsafe fn vspltb<const IMM4: u32>(a: vector_signed_char) -> vector_signed_char {
+        static_assert_uimm_bits!(IMM4, 4);
+        let b = u8x16::splat(IMM4 as u8);
+        vec_perm(a, a, transmute(b))
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vsplth, IMM3 = 7))]
+    unsafe fn vsplth<const IMM3: u32>(a: vector_signed_short) -> vector_signed_short {
+        static_assert_uimm_bits!(IMM3, 3);
+        let b0 = IMM3 as u8 * 2;
+        let b1 = b0 + 1;
+        let b = u8x16::new(
+            b0, b1, b0, b1, b0, b1, b0, b1, b0, b1, b0, b1, b0, b1, b0, b1,
+        );
+        vec_perm(a, a, transmute(b))
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(all(test, not(target_feature = "vsx")), assert_instr(vspltw, IMM2 = 3))]
+    #[cfg_attr(all(test, target_feature = "vsx"), assert_instr(xxspltw, IMM2 = 3))]
+    unsafe fn vspltw<const IMM2: u32>(a: vector_signed_int) -> vector_signed_int {
+        static_assert_uimm_bits!(IMM2, 2);
+        let b0 = IMM2 as u8 * 4;
+        let b1 = b0 + 1;
+        let b2 = b0 + 2;
+        let b3 = b0 + 3;
+        let b = u8x16::new(
+            b0, b1, b2, b3, b0, b1, b2, b3, b0, b1, b2, b3, b0, b1, b2, b3,
+        );
+        vec_perm(a, a, transmute(b))
+    }
+
+    pub trait VectorSplat {
+        unsafe fn vec_splat<const IMM: u32>(self) -> Self;
+    }
+
+    macro_rules! impl_vec_splat {
+        ($ty:ty, $fun:ident) => {
+            impl VectorSplat for $ty {
+                #[inline]
+                #[target_feature(enable = "altivec")]
+                unsafe fn vec_splat<const IMM: u32>(self) -> Self {
+                    transmute($fun::<IMM>(transmute(self)))
+                }
+            }
+        };
+    }
+
+    impl_vec_splat! { vector_signed_char, vspltb }
+    impl_vec_splat! { vector_unsigned_char, vspltb }
+    impl_vec_splat! { vector_bool_char, vspltb }
+    impl_vec_splat! { vector_signed_short, vsplth }
+    impl_vec_splat! { vector_unsigned_short, vsplth }
+    impl_vec_splat! { vector_bool_short, vsplth }
+    impl_vec_splat! { vector_signed_int, vspltw }
+    impl_vec_splat! { vector_unsigned_int, vspltw }
+    impl_vec_splat! { vector_bool_int, vspltw }
+
+    macro_rules! splat {
+        ($name:ident, $v:ident, $r:ident [$instr:ident, $doc:literal]) => {
+            #[doc = $doc]
+            #[inline]
+            #[target_feature(enable = "altivec")]
+            #[cfg_attr(test, assert_instr($instr, IMM5 = 1))]
+            pub unsafe fn $name<const IMM5: i8>() -> s_t_l!($r) {
+                static_assert_simm_bits!(IMM5, 5);
+                transmute($r::splat(IMM5 as $v))
+            }
+        };
+    }
 
     macro_rules! splats {
         ($name:ident, $v:ident, $r:ident) => {
@@ -2002,6 +2103,372 @@ mod sealed {
             vec_ctf_u32::<IMM5>(self)
         }
     }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(all(test, target_endian = "little"), assert_instr(vmrghb))]
+    #[cfg_attr(all(test, target_endian = "big"), assert_instr(vmrglb))]
+    unsafe fn vec_vmrglb(a: vector_signed_char, b: vector_signed_char) -> vector_signed_char {
+        let mergel_perm = transmute(u8x16::new(
+            0x08, 0x18, 0x09, 0x19, 0x0A, 0x1A, 0x0B, 0x1B, 0x0C, 0x1C, 0x0D, 0x1D, 0x0E, 0x1E,
+            0x0F, 0x1F,
+        ));
+        vec_perm(a, b, mergel_perm)
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(all(test, target_endian = "little"), assert_instr(vmrghh))]
+    #[cfg_attr(all(test, target_endian = "big"), assert_instr(vmrglh))]
+    unsafe fn vec_vmrglh(a: vector_signed_short, b: vector_signed_short) -> vector_signed_short {
+        let mergel_perm = transmute(u8x16::new(
+            0x08, 0x09, 0x18, 0x19, 0x0A, 0x0B, 0x1A, 0x1B, 0x0C, 0x0D, 0x1C, 0x1D, 0x0E, 0x0F,
+            0x1E, 0x1F,
+        ));
+        vec_perm(a, b, mergel_perm)
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(
+        all(test, target_endian = "little", not(target_feature = "vsx")),
+        assert_instr(vmrghw)
+    )]
+    #[cfg_attr(
+        all(test, target_endian = "little", target_feature = "vsx"),
+        assert_instr(xxmrghw)
+    )]
+    #[cfg_attr(
+        all(test, target_endian = "big", not(target_feature = "vsx")),
+        assert_instr(vmrglw)
+    )]
+    #[cfg_attr(
+        all(test, target_endian = "big", target_feature = "vsx"),
+        assert_instr(xxmrglw)
+    )]
+    unsafe fn vec_vmrglw(a: vector_signed_int, b: vector_signed_int) -> vector_signed_int {
+        let mergel_perm = transmute(u8x16::new(
+            0x08, 0x09, 0x0A, 0x0B, 0x18, 0x19, 0x1A, 0x1B, 0x0C, 0x0D, 0x0E, 0x0F, 0x1C, 0x1D,
+            0x1E, 0x1F,
+        ));
+        vec_perm(a, b, mergel_perm)
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(all(test, target_endian = "little"), assert_instr(vmrglb))]
+    #[cfg_attr(all(test, target_endian = "big"), assert_instr(vmrghb))]
+    unsafe fn vec_vmrghb(a: vector_signed_char, b: vector_signed_char) -> vector_signed_char {
+        let mergel_perm = transmute(u8x16::new(
+            0x00, 0x10, 0x01, 0x11, 0x02, 0x12, 0x03, 0x13, 0x04, 0x14, 0x05, 0x15, 0x06, 0x16,
+            0x07, 0x17,
+        ));
+        vec_perm(a, b, mergel_perm)
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(all(test, target_endian = "little"), assert_instr(vmrglh))]
+    #[cfg_attr(all(test, target_endian = "big"), assert_instr(vmrghh))]
+    unsafe fn vec_vmrghh(a: vector_signed_short, b: vector_signed_short) -> vector_signed_short {
+        let mergel_perm = transmute(u8x16::new(
+            0x00, 0x01, 0x10, 0x11, 0x02, 0x03, 0x12, 0x13, 0x04, 0x05, 0x14, 0x15, 0x06, 0x07,
+            0x16, 0x17,
+        ));
+        vec_perm(a, b, mergel_perm)
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(
+        all(test, target_endian = "little", not(target_feature = "vsx")),
+        assert_instr(vmrglw)
+    )]
+    #[cfg_attr(
+        all(test, target_endian = "little", target_feature = "vsx"),
+        assert_instr(xxmrglw)
+    )]
+    #[cfg_attr(
+        all(test, target_endian = "big", not(target_feature = "vsx")),
+        assert_instr(vmrghw)
+    )]
+    #[cfg_attr(
+        all(test, target_endian = "big", target_feature = "vsx"),
+        assert_instr(xxmrghw)
+    )]
+    unsafe fn vec_vmrghw(a: vector_signed_int, b: vector_signed_int) -> vector_signed_int {
+        let mergel_perm = transmute(u8x16::new(
+            0x00, 0x01, 0x02, 0x03, 0x10, 0x11, 0x12, 0x13, 0x04, 0x05, 0x06, 0x07, 0x14, 0x15,
+            0x16, 0x17,
+        ));
+        vec_perm(a, b, mergel_perm)
+    }
+
+    pub trait VectorMergeh<Other> {
+        type Result;
+        unsafe fn vec_mergeh(self, b: Other) -> Self::Result;
+    }
+
+    impl_vec_trait! { [VectorMergeh vec_mergeh]+ 2b (vec_vmrghb, vec_vmrghh, vec_vmrghw) }
+    impl_vec_trait! { [VectorMergeh vec_mergeh]+ vec_vmrghw (vector_float, vector_float) -> vector_float }
+
+    pub trait VectorMergel<Other> {
+        type Result;
+        unsafe fn vec_mergel(self, b: Other) -> Self::Result;
+    }
+
+    impl_vec_trait! { [VectorMergel vec_mergel]+ 2b (vec_vmrglb, vec_vmrglh, vec_vmrglw) }
+    impl_vec_trait! { [VectorMergel vec_mergel]+ vec_vmrglw (vector_float, vector_float) -> vector_float }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vpkuhum))]
+    unsafe fn vec_vpkuhum(a: vector_signed_short, b: vector_signed_short) -> vector_signed_char {
+        let pack_perm = if cfg!(target_endian = "little") {
+            transmute(u8x16::new(
+                0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A,
+                0x1C, 0x1E,
+            ))
+        } else {
+            transmute(u8x16::new(
+                0x01, 0x03, 0x05, 0x07, 0x09, 0x0B, 0x0D, 0x0F, 0x11, 0x13, 0x15, 0x17, 0x19, 0x1B,
+                0x1D, 0x1F,
+            ))
+        };
+
+        transmute(vec_perm(a, b, pack_perm))
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vpkuwum))]
+    unsafe fn vec_vpkuwum(a: vector_signed_int, b: vector_signed_int) -> vector_signed_short {
+        let pack_perm = if cfg!(target_endian = "little") {
+            transmute(u8x16::new(
+                0x00, 0x01, 0x04, 0x05, 0x08, 0x09, 0x0C, 0x0D, 0x10, 0x11, 0x14, 0x15, 0x18, 0x19,
+                0x1C, 0x1D,
+            ))
+        } else {
+            transmute(u8x16::new(
+                0x02, 0x03, 0x06, 0x07, 0x0A, 0x0B, 0x0E, 0x0F, 0x12, 0x13, 0x16, 0x17, 0x1A, 0x1B,
+                0x1E, 0x1F,
+            ))
+        };
+
+        transmute(vec_perm(a, b, pack_perm))
+    }
+
+    pub trait VectorPack<Other> {
+        type Result;
+        unsafe fn vec_pack(self, b: Other) -> Self::Result;
+    }
+
+    impl_vec_trait! { [VectorPack vec_pack]+ vec_vpkuhum (vector_signed_short, vector_signed_short) -> vector_signed_char }
+    impl_vec_trait! { [VectorPack vec_pack]+ vec_vpkuhum (vector_unsigned_short, vector_unsigned_short) -> vector_unsigned_char }
+    impl_vec_trait! { [VectorPack vec_pack]+ vec_vpkuhum (vector_bool_short, vector_bool_short) -> vector_bool_char }
+    impl_vec_trait! { [VectorPack vec_pack]+ vec_vpkuwum (vector_signed_int, vector_signed_int) -> vector_signed_short }
+    impl_vec_trait! { [VectorPack vec_pack]+ vec_vpkuwum (vector_unsigned_int, vector_unsigned_int) -> vector_unsigned_short }
+    impl_vec_trait! { [VectorPack vec_pack]+ vec_vpkuwum (vector_bool_int, vector_bool_int) -> vector_bool_short }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vpkshss))]
+    unsafe fn vec_vpkshss(a: vector_signed_short, b: vector_signed_short) -> vector_signed_char {
+        if cfg!(target_endian = "little") {
+            vpkshss(b, a)
+        } else {
+            vpkshss(a, b)
+        }
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vpkshus))]
+    unsafe fn vec_vpkshus(a: vector_signed_short, b: vector_signed_short) -> vector_unsigned_char {
+        if cfg!(target_endian = "little") {
+            vpkshus(b, a)
+        } else {
+            vpkshus(a, b)
+        }
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vpkuhus))]
+    unsafe fn vec_vpkuhus(
+        a: vector_unsigned_short,
+        b: vector_unsigned_short,
+    ) -> vector_unsigned_char {
+        if cfg!(target_endian = "little") {
+            vpkuhus(b, a)
+        } else {
+            vpkuhus(a, b)
+        }
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vpkswss))]
+    unsafe fn vec_vpkswss(a: vector_signed_int, b: vector_signed_int) -> vector_signed_short {
+        if cfg!(target_endian = "little") {
+            vpkswss(b, a)
+        } else {
+            vpkswss(a, b)
+        }
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vpkswus))]
+    unsafe fn vec_vpkswus(a: vector_signed_int, b: vector_signed_int) -> vector_unsigned_short {
+        if cfg!(target_endian = "little") {
+            vpkswus(b, a)
+        } else {
+            vpkswus(a, b)
+        }
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vpkuwus))]
+    unsafe fn vec_vpkuwus(a: vector_unsigned_int, b: vector_unsigned_int) -> vector_unsigned_short {
+        if cfg!(target_endian = "little") {
+            vpkuwus(b, a)
+        } else {
+            vpkuwus(a, b)
+        }
+    }
+
+    pub trait VectorPacks<Other> {
+        type Result;
+        unsafe fn vec_packs(self, b: Other) -> Self::Result;
+    }
+
+    impl_vec_trait! { [VectorPacks vec_packs] vec_vpkshss (vector_signed_short, vector_signed_short) -> vector_signed_char }
+    impl_vec_trait! { [VectorPacks vec_packs] vec_vpkuhus (vector_unsigned_short, vector_unsigned_short) -> vector_unsigned_char }
+    impl_vec_trait! { [VectorPacks vec_packs] vec_vpkswss (vector_signed_int, vector_signed_int) -> vector_signed_short }
+    impl_vec_trait! { [VectorPacks vec_packs] vec_vpkuwus (vector_unsigned_int, vector_unsigned_int) -> vector_unsigned_short }
+
+    pub trait VectorPacksu<Other> {
+        type Result;
+        unsafe fn vec_packsu(self, b: Other) -> Self::Result;
+    }
+
+    impl_vec_trait! { [VectorPacksu vec_packsu] vec_vpkshus (vector_signed_short, vector_signed_short) -> vector_unsigned_char }
+    impl_vec_trait! { [VectorPacksu vec_packsu] vec_vpkuhus (vector_unsigned_short, vector_unsigned_short) -> vector_unsigned_char }
+    impl_vec_trait! { [VectorPacksu vec_packsu] vec_vpkswus (vector_signed_int, vector_signed_int) -> vector_unsigned_short }
+    impl_vec_trait! { [VectorPacksu vec_packsu] vec_vpkuwus (vector_unsigned_int, vector_unsigned_int) -> vector_unsigned_short }
+
+    macro_rules! impl_vec_unpack {
+        ($fun:ident ($a:ident) -> $r:ident [$little:ident, $big:ident]) => {
+            #[inline]
+            #[target_feature(enable = "altivec")]
+            #[cfg_attr(all(test, target_endian = "little"), assert_instr($little))]
+            #[cfg_attr(all(test, target_endian = "big"), assert_instr($big))]
+            unsafe fn $fun(a: $a) -> $r {
+                if cfg!(target_endian = "little") {
+                    $little(a)
+                } else {
+                    $big(a)
+                }
+            }
+        };
+    }
+
+    impl_vec_unpack! { vec_vupkhsb (vector_signed_char) -> vector_signed_short [vupklsb, vupkhsb] }
+    impl_vec_unpack! { vec_vupklsb (vector_signed_char) -> vector_signed_short [vupkhsb, vupklsb] }
+    impl_vec_unpack! { vec_vupkhsh (vector_signed_short) -> vector_signed_int [vupklsh, vupkhsh] }
+    impl_vec_unpack! { vec_vupklsh (vector_signed_short) -> vector_signed_int [vupkhsh, vupklsh] }
+
+    pub trait VectorUnpackh {
+        type Result;
+        unsafe fn vec_unpackh(self) -> Self::Result;
+    }
+
+    impl_vec_trait! { [VectorUnpackh vec_unpackh] vec_vupkhsb (vector_signed_char) -> vector_signed_short }
+    impl_vec_trait! { [VectorUnpackh vec_unpackh]+ vec_vupkhsb (vector_bool_char) -> vector_bool_short }
+    impl_vec_trait! { [VectorUnpackh vec_unpackh] vec_vupkhsh (vector_signed_short) -> vector_signed_int }
+    impl_vec_trait! { [VectorUnpackh vec_unpackh]+ vec_vupkhsh (vector_bool_short) -> vector_bool_int }
+
+    pub trait VectorUnpackl {
+        type Result;
+        unsafe fn vec_unpackl(self) -> Self::Result;
+    }
+
+    impl_vec_trait! { [VectorUnpackl vec_unpackl] vec_vupklsb (vector_signed_char) -> vector_signed_short }
+    impl_vec_trait! { [VectorUnpackl vec_unpackl]+ vec_vupklsb (vector_bool_char) -> vector_bool_short }
+    impl_vec_trait! { [VectorUnpackl vec_unpackl] vec_vupklsh (vector_signed_short) -> vector_signed_int }
+    impl_vec_trait! { [VectorUnpackl vec_unpackl]+ vec_vupklsh (vector_bool_short) -> vector_bool_int }
+}
+
+/// Vector Merge Low
+#[inline]
+#[target_feature(enable = "altivec")]
+pub unsafe fn vec_mergel<T, U>(a: T, b: U) -> <T as sealed::VectorMergel<U>>::Result
+where
+    T: sealed::VectorMergel<U>,
+{
+    a.vec_mergel(b)
+}
+
+/// Vector Merge High
+#[inline]
+#[target_feature(enable = "altivec")]
+pub unsafe fn vec_mergeh<T, U>(a: T, b: U) -> <T as sealed::VectorMergeh<U>>::Result
+where
+    T: sealed::VectorMergeh<U>,
+{
+    a.vec_mergeh(b)
+}
+
+/// Vector Pack
+#[inline]
+#[target_feature(enable = "altivec")]
+pub unsafe fn vec_pack<T, U>(a: T, b: U) -> <T as sealed::VectorPack<U>>::Result
+where
+    T: sealed::VectorPack<U>,
+{
+    a.vec_pack(b)
+}
+
+/// Vector Pack Saturated
+#[inline]
+#[target_feature(enable = "altivec")]
+pub unsafe fn vec_packs<T, U>(a: T, b: U) -> <T as sealed::VectorPacks<U>>::Result
+where
+    T: sealed::VectorPacks<U>,
+{
+    a.vec_packs(b)
+}
+
+/// Vector Pack Saturated Unsigned
+#[inline]
+#[target_feature(enable = "altivec")]
+pub unsafe fn vec_packsu<T, U>(a: T, b: U) -> <T as sealed::VectorPacksu<U>>::Result
+where
+    T: sealed::VectorPacksu<U>,
+{
+    a.vec_packsu(b)
+}
+
+/// Vector Unpack High
+#[inline]
+#[target_feature(enable = "altivec")]
+pub unsafe fn vec_unpackh<T>(a: T) -> <T as sealed::VectorUnpackh>::Result
+where
+    T: sealed::VectorUnpackh,
+{
+    a.vec_unpackh()
+}
+
+/// Vector Unpack Low
+#[inline]
+#[target_feature(enable = "altivec")]
+pub unsafe fn vec_unpackl<T>(a: T) -> <T as sealed::VectorUnpackl>::Result
+where
+    T: sealed::VectorUnpackl,
+{
+    a.vec_unpackl()
 }
 
 /// Vector Load Indexed.
@@ -2202,6 +2669,23 @@ where
 {
     a.vec_abss()
 }
+
+/// Vector Splat
+#[inline]
+#[target_feature(enable = "altivec")]
+pub unsafe fn vec_splat<T, const IMM: u32>(a: T) -> T
+where
+    T: sealed::VectorSplat,
+{
+    a.vec_splat::<IMM>()
+}
+
+splat! { vec_splat_u8, u8, u8x16 [vspltisb, "Vector Splat to Unsigned Byte"] }
+splat! { vec_splat_i8, i8, i8x16 [vspltisb, "Vector Splat to Signed Byte"] }
+splat! { vec_splat_u16, u16, u16x8 [vspltish, "Vector Splat to Unsigned Halfword"] }
+splat! { vec_splat_i16, i16, i16x8 [vspltish, "Vector Splat to Signed Halfword"] }
+splat! { vec_splat_u32, u32, u32x4 [vspltisw, "Vector Splat to Unsigned Word"] }
+splat! { vec_splat_i32, i32, i32x4 [vspltisw, "Vector Splat to Signed Word"] }
 
 /// Vector splats.
 #[inline]
@@ -3971,6 +4455,24 @@ mod tests {
     test_vec_splats! { test_vec_splats_i16, i16x8, 42i16 }
     test_vec_splats! { test_vec_splats_i32, i32x4, 42i32 }
     test_vec_splats! { test_vec_splats_f32, f32x4, 42f32 }
+
+    macro_rules! test_vec_splat {
+        { $name: ident, $fun: ident, $ty: ident, $a: expr, $b: expr} => {
+            #[simd_test(enable = "altivec")]
+            unsafe fn $name() {
+                let a = $fun::<$a>();
+                let d = $ty::splat($b);
+                assert_eq!(d, transmute(a));
+            }
+        }
+    }
+
+    test_vec_splat! { test_vec_splat_u8, vec_splat_u8, u8x16, -1, u8::MAX }
+    test_vec_splat! { test_vec_splat_u16, vec_splat_u16, u16x8, -1, u16::MAX }
+    test_vec_splat! { test_vec_splat_u32, vec_splat_u32, u32x4, -1, u32::MAX }
+    test_vec_splat! { test_vec_splat_i8, vec_splat_i8, i8x16, -1, -1 }
+    test_vec_splat! { test_vec_splat_i16, vec_splat_i16, i16x8, -1, -1 }
+    test_vec_splat! { test_vec_splat_i32, vec_splat_i32, i32x4, -1, -1 }
 
     macro_rules! test_vec_sub {
         { $name: ident, $ty: ident, [$($a:expr),+], [$($b:expr),+], [$($d:expr),+] } => {

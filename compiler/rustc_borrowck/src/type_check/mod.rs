@@ -7,7 +7,6 @@ use std::{fmt, iter, mem};
 
 use either::Either;
 
-use hir::OpaqueTyOrigin;
 use rustc_data_structures::frozen::Frozen;
 use rustc_data_structures::fx::{FxIndexMap, FxIndexSet};
 use rustc_errors::ErrorGuaranteed;
@@ -28,7 +27,8 @@ use rustc_middle::mir::visit::{NonMutatingUseContext, PlaceContext, Visitor};
 use rustc_middle::mir::AssertKind;
 use rustc_middle::mir::*;
 use rustc_middle::traits::query::NoSolution;
-use rustc_middle::ty::adjustment::PointerCast;
+use rustc_middle::traits::ObligationCause;
+use rustc_middle::ty::adjustment::PointerCoercion;
 use rustc_middle::ty::cast::CastTy;
 use rustc_middle::ty::subst::{SubstsRef, UserSubsts};
 use rustc_middle::ty::visit::TypeVisitableExt;
@@ -50,7 +50,6 @@ use rustc_mir_dataflow::impls::MaybeInitializedPlaces;
 use rustc_mir_dataflow::move_paths::MoveData;
 use rustc_mir_dataflow::ResultsCursor;
 
-use crate::renumber::RegionCtxt;
 use crate::session_diagnostics::MoveUnsized;
 use crate::{
     borrow_set::BorrowSet,
@@ -139,7 +138,7 @@ pub(crate) fn type_check<'mir, 'tcx>(
     upvars: &[Upvar<'tcx>],
     use_polonius: bool,
 ) -> MirTypeckResults<'tcx> {
-    let implicit_region_bound = infcx.tcx.mk_re_var(universal_regions.fr_fn_body);
+    let implicit_region_bound = ty::Region::new_var(infcx.tcx, universal_regions.fr_fn_body);
     let mut constraints = MirTypeckRegionConstraints {
         placeholder_indices: PlaceholderIndices::default(),
         placeholder_index_to_region: IndexVec::default(),
@@ -188,10 +187,7 @@ pub(crate) fn type_check<'mir, 'tcx>(
 
     // FIXME(-Ztrait-solver=next): A bit dubious that we're only registering
     // predefined opaques in the typeck root.
-    // FIXME(-Ztrait-solver=next): This is also totally wrong for TAITs, since
-    // the HIR typeck map defining usages back to their definition params,
-    // they won't actually match up with the usages in this body...
-    if infcx.tcx.trait_solver_next() && !infcx.tcx.is_typeck_child(body.source.def_id()) {
+    if infcx.next_trait_solver() && !infcx.tcx.is_typeck_child(body.source.def_id()) {
         checker.register_predefined_opaques_in_new_solver();
     }
 
@@ -241,10 +237,10 @@ pub(crate) fn type_check<'mir, 'tcx>(
                     decl.hidden_type.span,
                     format!("could not resolve {:#?}", hidden_type.ty.kind()),
                 );
-                hidden_type.ty = infcx.tcx.ty_error(reported);
+                hidden_type.ty = Ty::new_error(infcx.tcx, reported);
             }
 
-            (opaque_type_key, (hidden_type, decl.origin))
+            (opaque_type_key, hidden_type)
         })
         .collect();
 
@@ -480,9 +476,7 @@ impl<'a, 'b, 'tcx> Visitor<'tcx> for TypeVerifier<'a, 'b, 'tcx> {
 
     fn visit_body(&mut self, body: &Body<'tcx>) {
         self.sanitize_type(&"return type", body.return_ty());
-        for local_decl in &body.local_decls {
-            self.sanitize_type(local_decl, local_decl.ty);
-        }
+        // The types of local_decls are checked above which is called in super_body.
         self.super_body(body);
     }
 }
@@ -526,7 +520,7 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
         for elem in place.projection.iter() {
             if place_ty.variant_index.is_none() {
                 if let Err(guar) = place_ty.ty.error_reported() {
-                    return PlaceTy::from_ty(self.tcx().ty_error(guar));
+                    return PlaceTy::from_ty(Ty::new_error(self.tcx(), guar));
                 }
             }
             place_ty = self.sanitize_projection(place_ty, elem, place, location, context);
@@ -662,7 +656,7 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
                 PlaceTy::from_ty(match base_ty.kind() {
                     ty::Array(inner, _) => {
                         assert!(!from_end, "array subslices should not use from_end");
-                        tcx.mk_array(*inner, to - from)
+                        Ty::new_array(tcx, *inner, to - from)
                     }
                     ty::Slice(..) => {
                         assert!(from_end, "slice subslices should use from_end");
@@ -755,7 +749,7 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
     }
 
     fn error(&mut self) -> Ty<'tcx> {
-        self.tcx().ty_error_misc()
+        Ty::new_misc_error(self.tcx())
     }
 
     fn get_ambient_variance(&self, context: PlaceContext) -> ty::Variance {
@@ -883,8 +877,7 @@ struct BorrowCheckContext<'a, 'tcx> {
 pub(crate) struct MirTypeckResults<'tcx> {
     pub(crate) constraints: MirTypeckRegionConstraints<'tcx>,
     pub(crate) universal_region_relations: Frozen<UniversalRegionRelations<'tcx>>,
-    pub(crate) opaque_type_values:
-        FxIndexMap<OpaqueTypeKey<'tcx>, (OpaqueHiddenType<'tcx>, OpaqueTyOrigin)>,
+    pub(crate) opaque_type_values: FxIndexMap<OpaqueTypeKey<'tcx>, OpaqueHiddenType<'tcx>>,
 }
 
 /// A collection of region constraints that must be satisfied for the
@@ -1042,16 +1035,13 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             .typeck(self.body.source.def_id().expect_local())
             .concrete_opaque_types
             .iter()
-            .map(|(&def_id, &hidden_ty)| {
-                let substs = ty::InternalSubsts::identity_for_item(self.infcx.tcx, def_id);
-                (ty::OpaqueTypeKey { def_id, substs }, hidden_ty)
-            })
+            .map(|(k, v)| (*k, *v))
             .collect();
 
         let renumbered_opaques = self.infcx.tcx.fold_regions(opaques, |_, _| {
-            self.infcx.next_nll_region_var(
+            self.infcx.next_nll_region_var_in_universe(
                 NllRegionVariableOrigin::Existential { from_forall: false },
-                || RegionCtxt::Unknown,
+                ty::UniverseIndex::ROOT,
             )
         });
 
@@ -1061,15 +1051,29 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             ConstraintCategory::OpaqueType,
             CustomTypeOp::new(
                 |ocx| {
-                    for (key, hidden_ty) in renumbered_opaques {
-                        ocx.register_infer_ok_obligations(
-                            ocx.infcx.register_hidden_type_in_new_solver(
-                                key,
-                                param_env,
-                                hidden_ty.ty,
-                            )?,
+                    let mut obligations = Vec::new();
+                    for (opaque_type_key, hidden_ty) in renumbered_opaques {
+                        let cause = ObligationCause::dummy();
+                        ocx.infcx.insert_hidden_type(
+                            opaque_type_key,
+                            &cause,
+                            param_env,
+                            hidden_ty.ty,
+                            true,
+                            &mut obligations,
+                        )?;
+
+                        ocx.infcx.add_item_bounds_for_hidden_type(
+                            opaque_type_key.def_id.to_def_id(),
+                            opaque_type_key.substs,
+                            cause,
+                            param_env,
+                            hidden_ty.ty,
+                            &mut obligations,
                         );
                     }
+
+                    ocx.register_obligations(obligations);
                     Ok(())
                 },
                 "register pre-defined opaques",
@@ -1366,7 +1370,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                 }
                 // FIXME: check the values
             }
-            TerminatorKind::Call { func, args, destination, from_hir_call, target, .. } => {
+            TerminatorKind::Call { func, args, destination, call_source, target, .. } => {
                 self.check_operand(func, term_location);
                 for arg in args {
                     self.check_operand(arg, term_location);
@@ -1415,9 +1419,11 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                 //
                 // See #91068 for an example.
                 self.prove_predicates(
-                    sig.inputs_and_output
-                        .iter()
-                        .map(|ty| ty::Binder::dummy(ty::PredicateKind::WellFormed(ty.into()))),
+                    sig.inputs_and_output.iter().map(|ty| {
+                        ty::Binder::dummy(ty::PredicateKind::Clause(ty::ClauseKind::WellFormed(
+                            ty.into(),
+                        )))
+                    }),
                     term_location.to_locations(),
                     ConstraintCategory::Boring,
                 );
@@ -1440,7 +1446,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                         .add_element(region_vid, term_location);
                 }
 
-                self.check_call_inputs(body, term, &sig, args, term_location, *from_hir_call);
+                self.check_call_inputs(body, term, &sig, args, term_location, *call_source);
             }
             TerminatorKind::Assert { cond, msg, .. } => {
                 self.check_operand(cond, term_location);
@@ -1567,7 +1573,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
         sig: &ty::FnSig<'tcx>,
         args: &[Operand<'tcx>],
         term_location: Location,
-        from_hir_call: bool,
+        call_source: CallSource,
     ) {
         debug!("check_call_inputs({:?}, {:?})", sig, args);
         if args.len() < sig.inputs().len() || (args.len() > sig.inputs().len() && !sig.c_variadic) {
@@ -1585,7 +1591,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             let op_arg_ty = op_arg.ty(body, self.tcx());
 
             let op_arg_ty = self.normalize(op_arg_ty, term_location);
-            let category = if from_hir_call {
+            let category = if call_source.from_hir_call() {
                 ConstraintCategory::CallArgument(self.infcx.tcx.erase_regions(func_ty))
             } else {
                 ConstraintCategory::Boring
@@ -1846,7 +1852,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
 
                 let array_ty = rvalue.ty(body.local_decls(), tcx);
                 self.prove_predicate(
-                    ty::PredicateKind::WellFormed(array_ty.into()),
+                    ty::PredicateKind::Clause(ty::ClauseKind::WellFormed(array_ty.into())),
                     Locations::Single(location),
                     ConstraintCategory::Boring,
                 );
@@ -1902,7 +1908,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                 self.check_operand(op, location);
 
                 match cast_kind {
-                    CastKind::Pointer(PointerCast::ReifyFnPointer) => {
+                    CastKind::PointerCoercion(PointerCoercion::ReifyFnPointer) => {
                         let fn_sig = op.ty(body, tcx).fn_sig(tcx);
 
                         // The type that we see in the fcx is like
@@ -1912,7 +1918,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                         // and hence may contain unnormalized results.
                         let fn_sig = self.normalize(fn_sig, location);
 
-                        let ty_fn_ptr_from = tcx.mk_fn_ptr(fn_sig);
+                        let ty_fn_ptr_from = Ty::new_fn_ptr(tcx, fn_sig);
 
                         if let Err(terr) = self.eq_types(
                             *ty,
@@ -1931,12 +1937,13 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                         }
                     }
 
-                    CastKind::Pointer(PointerCast::ClosureFnPointer(unsafety)) => {
+                    CastKind::PointerCoercion(PointerCoercion::ClosureFnPointer(unsafety)) => {
                         let sig = match op.ty(body, tcx).kind() {
                             ty::Closure(_, substs) => substs.as_closure().sig(),
                             _ => bug!(),
                         };
-                        let ty_fn_ptr_from = tcx.mk_fn_ptr(tcx.signature_unclosure(sig, *unsafety));
+                        let ty_fn_ptr_from =
+                            Ty::new_fn_ptr(tcx, tcx.signature_unclosure(sig, *unsafety));
 
                         if let Err(terr) = self.eq_types(
                             *ty,
@@ -1955,7 +1962,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                         }
                     }
 
-                    CastKind::Pointer(PointerCast::UnsafeFnPointer) => {
+                    CastKind::PointerCoercion(PointerCoercion::UnsafeFnPointer) => {
                         let fn_sig = op.ty(body, tcx).fn_sig(tcx);
 
                         // The type that we see in the fcx is like
@@ -1984,7 +1991,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                         }
                     }
 
-                    CastKind::Pointer(PointerCast::Unsize) => {
+                    CastKind::PointerCoercion(PointerCoercion::Unsize) => {
                         let &ty = ty;
                         let trait_ref = ty::TraitRef::from_lang_item(
                             tcx,
@@ -2019,10 +2026,11 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                             ConstraintCategory::Cast,
                         );
 
-                        let outlives_predicate =
-                            tcx.mk_predicate(Binder::dummy(ty::PredicateKind::Clause(
-                                ty::Clause::TypeOutlives(ty::OutlivesPredicate(self_ty, *region)),
-                            )));
+                        let outlives_predicate = tcx.mk_predicate(Binder::dummy(
+                            ty::PredicateKind::Clause(ty::ClauseKind::TypeOutlives(
+                                ty::OutlivesPredicate(self_ty, *region),
+                            )),
+                        ));
                         self.prove_predicate(
                             outlives_predicate,
                             location.to_locations(),
@@ -2030,7 +2038,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                         );
                     }
 
-                    CastKind::Pointer(PointerCast::MutToConstPointer) => {
+                    CastKind::PointerCoercion(PointerCoercion::MutToConstPointer) => {
                         let ty::RawPtr(ty::TypeAndMut {
                             ty: ty_from,
                             mutbl: hir::Mutability::Mut,
@@ -2072,7 +2080,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                         }
                     }
 
-                    CastKind::Pointer(PointerCast::ArrayToPointer) => {
+                    CastKind::PointerCoercion(PointerCoercion::ArrayToPointer) => {
                         let ty_from = op.ty(body, tcx);
 
                         let opt_ty_elem_mut = match ty_from.kind() {
@@ -2495,7 +2503,6 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             location, borrow_region, borrowed_place
         );
 
-        let mut cursor = borrowed_place.projection.as_ref();
         let tcx = self.infcx.tcx;
         let field = path_utils::is_upvar_field_projection(
             tcx,
@@ -2509,14 +2516,12 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             ConstraintCategory::Boring
         };
 
-        while let [proj_base @ .., elem] = cursor {
-            cursor = proj_base;
-
+        for (base, elem) in borrowed_place.as_ref().iter_projections().rev() {
             debug!("add_reborrow_constraint - iteration {:?}", elem);
 
             match elem {
                 ProjectionElem::Deref => {
-                    let base_ty = Place::ty_from(borrowed_place.local, proj_base, body, tcx).ty;
+                    let base_ty = base.ty(body, tcx).ty;
 
                     debug!("add_reborrow_constraint - base_ty = {:?}", base_ty);
                     match base_ty.kind() {

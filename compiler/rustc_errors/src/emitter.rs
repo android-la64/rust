@@ -367,7 +367,7 @@ pub trait Emitter: Translate {
 
                 children.push(SubDiagnostic {
                     level: Level::Note,
-                    message: vec![(DiagnosticMessage::Str(msg), Style::NoStyle)],
+                    message: vec![(DiagnosticMessage::from(msg), Style::NoStyle)],
                     span: MultiSpan::new(),
                     render_span: None,
                 });
@@ -616,7 +616,7 @@ pub enum ColorConfig {
 }
 
 impl ColorConfig {
-    fn to_color_choice(self) -> ColorChoice {
+    pub fn to_color_choice(self) -> ColorChoice {
         match self {
             ColorConfig::Always => {
                 if io::stderr().is_terminal() {

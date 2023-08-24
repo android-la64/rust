@@ -7,6 +7,7 @@ use rustc_hir::{LangItem, Movability};
 use rustc_infer::traits::query::NoSolution;
 use rustc_infer::traits::util::supertraits;
 use rustc_middle::traits::solve::{CanonicalResponse, Certainty, Goal, QueryResult};
+use rustc_middle::traits::Reveal;
 use rustc_middle::ty::fast_reject::{DeepRejectCtxt, TreatParams, TreatProjections};
 use rustc_middle::ty::{self, ToPredicate, Ty, TyCtxt};
 use rustc_middle::ty::{TraitPredicate, TypeVisitableExt};
@@ -61,7 +62,7 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
             },
         };
 
-        ecx.probe(|ecx| {
+        ecx.probe_candidate("impl").enter(|ecx| {
             let impl_substs = ecx.fresh_substs_for_item(impl_def_id);
             let impl_trait_ref = impl_trait_ref.subst(tcx, impl_substs);
 
@@ -81,24 +82,26 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
     fn probe_and_match_goal_against_assumption(
         ecx: &mut EvalCtxt<'_, 'tcx>,
         goal: Goal<'tcx, Self>,
-        assumption: ty::Predicate<'tcx>,
+        assumption: ty::Clause<'tcx>,
         then: impl FnOnce(&mut EvalCtxt<'_, 'tcx>) -> QueryResult<'tcx>,
     ) -> QueryResult<'tcx> {
-        if let Some(poly_trait_pred) = assumption.to_opt_poly_trait_pred()
-            && poly_trait_pred.def_id() == goal.predicate.def_id()
-            && poly_trait_pred.polarity() == goal.predicate.polarity
-        {
-            // FIXME: Constness
-            ecx.probe(|ecx| {
-                let assumption_trait_pred =
-                    ecx.instantiate_binder_with_infer(poly_trait_pred);
-                ecx.eq(
-                    goal.param_env,
-                    goal.predicate.trait_ref,
-                    assumption_trait_pred.trait_ref,
-                )?;
-                then(ecx)
-            })
+        if let Some(trait_clause) = assumption.as_trait_clause() {
+            if trait_clause.def_id() == goal.predicate.def_id()
+                && trait_clause.polarity() == goal.predicate.polarity
+            {
+                // FIXME: Constness
+                ecx.probe_candidate("assumption").enter(|ecx| {
+                    let assumption_trait_pred = ecx.instantiate_binder_with_infer(trait_clause);
+                    ecx.eq(
+                        goal.param_env,
+                        goal.predicate.trait_ref,
+                        assumption_trait_pred.trait_ref,
+                    )?;
+                    then(ecx)
+                })
+            } else {
+                Err(NoSolution)
+            }
         } else {
             Err(NoSolution)
         }
@@ -114,6 +117,32 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
 
         if let Some(result) = ecx.disqualify_auto_trait_candidate_due_to_possible_impl(goal) {
             return result;
+        }
+
+        // Don't call `type_of` on a local TAIT that's in the defining scope,
+        // since that may require calling `typeck` on the same item we're
+        // currently type checking, which will result in a fatal cycle that
+        // ideally we want to avoid, since we can make progress on this goal
+        // via an alias bound or a locally-inferred hidden type instead.
+        //
+        // Also, don't call `type_of` on a TAIT in `Reveal::All` mode, since
+        // we already normalize the self type in
+        // `assemble_candidates_after_normalizing_self_ty`, and we'd
+        // just be registering an identical candidate here.
+        //
+        // Returning `Err(NoSolution)` here is ok in `SolverMode::Coherence`
+        // since we'll always be registering an ambiguous candidate in
+        // `assemble_candidates_after_normalizing_self_ty` due to normalizing
+        // the TAIT.
+        if let ty::Alias(ty::Opaque, opaque_ty) = goal.predicate.self_ty().kind() {
+            if matches!(goal.param_env.reveal(), Reveal::All)
+                || opaque_ty
+                    .def_id
+                    .as_local()
+                    .is_some_and(|def_id| ecx.can_define_opaque_ty(def_id))
+            {
+                return Err(NoSolution);
+            }
         }
 
         ecx.probe_and_evaluate_goal_for_constituent_tys(
@@ -132,7 +161,7 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
 
         let tcx = ecx.tcx();
 
-        ecx.probe(|ecx| {
+        ecx.probe_candidate("trait alias").enter(|ecx| {
             let nested_obligations = tcx
                 .predicates_of(goal.predicate.def_id())
                 .instantiate(tcx, goal.predicate.trait_ref.substs);
@@ -344,7 +373,7 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
         if b_ty.is_ty_var() {
             return ecx.evaluate_added_goals_and_make_canonical_response(Certainty::AMBIGUOUS);
         }
-        ecx.probe(|ecx| {
+        ecx.probe_candidate("builtin unsize").enter(|ecx| {
             match (a_ty.kind(), b_ty.kind()) {
                 // Trait upcasting, or `dyn Trait + Auto + 'a` -> `dyn Trait + 'b`
                 (&ty::Dynamic(_, _, ty::Dyn), &ty::Dynamic(_, _, ty::Dyn)) => {
@@ -396,12 +425,7 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
                         return Err(NoSolution);
                     }
 
-                    let tail_field = a_def
-                        .non_enum_variant()
-                        .fields
-                        .raw
-                        .last()
-                        .expect("expected unsized ADT to have a tail field");
+                    let tail_field = a_def.non_enum_variant().tail();
                     let tail_field_ty = tcx.type_of(tail_field.did);
 
                     let a_tail_ty = tail_field_ty.subst(tcx, a_substs);
@@ -414,7 +438,7 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
                         tcx.mk_substs_from_iter(a_substs.iter().enumerate().map(|(i, a)| {
                             if unsizing_params.contains(i as u32) { b_substs[i] } else { a }
                         }));
-                    let unsized_a_ty = tcx.mk_adt(a_def, new_a_substs);
+                    let unsized_a_ty = Ty::new_adt(tcx, a_def, new_a_substs);
 
                     // Finally, we require that `TailA: Unsize<TailB>` for the tail field
                     // types.
@@ -434,7 +458,7 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
 
                     // Substitute just the tail field of B., and require that they're equal.
                     let unsized_a_ty =
-                        tcx.mk_tup_from_iter(a_rest_tys.iter().chain([b_last_ty]).copied());
+                        Ty::new_tup_from_iter(tcx, a_rest_tys.iter().chain([b_last_ty]).copied());
                     ecx.eq(goal.param_env, unsized_a_ty, b_ty)?;
 
                     // Similar to ADTs, require that the rest of the fields are equal.
@@ -476,7 +500,7 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
         }
 
         let mut unsize_dyn_to_principal = |principal: Option<ty::PolyExistentialTraitRef<'tcx>>| {
-            ecx.probe(|ecx| -> Result<_, NoSolution> {
+            ecx.probe_candidate("upcast dyn to principle").enter(|ecx| -> Result<_, NoSolution> {
                 // Require that all of the trait predicates from A match B, except for
                 // the auto traits. We do this by constructing a new A type with B's
                 // auto traits, and equating these types.
@@ -493,7 +517,7 @@ impl<'tcx> assembly::GoalKind<'tcx> for TraitPredicate<'tcx> {
                             .map(ty::Binder::dummy),
                     );
                 let new_a_data = tcx.mk_poly_existential_predicates_from_iter(new_a_data);
-                let new_a_ty = tcx.mk_dynamic(new_a_data, b_region, ty::Dyn);
+                let new_a_ty = Ty::new_dynamic(tcx, new_a_data, b_region, ty::Dyn);
 
                 // We also require that A's lifetime outlives B's lifetime.
                 ecx.eq(goal.param_env, new_a_ty, b_ty)?;
@@ -618,7 +642,7 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
             ty::Dynamic(..)
             | ty::Param(..)
             | ty::Foreign(..)
-            | ty::Alias(ty::Projection | ty::Inherent, ..)
+            | ty::Alias(ty::Projection | ty::Weak | ty::Inherent, ..)
             | ty::Placeholder(..) => Some(Err(NoSolution)),
 
             ty::Infer(_) | ty::Bound(_, _) => bug!("unexpected type `{self_ty}`"),
@@ -698,7 +722,7 @@ impl<'tcx> EvalCtxt<'_, 'tcx> {
         goal: Goal<'tcx, TraitPredicate<'tcx>>,
         constituent_tys: impl Fn(&EvalCtxt<'_, 'tcx>, Ty<'tcx>) -> Result<Vec<Ty<'tcx>>, NoSolution>,
     ) -> QueryResult<'tcx> {
-        self.probe(|ecx| {
+        self.probe_candidate("constituent tys").enter(|ecx| {
             ecx.add_goals(
                 constituent_tys(ecx, goal.predicate.self_ty())?
                     .into_iter()

@@ -2,7 +2,7 @@
 #![deny(rustc::untranslatable_diagnostic)]
 #![deny(rustc::diagnostic_outside_of_impl)]
 #![feature(box_patterns)]
-#![feature(drain_filter)]
+#![feature(is_sorted)]
 #![feature(let_chains)]
 #![feature(map_try_insert)]
 #![feature(min_specialization)]
@@ -30,8 +30,8 @@ use rustc_hir::intravisit::{self, Visitor};
 use rustc_index::IndexVec;
 use rustc_middle::mir::visit::Visitor as _;
 use rustc_middle::mir::{
-    traversal, AnalysisPhase, Body, ClearCrossCrate, ConstQualifs, Constant, LocalDecl, MirPass,
-    MirPhase, Operand, Place, ProjectionElem, Promoted, RuntimePhase, Rvalue, SourceInfo,
+    traversal, AnalysisPhase, Body, CallSource, ClearCrossCrate, ConstQualifs, Constant, LocalDecl,
+    MirPass, MirPhase, Operand, Place, ProjectionElem, Promoted, RuntimePhase, Rvalue, SourceInfo,
     Statement, StatementKind, TerminatorKind, START_BLOCK,
 };
 use rustc_middle::query::Providers;
@@ -84,6 +84,7 @@ mod match_branches;
 mod multiple_return_terminators;
 mod normalize_array_len;
 mod nrvo;
+mod prettify;
 mod ref_prop;
 mod remove_noop_landing_pads;
 mod remove_storage_markers;
@@ -188,7 +189,7 @@ fn remap_mir_for_const_eval_select<'tcx>(
                     };
                     method(place)
                 }).collect();
-                terminator.kind = TerminatorKind::Call { func, args: arguments, destination, target, unwind, from_hir_call: false, fn_span };
+                terminator.kind = TerminatorKind::Call { func, args: arguments, destination, target, unwind, call_source: CallSource::Misc, fn_span };
             }
             _ => {}
         }
@@ -557,10 +558,13 @@ fn run_optimization_passes<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
             // inst combine is after MatchBranchSimplification to clean up Ne(_1, false)
             &multiple_return_terminators::MultipleReturnTerminators,
             &instsimplify::InstSimplify,
-            &separate_const_switch::SeparateConstSwitch,
             &simplify::SimplifyLocals::BeforeConstProp,
             &copy_prop::CopyProp,
             &ref_prop::ReferencePropagation,
+            // Perform `SeparateConstSwitch` after SSA-based analyses, as cloning blocks may
+            // destroy the SSA property. It should still happen before const-propagation, so the
+            // latter pass will leverage the created opportunities.
+            &separate_const_switch::SeparateConstSwitch,
             &const_prop::ConstProp,
             &dataflow_const_prop::DataflowConstProp,
             //
@@ -581,6 +585,9 @@ fn run_optimization_passes<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
             &large_enums::EnumSizeOpt { discrepancy: 128 },
             // Some cleanup necessary at least for LLVM and potentially other codegen backends.
             &add_call_guards::CriticalCallEdges,
+            // Cleanup for human readability, off by default.
+            &prettify::ReorderBasicBlocks,
+            &prettify::ReorderLocals,
             // Dump the end result for testing and debugging purposes.
             &dump_mir::Marker("PreCodegen"),
         ],

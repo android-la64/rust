@@ -67,6 +67,9 @@ impl BasicConstraints {
     }
 
     /// Return the `BasicConstraints` extension as an `X509Extension`.
+    // Temporarily silence the deprecation warning - this should be ported to
+    // `X509Extension::new_internal`.
+    #[allow(deprecated)]
     pub fn build(&self) -> Result<X509Extension, ErrorStack> {
         let mut value = String::new();
         if self.critical {
@@ -183,6 +186,9 @@ impl KeyUsage {
     }
 
     /// Return the `KeyUsage` extension as an `X509Extension`.
+    // Temporarily silence the deprecation warning - this should be ported to
+    // `X509Extension::new_internal`.
+    #[allow(deprecated)]
     pub fn build(&self) -> Result<X509Extension, ErrorStack> {
         let mut value = String::new();
         let mut first = true;
@@ -346,6 +352,9 @@ impl SubjectKeyIdentifier {
     }
 
     /// Return a `SubjectKeyIdentifier` extension as an `X509Extension`.
+    // Temporarily silence the deprecation warning - this should be ported to
+    // `X509Extension::new_internal`.
+    #[allow(deprecated)]
     pub fn build(&self, ctx: &X509v3Context<'_>) -> Result<X509Extension, ErrorStack> {
         let mut value = String::new();
         let mut first = true;
@@ -398,6 +407,9 @@ impl AuthorityKeyIdentifier {
     }
 
     /// Return a `AuthorityKeyIdentifier` extension as an `X509Extension`.
+    // Temporarily silence the deprecation warning - this should be ported to
+    // `X509Extension::new_internal`.
+    #[allow(deprecated)]
     pub fn build(&self, ctx: &X509v3Context<'_>) -> Result<X509Extension, ErrorStack> {
         let mut value = String::new();
         let mut first = true;
@@ -422,6 +434,7 @@ enum RustGeneralName {
     Uri(String),
     Ip(String),
     Rid(String),
+    OtherName(Asn1Object, Vec<u8>),
 }
 
 /// An extension that allows additional identities to be bound to the subject
@@ -494,12 +507,21 @@ impl SubjectAlternativeName {
 
     /// Sets the `otherName` flag.
     ///
-    /// Not currently actually supported, always panics.
-    #[deprecated = "other_name is deprecated and always panics. Please file a bug if you have a use case for this."]
+    /// Not currently actually supported, always panics. Please use other_name2
+    #[deprecated = "other_name is deprecated and always panics. Please use other_name2."]
     pub fn other_name(&mut self, _other_name: &str) -> &mut SubjectAlternativeName {
-        unimplemented!(
-            "This has not yet been adapted for the new internals. File a bug if you need this."
-        );
+        unimplemented!("This has not yet been adapted for the new internals. Use other_name2.");
+    }
+
+    /// Sets the `otherName` flag.
+    ///
+    /// `content` must be a valid der encoded ASN1_TYPE
+    ///
+    /// If you want to add just a ia5string use `other_name_ia5string`
+    pub fn other_name2(&mut self, oid: Asn1Object, content: &[u8]) -> &mut SubjectAlternativeName {
+        self.items
+            .push(RustGeneralName::OtherName(oid, content.into()));
+        self
     }
 
     /// Return a `SubjectAlternativeName` extension as an `X509Extension`.
@@ -514,6 +536,9 @@ impl SubjectAlternativeName {
                     GeneralName::new_ip(s.parse().map_err(|_| ErrorStack::get())?)?
                 }
                 RustGeneralName::Rid(s) => GeneralName::new_rid(Asn1Object::from_str(s)?)?,
+                RustGeneralName::OtherName(oid, content) => {
+                    GeneralName::new_other_name(oid.clone(), content)?
+                }
             };
             stack.push(gn)?;
         }

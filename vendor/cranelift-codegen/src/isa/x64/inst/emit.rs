@@ -154,35 +154,69 @@ pub(crate) fn emit(
             debug_assert_eq!(src1, reg_g);
             let src2 = src2.clone().to_reg_mem_imm().with_allocs(allocs);
 
-            let rex = RexFlags::from(*size);
+            let prefix = if *size == OperandSize::Size16 {
+                LegacyPrefixes::_66
+            } else {
+                LegacyPrefixes::None
+            };
+
+            let mut rex = RexFlags::from(*size);
             if *op == AluRmiROpcode::Mul {
                 // We kinda freeloaded Mul into RMI_R_Op, but it doesn't fit the usual pattern, so
                 // we have to special-case it.
-                match src2 {
-                    RegMemImm::Reg { reg: reg_e } => {
-                        emit_std_reg_reg(sink, LegacyPrefixes::None, 0x0FAF, 2, reg_g, reg_e, rex);
-                    }
+                if *size == OperandSize::Size8 {
+                    match src2 {
+                        RegMemImm::Reg { reg: reg_e } => {
+                            debug_assert!(reg_e.is_real());
+                            rex.always_emit_if_8bit_needed(reg_e);
+                            let enc_e = int_reg_enc(reg_e);
+                            emit_std_enc_enc(sink, LegacyPrefixes::None, 0xF6, 1, 5, enc_e, rex);
+                        }
 
-                    RegMemImm::Mem { addr } => {
-                        let amode = addr.finalize(state, sink);
-                        emit_std_reg_mem(
-                            sink,
-                            LegacyPrefixes::None,
-                            0x0FAF,
-                            2,
-                            reg_g,
-                            &amode,
-                            rex,
-                            0,
-                        );
-                    }
+                        RegMemImm::Mem { addr } => {
+                            let amode = addr.finalize(state, sink);
+                            emit_std_enc_mem(
+                                sink,
+                                LegacyPrefixes::None,
+                                0xF6,
+                                1,
+                                5,
+                                &amode,
+                                rex,
+                                0,
+                            );
+                        }
 
-                    RegMemImm::Imm { simm32 } => {
-                        let use_imm8 = low8_will_sign_extend_to_32(simm32);
-                        let opcode = if use_imm8 { 0x6B } else { 0x69 };
-                        // Yes, really, reg_g twice.
-                        emit_std_reg_reg(sink, LegacyPrefixes::None, opcode, 1, reg_g, reg_g, rex);
-                        emit_simm(sink, if use_imm8 { 1 } else { 4 }, simm32);
+                        RegMemImm::Imm { .. } => {
+                            panic!("Cannot emit 8bit imul with 8bit immediate");
+                        }
+                    }
+                } else {
+                    match src2 {
+                        RegMemImm::Reg { reg: reg_e } => {
+                            emit_std_reg_reg(sink, prefix, 0x0FAF, 2, reg_g, reg_e, rex);
+                        }
+
+                        RegMemImm::Mem { addr } => {
+                            let amode = addr.finalize(state, sink);
+                            emit_std_reg_mem(sink, prefix, 0x0FAF, 2, reg_g, &amode, rex, 0);
+                        }
+
+                        RegMemImm::Imm { simm32 } => {
+                            let imm_size = if low8_will_sign_extend_to_32(simm32) {
+                                1
+                            } else {
+                                if *size == OperandSize::Size16 {
+                                    2
+                                } else {
+                                    4
+                                }
+                            };
+                            let opcode = if imm_size == 1 { 0x6B } else { 0x69 };
+                            // Yes, really, reg_g twice.
+                            emit_std_reg_reg(sink, prefix, opcode, 1, reg_g, reg_g, rex);
+                            emit_simm(sink, imm_size, simm32);
+                        }
                     }
                 }
             } else {
@@ -197,52 +231,63 @@ pub(crate) fn emit(
                     AluRmiROpcode::Mul => panic!("unreachable"),
                 };
 
+                let (opcode_r, opcode_m) = if *size == OperandSize::Size8 {
+                    (opcode_r - 1, opcode_m - 1)
+                } else {
+                    (opcode_r, opcode_m)
+                };
+
+                if *size == OperandSize::Size8 {
+                    debug_assert!(reg_g.is_real());
+                    rex.always_emit_if_8bit_needed(reg_g);
+                }
+
                 match src2 {
                     RegMemImm::Reg { reg: reg_e } => {
+                        if *size == OperandSize::Size8 {
+                            debug_assert!(reg_e.is_real());
+                            rex.always_emit_if_8bit_needed(reg_e);
+                        }
+
                         // GCC/llvm use the swapped operand encoding (viz., the R/RM vs RM/R
                         // duality). Do this too, so as to be able to compare generated machine
                         // code easily.
-                        emit_std_reg_reg(
-                            sink,
-                            LegacyPrefixes::None,
-                            opcode_r,
-                            1,
-                            reg_e,
-                            reg_g,
-                            rex,
-                        );
+                        emit_std_reg_reg(sink, prefix, opcode_r, 1, reg_e, reg_g, rex);
                     }
 
                     RegMemImm::Mem { addr } => {
                         let amode = addr.finalize(state, sink);
                         // Here we revert to the "normal" G-E ordering.
-                        emit_std_reg_mem(
-                            sink,
-                            LegacyPrefixes::None,
-                            opcode_m,
-                            1,
-                            reg_g,
-                            &amode,
-                            rex,
-                            0,
-                        );
+                        emit_std_reg_mem(sink, prefix, opcode_m, 1, reg_g, &amode, rex, 0);
                     }
 
                     RegMemImm::Imm { simm32 } => {
-                        let use_imm8 = low8_will_sign_extend_to_32(simm32);
-                        let opcode = if use_imm8 { 0x83 } else { 0x81 };
+                        let imm_size = if *size == OperandSize::Size8 {
+                            1
+                        } else {
+                            if low8_will_sign_extend_to_32(simm32) {
+                                1
+                            } else {
+                                if *size == OperandSize::Size16 {
+                                    2
+                                } else {
+                                    4
+                                }
+                            }
+                        };
+
+                        let opcode = if *size == OperandSize::Size8 {
+                            0x80
+                        } else if low8_will_sign_extend_to_32(simm32) {
+                            0x83
+                        } else {
+                            0x81
+                        };
+
                         // And also here we use the "normal" G-E ordering.
                         let enc_g = int_reg_enc(reg_g);
-                        emit_std_enc_enc(
-                            sink,
-                            LegacyPrefixes::None,
-                            opcode,
-                            1,
-                            subopcode_i,
-                            enc_g,
-                            rex,
-                        );
-                        emit_simm(sink, if use_imm8 { 1 } else { 4 }, simm32);
+                        emit_std_enc_enc(sink, prefix, opcode, 1, subopcode_i, enc_g, rex);
+                        emit_simm(sink, imm_size, simm32);
                     }
                 }
             }
@@ -274,7 +319,6 @@ pub(crate) fn emit(
             let src2 = allocs.next(src2.to_reg());
             let src1_dst = src1_dst.finalize(state, sink).with_allocs(allocs);
 
-            assert!(*size == OperandSize::Size32 || *size == OperandSize::Size64);
             let opcode = match op {
                 AluRmiROpcode::Add => 0x01,
                 AluRmiROpcode::Sub => 0x29,
@@ -283,17 +327,26 @@ pub(crate) fn emit(
                 AluRmiROpcode::Xor => 0x31,
                 _ => panic!("Unsupported read-modify-write ALU opcode"),
             };
+
+            let prefix = if *size == OperandSize::Size16 {
+                LegacyPrefixes::_66
+            } else {
+                LegacyPrefixes::None
+            };
+            let opcode = if *size == OperandSize::Size8 {
+                opcode - 1
+            } else {
+                opcode
+            };
+
+            let mut rex = RexFlags::from(*size);
+            if *size == OperandSize::Size8 {
+                debug_assert!(src2.is_real());
+                rex.always_emit_if_8bit_needed(src2);
+            }
+
             let enc_g = int_reg_enc(src2);
-            emit_std_enc_mem(
-                sink,
-                LegacyPrefixes::None,
-                opcode,
-                1,
-                enc_g,
-                &src1_dst,
-                RexFlags::from(*size),
-                0,
-            );
+            emit_std_enc_mem(sink, prefix, opcode, 1, enc_g, &src1_dst, rex, 0);
         }
 
         Inst::AluRmRVex {
@@ -521,6 +574,45 @@ pub(crate) fn emit(
             }
         }
 
+        Inst::UMulLo {
+            size,
+            src1,
+            src2,
+            dst,
+        } => {
+            let src1 = allocs.next(src1.to_reg());
+            let dst = allocs.next(dst.to_reg().to_reg());
+            debug_assert_eq!(src1, regs::rax());
+            debug_assert_eq!(dst, regs::rax());
+
+            let mut rex = RexFlags::from(*size);
+            let prefix = match size {
+                OperandSize::Size16 => LegacyPrefixes::_66,
+                _ => LegacyPrefixes::None,
+            };
+
+            let opcode = if *size == OperandSize::Size8 {
+                0xF6
+            } else {
+                0xF7
+            };
+
+            match src2.clone().to_reg_mem() {
+                RegMem::Reg { reg } => {
+                    let reg = allocs.next(reg);
+                    if *size == OperandSize::Size8 {
+                        rex.always_emit_if_8bit_needed(reg);
+                    }
+                    let reg_e = int_reg_enc(reg);
+                    emit_std_enc_enc(sink, prefix, opcode, 1, 4, reg_e, rex);
+                }
+                RegMem::Mem { addr: src } => {
+                    let amode = src.finalize(state, sink).with_allocs(allocs);
+                    emit_std_enc_mem(sink, prefix, opcode, 1, 4, &amode, rex, 0);
+                }
+            }
+        }
+
         Inst::SignExtendData { size, src, dst } => {
             let src = allocs.next(src.to_reg());
             let dst = allocs.next(dst.to_reg().to_reg());
@@ -620,7 +712,7 @@ pub(crate) fn emit(
 
             // Here the `idiv` is executed, which is different depending on the
             // size
-            sink.bind_label(do_op);
+            sink.bind_label(do_op, &mut state.ctrl_plane);
             let inst = match size {
                 OperandSize::Size8 => Inst::div8(
                     DivSignedness::Signed,
@@ -642,7 +734,7 @@ pub(crate) fn emit(
             };
             inst.emit(&[], sink, info, state);
 
-            sink.bind_label(done_label);
+            sink.bind_label(done_label, &mut state.ctrl_plane);
         }
 
         Inst::Imm {
@@ -834,84 +926,20 @@ pub(crate) fn emit(
             )
         }
 
-        Inst::LoadEffectiveAddress { addr, dst, size } => {
+        Inst::LoadEffectiveAddress { addr, dst } => {
             let dst = allocs.next(dst.to_reg().to_reg());
             let amode = addr.finalize(state, sink).with_allocs(allocs);
 
-            // If this `lea` can actually get encoded as an `add` then do that
-            // instead. Currently all candidate `iadd`s become an `lea`
-            // pseudo-instruction here but maximizing the sue of `lea` is not
-            // necessarily optimal. The `lea` instruction goes through dedicated
-            // address units on cores which are finite and disjoint from the
-            // general ALU, so if everything uses `lea` then those units can get
-            // saturated while leaving the ALU idle.
-            //
-            // To help make use of more parts of a cpu, this attempts to use
-            // `add` when it's semantically equivalent to `lea`, or otherwise
-            // when the `dst` register is the same as the `base` or `index`
-            // register.
-            //
-            // FIXME: ideally regalloc is informed of this constraint. Register
-            // allocation of `lea` should "attempt" to put the `base` in the
-            // same register as `dst` but not at the expense of generating a
-            // `mov` instruction. Currently that's not possible but perhaps one
-            // day it may be worth it.
-            match amode {
-                // If `base == dst` then this is `add $imm, %dst`, so encode
-                // that instead.
-                Amode::ImmReg {
-                    simm32,
-                    base,
-                    flags: _,
-                } if base == dst => {
-                    let inst = Inst::alu_rmi_r(
-                        *size,
-                        AluRmiROpcode::Add,
-                        RegMemImm::imm(simm32),
-                        Writable::from_reg(dst),
-                    );
-                    inst.emit(&[], sink, info, state);
-                }
-                // If the offset is 0 and the shift is 0 (meaning multiplication
-                // by 1) then:
-                //
-                // * If `base == dst`, then this is `add %index, %base`
-                // * If `index == dst`, then this is `add %base, %index`
-                //
-                // Encode the appropriate instruction here in that case.
-                Amode::ImmRegRegShift {
-                    simm32: 0,
-                    base,
-                    index,
-                    shift: 0,
-                    flags: _,
-                } if base == dst || index == dst => {
-                    let (dst, operand) = if base == dst {
-                        (base, index)
-                    } else {
-                        (index, base)
-                    };
-                    let inst = Inst::alu_rmi_r(
-                        *size,
-                        AluRmiROpcode::Add,
-                        RegMemImm::reg(operand.to_reg()),
-                        Writable::from_reg(dst.to_reg()),
-                    );
-                    inst.emit(&[], sink, info, state);
-                }
-
-                // If `lea`'s 3-operand mode is leveraged by regalloc, or if
-                // it's fancy like imm-plus-shift-plus-base, then `lea` is
-                // actually emitted.
-                _ => {
-                    let flags = match size {
-                        OperandSize::Size32 => RexFlags::clear_w(),
-                        OperandSize::Size64 => RexFlags::set_w(),
-                        _ => unreachable!(),
-                    };
-                    emit_std_reg_mem(sink, LegacyPrefixes::None, 0x8D, 1, dst, &amode, flags, 0);
-                }
-            };
+            emit_std_reg_mem(
+                sink,
+                LegacyPrefixes::None,
+                0x8D,
+                1,
+                dst,
+                &amode,
+                RexFlags::set_w(),
+                0,
+            );
         }
 
         Inst::MovsxRmR { ext_mode, src, dst } => {
@@ -1291,7 +1319,7 @@ pub(crate) fn emit(
             let inst = Inst::xmm_unary_rm_r(op, consequent, Writable::from_reg(dst));
             inst.emit(&[], sink, info, state);
 
-            sink.bind_label(next);
+            sink.bind_label(next, &mut state.ctrl_plane);
         }
 
         Inst::Push64 { src } => {
@@ -1395,7 +1423,7 @@ pub(crate) fn emit(
 
             // Emit the main loop!
             let loop_start = sink.get_label();
-            sink.bind_label(loop_start);
+            sink.bind_label(loop_start, &mut state.ctrl_plane);
 
             // sub  rsp, GUARD_SIZE
             let inst = Inst::alu_rmi_r(
@@ -1666,7 +1694,7 @@ pub(crate) fn emit(
             inst.emit(&[], sink, info, state);
 
             // Emit jump table (table of 32-bit offsets).
-            sink.bind_label(start_of_jumptable);
+            sink.bind_label(start_of_jumptable, &mut state.ctrl_plane);
             let jt_off = sink.cur_offset();
             for &target in targets.iter().chain(std::iter::once(default_target)) {
                 let word_off = sink.cur_offset();
@@ -1698,7 +1726,7 @@ pub(crate) fn emit(
             one_way_jmp(sink, cc1.invert(), else_label);
             one_way_jmp(sink, *cc2, trap_label);
 
-            sink.bind_label(else_label);
+            sink.bind_label(else_label, &mut state.ctrl_plane);
         }
 
         Inst::TrapIfOr {
@@ -1968,6 +1996,7 @@ pub(crate) fn emit(
                 SseOpcode::Subss => (LegacyPrefixes::_F3, 0x0F5C, 2),
                 SseOpcode::Subsd => (LegacyPrefixes::_F2, 0x0F5C, 2),
                 SseOpcode::Unpcklps => (LegacyPrefixes::None, 0x0F14, 2),
+                SseOpcode::Unpckhps => (LegacyPrefixes::None, 0x0F15, 2),
                 SseOpcode::Xorps => (LegacyPrefixes::None, 0x0F57, 2),
                 SseOpcode::Xorpd => (LegacyPrefixes::_66, 0x0F57, 2),
                 SseOpcode::Phaddw => (LegacyPrefixes::_66, 0x0F3801, 3),
@@ -2114,6 +2143,7 @@ pub(crate) fn emit(
                 AvxOpcode::Vpunpckhwd => (LP::_66, OM::_0F, 0x69),
                 AvxOpcode::Vpunpcklwd => (LP::_66, OM::_0F, 0x61),
                 AvxOpcode::Vunpcklps => (LP::None, OM::_0F, 0x14),
+                AvxOpcode::Vunpckhps => (LP::None, OM::_0F, 0x15),
                 AvxOpcode::Vaddps => (LP::None, OM::_0F, 0x58),
                 AvxOpcode::Vaddpd => (LP::_66, OM::_0F, 0x58),
                 AvxOpcode::Vsubps => (LP::None, OM::_0F, 0x5C),
@@ -2750,18 +2780,18 @@ pub(crate) fn emit(
             // x86's min/max are not symmetric; if either operand is a NaN, they return the
             // read-only operand: perform an addition between the two operands, which has the
             // desired NaN propagation effects.
-            sink.bind_label(propagate_nan);
+            sink.bind_label(propagate_nan, &mut state.ctrl_plane);
             let inst = Inst::xmm_rm_r(add_op, RegMem::reg(lhs), Writable::from_reg(dst));
             inst.emit(&[], sink, info, state);
 
             one_way_jmp(sink, CC::P, done);
 
-            sink.bind_label(do_min_max);
+            sink.bind_label(do_min_max, &mut state.ctrl_plane);
 
             let inst = Inst::xmm_rm_r(min_max_op, RegMem::reg(lhs), Writable::from_reg(dst));
             inst.emit(&[], sink, info, state);
 
-            sink.bind_label(done);
+            sink.bind_label(done, &mut state.ctrl_plane);
         }
 
         Inst::XmmRmRImm {
@@ -3028,7 +3058,7 @@ pub(crate) fn emit(
             let inst = Inst::jmp_known(done);
             inst.emit(&[], sink, info, state);
 
-            sink.bind_label(handle_negative);
+            sink.bind_label(handle_negative, &mut state.ctrl_plane);
 
             // Divide x by two to get it in range for the signed conversion, keep the LSB, and
             // scale it back up on the FP side.
@@ -3081,7 +3111,7 @@ pub(crate) fn emit(
             let inst = Inst::xmm_rm_r(add_op, RegMem::reg(dst), Writable::from_reg(dst));
             inst.emit(&[], sink, info, state);
 
-            sink.bind_label(done);
+            sink.bind_label(done, &mut state.ctrl_plane);
         }
 
         Inst::CvtFloatToSintSeq {
@@ -3183,7 +3213,7 @@ pub(crate) fn emit(
                 let inst = Inst::jmp_known(done);
                 inst.emit(&[], sink, info, state);
 
-                sink.bind_label(not_nan);
+                sink.bind_label(not_nan, &mut state.ctrl_plane);
 
                 // If the input was positive, saturate to INT_MAX.
 
@@ -3281,7 +3311,7 @@ pub(crate) fn emit(
                 inst.emit(&[], sink, info, state);
             }
 
-            sink.bind_label(done);
+            sink.bind_label(done, &mut state.ctrl_plane);
         }
 
         Inst::CvtFloatToUintSeq {
@@ -3391,7 +3421,7 @@ pub(crate) fn emit(
 
                 let inst = Inst::jmp_known(done);
                 inst.emit(&[], sink, info, state);
-                sink.bind_label(not_nan);
+                sink.bind_label(not_nan, &mut state.ctrl_plane);
             } else {
                 // Trap.
                 let inst = Inst::trap_if(CC::P, TrapCode::BadConversionToInteger);
@@ -3430,7 +3460,7 @@ pub(crate) fn emit(
 
             // Now handle large inputs.
 
-            sink.bind_label(handle_large);
+            sink.bind_label(handle_large, &mut state.ctrl_plane);
 
             let inst = Inst::gen_move(Writable::from_reg(tmp_xmm2), src, types::F64);
             inst.emit(&[], sink, info, state);
@@ -3463,7 +3493,7 @@ pub(crate) fn emit(
 
                 let inst = Inst::jmp_known(done);
                 inst.emit(&[], sink, info, state);
-                sink.bind_label(next_is_large);
+                sink.bind_label(next_is_large, &mut state.ctrl_plane);
             } else {
                 let inst = Inst::trap_if(CC::L, TrapCode::IntegerOverflow);
                 inst.emit(&[], sink, info, state);
@@ -3490,7 +3520,7 @@ pub(crate) fn emit(
                 inst.emit(&[], sink, info, state);
             }
 
-            sink.bind_label(done);
+            sink.bind_label(done, &mut state.ctrl_plane);
         }
 
         Inst::LoadExtName { dst, name, offset } => {
@@ -3600,7 +3630,7 @@ pub(crate) fn emit(
             i1.emit(&[], sink, info, state);
 
             // again:
-            sink.bind_label(again_label);
+            sink.bind_label(again_label, &mut state.ctrl_plane);
 
             // movq %rax, %r_temp
             let i2 = Inst::mov_r_r(OperandSize::Size64, dst_old.to_reg(), temp);

@@ -14,7 +14,7 @@ dependencies = [
 
 [[package]]
 name = "csv"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "bstr",
  "csv-core",

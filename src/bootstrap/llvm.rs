@@ -352,7 +352,7 @@ impl Step for Llvm {
         // Disable zstd to avoid a dependency on libzstd.so.
         cfg.define("LLVM_ENABLE_ZSTD", "OFF");
 
-        if target != "aarch64-apple-darwin" && !target.contains("windows") {
+        if !target.contains("windows") {
             cfg.define("LLVM_ENABLE_ZLIB", "ON");
         } else {
             cfg.define("LLVM_ENABLE_ZLIB", "OFF");
@@ -380,7 +380,10 @@ impl Step for Llvm {
             cfg.define("LLVM_LINK_LLVM_DYLIB", "ON");
         }
 
-        if target.starts_with("riscv") && !target.contains("freebsd") && !target.contains("openbsd")
+        if target.starts_with("riscv")
+            && !target.contains("freebsd")
+            && !target.contains("openbsd")
+            && !target.contains("netbsd")
         {
             // RISC-V GCC erroneously requires linking against
             // `libatomic` when using 1-byte and 2-byte C++
@@ -605,7 +608,7 @@ fn configure_cmake(
     }
 
     let (cc, cxx) = match builder.config.llvm_clang_cl {
-        Some(ref cl) => (cl.as_ref(), cl.as_ref()),
+        Some(ref cl) => (cl.into(), cl.into()),
         None => (builder.cc(target), builder.cxx(target).unwrap()),
     };
 
@@ -656,9 +659,9 @@ fn configure_cmake(
                     .define("CMAKE_CXX_COMPILER_LAUNCHER", ccache);
             }
         }
-        cfg.define("CMAKE_C_COMPILER", sanitize_cc(cc))
-            .define("CMAKE_CXX_COMPILER", sanitize_cc(cxx))
-            .define("CMAKE_ASM_COMPILER", sanitize_cc(cc));
+        cfg.define("CMAKE_C_COMPILER", sanitize_cc(&cc))
+            .define("CMAKE_CXX_COMPILER", sanitize_cc(&cxx))
+            .define("CMAKE_ASM_COMPILER", sanitize_cc(&cc));
     }
 
     cfg.build_arg("-j").build_arg(builder.jobs().to_string());
@@ -698,7 +701,7 @@ fn configure_cmake(
         if ar.is_absolute() {
             // LLVM build breaks if `CMAKE_AR` is a relative path, for some reason it
             // tries to resolve this path in the LLVM build directory.
-            cfg.define("CMAKE_AR", sanitize_cc(ar));
+            cfg.define("CMAKE_AR", sanitize_cc(&ar));
         }
     }
 
@@ -706,7 +709,7 @@ fn configure_cmake(
         if ranlib.is_absolute() {
             // LLVM build breaks if `CMAKE_RANLIB` is a relative path, for some reason it
             // tries to resolve this path in the LLVM build directory.
-            cfg.define("CMAKE_RANLIB", sanitize_cc(ranlib));
+            cfg.define("CMAKE_RANLIB", sanitize_cc(&ranlib));
         }
     }
 
@@ -832,6 +835,31 @@ impl Step for Lld {
                 let clang_rt_dir = get_clang_cl_resource_dir(clang_cl_path);
                 ldflags.push_all(&format!("/libpath:{}", clang_rt_dir.display()));
             }
+        }
+
+        // LLD is built as an LLVM tool, but is distributed outside of the `llvm-tools` component,
+        // which impacts where it expects to find LLVM's shared library. This causes #80703.
+        //
+        // LLD is distributed at "$root/lib/rustlib/$host/bin/rust-lld", but the `libLLVM-*.so` it
+        // needs is distributed at "$root/lib". The default rpath of "$ORIGIN/../lib" points at the
+        // lib path for LLVM tools, not the one for rust binaries.
+        //
+        // (The `llvm-tools` component copies the .so there for the other tools, and with that
+        // component installed, one can successfully invoke `rust-lld` directly without rustup's
+        // `LD_LIBRARY_PATH` overrides)
+        //
+        if builder.config.rpath_enabled(target)
+            && util::use_host_linker(target)
+            && builder.config.llvm_link_shared()
+            && target.contains("linux")
+        {
+            // So we inform LLD where it can find LLVM's libraries by adding an rpath entry to the
+            // expected parent `lib` directory.
+            //
+            // Be careful when changing this path, we need to ensure it's quoted or escaped:
+            // `$ORIGIN` would otherwise be expanded when the `LdFlags` are passed verbatim to
+            // cmake.
+            ldflags.push_all("-Wl,-rpath,'$ORIGIN/../../../'");
         }
 
         configure_cmake(builder, target, &mut cfg, true, ldflags, &[]);
@@ -1017,7 +1045,7 @@ fn supported_sanitizers(
         "x86_64-unknown-illumos" => common_libs("illumos", "x86_64", &["asan"]),
         "x86_64-pc-solaris" => common_libs("solaris", "x86_64", &["asan"]),
         "x86_64-unknown-linux-gnu" => {
-            common_libs("linux", "x86_64", &["asan", "lsan", "msan", "tsan"])
+            common_libs("linux", "x86_64", &["asan", "lsan", "msan", "safestack", "tsan"])
         }
         "x86_64-unknown-linux-musl" => {
             common_libs("linux", "x86_64", &["asan", "lsan", "msan", "tsan"])

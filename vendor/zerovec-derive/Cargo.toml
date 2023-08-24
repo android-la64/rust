@@ -10,11 +10,12 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "zerovec-derive"
-version = "0.9.3"
+version = "0.9.4"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 description = "Custom derive for the zerovec crate"
+readme = "README.md"
 keywords = [
     "zerocopy",
     "serialization",
@@ -30,7 +31,6 @@ categories = [
 ]
 license = "Unicode-DFS-2016"
 repository = "https://github.com/unicode-org/icu4x"
-resolver = "2"
 
 [package.metadata.workspaces]
 independent = true

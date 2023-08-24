@@ -15,7 +15,7 @@ use crate::core::features::Features;
 use crate::core::registry::PackageRegistry;
 use crate::core::resolver::features::CliFeatures;
 use crate::core::resolver::ResolveBehavior;
-use crate::core::{Dependency, FeatureValue, PackageId, PackageIdSpec};
+use crate::core::{Dependency, Edition, FeatureValue, PackageId, PackageIdSpec};
 use crate::core::{EitherManifest, Package, SourceId, VirtualManifest};
 use crate::ops;
 use crate::sources::{PathSource, CRATES_IO_INDEX, CRATES_IO_REGISTRY};
@@ -381,7 +381,21 @@ impl<'cfg> Workspace<'cfg> {
     pub fn target_dir(&self) -> Filesystem {
         self.target_dir
             .clone()
-            .unwrap_or_else(|| Filesystem::new(self.root().join("target")))
+            .unwrap_or_else(|| self.default_target_dir())
+    }
+
+    fn default_target_dir(&self) -> Filesystem {
+        if self.root_maybe().is_embedded() {
+            let hash = crate::util::hex::short_hash(&self.root_manifest().to_string_lossy());
+            let mut rel_path = PathBuf::new();
+            rel_path.push("target");
+            rel_path.push(&hash[0..2]);
+            rel_path.push(&hash[2..]);
+
+            self.config().home().join(rel_path)
+        } else {
+            Filesystem::new(self.root().join("target"))
+        }
     }
 
     /// Returns the root `[replace]` section of this workspace.
@@ -726,6 +740,10 @@ impl<'cfg> Workspace<'cfg> {
         if self.members.contains(&manifest_path) {
             return Ok(());
         }
+        if is_path_dep && self.root_maybe().is_embedded() {
+            // Embedded manifests cannot have workspace members
+            return Ok(());
+        }
         if is_path_dep
             && !manifest_path.parent().unwrap().starts_with(self.root())
             && self.find_root(&manifest_path)? != self.root_manifest
@@ -990,6 +1008,24 @@ impl<'cfg> Workspace<'cfg> {
                     if behavior != self.resolve_behavior {
                         // Only warn if they don't match.
                         emit_warning("resolver")?;
+                    }
+                }
+            }
+            if let MaybePackage::Virtual(vm) = self.root_maybe() {
+                if vm.resolve_behavior().is_none() {
+                    if let Some(edition) = self
+                        .members()
+                        .filter(|p| p.manifest_path() != root_manifest)
+                        .map(|p| p.manifest().edition())
+                        .filter(|&e| e >= Edition::Edition2021)
+                        .max()
+                    {
+                        let resolver = edition.default_resolve_behavior().to_manifest();
+                        self.config.shell().warn(format_args!("some crates are on edition {edition} which defaults to `resolver = \"{resolver}\"`, but virtual workspaces default to `resolver = \"1\"`"))?;
+                        self.config.shell().note(
+                            "to keep the current resolver, specify `workspace.resolver = \"1\"` in the workspace root's manifest",
+                        )?;
+                        self.config.shell().note(format_args!("to use the edition {edition} resolver, specify `workspace.resolver = \"{resolver}\"` in the workspace root's manifest"))?;
                     }
                 }
             }
@@ -1560,6 +1596,14 @@ impl MaybePackage {
         match *self {
             MaybePackage::Package(ref p) => p.manifest().workspace_config(),
             MaybePackage::Virtual(ref vm) => vm.workspace_config(),
+        }
+    }
+
+    /// Has an embedded manifest (single-file package)
+    pub fn is_embedded(&self) -> bool {
+        match self {
+            MaybePackage::Package(p) => p.manifest().is_embedded(),
+            MaybePackage::Virtual(_) => false,
         }
     }
 }

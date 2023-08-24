@@ -16,7 +16,9 @@
 use crate::cfg::CFGInfo;
 use crate::ssa::validate_ssa;
 use crate::{Function, MachineEnv, Output, PReg, ProgPoint, RegAllocError, RegClass};
-use std::collections::HashMap;
+use alloc::vec;
+use alloc::vec::Vec;
+use hashbrown::HashMap;
 
 pub(crate) mod data_structures;
 pub use data_structures::Stats;
@@ -68,12 +70,8 @@ impl<'a, F: Function> Env<'a, F> {
             slots_by_size: vec![],
             allocated_bundle_count: 0,
 
-            extra_spillslots_by_class: [smallvec![], smallvec![]],
-            preferred_victim_by_class: [PReg::invalid(), PReg::invalid()],
-
-            prog_move_srcs: Vec::with_capacity(n / 2),
-            prog_move_dsts: Vec::with_capacity(n / 2),
-            prog_move_merges: Vec::with_capacity(n / 2),
+            extra_spillslots_by_class: [smallvec![], smallvec![], smallvec![]],
+            preferred_victim_by_class: [PReg::invalid(), PReg::invalid(), PReg::invalid()],
 
             multi_fixed_reg_fixups: vec![],
             inserted_moves: vec![],
@@ -86,7 +84,7 @@ impl<'a, F: Function> Env<'a, F> {
 
             stats: Stats::default(),
 
-            debug_annotations: std::collections::HashMap::new(),
+            debug_annotations: hashbrown::HashMap::new(),
             annotations_enabled,
 
             conflict_set: Default::default(),

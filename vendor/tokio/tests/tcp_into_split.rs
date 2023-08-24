@@ -1,5 +1,5 @@
 #![warn(rust_2018_idioms)]
-#![cfg(feature = "full")]
+#![cfg(all(feature = "full", not(tokio_wasi)))] // Wasi doesn't support bind
 
 use std::io::{Error, ErrorKind, Result};
 use std::io::{Read, Write};
@@ -116,7 +116,7 @@ async fn drop_write() -> Result<()> {
 
     // drop it while the read is in progress
     std::thread::spawn(move || {
-        thread::sleep(std::time::Duration::from_millis(50));
+        thread::sleep(std::time::Duration::from_millis(10));
         drop(write_half);
     });
 

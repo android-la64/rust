@@ -19,13 +19,14 @@ use crate::cvt;
 
 /// Which set of trust settings to query
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u32)]
 pub enum Domain {
     /// Per-user trust settings
-    User,
+    User = kSecTrustSettingsDomainUser,
     /// Locally administered, system-wide trust settings
-    Admin,
+    Admin = kSecTrustSettingsDomainAdmin,
     /// System trust settings
-    System,
+    System = kSecTrustSettingsDomainSystem,
 }
 
 impl From<Domain> for SecTrustSettingsDomain {
@@ -88,7 +89,8 @@ impl TrustSettings {
     /// Then you can call `tls_trust_settings_for_certificate()` with a given certificate
     /// to learn what the aggregate trust setting for that certificate within this domain.
     #[inline(always)]
-    #[must_use] pub fn new(domain: Domain) -> Self {
+    #[must_use]
+    pub fn new(domain: Domain) -> Self {
         Self { domain }
     }
 
@@ -249,12 +251,13 @@ mod test {
     #[test]
     fn test_isrg_root_exists_and_is_trusted() {
         let ts = TrustSettings::new(Domain::System);
-        assert_eq!(ts
-            .iter()
-            .unwrap()
-            .find(|cert| cert.subject_summary() == "ISRG Root X1")
-            .and_then(|cert| ts.tls_trust_settings_for_certificate(&cert).unwrap()),
-            None);
+        assert_eq!(
+            ts.iter()
+                .unwrap()
+                .find(|cert| cert.subject_summary() == "ISRG Root X1")
+                .and_then(|cert| ts.tls_trust_settings_for_certificate(&cert).unwrap()),
+            None
+        );
         // ^ this is a case where None means "always trust", according to Apple docs:
         //
         // "Note that an empty Trust Settings array means "always trust this cert,

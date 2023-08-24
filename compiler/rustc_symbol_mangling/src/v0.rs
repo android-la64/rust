@@ -274,7 +274,7 @@ impl<'tcx> Printer<'tcx> for &mut SymbolMangler<'tcx> {
 
         let mut param_env = self.tcx.param_env_reveal_all_normalized(impl_def_id);
         if !substs.is_empty() {
-            param_env = EarlyBinder(param_env).subst(self.tcx, substs);
+            param_env = EarlyBinder::bind(param_env).subst(self.tcx, substs);
         }
 
         match &mut impl_trait_ref {
@@ -483,6 +483,7 @@ impl<'tcx> Printer<'tcx> for &mut SymbolMangler<'tcx> {
             }
 
             ty::Alias(ty::Inherent, _) => bug!("symbol_names: unexpected inherent projection"),
+            ty::Alias(ty::Weak, _) => bug!("symbol_names: unexpected weak projection"),
             ty::GeneratorWitness(_) => bug!("symbol_names: unexpected `GeneratorWitness`"),
             ty::GeneratorWitnessMIR(..) => bug!("symbol_names: unexpected `GeneratorWitnessMIR`"),
         }
@@ -534,7 +535,7 @@ impl<'tcx> Printer<'tcx> for &mut SymbolMangler<'tcx> {
                 match predicate.as_ref().skip_binder() {
                     ty::ExistentialPredicate::Trait(trait_ref) => {
                         // Use a type that can't appear in defaults of type parameters.
-                        let dummy_self = cx.tcx.mk_fresh_ty(0);
+                        let dummy_self = Ty::new_fresh(cx.tcx, 0);
                         let trait_ref = trait_ref.with_self_ty(cx.tcx, dummy_self);
                         cx = cx.print_def_path(trait_ref.def_id, trait_ref.substs)?;
                     }
@@ -650,7 +651,8 @@ impl<'tcx> Printer<'tcx> for &mut SymbolMangler<'tcx> {
                             .builtin_deref(true)
                             .expect("tried to dereference on non-ptr type")
                             .ty;
-                        let dereferenced_const = self.tcx.mk_const(ct.kind(), pointee_ty);
+                        // FIXME(const_generics): add an assert that we only do this for valtrees.
+                        let dereferenced_const = self.tcx.mk_ct_from_kind(ct.kind(), pointee_ty);
                         self = dereferenced_const.print(self)?;
                     }
                 }

@@ -33,7 +33,7 @@ macro_rules! public_test_dep {
 ///
 /// This macro is structured to be invoked with a bunch of functions that looks
 /// like:
-///
+/// ```ignore
 ///     intrinsics! {
 ///         pub extern "C" fn foo(a: i32) -> u32 {
 ///             // ...
@@ -44,6 +44,7 @@ macro_rules! public_test_dep {
 ///             // ...
 ///         }
 ///     }
+/// ```
 ///
 /// Each function is defined in a manner that looks like a normal Rust function.
 /// The macro then accepts a few nonstandard attributes that can decorate
@@ -203,7 +204,7 @@ macro_rules! intrinsics {
     (
         #[maybe_use_optimized_c_shim]
         $(#[$($attr:tt)*])*
-        pub extern $abi:tt fn $name:ident( $($argname:ident:  $ty:ty),* ) $(-> $ret:ty)? {
+        pub $(unsafe $(@ $empty:tt)? )? extern $abi:tt fn $name:ident( $($argname:ident:  $ty:ty),* ) $(-> $ret:ty)? {
             $($body:tt)*
         }
 
@@ -211,7 +212,7 @@ macro_rules! intrinsics {
     ) => (
         #[cfg($name = "optimized-c")]
         #[cfg_attr(feature = "weak-intrinsics", linkage = "weak")]
-        pub extern $abi fn $name( $($argname: $ty),* ) $(-> $ret)? {
+        pub $(unsafe $($empty)? )? extern $abi fn $name( $($argname: $ty),* ) $(-> $ret)? {
             extern $abi {
                 fn $name($($argname: $ty),*) $(-> $ret)?;
             }
@@ -223,7 +224,7 @@ macro_rules! intrinsics {
         #[cfg(not($name = "optimized-c"))]
         intrinsics! {
             $(#[$($attr)*])*
-            pub extern $abi fn $name( $($argname: $ty),* ) $(-> $ret)? {
+            pub $(unsafe $($empty)? )? extern $abi fn $name( $($argname: $ty),* ) $(-> $ret)? {
                 $($body)*
             }
         }
@@ -437,12 +438,11 @@ macro_rules! intrinsics {
         intrinsics!($($rest)*);
     );
 
-    // For division and modulo, AVR uses a custom calling convention¹ that does
-    // not match our definitions here. Ideally we would just use hand-written
-    // naked functions, but that's quite a lot of code to port² - so for the
-    // time being we are just ignoring the problematic functions, letting
-    // avr-gcc (which is required to compile to AVR anyway) link them from
-    // libgcc.
+    // For some intrinsics, AVR uses a custom calling convention¹ that does not
+    // match our definitions here. Ideally we would just use hand-written naked
+    // functions, but that's quite a lot of code to port² - so for the time
+    // being we are just ignoring the problematic functions, letting avr-gcc
+    // (which is required to compile to AVR anyway) link them from libgcc.
     //
     // ¹ https://gcc.gnu.org/wiki/avr-gcc (see "Exceptions to the Calling
     //   Convention")

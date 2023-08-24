@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "measureme"
-version = "10.1.0"
+version = "10.1.1"
 authors = [
     "Wesley Wiser <wwiser@gmail.com>",
     "Michael Woerister <michaelwoerister@posteo>",
@@ -42,7 +42,7 @@ nightly = []
 version = "0.2.1"
 
 [target."cfg(all(target_arch = \"x86_64\", target_os = \"linux\"))".dependencies.perf-event-open-sys]
-version = "1.0.1"
+version = "3.0.0"
 
 [badges.travis-ci]
 repository = "rust-lang/measureme"

@@ -145,13 +145,16 @@ impl<'tcx> Inliner<'tcx> {
                 Ok(new_blocks) => {
                     debug!("inlined {}", callsite.callee);
                     self.changed = true;
-                    inlined_count += 1;
-                    if inlined_count == inline_limit {
-                        return;
-                    }
+
                     self.history.push(callsite.callee.def_id());
                     self.process_blocks(caller_body, new_blocks);
                     self.history.pop();
+
+                    inlined_count += 1;
+                    if inlined_count == inline_limit {
+                        debug!("inline count reached");
+                        return;
+                    }
                 }
             }
         }
@@ -192,7 +195,7 @@ impl<'tcx> Inliner<'tcx> {
         let Ok(callee_body) = callsite.callee.try_subst_mir_and_normalize_erasing_regions(
             self.tcx,
             self.param_env,
-            ty::EarlyBinder(callee_body.clone()),
+            ty::EarlyBinder::bind(callee_body.clone()),
         ) else {
             return Err("failed to normalize callee body");
         };
@@ -437,6 +440,10 @@ impl<'tcx> Inliner<'tcx> {
             validation: Ok(()),
         };
 
+        for var_debug_info in callee_body.var_debug_info.iter() {
+            checker.visit_var_debug_info(var_debug_info);
+        }
+
         // Traverse the MIR manually so we can account for the effects of inlining on the CFG.
         let mut work_list = vec![START_BLOCK];
         let mut visited = BitSet::new_empty(callee_body.basic_blocks.len());
@@ -455,7 +462,7 @@ impl<'tcx> Inliner<'tcx> {
                 // If the place doesn't actually need dropping, treat it like a regular goto.
                 let ty = callsite
                     .callee
-                    .subst_mir(self.tcx, ty::EarlyBinder(&place.ty(callee_body, tcx).ty));
+                    .subst_mir(self.tcx, ty::EarlyBinder::bind(&place.ty(callee_body, tcx).ty));
                 if ty.needs_drop(tcx, self.param_env) && let UnwindAction::Cleanup(unwind) = unwind {
                     work_list.push(unwind);
                 }
@@ -476,11 +483,12 @@ impl<'tcx> Inliner<'tcx> {
         // Abort if type validation found anything fishy.
         checker.validation?;
 
+        // N.B. We still apply our cost threshold to #[inline(always)] functions.
+        // That attribute is often applied to very large functions that exceed LLVM's (very
+        // generous) inlining threshold. Such functions are very poor MIR inlining candidates.
+        // Always inlining #[inline(always)] functions in MIR, on net, slows down the compiler.
         let cost = checker.cost;
-        if let InlineAttr::Always = callee_attrs.inline {
-            debug!("INLINING {:?} because inline(always) [cost={}]", callsite, cost);
-            Ok(())
-        } else if cost <= threshold {
+        if cost <= threshold {
             debug!("INLINING {:?} [cost={} <= threshold={}]", callsite, cost, threshold);
             Ok(())
         } else {
@@ -518,7 +526,7 @@ impl<'tcx> Inliner<'tcx> {
                     trace!("creating temp for return destination");
                     let dest = Rvalue::Ref(
                         self.tcx.lifetimes.re_erased,
-                        BorrowKind::Mut { allow_two_phase_borrow: false },
+                        BorrowKind::Mut { kind: MutBorrowKind::Default },
                         destination,
                     );
                     let dest_ty = dest.ty(caller_body, self.tcx);
@@ -790,7 +798,7 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
                 // If the place doesn't actually need dropping, treat it like a regular goto.
                 let ty = self
                     .instance
-                    .subst_mir(tcx, ty::EarlyBinder(&place.ty(self.callee_body, tcx).ty));
+                    .subst_mir(tcx, ty::EarlyBinder::bind(&place.ty(self.callee_body, tcx).ty));
                 if ty.needs_drop(tcx, self.param_env) {
                     self.cost += CALL_PENALTY;
                     if let UnwindAction::Cleanup(_) = unwind {
@@ -801,7 +809,7 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
                 }
             }
             TerminatorKind::Call { func: Operand::Constant(ref f), unwind, .. } => {
-                let fn_ty = self.instance.subst_mir(tcx, ty::EarlyBinder(&f.literal.ty()));
+                let fn_ty = self.instance.subst_mir(tcx, ty::EarlyBinder::bind(&f.literal.ty()));
                 self.cost += if let ty::FnDef(def_id, _) = *fn_ty.kind() && tcx.is_intrinsic(def_id) {
                     // Don't give intrinsics the extra penalty for calls
                     INSTR_COST
@@ -835,17 +843,24 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
     /// to normalization failure.
     fn visit_projection_elem(
         &mut self,
-        local: Local,
-        proj_base: &[PlaceElem<'tcx>],
+        place_ref: PlaceRef<'tcx>,
         elem: PlaceElem<'tcx>,
         context: PlaceContext,
         location: Location,
     ) {
         if let ProjectionElem::Field(f, ty) = elem {
-            let parent = Place { local, projection: self.tcx.mk_place_elems(proj_base) };
-            let parent_ty = parent.ty(&self.callee_body.local_decls, self.tcx);
+            let parent_ty = place_ref.ty(&self.callee_body.local_decls, self.tcx);
             let check_equal = |this: &mut Self, f_ty| {
-                if !util::is_equal_up_to_subtyping(this.tcx, this.param_env, ty, f_ty) {
+                // Fast path if there is nothing to substitute.
+                if ty == f_ty {
+                    return;
+                }
+                let ty = this.instance.subst_mir(this.tcx, ty::EarlyBinder::bind(&ty));
+                let f_ty = this.instance.subst_mir(this.tcx, ty::EarlyBinder::bind(&f_ty));
+                if ty == f_ty {
+                    return;
+                }
+                if !util::is_subtype(this.tcx, this.param_env, ty, f_ty) {
                     trace!(?ty, ?f_ty);
                     this.validation = Err("failed to normalize projection type");
                     return;
@@ -922,7 +937,7 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
             }
         }
 
-        self.super_projection_elem(local, proj_base, elem, context, location);
+        self.super_projection_elem(place_ref, elem, context, location);
     }
 }
 

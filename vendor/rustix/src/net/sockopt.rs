@@ -8,10 +8,24 @@
 
 use crate::net::{Ipv4Addr, Ipv6Addr, SocketType};
 use crate::{backend, io};
+use backend::c;
 use backend::fd::AsFd;
 use core::time::Duration;
 
-pub use backend::net::types::Timeout;
+/// Timeout identifier for use with [`set_socket_timeout`] and
+/// [`get_socket_timeout`].
+///
+/// [`set_socket_timeout`]: crate::net::sockopt::set_socket_timeout.
+/// [`get_socket_timeout`]: crate::net::sockopt::get_socket_timeout.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[repr(u32)]
+pub enum Timeout {
+    /// `SO_RCVTIMEO`—Timeout for receiving.
+    Recv = c::SO_RCVTIMEO as _,
+
+    /// `SO_SNDTIMEO`—Timeout for sending.
+    Send = c::SO_SNDTIMEO as _,
+}
 
 /// `getsockopt(fd, SOL_SOCKET, SO_TYPE)`—Returns the type of a socket.
 ///
@@ -249,7 +263,7 @@ pub fn get_socket_linger<Fd: AsFd>(fd: Fd) -> io::Result<Option<Duration>> {
 ///
 /// [Linux `setsockopt`]: https://man7.org/linux/man-pages/man2/setsockopt.2.html
 /// [Linux `socket`]: https://man7.org/linux/man-pages/man7/socket.7.html
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(linux_kernel)]
 #[inline]
 #[doc(alias = "SO_PASSCRED")]
 pub fn set_socket_passcred<Fd: AsFd>(fd: Fd, passcred: bool) -> io::Result<()> {
@@ -264,7 +278,7 @@ pub fn set_socket_passcred<Fd: AsFd>(fd: Fd, passcred: bool) -> io::Result<()> {
 ///
 /// [Linux `getsockopt`]: https://man7.org/linux/man-pages/man2/getsockopt.2.html
 /// [Linux `socket`]: https://man7.org/linux/man-pages/man7/socket.7.html
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(linux_kernel)]
 #[inline]
 #[doc(alias = "SO_PASSCRED")]
 pub fn get_socket_passcred<Fd: AsFd>(fd: Fd) -> io::Result<bool> {
@@ -427,8 +441,8 @@ pub fn get_socket_error<Fd: AsFd>(fd: Fd) -> io::Result<Result<(), io::Errno>> {
 #[cfg(any(apple, target_os = "freebsd"))]
 #[doc(alias = "SO_NOSIGPIPE")]
 #[inline]
-pub fn getsockopt_nosigpipe<Fd: AsFd>(fd: Fd) -> io::Result<bool> {
-    backend::net::syscalls::sockopt::getsockopt_nosigpipe(fd.as_fd())
+pub fn get_socket_nosigpipe<Fd: AsFd>(fd: Fd) -> io::Result<bool> {
+    backend::net::syscalls::sockopt::get_socket_nosigpipe(fd.as_fd())
 }
 
 /// `setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, val)`
@@ -466,8 +480,8 @@ pub fn getsockopt_nosigpipe<Fd: AsFd>(fd: Fd) -> io::Result<bool> {
 #[cfg(any(apple, target_os = "freebsd"))]
 #[doc(alias = "SO_NOSIGPIPE")]
 #[inline]
-pub fn setsockopt_nosigpipe<Fd: AsFd>(fd: Fd, val: bool) -> io::Result<()> {
-    backend::net::syscalls::sockopt::setsockopt_nosigpipe(fd.as_fd(), val)
+pub fn set_socket_nosigpipe<Fd: AsFd>(fd: Fd, val: bool) -> io::Result<()> {
+    backend::net::syscalls::sockopt::set_socket_nosigpipe(fd.as_fd(), val)
 }
 
 /// `setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, keepalive)`
@@ -1613,4 +1627,14 @@ pub fn set_tcp_nodelay<Fd: AsFd>(fd: Fd, nodelay: bool) -> io::Result<()> {
 #[doc(alias = "TCP_NODELAY")]
 pub fn get_tcp_nodelay<Fd: AsFd>(fd: Fd) -> io::Result<bool> {
     backend::net::syscalls::sockopt::get_tcp_nodelay(fd.as_fd())
+}
+
+#[test]
+fn test_sizes() {
+    use c::c_int;
+    use core::mem::size_of;
+
+    // Backend code needs to cast these to `c_int` so make sure that cast
+    // isn't lossy.
+    assert_eq!(size_of::<Timeout>(), size_of::<c_int>());
 }

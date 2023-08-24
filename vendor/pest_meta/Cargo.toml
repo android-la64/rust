@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.60"
 name = "pest_meta"
-version = "2.5.7"
+version = "2.7.0"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>"]
 exclude = ["src/grammar.pest"]
 include = [
@@ -41,8 +41,17 @@ repository = "https://github.com/pest-parser/pest"
 version = "1.8.0"
 
 [dependencies.pest]
-version = "2.5.7"
+version = "2.7.0"
+
+[build-dependencies.cargo]
+version = "0.70"
+optional = true
 
 [build-dependencies.sha2]
 version = "0.10"
 default-features = false
+
+[features]
+default = []
+grammar-extras = []
+not-bootstrap-in-src = ["dep:cargo"]

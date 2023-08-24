@@ -2,9 +2,9 @@
 
 #[cfg(not(target_os = "wasi"))]
 use crate::fs::Mode;
-use crate::io::SeekFrom;
 #[cfg(not(target_os = "wasi"))]
-use crate::process::{Gid, Uid};
+use crate::fs::{Gid, Uid};
+use crate::fs::{OFlags, SeekFrom, Timespec};
 use crate::{backend, io};
 use backend::fd::{AsFd, BorrowedFd};
 
@@ -34,7 +34,7 @@ pub use backend::fs::types::StatFs;
 #[cfg(not(any(target_os = "haiku", target_os = "redox", target_os = "wasi")))]
 pub use backend::fs::types::{StatVfs, StatVfsMountFlags};
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(linux_kernel)]
 pub use backend::fs::types::FsWord;
 
 /// Timestamps used by [`utimensat`] and [`futimens`].
@@ -47,10 +47,10 @@ pub use backend::fs::types::FsWord;
 #[derive(Clone, Debug)]
 pub struct Timestamps {
     /// The timestamp of the last access to a filesystem object.
-    pub last_access: crate::fs::Timespec,
+    pub last_access: Timespec,
 
     /// The timestamp of the last modification of a filesystem object.
-    pub last_modification: crate::fs::Timespec,
+    pub last_modification: Timespec,
 }
 
 /// The filesystem magic number for procfs.
@@ -58,7 +58,7 @@ pub struct Timestamps {
 /// See [the `fstatfs` manual page] for more information.
 ///
 /// [the `fstatfs` manual page]: https://man7.org/linux/man-pages/man2/fstatfs.2.html#DESCRIPTION
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(linux_kernel)]
 pub const PROC_SUPER_MAGIC: FsWord = backend::c::PROC_SUPER_MAGIC as FsWord;
 
 /// The filesystem magic number for NFS.
@@ -66,7 +66,7 @@ pub const PROC_SUPER_MAGIC: FsWord = backend::c::PROC_SUPER_MAGIC as FsWord;
 /// See [the `fstatfs` manual page] for more information.
 ///
 /// [the `fstatfs` manual page]: https://man7.org/linux/man-pages/man2/fstatfs.2.html#DESCRIPTION
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(linux_kernel)]
 pub const NFS_SUPER_MAGIC: FsWord = backend::c::NFS_SUPER_MAGIC as FsWord;
 
 /// `lseek(fd, offset, whence)`—Repositions a file descriptor within a file.
@@ -143,7 +143,7 @@ pub fn fchown<Fd: AsFd>(fd: Fd, owner: Option<Uid>, group: Option<Gid>) -> io::R
 ///
 /// [POSIX]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/fstat.html
 /// [Linux]: https://man7.org/linux/man-pages/man2/fstat.2.html
-/// [`Mode::from_raw_mode`]: crate::fs::Mode::from_raw_mode
+/// [`Mode::from_raw_mode`]: Mode::from_raw_mode
 /// [`FileType::from_raw_mode`]: crate::fs::FileType::from_raw_mode
 #[inline]
 pub fn fstat<Fd: AsFd>(fd: Fd) -> io::Result<Stat> {
@@ -247,22 +247,17 @@ pub(crate) fn _is_file_read_write(fd: BorrowedFd<'_>) -> io::Result<(bool, bool)
     let mode = backend::fs::syscalls::fcntl_getfl(fd)?;
 
     // Check for `O_PATH`.
-    #[cfg(any(
-        target_os = "android",
-        target_os = "fuchsia",
-        target_os = "linux",
-        target_os = "emscripten",
-    ))]
-    if mode.contains(crate::fs::OFlags::PATH) {
+    #[cfg(any(linux_kernel, target_os = "fuchsia", target_os = "emscripten"))]
+    if mode.contains(OFlags::PATH) {
         return Ok((false, false));
     }
 
     // Use `RWMODE` rather than `ACCMODE` as `ACCMODE` may include `O_PATH`.
     // We handled `O_PATH` above.
-    match mode & crate::fs::OFlags::RWMODE {
-        crate::fs::OFlags::RDONLY => Ok((true, false)),
-        crate::fs::OFlags::RDWR => Ok((true, true)),
-        crate::fs::OFlags::WRONLY => Ok((false, true)),
+    match mode & OFlags::RWMODE {
+        OFlags::RDONLY => Ok((true, false)),
+        OFlags::RDWR => Ok((true, true)),
+        OFlags::WRONLY => Ok((false, true)),
         _ => unreachable!(),
     }
 }
@@ -336,7 +331,7 @@ pub fn flock<Fd: AsFd>(fd: Fd, operation: FlockOperation) -> io::Result<()> {
 ///  - [Linux]
 ///
 /// [Linux]: https://man7.org/linux/man-pages/man2/syncfs.2.html
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(linux_kernel)]
 #[inline]
 pub fn syncfs<Fd: AsFd>(fd: Fd) -> io::Result<()> {
     backend::fs::syscalls::syncfs(fd.as_fd())

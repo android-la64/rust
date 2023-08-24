@@ -29,8 +29,8 @@ use rustc_infer::infer::{
     InferCtxt, NllRegionVariableOrigin, RegionVariableOrigin, TyCtxtInferExt,
 };
 use rustc_middle::mir::{
-    traversal, Body, ClearCrossCrate, Local, Location, Mutability, NonDivergingIntrinsic, Operand,
-    Place, PlaceElem, PlaceRef, VarDebugInfoContents,
+    traversal, Body, ClearCrossCrate, Local, Location, MutBorrowKind, Mutability,
+    NonDivergingIntrinsic, Operand, Place, PlaceElem, PlaceRef, VarDebugInfoContents,
 };
 use rustc_middle::mir::{AggregateKind, BasicBlock, BorrowCheckResult, BorrowKind};
 use rustc_middle::mir::{InlineAsmOperand, Terminator, TerminatorKind};
@@ -222,7 +222,7 @@ fn do_mir_borrowck<'tcx>(
 
     let (move_data, move_errors): (MoveData<'tcx>, Vec<(Place<'tcx>, MoveError<'tcx>)>) =
         match MoveData::gather_moves(&body, tcx, param_env) {
-            Ok((_, move_data)) => (move_data, Vec::new()),
+            Ok(move_data) => (move_data, Vec::new()),
             Err((move_data, move_errors)) => (move_data, move_errors),
         };
     let promoted_errors = promoted
@@ -368,7 +368,7 @@ fn do_mir_borrowck<'tcx>(
     // Compute and report region errors, if any.
     mbcx.report_region_errors(nll_errors);
 
-    let results = BorrowckResults {
+    let mut results = BorrowckResults {
         ever_inits: flow_ever_inits,
         uninits: flow_uninits,
         borrows: flow_borrows,
@@ -379,7 +379,7 @@ fn do_mir_borrowck<'tcx>(
     rustc_mir_dataflow::visit_results(
         body,
         traversal::reverse_postorder(body).map(|(bb, _)| bb),
-        &results,
+        &mut results,
         &mut mbcx,
     );
 
@@ -598,11 +598,12 @@ struct MirBorrowckCtxt<'cx, 'tcx> {
 // 2. loans made in overlapping scopes do not conflict
 // 3. assignments do not affect things loaned out as immutable
 // 4. moves do not affect things loaned out in any way
-impl<'cx, 'tcx> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx> for MirBorrowckCtxt<'cx, 'tcx> {
+impl<'cx, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx, R> for MirBorrowckCtxt<'cx, 'tcx> {
     type FlowState = Flows<'cx, 'tcx>;
 
     fn visit_statement_before_primary_effect(
         &mut self,
+        _results: &R,
         flow_state: &Flows<'cx, 'tcx>,
         stmt: &'cx Statement<'tcx>,
         location: Location,
@@ -672,6 +673,7 @@ impl<'cx, 'tcx> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx> for MirBorrowckCtx
 
     fn visit_terminator_before_primary_effect(
         &mut self,
+        _results: &R,
         flow_state: &Flows<'cx, 'tcx>,
         term: &'cx Terminator<'tcx>,
         loc: Location,
@@ -708,7 +710,7 @@ impl<'cx, 'tcx> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx> for MirBorrowckCtx
                 destination,
                 target: _,
                 unwind: _,
-                from_hir_call: _,
+                call_source: _,
                 fn_span: _,
             } => {
                 self.consume_operand(loc, (func, span), flow_state);
@@ -782,6 +784,7 @@ impl<'cx, 'tcx> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx> for MirBorrowckCtx
 
     fn visit_terminator_after_primary_effect(
         &mut self,
+        _results: &R,
         flow_state: &Flows<'cx, 'tcx>,
         term: &'cx Terminator<'tcx>,
         loc: Location,
@@ -1068,10 +1071,9 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 }
 
                 (Read(_), BorrowKind::Shared | BorrowKind::Shallow)
-                | (
-                    Read(ReadKind::Borrow(BorrowKind::Shallow)),
-                    BorrowKind::Unique | BorrowKind::Mut { .. },
-                ) => Control::Continue,
+                | (Read(ReadKind::Borrow(BorrowKind::Shallow)), BorrowKind::Mut { .. }) => {
+                    Control::Continue
+                }
 
                 (Reservation(_), BorrowKind::Shallow | BorrowKind::Shared) => {
                     // This used to be a future compatibility warning (to be
@@ -1084,7 +1086,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     Control::Continue
                 }
 
-                (Read(kind), BorrowKind::Unique | BorrowKind::Mut { .. }) => {
+                (Read(kind), BorrowKind::Mut { .. }) => {
                     // Reading from mere reservations of mutable-borrows is OK.
                     if !is_active(this.dominators(), borrow, location) {
                         assert!(allow_two_phase_borrow(borrow.kind));
@@ -1191,7 +1193,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                         (Shallow(Some(ArtificialField::ShallowBorrow)), Read(ReadKind::Borrow(bk)))
                     }
                     BorrowKind::Shared => (Deep, Read(ReadKind::Borrow(bk))),
-                    BorrowKind::Unique | BorrowKind::Mut { .. } => {
+                    BorrowKind::Mut { .. } => {
                         let wk = WriteKind::MutableBorrow(bk);
                         if allow_two_phase_borrow(bk) {
                             (Deep, Reservation(wk))
@@ -1228,7 +1230,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     Mutability::Mut => (
                         Deep,
                         Write(WriteKind::MutableBorrow(BorrowKind::Mut {
-                            allow_two_phase_borrow: false,
+                            kind: MutBorrowKind::Default,
                         })),
                     ),
                     Mutability::Not => (Deep, Read(ReadKind::Borrow(BorrowKind::Shared))),
@@ -1562,7 +1564,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             // only mutable borrows should be 2-phase
             assert!(match borrow.kind {
                 BorrowKind::Shared | BorrowKind::Shallow => false,
-                BorrowKind::Unique | BorrowKind::Mut { .. } => true,
+                BorrowKind::Mut { .. } => true,
             });
 
             self.access_place(
@@ -1956,16 +1958,15 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         let the_place_err;
 
         match kind {
-            Reservation(WriteKind::MutableBorrow(
-                borrow_kind @ (BorrowKind::Unique | BorrowKind::Mut { .. }),
-            ))
-            | Write(WriteKind::MutableBorrow(
-                borrow_kind @ (BorrowKind::Unique | BorrowKind::Mut { .. }),
-            )) => {
-                let is_local_mutation_allowed = match borrow_kind {
-                    BorrowKind::Unique => LocalMutationIsAllowed::Yes,
-                    BorrowKind::Mut { .. } => is_local_mutation_allowed,
-                    BorrowKind::Shared | BorrowKind::Shallow => unreachable!(),
+            Reservation(WriteKind::MutableBorrow(BorrowKind::Mut { kind: mut_borrow_kind }))
+            | Write(WriteKind::MutableBorrow(BorrowKind::Mut { kind: mut_borrow_kind })) => {
+                let is_local_mutation_allowed = match mut_borrow_kind {
+                    // `ClosureCapture` is used for mutable variable with a immutable binding.
+                    // This is only behaviour difference between `ClosureCapture` and mutable borrows.
+                    MutBorrowKind::ClosureCapture => LocalMutationIsAllowed::Yes,
+                    MutBorrowKind::Default | MutBorrowKind::TwoPhaseBorrow => {
+                        is_local_mutation_allowed
+                    }
                 };
                 match self.is_mutable(place.as_ref(), is_local_mutation_allowed) {
                     Ok(root_place) => {
@@ -2028,12 +2029,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 return false;
             }
             Read(
-                ReadKind::Borrow(
-                    BorrowKind::Unique
-                    | BorrowKind::Mut { .. }
-                    | BorrowKind::Shared
-                    | BorrowKind::Shallow,
-                )
+                ReadKind::Borrow(BorrowKind::Mut { .. } | BorrowKind::Shared | BorrowKind::Shallow)
                 | ReadKind::Copy,
             ) => {
                 // Access authorized

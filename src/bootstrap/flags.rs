@@ -193,7 +193,7 @@ impl Flags {
             } else {
                 panic!("No paths available for subcommand `{}`", subcommand.as_str());
             }
-            crate::detail_exit(0);
+            crate::detail_exit_macro!(0);
         }
 
         Flags::parse_from(it)
@@ -304,7 +304,7 @@ pub enum Subcommand {
             ./x.py test library/std --test-args hash_map
             ./x.py test library/std --stage 0 --no-doc
             ./x.py test tests/ui --bless
-            ./x.py test tests/ui --compare-mode chalk
+            ./x.py test tests/ui --compare-mode next-solver
         Note that `test tests/* --stage N` does NOT depend on `build compiler/rustc --stage N`;
         just like `build library/std --stage N` it tests the compiler produced by the previous
         stage.
@@ -538,7 +538,7 @@ pub fn get_completion<G: clap_complete::Generator>(shell: G, path: &Path) -> Opt
     } else {
         std::fs::read_to_string(path).unwrap_or_else(|_| {
             eprintln!("couldn't read {}", path.display());
-            crate::detail_exit(1)
+            crate::detail_exit_macro!(1)
         })
     };
     let mut buf = Vec::new();

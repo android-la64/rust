@@ -94,6 +94,9 @@ pub enum Expr {
     Skip(Vec<String>),
     /// Matches an expression and pushes it to the stack, e.g. `push(e)`
     Push(Box<Expr>),
+    /// Matches an expression and assigns a label to it, e.g. #label = exp
+    #[cfg(feature = "grammar-extras")]
+    NodeTag(Box<Expr>, String),
 }
 
 impl Expr {
@@ -114,7 +117,6 @@ impl Expr {
             let expr = f(expr);
 
             match expr {
-                // TODO: Use box syntax when it gets stabilized.
                 Expr::PosPred(expr) => {
                     let mapped = Box::new(map_internal(*expr, f));
                     Expr::PosPred(mapped)
@@ -165,6 +167,11 @@ impl Expr {
                     let mapped = Box::new(map_internal(*expr, f));
                     Expr::Push(mapped)
                 }
+                #[cfg(feature = "grammar-extras")]
+                Expr::NodeTag(expr, tag) => {
+                    let mapped = Box::new(map_internal(*expr, f));
+                    Expr::NodeTag(mapped, tag)
+                }
                 expr => expr,
             }
         }
@@ -183,7 +190,6 @@ impl Expr {
         {
             let mapped = match expr {
                 Expr::PosPred(expr) => {
-                    // TODO: Use box syntax when it gets stabilized.
                     let mapped = Box::new(map_internal(*expr, f));
                     Expr::PosPred(mapped)
                 }
@@ -232,6 +238,11 @@ impl Expr {
                 Expr::Push(expr) => {
                     let mapped = Box::new(map_internal(*expr, f));
                     Expr::Push(mapped)
+                }
+                #[cfg(feature = "grammar-extras")]
+                Expr::NodeTag(expr, tag) => {
+                    let mapped = Box::new(map_internal(*expr, f));
+                    Expr::NodeTag(mapped, tag)
                 }
                 expr => expr,
             };
@@ -283,6 +294,10 @@ impl ExprTopDownIterator {
             | Expr::RepMinMax(expr, ..)
             | Expr::Opt(expr)
             | Expr::Push(expr) => {
+                self.next = Some(*expr);
+            }
+            #[cfg(feature = "grammar-extras")]
+            Expr::NodeTag(expr, _) => {
                 self.next = Some(*expr);
             }
             _ => {

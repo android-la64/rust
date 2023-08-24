@@ -101,7 +101,7 @@ impl super::Store {
         }
     }
 
-    /// load a new index (if not yet loaded), and return true if one was indeed loaded (leading to a state_id() change) of the current index.
+    /// load a new index (if not yet loaded), and return true if one was indeed loaded (leading to a `state_id()` change) of the current index.
     /// Note that interacting with the slot-map is inherently racy and we have to deal with it, being conservative in what we even try to load
     /// as our index might already be out-of-date as we try to use it to learn what's next.
     fn load_next_index(&self, mut index: arc_swap::Guard<Arc<SlotMapIndex>>) -> bool {
@@ -283,8 +283,7 @@ impl super::Store {
             .slot_indices
             .iter()
             .max()
-            .map(|idx| (idx + 1) % self.files.len())
-            .unwrap_or(0);
+            .map_or(0, |idx| (idx + 1) % self.files.len());
         let mut num_indices_checked = 0;
         let mut needs_generation_change = false;
         let mut slot_indices_to_remove: Vec<_> = idx_by_index_path.into_values().collect();

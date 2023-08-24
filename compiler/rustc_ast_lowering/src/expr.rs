@@ -71,9 +71,13 @@ impl<'hir> LoweringContext<'_, 'hir> {
 
             let kind = match &e.kind {
                 ExprKind::Array(exprs) => hir::ExprKind::Array(self.lower_exprs(exprs)),
-                ExprKind::ConstBlock(anon_const) => {
-                    let anon_const = self.lower_anon_const(anon_const);
-                    hir::ExprKind::ConstBlock(anon_const)
+                ExprKind::ConstBlock(c) => {
+                    let c = self.with_new_scopes(|this| hir::ConstBlock {
+                        def_id: this.local_def_id(c.id),
+                        hir_id: this.lower_node_id(c.id),
+                        body: this.lower_const_body(c.value.span, Some(&c.value)),
+                    });
+                    hir::ExprKind::ConstBlock(c)
                 }
                 ExprKind::Repeat(expr, count) => {
                     let expr = self.lower_expr(expr);
@@ -271,6 +275,10 @@ impl<'hir> LoweringContext<'_, 'hir> {
                     hir::ExprKind::Ret(e)
                 }
                 ExprKind::Yeet(sub_expr) => self.lower_expr_yeet(e.span, sub_expr.as_deref()),
+                ExprKind::Become(sub_expr) => {
+                    let sub_expr = self.lower_expr(sub_expr);
+                    hir::ExprKind::Become(sub_expr)
+                }
                 ExprKind::InlineAsm(asm) => {
                     hir::ExprKind::InlineAsm(self.lower_inline_asm(e.span, asm))
                 }
@@ -665,14 +673,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
             self.lower_attrs(
                 inner_hir_id,
                 &[Attribute {
-                    kind: AttrKind::Normal(ptr::P(NormalAttr {
-                        item: AttrItem {
-                            path: Path::from_ident(Ident::new(sym::track_caller, span)),
-                            args: AttrArgs::Empty,
-                            tokens: None,
-                        },
-                        tokens: None,
-                    })),
+                    kind: AttrKind::Normal(ptr::P(NormalAttr::from_ident(Ident::new(sym::track_caller, span)))),
                     id: self.tcx.sess.parse_sess.attr_id_generator.mk_attr_id(),
                     style: AttrStyle::Outer,
                     span: unstable_span,

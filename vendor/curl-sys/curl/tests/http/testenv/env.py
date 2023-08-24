@@ -33,6 +33,8 @@ import sys
 from configparser import ConfigParser, ExtendedInterpolation
 from typing import Optional
 
+import pytest
+
 from .certs import CertificateSpec, TestCA, Credentials
 from .ports import alloc_ports
 
@@ -60,12 +62,16 @@ class EnvConfig:
     def __init__(self):
         self.tests_dir = TESTS_HTTPD_PATH
         self.gen_dir = os.path.join(self.tests_dir, 'gen')
+        self.project_dir = os.path.dirname(os.path.dirname(self.tests_dir))
         self.config = DEF_CONFIG
         # check cur and its features
         self.curl = CURL
+        if 'CURL' in os.environ:
+            self.curl = os.environ['CURL']
         self.curl_props = {
             'version': None,
             'os': None,
+            'fullname': None,
             'features': [],
             'protocols': [],
             'libs': [],
@@ -80,6 +86,7 @@ class EnvConfig:
             if l.startswith('curl '):
                 m = re.match(r'^curl (?P<version>\S+) (?P<os>\S+) (?P<libs>.*)$', l)
                 if m:
+                    self.curl_props['fullname'] = m.group(0)
                     self.curl_props['version'] = m.group('version')
                     self.curl_props['os'] = m.group('os')
                     self.curl_props['lib_versions'] = [
@@ -102,8 +109,10 @@ class EnvConfig:
             'https': socket.SOCK_STREAM,
             'proxy': socket.SOCK_STREAM,
             'proxys': socket.SOCK_STREAM,
+            'h2proxys': socket.SOCK_STREAM,
             'caddy': socket.SOCK_STREAM,
             'caddys': socket.SOCK_STREAM,
+            'ws': socket.SOCK_STREAM,
         })
         self.httpd = self.config['httpd']['httpd']
         self.apachectl = self.config['httpd']['apachectl']
@@ -164,11 +173,15 @@ class EnvConfig:
     @property
     def httpd_version(self):
         if self._httpd_version is None and self.apxs is not None:
-            p = subprocess.run(args=[self.apxs, '-q', 'HTTPD_VERSION'],
-                               capture_output=True, text=True)
-            if p.returncode != 0:
-                raise Exception(f'{self.apxs} failed to query HTTPD_VERSION: {p}')
-            self._httpd_version = p.stdout.strip()
+            try:
+                p = subprocess.run(args=[self.apxs, '-q', 'HTTPD_VERSION'],
+                                   capture_output=True, text=True)
+                if p.returncode != 0:
+                    log.error(f'{self.apxs} failed to query HTTPD_VERSION: {p}')
+                else:
+                    self._httpd_version = p.stdout.strip()
+            except Exception as e:
+                log.error(f'{self.apxs} failed to run: {e}')
         return self._httpd_version
 
     def _versiontuple(self, v):
@@ -176,6 +189,8 @@ class EnvConfig:
         return tuple(map(int, v.split('.')))
 
     def httpd_is_at_least(self, minv):
+        if self.httpd_version is None:
+            return False
         hv = self._versiontuple(self.httpd_version)
         return hv >= self._versiontuple(minv)
 
@@ -186,12 +201,14 @@ class EnvConfig:
                os.path.isfile(self.apxs)
 
     def get_incomplete_reason(self) -> Optional[str]:
+        if self.httpd is None or len(self.httpd.strip()) == 0:
+            return f'httpd not configured, see `--with-test-httpd=<path>`'
         if not os.path.isfile(self.httpd):
             return f'httpd ({self.httpd}) not found'
         if not os.path.isfile(self.apachectl):
             return f'apachectl ({self.apachectl}) not found'
         if self.apxs is None:
-            return f"apxs (provided by apache2-dev) not found"
+            return f"command apxs not found (commonly provided in apache2-dev)"
         if not os.path.isfile(self.apxs):
             return f"apxs ({self.apxs}) not found"
         return None
@@ -218,8 +235,16 @@ class Env:
         return Env.CONFIG.get_incomplete_reason()
 
     @staticmethod
+    def have_nghttpx() -> bool:
+        return Env.CONFIG.nghttpx is not None
+
+    @staticmethod
     def have_h3_server() -> bool:
         return Env.CONFIG.nghttpx_with_h3
+
+    @staticmethod
+    def have_ssl_curl() -> bool:
+        return 'ssl' in Env.CONFIG.curl_props['features']
 
     @staticmethod
     def have_h2_curl() -> bool:
@@ -238,6 +263,10 @@ class Env:
         return feature.lower() in Env.CONFIG.curl_props['features']
 
     @staticmethod
+    def curl_has_protocol(protocol: str) -> bool:
+        return protocol.lower() in Env.CONFIG.curl_props['protocols']
+
+    @staticmethod
     def curl_lib_version(libname: str) -> str:
         prefix = f'{libname.lower()}/'
         for lversion in Env.CONFIG.curl_props['lib_versions']:
@@ -248,6 +277,10 @@ class Env:
     @staticmethod
     def curl_os() -> str:
         return Env.CONFIG.curl_props['os']
+
+    @staticmethod
+    def curl_fullname() -> str:
+        return Env.CONFIG.curl_props['fullname']
 
     @staticmethod
     def curl_version() -> str:
@@ -281,6 +314,7 @@ class Env:
         self._verbose = pytestconfig.option.verbose \
             if pytestconfig is not None else 0
         self._ca = None
+        self._test_timeout = 300.0 if self._verbose > 1 else 60.0  # seconds
 
     def issue_certs(self):
         if self._ca is None:
@@ -306,8 +340,20 @@ class Env:
         return self._verbose
 
     @property
+    def test_timeout(self) -> Optional[float]:
+        return self._test_timeout
+
+    @test_timeout.setter
+    def test_timeout(self, val: Optional[float]):
+        self._test_timeout = val
+
+    @property
     def gen_dir(self) -> str:
         return self.CONFIG.gen_dir
+
+    @property
+    def project_dir(self) -> str:
+        return self.CONFIG.project_dir
 
     @property
     def ca(self):
@@ -342,12 +388,20 @@ class Env:
         return self.https_port
 
     @property
-    def proxy_port(self) -> str:
+    def proxy_port(self) -> int:
         return self.CONFIG.ports['proxy']
 
     @property
-    def proxys_port(self) -> str:
+    def proxys_port(self) -> int:
         return self.CONFIG.ports['proxys']
+
+    @property
+    def h2proxys_port(self) -> int:
+        return self.CONFIG.ports['h2proxys']
+
+    def pts_port(self, proto: str = 'http/1.1') -> int:
+        # proxy tunnel port
+        return self.CONFIG.ports['h2proxys' if proto == 'h2' else 'proxys']
 
     @property
     def caddy(self) -> str:
@@ -360,6 +414,10 @@ class Env:
     @property
     def caddy_http_port(self) -> int:
         return self.CONFIG.ports['caddy']
+
+    @property
+    def ws_port(self) -> int:
+        return self.CONFIG.ports['ws']
 
     @property
     def curl(self) -> str:
@@ -402,3 +460,13 @@ class Env:
                 s = f"{i:09d}-{s}\n"
                 fd.write(s[0:remain])
         return fpath
+
+    def make_clients(self):
+        client_dir = os.path.join(self.project_dir, 'tests/http/clients')
+        p = subprocess.run(['make'], capture_output=True, text=True,
+                           cwd=client_dir)
+        if p.returncode != 0:
+            pytest.exit(f"`make`in {client_dir} failed:\n{p.stderr}")
+            return False
+        return True
+

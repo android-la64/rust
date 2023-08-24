@@ -22,7 +22,7 @@ impl Snapshot {
 
     /// Create a new instance from `entries`.
     ///
-    /// These can be obtained using [crate::parse()].
+    /// These can be obtained using [`crate::parse()`].
     pub fn new<'a>(entries: impl IntoIterator<Item = crate::Entry<'a>>) -> Self {
         let mut snapshot = Self::default();
         snapshot.merge(entries);
@@ -54,7 +54,7 @@ impl Snapshot {
     /// Transform our acceleration structure into a list of entries.
     ///
     /// Note that the order is different from how they were obtained initially, and are explicitly ordered by
-    /// (old_email, old_name).
+    /// (`old_email`, `old_name`).
     pub fn entries(&self) -> Vec<crate::Entry<'_>> {
         let mut out = Vec::with_capacity(self.entries_by_old_email.len());
         for entry in &self.entries_by_old_email {
@@ -137,8 +137,7 @@ impl Snapshot {
     /// changed names or emails as `Cow::Owned`, or `Cow::Borrowed` if no mapping was found.
     pub fn resolve_cow<'a>(&self, signature: gix_actor::SignatureRef<'a>) -> Signature<'a> {
         self.try_resolve_ref(signature)
-            .map(|new| enriched_signature(signature, new))
-            .unwrap_or_else(|| signature.into())
+            .map_or_else(|| signature.into(), |new| enriched_signature(signature, new))
     }
 }
 

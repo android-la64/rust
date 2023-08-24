@@ -443,7 +443,12 @@ impl<'p, 'tcx> MatchVisitor<'_, 'p, 'tcx> {
         let mut let_suggestion = None;
         let mut misc_suggestion = None;
         let mut interpreted_as_const = None;
-        if let PatKind::Constant { .. } = pat.kind
+
+        if let PatKind::Constant { .. }
+            | PatKind::AscribeUserType {
+                subpattern: box Pat { kind: PatKind::Constant { .. }, .. },
+                ..
+              } = pat.kind
             && let Ok(snippet) = self.tcx.sess.source_map().span_to_snippet(pat.span)
         {
             // If the pattern to match is an integer literal:
@@ -825,6 +830,11 @@ fn non_exhaustive_match<'p, 'tcx>(
             _ => " or multiple match arms",
         },
     );
+
+    let all_arms_have_guards = arms.iter().all(|arm_id| thir[*arm_id].guard.is_some());
+    if !is_empty_match && all_arms_have_guards {
+        err.subdiagnostic(NonExhaustiveMatchAllArmsGuarded);
+    }
     if let Some((span, sugg)) = suggestion {
         err.span_suggestion_verbose(span, msg, sugg, Applicability::HasPlaceholders);
     } else {

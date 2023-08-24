@@ -438,7 +438,7 @@ pub mod transport {
 /// Utility type to keep pre-obtained configuration values, only for those required during initial setup
 /// and other basic operations that are common enough to warrant a permanent cache.
 ///
-/// All other values are obtained lazily using OnceCell.
+/// All other values are obtained lazily using `OnceCell`.
 #[derive(Clone)]
 pub(crate) struct Cache {
     pub resolved: crate::Config,
@@ -470,6 +470,8 @@ pub(crate) struct Cache {
     pub(crate) pack_cache_bytes: Option<usize>,
     /// The amount of bytes to use for caching whole objects, or 0 to turn it off entirely.
     pub(crate) object_cache_bytes: usize,
+    /// The amount of bytes we can hold in our static LRU cache. Otherwise, go with the defaults.
+    pub(crate) static_pack_cache_limit_bytes: Option<usize>,
     /// The config section filter from the options used to initialize this instance. Keep these in sync!
     filter_config_section: fn(&gix_config::file::Metadata) -> bool,
     /// The object kind to pick if a prefix is ambiguous.

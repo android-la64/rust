@@ -22,12 +22,13 @@ use crate::ion::data_structures::{
 use crate::ion::reg_traversal::RegTraversalIter;
 use crate::moves::{MoveAndScratchResolver, ParallelMoves};
 use crate::{
-    Allocation, Block, Edit, Function, Inst, InstPosition, OperandConstraint, OperandKind,
-    OperandPos, PReg, ProgPoint, RegClass, SpillSlot, VReg,
+    Allocation, Block, Edit, Function, FxHashMap, Inst, InstPosition, OperandConstraint,
+    OperandKind, OperandPos, PReg, ProgPoint, RegClass, SpillSlot, VReg,
 };
-use fxhash::FxHashMap;
+use alloc::vec::Vec;
+use alloc::{format, vec};
+use core::fmt::Debug;
 use smallvec::{smallvec, SmallVec};
-use std::fmt::Debug;
 
 impl<'a, F: Function> Env<'a, F> {
     pub fn is_start_of_block(&self, pos: ProgPoint) -> bool {
@@ -179,8 +180,6 @@ impl<'a, F: Function> Env<'a, F> {
 
         let mut blockparam_in_idx = 0;
         let mut blockparam_out_idx = 0;
-        let mut prog_move_src_idx = 0;
-        let mut prog_move_dst_idx = 0;
         for vreg in 0..self.vregs.len() {
             let vreg = VRegIndex::new(vreg);
             if !self.is_vreg_used(vreg) {
@@ -190,7 +189,7 @@ impl<'a, F: Function> Env<'a, F> {
             // For each range in each vreg, insert moves or
             // half-moves.  We also scan over `blockparam_ins` and
             // `blockparam_outs`, which are sorted by (block, vreg),
-            // and over program-move srcs/dsts to fill in allocations.
+            // to fill in allocations.
             let mut prev = LiveRangeIndex::invalid();
             for range_idx in 0..self.vregs[vreg.index()].ranges.len() {
                 let entry = self.vregs[vreg.index()].ranges[range_idx];
@@ -496,9 +495,9 @@ impl<'a, F: Function> Env<'a, F> {
                             // this case returns the index of the first
                             // entry that is greater as an `Err`.
                             if label_vreg.vreg() < vreg.index() {
-                                std::cmp::Ordering::Less
+                                core::cmp::Ordering::Less
                             } else {
-                                std::cmp::Ordering::Greater
+                                core::cmp::Ordering::Greater
                             }
                         })
                         .unwrap_err();
@@ -517,94 +516,11 @@ impl<'a, F: Function> Env<'a, F> {
                             continue;
                         }
 
-                        let from = std::cmp::max(label_from, range.from);
-                        let to = std::cmp::min(label_to, range.to);
+                        let from = core::cmp::max(label_from, range.from);
+                        let to = core::cmp::min(label_to, range.to);
 
                         self.debug_locations.push((label, from, to, alloc));
                     }
-                }
-
-                // Scan over program move srcs/dsts to fill in allocations.
-
-                // Move srcs happen at `After` of a given
-                // inst. Compute [from, to) semi-inclusive range of
-                // inst indices for which we should fill in the source
-                // with this LR's allocation.
-                //
-                // range from inst-Before or inst-After covers cur
-                // inst's After; so includes move srcs from inst.
-                let move_src_start = (vreg, range.from.inst());
-                // range to (exclusive) inst-Before or inst-After
-                // covers only prev inst's After; so includes move
-                // srcs to (exclusive) inst.
-                let move_src_end = (vreg, range.to.inst());
-                trace!(
-                    "vreg {:?} range {:?}: looking for program-move sources from {:?} to {:?}",
-                    vreg,
-                    range,
-                    move_src_start,
-                    move_src_end
-                );
-                while prog_move_src_idx < self.prog_move_srcs.len()
-                    && self.prog_move_srcs[prog_move_src_idx].0 < move_src_start
-                {
-                    trace!(" -> skipping idx {}", prog_move_src_idx);
-                    prog_move_src_idx += 1;
-                }
-                while prog_move_src_idx < self.prog_move_srcs.len()
-                    && self.prog_move_srcs[prog_move_src_idx].0 < move_src_end
-                {
-                    trace!(
-                        " -> setting idx {} ({:?}) to alloc {:?}",
-                        prog_move_src_idx,
-                        self.prog_move_srcs[prog_move_src_idx].0,
-                        alloc
-                    );
-                    self.prog_move_srcs[prog_move_src_idx].1 = alloc;
-                    prog_move_src_idx += 1;
-                }
-
-                // move dsts happen at Before point.
-                //
-                // Range from inst-Before includes cur inst, while inst-After includes only next inst.
-                let move_dst_start = if range.from.pos() == InstPosition::Before {
-                    (vreg, range.from.inst())
-                } else {
-                    (vreg, range.from.inst().next())
-                };
-                // Range to (exclusive) inst-Before includes prev
-                // inst, so to (exclusive) cur inst; range to
-                // (exclusive) inst-After includes cur inst, so to
-                // (exclusive) next inst.
-                let move_dst_end = if range.to.pos() == InstPosition::Before {
-                    (vreg, range.to.inst())
-                } else {
-                    (vreg, range.to.inst().next())
-                };
-                trace!(
-                    "vreg {:?} range {:?}: looking for program-move dests from {:?} to {:?}",
-                    vreg,
-                    range,
-                    move_dst_start,
-                    move_dst_end
-                );
-                while prog_move_dst_idx < self.prog_move_dsts.len()
-                    && self.prog_move_dsts[prog_move_dst_idx].0 < move_dst_start
-                {
-                    trace!(" -> skipping idx {}", prog_move_dst_idx);
-                    prog_move_dst_idx += 1;
-                }
-                while prog_move_dst_idx < self.prog_move_dsts.len()
-                    && self.prog_move_dsts[prog_move_dst_idx].0 < move_dst_end
-                {
-                    trace!(
-                        " -> setting idx {} ({:?}) to alloc {:?}",
-                        prog_move_dst_idx,
-                        self.prog_move_dsts[prog_move_dst_idx].0,
-                        alloc
-                    );
-                    self.prog_move_dsts[prog_move_dst_idx].1 = alloc;
-                    prog_move_dst_idx += 1;
                 }
 
                 prev = entry.index;
@@ -714,7 +630,7 @@ impl<'a, F: Function> Env<'a, F> {
         }
 
         // Handle multi-fixed-reg constraints by copying.
-        for fixup in std::mem::replace(&mut self.multi_fixed_reg_fixups, vec![]) {
+        for fixup in core::mem::replace(&mut self.multi_fixed_reg_fixups, vec![]) {
             let from_alloc = self.get_alloc(fixup.pos.inst(), fixup.from_slot as usize);
             let to_alloc = Allocation::reg(PReg::from_index(fixup.to_preg.index()));
             trace!(
@@ -820,42 +736,6 @@ impl<'a, F: Function> Env<'a, F> {
             }
         }
 
-        // Sort the prog-moves lists and insert moves to reify the
-        // input program's move operations.
-        self.prog_move_srcs
-            .sort_unstable_by_key(|((_, inst), _)| *inst);
-        self.prog_move_dsts
-            .sort_unstable_by_key(|((_, inst), _)| inst.prev());
-        let prog_move_srcs = std::mem::replace(&mut self.prog_move_srcs, vec![]);
-        let prog_move_dsts = std::mem::replace(&mut self.prog_move_dsts, vec![]);
-        debug_assert_eq!(prog_move_srcs.len(), prog_move_dsts.len());
-        for (&((_, from_inst), from_alloc), &((to_vreg, to_inst), to_alloc)) in
-            prog_move_srcs.iter().zip(prog_move_dsts.iter())
-        {
-            trace!(
-                "program move at inst {:?}: alloc {:?} -> {:?} (v{})",
-                from_inst,
-                from_alloc,
-                to_alloc,
-                to_vreg.index(),
-            );
-            debug_assert!(from_alloc.is_some());
-            debug_assert!(to_alloc.is_some());
-            debug_assert_eq!(from_inst, to_inst.prev());
-            // N.B.: these moves happen with the *same* priority as
-            // LR-to-LR moves, because they work just like them: they
-            // connect a use at one progpoint (move-After) with a def
-            // at an adjacent progpoint (move+1-Before), so they must
-            // happen in parallel with all other LR-to-LR moves.
-            self.insert_move(
-                ProgPoint::before(to_inst),
-                InsertMovePrio::Regular,
-                from_alloc,
-                to_alloc,
-                self.vreg(to_vreg),
-            );
-        }
-
         // Sort the debug-locations vector; we provide this
         // invariant to the client.
         self.debug_locations.sort_unstable();
@@ -932,14 +812,15 @@ impl<'a, F: Function> Env<'a, F> {
             redundant_move_process_side_effects(self, &mut redundant_moves, last_pos, pos_prio.pos);
             last_pos = pos_prio.pos;
 
-            // Gather all the moves with Int class and Float class
-            // separately. These cannot interact, so it is safe to
-            // have two separate ParallelMove instances. They need to
-            // be separate because moves between the two classes are
-            // impossible. (We could enhance ParallelMoves to
-            // understand register classes, but this seems simpler.)
+            // Gather all the moves in each RegClass separately.
+            // These cannot interact, so it is safe to have separate
+            // ParallelMove instances. They need to be separate because
+            // moves between the classes are impossible. (We could
+            // enhance ParallelMoves to understand register classes, but
+            // this seems simpler.)
             let mut int_moves: SmallVec<[InsertedMove; 8]> = smallvec![];
             let mut float_moves: SmallVec<[InsertedMove; 8]> = smallvec![];
+            let mut vec_moves: SmallVec<[InsertedMove; 8]> = smallvec![];
 
             for m in moves {
                 if m.from_alloc == m.to_alloc {
@@ -952,12 +833,17 @@ impl<'a, F: Function> Env<'a, F> {
                     RegClass::Float => {
                         float_moves.push(m.clone());
                     }
+                    RegClass::Vector => {
+                        vec_moves.push(m.clone());
+                    }
                 }
             }
 
-            for &(regclass, moves) in
-                &[(RegClass::Int, &int_moves), (RegClass::Float, &float_moves)]
-            {
+            for &(regclass, moves) in &[
+                (RegClass::Int, &int_moves),
+                (RegClass::Float, &float_moves),
+                (RegClass::Vector, &vec_moves),
+            ] {
                 // All moves in `moves` semantically happen in
                 // parallel. Let's resolve these to a sequence of moves
                 // that can be done one at a time.
@@ -986,6 +872,9 @@ impl<'a, F: Function> Env<'a, F> {
                     to: pos_prio.pos.next(),
                 });
                 let get_reg = || {
+                    if let Some(reg) = self.env.scratch_by_class[regclass as usize] {
+                        return Some(Allocation::reg(reg));
+                    }
                     while let Some(preg) = scratch_iter.next() {
                         if !self.pregs[preg.index()]
                             .allocations
