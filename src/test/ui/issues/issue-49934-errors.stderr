@@ -1,0 +1,15 @@
+error[E0774]: `derive` may only be applied to structs, enums and unions
+  --> $DIR/issue-49934-errors.rs:1:8
+   |
+LL | fn foo<#[derive(Debug)] T>() {
+   |        ^^^^^^^^^^^^^^^^
+
+error[E0774]: `derive` may only be applied to structs, enums and unions
+  --> $DIR/issue-49934-errors.rs:4:9
+   |
+LL |         #[derive(Debug)]
+   |         ^^^^^^^^^^^^^^^^
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0774`.
