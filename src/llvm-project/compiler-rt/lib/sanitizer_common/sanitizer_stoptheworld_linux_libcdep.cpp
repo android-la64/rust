@@ -13,48 +13,51 @@
 
 #include "sanitizer_platform.h"
 
-#if SANITIZER_LINUX && (defined(__x86_64__) || defined(__mips__) || \
-                        defined(__aarch64__) || defined(__powerpc64__) || \
-                        defined(__s390__) || defined(__i386__) || \
-                        defined(__arm__))
+#if SANITIZER_LINUX &&                                                   \
+    (defined(__x86_64__) || defined(__mips__) || defined(__aarch64__) || \
+     defined(__powerpc64__) || defined(__s390__) || defined(__i386__) || \
+     defined(__arm__) || SANITIZER_RISCV64 || defined(__loongarch__))
 
-#include "sanitizer_stoptheworld.h"
+#  include "sanitizer_atomic.h"
+#  include "sanitizer_platform_limits_posix.h"
+#  include "sanitizer_stoptheworld.h"
 
-#include "sanitizer_platform_limits_posix.h"
-#include "sanitizer_atomic.h"
+#  if defined(__loongarch__)
+#    include <sys/ucontext.h>
+#  endif
 
-#include <errno.h>
-#include <sched.h> // for CLONE_* definitions
-#include <stddef.h>
-#include <sys/prctl.h> // for PR_* definitions
-#include <sys/ptrace.h> // for PTRACE_* definitions
-#include <sys/types.h> // for pid_t
-#include <sys/uio.h> // for iovec
-#include <elf.h> // for NT_PRSTATUS
-#if defined(__aarch64__) && !SANITIZER_ANDROID
+#  include <elf.h>  // for NT_PRSTATUS
+#  include <errno.h>
+#  include <sched.h>  // for CLONE_* definitions
+#  include <stddef.h>
+#  include <sys/prctl.h>   // for PR_* definitions
+#  include <sys/ptrace.h>  // for PTRACE_* definitions
+#  include <sys/types.h>   // for pid_t
+#  include <sys/uio.h>     // for iovec
+#  if (defined(__aarch64__) || SANITIZER_RISCV64) && !SANITIZER_ANDROID
 // GLIBC 2.20+ sys/user does not include asm/ptrace.h
 # include <asm/ptrace.h>
 #endif
 #include <sys/user.h>  // for user_regs_struct
-#if SANITIZER_ANDROID && SANITIZER_MIPS
-# include <asm/reg.h>  // for mips SP register in sys/user.h
-#endif
-#include <sys/wait.h> // for signal-related stuff
+#  if (SANITIZER_ANDROID && SANITIZER_MIPS) || SANITIZER_LOONGARCH
+#    include <asm/reg.h>  // for mips SP register in sys/user.h
+#  endif
+#  include <sys/wait.h>  // for signal-related stuff
 
-#ifdef sa_handler
-# undef sa_handler
-#endif
+#  ifdef sa_handler
+#    undef sa_handler
+#  endif
 
-#ifdef sa_sigaction
-# undef sa_sigaction
-#endif
+#  ifdef sa_sigaction
+#    undef sa_sigaction
+#  endif
 
-#include "sanitizer_common.h"
-#include "sanitizer_flags.h"
-#include "sanitizer_libc.h"
-#include "sanitizer_linux.h"
-#include "sanitizer_mutex.h"
-#include "sanitizer_placement_new.h"
+#  include "sanitizer_common.h"
+#  include "sanitizer_flags.h"
+#  include "sanitizer_libc.h"
+#  include "sanitizer_linux.h"
+#  include "sanitizer_mutex.h"
+#  include "sanitizer_placement_new.h"
 
 // Sufficiently old kernel headers don't provide this value, but we can still
 // call prctl with it. If the runtime kernel is new enough, the prctl call will
@@ -85,18 +88,18 @@
 
 namespace __sanitizer {
 
-class SuspendedThreadsListLinux : public SuspendedThreadsList {
+class SuspendedThreadsListLinux final : public SuspendedThreadsList {
  public:
   SuspendedThreadsListLinux() { thread_ids_.reserve(1024); }
 
-  tid_t GetThreadID(uptr index) const;
-  uptr ThreadCount() const;
+  tid_t GetThreadID(uptr index) const override;
+  uptr ThreadCount() const override;
   bool ContainsTid(tid_t thread_id) const;
   void Append(tid_t tid);
 
-  PtraceRegistersStatus GetRegistersAndSP(uptr index, uptr *buffer,
-                                          uptr *sp) const;
-  uptr RegisterCount() const;
+  PtraceRegistersStatus GetRegistersAndSP(uptr index,
+                                          InternalMmapVector<uptr> *buffer,
+                                          uptr *sp) const override;
 
  private:
   InternalMmapVector<tid_t> thread_ids_;
@@ -485,6 +488,16 @@ typedef user_regs_struct regs_struct;
 #else
 #define REG_SP rsp
 #endif
+#define ARCH_IOVEC_FOR_GETREGSET
+// Support ptrace extensions even when compiled without required kernel support
+#ifndef NT_X86_XSTATE
+#define NT_X86_XSTATE 0x202
+#endif
+#ifndef PTRACE_GETREGSET
+#define PTRACE_GETREGSET 0x4204
+#endif
+// Compiler may use FP registers to store pointers.
+static constexpr uptr kExtraRegs[] = {NT_X86_XSTATE, NT_FPREGSET};
 
 #elif defined(__powerpc__) || defined(__powerpc64__)
 typedef pt_regs regs_struct;
@@ -498,19 +511,38 @@ typedef struct user regs_struct;
 #  define REG_SP regs[EF_REG29]
 # endif
 
-#elif defined(__aarch64__)
+#  elif defined(__loongarch__)
+typedef struct user_regs_struct regs_struct;
+static constexpr uptr kExtraRegs[] = {0};
+#    define ARCH_IOVEC_FOR_GETREGSET
+
+#    if SANITIZER_LOONGARCH
+#      define REG_SP gpr[3]
+#    endif
+
+#  elif defined(__aarch64__)
 typedef struct user_pt_regs regs_struct;
-#define REG_SP sp
-#define ARCH_IOVEC_FOR_GETREGSET
+#    define REG_SP sp
+static constexpr uptr kExtraRegs[] = {0};
+#    define ARCH_IOVEC_FOR_GETREGSET
 
-#elif defined(__s390__)
+#  elif SANITIZER_RISCV64
+typedef struct user_regs_struct regs_struct;
+// sys/ucontext.h already defines REG_SP as 2. Undefine it first.
+#    undef REG_SP
+#    define REG_SP sp
+static constexpr uptr kExtraRegs[] = {0};
+#    define ARCH_IOVEC_FOR_GETREGSET
+
+#  elif defined(__s390__)
 typedef _user_regs_struct regs_struct;
-#define REG_SP gprs[15]
-#define ARCH_IOVEC_FOR_GETREGSET
+#    define REG_SP gprs[15]
+static constexpr uptr kExtraRegs[] = {0};
+#    define ARCH_IOVEC_FOR_GETREGSET
 
-#else
-#error "Unsupported architecture"
-#endif // SANITIZER_ANDROID && defined(__arm__)
+#  else
+#    error "Unsupported architecture"
+#  endif  // SANITIZER_ANDROID && defined(__arm__)
 
 tid_t SuspendedThreadsListLinux::GetThreadID(uptr index) const {
   CHECK_LT(index, thread_ids_.size());
@@ -533,24 +565,58 @@ void SuspendedThreadsListLinux::Append(tid_t tid) {
 }
 
 PtraceRegistersStatus SuspendedThreadsListLinux::GetRegistersAndSP(
-    uptr index, uptr *buffer, uptr *sp) const {
+    uptr index, InternalMmapVector<uptr> *buffer, uptr *sp) const {
   pid_t tid = GetThreadID(index);
-  regs_struct regs;
+  constexpr uptr uptr_sz = sizeof(uptr);
   int pterrno;
 #ifdef ARCH_IOVEC_FOR_GETREGSET
-  struct iovec regset_io;
-  regset_io.iov_base = &regs;
-  regset_io.iov_len = sizeof(regs_struct);
-  bool isErr = internal_iserror(internal_ptrace(PTRACE_GETREGSET, tid,
-                                (void*)NT_PRSTATUS, (void*)&regset_io),
-                                &pterrno);
+  auto append = [&](uptr regset) {
+    uptr size = buffer->size();
+    // NT_X86_XSTATE requires 64bit alignment.
+    uptr size_up = RoundUpTo(size, 8 / uptr_sz);
+    buffer->reserve(Max<uptr>(1024, size_up));
+    struct iovec regset_io;
+    for (;; buffer->resize(buffer->capacity() * 2)) {
+      buffer->resize(buffer->capacity());
+      uptr available_bytes = (buffer->size() - size_up) * uptr_sz;
+      regset_io.iov_base = buffer->data() + size_up;
+      regset_io.iov_len = available_bytes;
+      bool fail =
+          internal_iserror(internal_ptrace(PTRACE_GETREGSET, tid,
+                                           (void *)regset, (void *)&regset_io),
+                           &pterrno);
+      if (fail) {
+        VReport(1, "Could not get regset %p from thread %d (errno %d).\n",
+                (void *)regset, tid, pterrno);
+        buffer->resize(size);
+        return false;
+      }
+
+      // Far enough from the buffer size, no need to resize and repeat.
+      if (regset_io.iov_len + 64 < available_bytes)
+        break;
+    }
+    buffer->resize(size_up + RoundUpTo(regset_io.iov_len, uptr_sz) / uptr_sz);
+    return true;
+  };
+
+  buffer->clear();
+  bool fail = !append(NT_PRSTATUS);
+  if (!fail) {
+    // Accept the first available and do not report errors.
+    for (uptr regs : kExtraRegs)
+      if (regs && append(regs))
+        break;
+  }
 #else
-  bool isErr = internal_iserror(internal_ptrace(PTRACE_GETREGS, tid, nullptr,
-                                &regs), &pterrno);
-#endif
-  if (isErr) {
+  buffer->resize(RoundUpTo(sizeof(regs_struct), uptr_sz) / uptr_sz);
+  bool fail = internal_iserror(
+      internal_ptrace(PTRACE_GETREGS, tid, nullptr, buffer->data()), &pterrno);
+  if (fail)
     VReport(1, "Could not get registers from thread %d (errno %d).\n", tid,
             pterrno);
+#endif
+  if (fail) {
     // ESRCH means that the given thread is not suspended or already dead.
     // Therefore it's unsafe to inspect its data (e.g. walk through stack) and
     // we should notify caller about this.
@@ -558,14 +624,10 @@ PtraceRegistersStatus SuspendedThreadsListLinux::GetRegistersAndSP(
                             : REGISTERS_UNAVAILABLE;
   }
 
-  *sp = regs.REG_SP;
-  internal_memcpy(buffer, &regs, sizeof(regs));
+  *sp = reinterpret_cast<regs_struct *>(buffer->data())[0].REG_SP;
   return REGISTERS_AVAILABLE;
 }
 
-uptr SuspendedThreadsListLinux::RegisterCount() const {
-  return sizeof(regs_struct) / sizeof(uptr);
-}
 } // namespace __sanitizer
 
 #endif  // SANITIZER_LINUX && (defined(__x86_64__) || defined(__mips__)

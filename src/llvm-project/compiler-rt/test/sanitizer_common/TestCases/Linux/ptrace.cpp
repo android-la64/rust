@@ -20,6 +20,9 @@
 // GLIBC 2.20+ sys/user does not include asm/ptrace.h
  #include <asm/ptrace.h>
 #endif
+#ifdef __loongarch64
+#  include <asm/ptrace.h>
+#endif
 
 int main(void) {
   pid_t pid;
@@ -113,6 +116,24 @@ int main(void) {
     if (fpregs.fpc)
       printf("%x\n", fpregs.fpc);
 #endif // (__s390__)
+
+#if (__loongarch64)
+    struct iovec regset_io;
+
+    struct user_pt_regs regs;
+    regset_io.iov_base = &regs;
+    regset_io.iov_len = sizeof(regs);
+    res = ptrace(PTRACE_GETREGSET, pid, (void *)NT_PRSTATUS, (void *)&regset_io);
+    assert(!res);
+
+    struct user_fp_state fpregs;
+    regset_io.iov_base = &fpregs;
+    regset_io.iov_len = sizeof(fpregs);
+    res = ptrace(PTRACE_GETREGSET, pid, (void *)NT_FPREGSET, (void *)&regset_io);
+    assert(!res);
+    if (fpregs.fcsr)
+      printf("%lx\n", fpregs.fcsr);
+#endif // (__loongarch64)
 
     siginfo_t siginfo;
     res = ptrace(PTRACE_GETSIGINFO, pid, NULL, &siginfo);

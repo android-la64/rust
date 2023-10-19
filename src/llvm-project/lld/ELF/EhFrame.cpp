@@ -38,6 +38,8 @@ public:
   EhReader(InputSectionBase *s, ArrayRef<uint8_t> d) : isec(s), d(d) {}
   size_t readEhRecordSize();
   uint8_t getFdeEncoding();
+  void setPcRelativeEncoding(uint8_t *buf);
+  bool hasLSDA();
 
 private:
   template <class P> void failOn(const P *loc, const Twine &msg) {
@@ -50,6 +52,7 @@ private:
   StringRef readString();
   void skipLeb128();
   void skipAugP();
+  StringRef getAugmentation();
 
   InputSectionBase *isec;
   ArrayRef<uint8_t> d;
@@ -152,7 +155,15 @@ uint8_t elf::getFdeEncoding(EhSectionPiece *p) {
   return EhReader(p->sec, p->data()).getFdeEncoding();
 }
 
-uint8_t EhReader::getFdeEncoding() {
+void elf::setPcRelativeEncoding(EhSectionPiece *p, uint8_t *buf) {
+  EhReader(p->sec, p->data()).setPcRelativeEncoding(buf);
+}
+
+bool elf::hasLSDA(const EhSectionPiece &p) {
+  return EhReader(p.sec, p.data()).hasLSDA();
+}
+
+StringRef EhReader::getAugmentation() {
   skipBytes(8);
   int version = readByte();
   if (version != 1 && version != 3)
@@ -171,26 +182,70 @@ uint8_t EhReader::getFdeEncoding() {
     readByte();
   else
     skipLeb128();
+  return aug;
+}
 
+void EhReader::setPcRelativeEncoding(uint8_t *buf) {
+  const uint8_t *start = d.begin();
+  StringRef aug = getAugmentation();
+  uint8_t *p = buf + (d.begin() - start);
+  for (char c : aug) {
+    if (c == 'R') {
+      *p = DW_EH_PE_pcrel | DW_EH_PE_sdata8;
+      readByte();
+      p++;
+    } else if (c == 'z') {
+      skipLeb128();
+      p += (d.begin() - start) - (p - buf);
+    } else if (c == 'L') {
+      *p = DW_EH_PE_pcrel | DW_EH_PE_sdata8;
+      readByte();
+      p++;
+    } else if (c == 'P') {
+      *p = DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata8;
+      skipAugP();
+      p += (d.begin() - start) - (p - buf);
+    } else if (c != 'B' && c != 'S') {
+      failOn(aug.data(), "unknown .eh_frame augmentation string: " + aug);
+    }
+  }
+}
+
+uint8_t EhReader::getFdeEncoding() {
+  if ((config->shared || config->pie) && config->emachine == EM_LOONGARCH)
+    return DW_EH_PE_pcrel | DW_EH_PE_sdata8;
   // We only care about an 'R' value, but other records may precede an 'R'
   // record. Unfortunately records are not in TLV (type-length-value) format,
   // so we need to teach the linker how to skip records for each type.
+  StringRef aug = getAugmentation();
   for (char c : aug) {
     if (c == 'R')
       return readByte();
-    if (c == 'z') {
+    if (c == 'z')
       skipLeb128();
-      continue;
-    }
-    if (c == 'P') {
-      skipAugP();
-      continue;
-    }
-    if (c == 'L') {
+    else if (c == 'L')
       readByte();
-      continue;
-    }
-    failOn(aug.data(), "unknown .eh_frame augmentation string: " + aug);
+    else if (c == 'P')
+      skipAugP();
+    else if (c != 'B' && c != 'S')
+      failOn(aug.data(), "unknown .eh_frame augmentation string: " + aug);
   }
   return DW_EH_PE_absptr;
+}
+
+bool EhReader::hasLSDA() {
+  StringRef aug = getAugmentation();
+  for (char c : aug) {
+    if (c == 'L')
+      return true;
+    if (c == 'z')
+      skipLeb128();
+    else if (c == 'P')
+      skipAugP();
+    else if (c == 'R')
+      readByte();
+    else if (c != 'B' && c != 'S')
+      failOn(aug.data(), "unknown .eh_frame augmentation string: " + aug);
+  }
+  return false;
 }

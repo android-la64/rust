@@ -542,6 +542,7 @@ private:
   // Visitors to walk an AST and construct the CFG.
   CFGBlock *VisitInitListExpr(InitListExpr *ILE, AddStmtChoice asc);
   CFGBlock *VisitAddrLabelExpr(AddrLabelExpr *A, AddStmtChoice asc);
+  CFGBlock *VisitAttributedStmt(AttributedStmt *A, AddStmtChoice asc);
   CFGBlock *VisitBinaryOperator(BinaryOperator *B, AddStmtChoice asc);
   CFGBlock *VisitBreakStmt(BreakStmt *B);
   CFGBlock *VisitCallExpr(CallExpr *C, AddStmtChoice asc);
@@ -1456,6 +1457,13 @@ void CFGBuilder::findConstructionContexts(
     // TODO: Handle other cases. For now, fail to find construction contexts.
     break;
   }
+  case Stmt::ParenExprClass: {
+    // If expression is placed into parenthesis we should propagate the parent
+    // construction context to subexpressions.
+    auto *PE = cast<ParenExpr>(Child);
+    findConstructionContexts(Layer, PE->getSubExpr());
+    break;
+  }
   default:
     break;
   }
@@ -2142,6 +2150,9 @@ CFGBlock *CFGBuilder::Visit(Stmt * S, AddStmtChoice asc,
     case Stmt::InitListExprClass:
       return VisitInitListExpr(cast<InitListExpr>(S), asc);
 
+    case Stmt::AttributedStmtClass:
+      return VisitAttributedStmt(cast<AttributedStmt>(S), asc);
+
     case Stmt::AddrLabelExprClass:
       return VisitAddrLabelExpr(cast<AddrLabelExpr>(S), asc);
 
@@ -2391,8 +2402,32 @@ CFGBlock *CFGBuilder::VisitAddrLabelExpr(AddrLabelExpr *A,
   return Block;
 }
 
-CFGBlock *CFGBuilder::VisitUnaryOperator(UnaryOperator *U,
-           AddStmtChoice asc) {
+static bool isFallthroughStatement(const AttributedStmt *A) {
+  bool isFallthrough = hasSpecificAttr<FallThroughAttr>(A->getAttrs());
+  assert((!isFallthrough || isa<NullStmt>(A->getSubStmt())) &&
+         "expected fallthrough not to have children");
+  return isFallthrough;
+}
+
+CFGBlock *CFGBuilder::VisitAttributedStmt(AttributedStmt *A,
+                                          AddStmtChoice asc) {
+  // AttributedStmts for [[likely]] can have arbitrary statements as children,
+  // and the current visitation order here would add the AttributedStmts
+  // for [[likely]] after the child nodes, which is undesirable: For example,
+  // if the child contains an unconditional return, the [[likely]] would be
+  // considered unreachable.
+  // So only add the AttributedStmt for FallThrough, which has CFG effects and
+  // also no children, and omit the others. None of the other current StmtAttrs
+  // have semantic meaning for the CFG.
+  if (isFallthroughStatement(A) && asc.alwaysAdd(*this, A)) {
+    autoCreateBlock();
+    appendStmt(Block, A);
+  }
+
+  return VisitChildren(A);
+}
+
+CFGBlock *CFGBuilder::VisitUnaryOperator(UnaryOperator *U, AddStmtChoice asc) {
   if (asc.alwaysAdd(*this, U)) {
     autoCreateBlock();
     appendStmt(Block, U);
@@ -3326,7 +3361,7 @@ CFGBlock *CFGBuilder::VisitGCCAsmStmt(GCCAsmStmt *G, AddStmtChoice asc) {
   // Save "Succ" in BackpatchBlocks. In the backpatch processing, "Succ" is
   // used to avoid adding "Succ" again.
   BackpatchBlocks.push_back(JumpSource(Succ, ScopePos));
-  return Block;
+  return VisitChildren(G);
 }
 
 CFGBlock *CFGBuilder::VisitForStmt(ForStmt *F) {
@@ -4475,8 +4510,14 @@ CFGBlock *CFGBuilder::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
     // Add implicit scope and dtors for loop variable.
     addLocalScopeAndDtors(S->getLoopVarStmt());
 
+    // If body is not a compound statement create implicit scope
+    // and add destructors.
+    if (!isa<CompoundStmt>(S->getBody()))
+      addLocalScopeAndDtors(S->getBody());
+
     // Populate a new block to contain the loop body and loop variable.
     addStmt(S->getBody());
+
     if (badCFG)
       return nullptr;
     CFGBlock *LoopVarStmtBlock = addStmt(S->getLoopVarStmt());
@@ -4773,11 +4814,11 @@ CFGBlock *CFGBuilder::VisitChildrenForTemporaryDtors(Stmt *E,
 CFGBlock *CFGBuilder::VisitBinaryOperatorForTemporaryDtors(
     BinaryOperator *E, bool ExternallyDestructed, TempDtorContext &Context) {
   if (E->isCommaOp()) {
-    // For comma operator LHS expression is visited
-    // before RHS expression. For destructors visit them in reverse order.
-    CFGBlock *RHSBlock = VisitForTemporaryDtors(E->getRHS(), ExternallyDestructed, Context);
+    // For the comma operator, the LHS expression is evaluated before the RHS
+    // expression, so prepend temporary destructors for the LHS first.
     CFGBlock *LHSBlock = VisitForTemporaryDtors(E->getLHS(), false, Context);
-    return LHSBlock ? LHSBlock : RHSBlock;
+    CFGBlock *RHSBlock = VisitForTemporaryDtors(E->getRHS(), ExternallyDestructed, Context);
+    return RHSBlock ? RHSBlock : LHSBlock;
   }
 
   if (E->isLogicalOp()) {
@@ -4798,19 +4839,15 @@ CFGBlock *CFGBuilder::VisitBinaryOperatorForTemporaryDtors(
   }
 
   if (E->isAssignmentOp()) {
-    // For assignment operator (=) LHS expression is visited
-    // before RHS expression. For destructors visit them in reverse order.
+    // For assignment operators, the RHS expression is evaluated before the LHS
+    // expression, so prepend temporary destructors for the RHS first.
     CFGBlock *RHSBlock = VisitForTemporaryDtors(E->getRHS(), false, Context);
     CFGBlock *LHSBlock = VisitForTemporaryDtors(E->getLHS(), false, Context);
     return LHSBlock ? LHSBlock : RHSBlock;
   }
 
-  // For any other binary operator RHS expression is visited before
-  // LHS expression (order of children). For destructors visit them in reverse
-  // order.
-  CFGBlock *LHSBlock = VisitForTemporaryDtors(E->getLHS(), false, Context);
-  CFGBlock *RHSBlock = VisitForTemporaryDtors(E->getRHS(), false, Context);
-  return RHSBlock ? RHSBlock : LHSBlock;
+  // Any other operator is visited normally.
+  return VisitChildrenForTemporaryDtors(E, ExternallyDestructed, Context);
 }
 
 CFGBlock *CFGBuilder::VisitCXXBindTemporaryExprForTemporaryDtors(
@@ -4917,14 +4954,13 @@ CFGBlock *CFGBuilder::VisitOMPExecutableDirective(OMPExecutableDirective *D,
       B = R;
   }
   // Visit associated structured block if any.
-  if (!D->isStandaloneDirective())
-    if (CapturedStmt *CS = D->getInnermostCapturedStmt()) {
-      Stmt *S = CS->getCapturedStmt();
-      if (!isa<CompoundStmt>(S))
-        addLocalScopeAndDtors(S);
-      if (CFGBlock *R = addStmt(S))
-        B = R;
-    }
+  if (!D->isStandaloneDirective()) {
+    Stmt *S = D->getRawStmt();
+    if (!isa<CompoundStmt>(S))
+      addLocalScopeAndDtors(S);
+    if (CFGBlock *R = addStmt(S))
+      B = R;
+  }
 
   return B;
 }

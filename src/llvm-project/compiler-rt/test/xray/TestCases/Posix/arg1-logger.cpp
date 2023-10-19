@@ -11,7 +11,7 @@
 // RUN: rm -f arg1-logger-*
 //
 // At the time of writing, the ARM trampolines weren't written yet.
-// XFAIL: arm || aarch64 || mips
+// XFAIL: arm || aarch64 || mips || loongarch
 // See the mailing list discussion of r296998.
 // UNSUPPORTED: powerpc64le
 

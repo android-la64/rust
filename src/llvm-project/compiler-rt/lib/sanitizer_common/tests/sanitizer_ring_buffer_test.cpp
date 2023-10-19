@@ -10,7 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 #include "sanitizer_common/sanitizer_ring_buffer.h"
+
 #include "gtest/gtest.h"
+#include "sanitizer_common/sanitizer_common.h"
 
 namespace __sanitizer {
 
@@ -84,9 +86,10 @@ CompactRingBuffer<T> *AllocCompactRingBuffer(size_t count) {
 
 TEST(CompactRingBuffer, int64) {
   const size_t page_sizes[] = {1, 2, 4, 128};
+  size_t page_size = GetPageSizeCached();
 
   for (size_t pages : page_sizes) {
-    size_t count = 4096 * pages / sizeof(int64_t);
+    size_t count = page_size * pages / sizeof(int64_t);
     auto R = AllocCompactRingBuffer<int64_t>(count);
     int64_t top = count * 3 + 13;
     for (int64_t i = 0; i < top; ++i) R->push(i);

@@ -6,7 +6,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use tar::Archive;
 
-const DEFAULT_TARGET: &str = "x86_64-unknown-linux-gnu";
+const DEFAULT_TARGET: &str = "loongarch64-unknown-linux-gnu";
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub(crate) enum PkgType {

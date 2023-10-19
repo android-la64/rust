@@ -41,6 +41,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <stdlib.h>
+#include <string.h>
 #undef __CUDACC__
 
 // Preserve common macros that will be changed below by us or by CUDA
@@ -205,11 +206,6 @@ inline __host__ double __signbitd(double x) {
 #endif
 
 #if CUDA_VERSION >= 9000
-// CUDA-9.2 needs host-side memcpy for some host functions in
-// device_functions.hpp
-#if CUDA_VERSION >= 9020
-#include <string.h>
-#endif
 #include "crt/math_functions.hpp"
 #else
 #include "math_functions.hpp"
@@ -349,9 +345,14 @@ extern "C" {
 __device__ int vprintf(const char *, const char *);
 __device__ void free(void *) __attribute((nothrow));
 __device__ void *malloc(size_t) __attribute((nothrow)) __attribute__((malloc));
+
+// __assertfail() used to have a `noreturn` attribute. Unfortunately that
+// contributed to triggering the longstanding bug in ptxas when assert was used
+// in sufficiently convoluted code. See
+// https://bugs.llvm.org/show_bug.cgi?id=27738 for the details.
 __device__ void __assertfail(const char *__message, const char *__file,
                              unsigned __line, const char *__function,
-                             size_t __charSize) __attribute__((noreturn));
+                             size_t __charSize);
 
 // In order for standard assert() macro on linux to work we need to
 // provide device-side __assert_fail()
@@ -377,28 +378,36 @@ __device__ static inline void *malloc(size_t __size) {
 // Out-of-line implementations from __clang_cuda_builtin_vars.h.  These need to
 // come after we've pulled in the definition of uint3 and dim3.
 
+__device__ inline __cuda_builtin_threadIdx_t::operator dim3() const {
+  return dim3(x, y, z);
+}
+
 __device__ inline __cuda_builtin_threadIdx_t::operator uint3() const {
-  uint3 ret;
-  ret.x = x;
-  ret.y = y;
-  ret.z = z;
-  return ret;
+  return {x, y, z};
+}
+
+__device__ inline __cuda_builtin_blockIdx_t::operator dim3() const {
+  return dim3(x, y, z);
 }
 
 __device__ inline __cuda_builtin_blockIdx_t::operator uint3() const {
-  uint3 ret;
-  ret.x = x;
-  ret.y = y;
-  ret.z = z;
-  return ret;
+  return {x, y, z};
 }
 
 __device__ inline __cuda_builtin_blockDim_t::operator dim3() const {
   return dim3(x, y, z);
 }
 
+__device__ inline __cuda_builtin_blockDim_t::operator uint3() const {
+  return {x, y, z};
+}
+
 __device__ inline __cuda_builtin_gridDim_t::operator dim3() const {
   return dim3(x, y, z);
+}
+
+__device__ inline __cuda_builtin_gridDim_t::operator uint3() const {
+  return {x, y, z};
 }
 
 #include <__clang_cuda_cmath.h>

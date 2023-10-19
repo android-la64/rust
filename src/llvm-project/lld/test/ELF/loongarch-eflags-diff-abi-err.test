@@ -1,0 +1,24 @@
+# REQUIRES: loongarch
+
+# RUN: yaml2obj --docnum 1 %s -o %t1.o
+# RUN: yaml2obj --docnum 2 %s -o %t2.o
+# RUN: not ld.lld %t1.o %t2.o -o %t 2>&1 | FileCheck %s
+#
+# CHECK: {{.*}}: ABI 'LPX32' is incompatible with target ABI 'LP32'
+#
+#t1.o
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_LOONGARCH
+  Flags:           [ EF_LARCH_ABI_LP32 ]
+# t2.o
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_LOONGARCH
+  Flags:           [ EF_LARCH_ABI_LPX32 ]

@@ -99,6 +99,14 @@ pub fn initialize_available_targets() {
         LLVMInitializeMipsAsmParser
     );
     init_target!(
+        llvm_component = "loongarch",
+        LLVMInitializeLoongArchTargetInfo,
+        LLVMInitializeLoongArchTarget,
+        LLVMInitializeLoongArchTargetMC,
+        LLVMInitializeLoongArchAsmPrinter,
+        LLVMInitializeLoongArchAsmParser
+    );
+    init_target!(
         llvm_component = "powerpc",
         LLVMInitializePowerPCTargetInfo,
         LLVMInitializePowerPCTarget,

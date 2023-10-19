@@ -67,6 +67,16 @@ tablegen("IntrinsicsHexagon") {
   td_file = "Intrinsics.td"
 }
 
+tablegen("IntrinsicsLoongArch") {
+  visibility = [ ":public_tablegen" ]
+  output_name = "IntrinsicsLoongArch.h"
+  args = [
+    "-gen-intrinsic-enums",
+    "-intrinsic-prefix=loongarch",
+  ]
+  td_file = "Intrinsics.td"
+}
+
 tablegen("IntrinsicsMips") {
   visibility = [ ":public_tablegen" ]
   output_name = "IntrinsicsMips.h"
@@ -127,6 +137,16 @@ tablegen("IntrinsicsS390") {
   td_file = "Intrinsics.td"
 }
 
+tablegen("IntrinsicsVE") {
+  visibility = [ ":public_tablegen" ]
+  output_name = "IntrinsicsVE.h"
+  args = [
+    "-gen-intrinsic-enums",
+    "-intrinsic-prefix=ve",
+  ]
+  td_file = "Intrinsics.td"
+}
+
 tablegen("IntrinsicsWebAssembly") {
   visibility = [ ":public_tablegen" ]
   output_name = "IntrinsicsWebAssembly.h"
@@ -176,12 +196,14 @@ group("public_tablegen") {
     ":IntrinsicsARM",
     ":IntrinsicsBPF",
     ":IntrinsicsHexagon",
+    ":IntrinsicsLoongArch",
     ":IntrinsicsMips",
     ":IntrinsicsNVPTX",
     ":IntrinsicsPowerPC",
     ":IntrinsicsR600",
     ":IntrinsicsRISCV",
     ":IntrinsicsS390",
+    ":IntrinsicsVE",
     ":IntrinsicsWebAssembly",
     ":IntrinsicsX86",
     ":IntrinsicsXCore",

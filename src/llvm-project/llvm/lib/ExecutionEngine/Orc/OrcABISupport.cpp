@@ -906,5 +906,206 @@ void OrcMips64::writeIndirectStubsBlock(
     Stub[8 * I + 7] = 0x00000000;                            // nop
   }
 }
+
+void OrcLoongArch64::writeResolverCode(char *ResolverWorkingMem,
+                                       JITTargetAddress ResolverTargetAddress,
+                                       JITTargetAddress ReentryFnAddr,
+                                       JITTargetAddress ReentryCtxAddr) {
+
+  const uint32_t ResolverCode[] = {
+      // resolver_entry:
+      0x02fc8063, // 0x0: addi.d $r3,$r3,-224(0xf20)
+      0x29c00064, // 0x4: st.d $r4,$r3,0
+      0x29c02065, // 0x8: st.d $r5,$r3,8(0x8)
+      0x29c04066, // 0xc: st.d $r6,$r3,16(0x10)
+      0x29c06067, // 0x10: st.d $r7,$r3,24(0x18)
+      0x29c08068, // 0x14: st.d $r8,$r3,32(0x20)
+      0x29c0a069, // 0x18: st.d $r9,$r3,40(0x28)
+      0x29c0c06a, // 0x1c: st.d $r10,$r3,48(0x30)
+      0x29c0e06b, // 0x20: st.d $r11,$r3,56(0x38)
+      0x29c1006c, // 0x24: st.d $r12,$r3,64(0x40)
+      0x29c1206d, // 0x28: st.d $r13,$r3,72(0x48)
+      0x29c1406e, // 0x2c: st.d $r14,$r3,80(0x50)
+      0x29c1606f, // 0x30: st.d $r15,$r3,88(0x58)
+      0x29c18070, // 0x34: st.d $r16,$r3,96(0x60)
+      0x29c1a071, // 0x38: st.d $r17,$r3,104(0x68)
+      0x29c1c072, // 0x3c: st.d $r18,$r3,112(0x70)
+      0x29c1e073, // 0x40: st.d $r19,$r3,120(0x78)
+      0x29c20074, // 0x44: st.d $r20,$r3,128(0x80)
+      0x29c22076, // 0x48: st.d $r22,$r3,136(0x88)
+      0x29c24077, // 0x4c: st.d $r23,$r3,144(0x90)
+      0x29c26078, // 0x50: st.d $r24,$r3,152(0x98)
+      0x29c28079, // 0x54: st.d $r25,$r3,160(0xa0)
+      0x29c2a07a, // 0x58: st.d $r26,$r3,168(0xa8)
+      0x29c2c07b, // 0x5c: st.d $r27,$r3,176(0xb0)
+      0x29c2e07c, // 0x60: st.d $r28,$r3,184(0xb8)
+      0x29c3007d, // 0x64: st.d $r29,$r3,192(0xc0)
+      0x29c3207e, // 0x68: st.d $r30,$r3,200(0xc8)
+      0x29c3407f, // 0x6c: st.d $r31,$r3,208(0xd0)
+      0x29c36061, // 0x70: st.d $r1,$r3,216(0xd8)
+      // JIT re-entry ctx addr.
+      0x00000000, // 0x74: lu12i.w $a0,hi(ctx)
+      0x00000000, // 0x78: ori $a0,$a0,lo(ctx)
+      0x00000000, // 0x7c: lu32i.d $a0,higher(ctx)
+      0x00000000, // 0x80: lu52i.d $a0,$a0,highest(ctx)
+
+      0x00150025, // 0x84: move $r5,$r1
+      0x02ffa0a5, // 0x88: addi.d $r5,$r5,-24(0xfe8)
+
+      // JIT re-entry fn addr:
+      0x00000000, // 0x8c: lu12i.w $t0,hi(reentry)
+      0x00000000, // 0x90: ori $t0,$t0,lo(reentry)
+      0x00000000, // 0x94: lu32i.d $t0,higher(reentry)
+      0x00000000, // 0x98: lu52i.d $t0,$t0,highest(reentry)
+      0x4c0002a1, // 0x9c: jirl $r1,$r21,0
+      0x00150095, // 0xa0: move $r21,$r4
+      0x28c36061, // 0xa4: ld.d $r1,$r3,216(0xd8)
+      0x28c3407f, // 0xa8: ld.d $r31,$r3,208(0xd0)
+      0x28c3207e, // 0xac: ld.d $r30,$r3,200(0xc8)
+      0x28c3007d, // 0xb0: ld.d $r29,$r3,192(0xc0)
+      0x28c2e07c, // 0xb4: ld.d $r28,$r3,184(0xb8)
+      0x28c2c07b, // 0xb8: ld.d $r27,$r3,176(0xb0)
+      0x28c2a07a, // 0xbc: ld.d $r26,$r3,168(0xa8)
+      0x28c28079, // 0xc0: ld.d $r25,$r3,160(0xa0)
+      0x28c26078, // 0xc4: ld.d $r24,$r3,152(0x98)
+      0x28c24077, // 0xc8: ld.d $r23,$r3,144(0x90)
+      0x28c22076, // 0xcc: ld.d $r22,$r3,136(0x88)
+      0x28c20074, // 0xd0: ld.d $r20,$r3,128(0x80)
+      0x28c1e073, // 0xd4: ld.d $r19,$r3,120(0x78)
+      0x28c1c072, // 0xd8: ld.d $r18,$r3,112(0x70)
+      0x28c1a071, // 0xdc: ld.d $r17,$r3,104(0x68)
+      0x28c18070, // 0xe0: ld.d $r16,$r3,96(0x60)
+      0x28c1606f, // 0xe4: ld.d $r15,$r3,88(0x58)
+      0x28c1406e, // 0xe8: ld.d $r14,$r3,80(0x50)
+      0x28c1206d, // 0xec: ld.d $r13,$r3,72(0x48)
+      0x28c1006c, // 0xf0: ld.d $r12,$r3,64(0x40)
+      0x28c0e06b, // 0xf4: ld.d $r11,$r3,56(0x38)
+      0x28c0c06a, // 0xf8: ld.d $r10,$r3,48(0x30)
+      0x28c0a069, // 0xfc: ld.d $r9,$r3,40(0x28)
+      0x28c08068, // 0x100: ld.d $r8,$r3,32(0x20)
+      0x28c06067, // 0x104: ld.d $r7,$r3,24(0x18)
+      0x28c04066, // 0x108: ld.d $r6,$r3,16(0x10)
+      0x28c02065, // 0x10c: ld.d $r5,$r3,8(0x8)
+      0x28c00064, // 0x110: ld.d $r4,$r3,0
+      0x02c38063, // 0x114: addi.d $r3,$r3,224(0xe0)
+      0x00150281, // 0x118: move $r1,$r20
+      0x4c0002a0, // 0x11c: jirl $r0,$r21,0
+  };
+
+  const unsigned ReentryFnAddrOffset = 0x8c;  // JIT re-entry fn addr lu12i.w
+  const unsigned ReentryCtxAddrOffset = 0x74; // JIT re-entry ctx addr lu12i.w
+
+  memcpy(ResolverWorkingMem, ResolverCode, sizeof(ResolverCode));
+
+  uint32_t ReentryCtxLU12i = 0x14000004 | ((ReentryCtxAddr << 32 >> 44) << 5);
+  uint32_t ReentryCtxORi = 0x03800084 | ((ReentryCtxAddr & 0xFFF) << 10);
+  uint32_t ReentryCtxLU32i = 0x16000004 | ((ReentryCtxAddr << 12 >> 44) << 5);
+  uint32_t ReentryCtxLU52i = 0x03000084 | ((ReentryCtxAddr >> 52) << 10);
+
+  memcpy(ResolverWorkingMem + ReentryCtxAddrOffset, &ReentryCtxLU12i,
+         sizeof(ReentryCtxLU12i));
+  memcpy(ResolverWorkingMem + (ReentryCtxAddrOffset + 4), &ReentryCtxORi,
+         sizeof(ReentryCtxORi));
+  memcpy(ResolverWorkingMem + (ReentryCtxAddrOffset + 8), &ReentryCtxLU32i,
+         sizeof(ReentryCtxLU32i));
+  memcpy(ResolverWorkingMem + (ReentryCtxAddrOffset + 12), &ReentryCtxLU52i,
+         sizeof(ReentryCtxLU52i));
+
+  uint32_t ReentryLU12i = 0x14000015 | ((ReentryFnAddr << 32 >> 44) << 5);
+  uint32_t ReentryORi = 0x038002b5 | ((ReentryFnAddr & 0xFFF) << 10);
+  uint32_t ReentryLU32i = 0x16000015 | ((ReentryFnAddr << 12 >> 44) << 5);
+  uint32_t ReentryLU52i = 0x030002b5 | ((ReentryFnAddr >> 52) << 10);
+
+  memcpy(ResolverWorkingMem + ReentryFnAddrOffset, &ReentryLU12i,
+         sizeof(ReentryLU12i));
+  memcpy(ResolverWorkingMem + (ReentryFnAddrOffset + 4), &ReentryORi,
+         sizeof(ReentryORi));
+  memcpy(ResolverWorkingMem + (ReentryFnAddrOffset + 8), &ReentryLU32i,
+         sizeof(ReentryLU32i));
+  memcpy(ResolverWorkingMem + (ReentryFnAddrOffset + 12), &ReentryLU52i,
+         sizeof(ReentryLU52i));
+}
+
+void OrcLoongArch64::writeTrampolines(
+    char *TrampolineBlockWorkingMem,
+    JITTargetAddress TrampolineBlockTargetAddress,
+    JITTargetAddress ResolverFnAddr, unsigned NumTrampolines) {
+
+  uint32_t *Trampolines =
+      reinterpret_cast<uint32_t *>(TrampolineBlockWorkingMem);
+
+  uint64_t HiBits = ((ResolverFnAddr << 32 >> 44) << 5);
+  uint64_t LoBits = ((ResolverFnAddr & 0xFFF) << 10);
+  uint64_t HigherBits = ((ResolverFnAddr << 12 >> 44) << 5);
+  uint64_t HighestBits = ((ResolverFnAddr >> 52) << 10);
+
+  for (unsigned I = 0; I < NumTrampolines; ++I) {
+    Trampolines[10 * I + 0] = 0x00150034; // move $t8,$ra
+    Trampolines[10 * I + 1] =
+        0x14000015 | HiBits; // lu12i.w $r21,hi(ResolveAddr)
+    Trampolines[10 * I + 2] =
+        0x038002b5 | LoBits; // ori $r21,$r21,lo(ResolveAddr)
+    Trampolines[10 * I + 3] =
+        0x16000015 | HigherBits; // lu32i $r21,higher(ResolveAddr)
+    Trampolines[10 * I + 4] =
+        0x030002b5 | HighestBits; // lu52i $r21,$r21,highest(ResolveAddr)
+    Trampolines[10 * I + 5] = 0x4c0002a1; // jirl $ra, $r21, 0
+  }
+}
+
+void OrcLoongArch64::writeIndirectStubsBlock(
+    char *StubsBlockWorkingMem, JITTargetAddress StubsBlockTargetAddress,
+    JITTargetAddress PointersBlockTargetAddress, unsigned NumStubs) {
+  // Stub format is:
+  //
+  // .section __orc_stubs
+  // stub1:
+  //                 lu12i.w $r21, %abs(ptr1)<<32>>44
+  //                 ori $r21, $r21, %abs(ptr1)&0xfff
+  //                 lu32i.d $r21, %abs(ptr1)<<12>>44
+  //                 lu52i.d $r21, $r21, %abs(ptr1)>>52
+  //                 ld.d $r21, $r21, 0
+  //                 jirl $r0, $r21, 0
+  // stub2:
+  //                 lu12i.w $r21, %abs(ptr2)<<32>>44
+  //                 ori $r21, $r21, %abs(ptr2)&0xfff
+  //                 lu32i.d $r21, %abs(ptr2)<<12>>44
+  //                 lu52i.d $r21, $r21, %abs(ptr2)>>52
+  //                 ld.d $r21, $r21, 0
+  //                 jirl $r0, $r21, 0
+  //
+  // ...
+  //
+  // .section __orc_ptrs
+  // ptr1:
+  //                 .dword 0x0
+  // ptr2:
+  //                 .dword 0x0
+  //
+  // ...
+
+  assert(stubAndPointerRangesOk<OrcLoongArch64>(
+             StubsBlockTargetAddress, PointersBlockTargetAddress, NumStubs) &&
+         "PointersBlock is out of range");
+
+  // Populate the stubs page stubs and mark it executable.
+  uint32_t *Stub = reinterpret_cast<uint32_t *>(StubsBlockWorkingMem);
+  uint64_t PtrAddr = PointersBlockTargetAddress;
+
+  for (unsigned I = 0; I < NumStubs; ++I, PtrAddr += 8) {
+    uint64_t HiBits = ((PtrAddr << 32 >> 44) << 5);
+    uint64_t LoBits = ((PtrAddr & 0xFFF) << 10);
+    uint64_t HigherBits = ((PtrAddr << 12 >> 44) << 5);
+    uint64_t HighestBits = ((PtrAddr >> 52) << 10);
+    Stub[8 * I + 0] = 0x14000015 | HiBits;     // lu12i.w $r21, hi(PtrAddr)
+    Stub[8 * I + 1] = 0x038002b5 | LoBits;     // ori $r21, $r21, lo(PtrAddr)
+    Stub[8 * I + 2] = 0x16000015 | HigherBits; // lu32i.d $r21, higher(PtrAddr)
+    Stub[8 * I + 3] =
+        0x030002b5 | HighestBits; // lu52i.d $r21, $r21, highest(PtrAddr)
+    Stub[8 * I + 4] = 0x28c002b5; // ld.d $r21, $r21, 0
+    Stub[8 * I + 5] = 0x4c0002a0; // jirl $r0, $r21, 0
+  }
+}
+
 } // End namespace orc.
 } // End namespace llvm.

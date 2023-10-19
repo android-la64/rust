@@ -259,6 +259,18 @@ impl AsmBuilderMethods<'tcx> for Builder<'a, 'll, 'tcx> {
                 InlineAsmArch::RiscV32 | InlineAsmArch::RiscV64 => {}
                 InlineAsmArch::Nvptx64 => {}
                 InlineAsmArch::Hexagon => {}
+                InlineAsmArch::LoongArch64 => {
+                    constraints.extend_from_slice(&[
+                        "~{$fcc0}".to_string(),
+                        "~{$fcc1}".to_string(),
+                        "~{$fcc2}".to_string(),
+                        "~{$fcc3}".to_string(),
+                        "~{$fcc4}".to_string(),
+                        "~{$fcc5}".to_string(),
+                        "~{$fcc6}".to_string(),
+                        "~{$fcc7}".to_string(),
+                    ]);
+                }
                 InlineAsmArch::Mips | InlineAsmArch::Mips64 => {}
                 InlineAsmArch::SpirV => {}
                 InlineAsmArch::Wasm32 => {}
@@ -506,6 +518,8 @@ fn reg_to_llvm(reg: InlineAsmRegOrRegClass, layout: Option<&TyAndLayout<'tcx>>) 
             InlineAsmRegClass::Arm(ArmInlineAsmRegClass::dreg)
             | InlineAsmRegClass::Arm(ArmInlineAsmRegClass::qreg) => "w",
             InlineAsmRegClass::Hexagon(HexagonInlineAsmRegClass::reg) => "r",
+            InlineAsmRegClass::LoongArch(LoongArchInlineAsmRegClass::reg) => "r",
+            InlineAsmRegClass::LoongArch(LoongArchInlineAsmRegClass::freg) => "f",
             InlineAsmRegClass::Mips(MipsInlineAsmRegClass::reg) => "r",
             InlineAsmRegClass::Mips(MipsInlineAsmRegClass::freg) => "f",
             InlineAsmRegClass::Nvptx(NvptxInlineAsmRegClass::reg16) => "h",
@@ -558,6 +572,7 @@ fn modifier_to_llvm(
             }
         }
         InlineAsmRegClass::Hexagon(_) => None,
+        InlineAsmRegClass::LoongArch(_) => None,
         InlineAsmRegClass::Mips(_) => None,
         InlineAsmRegClass::Nvptx(_) => None,
         InlineAsmRegClass::RiscV(RiscVInlineAsmRegClass::reg)
@@ -615,6 +630,8 @@ fn dummy_output_type(cx: &CodegenCx<'ll, 'tcx>, reg: InlineAsmRegClass) -> &'ll 
             cx.type_vector(cx.type_i64(), 2)
         }
         InlineAsmRegClass::Hexagon(HexagonInlineAsmRegClass::reg) => cx.type_i32(),
+        InlineAsmRegClass::LoongArch(LoongArchInlineAsmRegClass::reg) => cx.type_i32(),
+        InlineAsmRegClass::LoongArch(LoongArchInlineAsmRegClass::freg) => cx.type_f32(),
         InlineAsmRegClass::Mips(MipsInlineAsmRegClass::reg) => cx.type_i32(),
         InlineAsmRegClass::Mips(MipsInlineAsmRegClass::freg) => cx.type_f32(),
         InlineAsmRegClass::Nvptx(NvptxInlineAsmRegClass::reg16) => cx.type_i16(),

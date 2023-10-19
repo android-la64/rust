@@ -9,6 +9,7 @@
 // RUN: rm -f optional-inmemory-log.xray-*
 
 // UNSUPPORTED: target-is-mips64,target-is-mips64el
+// UNSUPPORTED: target-is-loongarch64
 
 #include <cstdio>
 

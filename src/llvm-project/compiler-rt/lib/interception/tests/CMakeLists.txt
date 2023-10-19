@@ -1,6 +1,6 @@
 include(CompilerRTCompile)
 
-filter_available_targets(INTERCEPTION_UNITTEST_SUPPORTED_ARCH x86_64 i386 mips64 mips64el)
+filter_available_targets(INTERCEPTION_UNITTEST_SUPPORTED_ARCH x86_64 i386 mips64 mips64el loongarch64)
 
 set(INTERCEPTION_UNITTESTS
   interception_linux_test.cpp
@@ -18,8 +18,7 @@ set(INTERCEPTION_TEST_CFLAGS_COMMON
   -I${COMPILER_RT_SOURCE_DIR}/lib/interception
   -fno-rtti
   -O2
-  -Werror=sign-compare
-  -Wno-non-virtual-dtor)
+  -Werror=sign-compare)
 
 set(INTERCEPTION_TEST_LINK_FLAGS_COMMON
   ${COMPILER_RT_UNITTEST_LINK_FLAGS})

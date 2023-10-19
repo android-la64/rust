@@ -7,6 +7,7 @@
 // RUN: rm xray-log.argv0-log-file-name.* xray.log.file.name
 
 // UNSUPPORTED: target-is-mips64,target-is-mips64el
+// UNSUPPORTED: target-is-loongarch64
 
 #include <cstdio>
 #include <libgen.h>

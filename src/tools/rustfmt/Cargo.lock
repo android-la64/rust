@@ -721,7 +721,7 @@ dependencies = [
 name = "psm"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "659ecfea2142a458893bb7673134bad50b752fea932349c213d6a23874ce3aa7"
+checksum = "96a067f274ef89bad32320b4f7e0485474f2dd6222628f9f62efeea3acb034b9"
 dependencies = [
  "cc",
 ]

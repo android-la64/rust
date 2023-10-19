@@ -6,7 +6,7 @@
 // RUN: XRAY_OPTIONS="patch_premain=true verbosity=1 xray_logfile_base=arg0-arg1-logging-" %run %t
 //
 // TODO: Support these in ARM and PPC
-// XFAIL: arm || aarch64 || mips
+// XFAIL: arm || aarch64 || mips || loongarch
 // UNSUPPORTED: powerpc64le
 
 #include "xray/xray_interface.h"

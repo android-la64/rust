@@ -63,9 +63,14 @@
 // };
 //
 // template <typename KeyT, typename ValT, unsigned N, typename Traits>
-// class IntervalMap::const_iterator :
-//   public std::iterator<std::bidirectional_iterator_tag, ValT> {
+// class IntervalMap::const_iterator {
 // public:
+//   using iterator_category = std::bidirectional_iterator_tag;
+//   using value_type = ValT;
+//   using difference_type = std::ptrdiff_t;
+//   using pointer = value_type *;
+//   using reference = value_type &;
+//
 //   bool operator==(const const_iterator &) const;
 //   bool operator!=(const const_iterator &) const;
 //   bool valid() const;
@@ -963,8 +968,7 @@ public:
 
 private:
   // The root data is either a RootLeaf or a RootBranchData instance.
-  alignas(RootLeaf) alignas(RootBranchData)
-      AlignedCharArrayUnion<RootLeaf, RootBranchData> data;
+  AlignedCharArrayUnion<RootLeaf, RootBranchData> data;
 
   // Tree height.
   // 0: Leaves in root.
@@ -979,10 +983,7 @@ private:
   Allocator &allocator;
 
   /// Represent data as a node type without breaking aliasing rules.
-  template <typename T>
-  T &dataAs() const {
-    return *bit_cast<T *>(const_cast<char *>(data.buffer));
-  }
+  template <typename T> T &dataAs() const { return *bit_cast<T *>(&data); }
 
   const RootLeaf &rootLeaf() const {
     assert(!branched() && "Cannot acces leaf data in branched root");
@@ -1042,7 +1043,7 @@ public:
   explicit IntervalMap(Allocator &a) : height(0), rootSize(0), allocator(a) {
 #if !(defined(__MINGW32__) && defined(_M_IX86))
     // FIXME: i686-mingw is failing this assertion somehow...
-    assert((uintptr_t(data.buffer) & (alignof(RootLeaf) - 1)) == 0 &&
+    assert((uintptr_t(&data) & (alignof(RootLeaf) - 1)) == 0 &&
            "Insufficient alignment");
 #endif
     new(&rootLeaf()) RootLeaf();
@@ -1296,12 +1297,17 @@ clear() {
 //===----------------------------------------------------------------------===//
 
 template <typename KeyT, typename ValT, unsigned N, typename Traits>
-class IntervalMap<KeyT, ValT, N, Traits>::const_iterator :
-  public std::iterator<std::bidirectional_iterator_tag, ValT> {
-
-protected:
+class IntervalMap<KeyT, ValT, N, Traits>::const_iterator {
   friend class IntervalMap;
 
+public:
+  using iterator_category = std::bidirectional_iterator_tag;
+  using value_type = ValT;
+  using difference_type = std::ptrdiff_t;
+  using pointer = value_type *;
+  using reference = value_type &;
+
+protected:
   // The map referred to.
   IntervalMap *map = nullptr;
 

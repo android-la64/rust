@@ -1,4 +1,5 @@
-# UNSUPPORTED: system-windows
+## TODO: ABI plugin hasn't been implemented for LoongArch.
+# UNSUPPORTED: system-windows, loongarch
 
 # RUN: %clangxx_host %p/Inputs/call-function.cpp -g -o %t
 

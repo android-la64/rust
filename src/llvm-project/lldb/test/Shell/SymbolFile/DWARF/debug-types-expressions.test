@@ -1,4 +1,5 @@
-# UNSUPPORTED: system-darwin, system-windows
+## TODO: ABI plugin hasn't been implemented for LoongArch.
+# UNSUPPORTED: system-darwin, system-windows, loongarch
 
 # Make sure DWARF v4 type units work.
 # RUN: %clangxx_host %S/Inputs/debug-types-expressions.cpp \

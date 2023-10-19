@@ -1,0 +1,122 @@
+# RUN: yaml2obj %s > %t
+# RUN: lldb-test object-file -contents %t | FileCheck %s
+
+# CHECK:      Name: .debug_info
+# CHECK:      Data:  (
+# CHECK-NEXT:     0000: 37000000 04000000 00000801 BA000000 0C007200 00000000 00007900 000002B8
+# CHECK-NEXT:     0020: 00000033 00000001 01090300 00000000 00000003 BA000000 050400
+# CHECK-NEXT: )
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS64
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_LOONGARCH
+  Flags:           [ EF_LARCH_ABI_LP64 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x0000000000000010
+  - Name:            .data
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x0000000000000010
+    Content:         '01000000'
+  - Name:            .debug_str
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_MERGE, SHF_STRINGS ]
+    AddressAlign:    0x0000000000000001
+    EntSize:         0x0000000000000001
+    Content:         636C616E672076657273696F6E2031302E302E3120287373683A2F2F6C757765696E696E674072642E6C6F6F6E67736F6E2E636E3A32393431382F6C6C766D2D70726F6A65637420646565626235373364616639373866356136373961666631626338333133316133646233396261382900746573742E63002F686F6D652F6C757765696E696E672F6C6C766D2D70726F6A6563742D31302F6C6C64622F746573742F5368656C6C2F4F626A65637446696C652F454C46006100696E7400
+  - Name:            .debug_abbrev
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x0000000000000001
+    Content:         011101250E1305030E10171B0E0000023400030E49133F193A0B3B0B02180000032400030E3E0B0B0B000000
+  - Name:            .debug_info
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x0000000000000001
+    Content:         370000000400000000000801000000000C000000000000000000000000000200000000330000000101090300000000000000000300000000050400
+  - Name:            .rela.debug_info
+    Type:            SHT_RELA
+    Link:            .symtab
+    AddressAlign:    0x0000000000000008
+    EntSize:         0x0000000000000018
+    Info:            .debug_info
+    Relocations:
+      - Offset:          0x0000000000000006
+        Symbol:          .debug_abbrev
+        Type:            R_LARCH_32
+      - Offset:          0x000000000000000C
+        Symbol:          ' [4]'
+        Type:            R_LARCH_32
+      - Offset:          0x0000000000000012
+        Symbol:          ' [1]'
+        Type:            R_LARCH_32
+      - Offset:          0x0000000000000016
+        Symbol:          .Lline_table_start0
+        Type:            R_LARCH_32
+      - Offset:          0x000000000000001A
+        Symbol:          ' [2]'
+        Type:            R_LARCH_32
+      - Offset:          0x000000000000001F
+        Symbol:          ' [3]'
+        Type:            R_LARCH_32
+      - Offset:          0x000000000000002B
+        Symbol:          a
+        Type:            R_LARCH_64
+      - Offset:          0x0000000000000034
+        Symbol:          ' [4]'
+        Type:            R_LARCH_32
+  - Name:            .comment
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_MERGE, SHF_STRINGS ]
+    AddressAlign:    0x0000000000000001
+    EntSize:         0x0000000000000001
+    Content:         00636C616E672076657273696F6E2031302E302E3120287373683A2F2F6C757765696E696E674072642E6C6F6F6E67736F6E2E636E3A32393431382F6C6C766D2D70726F6A65637420646565626235373364616639373866356136373961666631626338333133316133646233396261382900
+  - Name:            .note.GNU-stack
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x0000000000000001
+  - Name:            .bss
+    Type:            SHT_NOBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x0000000000000010
+  - Name:            .debug_line
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x0000000000000001
+    Content:         2400000004001E000000010101FB0E0D00010101010000000100000100746573742E630000000000
+  - Name:            .llvm_addrsig
+    Type:            SHT_LLVM_ADDRSIG
+    Flags:           [ SHF_EXCLUDE ]
+    Link:            .symtab
+    AddressAlign:    0x0000000000000001
+    Symbols:         []
+Symbols:
+  - Name:            test.c
+    Type:            STT_FILE
+    Index:           SHN_ABS
+  - Section:         .debug_str
+  - Name:            ' [1]'
+    Section:         .debug_str
+    Value:           0x0000000000000072
+  - Name:            ' [2]'
+    Section:         .debug_str
+    Value:           0x0000000000000079
+  - Name:            ' [3]'
+    Section:         .debug_str
+    Value:           0x00000000000000B8
+  - Name:            ' [4]'
+    Section:         .debug_str
+    Value:           0x00000000000000BA
+  - Name:            .Lline_table_start0
+    Section:         .debug_line
+  - Name:            .debug_abbrev
+    Type:            STT_SECTION
+    Section:         .debug_abbrev
+  - Name:            a
+    Type:            STT_OBJECT
+    Section:         .data
+    Binding:         STB_GLOBAL
+    Size:            0x0000000000000004
+...

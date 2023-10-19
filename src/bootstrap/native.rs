@@ -153,7 +153,7 @@ impl Step for Llvm {
         let llvm_targets = match &builder.config.llvm_targets {
             Some(s) => s,
             None => {
-                "AArch64;ARM;Hexagon;MSP430;Mips;NVPTX;PowerPC;RISCV;\
+                "AArch64;ARM;Hexagon;LoongArch;MSP430;Mips;NVPTX;PowerPC;RISCV;\
                      Sparc;SystemZ;WebAssembly;X86"
             }
         };
@@ -804,7 +804,7 @@ fn supported_sanitizers(
         "aarch64-apple-darwin" => darwin_libs("osx", &["asan", "lsan", "tsan"]),
         "aarch64-fuchsia" => common_libs("fuchsia", "aarch64", &["asan"]),
         "aarch64-unknown-linux-gnu" => {
-            common_libs("linux", "aarch64", &["asan", "lsan", "msan", "tsan"])
+            common_libs("linux", "aarch64", &["asan", "lsan", "msan", "tsan", "hwasan"])
         }
         "x86_64-apple-darwin" => darwin_libs("osx", &["asan", "lsan", "tsan"]),
         "x86_64-fuchsia" => common_libs("fuchsia", "x86_64", &["asan"]),

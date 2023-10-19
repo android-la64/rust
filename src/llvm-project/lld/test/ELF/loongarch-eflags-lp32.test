@@ -1,0 +1,29 @@
+#.global _start
+#_start:
+#  nop
+#
+# REQUIRES: loongarch
+# RUN: yaml2obj %s -o %t.o
+# RUN: ld.lld %t.o -o %t
+# RUN: llvm-readelf -h %t | FileCheck %s
+# Verify the LoongArch LP32 ABI.
+# CHECK: Flags: 0x1
+#
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_LOONGARCH
+  Flags:           [ EF_LARCH_ABI_LP32 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x0000000000000010
+    Content:         '00004003'
+Symbols:
+  - Name:            _start
+    Section:         .text
+    Binding:         STB_GLOBAL
+...

@@ -2,6 +2,10 @@
 // REQUIRES: strace
 // RUN: %clangxx_lsan %s -o %t
 // RUN: not strace -o /dev/null %run %t 2>&1 | FileCheck %s
+// FIXME: This technically works in practice but cannot be tested because the
+// fatal-error caused adb to failed. Could not be captured to stderr to lit-check.
+// XFAIL: android
+// UNSUPPORTED : loongarch
 
 #include <stdio.h>
 #include <stdlib.h>

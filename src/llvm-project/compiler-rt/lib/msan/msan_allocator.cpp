@@ -44,7 +44,7 @@ struct MsanMapUnmapCallback {
   }
 };
 
-#if defined(__mips64)
+#if defined(__mips64) || defined(__loongarch64)
 static const uptr kMaxAllowedMallocSize = 2UL << 30;
 
 struct AP32 {
@@ -220,8 +220,8 @@ void MsanDeallocate(StackTrace *stack, void *p) {
   }
 }
 
-void *MsanReallocate(StackTrace *stack, void *old_p, uptr new_size,
-                     uptr alignment) {
+static void *MsanReallocate(StackTrace *stack, void *old_p, uptr new_size,
+                            uptr alignment) {
   Metadata *meta = reinterpret_cast<Metadata*>(allocator.GetMetaData(old_p));
   uptr old_size = meta->requested_size;
   uptr actually_allocated_size = allocator.GetActuallyAllocatedSize(old_p);
@@ -245,7 +245,7 @@ void *MsanReallocate(StackTrace *stack, void *old_p, uptr new_size,
   return new_p;
 }
 
-void *MsanCalloc(StackTrace *stack, uptr nmemb, uptr size) {
+static void *MsanCalloc(StackTrace *stack, uptr nmemb, uptr size) {
   if (UNLIKELY(CheckForCallocOverflow(size, nmemb))) {
     if (AllocatorMayReturnNull())
       return nullptr;

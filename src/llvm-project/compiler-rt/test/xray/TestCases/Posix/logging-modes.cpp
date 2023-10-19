@@ -5,6 +5,7 @@
 // RUN: %run %t | FileCheck %s
 //
 // UNSUPPORTED: target-is-mips64,target-is-mips64el
+// UNSUPPORTED: target-is-loongarch64
 
 #include "xray/xray_interface.h"
 #include "xray/xray_log_interface.h"

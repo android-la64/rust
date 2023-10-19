@@ -973,6 +973,9 @@ EOF
     ppc:Linux:*:*)
 	echo powerpc-unknown-linux-gnu
 	exit ;;
+    ppcle:Linux:*:*)
+	echo powerpcle-unknown-linux-gnu
+	exit ;;
     riscv32:Linux:*:* | riscv64:Linux:*:*)
 	LIBC=gnu
 	eval $set_cc_for_build
@@ -1017,6 +1020,9 @@ EOF
 	exit ;;
     x86_64:Linux:*:*)
 	echo x86_64-unknown-linux-gnu
+	exit ;;
+    loongarch64:Linux:*:*)
+	echo loongarch64-unknown-linux-gnu
 	exit ;;
     xtensa*:Linux:*:*)
 	echo ${UNAME_MACHINE}-unknown-linux-gnu

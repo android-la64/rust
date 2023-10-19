@@ -285,6 +285,7 @@ def default_build_triple(verbose):
         'i486': 'i686',
         'i686': 'i686',
         'i786': 'i686',
+        'loongarch64': 'loongarch64',
         'powerpc': 'powerpc',
         'powerpc64': 'powerpc64',
         'powerpc64le': 'powerpc64le',

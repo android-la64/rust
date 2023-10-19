@@ -26,12 +26,12 @@ AST_MATCHER(VarDecl, isLocalVarDecl) { return Node.isLocalVarDecl(); }
 InitVariablesCheck::InitVariablesCheck(StringRef Name,
                                        ClangTidyContext *Context)
     : ClangTidyCheck(Name, Context),
-      IncludeStyle(Options.getLocalOrGlobal("IncludeStyle",
-                                            utils::IncludeSorter::IS_LLVM)),
-      MathHeader(Options.get("MathHeader", "math.h")) {}
+      IncludeInserter(Options.getLocalOrGlobal("IncludeStyle",
+                                               utils::IncludeSorter::IS_LLVM)),
+      MathHeader(Options.get("MathHeader", "<math.h>")) {}
 
 void InitVariablesCheck::storeOptions(ClangTidyOptions::OptionMap &Opts) {
-  Options.store(Opts, "IncludeStyle", IncludeStyle);
+  Options.store(Opts, "IncludeStyle", IncludeInserter.getStyle());
   Options.store(Opts, "MathHeader", MathHeader);
 }
 
@@ -51,9 +51,7 @@ void InitVariablesCheck::registerMatchers(MatchFinder *Finder) {
 void InitVariablesCheck::registerPPCallbacks(const SourceManager &SM,
                                              Preprocessor *PP,
                                              Preprocessor *ModuleExpanderPP) {
-  IncludeInserter =
-      std::make_unique<utils::IncludeInserter>(SM, getLangOpts(), IncludeStyle);
-  PP->addPPCallbacks(IncludeInserter->CreatePPCallbacks());
+  IncludeInserter.registerPreprocessor(PP);
 }
 
 void InitVariablesCheck::check(const MatchFinder::MatchResult &Result) {
@@ -80,10 +78,12 @@ void InitVariablesCheck::check(const MatchFinder::MatchResult &Result) {
     return;
 
   QualType TypePtr = MatchedDecl->getType();
-  const char *InitializationString = nullptr;
+  llvm::Optional<const char *> InitializationString = llvm::None;
   bool AddMathInclude = false;
 
-  if (TypePtr->isIntegerType())
+  if (TypePtr->isEnumeralType())
+    InitializationString = nullptr;
+  else if (TypePtr->isIntegerType())
     InitializationString = " = 0";
   else if (TypePtr->isFloatingType()) {
     InitializationString = " = NAN";
@@ -98,14 +98,15 @@ void InitVariablesCheck::check(const MatchFinder::MatchResult &Result) {
   if (InitializationString) {
     auto Diagnostic =
         diag(MatchedDecl->getLocation(), "variable %0 is not initialized")
-        << MatchedDecl
-        << FixItHint::CreateInsertion(
-               MatchedDecl->getLocation().getLocWithOffset(
-                   MatchedDecl->getName().size()),
-               InitializationString);
+        << MatchedDecl;
+    if (*InitializationString != nullptr)
+      Diagnostic << FixItHint::CreateInsertion(
+          MatchedDecl->getLocation().getLocWithOffset(
+              MatchedDecl->getName().size()),
+          *InitializationString);
     if (AddMathInclude) {
-      Diagnostic << IncludeInserter->CreateIncludeInsertion(
-          Source.getFileID(MatchedDecl->getBeginLoc()), MathHeader, false);
+      Diagnostic << IncludeInserter.createIncludeInsertion(
+          Source.getFileID(MatchedDecl->getBeginLoc()), MathHeader);
     }
   }
 }

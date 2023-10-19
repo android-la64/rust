@@ -5,9 +5,9 @@
 // RUN: %clangxx_msan -fsanitize-memory-track-origins -O0 %s -o %t && %run %t
 // RUN: %clangxx_msan -fsanitize-memory-track-origins=2 -O0 %s -o %t && %run %t
 //
-// AArch64 fails with:
+// AArch64 and LoongArch fails with:
 // void f801(S<801>): Assertion `__msan_test_shadow(&s, sizeof(s)) == -1' failed
-// XFAIL: aarch64
+// XFAIL: aarch64 || loongarch
 // When passing huge structs by value, SystemZ uses pointers, therefore this
 // test in its present form is unfortunately not applicable.
 // ABI says: "A struct or union of any other size <snip>. Replace such an

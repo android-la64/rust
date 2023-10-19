@@ -3,16 +3,15 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
 name = "openssl-src"
-version = "111.12.0+1.1.1h"
+version = "111.15.0+1.1.1k"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 exclude = ["openssl/boringssl/*", "openssl/fuzz/*", "openssl/krb5/*", "openssl/pyca-cryptography/*", "openssl/test/*"]
 description = "Source of OpenSSL and logic to build it.\n"

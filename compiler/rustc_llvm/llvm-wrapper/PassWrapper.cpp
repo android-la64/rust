@@ -5,6 +5,7 @@
 
 #include "LLVMWrapper.h"
 
+#include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
@@ -33,6 +34,7 @@
 #include "llvm/Support/TimeProfiler.h"
 #include "llvm/Transforms/Instrumentation/ThreadSanitizer.h"
 #include "llvm/Transforms/Instrumentation/MemorySanitizer.h"
+#include "llvm/Transforms/Instrumentation/HWAddressSanitizer.h"
 #include "llvm/Transforms/Utils/CanonicalizeAliases.h"
 #include "llvm/Transforms/Utils/NameAnonGlobals.h"
 
@@ -131,6 +133,12 @@ extern "C" LLVMPassRef LLVMRustCreateMemorySanitizerPass(int TrackOrigins, bool 
 
 extern "C" LLVMPassRef LLVMRustCreateThreadSanitizerPass() {
   return wrap(createThreadSanitizerLegacyPassPass());
+}
+
+extern "C" LLVMPassRef LLVMRustCreateHWAddressSanitizerPass(bool Recover) {
+  const bool CompileKernel = false;
+
+  return wrap(createHWAddressSanitizerLegacyPassPass(CompileKernel, Recover));
 }
 
 extern "C" LLVMRustPassKind LLVMRustPassKind(LLVMPassRef RustPass) {
@@ -237,6 +245,12 @@ void LLVMRustAddLastExtensionPasses(
 #define SUBTARGET_HEXAGON
 #endif
 
+#ifdef LLVM_COMPONENT_LOONGARCH
+#define SUBTARGET_LOONGARCH SUBTARGET(LoongArch)
+#else
+#define SUBTARGET_LOONGARCH
+#endif
+
 #define GEN_SUBTARGETS                                                         \
   SUBTARGET_X86                                                                \
   SUBTARGET_ARM                                                                \
@@ -249,6 +263,7 @@ void LLVMRustAddLastExtensionPasses(
   SUBTARGET_SPARC                                                              \
   SUBTARGET_HEXAGON                                                            \
   SUBTARGET_RISCV                                                              \
+  SUBTARGET_LOONGARCH                                                          \
 
 #define SUBTARGET(x)                                                           \
   namespace llvm {                                                             \
@@ -621,7 +636,7 @@ LLVMRustWriteOutputFile(LLVMTargetMachineRef Target, LLVMPassManagerRef PMR,
 
   std::string ErrorInfo;
   std::error_code EC;
-  raw_fd_ostream OS(Path, EC, sys::fs::F_None);
+  raw_fd_ostream OS(Path, EC, sys::fs::OF_None);
   if (EC)
     ErrorInfo = EC.message();
   if (ErrorInfo != "") {
@@ -631,7 +646,7 @@ LLVMRustWriteOutputFile(LLVMTargetMachineRef Target, LLVMPassManagerRef PMR,
 
   buffer_ostream BOS(OS);
   if (DwoPath) {
-    raw_fd_ostream DOS(DwoPath, EC, sys::fs::F_None);
+    raw_fd_ostream DOS(DwoPath, EC, sys::fs::OF_None);
     EC.clear();
     if (EC)
         ErrorInfo = EC.message();
@@ -676,6 +691,25 @@ void LLVMSelfProfileInitializeCallbacks(
     PassInstrumentationCallbacks& PIC, void* LlvmSelfProfiler,
     LLVMRustSelfProfileBeforePassCallback BeforePassCallback,
     LLVMRustSelfProfileAfterPassCallback AfterPassCallback) {
+#if LLVM_VERSION_GE(12, 0)
+  PIC.registerBeforeNonSkippedPassCallback([LlvmSelfProfiler, BeforePassCallback](
+                                           StringRef Pass, llvm::Any Ir) {
+    std::string PassName = Pass.str();
+    std::string IrName = LLVMRustwrappedIrGetName(Ir);
+    BeforePassCallback(LlvmSelfProfiler, PassName.c_str(), IrName.c_str());
+  });
+
+  PIC.registerAfterPassCallback(
+      [LlvmSelfProfiler, AfterPassCallback](StringRef Pass, llvm::Any IR,
+                                            const PreservedAnalyses &Preserved) {
+        AfterPassCallback(LlvmSelfProfiler);
+      });
+
+  PIC.registerAfterPassInvalidatedCallback(
+      [LlvmSelfProfiler, AfterPassCallback](StringRef Pass, const PreservedAnalyses &Preserved) {
+        AfterPassCallback(LlvmSelfProfiler);
+      });
+#else
   PIC.registerBeforePassCallback([LlvmSelfProfiler, BeforePassCallback](
                                      StringRef Pass, llvm::Any Ir) {
     std::string PassName = Pass.str();
@@ -693,6 +727,7 @@ void LLVMSelfProfileInitializeCallbacks(
       [LlvmSelfProfiler, AfterPassCallback](StringRef Pass) {
         AfterPassCallback(LlvmSelfProfiler);
       });
+#endif
 
   PIC.registerBeforeAnalysisCallback([LlvmSelfProfiler, BeforePassCallback](
                                          StringRef Pass, llvm::Any Ir) {
@@ -722,6 +757,8 @@ struct LLVMRustSanitizerOptions {
   bool SanitizeMemoryRecover;
   int  SanitizeMemoryTrackOrigins;
   bool SanitizeThread;
+  bool SanitizeHWAddress;
+  bool SanitizeHWAddressRecover;
 };
 
 extern "C" void
@@ -751,8 +788,15 @@ LLVMRustOptimizeWithNewPassManager(
   PTO.LoopVectorization = LoopVectorize;
   PTO.SLPVectorization = SLPVectorize;
 
+  // FIXME: We may want to expose this as an option.
+  bool DebugPassManager = false;
+
   PassInstrumentationCallbacks PIC;
+#if LLVM_VERSION_GE(12, 0)
+  StandardInstrumentations SI(DebugPassManager);
+#else
   StandardInstrumentations SI;
+#endif
   SI.registerCallbacks(PIC);
 
   if (LlvmSelfProfiler){
@@ -768,14 +812,23 @@ LLVMRustOptimizeWithNewPassManager(
     PGOOpt = PGOOptions(PGOUsePath, "", "", PGOOptions::IRUse);
   }
 
+#if LLVM_VERSION_GE(12, 0) && !LLVM_VERSION_GE(13,0)
+  PassBuilder PB(DebugPassManager, TM, PTO, PGOOpt, &PIC);
+#else
   PassBuilder PB(TM, PTO, PGOOpt, &PIC);
+#endif
 
-  // FIXME: We may want to expose this as an option.
-  bool DebugPassManager = false;
+#if LLVM_VERSION_GE(13, 0)
+  LoopAnalysisManager LAM;
+  FunctionAnalysisManager FAM;
+  CGSCCAnalysisManager CGAM;
+  ModuleAnalysisManager MAM;
+#else
   LoopAnalysisManager LAM(DebugPassManager);
   FunctionAnalysisManager FAM(DebugPassManager);
   CGSCCAnalysisManager CGAM(DebugPassManager);
   ModuleAnalysisManager MAM(DebugPassManager);
+#endif
 
   FAM.registerPass([&] { return PB.buildDefaultAAPipeline(); });
 
@@ -793,7 +846,8 @@ LLVMRustOptimizeWithNewPassManager(
 
   // We manually collect pipeline callbacks so we can apply them at O0, where the
   // PassBuilder does not create a pipeline.
-  std::vector<std::function<void(ModulePassManager &)>> PipelineStartEPCallbacks;
+  std::vector<std::function<void(ModulePassManager &, PassBuilder::OptimizationLevel)>>
+      PipelineStartEPCallbacks;
 #if LLVM_VERSION_GE(11, 0)
   std::vector<std::function<void(ModulePassManager &, PassBuilder::OptimizationLevel)>>
       OptimizerLastEPCallbacks;
@@ -803,9 +857,11 @@ LLVMRustOptimizeWithNewPassManager(
 #endif
 
   if (VerifyIR) {
-    PipelineStartEPCallbacks.push_back([VerifyIR](ModulePassManager &MPM) {
+    PipelineStartEPCallbacks.push_back(
+      [VerifyIR](ModulePassManager &MPM, PassBuilder::OptimizationLevel Level) {
         MPM.addPass(VerifierPass());
-    });
+      }
+    );
   }
 
   if (SanitizerOptions) {
@@ -823,9 +879,11 @@ LLVMRustOptimizeWithNewPassManager(
       );
 #else
 #if LLVM_VERSION_GE(10, 0)
-      PipelineStartEPCallbacks.push_back([Options](ModulePassManager &MPM) {
-        MPM.addPass(MemorySanitizerPass(Options));
-      });
+      PipelineStartEPCallbacks.push_back(
+        [Options](ModulePassManager &MPM, PassBuilder::OptimizationLevel Level) {
+          MPM.addPass(MemorySanitizerPass(Options));
+        }
+      );
 #endif
       OptimizerLastEPCallbacks.push_back(
         [Options](FunctionPassManager &FPM, PassBuilder::OptimizationLevel Level) {
@@ -845,9 +903,11 @@ LLVMRustOptimizeWithNewPassManager(
       );
 #else
 #if LLVM_VERSION_GE(10, 0)
-      PipelineStartEPCallbacks.push_back([](ModulePassManager &MPM) {
-        MPM.addPass(ThreadSanitizerPass());
-      });
+      PipelineStartEPCallbacks.push_back(
+        [](ModulePassManager &MPM, PassBuilder::OptimizationLevel Level) {
+          MPM.addPass(ThreadSanitizerPass());
+        }
+      );
 #endif
       OptimizerLastEPCallbacks.push_back(
         [](FunctionPassManager &FPM, PassBuilder::OptimizationLevel Level) {
@@ -870,9 +930,11 @@ LLVMRustOptimizeWithNewPassManager(
         }
       );
 #else
-      PipelineStartEPCallbacks.push_back([&](ModulePassManager &MPM) {
-        MPM.addPass(RequireAnalysisPass<ASanGlobalsMetadataAnalysis, Module>());
-      });
+      PipelineStartEPCallbacks.push_back(
+        [&](ModulePassManager &MPM, PassBuilder::OptimizationLevel Level) {
+          MPM.addPass(RequireAnalysisPass<ASanGlobalsMetadataAnalysis, Module>());
+        }
+      );
       OptimizerLastEPCallbacks.push_back(
         [SanitizerOptions](FunctionPassManager &FPM, PassBuilder::OptimizationLevel Level) {
           FPM.addPass(AddressSanitizerPass(
@@ -881,45 +943,84 @@ LLVMRustOptimizeWithNewPassManager(
         }
       );
       PipelineStartEPCallbacks.push_back(
-        [SanitizerOptions](ModulePassManager &MPM) {
+        [SanitizerOptions](ModulePassManager &MPM, PassBuilder::OptimizationLevel Level) {
           MPM.addPass(ModuleAddressSanitizerPass(
               /*CompileKernel=*/false, SanitizerOptions->SanitizeAddressRecover));
         }
       );
 #endif
     }
+    if (SanitizerOptions->SanitizeHWAddress) {
+#if LLVM_VERSION_GE(11, 0)
+      OptimizerLastEPCallbacks.push_back(
+        [SanitizerOptions](ModulePassManager &MPM, PassBuilder::OptimizationLevel Level) {
+          MPM.addPass(HWAddressSanitizerPass(
+              /*CompileKernel=*/false, SanitizerOptions->SanitizeHWAddressRecover));
+        }
+      );
+#else
+      PipelineStartEPCallbacks.push_back(
+        [SanitizerOptions](ModulePassManager &MPM, PassBuilder::OptimizationLevel Level) {
+          MPM.addPass(HWAddressSanitizerPass(
+              /*CompileKernel=*/false, SanitizerOptions->SanitizeHWAddressRecover));
+        }
+      );
+#endif
+    }
   }
 
+#if LLVM_VERSION_GE(13, 0)
+  ModulePassManager MPM;
+#else
   ModulePassManager MPM(DebugPassManager);
+#endif
+  bool NeedThinLTOBufferPasses = UseThinLTOBuffers;
   if (!NoPrepopulatePasses) {
     if (OptLevel == PassBuilder::OptimizationLevel::O0) {
+#if LLVM_VERSION_GE(12, 0)
       for (const auto &C : PipelineStartEPCallbacks)
-        C(MPM);
+        PB.registerPipelineStartEPCallback(C);
+      for (const auto &C : OptimizerLastEPCallbacks)
+        PB.registerOptimizerLastEPCallback(C);
 
-#if LLVM_VERSION_GE(11, 0)
+      // Pass false as we manually schedule ThinLTOBufferPasses below.
+      MPM = PB.buildO0DefaultPipeline(OptLevel, /* PreLinkLTO */ false);
+#else
+      for (const auto &C : PipelineStartEPCallbacks)
+        C(MPM, OptLevel);
+
+# if LLVM_VERSION_GE(11, 0)
       for (const auto &C : OptimizerLastEPCallbacks)
         C(MPM, OptLevel);
-#else
+# else
       if (!OptimizerLastEPCallbacks.empty()) {
         FunctionPassManager FPM(DebugPassManager);
         for (const auto &C : OptimizerLastEPCallbacks)
           C(FPM, OptLevel);
         MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
       }
-#endif
+# endif
 
       MPM.addPass(AlwaysInlinerPass(EmitLifetimeMarkers));
 
-#if LLVM_VERSION_GE(10, 0)
+# if LLVM_VERSION_GE(10, 0)
       if (PGOOpt) {
         PB.addPGOInstrPassesForO0(
             MPM, DebugPassManager, PGOOpt->Action == PGOOptions::IRInstr,
             /*IsCS=*/false, PGOOpt->ProfileFile, PGOOpt->ProfileRemappingFile);
       }
+# endif
 #endif
     } else {
+#if LLVM_VERSION_GE(12, 0)
       for (const auto &C : PipelineStartEPCallbacks)
         PB.registerPipelineStartEPCallback(C);
+#else
+      for (const auto &C : PipelineStartEPCallbacks)
+        PB.registerPipelineStartEPCallback([C, OptLevel](ModulePassManager &MPM) {
+          C(MPM, OptLevel);
+        });
+#endif
       if (OptStage != LLVMRustOptStage::PreLinkThinLTO) {
         for (const auto &C : OptimizerLastEPCallbacks)
           PB.registerOptimizerLastEPCallback(C);
@@ -930,7 +1031,12 @@ LLVMRustOptimizeWithNewPassManager(
         MPM = PB.buildPerModuleDefaultPipeline(OptLevel, DebugPassManager);
         break;
       case LLVMRustOptStage::PreLinkThinLTO:
+#if LLVM_VERSION_GE(12, 0)
+        MPM = PB.buildThinLTOPreLinkDefaultPipeline(OptLevel);
+        NeedThinLTOBufferPasses = false;
+#else
         MPM = PB.buildThinLTOPreLinkDefaultPipeline(OptLevel, DebugPassManager);
+#endif
 #if LLVM_VERSION_GE(11, 0)
         for (const auto &C : OptimizerLastEPCallbacks)
           C(MPM, OptLevel);
@@ -944,21 +1050,34 @@ LLVMRustOptimizeWithNewPassManager(
 #endif
         break;
       case LLVMRustOptStage::PreLinkFatLTO:
+#if LLVM_VERSION_GE(12, 0)
+        MPM = PB.buildLTOPreLinkDefaultPipeline(OptLevel);
+        NeedThinLTOBufferPasses = false;
+#else
         MPM = PB.buildLTOPreLinkDefaultPipeline(OptLevel, DebugPassManager);
+#endif
         break;
       case LLVMRustOptStage::ThinLTO:
         // FIXME: Does it make sense to pass the ModuleSummaryIndex?
         // It only seems to be needed for C++ specific optimizations.
+#if LLVM_VERSION_GE(12, 0)
+        MPM = PB.buildThinLTODefaultPipeline(OptLevel, nullptr);
+#else
         MPM = PB.buildThinLTODefaultPipeline(OptLevel, DebugPassManager, nullptr);
+#endif
         break;
       case LLVMRustOptStage::FatLTO:
+#if LLVM_VERSION_GE(12, 0)
+        MPM = PB.buildLTODefaultPipeline(OptLevel, nullptr);
+#else
         MPM = PB.buildLTODefaultPipeline(OptLevel, DebugPassManager, nullptr);
+#endif
         break;
       }
     }
   }
 
-  if (UseThinLTOBuffers) {
+  if (NeedThinLTOBufferPasses) {
     MPM.addPass(CanonicalizeAliasesPass());
     MPM.addPass(NameAnonGlobalPass());
   }
@@ -1062,7 +1181,7 @@ extern "C" LLVMRustResult
 LLVMRustPrintModule(LLVMModuleRef M, const char *Path, DemangleFn Demangle) {
   std::string ErrorInfo;
   std::error_code EC;
-  raw_fd_ostream OS(Path, EC, sys::fs::F_None);
+  raw_fd_ostream OS(Path, EC, sys::fs::OF_None);
   if (EC)
     ErrorInfo = EC.message();
   if (ErrorInfo != "") {
@@ -1319,9 +1438,14 @@ LLVMRustCreateThinLTOData(LLVMRustThinLTOModule *modules,
     Ret->ResolvedODR[ModuleIdentifier][GUID] = NewLinkage;
   };
 
+#if LLVM_VERSION_GE(12,0)
+  lto::Config conf;
+  thinLTOResolvePrevailingInIndex(conf, Ret->Index, isPrevailing, recordNewLinkage,
+                                  Ret->GUIDPreservedSymbols);
+#else
   thinLTOResolvePrevailingInIndex(Ret->Index, isPrevailing, recordNewLinkage,
                                   Ret->GUIDPreservedSymbols);
-
+#endif
   // Here we calculate an `ExportedGUIDs` set for use in the `isExported`
   // callback below. This callback below will dictate the linkage for all
   // summaries in the index, and we basically just only want to ensure that dead

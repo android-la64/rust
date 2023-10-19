@@ -85,24 +85,27 @@ const unsigned struct_kernel_stat_sz = SANITIZER_ANDROID
                                            ? FIRST_32_SECOND_64(104, 128)
                                            : FIRST_32_SECOND_64(160, 216);
 const unsigned struct_kernel_stat64_sz = 104;
-#elif defined(__s390__) && !defined(__s390x__)
+#    elif defined(__loongarch__)
+const unsigned struct_kernel_stat_sz = 128;
+const unsigned struct_kernel_stat64_sz = 128;
+#    elif defined(__s390__) && !defined(__s390x__)
 const unsigned struct_kernel_stat_sz = 64;
 const unsigned struct_kernel_stat64_sz = 104;
-#elif defined(__s390x__)
+#    elif defined(__s390x__)
 const unsigned struct_kernel_stat_sz = 144;
 const unsigned struct_kernel_stat64_sz = 0;
-#elif defined(__sparc__) && defined(__arch64__)
+#    elif defined(__sparc__) && defined(__arch64__)
 const unsigned struct___old_kernel_stat_sz = 0;
 const unsigned struct_kernel_stat_sz = 104;
 const unsigned struct_kernel_stat64_sz = 144;
-#elif defined(__sparc__) && !defined(__arch64__)
+#    elif defined(__sparc__) && !defined(__arch64__)
 const unsigned struct___old_kernel_stat_sz = 0;
 const unsigned struct_kernel_stat_sz = 64;
 const unsigned struct_kernel_stat64_sz = 104;
-#elif defined(__riscv) && __riscv_xlen == 64
+#    elif SANITIZER_RISCV64
 const unsigned struct_kernel_stat_sz = 128;
-const unsigned struct_kernel_stat64_sz = 104;
-#endif
+const unsigned struct_kernel_stat64_sz = 0;  // RISCV64 does not use stat64
+#    endif
 struct __sanitizer_perf_event_attr {
   unsigned type;
   unsigned size;
@@ -443,6 +446,8 @@ struct __sanitizer_cmsghdr {
   int cmsg_type;
 };
 #else
+// In POSIX, int msg_iovlen; socklen_t msg_controllen; socklen_t cmsg_len; but
+// many implementations don't conform to the standard.
 struct __sanitizer_msghdr {
   void *msg_name;
   unsigned msg_namelen;
@@ -647,15 +652,15 @@ struct __sanitizer_sigaction {
 };
 #endif // !SANITIZER_ANDROID
 
-#if defined(__mips__)
+#  if defined(__mips__) || defined(__loongarch__)
+#    define __SANITIZER_KERNEL_NSIG 128
+#  else
+#    define __SANITIZER_KERNEL_NSIG 64
+#  endif
+
 struct __sanitizer_kernel_sigset_t {
-  uptr sig[2];
+  uptr sig[__SANITIZER_KERNEL_NSIG / (sizeof(uptr) * 8)];
 };
-#else
-struct __sanitizer_kernel_sigset_t {
-  u8 sig[8];
-};
-#endif
 
 // Linux system headers define the 'sa_handler' and 'sa_sigaction' macros.
 #if SANITIZER_MIPS
@@ -801,10 +806,10 @@ typedef void __sanitizer_FILE;
 # define SANITIZER_HAS_STRUCT_FILE 0
 #endif
 
-#if SANITIZER_LINUX && !SANITIZER_ANDROID &&                               \
-    (defined(__i386) || defined(__x86_64) || defined(__mips64) ||          \
-     defined(__powerpc64__) || defined(__aarch64__) || defined(__arm__) || \
-     defined(__s390__))
+#  if SANITIZER_LINUX && !SANITIZER_ANDROID &&                               \
+      (defined(__i386) || defined(__x86_64) || defined(__mips64) ||          \
+       defined(__powerpc64__) || defined(__aarch64__) || defined(__arm__) || \
+       defined(__s390__) || SANITIZER_RISCV64 || defined(__loongarch64))
 extern unsigned struct_user_regs_struct_sz;
 extern unsigned struct_user_fpregs_struct_sz;
 extern unsigned struct_user_fpxregs_struct_sz;
@@ -981,7 +986,6 @@ extern unsigned struct_vt_mode_sz;
 
 #if SANITIZER_LINUX && !SANITIZER_ANDROID
 extern unsigned struct_ax25_parms_struct_sz;
-extern unsigned struct_cyclades_monitor_sz;
 extern unsigned struct_input_keymap_entry_sz;
 extern unsigned struct_ipx_config_data_sz;
 extern unsigned struct_kbdiacrs_sz;
@@ -1326,15 +1330,6 @@ extern unsigned IOCTL_VT_WAITACTIVE;
 #endif  // SANITIZER_LINUX
 
 #if SANITIZER_LINUX && !SANITIZER_ANDROID
-extern unsigned IOCTL_CYGETDEFTHRESH;
-extern unsigned IOCTL_CYGETDEFTIMEOUT;
-extern unsigned IOCTL_CYGETMON;
-extern unsigned IOCTL_CYGETTHRESH;
-extern unsigned IOCTL_CYGETTIMEOUT;
-extern unsigned IOCTL_CYSETDEFTHRESH;
-extern unsigned IOCTL_CYSETDEFTIMEOUT;
-extern unsigned IOCTL_CYSETTHRESH;
-extern unsigned IOCTL_CYSETTIMEOUT;
 extern unsigned IOCTL_EQL_EMANCIPATE;
 extern unsigned IOCTL_EQL_ENSLAVE;
 extern unsigned IOCTL_EQL_GETMASTRCFG;

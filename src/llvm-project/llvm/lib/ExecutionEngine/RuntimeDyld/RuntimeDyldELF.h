@@ -48,6 +48,10 @@ class RuntimeDyldELF : public RuntimeDyldImpl {
   void resolveARMRelocation(const SectionEntry &Section, uint64_t Offset,
                             uint32_t Value, uint32_t Type, int32_t Addend);
 
+  void resolveLoongArch64Relocation(const SectionEntry &Section,
+                                    uint64_t Offset, uint64_t Value,
+                                    uint32_t Type, int64_t Addend);
+
   void resolvePPC32Relocation(const SectionEntry &Section, uint64_t Offset,
                               uint64_t Value, uint32_t Type, int64_t Addend);
 
@@ -154,6 +158,12 @@ private:
   // in a table until we receive a request to register all unregistered
   // EH frame sections with the memory manager.
   SmallVector<SID, 2> UnregisteredEHFrameSections;
+
+  // For loongarch evaluteRelocation
+  SmallVector<uint64_t, 8> ValuesStack;
+  bool IsSaved;
+  bool MarkLA;
+  StringRef SavedSymbol;
 
   // Map between GOT relocation value and corresponding GOT offset
   std::map<RelocationValueRef, uint64_t> GOTOffsetMap;

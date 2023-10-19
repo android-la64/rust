@@ -1,6 +1,7 @@
 // FIXME: https://code.google.com/p/address-sanitizer/issues/detail?id=316
 // XFAIL: android
 // XFAIL: mips
+// XFAIL: loongarch
 //
 // RUN: %clangxx_asan -O0 %s -o %t && %run %t
 // RUN: %clangxx_asan -DPOSITIVE -O0 %s -o %t && not %run %t 2>&1 | FileCheck %s
@@ -65,6 +66,14 @@ typedef _user_regs_struct   regs_struct;
 typedef _user_fpregs_struct fpregs_struct;
 #define PRINT_REG_PC(__regs)    printf ("%lx\n", (unsigned long) (__regs.psw.addr))
 #define PRINT_REG_FP(__fpregs)  printf ("%lx\n", (unsigned long) (__fpregs.fpc))
+#define ARCH_IOVEC_FOR_GETREGSET
+
+#elif defined(__riscv) && (__riscv_xlen == 64)
+#include <asm/ptrace.h>
+typedef user_regs_struct regs_struct;
+typedef __riscv_q_ext_state fpregs_struct;
+#define PRINT_REG_PC(__regs) printf("%lx\n", (unsigned long)(__regs.pc))
+#define PRINT_REG_FP(__fpregs) printf("%lx\n", (unsigned long)(__fpregs.fcsr))
 #define ARCH_IOVEC_FOR_GETREGSET
 #endif
 

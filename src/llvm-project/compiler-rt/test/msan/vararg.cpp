@@ -16,10 +16,11 @@
 
 // Check that shadow and origin are passed through va_args.
 
-// Copying origins on AArch64, MIPS and PowerPC isn't supported yet.
+// Copying origins on AArch64, LoongArch, MIPS and PowerPC isn't supported yet.
 // XFAIL: aarch64
 // XFAIL: mips
 // XFAIL: powerpc64
+// XFAIL: loongarch
 
 #include <stdarg.h>
 #include <string.h>

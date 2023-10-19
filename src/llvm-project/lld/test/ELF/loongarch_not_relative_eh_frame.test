@@ -1,0 +1,49 @@
+# REQUIRES: loongarch
+
+# RUN: yaml2obj %s -o %t.o
+# RUN: ld.lld -pie %t.o -o %t
+# RUN: llvm-readelf -r %t | FileCheck %s
+#
+# CHECK-NOT: {{.*}} R_LARCH_RELATIVE {{.*}}
+#
+# t.o
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS64
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_LOONGARCH
+  Flags:           [ EF_LARCH_ABI_LP64 ]
+  SectionHeaderStringTable: .strtab
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x10
+    Content:         '00004003'
+  - Name:            .eh_frame
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x8
+    Content:         1000000000000000017A5200017801010C0C030018000000180000000000000000000000040000000000000000000000
+  - Name:            .rela.eh_frame
+    Type:            SHT_RELA
+    Link:            .symtab
+    AddressAlign:    0x8
+    Info:            .eh_frame
+    Relocations:
+      - Offset:          0x1C
+        Symbol:          _start
+        Type:            R_LARCH_64
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .strtab
+      - Name:            .text
+      - Name:            .eh_frame
+      - Name:            .rela.eh_frame
+      - Name:            .symtab
+Symbols:
+  - Name:            _start
+    Section:         .text
+    Binding:         STB_GLOBAL
+...

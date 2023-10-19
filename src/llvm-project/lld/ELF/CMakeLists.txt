@@ -2,10 +2,6 @@ set(LLVM_TARGET_DEFINITIONS Options.td)
 tablegen(LLVM Options.inc -gen-opt-parser-defs)
 add_public_tablegen_target(ELFOptionsTableGen)
 
-if(NOT LLD_BUILT_STANDALONE)
-  set(tablegen_deps intrinsics_gen)
-endif()
-
 add_lld_library(lldELF
   AArch64ErrataFix.cpp
   Arch/AArch64.cpp
@@ -13,6 +9,7 @@ add_lld_library(lldELF
   Arch/ARM.cpp
   Arch/AVR.cpp
   Arch/Hexagon.cpp
+  Arch/LoongArch.cpp
   Arch/Mips.cpp
   Arch/MipsArchTree.cpp
   Arch/MSP430.cpp
@@ -66,5 +63,5 @@ add_lld_library(lldELF
 
   DEPENDS
   ELFOptionsTableGen
-  ${tablegen_deps}
+  intrinsics_gen
   )

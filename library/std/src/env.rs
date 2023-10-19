@@ -858,6 +858,7 @@ pub mod consts {
     /// - x86_64
     /// - arm
     /// - aarch64
+    /// - loongarch64
     /// - mips
     /// - mips64
     /// - powerpc

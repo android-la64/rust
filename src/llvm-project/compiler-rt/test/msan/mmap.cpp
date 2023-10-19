@@ -18,7 +18,7 @@ bool AddrIsApp(void *p) {
   return (addr >= 0x000000000000ULL && addr < 0x010000000000ULL) ||
          (addr >= 0x510000000000ULL && addr < 0x600000000000ULL) ||
          (addr >= 0x700000000000ULL && addr < 0x800000000000ULL);
-#elif defined(__mips64)
+#elif defined(__mips64) || defined(__loongarch64)
   return (addr >= 0x0000000000ULL && addr <= 0x0200000000ULL) ||
          (addr >= 0xa200000000ULL && addr <= 0xc000000000ULL) ||
          addr >= 0xe200000000ULL;
@@ -60,7 +60,7 @@ bool AddrIsApp(void *p) {
 
 int main() {
   // Large enough to quickly exhaust the entire address space.
-#if defined(__mips64) || defined(__aarch64__)
+#if defined(__mips64) || defined(__aarch64__) || defined(__loongarch64)
   const size_t kMapSize = 0x100000000ULL;
 #else
   const size_t kMapSize = 0x1000000000ULL;

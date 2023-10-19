@@ -44,7 +44,7 @@ if config.host_os not in ['Linux', 'NetBSD', 'FreeBSD']:
 # For mips64, mips64el we have forced store_context_size to 1 because these
 # archs use slow unwinder which is not async signal safe. Therefore we only
 # check the first frame since store_context size is 1.
-if config.host_arch in ['mips64', 'mips64el']:
+if config.host_arch in ['mips64', 'mips64el', 'loongarch64']:
   config.substitutions.append( ('CHECK-%short-stack', 'CHECK-SHORT-STACK'))
 else:
   config.substitutions.append( ('CHECK-%short-stack', 'CHECK-FULL-STACK'))

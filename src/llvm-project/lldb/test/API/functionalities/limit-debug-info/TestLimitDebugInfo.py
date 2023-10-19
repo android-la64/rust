@@ -32,13 +32,17 @@ class LimitDebugInfoTestCase(TestBase):
 
     @skipIf(bugnumber="pr46284", debug_info="gmodules")
     @skipIfWindows # Clang emits type info even with -flimit-debug-info
+    # Requires DW_CC_pass_by_* attributes from Clang 7 to correctly call
+    # by-value functions.
+    @skipIf(compiler="clang", compiler_version=['<', '7.0'])
     def test_one_and_two_debug(self):
         self.build()
         target = self.dbg.CreateTarget(self.getBuildArtifact("a.out"))
 
         self._check_debug_info_is_limited(target)
 
-        self.registerSharedLibrariesWithTarget(target, ["one", "two"])
+        lldbutil.run_to_name_breakpoint(self, "main",
+                extra_images=["one", "two"])
 
         # But when other shared libraries are loaded, we should be able to see
         # all members.
@@ -58,15 +62,26 @@ class LimitDebugInfoTestCase(TestBase):
         self.expect_expr("array_of_two[2].one[2].member", result_value="174")
         self.expect_expr("array_of_two[2].member", result_value="274")
 
+        self.expect_expr("get_one().member", result_value="124")
+        self.expect_expr("get_two().one().member", result_value="124")
+        self.expect_expr("get_two().member", result_value="224")
+
+        self.expect_expr("shadowed_one.member", result_value="47")
+        self.expect_expr("shadowed_one.one", result_value="142")
+
     @skipIf(bugnumber="pr46284", debug_info="gmodules")
     @skipIfWindows # Clang emits type info even with -flimit-debug-info
+    # Requires DW_CC_pass_by_* attributes from Clang 7 to correctly call
+    # by-value functions.
+    @skipIf(compiler="clang", compiler_version=['<', '7.0'])
     def test_two_debug(self):
         self.build(dictionary=dict(STRIP_ONE="1"))
         target = self.dbg.CreateTarget(self.getBuildArtifact("a.out"))
 
         self._check_debug_info_is_limited(target)
 
-        self.registerSharedLibrariesWithTarget(target, ["one", "two"])
+        lldbutil.run_to_name_breakpoint(self, "main",
+                extra_images=["one", "two"])
 
         # This time, we should only see the members from the second library.
         self.expect_expr("inherits_from_one.member", result_value="47")
@@ -91,15 +106,25 @@ class LimitDebugInfoTestCase(TestBase):
                 substrs=["no member named 'member' in 'array::One'"])
         self.expect_expr("array_of_two[2].member", result_value="274")
 
+        self.expect("expr get_one().member", error=True,
+                substrs=["calling 'get_one' with incomplete return type 'result::One'"])
+        self.expect("expr get_two().one().member", error=True,
+                substrs=["calling 'one' with incomplete return type 'result::One'"])
+        self.expect_expr("get_two().member", result_value="224")
+
     @skipIf(bugnumber="pr46284", debug_info="gmodules")
     @skipIfWindows # Clang emits type info even with -flimit-debug-info
+    # Requires DW_CC_pass_by_* attributes from Clang 7 to correctly call
+    # by-value functions.
+    @skipIf(compiler="clang", compiler_version=['<', '7.0'])
     def test_one_debug(self):
         self.build(dictionary=dict(STRIP_TWO="1"))
         target = self.dbg.CreateTarget(self.getBuildArtifact("a.out"))
 
         self._check_debug_info_is_limited(target)
 
-        self.registerSharedLibrariesWithTarget(target, ["one", "two"])
+        lldbutil.run_to_name_breakpoint(self, "main",
+                extra_images=["one", "two"])
 
         # In this case we should only see the members from the second library.
         # Note that we cannot see inherits_from_two.one because without debug
@@ -126,3 +151,9 @@ class LimitDebugInfoTestCase(TestBase):
                 substrs=["no member named 'one' in 'array::Two'"])
         self.expect("expr array_of_two[2].member", error=True,
                 substrs=["no member named 'member' in 'array::Two'"])
+
+        self.expect_expr("get_one().member", result_value="124")
+        self.expect("expr get_two().one().member", error=True,
+                substrs=["calling 'get_two' with incomplete return type 'result::Two'"])
+        self.expect("expr get_two().member", error=True,
+                substrs=["calling 'get_two' with incomplete return type 'result::Two'"])

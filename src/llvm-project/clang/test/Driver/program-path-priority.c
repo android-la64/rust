@@ -3,8 +3,7 @@
 
 /// Check the priority used when searching for tools
 /// Names and locations are usually in this order:
-/// <triple>-tool, tool, <default triple>-tool
-/// program path, PATH
+/// <triple>-tool, tool, program path, PATH
 /// (from highest to lowest priority)
 /// A higher priority name found in a lower priority
 /// location will win over a lower priority name in a
@@ -102,13 +101,11 @@
 // DEFAULT_TRIPLE_NO_NOTREAL: env/gcc"
 // DEFAULT_TRIPLE_NO_NOTREAL-NOT: -gcc"
 
-/// default triple only chosen when no others are present
+/// Pick "gcc" as a fallback. Don't pick $DEFAULT_TRIPLE-gcc.
 // RUN: rm %t/env/gcc
 // RUN: env "PATH=%t/env/" %t/clang -### -target notreal-none-elf %s 2>&1 | \
 // RUN:   FileCheck --check-prefix=DEFAULT_TRIPLE_NO_OTHERS %s
-// DEFAULT_TRIPLE_NO_OTHERS: -gcc"
-// DEFAULT_TRIPLE_NO_OTHERS-NOT: notreal-none-elf-gcc"
-// DEFAULT_TRIPLE_NO_OTHERS-NOT: /gcc"
+// DEFAULT_TRIPLE_NO_OTHERS: "gcc"
 
 /// -B paths are searched separately so default triple will win
 /// if put in one of those even if other paths have higher priority names
@@ -119,15 +116,15 @@
 // RUN: test -f %t/%target_triple-gcc && \
 // RUN:   mv %t/%target_triple-gcc %t/prefix || true
 // RUN: touch %t/notreal-none-elf-gcc && chmod +x %t/notreal-none-elf-gcc
+// RUN: touch %t/prefix/gcc && chmod +x %t/prefix/gcc
 // RUN: env "PATH=" %t/clang -### -target notreal-none-elf %s -B %t/prefix 2>&1 | \
 // RUN:   FileCheck --check-prefix=DEFAULT_TRIPLE_IN_PREFIX %s
-// DEFAULT_TRIPLE_IN_PREFIX: prefix/{{.*}}-gcc"
+// DEFAULT_TRIPLE_IN_PREFIX: prefix/gcc"
 // DEFAULT_TRIPLE_IN_PREFIX-NOT: notreal-none-elf-gcc"
 
 /// Only if there is nothing in the prefix will we search other paths
 /// -f in case $DEFAULT_TRIPLE == %target_triple
-// RUN: rm -f %t/prefix/$DEFAULT_TRIPLE-gcc
-// RUN: rm -f %t/prefix/%target_triple-gcc
+// RUN: rm -f %t/prefix/$DEFAULT_TRIPLE-gcc %t/prefix/%target_triple-gcc %t/prefix/gcc
 // RUN: env "PATH=" %t/clang -### -target notreal-none-elf %s -B %t/prefix 2>&1 | \
 // RUN:   FileCheck --check-prefix=EMPTY_PREFIX_DIR %s
 // EMPTY_PREFIX_DIR: notreal-none-elf-gcc"

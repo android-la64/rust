@@ -10,6 +10,7 @@
 // RUN: rm -f pic-test-logging-*
 
 // UNSUPPORTED: target-is-mips64,target-is-mips64el
+// UNSUPPORTED: target-is-loongarch64
 
 #include <cstdio>
 

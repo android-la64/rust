@@ -18,6 +18,8 @@ struct EhSectionPiece;
 
 size_t readEhRecordSize(InputSectionBase *s, size_t off);
 uint8_t getFdeEncoding(EhSectionPiece *p);
+void setPcRelativeEncoding(EhSectionPiece *p, uint8_t *buf);
+bool hasLSDA(const EhSectionPiece &p);
 } // namespace elf
 } // namespace lld
 
