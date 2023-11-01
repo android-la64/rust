@@ -116,13 +116,6 @@ pub(crate) fn define() -> SettingGroup {
     );
 
     settings.add_bool(
-        "enable_simd",
-        "Enable the use of SIMD instructions.",
-        "",
-        false,
-    );
-
-    settings.add_bool(
         "enable_atomics",
         "Enable the use of atomic instructions",
         "",
@@ -323,6 +316,23 @@ pub(crate) fn define() -> SettingGroup {
             feature in cranelift-codegen.
         "#,
         false,
+    );
+
+    settings.add_num(
+        "bb_padding_log2_minus_one",
+        "The log2 of the size to insert dummy padding between basic blocks",
+        r#"
+            This is a debugging option for stressing various cases during code
+            generation without requiring large functions. This will insert
+            0-byte padding between basic blocks of the specified size.
+
+            The amount of padding inserted two raised to the power of this value
+            minus one. If this value is 0 then no padding is inserted.
+
+            The default for this option is 0 to insert no padding as it's only
+            intended for testing and development.
+        "#,
+        0,
     );
 
     // When adding new settings please check if they can also be added

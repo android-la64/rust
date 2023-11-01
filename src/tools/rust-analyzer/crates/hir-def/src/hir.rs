@@ -85,7 +85,7 @@ impl fmt::Display for FloatTypeWrapper {
 pub enum Literal {
     String(Box<str>),
     ByteString(Box<[u8]>),
-    CString(Box<str>),
+    CString(Box<[u8]>),
     Char(char),
     Bool(bool),
     Int(i128, Option<BuiltinInt>),
@@ -188,11 +188,6 @@ pub enum Expr {
         tail: Option<ExprId>,
     },
     Loop {
-        body: ExprId,
-        label: Option<LabelId>,
-    },
-    While {
-        condition: ExprId,
         body: ExprId,
         label: Option<LabelId>,
     },
@@ -379,10 +374,6 @@ impl Expr {
                 }
             }
             Expr::Loop { body, .. } => f(*body),
-            Expr::While { condition, body, .. } => {
-                f(*condition);
-                f(*body);
-            }
             Expr::Call { callee, args, .. } => {
                 f(*callee);
                 args.iter().copied().for_each(f);

@@ -1111,9 +1111,14 @@ impl Command {
     ///
     /// ```no_run
     /// # use clap_builder as clap;
-    /// # use clap::{Command, ColorChoice, builder::Styles};
+    /// # use clap::{Command, ColorChoice, builder::styling};
+    /// let styles = styling::Styles::styled()
+    ///     .header(styling::AnsiColor::Green.on_default() | styling::Effects::BOLD)
+    ///     .usage(styling::AnsiColor::Green.on_default() | styling::Effects::BOLD)
+    ///     .literal(styling::AnsiColor::Blue.on_default() | styling::Effects::BOLD)
+    ///     .placeholder(styling::AnsiColor::Cyan.on_default());
     /// Command::new("myprog")
-    ///     .styles(Styles::styled().usage(Default::default()))
+    ///     .styles(styles)
     ///     .get_matches();
     /// ```
     #[cfg(feature = "color")]
@@ -1131,6 +1136,9 @@ impl Command {
     ///
     /// Defaults to current terminal width when `wrap_help` feature flag is enabled.  If current
     /// width cannot be determined, the default is 100.
+    ///
+    /// **`unstable-v5` feature**: Defaults to unbound, being subject to
+    /// [`Command::max_term_width`].
     ///
     /// **NOTE:** This setting applies globally and *not* on a per-command basis.
     ///
@@ -1158,7 +1166,9 @@ impl Command {
     /// This only applies when [`term_width`][Command::term_width] is unset so that the current
     /// terminal's width will be used.  See [`Command::term_width`] for more details.
     ///
-    /// Using `0` will ignore terminal widths and use source formatting (default).
+    /// Using `0` will ignore this, always respecting [`Command::term_width`] (default).
+    ///
+    /// **`unstable-v5` feature**: Defaults to 100.
     ///
     /// **NOTE:** This setting applies globally and *not* on a per-command basis.
     ///

@@ -28,8 +28,8 @@ pub use self::drop_flag_effects::{
 };
 pub use self::framework::{
     fmt, graphviz, lattice, visit_results, Analysis, AnalysisDomain, AnalysisResults, Backward,
-    CallReturnPlaces, CloneAnalysis, Direction, Engine, Forward, GenKill, GenKillAnalysis,
-    JoinSemiLattice, Results, ResultsCloned, ResultsClonedCursor, ResultsCursor, ResultsRefCursor,
+    CloneAnalysis, Direction, Engine, Forward, GenKill, GenKillAnalysis, JoinSemiLattice,
+    MaybeReachable, Results, ResultsCloned, ResultsClonedCursor, ResultsCursor, ResultsRefCursor,
     ResultsVisitable, ResultsVisitor, SwitchIntEdgeEffects,
 };
 
@@ -43,6 +43,7 @@ pub mod impls;
 pub mod move_paths;
 pub mod rustc_peek;
 pub mod storage;
+pub mod un_derefer;
 pub mod value_analysis;
 
 fluent_messages! { "../messages.ftl" }

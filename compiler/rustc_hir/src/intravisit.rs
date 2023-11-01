@@ -467,9 +467,15 @@ pub fn walk_item<'v, V: Visitor<'v>>(visitor: &mut V, item: &'v Item<'v>) {
         ItemKind::Use(ref path, _) => {
             visitor.visit_use(path, item.hir_id());
         }
-        ItemKind::Static(ref typ, _, body) | ItemKind::Const(ref typ, body) => {
+        ItemKind::Static(ref typ, _, body) => {
             visitor.visit_id(item.hir_id());
             visitor.visit_ty(typ);
+            visitor.visit_nested_body(body);
+        }
+        ItemKind::Const(ref typ, ref generics, body) => {
+            visitor.visit_id(item.hir_id());
+            visitor.visit_ty(typ);
+            visitor.visit_generics(generics);
             visitor.visit_nested_body(body);
         }
         ItemKind::Fn(ref sig, ref generics, body_id) => {
@@ -516,7 +522,6 @@ pub fn walk_item<'v, V: Visitor<'v>>(visitor: &mut V, item: &'v Item<'v>) {
             unsafety: _,
             defaultness: _,
             polarity: _,
-            constness: _,
             defaultness_span: _,
             ref generics,
             ref of_trait,
@@ -774,7 +779,7 @@ pub fn walk_expr<'v, V: Visitor<'v>>(visitor: &mut V, expression: &'v Expr<'v>) 
             visitor.visit_expr(subexpression);
             visitor.visit_ident(ident);
         }
-        ExprKind::Index(ref main_expression, ref index_expression) => {
+        ExprKind::Index(ref main_expression, ref index_expression, _) => {
             visitor.visit_expr(main_expression);
             visitor.visit_expr(index_expression)
         }

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64.0"
 name = "clap"
-version = "4.3.10"
+version = "4.3.19"
 include = [
     "build.rs",
     "src/**/*",
@@ -45,6 +45,7 @@ features = ["unstable-doc"]
 rustdoc-args = [
     "--cfg",
     "docsrs",
+    "--generate-link-to-definition",
 ]
 
 [package.metadata.playground]
@@ -366,11 +367,11 @@ path = "examples/derive_ref/flatten_hand_args.rs"
 required-features = ["derive"]
 
 [dependencies.clap_builder]
-version = "=4.3.10"
+version = "=4.3.19"
 default-features = false
 
 [dependencies.clap_derive]
-version = "=4.3.2"
+version = "=4.3.12"
 optional = true
 
 [dependencies.once_cell]

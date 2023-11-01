@@ -218,6 +218,19 @@ impl<'a> Visitor<'a> for PostExpansionVisitor<'a> {
                 }
             }
         }
+        if !attr.is_doc_comment()
+            && attr.get_normal_item().path.segments.len() == 2
+            && attr.get_normal_item().path.segments[0].ident.name == sym::diagnostic
+            && !self.features.diagnostic_namespace
+        {
+            let msg = "`#[diagnostic]` attribute name space is experimental";
+            gate_feature_post!(
+                self,
+                diagnostic_namespace,
+                attr.get_normal_item().path.segments[0].ident.span,
+                msg
+            );
+        }
 
         // Emit errors for non-staged-api crates.
         if !self.features.staged_api {
@@ -501,10 +514,10 @@ impl<'a> Visitor<'a> for PostExpansionVisitor<'a> {
     }
 }
 
-pub fn check_crate(krate: &ast::Crate, sess: &Session) {
-    maybe_stage_features(sess, krate);
-    check_incompatible_features(sess);
-    let mut visitor = PostExpansionVisitor { sess, features: &sess.features_untracked() };
+pub fn check_crate(krate: &ast::Crate, sess: &Session, features: &Features) {
+    maybe_stage_features(sess, features, krate);
+    check_incompatible_features(sess, features);
+    let mut visitor = PostExpansionVisitor { sess, features };
 
     let spans = sess.parse_sess.gated_spans.spans.borrow();
     macro_rules! gate_all {
@@ -556,6 +569,7 @@ pub fn check_crate(krate: &ast::Crate, sess: &Session) {
     gate_all!(const_closures, "const closures are experimental");
     gate_all!(builtin_syntax, "`builtin #` syntax is unstable");
     gate_all!(explicit_tail_calls, "`become` expression is experimental");
+    gate_all!(generic_const_items, "generic const items are experimental");
 
     if !visitor.features.negative_bounds {
         for &span in spans.get(&sym::negative_bounds).iter().copied().flatten() {
@@ -586,12 +600,12 @@ pub fn check_crate(krate: &ast::Crate, sess: &Session) {
     visit::walk_crate(&mut visitor, krate);
 }
 
-fn maybe_stage_features(sess: &Session, krate: &ast::Crate) {
+fn maybe_stage_features(sess: &Session, features: &Features, krate: &ast::Crate) {
     // checks if `#![feature]` has been used to enable any lang feature
     // does not check the same for lib features unless there's at least one
     // declared lang feature
     if !sess.opts.unstable_features.is_nightly_build() {
-        let lang_features = &sess.features_untracked().declared_lang_features;
+        let lang_features = &features.declared_lang_features;
         if lang_features.len() == 0 {
             return;
         }
@@ -626,9 +640,7 @@ fn maybe_stage_features(sess: &Session, krate: &ast::Crate) {
     }
 }
 
-fn check_incompatible_features(sess: &Session) {
-    let features = sess.features_untracked();
-
+fn check_incompatible_features(sess: &Session, features: &Features) {
     let declared_features = features
         .declared_lang_features
         .iter()

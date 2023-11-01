@@ -11,12 +11,12 @@ use cargo_platform::Platform;
 use cargo_util::paths;
 use itertools::Itertools;
 use lazycell::LazyCell;
-use log::{debug, trace};
 use semver::{self, VersionReq};
 use serde::de::IntoDeserializer as _;
 use serde::de::{self, Unexpected};
 use serde::ser;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, trace};
 use url::Url;
 
 use crate::core::compiler::{CompileKind, CompileTarget};
@@ -2835,7 +2835,9 @@ fn parse_unstable_lints<T: Deserialize<'static>>(
     config: &Config,
     warnings: &mut Vec<String>,
 ) -> CargoResult<Option<T>> {
-    let Some(lints) = lints else { return Ok(None); };
+    let Some(lints) = lints else {
+        return Ok(None);
+    };
 
     if !config.cli_unstable().lints {
         warn_for_lint_feature(config, warnings);
@@ -2878,7 +2880,9 @@ switch to nightly channel you can pass
 }
 
 fn verify_lints(lints: Option<TomlLints>) -> CargoResult<Option<TomlLints>> {
-    let Some(lints) = lints else { return Ok(None); };
+    let Some(lints) = lints else {
+        return Ok(None);
+    };
 
     for (tool, lints) in &lints {
         let supported = ["rust", "clippy", "rustdoc"];

@@ -2,7 +2,14 @@ use crate::backend::c;
 use crate::backend::conv::ret;
 use crate::fd::OwnedFd;
 use crate::io;
-#[cfg(not(any(apple, target_os = "aix", target_os = "haiku", target_os = "wasi")))]
+#[cfg(not(any(
+    apple,
+    target_os = "aix",
+    target_os = "espidf",
+    target_os = "haiku",
+    target_os = "nto",
+    target_os = "wasi"
+)))]
 use crate::pipe::PipeFlags;
 use core::mem::MaybeUninit;
 #[cfg(linux_kernel)]
@@ -11,7 +18,7 @@ use {
     crate::backend::MAX_IOV,
     crate::fd::BorrowedFd,
     crate::pipe::{IoSliceRaw, SpliceFlags},
-    crate::utils::optional_as_mut_ptr,
+    crate::utils::option_as_mut_ptr,
     core::cmp::min,
 };
 
@@ -25,7 +32,14 @@ pub(crate) fn pipe() -> io::Result<(OwnedFd, OwnedFd)> {
     }
 }
 
-#[cfg(not(any(apple, target_os = "aix", target_os = "haiku", target_os = "wasi")))]
+#[cfg(not(any(
+    apple,
+    target_os = "aix",
+    target_os = "espidf",
+    target_os = "haiku",
+    target_os = "nto",
+    target_os = "wasi"
+)))]
 pub(crate) fn pipe_with(flags: PipeFlags) -> io::Result<(OwnedFd, OwnedFd)> {
     unsafe {
         let mut result = MaybeUninit::<[OwnedFd; 2]>::uninit();
@@ -48,8 +62,8 @@ pub fn splice(
     len: usize,
     flags: SpliceFlags,
 ) -> io::Result<usize> {
-    let off_in = optional_as_mut_ptr(off_in).cast();
-    let off_out = optional_as_mut_ptr(off_out).cast();
+    let off_in = option_as_mut_ptr(off_in).cast();
+    let off_out = option_as_mut_ptr(off_out).cast();
 
     unsafe {
         ret_usize(c::splice(

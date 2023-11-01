@@ -1,10 +1,8 @@
 //! Implementation of compiling the compiler and standard library, in "check"-based modes.
 
-use crate::builder::{crate_description, Builder, Kind, RunConfig, ShouldRun, Step};
+use crate::builder::{crate_description, Alias, Builder, Kind, RunConfig, ShouldRun, Step};
 use crate::cache::Interned;
-use crate::compile::{
-    add_to_sysroot, make_run_crates, run_cargo, rustc_cargo, rustc_cargo_env, std_cargo,
-};
+use crate::compile::{add_to_sysroot, run_cargo, rustc_cargo, rustc_cargo_env, std_cargo};
 use crate::config::TargetSelection;
 use crate::tool::{prepare_tool_cargo, SourceType};
 use crate::INTERNER;
@@ -89,7 +87,7 @@ impl Step for Std {
     }
 
     fn make_run(run: RunConfig<'_>) {
-        let crates = make_run_crates(&run, "library");
+        let crates = run.make_run_crates(Alias::Library);
         run.builder.ensure(Std { target: run.target, crates });
     }
 
@@ -137,10 +135,11 @@ impl Step for Std {
             let hostdir = builder.sysroot_libdir(compiler, compiler.host);
             add_to_sysroot(&builder, &libdir, &hostdir, &libstd_stamp(builder, compiler, target));
         }
+        drop(_guard);
 
         // don't run on std twice with x.py clippy
         // don't check test dependencies if we haven't built libtest
-        if builder.kind == Kind::Clippy || !self.crates.is_empty() {
+        if builder.kind == Kind::Clippy || !self.crates.iter().any(|krate| krate == "test") {
             return;
         }
 
@@ -200,10 +199,11 @@ pub struct Rustc {
 
 impl Rustc {
     pub fn new(target: TargetSelection, builder: &Builder<'_>) -> Self {
-        let mut crates = vec![];
-        for krate in builder.in_tree_crates("rustc-main", None) {
-            crates.push(krate.name.to_string());
-        }
+        let crates = builder
+            .in_tree_crates("rustc-main", Some(target))
+            .into_iter()
+            .map(|krate| krate.name.to_string())
+            .collect();
         Self { target, crates: INTERNER.intern_list(crates) }
     }
 }
@@ -218,7 +218,7 @@ impl Step for Rustc {
     }
 
     fn make_run(run: RunConfig<'_>) {
-        let crates = make_run_crates(&run, "compiler");
+        let crates = run.make_run_crates(Alias::Compiler);
         run.builder.ensure(Rustc { target: run.target, crates });
     }
 
@@ -307,6 +307,12 @@ impl Step for CodegenBackend {
     }
 
     fn run(self, builder: &Builder<'_>) {
+        // FIXME: remove once https://github.com/rust-lang/rust/issues/112393 is resolved
+        if builder.build.config.vendor && &self.backend == "gcc" {
+            println!("Skipping checking of `rustc_codegen_gcc` with vendoring enabled.");
+            return;
+        }
+
         let compiler = builder.compiler(builder.top_stage, builder.config.build);
         let target = self.target;
         let backend = self.backend;
@@ -322,7 +328,7 @@ impl Step for CodegenBackend {
         );
         cargo
             .arg("--manifest-path")
-            .arg(builder.src.join(format!("compiler/rustc_codegen_{}/Cargo.toml", backend)));
+            .arg(builder.src.join(format!("compiler/rustc_codegen_{backend}/Cargo.toml")));
         rustc_cargo_env(builder, &mut cargo, target, compiler.stage);
 
         let _guard = builder.msg_check(&backend, target);
@@ -525,5 +531,5 @@ fn codegen_backend_stamp(
 ) -> PathBuf {
     builder
         .cargo_out(compiler, Mode::Codegen, target)
-        .join(format!(".librustc_codegen_{}-check.stamp", backend))
+        .join(format!(".librustc_codegen_{backend}-check.stamp"))
 }

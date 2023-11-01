@@ -1,8 +1,8 @@
 [package]
 name = "cargo-util"
-version = "0.2.5"
-edition = "2021"
-license = "MIT OR Apache-2.0"
+version = "0.2.6"
+edition.workspace = true
+license.workspace = true
 homepage = "https://github.com/rust-lang/cargo"
 repository = "https://github.com/rust-lang/cargo"
 description = "Miscellaneous support code used by Cargo."
@@ -14,10 +14,10 @@ filetime.workspace = true
 hex.workspace = true
 jobserver.workspace = true
 libc.workspace = true
-log.workspace = true
 same-file.workspace = true
 shell-escape.workspace = true
 tempfile.workspace = true
+tracing.workspace = true
 walkdir.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]

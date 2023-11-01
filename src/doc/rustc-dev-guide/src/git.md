@@ -10,7 +10,7 @@ can be incorporated into the compiler.
 
 The goal of this page is to cover some of the more common questions and
 problems new contributors face. Although some Git basics will be covered here,
-if you  find that this is still a little too fast for you, it might make sense
+if you find that this is still a little too fast for you, it might make sense
 to first read some introductions to Git, such as the Beginner and Getting
 started sections of [this tutorial from Atlassian][atlassian-git]. GitHub also
 provides [documentation] and [guides] for beginners, or you can consult the
@@ -139,7 +139,7 @@ You might also notice conflicts in the web UI:
 ![conflict in src/tools/cargo](./img/submodule-conflicts.png)
 
 The most common cause is that you rebased after a change and ran `git add .` without first running
-`x.py` to update the submodules.  Alternatively, you might have run `cargo fmt` instead of `x fmt`
+`x` to update the submodules.  Alternatively, you might have run `cargo fmt` instead of `x fmt`
 and modified files in a submodule, then committed the changes.
 
 To fix it, do the following things:
@@ -167,7 +167,7 @@ error: cannot rebase: You have unstaged changes.
 error: Please commit or stash them.
 ```
 
-(See https://git-scm.com/book/en/v2/Getting-Started-What-is-Git%3F#_the_three_states for the difference between the two.)
+(See <https://git-scm.com/book/en/v2/Getting-Started-What-is-Git%3F#_the_three_states> for the difference between the two.)
 
 This means you have made changes since the last time you made a commit. To be able to rebase, either
 commit your changes, or make a temporary commit called a "stash" to have them still not be commited
@@ -178,7 +178,7 @@ will prevent the "cannot rebase" error in nearly all cases:
 git config --global rebase.autostash true
 ```
 
-See https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning for more info about stashing.
+See <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning> for more info about stashing.
 
 ### I see 'Untracked Files: src/stdarch'?
 
@@ -239,30 +239,12 @@ no changes added to commit (use "git add" and/or "git commit -a")
 ```
 
 These changes are not changes to files: they are changes to submodules (more on this
-[later](#git-submodules)). To get rid of those, run `./x.py --help`, which will automatically update
+[later](#git-submodules)). To get rid of those, run `./x --help`, which will automatically update
 the submodules.
 
 Some submodules are not actually needed; for example, `src/llvm-project` doesn't need to be checked
 out if you're using `download-ci-llvm`.  To avoid having to keep fetching its history, you can use
 `git submodule deinit -f src/llvm-project`, which will also avoid it showing as modified again.
-
-Note that, as of <!-- date-check --> Aug 2022,
-there is a [bug][#77620] if you use worktrees,
-submodules, and `x.py` in a commit hook.
-If you run into an error like the following,
-it's not anything you did wrong:
-
-```
-error: failed to read `/home/jyn/rustc-worktree/src/tools/cargo/Cargo.toml`
-
-Caused by:
-  No such file or directory (os error 2)
-```
-
-There is a workaround in [the issue][#77620-workaround].
-
-[#77620]: https://github.com/rust-lang/rust/issues/77620
-[#77620-workaround]: https://github.com/rust-lang/rust/issues/77620#issuecomment-705228229
 
 ## Rebasing and Conflicts
 
@@ -314,7 +296,7 @@ Generally, resolving the conflict consists of two steps: First, fix the
 particular conflict. Edit the file to make the changes you want and remove the
 `<<<<<<<`, `=======` and `>>>>>>>` lines in the process. Second, check the
 surrounding code. If there was a conflict, its likely there are some logical
-errors lying around too! It's a good idea to run `x.py check` here to make sure
+errors lying around too! It's a good idea to run `x check` here to make sure
 there are no glaring errors.
 
 Once you're all done fixing the conflicts, you need to stage the files that had
@@ -461,7 +443,7 @@ that merge commits in PRs are not accepted. As a result, if you are running
 course, this is not always true; if your merge will just be a fast-forward,
 like the merges that `git pull` usually performs, then no merge commit is
 created and you have nothing to worry about. Running `git config merge.ff only`
-(this will apply the config to the local repo).
+(this will apply the config to the local repo)
 once will ensure that all the merges you perform are of this type, so that you
 cannot make a mistake.
 
@@ -558,7 +540,7 @@ commit, which doesn't change unless modified manually. If you use `git checkout 
 in the `llvm-project` directory and go back to the `rust` directory, you can stage this
 change like any other, e.g. by running `git add src/llvm-project`. (Note that if
 you *don't* stage the change to commit, then you run the risk that running
-`x.py` will just undo your change by switching back to the previous commit when
+`x` will just undo your change by switching back to the previous commit when
 it automatically "updates" the submodules.)
 
 This version selection is usually done by the maintainers of the project, and

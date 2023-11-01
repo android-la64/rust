@@ -70,20 +70,21 @@ use crate::core::compiler::rustdoc::RustdocExternMap;
 use crate::core::shell::Verbosity;
 use crate::core::{features, CliUnstable, Shell, SourceId, Workspace, WorkspaceRootConfig};
 use crate::ops::RegistryCredentialConfig;
-use crate::util::auth::Secret;
 use crate::util::errors::CargoResult;
 use crate::util::network::http::configure_http_handle;
 use crate::util::network::http::http_handle;
-use crate::util::CanonicalUrl;
-use crate::util::{internal, toml as cargo_toml};
+use crate::util::toml as cargo_toml;
+use crate::util::{internal, CanonicalUrl};
 use crate::util::{try_canonicalize, validate_package_name};
 use crate::util::{FileLock, Filesystem, IntoUrl, IntoUrlWithBase, Rustc};
 use anyhow::{anyhow, bail, format_err, Context as _};
+use cargo_credential::Secret;
 use cargo_util::paths;
 use curl::easy::Easy;
 use lazycell::LazyCell;
 use serde::de::IntoDeserializer as _;
 use serde::Deserialize;
+use time::OffsetDateTime;
 use toml_edit::Item;
 use url::Url;
 
@@ -104,6 +105,8 @@ pub use target::{TargetCfgConfig, TargetConfig};
 
 mod environment;
 use environment::Env;
+
+use super::auth::RegistryConfig;
 
 // Helper macro for creating typed access methods.
 macro_rules! get_value_typed {
@@ -146,13 +149,9 @@ enum WhyLoad {
 /// A previously generated authentication token and the data needed to determine if it can be reused.
 #[derive(Debug)]
 pub struct CredentialCacheValue {
-    /// If the command line was used to override the token then it must always be reused,
-    /// even if reading the configuration files would lead to a different value.
-    pub from_commandline: bool,
-    /// If nothing depends on which endpoint is being hit, then we can reuse the token
-    /// for any future request even if some of the requests involve mutations.
-    pub independent_of_endpoint: bool,
     pub token_value: Secret<String>,
+    pub expiration: Option<OffsetDateTime>,
+    pub operation_independent: bool,
 }
 
 /// Configuration information for cargo. This is not specific to a build, it is information
@@ -211,6 +210,8 @@ pub struct Config {
     /// Cache of credentials from configuration or credential providers.
     /// Maps from url to credential value.
     credential_cache: LazyCell<RefCell<HashMap<CanonicalUrl, CredentialCacheValue>>>,
+    /// Cache of registry config from from the `[registries]` table.
+    registry_config: LazyCell<RefCell<HashMap<SourceId, Option<RegistryConfig>>>>,
     /// Lock, if held, of the global package cache along with the number of
     /// acquisitions so far.
     package_cache_lock: RefCell<Option<(Option<FileLock>, usize)>>,
@@ -302,6 +303,7 @@ impl Config {
             env,
             updated_sources: LazyCell::new(),
             credential_cache: LazyCell::new(),
+            registry_config: LazyCell::new(),
             package_cache_lock: RefCell::new(None),
             http_config: LazyCell::new(),
             future_incompat_config: LazyCell::new(),
@@ -491,6 +493,13 @@ impl Config {
             .borrow_mut()
     }
 
+    /// Cache of already parsed registries from the `[registries]` table.
+    pub(crate) fn registry_config(&self) -> RefMut<'_, HashMap<SourceId, Option<RegistryConfig>>> {
+        self.registry_config
+            .borrow_with(|| RefCell::new(HashMap::new()))
+            .borrow_mut()
+    }
+
     /// Gets all config values from disk.
     ///
     /// This will lazy-load the values as necessary. Callers are responsible
@@ -602,7 +611,7 @@ impl Config {
         key: &ConfigKey,
         vals: &HashMap<String, ConfigValue>,
     ) -> CargoResult<Option<ConfigValue>> {
-        log::trace!("get cv {:?}", key);
+        tracing::trace!("get cv {:?}", key);
         if key.is_root() {
             // Returning the entire root table (for example `cargo config get`
             // with no key). The definition here shouldn't matter.
@@ -810,7 +819,7 @@ impl Config {
     ///
     /// See `get` for more details.
     pub fn get_string(&self, key: &str) -> CargoResult<OptValue<String>> {
-        self.get::<Option<Value<String>>>(key)
+        self.get::<OptValue<String>>(key)
     }
 
     /// Get a config value that is expected to be a path.
@@ -819,7 +828,7 @@ impl Config {
     /// directory separators. See `ConfigRelativePath::resolve_program` for
     /// more details.
     pub fn get_path(&self, key: &str) -> CargoResult<OptValue<PathBuf>> {
-        self.get::<Option<Value<ConfigRelativePath>>>(key).map(|v| {
+        self.get::<OptValue<ConfigRelativePath>>(key).map(|v| {
             v.map(|v| Value {
                 val: v.val.resolve_program(self),
                 definition: v.definition,
@@ -2789,7 +2798,7 @@ fn disables_multiplexing_for_bad_curl(
             .iter()
             .any(|v| curl_version.starts_with(v))
         {
-            log::info!("disabling multiplexing with proxy, curl version is {curl_version}");
+            tracing::info!("disabling multiplexing with proxy, curl version is {curl_version}");
             http.multiplexing = Some(false);
         }
     }

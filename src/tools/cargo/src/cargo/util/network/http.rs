@@ -8,8 +8,8 @@ use curl::easy::Easy;
 use curl::easy::InfoType;
 use curl::easy::SslOpt;
 use curl::easy::SslVersion;
-use log::log;
-use log::Level;
+use tracing::debug;
+use tracing::trace;
 
 use crate::util::config::SslVersionConfig;
 use crate::util::config::SslVersionConfigRange;
@@ -135,18 +135,25 @@ pub fn configure_http_handle(config: &Config, handle: &mut Easy) -> CargoResult<
 
     if let Some(true) = http.debug {
         handle.verbose(true)?;
-        log::debug!("{:#?}", curl::Version::get());
+        tracing::debug!("{:#?}", curl::Version::get());
         handle.debug_function(|kind, data| {
+            enum LogLevel {
+                Debug,
+                Trace,
+            }
+            use LogLevel::*;
             let (prefix, level) = match kind {
-                InfoType::Text => ("*", Level::Debug),
-                InfoType::HeaderIn => ("<", Level::Debug),
-                InfoType::HeaderOut => (">", Level::Debug),
-                InfoType::DataIn => ("{", Level::Trace),
-                InfoType::DataOut => ("}", Level::Trace),
+                InfoType::Text => ("*", Debug),
+                InfoType::HeaderIn => ("<", Debug),
+                InfoType::HeaderOut => (">", Debug),
+                InfoType::DataIn => ("{", Trace),
+                InfoType::DataOut => ("}", Trace),
                 InfoType::SslDataIn | InfoType::SslDataOut => return,
                 _ => return,
             };
             let starts_with_ignore_case = |line: &str, text: &str| -> bool {
+                let line = line.as_bytes();
+                let text = text.as_bytes();
                 line[..line.len().min(text.len())].eq_ignore_ascii_case(text)
             };
             match str::from_utf8(data) {
@@ -159,16 +166,18 @@ pub fn configure_http_handle(config: &Config, handle: &mut Easy) -> CargoResult<
                         } else if starts_with_ignore_case(line, "set-cookie") {
                             line = "set-cookie: [REDACTED]";
                         }
-                        log!(level, "http-debug: {} {}", prefix, line);
+                        match level {
+                            Debug => debug!("http-debug: {prefix} {line}"),
+                            Trace => trace!("http-debug: {prefix} {line}"),
+                        }
                     }
                 }
                 Err(_) => {
-                    log!(
-                        level,
-                        "http-debug: {} ({} bytes of data)",
-                        prefix,
-                        data.len()
-                    );
+                    let len = data.len();
+                    match level {
+                        Debug => debug!("http-debug: {prefix} ({len} bytes of data)"),
+                        Trace => trace!("http-debug: {prefix} ({len} bytes of data)"),
+                    }
                 }
             }
         })?;

@@ -17,6 +17,7 @@ use std::cell::UnsafeCell;
 use std::collections::HashMap;
 use std::mem;
 use std::sync::Arc;
+use std::time::Duration;
 #[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
 use std::time::SystemTime;
 
@@ -80,6 +81,7 @@ pub struct System {
     process_list: HashMap<Pid, Process>,
     mem_total: u64,
     mem_free: u64,
+    mem_used: u64,
     mem_available: u64,
     swap_total: u64,
     swap_free: u64,
@@ -139,6 +141,7 @@ fn get_now() -> u64 {
 impl SystemExt for System {
     const IS_SUPPORTED: bool = true;
     const SUPPORTED_SIGNALS: &'static [Signal] = supported_signals();
+    const MINIMUM_CPU_UPDATE_INTERVAL: Duration = Duration::from_millis(200);
 
     fn new_with_specifics(refreshes: RefreshKind) -> System {
         unsafe {
@@ -149,6 +152,7 @@ impl SystemExt for System {
                 mem_total: 0,
                 mem_free: 0,
                 mem_available: 0,
+                mem_used: 0,
                 swap_total: 0,
                 swap_free: 0,
                 global_cpu: Cpu::new(
@@ -220,15 +224,19 @@ impl SystemExt for System {
                 //  * used to hold data that was read speculatively from disk but
                 //  * haven't actually been used by anyone so far.
                 //  */
-                self.mem_available = self.mem_total.saturating_sub(
-                    u64::from(stat.active_count)
-                        .saturating_add(u64::from(stat.inactive_count))
-                        .saturating_add(u64::from(stat.wire_count))
-                        .saturating_add(u64::from(stat.speculative_count))
-                        .saturating_sub(u64::from(stat.purgeable_count))
-                        .saturating_mul(self.page_size_kb),
-                );
-                self.mem_free = u64::from(stat.free_count).saturating_mul(self.page_size_kb);
+                self.mem_available = u64::from(stat.free_count)
+                    .saturating_add(u64::from(stat.inactive_count))
+                    .saturating_add(u64::from(stat.purgeable_count))
+                    .saturating_sub(u64::from(stat.compressor_page_count))
+                    .saturating_mul(self.page_size_kb);
+                self.mem_used = u64::from(stat.active_count)
+                    .saturating_add(u64::from(stat.wire_count))
+                    .saturating_add(u64::from(stat.compressor_page_count))
+                    .saturating_add(u64::from(stat.speculative_count))
+                    .saturating_mul(self.page_size_kb);
+                self.mem_free = u64::from(stat.free_count)
+                    .saturating_sub(u64::from(stat.speculative_count))
+                    .saturating_mul(self.page_size_kb);
             }
         }
     }
@@ -327,10 +335,14 @@ impl SystemExt for System {
 
     #[cfg(all(target_os = "macos", not(feature = "apple-sandbox")))]
     fn refresh_process_specifics(&mut self, pid: Pid, refresh_kind: ProcessRefreshKind) -> bool {
-        let now = get_now();
+        let mut time_interval = None;
         let arg_max = get_arg_max();
-        let port = self.port;
-        let time_interval = self.clock_info.as_mut().map(|c| c.get_time_interval(port));
+        let now = get_now();
+
+        if refresh_kind.cpu() {
+            let port = self.port;
+            time_interval = self.clock_info.as_mut().map(|c| c.get_time_interval(port));
+        }
         match {
             let wrap = Wrap(UnsafeCell::new(&mut self.process_list));
             update_process(
@@ -417,7 +429,7 @@ impl SystemExt for System {
     }
 
     fn used_memory(&self) -> u64 {
-        self.mem_total - self.mem_free
+        self.mem_used
     }
 
     fn total_swap(&self) -> u64 {

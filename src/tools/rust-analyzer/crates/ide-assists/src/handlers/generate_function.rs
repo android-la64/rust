@@ -623,7 +623,9 @@ fn fn_generic_params(
 fn params_and_where_preds_in_scope(
     ctx: &AssistContext<'_>,
 ) -> (Vec<ast::GenericParam>, Vec<ast::WherePred>) {
-    let Some(body) = containing_body(ctx) else { return Default::default(); };
+    let Some(body) = containing_body(ctx) else {
+        return Default::default();
+    };
 
     let mut generic_params = Vec::new();
     let mut where_clauses = Vec::new();
@@ -1876,7 +1878,6 @@ where
 
     #[test]
     fn add_function_with_fn_arg() {
-        // FIXME: The argument in `bar` is wrong.
         check_assist(
             generate_function,
             r"
@@ -1897,7 +1898,7 @@ fn foo() {
     bar(Baz::new);
 }
 
-fn bar(new: fn) ${0:-> _} {
+fn bar(new: fn() -> Baz) ${0:-> _} {
     todo!()
 }
 ",

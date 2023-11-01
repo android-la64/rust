@@ -40,6 +40,21 @@ bitflags! {
         /// `PROT_GROWSDOWN`
         #[cfg(linux_kernel)]
         const GROWSDOWN = bitcast!(c::PROT_GROWSDOWN);
+        /// `PROT_SEM`
+        #[cfg(linux_kernel)]
+        const SEM = linux_raw_sys::general::PROT_SEM;
+        /// `PROT_BTI`
+        #[cfg(all(linux_kernel, target_arch = "aarch64"))]
+        const BTI = linux_raw_sys::general::PROT_BTI;
+        /// `PROT_MTE`
+        #[cfg(all(linux_kernel, target_arch = "aarch64"))]
+        const MTE = linux_raw_sys::general::PROT_MTE;
+        /// `PROT_SAO`
+        #[cfg(all(linux_kernel, any(target_arch = "powerpc", target_arch = "powerpc64")))]
+        const SAO = linux_raw_sys::general::PROT_SAO;
+        /// `PROT_ADI`
+        #[cfg(all(linux_kernel, any(target_arch = "sparc", target_arch = "sparc64")))]
+        const ADI = linux_raw_sys::general::PROT_ADI;
     }
 }
 
@@ -63,6 +78,7 @@ bitflags! {
             target_os = "emscripten",
             target_os = "fuchsia",
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const SHARED_VALIDATE = bitcast!(c::MAP_SHARED_VALIDATE);
@@ -73,6 +89,7 @@ bitflags! {
             bsd,
             solarish,
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const DENYWRITE = bitcast!(c::MAP_DENYWRITE);
@@ -86,6 +103,7 @@ bitflags! {
             target_os = "emscripten",
             target_os = "fuchsia",
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const FIXED_NOREPLACE = bitcast!(c::MAP_FIXED_NOREPLACE);
@@ -94,6 +112,7 @@ bitflags! {
             bsd,
             solarish,
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const GROWSDOWN = bitcast!(c::MAP_GROWSDOWN);
@@ -102,6 +121,7 @@ bitflags! {
             bsd,
             solarish,
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const HUGETLB = bitcast!(c::MAP_HUGETLB);
@@ -113,6 +133,7 @@ bitflags! {
             target_os = "emscripten",
             target_os = "fuchsia",
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const HUGE_2MB = bitcast!(c::MAP_HUGE_2MB);
@@ -124,6 +145,7 @@ bitflags! {
             target_os = "emscripten",
             target_os = "fuchsia",
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const HUGE_1GB = bitcast!(c::MAP_HUGE_1GB);
@@ -132,6 +154,7 @@ bitflags! {
             bsd,
             solarish,
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const LOCKED = bitcast!(c::MAP_LOCKED);
@@ -139,7 +162,7 @@ bitflags! {
         #[cfg(freebsdlike)]
         const NOCORE = bitcast!(c::MAP_NOCORE);
         /// `MAP_NORESERVE`
-        #[cfg(not(any(freebsdlike, target_os = "redox")))]
+        #[cfg(not(any(freebsdlike, target_os = "nto", target_os = "redox")))]
         const NORESERVE = bitcast!(c::MAP_NORESERVE);
         /// `MAP_NOSYNC`
         #[cfg(freebsdlike)]
@@ -149,6 +172,7 @@ bitflags! {
             bsd,
             solarish,
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const POPULATE = bitcast!(c::MAP_POPULATE);
@@ -173,10 +197,11 @@ bitflags! {
             target_os = "emscripten",
             target_os = "fuchsia",
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
             all(
                 linux_kernel,
-                any(target_arch = "mips", target_arch = "mips64"),
+                any(target_arch = "mips", target_arch = "mips32r6", target_arch = "mips64", target_arch = "mips64r6"),
             )
         )))]
         const SYNC = bitcast!(c::MAP_SYNC);
@@ -308,7 +333,15 @@ pub enum Advice {
     #[cfg(linux_kernel)]
     LinuxHwPoison = bitcast!(c::MADV_HWPOISON),
     /// `MADV_SOFT_OFFLINE`
-    #[cfg(all(linux_kernel, not(any(target_arch = "mips", target_arch = "mips64"))))]
+    #[cfg(all(
+        linux_kernel,
+        not(any(
+            target_arch = "mips",
+            target_arch = "mips32r6",
+            target_arch = "mips64",
+            target_arch = "mips64r6"
+        ))
+    ))]
     LinuxSoftOffline = bitcast!(c::MADV_SOFT_OFFLINE),
     /// `MADV_MERGEABLE`
     #[cfg(linux_kernel)]

@@ -1,8 +1,7 @@
 use clippy_utils::diagnostics::{span_lint_hir, span_lint_hir_and_then};
-use clippy_utils::peel_blocks;
 use clippy_utils::source::snippet_opt;
 use clippy_utils::ty::has_drop;
-use clippy_utils::{get_parent_node, is_lint_allowed};
+use clippy_utils::{get_parent_node, is_lint_allowed, peel_blocks};
 use rustc_errors::Applicability;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::{
@@ -161,7 +160,7 @@ fn has_no_effect(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
     match peel_blocks(expr).kind {
         ExprKind::Lit(..) | ExprKind::Closure { .. } => true,
         ExprKind::Path(..) => !has_drop(cx, cx.typeck_results().expr_ty(expr)),
-        ExprKind::Index(a, b) | ExprKind::Binary(_, a, b) => has_no_effect(cx, a) && has_no_effect(cx, b),
+        ExprKind::Index(a, b, _) | ExprKind::Binary(_, a, b) => has_no_effect(cx, a) && has_no_effect(cx, b),
         ExprKind::Array(v) | ExprKind::Tup(v) => v.iter().all(|val| has_no_effect(cx, val)),
         ExprKind::Repeat(inner, _)
         | ExprKind::Cast(inner, _)
@@ -264,7 +263,7 @@ fn reduce_expression<'a>(cx: &LateContext<'_>, expr: &'a Expr<'a>) -> Option<Vec
         return None;
     }
     match expr.kind {
-        ExprKind::Index(a, b) => Some(vec![a, b]),
+        ExprKind::Index(a, b, _) => Some(vec![a, b]),
         ExprKind::Binary(ref binop, a, b) if binop.node != BinOpKind::And && binop.node != BinOpKind::Or => {
             Some(vec![a, b])
         },

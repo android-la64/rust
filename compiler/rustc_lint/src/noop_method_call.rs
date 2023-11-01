@@ -18,7 +18,6 @@ declare_lint! {
     ///
     /// ```rust
     /// # #![allow(unused)]
-    /// #![warn(noop_method_call)]
     /// struct Foo;
     /// let foo = &Foo;
     /// let clone: &Foo = foo.clone();
@@ -34,7 +33,7 @@ declare_lint! {
     /// calling `clone` on a `&T` where `T` does not implement clone, actually doesn't do anything
     /// as references are copy. This lint detects these calls and warns the user about them.
     pub NOOP_METHOD_CALL,
-    Allow,
+    Warn,
     "detects the use of well-known noop methods"
 }
 
@@ -79,28 +78,24 @@ impl<'tcx> LateLintPass<'tcx> for NoopMethodCall {
         // We only care about method calls corresponding to the `Clone`, `Deref` and `Borrow`
         // traits and ignore any other method call.
 
-        let Some((DefKind::AssocFn, did)) =
-            cx.typeck_results().type_dependent_def(expr.hir_id)
+        let Some((DefKind::AssocFn, did)) = cx.typeck_results().type_dependent_def(expr.hir_id)
         else {
             return;
         };
 
         let Some(trait_id) = cx.tcx.trait_of_item(did) else { return };
 
-        if !matches!(
-            cx.tcx.get_diagnostic_name(trait_id),
-            Some(sym::Borrow | sym::Clone | sym::Deref)
-        ) {
+        let Some(trait_) = cx.tcx.get_diagnostic_name(trait_id) else { return };
+
+        if !matches!(trait_, sym::Borrow | sym::Clone | sym::Deref) {
             return;
         };
 
-        let substs = cx
+        let args = cx
             .tcx
-            .normalize_erasing_regions(cx.param_env, cx.typeck_results().node_substs(expr.hir_id));
+            .normalize_erasing_regions(cx.param_env, cx.typeck_results().node_args(expr.hir_id));
         // Resolve the trait method instance.
-        let Ok(Some(i)) = ty::Instance::resolve(cx.tcx, cx.param_env, did, substs) else {
-            return
-        };
+        let Ok(Some(i)) = ty::Instance::resolve(cx.tcx, cx.param_env, did, args) else { return };
         // (Re)check that it implements the noop diagnostic.
         let Some(name) = cx.tcx.get_diagnostic_name(i.def_id()) else { return };
 
@@ -117,11 +112,13 @@ impl<'tcx> LateLintPass<'tcx> for NoopMethodCall {
         let expr_span = expr.span;
         let span = expr_span.with_lo(receiver.span.hi());
 
+        let orig_ty = expr_ty.peel_refs();
+
         if receiver_ty == expr_ty {
             cx.emit_spanned_lint(
                 NOOP_METHOD_CALL,
                 span,
-                NoopMethodCallDiag { method: call.ident.name, receiver_ty, label: span },
+                NoopMethodCallDiag { method: call.ident.name, orig_ty, trait_, label: span },
             );
         } else {
             match name {

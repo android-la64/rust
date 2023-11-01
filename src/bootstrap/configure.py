@@ -180,7 +180,7 @@ def p(msg):
 
 
 def err(msg):
-    print("configure: error: " + msg)
+    print("\nconfigure: ERROR: " + msg + "\n")
     sys.exit(1)
 
 def is_value_list(key):
@@ -544,12 +544,21 @@ def write_config_toml(writer, section_order, targets, sections):
 
 def quit_if_file_exists(file):
     if os.path.isfile(file):
-        err("Existing '" + file + "' detected.")
+        msg = "Existing '{}' detected. Exiting".format(file)
+
+        # If the output object directory isn't empty, we can get these errors
+        host_objdir = os.environ.get("OBJDIR_ON_HOST")
+        if host_objdir is not None:
+            msg += "\nIs objdir '{}' clean?".format(host_objdir)
+
+        err(msg)
 
 if __name__ == "__main__":
     # If 'config.toml' already exists, exit the script at this point
     quit_if_file_exists('config.toml')
 
+    if "GITHUB_ACTIONS" in os.environ:
+        print("::group::Configure the build")
     p("processing command line")
     # Parse all known arguments into a configuration structure that reflects the
     # TOML we're going to write out
@@ -572,3 +581,5 @@ if __name__ == "__main__":
 
     p("")
     p("run `python {}/x.py --help`".format(rust_dir))
+    if "GITHUB_ACTIONS" in os.environ:
+        print("::endgroup::")

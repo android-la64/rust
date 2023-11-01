@@ -11,7 +11,7 @@
     thread_local
 )]
 #![no_core]
-#![allow(dead_code)]
+#![allow(dead_code, internal_features)]
 
 #[lang = "sized"]
 pub trait Sized {}
@@ -547,7 +547,9 @@ impl<T> Box<T> {
 impl<T: ?Sized, A> Drop for Box<T, A> {
     fn drop(&mut self) {
         // inner value is dropped by compiler
-        libc::free(self.0.pointer.0 as *mut u8);
+        unsafe {
+            libc::free(self.0.pointer.0 as *mut u8);
+        }
     }
 }
 

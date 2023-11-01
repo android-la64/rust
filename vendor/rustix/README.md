@@ -58,10 +58,11 @@ by default. The rest of the API is conditional with cargo feature flags:
 | Name       | Description
 | ---------- | ---------------------
 | `event`    | [`rustix::event`]—Polling and event operations.
-| `fs`       | [`rustix::fs`] and [`rustix::path`]—Filesystem operations.
+| `fs`       | [`rustix::fs`]—Filesystem operations.
 | `io_uring` | [`rustix::io_uring`]—Linux io_uring.
 | `mm`       | [`rustix::mm`]—Memory map operations.
-| `net`      | [`rustix::net`] and [`rustix::path`]—Network-related operations.
+| `mount`    | [`rustix::mount`]—Linux mount API.
+| `net`      | [`rustix::net`]—Network-related operations.
 | `param`    | [`rustix::param`]—Process parameters.
 | `pipe`     | [`rustix::pipe`]—Pipe operations.
 | `process`  | [`rustix::process`]—Process-associated operations.
@@ -80,6 +81,7 @@ by default. The rest of the API is conditional with cargo feature flags:
 [`rustix::fs`]: https://docs.rs/rustix/*/rustix/fs/index.html
 [`rustix::io_uring`]: https://docs.rs/rustix/*/rustix/io_uring/index.html
 [`rustix::mm`]: https://docs.rs/rustix/*/rustix/mm/index.html
+[`rustix::mount`]: https://docs.rs/rustix/*/rustix/mount/index.html
 [`rustix::net`]: https://docs.rs/rustix/*/rustix/net/index.html
 [`rustix::param`]: https://docs.rs/rustix/*/rustix/param/index.html
 [`rustix::pipe`]: https://docs.rs/rustix/*/rustix/pipe/index.html
@@ -95,7 +97,6 @@ by default. The rest of the API is conditional with cargo feature flags:
 [`rustix::io`]: https://docs.rs/rustix/*/rustix/io/index.html
 [`rustix::fd`]: https://docs.rs/rustix/*/rustix/fd/index.html
 [`rustix::ffi`]: https://docs.rs/rustix/*/rustix/ffi/index.html
-[`rustix::path`]: https://docs.rs/rustix/*/rustix/path/index.html
 
 ## 64-bit Large File Support (LFS) and Year 2038 (y2038) support
 
@@ -122,12 +123,10 @@ supported on Redox, such as `*at` functions like `openat`, which are important
 features for `rustix`.
 
 `rustix` has its own code for making direct syscalls, similar to the
-[`syscall`], [`sc`], and [`scall`] crates, though `rustix` can use either the
-Rust `asm!` macro or out-of-line `.s` files so it supports Rust versions from
-1.63 through Nightly and architectures where Rust's inline asm is not yet
-stable. `rustix` can also use Linux's vDSO mechanism to optimize Linux
-`clock_gettime` on all architectures, and all Linux system calls on x86. And
-`rustix`'s syscalls report errors using an optimized `Errno` type.
+[`syscall`], [`sc`], and [`scall`] crates, using the Rust `asm!` macro.
+`rustix` can also use Linux's vDSO mechanism to optimize Linux `clock_gettime`
+on all architectures, and all Linux system calls on x86. And `rustix`'s
+syscalls report errors using an optimized `Errno` type.
 
 `rustix`'s `*at` functions are similar to the [`openat`] crate, but `rustix`
 provides them as free functions rather than associated functions of a `Dir`

@@ -2,10 +2,11 @@ use super::frame;
 use crate::decoding::dictionary::Dictionary;
 use crate::decoding::scratch::DecoderScratch;
 use crate::decoding::{self, dictionary};
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::hash::Hasher;
-use std::io::{self, Read};
+use crate::io::{Error, Read, Write};
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+use core::convert::TryInto;
+use core::hash::Hasher;
 
 /// This implements a decoder for zstd frames. This decoder is able to decode frames only partially and gives control
 /// over how many bytes/blocks will be decoded at a time (so you don't have to decode a 10GB file into memory all at once).
@@ -17,11 +18,15 @@ use std::io::{self, Read};
 /// Workflow is as follows:
 /// ```
 /// use ruzstd::frame_decoder::BlockDecodingStrategy;
-/// use std::io::Read;
-/// use std::io::Write;
 ///
+/// # #[cfg(feature = "std")]
+/// use std::io::{Read, Write};
 ///
-/// fn decode_this(mut file: impl std::io::Read) {
+/// // no_std environments can use the crate's own Read traits
+/// # #[cfg(not(feature = "std"))]
+/// use ruzstd::io::{Read, Write};
+///
+/// fn decode_this(mut file: impl Read) {
 ///     //Create a new decoder
 ///     let mut frame_dec = ruzstd::FrameDecoder::new();
 ///     let mut result = Vec::new();
@@ -50,12 +55,13 @@ use std::io::{self, Read};
 /// }
 ///
 /// fn do_something(data: &[u8]) {
+/// # #[cfg(feature = "std")]
 ///     std::io::stdout().write_all(data).unwrap();
 /// }
 /// ```
 pub struct FrameDecoder {
     state: Option<FrameDecoderState>,
-    dicts: HashMap<u32, Dictionary>,
+    dicts: BTreeMap<u32, Dictionary>,
 }
 
 struct FrameDecoderState {
@@ -81,8 +87,6 @@ pub enum FrameDecoderError {
     ReadFrameHeaderError(#[from] frame::ReadFrameHeaderError),
     #[error(transparent)]
     FrameHeaderError(#[from] frame::FrameHeaderError),
-    #[error(transparent)]
-    FrameCheckError(#[from] frame::FrameCheckError),
     #[error("Specified window_size is too big; Requested: {requested}, Max: {MAX_WINDOW_SIZE}")]
     WindowSizeTooBig { requested: u64 },
     #[error(transparent)]
@@ -92,17 +96,17 @@ pub enum FrameDecoderError {
     #[error("Failed to parse block header: {0}")]
     FailedToReadBlockBody(decoding::block_decoder::DecodeBlockContentError),
     #[error("Failed to read checksum: {0}")]
-    FailedToReadChecksum(#[source] io::Error),
+    FailedToReadChecksum(#[source] Error),
     #[error("Decoder must initialized or reset before using it")]
     NotYetInitialized,
     #[error("Decoder encountered error while initializing: {0}")]
     FailedToInitialize(frame::FrameHeaderError),
     #[error("Decoder encountered error while draining the decodebuffer: {0}")]
-    FailedToDrainDecodebuffer(#[source] io::Error),
+    FailedToDrainDecodebuffer(#[source] Error),
     #[error("Target must have at least as many bytes as the contentsize of the frame reports")]
     TargetTooSmall,
-    #[error("Frame header specified dictionary id that wasnt provided by add_dict() or reset_with_dict()")]
-    DictNotProvided,
+    #[error("Frame header specified dictionary id 0x{dict_id:X} that wasnt provided by add_dict() or reset_with_dict()")]
+    DictNotProvided { dict_id: u32 },
 }
 
 const MAX_WINDOW_SIZE: u64 = 1024 * 1024 * 100;
@@ -111,7 +115,6 @@ impl FrameDecoderState {
     pub fn new(source: impl Read) -> Result<FrameDecoderState, FrameDecoderError> {
         let (frame, header_size) = frame::read_frame_header(source)?;
         let window_size = frame.header.window_size()?;
-        frame.check_valid()?;
         Ok(FrameDecoderState {
             frame,
             frame_finished: false,
@@ -126,7 +129,6 @@ impl FrameDecoderState {
     pub fn reset(&mut self, source: impl Read) -> Result<(), FrameDecoderError> {
         let (frame, header_size) = frame::read_frame_header(source)?;
         let window_size = frame.header.window_size()?;
-        frame.check_valid()?;
 
         if window_size > MAX_WINDOW_SIZE {
             return Err(FrameDecoderError::WindowSizeTooBig {
@@ -158,7 +160,7 @@ impl FrameDecoder {
     pub fn new() -> FrameDecoder {
         FrameDecoder {
             state: None,
-            dicts: HashMap::new(),
+            dicts: BTreeMap::new(),
         }
     }
 
@@ -171,14 +173,6 @@ impl FrameDecoder {
     pub fn init(&mut self, source: impl Read) -> Result<(), FrameDecoderError> {
         self.reset(source)
     }
-    /// Like init but provides the dict to use for the next frame
-    pub fn init_with_dict(
-        &mut self,
-        source: impl Read,
-        dict: &[u8],
-    ) -> Result<(), FrameDecoderError> {
-        self.reset_with_dict(source, dict)
-    }
 
     /// reset() will allocate all needed buffers if it is the first time this decoder is used
     /// else they just reset these buffers with not further allocations
@@ -187,46 +181,55 @@ impl FrameDecoder {
     ///
     /// equivalent to init()
     pub fn reset(&mut self, source: impl Read) -> Result<(), FrameDecoderError> {
-        match &mut self.state {
-            Some(s) => s.reset(source),
+        use FrameDecoderError as err;
+        let state = match &mut self.state {
+            Some(s) => {
+                s.reset(source)?;
+                s
+            }
             None => {
                 self.state = Some(FrameDecoderState::new(source)?);
-                Ok(())
+                self.state.as_mut().unwrap()
             }
-        }
-    }
-
-    /// Like reset but provides the dict to use for the next frame
-    pub fn reset_with_dict(
-        &mut self,
-        source: impl Read,
-        dict: &[u8],
-    ) -> Result<(), FrameDecoderError> {
-        self.reset(source)?;
-        if let Some(state) = &mut self.state {
-            let id = state.decoder_scratch.load_dict(dict)?;
-            state.using_dict = Some(id);
         };
+        if let Some(dict_id) = state.frame.header.dictionary_id() {
+            let dict = self
+                .dicts
+                .get(&dict_id)
+                .ok_or(err::DictNotProvided { dict_id })?;
+            state.decoder_scratch.init_from_dict(dict);
+            state.using_dict = Some(dict_id);
+        }
         Ok(())
     }
 
     /// Add a dict to the FrameDecoder that can be used when needed. The FrameDecoder uses the appropriate one dynamically
-    pub fn add_dict(&mut self, raw_dict: &[u8]) -> Result<(), FrameDecoderError> {
-        let dict = Dictionary::decode_dict(raw_dict)?;
+    pub fn add_dict(&mut self, dict: Dictionary) -> Result<(), FrameDecoderError> {
         self.dicts.insert(dict.id, dict);
         Ok(())
     }
 
-    /// Returns how many bytes the frame contains after decompression
-    pub fn content_size(&self) -> Option<u64> {
-        let state = match &self.state {
-            None => return Some(0),
-            Some(s) => s,
+    pub fn force_dict(&mut self, dict_id: u32) -> Result<(), FrameDecoderError> {
+        use FrameDecoderError as err;
+        let Some(state) = self.state.as_mut() else {
+            return Err(err::NotYetInitialized);
         };
 
-        match state.frame.header.frame_content_size() {
-            Err(_) => None,
-            Ok(x) => Some(x),
+        let dict = self
+            .dicts
+            .get(&dict_id)
+            .ok_or(err::DictNotProvided { dict_id })?;
+        state.decoder_scratch.init_from_dict(dict);
+        state.using_dict = Some(dict_id);
+
+        Ok(())
+    }
+
+    /// Returns how many bytes the frame contains after decompression
+    pub fn content_size(&self) -> u64 {
+        match &self.state {
+            None => 0,
+            Some(s) => s.frame.header.frame_content_size(),
         }
     }
 
@@ -297,47 +300,26 @@ impl FrameDecoder {
         use FrameDecoderError as err;
         let state = self.state.as_mut().ok_or(err::NotYetInitialized)?;
 
-        if let Some(id) = state.frame.header.dictionary_id().map_err(
-            //should never happen we check this directly after decoding the frame header
-            err::FailedToInitialize,
-        )? {
-            match state.using_dict {
-                Some(using_id) => {
-                    //happy
-                    debug_assert!(id == using_id);
-                }
-                None => {
-                    let dict = self.dicts.get(&id).ok_or(err::DictNotProvided)?;
-                    state.decoder_scratch.use_dict(dict);
-                    state.using_dict = Some(id);
-                }
-            }
-        }
-
         let mut block_dec = decoding::block_decoder::new();
 
         let buffer_size_before = state.decoder_scratch.buffer.len();
         let block_counter_before = state.block_counter;
         loop {
-            if crate::VERBOSE {
-                println!("################");
-                println!("Next Block: {}", state.block_counter);
-                println!("################");
-            }
+            vprintln!("################");
+            vprintln!("Next Block: {}", state.block_counter);
+            vprintln!("################");
             let (block_header, block_header_size) = block_dec
                 .read_block_header(&mut source)
                 .map_err(err::FailedToReadBlockHeader)?;
             state.bytes_read_counter += u64::from(block_header_size);
 
-            if crate::VERBOSE {
-                println!();
-                println!(
-                    "Found {} block with size: {}, which will be of size: {}",
-                    block_header.block_type,
-                    block_header.content_size,
-                    block_header.decompressed_size
-                );
-            }
+            vprintln!();
+            vprintln!(
+                "Found {} block with size: {}, which will be of size: {}",
+                block_header.block_type,
+                block_header.content_size,
+                block_header.decompressed_size
+            );
 
             let bytes_read_in_block_body = block_dec
                 .decode_block_content(&block_header, &mut state.decoder_scratch, &mut source)
@@ -346,9 +328,7 @@ impl FrameDecoder {
 
             state.block_counter += 1;
 
-            if crate::VERBOSE {
-                println!("Output: {}", state.decoder_scratch.buffer.len());
-            }
+            vprintln!("Output: {}", state.decoder_scratch.buffer.len());
 
             if block_header.last_block {
                 state.frame_finished = true;
@@ -396,7 +376,7 @@ impl FrameDecoder {
 
     /// Collect bytes and retain window_size bytes while decoding is still going on.
     /// After decoding of the frame (is_finished() == true) has finished it will collect all remaining bytes
-    pub fn collect_to_writer(&mut self, w: impl std::io::Write) -> Result<usize, std::io::Error> {
+    pub fn collect_to_writer(&mut self, w: impl Write) -> Result<usize, Error> {
         let finished = self.is_finished();
         let state = match &mut self.state {
             None => return Ok(0),
@@ -482,23 +462,6 @@ impl FrameDecoder {
                     return Ok((4, 0));
                 }
 
-                if let Some(id) = state.frame.header.dictionary_id().map_err(
-                    //should never happen we check this directly after decoding the frame header
-                    err::FailedToInitialize,
-                )? {
-                    match state.using_dict {
-                        Some(using_id) => {
-                            //happy
-                            debug_assert!(id == using_id);
-                        }
-                        None => {
-                            let dict = self.dicts.get(&id).ok_or(err::DictNotProvided)?;
-                            state.decoder_scratch.use_dict(dict);
-                            state.using_dict = Some(id);
-                        }
-                    }
-                }
-
                 loop {
                     //check if there are enough bytes for the next header
                     if mt_source.len() < 3 {
@@ -554,8 +517,8 @@ impl FrameDecoder {
 
 /// Read bytes from the decode_buffer that are no longer needed. While the frame is not yet finished
 /// this will retain window_size bytes, else it will drain it completely
-impl std::io::Read for FrameDecoder {
-    fn read(&mut self, target: &mut [u8]) -> std::result::Result<usize, std::io::Error> {
+impl Read for FrameDecoder {
+    fn read(&mut self, target: &mut [u8]) -> Result<usize, Error> {
         let state = match &mut self.state {
             None => return Ok(0),
             Some(s) => s,

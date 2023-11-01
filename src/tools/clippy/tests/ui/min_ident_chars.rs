@@ -3,8 +3,7 @@
 #![warn(clippy::min_ident_chars)]
 
 extern crate proc_macros;
-use proc_macros::external;
-use proc_macros::with_span;
+use proc_macros::{external, with_span};
 
 struct A {
     a: u32,
@@ -81,4 +80,8 @@ fn main() {
 fn b() {}
 fn wrong_pythagoras(a: f32, b: f32) -> f32 {
     a * a + a * b
+}
+
+mod issue_11163 {
+    struct Array<T, const N: usize>([T; N]);
 }

@@ -13,11 +13,10 @@
 //! Spillslot allocation.
 
 use super::{
-    AllocRegResult, Env, LiveRangeKey, LiveRangeSet, PReg, PRegIndex, RegTraversalIter,
-    SpillSetIndex, SpillSlotData, SpillSlotIndex, SpillSlotList,
+    AllocRegResult, Env, LiveRangeKey, PReg, PRegIndex, RegTraversalIter, SpillSetIndex,
+    SpillSlotData, SpillSlotIndex,
 };
-use crate::{Allocation, Function, SpillSlot};
-use smallvec::smallvec;
+use crate::{ion::data_structures::SpillSetRanges, Allocation, Function, SpillSlot};
 
 impl<'a, F: Function> Env<'a, F> {
     pub fn try_allocating_regs_for_spilled_bundles(&mut self) {
@@ -25,16 +24,16 @@ impl<'a, F: Function> Env<'a, F> {
         for i in 0..self.spilled_bundles.len() {
             let bundle = self.spilled_bundles[i]; // don't borrow self
 
-            if self.bundles[bundle.index()].ranges.is_empty() {
+            if self.bundles[bundle].ranges.is_empty() {
                 continue;
             }
 
-            let class = self.spillsets[self.bundles[bundle.index()].spillset.index()].class;
-            let hint = self.spillsets[self.bundles[bundle.index()].spillset.index()].reg_hint;
+            let class = self.spillsets[self.bundles[bundle].spillset].class;
+            let hint = self.spillsets[self.bundles[bundle].spillset].reg_hint;
 
             // This may be an empty-range bundle whose ranges are not
             // sorted; sort all range-lists again here.
-            self.bundles[bundle.index()]
+            self.bundles[bundle]
                 .ranges
                 .sort_unstable_by_key(|entry| entry.range.from);
 
@@ -57,9 +56,9 @@ impl<'a, F: Function> Env<'a, F> {
                 trace!(
                     "spilling bundle {:?}: marking spillset {:?} as required",
                     bundle,
-                    self.bundles[bundle.index()].spillset
+                    self.bundles[bundle].spillset
                 );
-                self.spillsets[self.bundles[bundle.index()].spillset.index()].required = true;
+                self.spillsets[self.bundles[bundle].spillset].required = true;
             }
         }
     }
@@ -69,18 +68,10 @@ impl<'a, F: Function> Env<'a, F> {
         spillslot: SpillSlotIndex,
         spillset: SpillSetIndex,
     ) -> bool {
-        for &vreg in &self.spillsets[spillset.index()].vregs {
-            for entry in &self.vregs[vreg.index()].ranges {
-                if self.spillslots[spillslot.index()]
-                    .ranges
-                    .btree
-                    .contains_key(&LiveRangeKey::from_range(&entry.range))
-                {
-                    return false;
-                }
-            }
-        }
-        true
+        !self.spillslots[spillslot.index()]
+            .ranges
+            .btree
+            .contains_key(&LiveRangeKey::from_range(&self.spillsets[spillset].range))
     }
 
     pub fn allocate_spillset_to_spillslot(
@@ -88,29 +79,14 @@ impl<'a, F: Function> Env<'a, F> {
         spillset: SpillSetIndex,
         spillslot: SpillSlotIndex,
     ) {
-        self.spillsets[spillset.index()].slot = spillslot;
+        self.spillsets[spillset].slot = spillslot;
 
-        for vreg in &self.spillsets[spillset.index()].vregs {
-            trace!(
-                "spillslot {:?} alloc'ed to spillset {:?}: vreg {:?}",
-                spillslot,
-                spillset,
-                vreg,
-            );
-            for entry in &self.vregs[vreg.index()].ranges {
-                trace!(
-                    "spillslot {:?} getting range {:?} from LR {:?} from vreg {:?}",
-                    spillslot,
-                    entry.range,
-                    entry.index,
-                    vreg,
-                );
-                self.spillslots[spillslot.index()]
-                    .ranges
-                    .btree
-                    .insert(LiveRangeKey::from_range(&entry.range), entry.index);
-            }
-        }
+        let res = self.spillslots[spillslot.index()].ranges.btree.insert(
+            LiveRangeKey::from_range(&self.spillsets[spillset].range),
+            spillset,
+        );
+
+        debug_assert!(res.is_none());
     }
 
     pub fn allocate_spillslots(&mut self) {
@@ -119,26 +95,17 @@ impl<'a, F: Function> Env<'a, F> {
         for spillset in 0..self.spillsets.len() {
             trace!("allocate spillslot: {}", spillset);
             let spillset = SpillSetIndex::new(spillset);
-            if !self.spillsets[spillset.index()].required {
+            if !self.spillsets[spillset].required {
                 continue;
             }
-            // Get or create the spillslot list for this size.
-            let size = self.spillsets[spillset.index()].size as usize;
-            if size >= self.slots_by_size.len() {
-                self.slots_by_size.resize(
-                    size + 1,
-                    SpillSlotList {
-                        slots: smallvec![],
-                        probe_start: 0,
-                    },
-                );
-            }
+            let class = self.spillsets[spillset].class as usize;
             // Try a few existing spillslots.
-            let mut i = self.slots_by_size[size].probe_start;
+            let mut i = self.slots_by_class[class].probe_start;
             let mut success = false;
             // Never probe the same element more than once: limit the
             // attempt count to the number of slots in existence.
-            for _attempt in 0..core::cmp::min(self.slots_by_size[size].slots.len(), MAX_ATTEMPTS) {
+            for _attempt in 0..core::cmp::min(self.slots_by_class[class].slots.len(), MAX_ATTEMPTS)
+            {
                 // Note: this indexing of `slots` is always valid
                 // because either the `slots` list is empty and the
                 // iteration limit above consequently means we don't
@@ -146,28 +113,28 @@ impl<'a, F: Function> Env<'a, F> {
                 // in-bounds (because it is made so below when we add
                 // a slot, and it always takes on the last index `i`
                 // after this loop).
-                let spillslot = self.slots_by_size[size].slots[i];
+                let spillslot = self.slots_by_class[class].slots[i];
 
                 if self.spillslot_can_fit_spillset(spillslot, spillset) {
                     self.allocate_spillset_to_spillslot(spillset, spillslot);
                     success = true;
-                    self.slots_by_size[size].probe_start = i;
+                    self.slots_by_class[class].probe_start = i;
                     break;
                 }
 
-                i = self.slots_by_size[size].next_index(i);
+                i = self.slots_by_class[class].next_index(i);
             }
 
             if !success {
                 // Allocate a new spillslot.
                 let spillslot = SpillSlotIndex::new(self.spillslots.len());
                 self.spillslots.push(SpillSlotData {
-                    ranges: LiveRangeSet::new(),
+                    ranges: SpillSetRanges::new(),
                     alloc: Allocation::none(),
-                    slots: size as u32,
+                    slots: self.func.spillslot_size(self.spillsets[spillset].class) as u32,
                 });
-                self.slots_by_size[size].slots.push(spillslot);
-                self.slots_by_size[size].probe_start = self.slots_by_size[size].slots.len() - 1;
+                self.slots_by_class[class].slots.push(spillslot);
+                self.slots_by_class[class].probe_start = self.slots_by_class[class].slots.len() - 1;
 
                 self.allocate_spillset_to_spillslot(spillset, spillslot);
             }

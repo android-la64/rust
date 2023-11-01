@@ -22,7 +22,7 @@ pub enum TerminationInfo {
     UnsupportedInIsolation(String),
     StackedBorrowsUb {
         msg: String,
-        help: Option<String>,
+        help: Vec<String>,
         history: Option<TagHistory>,
     },
     TreeBorrowsUb {
@@ -224,11 +224,10 @@ pub fn report_error<'tcx, 'mir>(
                     (None, format!("or pass `-Zmiri-isolation-error=warn` to configure Miri to return an error code from isolated operations (if supported for that operation) and continue with a warning")),
                 ],
             StackedBorrowsUb { help, history, .. } => {
-                let url = "https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md";
                 msg.extend(help.clone());
                 let mut helps = vec![
                     (None, format!("this indicates a potential bug in the program: it performed an invalid operation, but the Stacked Borrows rules it violated are still experimental")),
-                    (None, format!("see {url} for further information")),
+                    (None, format!("see https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md for further information")),
                 ];
                 if let Some(TagHistory {created, invalidated, protected}) = history.clone() {
                     helps.push((Some(created.1), created.0));
@@ -274,6 +273,8 @@ pub fn report_error<'tcx, 'mir>(
     } else {
         #[rustfmt::skip]
         let title = match e.kind() {
+            UndefinedBehavior(UndefinedBehaviorInfo::ValidationError(e)) if matches!(e.kind, ValidationErrorKind::PointerAsInt { .. } | ValidationErrorKind::PartialPointer) =>
+                bug!("This validation error should be impossible in Miri: {:?}", e.kind),
             UndefinedBehavior(_) =>
                 "Undefined Behavior",
             ResourceExhaustion(_) =>
@@ -303,11 +304,21 @@ pub fn report_error<'tcx, 'mir>(
                     (None, format!("this usually indicates that your program performed an invalid operation and caused Undefined Behavior")),
                     (None, format!("but due to `-Zmiri-symbolic-alignment-check`, alignment errors can also be false positives")),
                 ],
-            UndefinedBehavior(_) =>
-                vec![
+            UndefinedBehavior(info) => {
+                let mut helps = vec![
                     (None, format!("this indicates a bug in the program: it performed an invalid operation, and caused Undefined Behavior")),
                     (None, format!("see https://doc.rust-lang.org/nightly/reference/behavior-considered-undefined.html for further information")),
-                ],
+                ];
+                if let UndefinedBehaviorInfo::PointerUseAfterFree(alloc_id, _) | UndefinedBehaviorInfo::PointerOutOfBounds { alloc_id, .. } = info {
+                    if let Some(span) = ecx.machine.allocated_span(*alloc_id) {
+                        helps.push((Some(span), format!("{:?} was allocated here:", alloc_id)));
+                    }
+                    if let Some(span) = ecx.machine.deallocated_span(*alloc_id) {
+                        helps.push((Some(span), format!("{:?} was deallocated here:", alloc_id)));
+                    }
+                }
+                helps
+            }
             InvalidProgram(
                 InvalidProgramInfo::AlreadyReported(_)
             ) => {
@@ -378,7 +389,7 @@ pub fn report_error<'tcx, 'mir>(
     if let Some((alloc_id, access)) = extra {
         eprintln!(
             "Uninitialized memory occurred at {alloc_id:?}{range:?}, in this allocation:",
-            range = access.uninit,
+            range = access.bad,
         );
         eprintln!("{:?}", ecx.dump_alloc(alloc_id));
     }

@@ -80,7 +80,7 @@ pub(super) fn check_fn<'a, 'tcx>(
         let va_list_did = tcx.require_lang_item(LangItem::VaList, Some(span));
         let region = fcx.next_region_var(RegionVariableOrigin::MiscVariable(span));
 
-        tcx.type_of(va_list_did).subst(tcx, &[region.into()])
+        tcx.type_of(va_list_did).instantiate(tcx, &[region.into()])
     });
 
     // Add formal parameters.
@@ -89,7 +89,7 @@ pub(super) fn check_fn<'a, 'tcx>(
     for (idx, (param_ty, param)) in inputs_fn.chain(maybe_va_list).zip(body.params).enumerate() {
         // Check the pattern.
         let ty_span = try { inputs_hir?.get(idx)?.span };
-        fcx.check_pat_top(&param.pat, param_ty, ty_span, None);
+        fcx.check_pat_top(&param.pat, param_ty, ty_span, None, None);
 
         // Check that argument is Sized.
         if !params_can_be_unsized {

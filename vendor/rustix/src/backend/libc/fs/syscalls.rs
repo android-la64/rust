@@ -13,21 +13,24 @@ use crate::ffi::CString;
     netbsdlike,
     solarish,
     target_os = "dragonfly",
+    target_os = "espidf",
     target_os = "haiku",
     target_os = "redox",
 )))]
 use crate::fs::Advice;
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "espidf", target_os = "redox")))]
 use crate::fs::AtFlags;
 #[cfg(not(any(
     netbsdlike,
     solarish,
     target_os = "aix",
     target_os = "dragonfly",
+    target_os = "espidf",
+    target_os = "nto",
     target_os = "redox",
 )))]
 use crate::fs::FallocateFlags;
-#[cfg(not(target_os = "wasi"))]
+#[cfg(not(any(target_os = "espidf", target_os = "wasi")))]
 use crate::fs::FlockOperation;
 #[cfg(any(linux_kernel, target_os = "freebsd"))]
 use crate::fs::MemfdFlags;
@@ -35,30 +38,26 @@ use crate::fs::MemfdFlags;
 use crate::fs::SealFlags;
 #[cfg(not(any(
     solarish,
+    target_os = "espidf",
     target_os = "haiku",
     target_os = "netbsd",
+    target_os = "nto",
     target_os = "redox",
     target_os = "wasi",
 )))]
 use crate::fs::StatFs;
-use crate::fs::{Access, Mode, OFlags, SeekFrom, Stat, Timestamps};
-#[cfg(not(any(apple, target_os = "redox", target_os = "wasi")))]
+#[cfg(not(target_os = "espidf"))]
+use crate::fs::{Access, Timestamps};
+#[cfg(not(any(apple, target_os = "espidf", target_os = "redox", target_os = "wasi")))]
 use crate::fs::{Dev, FileType};
+use crate::fs::{Mode, OFlags, SeekFrom, Stat};
 #[cfg(not(any(target_os = "haiku", target_os = "redox", target_os = "wasi")))]
 use crate::fs::{StatVfs, StatVfsMountFlags};
 use crate::io;
-#[cfg(all(
-    any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-    target_env = "gnu",
-))]
+#[cfg(all(target_env = "gnu", fix_y2038))]
 use crate::timespec::LibcTimespec;
 #[cfg(not(target_os = "wasi"))]
 use crate::ugid::{Gid, Uid};
-#[cfg(not(all(
-    any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-    target_env = "gnu",
-)))]
-use crate::utils::as_ptr;
 #[cfg(apple)]
 use alloc::vec;
 use core::mem::MaybeUninit;
@@ -75,15 +74,9 @@ use {
     core::ptr::null,
 };
 
-#[cfg(all(
-    any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-    target_env = "gnu",
-))]
+#[cfg(all(target_env = "gnu", fix_y2038))]
 weak!(fn __utimensat64(c::c_int, *const c::c_char, *const LibcTimespec, c::c_int) -> c::c_int);
-#[cfg(all(
-    any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-    target_env = "gnu",
-))]
+#[cfg(all(target_env = "gnu", fix_y2038))]
 weak!(fn __futimens64(c::c_int, *const LibcTimespec) -> c::c_int);
 
 /// Use a direct syscall (via libc) for `open`.
@@ -91,14 +84,25 @@ weak!(fn __futimens64(c::c_int, *const LibcTimespec) -> c::c_int);
 /// This is only currently necessary as a workaround for old glibc; see below.
 #[cfg(all(unix, target_env = "gnu"))]
 fn open_via_syscall(path: &CStr, oflags: OFlags, mode: Mode) -> io::Result<OwnedFd> {
-    // Linux on aarch64 and riscv64 has no `open` syscall so use `openat`.
-    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    // Linux on aarch64, loongarch64 and riscv64 has no `open` syscall so use
+    // `openat`.
+    #[cfg(any(
+        target_arch = "aarch64",
+        target_arch = "riscv32",
+        target_arch = "riscv64",
+        target_arch = "loongarch64"
+    ))]
     {
         openat_via_syscall(CWD, path, oflags, mode)
     }
 
     // Use the `open` syscall.
-    #[cfg(not(any(target_arch = "aarch64", target_arch = "riscv64")))]
+    #[cfg(not(any(
+        target_arch = "aarch64",
+        target_arch = "riscv32",
+        target_arch = "riscv64",
+        target_arch = "loongarch64"
+    )))]
     unsafe {
         syscall! {
             fn open(
@@ -216,8 +220,10 @@ pub(crate) fn openat(
 
 #[cfg(not(any(
     solarish,
+    target_os = "espidf",
     target_os = "haiku",
     target_os = "netbsd",
+    target_os = "nto",
     target_os = "redox",
     target_os = "wasi",
 )))]
@@ -243,11 +249,9 @@ pub(crate) fn statvfs(filename: &CStr) -> io::Result<StatVfs> {
 #[inline]
 pub(crate) fn readlink(path: &CStr, buf: &mut [u8]) -> io::Result<usize> {
     unsafe {
-        ret_usize(c::readlink(
-            c_str(path),
-            buf.as_mut_ptr().cast::<c::c_char>(),
-            buf.len(),
-        ))
+        ret_usize(
+            c::readlink(c_str(path), buf.as_mut_ptr().cast::<c::c_char>(), buf.len()) as isize,
+        )
     }
 }
 
@@ -264,7 +268,7 @@ pub(crate) fn readlinkat(
             c_str(path),
             buf.as_mut_ptr().cast::<c::c_char>(),
             buf.len(),
-        ))
+        ) as isize)
     }
 }
 
@@ -308,7 +312,7 @@ pub(crate) fn link(old_path: &CStr, new_path: &CStr) -> io::Result<()> {
     unsafe { ret(c::link(c_str(old_path), c_str(new_path))) }
 }
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "espidf", target_os = "redox")))]
 pub(crate) fn linkat(
     old_dirfd: BorrowedFd<'_>,
     old_path: &CStr,
@@ -371,7 +375,7 @@ pub(crate) fn unlink(path: &CStr) -> io::Result<()> {
     unsafe { ret(c::unlink(c_str(path))) }
 }
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "espidf", target_os = "redox")))]
 pub(crate) fn unlinkat(dirfd: BorrowedFd<'_>, path: &CStr, flags: AtFlags) -> io::Result<()> {
     // macOS <= 10.9 lacks `unlinkat`.
     #[cfg(target_os = "macos")]
@@ -533,7 +537,14 @@ pub(crate) fn symlinkat(
 
 pub(crate) fn stat(path: &CStr) -> io::Result<Stat> {
     // See the comments in `fstat` about using `crate::fs::statx` here.
-    #[cfg(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64")))]
+    #[cfg(all(
+        linux_kernel,
+        any(
+            target_pointer_width = "32",
+            target_arch = "mips64",
+            target_arch = "mips64r6"
+        )
+    ))]
     {
         match crate::fs::statx(
             crate::fs::CWD,
@@ -549,7 +560,14 @@ pub(crate) fn stat(path: &CStr) -> io::Result<Stat> {
 
     // Main version: libc is y2038 safe. Or, the platform is not y2038 safe and
     // there's nothing practical we can do.
-    #[cfg(not(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64"))))]
+    #[cfg(not(all(
+        linux_kernel,
+        any(
+            target_pointer_width = "32",
+            target_arch = "mips64",
+            target_arch = "mips64r6"
+        )
+    )))]
     unsafe {
         let mut stat = MaybeUninit::<Stat>::uninit();
         ret(c::stat(c_str(path), stat.as_mut_ptr()))?;
@@ -559,7 +577,14 @@ pub(crate) fn stat(path: &CStr) -> io::Result<Stat> {
 
 pub(crate) fn lstat(path: &CStr) -> io::Result<Stat> {
     // See the comments in `fstat` about using `crate::fs::statx` here.
-    #[cfg(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64")))]
+    #[cfg(all(
+        linux_kernel,
+        any(
+            target_pointer_width = "32",
+            target_arch = "mips64",
+            target_arch = "mips64r6"
+        )
+    ))]
     {
         match crate::fs::statx(
             crate::fs::CWD,
@@ -568,14 +593,21 @@ pub(crate) fn lstat(path: &CStr) -> io::Result<Stat> {
             StatxFlags::BASIC_STATS,
         ) {
             Ok(x) => statx_to_stat(x),
-            Err(io::Errno::NOSYS) => statat_old(crate::fs::CWD, path, AtFlags::empty()),
+            Err(io::Errno::NOSYS) => statat_old(crate::fs::CWD, path, AtFlags::SYMLINK_NOFOLLOW),
             Err(err) => Err(err),
         }
     }
 
     // Main version: libc is y2038 safe. Or, the platform is not y2038 safe and
     // there's nothing practical we can do.
-    #[cfg(not(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64"))))]
+    #[cfg(not(all(
+        linux_kernel,
+        any(
+            target_pointer_width = "32",
+            target_arch = "mips64",
+            target_arch = "mips64r6"
+        )
+    )))]
     unsafe {
         let mut stat = MaybeUninit::<Stat>::uninit();
         ret(c::lstat(c_str(path), stat.as_mut_ptr()))?;
@@ -583,10 +615,17 @@ pub(crate) fn lstat(path: &CStr) -> io::Result<Stat> {
     }
 }
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "espidf", target_os = "redox")))]
 pub(crate) fn statat(dirfd: BorrowedFd<'_>, path: &CStr, flags: AtFlags) -> io::Result<Stat> {
     // See the comments in `fstat` about using `crate::fs::statx` here.
-    #[cfg(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64")))]
+    #[cfg(all(
+        linux_kernel,
+        any(
+            target_pointer_width = "32",
+            target_arch = "mips64",
+            target_arch = "mips64r6"
+        )
+    ))]
     {
         match crate::fs::statx(dirfd, path, flags, StatxFlags::BASIC_STATS) {
             Ok(x) => statx_to_stat(x),
@@ -597,7 +636,14 @@ pub(crate) fn statat(dirfd: BorrowedFd<'_>, path: &CStr, flags: AtFlags) -> io::
 
     // Main version: libc is y2038 safe. Or, the platform is not y2038 safe and
     // there's nothing practical we can do.
-    #[cfg(not(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64"))))]
+    #[cfg(not(all(
+        linux_kernel,
+        any(
+            target_pointer_width = "32",
+            target_arch = "mips64",
+            target_arch = "mips64r6"
+        )
+    )))]
     unsafe {
         let mut stat = MaybeUninit::<Stat>::uninit();
         ret(c::fstatat(
@@ -610,7 +656,14 @@ pub(crate) fn statat(dirfd: BorrowedFd<'_>, path: &CStr, flags: AtFlags) -> io::
     }
 }
 
-#[cfg(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64")))]
+#[cfg(all(
+    linux_kernel,
+    any(
+        target_pointer_width = "32",
+        target_arch = "mips64",
+        target_arch = "mips64r6"
+    )
+))]
 fn statat_old(dirfd: BorrowedFd<'_>, path: &CStr, flags: AtFlags) -> io::Result<Stat> {
     unsafe {
         let mut result = MaybeUninit::<c::stat64>::uninit();
@@ -624,12 +677,12 @@ fn statat_old(dirfd: BorrowedFd<'_>, path: &CStr, flags: AtFlags) -> io::Result<
     }
 }
 
-#[cfg(not(target_os = "emscripten"))]
+#[cfg(not(any(target_os = "espidf", target_os = "emscripten")))]
 pub(crate) fn access(path: &CStr, access: Access) -> io::Result<()> {
     unsafe { ret(c::access(c_str(path), access.bits())) }
 }
 
-#[cfg(not(any(target_os = "emscripten", target_os = "redox")))]
+#[cfg(not(any(target_os = "emscripten", target_os = "espidf", target_os = "redox")))]
 pub(crate) fn accessat(
     dirfd: BorrowedFd<'_>,
     path: &CStr,
@@ -695,47 +748,43 @@ pub(crate) fn accessat(
     Ok(())
 }
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "espidf", target_os = "redox")))]
 pub(crate) fn utimensat(
     dirfd: BorrowedFd<'_>,
     path: &CStr,
     times: &Timestamps,
     flags: AtFlags,
 ) -> io::Result<()> {
-    // 32-bit gnu version: libc has `utimensat` but it is not y2038 safe by
-    // default.
-    #[cfg(all(
-        any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-        target_env = "gnu",
-    ))]
-    unsafe {
+    // Old 32-bit version: libc has `utimensat` but it is not y2038 safe by
+    // default. But there may be a `__utimensat16` we can use.
+    #[cfg(fix_y2038)]
+    {
+        #[cfg(target_env = "gnu")]
         if let Some(libc_utimensat) = __utimensat64.get() {
             let libc_times: [LibcTimespec; 2] = [
                 times.last_access.clone().into(),
                 times.last_modification.clone().into(),
             ];
 
-            ret(libc_utimensat(
-                borrowed_fd(dirfd),
-                c_str(path),
-                libc_times.as_ptr(),
-                bitflags_bits!(flags),
-            ))
-        } else {
-            utimensat_old(dirfd, path, times, flags)
+            unsafe {
+                return ret(libc_utimensat(
+                    borrowed_fd(dirfd),
+                    c_str(path),
+                    libc_times.as_ptr(),
+                    bitflags_bits!(flags),
+                ));
+            }
         }
+
+        utimensat_old(dirfd, path, times, flags)
     }
 
     // Main version: libc is y2038 safe and has `utimensat`. Or, the platform
     // is not y2038 safe and there's nothing practical we can do.
-    #[cfg(not(any(
-        apple,
-        all(
-            any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-            target_env = "gnu",
-        )
-    )))]
+    #[cfg(not(any(apple, fix_y2038)))]
     unsafe {
+        use crate::utils::as_ptr;
+
         // Assert that `Timestamps` has the expected layout.
         let _ = core::mem::transmute::<Timestamps, [c::timespec; 2]>(times.clone());
 
@@ -747,9 +796,11 @@ pub(crate) fn utimensat(
         ))
     }
 
-    // `utimensat` was introduced in macOS 10.13.
+    // Apple version: `utimensat` was introduced in macOS 10.13.
     #[cfg(apple)]
     unsafe {
+        use crate::utils::as_ptr;
+
         // ABI details
         weak! {
             fn utimensat(
@@ -863,11 +914,8 @@ pub(crate) fn utimensat(
     }
 }
 
-#[cfg(all(
-    any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-    target_env = "gnu",
-))]
-unsafe fn utimensat_old(
+#[cfg(fix_y2038)]
+fn utimensat_old(
     dirfd: BorrowedFd<'_>,
     path: &CStr,
     times: &Timestamps,
@@ -891,12 +939,14 @@ unsafe fn utimensat_old(
             tv_nsec: times.last_modification.tv_nsec,
         },
     ];
-    ret(c::utimensat(
-        borrowed_fd(dirfd),
-        c_str(path),
-        old_times.as_ptr(),
-        bitflags_bits!(flags),
-    ))
+    unsafe {
+        ret(c::utimensat(
+            borrowed_fd(dirfd),
+            c_str(path),
+            old_times.as_ptr(),
+            bitflags_bits!(flags),
+        ))
+    }
 }
 
 #[cfg(not(target_os = "wasi"))]
@@ -904,7 +954,12 @@ pub(crate) fn chmod(path: &CStr, mode: Mode) -> io::Result<()> {
     unsafe { ret(c::chmod(c_str(path), mode.bits() as c::mode_t)) }
 }
 
-#[cfg(not(any(linux_kernel, target_os = "redox", target_os = "wasi")))]
+#[cfg(not(any(
+    linux_kernel,
+    target_os = "espidf",
+    target_os = "redox",
+    target_os = "wasi"
+)))]
 pub(crate) fn chmodat(
     dirfd: BorrowedFd<'_>,
     path: &CStr,
@@ -982,7 +1037,7 @@ pub(crate) fn fclonefileat(
     }
 }
 
-#[cfg(not(any(target_os = "redox", target_os = "wasi")))]
+#[cfg(not(any(target_os = "espidf", target_os = "redox", target_os = "wasi")))]
 pub(crate) fn chownat(
     dirfd: BorrowedFd<'_>,
     path: &CStr,
@@ -1002,7 +1057,7 @@ pub(crate) fn chownat(
     }
 }
 
-#[cfg(not(any(apple, target_os = "redox", target_os = "wasi")))]
+#[cfg(not(any(apple, target_os = "espidf", target_os = "redox", target_os = "wasi")))]
 pub(crate) fn mknodat(
     dirfd: BorrowedFd<'_>,
     path: &CStr,
@@ -1039,7 +1094,8 @@ pub(crate) fn copy_file_range(
         ) via SYS_copy_file_range -> c::ssize_t
     }
 
-    assert_eq!(size_of::<c::loff_t>(), size_of::<u64>());
+    #[cfg(test)]
+    assert_eq_size!(c::loff_t, u64);
 
     let mut off_in_val: c::loff_t = 0;
     let mut off_out_val: c::loff_t = 0;
@@ -1080,6 +1136,7 @@ pub(crate) fn copy_file_range(
     netbsdlike,
     solarish,
     target_os = "dragonfly",
+    target_os = "espidf",
     target_os = "haiku",
     target_os = "redox",
 )))]
@@ -1135,6 +1192,7 @@ pub(crate) fn fcntl_add_seals(fd: BorrowedFd<'_>, seals: SealFlags) -> io::Resul
 
 #[cfg(not(any(
     target_os = "emscripten",
+    target_os = "espidf",
     target_os = "fuchsia",
     target_os = "redox",
     target_os = "wasi"
@@ -1168,7 +1226,7 @@ pub(crate) fn fcntl_lock(fd: BorrowedFd<'_>, operation: FlockOperation) -> io::R
 }
 
 pub(crate) fn seek(fd: BorrowedFd<'_>, pos: SeekFrom) -> io::Result<u64> {
-    let (whence, offset): (c::c_int, c::off_t) = match pos {
+    let (whence, offset) = match pos {
         SeekFrom::Start(pos) => {
             let pos: u64 = pos;
             // Silently cast; we'll get `EINVAL` if the value is negative.
@@ -1181,6 +1239,11 @@ pub(crate) fn seek(fd: BorrowedFd<'_>, pos: SeekFrom) -> io::Result<u64> {
         #[cfg(any(freebsdlike, target_os = "linux", target_os = "solaris"))]
         SeekFrom::Hole(offset) => (c::SEEK_HOLE, offset),
     };
+
+    // ESP-IDF doesn't support 64-bit offsets.
+    #[cfg(target_os = "espidf")]
+    let offset: i32 = offset.try_into().map_err(|_| io::Errno::OVERFLOW)?;
+
     let offset = unsafe { ret_off_t(c::lseek(borrowed_fd(fd), offset, whence))? };
     Ok(offset as u64)
 }
@@ -1237,7 +1300,7 @@ pub(crate) fn fchown(fd: BorrowedFd<'_>, owner: Option<Uid>, group: Option<Gid>)
     }
 }
 
-#[cfg(not(any(target_os = "solaris", target_os = "wasi")))]
+#[cfg(not(any(target_os = "espidf", target_os = "solaris", target_os = "wasi")))]
 pub(crate) fn flock(fd: BorrowedFd<'_>, operation: FlockOperation) -> io::Result<()> {
     unsafe { ret(c::flock(borrowed_fd(fd), operation as c::c_int)) }
 }
@@ -1259,7 +1322,7 @@ pub(crate) fn syncfs(fd: BorrowedFd<'_>) -> io::Result<()> {
     unsafe { ret(syncfs(borrowed_fd(fd))) }
 }
 
-#[cfg(not(any(target_os = "redox", target_os = "wasi")))]
+#[cfg(not(any(target_os = "espidf", target_os = "redox", target_os = "wasi")))]
 pub(crate) fn sync() {
     unsafe { c::sync() }
 }
@@ -1271,7 +1334,14 @@ pub(crate) fn fstat(fd: BorrowedFd<'_>) -> io::Result<Stat> {
     // And, some old platforms don't support `statx`, and some fail with a
     // confusing error code, so we call `crate::fs::statx` to handle that. If
     // `statx` isn't available, fall back to the buggy system call.
-    #[cfg(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64")))]
+    #[cfg(all(
+        linux_kernel,
+        any(
+            target_pointer_width = "32",
+            target_arch = "mips64",
+            target_arch = "mips64r6"
+        )
+    ))]
     {
         match crate::fs::statx(fd, cstr!(""), AtFlags::EMPTY_PATH, StatxFlags::BASIC_STATS) {
             Ok(x) => statx_to_stat(x),
@@ -1282,7 +1352,14 @@ pub(crate) fn fstat(fd: BorrowedFd<'_>) -> io::Result<Stat> {
 
     // Main version: libc is y2038 safe. Or, the platform is not y2038 safe and
     // there's nothing practical we can do.
-    #[cfg(not(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64"))))]
+    #[cfg(not(all(
+        linux_kernel,
+        any(
+            target_pointer_width = "32",
+            target_arch = "mips64",
+            target_arch = "mips64r6"
+        )
+    )))]
     unsafe {
         let mut stat = MaybeUninit::<Stat>::uninit();
         ret(c::fstat(borrowed_fd(fd), stat.as_mut_ptr()))?;
@@ -1290,7 +1367,14 @@ pub(crate) fn fstat(fd: BorrowedFd<'_>) -> io::Result<Stat> {
     }
 }
 
-#[cfg(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64")))]
+#[cfg(all(
+    linux_kernel,
+    any(
+        target_pointer_width = "32",
+        target_arch = "mips64",
+        target_arch = "mips64r6"
+    )
+))]
 fn fstat_old(fd: BorrowedFd<'_>) -> io::Result<Stat> {
     unsafe {
         let mut result = MaybeUninit::<c::stat64>::uninit();
@@ -1301,8 +1385,10 @@ fn fstat_old(fd: BorrowedFd<'_>) -> io::Result<Stat> {
 
 #[cfg(not(any(
     solarish,
+    target_os = "espidf",
     target_os = "haiku",
     target_os = "netbsd",
+    target_os = "nto",
     target_os = "redox",
     target_os = "wasi",
 )))]
@@ -1340,44 +1426,44 @@ fn libc_statvfs_to_statvfs(from: c::statvfs) -> StatVfs {
     }
 }
 
+#[cfg(not(target_os = "espidf"))]
 pub(crate) fn futimens(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()> {
-    // 32-bit gnu version: libc has `futimens` but it is not y2038 safe by default.
-    #[cfg(all(
-        any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-        target_env = "gnu",
-    ))]
-    unsafe {
+    // Old 32-bit version: libc has `futimens` but it is not y2038 safe by
+    // default. But there may be a `__futimens64` we can use.
+    #[cfg(fix_y2038)]
+    {
+        #[cfg(target_env = "gnu")]
         if let Some(libc_futimens) = __futimens64.get() {
             let libc_times: [LibcTimespec; 2] = [
                 times.last_access.clone().into(),
                 times.last_modification.clone().into(),
             ];
 
-            ret(libc_futimens(borrowed_fd(fd), libc_times.as_ptr()))
-        } else {
-            futimens_old(fd, times)
+            unsafe {
+                return ret(libc_futimens(borrowed_fd(fd), libc_times.as_ptr()));
+            }
         }
+
+        futimens_old(fd, times)
     }
 
     // Main version: libc is y2038 safe and has `futimens`. Or, the platform
     // is not y2038 safe and there's nothing practical we can do.
-    #[cfg(not(any(
-        apple,
-        all(
-            any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-            target_env = "gnu",
-        )
-    )))]
+    #[cfg(not(any(apple, fix_y2038)))]
     unsafe {
+        use crate::utils::as_ptr;
+
         // Assert that `Timestamps` has the expected layout.
         let _ = core::mem::transmute::<Timestamps, [c::timespec; 2]>(times.clone());
 
         ret(c::futimens(borrowed_fd(fd), as_ptr(times).cast()))
     }
 
-    // `futimens` was introduced in macOS 10.13.
+    // Apple version: `futimens` was introduced in macOS 10.13.
     #[cfg(apple)]
     unsafe {
+        use crate::utils::as_ptr;
+
         // ABI details.
         weak! {
             fn futimens(c::c_int, *const c::timespec) -> c::c_int
@@ -1413,11 +1499,8 @@ pub(crate) fn futimens(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()>
     }
 }
 
-#[cfg(all(
-    any(target_arch = "arm", target_arch = "mips", target_arch = "x86"),
-    target_env = "gnu",
-))]
-unsafe fn futimens_old(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()> {
+#[cfg(fix_y2038)]
+fn futimens_old(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()> {
     let old_times = [
         c::timespec {
             tv_sec: times
@@ -1437,7 +1520,7 @@ unsafe fn futimens_old(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()>
         },
     ];
 
-    ret(c::futimens(borrowed_fd(fd), old_times.as_ptr()))
+    unsafe { ret(c::futimens(borrowed_fd(fd), old_times.as_ptr())) }
 }
 
 #[cfg(not(any(
@@ -1446,6 +1529,8 @@ unsafe fn futimens_old(fd: BorrowedFd<'_>, times: &Timestamps) -> io::Result<()>
     solarish,
     target_os = "aix",
     target_os = "dragonfly",
+    target_os = "espidf",
+    target_os = "nto",
     target_os = "redox",
 )))]
 pub(crate) fn fallocate(
@@ -1520,6 +1605,7 @@ pub(crate) fn fsync(fd: BorrowedFd<'_>) -> io::Result<()> {
 #[cfg(not(any(
     apple,
     target_os = "dragonfly",
+    target_os = "espidf",
     target_os = "haiku",
     target_os = "redox",
 )))]
@@ -1648,7 +1734,7 @@ fn statx_to_stat(x: crate::fs::Statx) -> io::Result<Stat> {
 /// Convert from a Linux `statx` value to rustix's `Stat`.
 ///
 /// mips64' `struct stat64` in libc has private fields, and `stx_blocks`
-#[cfg(all(linux_kernel, target_arch = "mips64"))]
+#[cfg(all(linux_kernel, any(target_arch = "mips64", target_arch = "mips64r6")))]
 fn statx_to_stat(x: crate::fs::Statx) -> io::Result<Stat> {
     let mut result: Stat = unsafe { core::mem::zeroed() };
 
@@ -1720,7 +1806,7 @@ fn stat64_to_stat(s64: c::stat64) -> io::Result<Stat> {
 ///
 /// mips64' `struct stat64` in libc has private fields, and `st_blocks` has
 /// type `i64`.
-#[cfg(all(linux_kernel, target_arch = "mips64"))]
+#[cfg(all(linux_kernel, any(target_arch = "mips64", target_arch = "mips64r6")))]
 fn stat64_to_stat(s64: c::stat64) -> io::Result<Stat> {
     let mut result: Stat = unsafe { core::mem::zeroed() };
 
@@ -1962,6 +2048,22 @@ pub(crate) fn fcntl_fullfsync(fd: BorrowedFd<'_>) -> io::Result<()> {
     unsafe { ret(c::fcntl(borrowed_fd(fd), c::F_FULLFSYNC)) }
 }
 
+#[cfg(apple)]
+pub(crate) fn fcntl_nocache(fd: BorrowedFd, value: bool) -> io::Result<()> {
+    unsafe { ret(c::fcntl(borrowed_fd(fd), c::F_NOCACHE, value as c::c_int)) }
+}
+
+#[cfg(apple)]
+pub(crate) fn fcntl_global_nocache(fd: BorrowedFd, value: bool) -> io::Result<()> {
+    unsafe {
+        ret(c::fcntl(
+            borrowed_fd(fd),
+            c::F_GLOBAL_NOCACHE,
+            value as c::c_int,
+        ))
+    }
+}
+
 /// Convert `times` from a `futimens`/`utimensat` argument into `setattrlist`
 /// arguments.
 #[cfg(apple)]
@@ -2046,30 +2148,6 @@ struct Attrlist {
     dirattr: Attrgroup,
     fileattr: Attrgroup,
     forkattr: Attrgroup,
-}
-
-#[cfg(linux_kernel)]
-pub(crate) fn mount(
-    source: Option<&CStr>,
-    target: &CStr,
-    file_system_type: Option<&CStr>,
-    flags: super::types::MountFlagsArg,
-    data: Option<&CStr>,
-) -> io::Result<()> {
-    unsafe {
-        ret(c::mount(
-            source.map_or_else(null, CStr::as_ptr),
-            target.as_ptr(),
-            file_system_type.map_or_else(null, CStr::as_ptr),
-            flags.0,
-            data.map_or_else(null, CStr::as_ptr).cast(),
-        ))
-    }
-}
-
-#[cfg(linux_kernel)]
-pub(crate) fn unmount(target: &CStr, flags: super::types::UnmountFlags) -> io::Result<()> {
-    unsafe { ret(c::umount2(target.as_ptr(), bitflags_bits!(flags))) }
 }
 
 #[cfg(any(apple, linux_kernel))]

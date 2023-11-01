@@ -1,6 +1,7 @@
 //! Diagnostics related methods for `Ty`.
 
 use std::borrow::Cow;
+use std::fmt::Write;
 use std::ops::ControlFlow;
 
 use crate::ty::{
@@ -71,7 +72,7 @@ impl<'tcx> Ty<'tcx> {
     /// ADTs with no type arguments.
     pub fn is_simple_text(self) -> bool {
         match self.kind() {
-            Adt(_, substs) => substs.non_erasable_generics().next().is_none(),
+            Adt(_, args) => args.non_erasable_generics().next().is_none(),
             Ref(_, ty, _) => ty.is_simple_text(),
             _ => self.is_simple_ty(),
         }
@@ -126,7 +127,7 @@ pub fn suggest_arbitrary_trait_bound<'tcx>(
         if constraint.ends_with('>') {
             constraint = format!("{}, {} = {}>", &constraint[..constraint.len() - 1], name, term);
         } else {
-            constraint.push_str(&format!("<{} = {}>", name, term));
+            constraint.push_str(&format!("<{name} = {term}>"));
         }
     }
 
@@ -274,9 +275,9 @@ pub fn suggest_constraining_type_params<'a>(
                 if span_to_replace.is_some() {
                     constraint.clone()
                 } else if bound_list_non_empty {
-                    format!(" + {}", constraint)
+                    format!(" + {constraint}")
                 } else {
-                    format!(" {}", constraint)
+                    format!(" {constraint}")
                 },
                 SuggestChangingConstraintsMessage::RestrictBoundFurther,
             ))
@@ -335,10 +336,10 @@ pub fn suggest_constraining_type_params<'a>(
             //                                           - insert: `, X: Bar`
             suggestions.push((
                 generics.tail_span_for_predicate_suggestion(),
-                constraints
-                    .iter()
-                    .map(|&(constraint, _)| format!(", {}: {}", param_name, constraint))
-                    .collect::<String>(),
+                constraints.iter().fold(String::new(), |mut string, &(constraint, _)| {
+                    write!(string, ", {param_name}: {constraint}").unwrap();
+                    string
+                }),
                 SuggestChangingConstraintsMessage::RestrictTypeFurther { ty: param_name },
             ));
             continue;
@@ -358,7 +359,7 @@ pub fn suggest_constraining_type_params<'a>(
             // default (`<T=Foo>`), so we suggest adding `where T: Bar`.
             suggestions.push((
                 generics.tail_span_for_predicate_suggestion(),
-                format!(" where {}: {}", param_name, constraint),
+                format!(" where {param_name}: {constraint}"),
                 SuggestChangingConstraintsMessage::RestrictTypeFurther { ty: param_name },
             ));
             continue;
@@ -371,7 +372,7 @@ pub fn suggest_constraining_type_params<'a>(
         if let Some(colon_span) = param.colon_span {
             suggestions.push((
                 colon_span.shrink_to_hi(),
-                format!(" {}", constraint),
+                format!(" {constraint}"),
                 SuggestChangingConstraintsMessage::RestrictType { ty: param_name },
             ));
             continue;
@@ -383,7 +384,7 @@ pub fn suggest_constraining_type_params<'a>(
         //          - help: consider restricting this type parameter with `T: Foo`
         suggestions.push((
             param.span.shrink_to_hi(),
-            format!(": {}", constraint),
+            format!(": {constraint}"),
             SuggestChangingConstraintsMessage::RestrictType { ty: param_name },
         ));
     }
@@ -401,10 +402,10 @@ pub fn suggest_constraining_type_params<'a>(
                 Cow::from("consider further restricting this bound")
             }
             SuggestChangingConstraintsMessage::RestrictType { ty } => {
-                Cow::from(format!("consider restricting type parameter `{}`", ty))
+                Cow::from(format!("consider restricting type parameter `{ty}`"))
             }
             SuggestChangingConstraintsMessage::RestrictTypeFurther { ty } => {
-                Cow::from(format!("consider further restricting type parameter `{}`", ty))
+                Cow::from(format!("consider further restricting type parameter `{ty}`"))
             }
             SuggestChangingConstraintsMessage::RemoveMaybeUnsized => {
                 Cow::from("consider removing the `?Sized` bound to make the type parameter `Sized`")
@@ -491,8 +492,8 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for IsSuggestableVisitor<'tcx> {
 
             Alias(Opaque, AliasTy { def_id, .. }) => {
                 let parent = self.tcx.parent(def_id);
-                let parent_ty = self.tcx.type_of(parent).subst_identity();
-                if let DefKind::TyAlias | DefKind::AssocTy = self.tcx.def_kind(parent)
+                let parent_ty = self.tcx.type_of(parent).instantiate_identity();
+                if let DefKind::TyAlias { .. } | DefKind::AssocTy = self.tcx.def_kind(parent)
                     && let Alias(Opaque, AliasTy { def_id: parent_opaque_def_id, .. }) = *parent_ty.kind()
                     && parent_opaque_def_id == def_id
                 {
@@ -558,8 +559,8 @@ impl<'tcx> FallibleTypeFolder<TyCtxt<'tcx>> for MakeSuggestableFolder<'tcx> {
         let t = match *t.kind() {
             Infer(InferTy::TyVar(_)) if self.infer_suggestable => t,
 
-            FnDef(def_id, substs) => {
-                Ty::new_fn_ptr(self.tcx, self.tcx.fn_sig(def_id).subst(self.tcx, substs))
+            FnDef(def_id, args) => {
+                Ty::new_fn_ptr(self.tcx, self.tcx.fn_sig(def_id).instantiate(self.tcx, args))
             }
 
             // FIXME(compiler-errors): We could replace these with infer, I guess.
@@ -575,8 +576,8 @@ impl<'tcx> FallibleTypeFolder<TyCtxt<'tcx>> for MakeSuggestableFolder<'tcx> {
 
             Alias(Opaque, AliasTy { def_id, .. }) => {
                 let parent = self.tcx.parent(def_id);
-                let parent_ty = self.tcx.type_of(parent).subst_identity();
-                if let hir::def::DefKind::TyAlias | hir::def::DefKind::AssocTy = self.tcx.def_kind(parent)
+                let parent_ty = self.tcx.type_of(parent).instantiate_identity();
+                if let hir::def::DefKind::TyAlias { .. } | hir::def::DefKind::AssocTy = self.tcx.def_kind(parent)
                     && let Alias(Opaque, AliasTy { def_id: parent_opaque_def_id, .. }) = *parent_ty.kind()
                     && parent_opaque_def_id == def_id
                 {

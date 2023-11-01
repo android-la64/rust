@@ -13,7 +13,7 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 
 use crate::cache::{Cache, Interned, INTERNER};
-use crate::config::{SplitDebuginfo, TargetSelection};
+use crate::config::{DryRun, SplitDebuginfo, TargetSelection};
 use crate::doc;
 use crate::flags::{Color, Subcommand};
 use crate::install;
@@ -114,6 +114,43 @@ impl RunConfig<'_> {
             crates.push(crate_name.to_string());
         }
         INTERNER.intern_list(crates)
+    }
+
+    /// Given an `alias` selected by the `Step` and the paths passed on the command line,
+    /// return a list of the crates that should be built.
+    ///
+    /// Normally, people will pass *just* `library` if they pass it.
+    /// But it's possible (although strange) to pass something like `library std core`.
+    /// Build all crates anyway, as if they hadn't passed the other args.
+    pub fn make_run_crates(&self, alias: Alias) -> Interned<Vec<String>> {
+        let has_alias =
+            self.paths.iter().any(|set| set.assert_single_path().path.ends_with(alias.as_str()));
+        if !has_alias {
+            return self.cargo_crates_in_set();
+        }
+
+        let crates = match alias {
+            Alias::Library => self.builder.in_tree_crates("sysroot", Some(self.target)),
+            Alias::Compiler => self.builder.in_tree_crates("rustc-main", Some(self.target)),
+        };
+
+        let crate_names = crates.into_iter().map(|krate| krate.name.to_string()).collect();
+        INTERNER.intern_list(crate_names)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Alias {
+    Library,
+    Compiler,
+}
+
+impl Alias {
+    fn as_str(self) -> &'static str {
+        match self {
+            Alias::Library => "library",
+            Alias::Compiler => "compiler",
+        }
     }
 }
 
@@ -280,15 +317,17 @@ impl StepDescription {
     }
 
     fn is_excluded(&self, builder: &Builder<'_>, pathset: &PathSet) -> bool {
-        if builder.config.exclude.iter().any(|e| pathset.has(&e, builder.kind)) {
-            println!("Skipping {:?} because it is excluded", pathset);
+        if builder.config.skip.iter().any(|e| pathset.has(&e, builder.kind)) {
+            if !matches!(builder.config.dry_run, DryRun::SelfCheck) {
+                println!("Skipping {pathset:?} because it is excluded");
+            }
             return true;
         }
 
-        if !builder.config.exclude.is_empty() {
+        if !builder.config.skip.is_empty() && !matches!(builder.config.dry_run, DryRun::SelfCheck) {
             builder.verbose(&format!(
                 "{:?} not skipped for {:?} -- not in {:?}",
-                pathset, self.name, builder.config.exclude
+                pathset, self.name, builder.config.skip
             ));
         }
         false
@@ -354,7 +393,7 @@ impl StepDescription {
             eprintln!(
                 "note: if you are adding a new Step to bootstrap itself, make sure you register it with `describe!`"
             );
-            crate::detail_exit_macro!(1);
+            crate::exit!(1);
         }
     }
 }
@@ -432,8 +471,7 @@ impl<'a> ShouldRun<'a> {
         // `compiler` and `library` folders respectively.
         assert!(
             self.kind == Kind::Setup || !self.builder.src.join(alias).exists(),
-            "use `builder.path()` for real paths: {}",
-            alias
+            "use `builder.path()` for real paths: {alias}"
         );
         self.paths.insert(PathSet::Set(
             std::iter::once(TaskPath { path: alias.into(), kind: Some(self.kind) }).collect(),
@@ -665,6 +703,7 @@ impl<'a> Builder<'a> {
                 llvm::Lld,
                 llvm::CrtBeginEnd,
                 tool::RustdocGUITest,
+                tool::OptimizedDist
             ),
             Kind::Check | Kind::Clippy | Kind::Fix => describe!(
                 check::Std,
@@ -893,21 +932,6 @@ impl<'a> Builder<'a> {
                 path.as_ref().map_or([].as_slice(), |path| std::slice::from_ref(path)),
             ),
         };
-
-        Self::new_internal(build, kind, paths.to_owned())
-    }
-
-    /// Creates a new standalone builder for use outside of the normal process
-    pub fn new_standalone(
-        build: &mut Build,
-        kind: Kind,
-        paths: Vec<PathBuf>,
-        stage: Option<u32>,
-    ) -> Builder<'_> {
-        // FIXME: don't mutate `build`
-        if let Some(stage) = stage {
-            build.config.stage = stage;
-        }
 
         Self::new_internal(build, kind, paths.to_owned())
     }
@@ -1256,7 +1280,7 @@ impl<'a> Builder<'a> {
                         out_dir.join(target.triple).join("doc")
                     }
                 }
-                _ => panic!("doc mode {:?} not expected", mode),
+                _ => panic!("doc mode {mode:?} not expected"),
             };
             let rustdoc = self.rustdoc(compiler);
             self.clear_if_dirty(&my_out, &rustdoc);
@@ -1333,7 +1357,7 @@ impl<'a> Builder<'a> {
                         "error: `x.py clippy` requires a host `rustc` toolchain with the `clippy` component"
                     );
                     eprintln!("help: try `rustup component add clippy`");
-                    crate::detail_exit_macro!(1);
+                    crate::exit!(1);
                 });
                 if !t!(std::str::from_utf8(&output.stdout)).contains("nightly") {
                     rustflags.arg("--cfg=bootstrap");
@@ -1602,6 +1626,7 @@ impl<'a> Builder<'a> {
         // fun to pass a flag to a tool to pass a flag to pass a flag to a tool
         // to change a flag in a binary?
         if self.config.rpath_enabled(target) && util::use_host_linker(target) {
+            let libdir = self.sysroot_libdir_relative(compiler).to_str().unwrap();
             let rpath = if target.contains("apple") {
                 // Note that we need to take one extra step on macOS to also pass
                 // `-Wl,-instal_name,@rpath/...` to get things to work right. To
@@ -1609,15 +1634,15 @@ impl<'a> Builder<'a> {
                 // so. Note that this is definitely a hack, and we should likely
                 // flesh out rpath support more fully in the future.
                 rustflags.arg("-Zosx-rpath-install-name");
-                Some("-Wl,-rpath,@loader_path/../lib")
+                Some(format!("-Wl,-rpath,@loader_path/../{libdir}"))
             } else if !target.contains("windows") && !target.contains("aix") {
                 rustflags.arg("-Clink-args=-Wl,-z,origin");
-                Some("-Wl,-rpath,$ORIGIN/../lib")
+                Some(format!("-Wl,-rpath,$ORIGIN/../{libdir}"))
             } else {
                 None
             };
             if let Some(rpath) = rpath {
-                rustflags.arg(&format!("-Clink-args={}", rpath));
+                rustflags.arg(&format!("-Clink-args={rpath}"));
             }
         }
 
@@ -1631,7 +1656,7 @@ impl<'a> Builder<'a> {
 
         if let Some(target_linker) = self.linker(target) {
             let target = crate::envify(&target.triple);
-            cargo.env(&format!("CARGO_TARGET_{}_LINKER", target), target_linker);
+            cargo.env(&format!("CARGO_TARGET_{target}_LINKER"), target_linker);
         }
         if self.is_fuse_ld_lld(target) {
             rustflags.arg("-Clink-args=-fuse-ld=lld");
@@ -1867,24 +1892,24 @@ impl<'a> Builder<'a> {
             };
             let triple_underscored = target.triple.replace("-", "_");
             let cc = ccacheify(&self.cc(target));
-            cargo.env(format!("CC_{}", triple_underscored), &cc);
+            cargo.env(format!("CC_{triple_underscored}"), &cc);
 
             let cflags = self.cflags(target, GitRepo::Rustc, CLang::C).join(" ");
-            cargo.env(format!("CFLAGS_{}", triple_underscored), &cflags);
+            cargo.env(format!("CFLAGS_{triple_underscored}"), &cflags);
 
             if let Some(ar) = self.ar(target) {
                 let ranlib = format!("{} s", ar.display());
                 cargo
-                    .env(format!("AR_{}", triple_underscored), ar)
-                    .env(format!("RANLIB_{}", triple_underscored), ranlib);
+                    .env(format!("AR_{triple_underscored}"), ar)
+                    .env(format!("RANLIB_{triple_underscored}"), ranlib);
             }
 
             if let Ok(cxx) = self.cxx(target) {
                 let cxx = ccacheify(&cxx);
                 let cxxflags = self.cflags(target, GitRepo::Rustc, CLang::Cxx).join(" ");
                 cargo
-                    .env(format!("CXX_{}", triple_underscored), &cxx)
-                    .env(format!("CXXFLAGS_{}", triple_underscored), cxxflags);
+                    .env(format!("CXX_{triple_underscored}"), &cxx)
+                    .env(format!("CXXFLAGS_{triple_underscored}"), cxxflags);
             }
         }
 
@@ -1997,7 +2022,7 @@ impl<'a> Builder<'a> {
             if let Some(limit) = limit {
                 if stage == 0 || self.config.default_codegen_backend().unwrap_or_default() == "llvm"
                 {
-                    rustflags.arg(&format!("-Cllvm-args=-import-instr-limit={}", limit));
+                    rustflags.arg(&format!("-Cllvm-args=-import-instr-limit={limit}"));
                 }
             }
         }
@@ -2005,7 +2030,7 @@ impl<'a> Builder<'a> {
         if matches!(mode, Mode::Std) {
             if let Some(mir_opt_level) = self.config.rust_validate_mir_opts {
                 rustflags.arg("-Zvalidate-mir");
-                rustflags.arg(&format!("-Zmir-opt-level={}", mir_opt_level));
+                rustflags.arg(&format!("-Zmir-opt-level={mir_opt_level}"));
             }
             // Always enable inlining MIR when building the standard library.
             // Without this flag, MIR inlining is disabled when incremental compilation is enabled.
@@ -2013,6 +2038,13 @@ impl<'a> Builder<'a> {
             // break when incremental compilation is enabled. So this overrides the "no inlining
             // during incremental builds" heuristic for the standard library.
             rustflags.arg("-Zinline-mir");
+        }
+
+        // set rustc args passed from command line
+        let rustc_args =
+            self.config.cmd.rustc_args().iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        if !rustc_args.is_empty() {
+            cargo.env("RUSTFLAGS", &rustc_args.join(" "));
         }
 
         Cargo { command: cargo, rustflags, rustdocflags, allow_features }
@@ -2030,9 +2062,9 @@ impl<'a> Builder<'a> {
                     continue;
                 }
                 let mut out = String::new();
-                out += &format!("\n\nCycle in build detected when adding {:?}\n", step);
+                out += &format!("\n\nCycle in build detected when adding {step:?}\n");
                 for el in stack.iter().rev() {
-                    out += &format!("\t{:?}\n", el);
+                    out += &format!("\t{el:?}\n");
                 }
                 panic!("{}", out);
             }
@@ -2059,7 +2091,7 @@ impl<'a> Builder<'a> {
         };
 
         if self.config.print_step_timings && !self.config.dry_run() {
-            let step_string = format!("{:?}", step);
+            let step_string = format!("{step:?}");
             let brace_index = step_string.find("{").unwrap_or(0);
             let type_string = type_name::<S>();
             println!(
@@ -2095,7 +2127,7 @@ impl<'a> Builder<'a> {
         let desc = StepDescription::from::<S>(kind);
         let should_run = (desc.should_run)(ShouldRun::new(self, desc.kind));
 
-        // Avoid running steps contained in --exclude
+        // Avoid running steps contained in --skip
         for pathset in &should_run.paths {
             if desc.is_excluded(self, pathset) {
                 return None;
@@ -2139,7 +2171,7 @@ impl<'a> Builder<'a> {
         let path = path.as_ref();
         self.info(&format!("Opening doc {}", path.display()));
         if let Err(err) = opener::open(path) {
-            self.info(&format!("{}\n", err));
+            self.info(&format!("{err}\n"));
         }
     }
 }

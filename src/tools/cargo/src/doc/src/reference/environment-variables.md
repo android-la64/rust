@@ -9,7 +9,7 @@ with them:
 You can override these environment variables to change Cargo's behavior on your
 system:
 
-* `CARGO_LOG` --- Cargo uses the [`env_logger`] crate to display debug log messages.
+* `CARGO_LOG` --- Cargo uses the [`tracing`] crate to display debug log messages.
   The `CARGO_LOG` environment variable can be set to enable debug logging,
   with a value such as `trace`, `debug`, or `warn`.
   Usually it is only used during debugging. For more details refer to the
@@ -123,6 +123,7 @@ In summary, the supported environment variables are:
 * `CARGO_PROFILE_<name>_PANIC` --- The panic strategy to use, see [`profile.<name>.panic`].
 * `CARGO_PROFILE_<name>_RPATH` --- The rpath linking option, see [`profile.<name>.rpath`].
 * `CARGO_PROFILE_<name>_SPLIT_DEBUGINFO` --- Controls debug file output behavior, see [`profile.<name>.split-debuginfo`].
+* `CARGO_PROFILE_<name>_STRIP` --- Controls stripping of symbols and/or debuginfos, see [`profile.<name>.strip`].
 * `CARGO_REGISTRIES_<name>_INDEX` --- URL of a registry index, see [`registries.<name>.index`].
 * `CARGO_REGISTRIES_<name>_TOKEN` --- Authentication token of a registry, see [`registries.<name>.token`].
 * `CARGO_REGISTRY_DEFAULT` --- Default registry for the `--registry` flag, see [`registry.default`].
@@ -185,6 +186,7 @@ In summary, the supported environment variables are:
 [`profile.<name>.panic`]: config.md#profilenamepanic
 [`profile.<name>.rpath`]: config.md#profilenamerpath
 [`profile.<name>.split-debuginfo`]: config.md#profilenamesplit-debuginfo
+[`profile.<name>.strip`]: config.md#profilenamestrip
 [`registries.<name>.index`]: config.md#registriesnameindex
 [`registries.<name>.token`]: config.md#registriesnametoken
 [`registry.default`]: config.md#registrydefault
@@ -387,7 +389,7 @@ let out_dir = env::var("OUT_DIR").unwrap();
   the environment; scripts should use `CARGO_ENCODED_RUSTFLAGS` instead.
 * `CARGO_PKG_<var>` --- The package information variables, with the same names and values as are [provided during crate building][variables set for crates].
 
-[`env_logger`]: https://docs.rs/env_logger
+[`tracing`]: https://docs.rs/tracing
 [debug logging]: https://doc.crates.io/contrib/architecture/console.html#debug-logging
 [unix-like platforms]: ../../reference/conditional-compilation.html#unix-and-windows
 [windows-like platforms]: ../../reference/conditional-compilation.html#unix-and-windows

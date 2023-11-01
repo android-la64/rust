@@ -3,7 +3,8 @@
     unused,
     clippy::many_single_char_names,
     clippy::needless_lifetimes,
-    clippy::redundant_clone
+    clippy::redundant_clone,
+    clippy::needless_pass_by_ref_mut
 )]
 #![warn(clippy::ptr_arg)]
 
@@ -264,5 +265,18 @@ mod issue_9218 {
     // Inferred to be `&'a str`, afaik.
     fn cow_good_ret_ty<'a>(input: &'a Cow<'a, str>) -> &str {
         todo!()
+    }
+}
+
+mod issue_11181 {
+    extern "C" fn allowed(_v: &Vec<u32>) {}
+
+    struct S;
+    impl S {
+        extern "C" fn allowed(_v: &Vec<u32>) {}
+    }
+
+    trait T {
+        extern "C" fn allowed(_v: &Vec<u32>) {}
     }
 }

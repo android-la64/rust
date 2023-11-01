@@ -182,9 +182,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             OperandValue::Immediate(..) | OperandValue::Pair(..) => {
                 // When we have immediate(s), the alignment of the source is irrelevant,
                 // so we can store them using the destination's alignment.
-                let llty = bx.backend_type(src.layout);
-                let cast_ptr = bx.pointercast(dst.llval, bx.type_ptr_to(llty));
-                src.val.store(bx, PlaceRef::new_sized_aligned(cast_ptr, src.layout, dst.align));
+                src.val.store(bx, PlaceRef::new_sized_aligned(dst.llval, src.layout, dst.align));
             }
         }
     }
@@ -222,9 +220,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             OperandValue::Ref(ptr, meta, align) => {
                 debug_assert_eq!(meta, None);
                 debug_assert!(matches!(operand_kind, OperandValueKind::Ref));
-                let cast_bty = bx.backend_type(cast);
-                let cast_ptr = bx.pointercast(ptr, bx.type_ptr_to(cast_bty));
-                let fake_place = PlaceRef::new_sized_aligned(cast_ptr, cast, align);
+                let fake_place = PlaceRef::new_sized_aligned(ptr, cast, align);
                 Some(bx.load_operand(fake_place).val)
             }
             OperandValue::ZeroSized => {
@@ -397,8 +393,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
     ) -> OperandRef<'tcx, Bx::Value> {
         assert!(
             self.rvalue_creates_operand(rvalue, DUMMY_SP),
-            "cannot codegen {:?} to operand",
-            rvalue,
+            "cannot codegen {rvalue:?} to operand",
         );
 
         match *rvalue {
@@ -417,12 +412,12 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     }
                     mir::CastKind::PointerCoercion(PointerCoercion::ReifyFnPointer) => {
                         match *operand.layout.ty.kind() {
-                            ty::FnDef(def_id, substs) => {
+                            ty::FnDef(def_id, args) => {
                                 let instance = ty::Instance::resolve_for_fn_ptr(
                                     bx.tcx(),
                                     ty::ParamEnv::reveal_all(),
                                     def_id,
-                                    substs,
+                                    args,
                                 )
                                 .unwrap()
                                 .polymorphize(bx.cx().tcx());
@@ -433,11 +428,11 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     }
                     mir::CastKind::PointerCoercion(PointerCoercion::ClosureFnPointer(_)) => {
                         match *operand.layout.ty.kind() {
-                            ty::Closure(def_id, substs) => {
+                            ty::Closure(def_id, args) => {
                                 let instance = Instance::resolve_closure(
                                     bx.cx().tcx(),
                                     def_id,
-                                    substs,
+                                    args,
                                     ty::ClosureKind::FnOnce,
                                 )
                                 .expect("failed to normalize and resolve closure during codegen")
@@ -480,18 +475,10 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     {
                         if let OperandValue::Pair(data_ptr, meta) = operand.val {
                             if bx.cx().is_backend_scalar_pair(cast) {
-                                let data_cast = bx.pointercast(
-                                    data_ptr,
-                                    bx.cx().scalar_pair_element_backend_type(cast, 0, true),
-                                );
-                                OperandValue::Pair(data_cast, meta)
+                                OperandValue::Pair(data_ptr, meta)
                             } else {
-                                // cast to thin-ptr
-                                // Cast of fat-ptr to thin-ptr is an extraction of data-ptr and
-                                // pointer-cast of that pointer to desired pointer type.
-                                let llcast_ty = bx.cx().immediate_backend_type(cast);
-                                let llval = bx.pointercast(data_ptr, llcast_ty);
-                                OperandValue::Immediate(llval)
+                                // Cast of fat-ptr to thin-ptr is an extraction of data-ptr.
+                                OperandValue::Immediate(data_ptr)
                             }
                         } else {
                             bug!("unexpected non-pair operand");
@@ -711,7 +698,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 {
                     let instance = ty::Instance {
                         def: ty::InstanceDef::ThreadLocalShim(def_id),
-                        substs: ty::InternalSubsts::empty(),
+                        args: ty::GenericArgs::empty(),
                     };
                     let fn_ptr = bx.get_fn_addr(instance);
                     let fn_abi = bx.fn_abi_of_instance(instance, ty::List::empty());
@@ -736,13 +723,11 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             }
             mir::Rvalue::ShallowInitBox(ref operand, content_ty) => {
                 let operand = self.codegen_operand(bx, operand);
-                let lloperand = operand.immediate();
+                let val = operand.immediate();
 
                 let content_ty = self.monomorphize(content_ty);
                 let box_layout = bx.cx().layout_of(Ty::new_box(bx.tcx(), content_ty));
-                let llty_ptr = bx.cx().backend_type(box_layout);
 
-                let val = bx.pointercast(lloperand, llty_ptr);
                 OperandRef { val: OperandValue::Immediate(val), layout: box_layout }
             }
         }

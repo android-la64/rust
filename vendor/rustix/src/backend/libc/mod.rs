@@ -111,13 +111,19 @@ pub(crate) mod io;
 #[cfg(linux_kernel)]
 #[cfg(feature = "io_uring")]
 pub(crate) mod io_uring;
-#[cfg(not(any(windows, target_os = "wasi")))]
+#[cfg(not(any(windows, target_os = "espidf", target_os = "wasi")))]
 #[cfg(feature = "mm")]
 pub(crate) mod mm;
+#[cfg(linux_kernel)]
+#[cfg(feature = "mount")]
+pub(crate) mod mount;
+#[cfg(linux_kernel)]
+#[cfg(all(feature = "fs", not(feature = "mount")))]
+pub(crate) mod mount; // for deprecated mount functions in "fs"
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
 #[cfg(feature = "net")]
 pub(crate) mod net;
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "espidf")))]
 #[cfg(any(
     feature = "param",
     feature = "runtime",
@@ -148,7 +154,7 @@ pub(crate) mod termios;
 #[cfg(not(windows))]
 #[cfg(feature = "thread")]
 pub(crate) mod thread;
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "espidf")))]
 #[cfg(feature = "time")]
 pub(crate) mod time;
 
@@ -193,6 +199,7 @@ const MAX_IOV: usize = c::UIO_MAXIOV as usize;
     linux_kernel,
     windows,
     target_os = "emscripten",
+    target_os = "espidf",
     target_os = "nto",
     target_os = "horizon",
 )))]

@@ -41,27 +41,23 @@ extern "C" {
 
 #[cfg(target_os = "android")]
 const _SC_PAGESIZE: c::c_int = 39;
-#[cfg(target_os = "emscripten")]
-const _SC_PAGESIZE: c::c_int = 30;
 #[cfg(target_os = "linux")]
 const _SC_PAGESIZE: c::c_int = 30;
 #[cfg(target_os = "android")]
 const _SC_CLK_TCK: c::c_int = 6;
-#[cfg(target_os = "emscripten")]
-const _SC_CLK_TCK: c::c_int = 2;
 #[cfg(target_os = "linux")]
 const _SC_CLK_TCK: c::c_int = 2;
 
 #[test]
 fn test_abi() {
-    assert_eq!(self::_SC_PAGESIZE, ::libc::_SC_PAGESIZE);
-    assert_eq!(self::_SC_CLK_TCK, ::libc::_SC_CLK_TCK);
-    assert_eq!(self::AT_PHDR, ::libc::AT_PHDR);
-    assert_eq!(self::AT_PHNUM, ::libc::AT_PHNUM);
-    assert_eq!(self::AT_HWCAP, ::libc::AT_HWCAP);
-    assert_eq!(self::AT_HWCAP2, ::libc::AT_HWCAP2);
-    assert_eq!(self::AT_EXECFN, ::libc::AT_EXECFN);
-    assert_eq!(self::AT_SYSINFO_EHDR, ::libc::AT_SYSINFO_EHDR);
+    const_assert_eq!(self::_SC_PAGESIZE, ::libc::_SC_PAGESIZE);
+    const_assert_eq!(self::_SC_CLK_TCK, ::libc::_SC_CLK_TCK);
+    const_assert_eq!(self::AT_PHDR, ::libc::AT_PHDR);
+    const_assert_eq!(self::AT_PHNUM, ::libc::AT_PHNUM);
+    const_assert_eq!(self::AT_HWCAP, ::libc::AT_HWCAP);
+    const_assert_eq!(self::AT_HWCAP2, ::libc::AT_HWCAP2);
+    const_assert_eq!(self::AT_EXECFN, ::libc::AT_EXECFN);
+    const_assert_eq!(self::AT_SYSINFO_EHDR, ::libc::AT_SYSINFO_EHDR);
 }
 
 #[cfg(feature = "param")]

@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fs::{self, File};
 use std::io::Read;
-use std::mem::MaybeUninit;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -19,26 +18,13 @@ use crate::utils::into_iter;
 use crate::{DiskUsage, Gid, Pid, ProcessExt, ProcessRefreshKind, ProcessStatus, Signal, Uid};
 
 #[doc(hidden)]
-impl From<u32> for ProcessStatus {
-    fn from(status: u32) -> ProcessStatus {
-        match status {
-            1 => ProcessStatus::Idle,
-            2 => ProcessStatus::Run,
-            3 => ProcessStatus::Sleep,
-            4 => ProcessStatus::Stop,
-            5 => ProcessStatus::Zombie,
-            x => ProcessStatus::Unknown(x),
-        }
-    }
-}
-
-#[doc(hidden)]
 impl From<char> for ProcessStatus {
     fn from(status: char) -> ProcessStatus {
         match status {
             'R' => ProcessStatus::Run,
             'S' => ProcessStatus::Sleep,
-            'D' => ProcessStatus::Idle,
+            'I' => ProcessStatus::Idle,
+            'D' => ProcessStatus::UninterruptibleDiskSleep,
             'Z' => ProcessStatus::Zombie,
             'T' => ProcessStatus::Stop,
             't' => ProcessStatus::Tracing,
@@ -64,6 +50,7 @@ impl fmt::Display for ProcessStatus {
             ProcessStatus::Wakekill => "Wakekill",
             ProcessStatus::Waking => "Waking",
             ProcessStatus::Parked => "Parked",
+            ProcessStatus::UninterruptibleDiskSleep => "UninterruptibleDiskSleep",
             _ => "Unknown",
         })
     }
@@ -91,7 +78,9 @@ pub struct Process {
     pub(crate) updated: bool,
     cpu_usage: f32,
     user_id: Option<Uid>,
+    effective_user_id: Option<Uid>,
     group_id: Option<Gid>,
+    effective_group_id: Option<Gid>,
     pub(crate) status: ProcessStatus,
     /// Tasks run by this process.
     pub tasks: HashMap<Pid, Process>,
@@ -125,7 +114,9 @@ impl Process {
             start_time: 0,
             run_time: 0,
             user_id: None,
+            effective_user_id: None,
             group_id: None,
+            effective_group_id: None,
             status: ProcessStatus::Unknown(0),
             tasks: if pid.0 == 0 {
                 HashMap::with_capacity(1000)
@@ -216,20 +207,39 @@ impl ProcessExt for Process {
         self.user_id.as_ref()
     }
 
+    fn effective_user_id(&self) -> Option<&Uid> {
+        self.effective_user_id.as_ref()
+    }
+
     fn group_id(&self) -> Option<Gid> {
         self.group_id
+    }
+
+    fn effective_group_id(&self) -> Option<Gid> {
+        self.effective_group_id
     }
 
     fn wait(&self) {
         let mut status = 0;
         // attempt waiting
         unsafe {
-            if libc::waitpid(self.pid.0, &mut status, 0) < 0 {
+            if retry_eintr!(libc::waitpid(self.pid.0, &mut status, 0)) < 0 {
                 // attempt failed (non-child process) so loop until process ends
                 let duration = std::time::Duration::from_millis(10);
                 while kill(self.pid.0, 0) == 0 {
                     std::thread::sleep(duration);
                 }
+            }
+        }
+    }
+
+    fn session_id(&self) -> Option<Pid> {
+        unsafe {
+            let session_id = libc::getsid(self.pid.0);
+            if session_id < 0 {
+                None
+            } else {
+                Some(Pid(session_id))
             }
         }
     }
@@ -248,6 +258,17 @@ pub(crate) fn compute_cpu_usage(p: &mut Process, total_time: f32, max_value: f32
         / total_time
         * 100.)
         .min(max_value);
+
+    for task in p.tasks.values_mut() {
+        compute_cpu_usage(task, total_time, max_value);
+    }
+}
+
+pub(crate) fn unset_updated(p: &mut Process) {
+    p.updated = false;
+    for task in p.tasks.values_mut() {
+        unset_updated(task);
+    }
 }
 
 pub(crate) fn set_time(p: &mut Process, utime: u64, stime: u64) {
@@ -327,9 +348,13 @@ fn get_status(p: &mut Process, part: &str) {
 }
 
 fn refresh_user_group_ids<P: PathPush>(p: &mut Process, path: &mut P) {
-    if let Some((user_id, group_id)) = get_uid_and_gid(path.join("status")) {
+    if let Some(((user_id, effective_user_id), (group_id, effective_group_id))) =
+        get_uid_and_gid(path.join("status"))
+    {
         p.user_id = Some(Uid(user_id));
+        p.effective_user_id = Some(Uid(effective_user_id));
         p.group_id = Some(Gid(group_id));
+        p.effective_group_id = Some(Gid(effective_group_id));
     }
 }
 
@@ -366,34 +391,23 @@ fn retrieve_all_new_process_info(
         refresh_user_group_ids(&mut p, &mut tmp);
     }
 
-    if proc_list.pid.0 != 0 {
-        // If we're getting information for a child, no need to get those info since we
-        // already have them...
-        p.cmd = proc_list.cmd.clone();
-        p.name = proc_list.name.clone();
-        p.environ = proc_list.environ.clone();
-        p.exe = proc_list.exe.clone();
-        p.cwd = proc_list.cwd.clone();
-        p.root = proc_list.root.clone();
-    } else {
-        p.name = name.into();
+    p.name = name.into();
 
-        match tmp.join("exe").read_link() {
-            Ok(exe_path) => {
-                p.exe = exe_path;
-            }
-            Err(_) => {
-                // Do not use cmd[0] because it is not the same thing.
-                // See https://github.com/GuillaumeGomez/sysinfo/issues/697.
-                p.exe = PathBuf::new()
-            }
+    match tmp.join("exe").read_link() {
+        Ok(exe_path) => {
+            p.exe = exe_path;
         }
-
-        p.cmd = copy_from_file(tmp.join("cmdline"));
-        p.environ = copy_from_file(tmp.join("environ"));
-        p.cwd = realpath(tmp.join("cwd"));
-        p.root = realpath(tmp.join("root"));
+        Err(_) => {
+            // Do not use cmd[0] because it is not the same thing.
+            // See https://github.com/GuillaumeGomez/sysinfo/issues/697.
+            p.exe = PathBuf::new()
+        }
     }
+
+    p.cmd = copy_from_file(tmp.join("cmdline"));
+    p.environ = copy_from_file(tmp.join("environ"));
+    p.cwd = realpath(tmp.join("cwd"));
+    p.root = realpath(tmp.join("root"));
 
     update_time_and_memory(
         path,
@@ -420,6 +434,11 @@ pub(crate) fn _get_process_data(
     refresh_kind: ProcessRefreshKind,
 ) -> Result<(Option<Process>, Pid), ()> {
     let pid = match path.file_name().and_then(|x| x.to_str()).map(Pid::from_str) {
+        // If `pid` and `nb` are the same, it means the file is linking to itself so we skip it.
+        //
+        // It's because when reading `/proc/[PID]` folder, we then go through the folders inside it.
+        // Then, if we encounter a sub-folder with the same PID as the parent, then it's a link to
+        // the current folder we already did read so no need to do anything.
         Some(Ok(nb)) if nb != pid => nb,
         _ => return Err(()),
     };
@@ -609,10 +628,12 @@ pub(crate) fn refresh_procs(
 fn copy_from_file(entry: &Path) -> Vec<String> {
     match File::open(entry) {
         Ok(mut f) => {
-            let mut data = vec![0; 16_384];
+            let mut data = Vec::with_capacity(16_384);
 
-            if let Ok(size) = f.read(&mut data) {
-                data.truncate(size);
+            if let Err(_e) = f.read_to_end(&mut data) {
+                sysinfo_debug!("Failed to read file in `copy_from_file`: {:?}", _e);
+                Vec::new()
+            } else {
                 let mut out = Vec::with_capacity(20);
                 let mut start = 0;
                 for (pos, x) in data.iter().enumerate() {
@@ -628,51 +649,47 @@ fn copy_from_file(entry: &Path) -> Vec<String> {
                     }
                 }
                 out
-            } else {
-                Vec::new()
             }
         }
-        Err(_) => Vec::new(),
+        Err(_e) => {
+            sysinfo_debug!("Failed to open file in `copy_from_file`: {:?}", _e);
+            Vec::new()
+        }
     }
 }
 
-fn get_uid_and_gid(file_path: &Path) -> Option<(uid_t, gid_t)> {
-    use std::os::unix::ffi::OsStrExt;
-
-    unsafe {
-        let mut sstat: MaybeUninit<libc::stat> = MaybeUninit::uninit();
-
-        let mut file_path: Vec<u8> = file_path.as_os_str().as_bytes().to_vec();
-        file_path.push(0);
-        if libc::stat(file_path.as_ptr() as *const _, sstat.as_mut_ptr()) == 0 {
-            let sstat = sstat.assume_init();
-
-            return Some((sstat.st_uid, sstat.st_gid));
-        }
-    }
-
+// Fetch tuples of real and effective UID and GID.
+fn get_uid_and_gid(file_path: &Path) -> Option<((uid_t, uid_t), (gid_t, gid_t))> {
     let status_data = get_all_data(file_path, 16_385).ok()?;
 
     // We're only interested in the lines starting with Uid: and Gid:
-    // here. From these lines, we're looking at the second entry to get
-    // the effective u/gid.
+    // here. From these lines, we're looking at the first and second entries to get
+    // the real u/gid.
 
-    let f = |h: &str, n: &str| -> Option<uid_t> {
+    let f = |h: &str, n: &str| -> (Option<uid_t>, Option<uid_t>) {
         if h.starts_with(n) {
-            h.split_whitespace().nth(2).unwrap_or("0").parse().ok()
+            let mut ids = h.split_whitespace();
+            let real = ids.nth(1).unwrap_or("0").parse().ok();
+            let effective = ids.next().unwrap_or("0").parse().ok();
+
+            (real, effective)
         } else {
-            None
+            (None, None)
         }
     };
     let mut uid = None;
+    let mut effective_uid = None;
     let mut gid = None;
+    let mut effective_gid = None;
     for line in status_data.lines() {
-        if let Some(u) = f(line, "Uid:") {
-            assert!(uid.is_none());
-            uid = Some(u);
-        } else if let Some(g) = f(line, "Gid:") {
-            assert!(gid.is_none());
-            gid = Some(g);
+        if let (Some(real), Some(effective)) = f(line, "Uid:") {
+            debug_assert!(uid.is_none() && effective_uid.is_none());
+            uid = Some(real);
+            effective_uid = Some(effective);
+        } else if let (Some(real), Some(effective)) = f(line, "Gid:") {
+            debug_assert!(gid.is_none() && effective_gid.is_none());
+            gid = Some(real);
+            effective_gid = Some(effective);
         } else {
             continue;
         }
@@ -680,8 +697,10 @@ fn get_uid_and_gid(file_path: &Path) -> Option<(uid_t, gid_t)> {
             break;
         }
     }
-    match (uid, gid) {
-        (Some(u), Some(g)) => Some((u, g)),
+    match (uid, effective_uid, gid, effective_gid) {
+        (Some(uid), Some(effective_uid), Some(gid), Some(effective_gid)) => {
+            Some(((uid, effective_uid), (gid, effective_gid)))
+        }
         _ => None,
     }
 }

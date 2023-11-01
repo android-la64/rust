@@ -33,13 +33,15 @@ pub struct Process {
     pub(crate) updated: bool,
     cpu_usage: f32,
     user_id: Option<Uid>,
+    effective_user_id: Option<Uid>,
     group_id: Option<Gid>,
+    effective_group_id: Option<Gid>,
     pub(crate) process_status: ProcessStatus,
     /// Status of process (running, stopped, waiting, etc). `None` means `sysinfo` doesn't have
     /// enough rights to get this information.
     ///
     /// This is very likely this one that you want instead of `process_status`.
-    pub status: Option<ThreadStatus>,
+    pub(crate) status: Option<ThreadStatus>,
     pub(crate) old_read_bytes: u64,
     pub(crate) old_written_bytes: u64,
     pub(crate) read_bytes: u64,
@@ -66,7 +68,9 @@ impl Process {
             start_time: 0,
             run_time: 0,
             user_id: None,
+            effective_user_id: None,
             group_id: None,
+            effective_group_id: None,
             process_status: ProcessStatus::Unknown(0),
             status: None,
             old_read_bytes: 0,
@@ -95,7 +99,9 @@ impl Process {
             start_time,
             run_time,
             user_id: None,
+            effective_user_id: None,
             group_id: None,
+            effective_group_id: None,
             process_status: ProcessStatus::Unknown(0),
             status: None,
             old_read_bytes: 0,
@@ -153,6 +159,13 @@ impl ProcessExt for Process {
     }
 
     fn status(&self) -> ProcessStatus {
+        // If the status is `Run`, then it's very likely wrong so we instead
+        // return a `ProcessStatus` converted from the `ThreadStatus`.
+        if self.process_status == ProcessStatus::Run {
+            if let Some(thread_status) = self.status {
+                return ProcessStatus::from(thread_status);
+            }
+        }
         self.process_status
     }
 
@@ -181,20 +194,39 @@ impl ProcessExt for Process {
         self.user_id.as_ref()
     }
 
+    fn effective_user_id(&self) -> Option<&Uid> {
+        self.effective_user_id.as_ref()
+    }
+
     fn group_id(&self) -> Option<Gid> {
         self.group_id
+    }
+
+    fn effective_group_id(&self) -> Option<Gid> {
+        self.effective_group_id
     }
 
     fn wait(&self) {
         let mut status = 0;
         // attempt waiting
         unsafe {
-            if libc::waitpid(self.pid.0, &mut status, 0) < 0 {
+            if retry_eintr!(libc::waitpid(self.pid.0, &mut status, 0)) < 0 {
                 // attempt failed (non-child process) so loop until process ends
                 let duration = std::time::Duration::from_millis(10);
                 while kill(self.pid.0, 0) == 0 {
                     std::thread::sleep(duration);
                 }
+            }
+        }
+    }
+
+    fn session_id(&self) -> Option<Pid> {
+        unsafe {
+            let session_id = libc::getsid(self.pid.0);
+            if session_id < 0 {
+                None
+            } else {
+                Some(Pid(session_id))
             }
         }
     }
@@ -210,6 +242,7 @@ pub(crate) fn compute_cpu_usage(
 ) {
     if let Some(time_interval) = time_interval {
         let total_existing_time = p.old_stime.saturating_add(p.old_utime);
+        let mut updated_cpu_usage = false;
         if time_interval > 0.000001 && total_existing_time > 0 {
             let total_current_time = task_info
                 .pti_total_system
@@ -218,8 +251,10 @@ pub(crate) fn compute_cpu_usage(
             let total_time_diff = total_current_time.saturating_sub(total_existing_time);
             if total_time_diff > 0 {
                 p.cpu_usage = (total_time_diff as f64 / time_interval * 100.) as f32;
+                updated_cpu_usage = true;
             }
-        } else {
+        }
+        if !updated_cpu_usage {
             p.cpu_usage = 0.;
         }
         p.old_stime = task_info.pti_total_system;
@@ -254,14 +289,6 @@ pub(crate) fn compute_cpu_usage(
     }
 }
 
-/*pub fn set_time(p: &mut Process, utime: u64, stime: u64) {
-    p.old_utime = p.utime;
-    p.old_stime = p.stime;
-    p.utime = utime;
-    p.stime = stime;
-    p.updated = true;
-}*/
-
 unsafe fn get_task_info(pid: Pid) -> libc::proc_taskinfo {
     let mut task_info = mem::zeroed::<libc::proc_taskinfo>();
     // If it doesn't work, we just don't have memory information for this process
@@ -289,7 +316,7 @@ fn check_if_pid_is_alive(pid: Pid, check_if_alive: bool) -> bool {
             return true;
         }
         // `kill` failed but it might not be because the process is dead.
-        let errno = libc::__error();
+        let errno = crate::libc_errno();
         // If errno is equal to ESCHR, it means the process is dead.
         !errno.is_null() && *errno != libc::ESRCH
     }
@@ -520,8 +547,10 @@ unsafe fn create_new_process(
     p.memory = task_info.pti_resident_size;
     p.virtual_memory = task_info.pti_virtual_size;
 
-    p.user_id = Some(Uid(info.pbi_uid));
-    p.group_id = Some(Gid(info.pbi_gid));
+    p.user_id = Some(Uid(info.pbi_ruid));
+    p.effective_user_id = Some(Uid(info.pbi_uid));
+    p.group_id = Some(Gid(info.pbi_rgid));
+    p.effective_group_id = Some(Gid(info.pbi_gid));
     p.process_status = ProcessStatus::from(info.pbi_status);
     if refresh_kind.disk_usage() {
         update_proc_disk_activity(&mut p);

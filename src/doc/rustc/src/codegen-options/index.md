@@ -569,20 +569,22 @@ for the purpose of generating object code and linking.
 
 Supported values for this option are:
 
-* `v0` — The "v0" mangling scheme. The specific format is not specified at
-  this time.
+* `v0` — The "v0" mangling scheme.
 
 The default, if not specified, will use a compiler-chosen default which may
 change in the future.
 
+See the [Symbol Mangling] chapter for details on symbol mangling and the mangling format.
+
 [name mangling]: https://en.wikipedia.org/wiki/Name_mangling
+[Symbol Mangling]: ../symbol-mangling/index.md
 
 ## target-cpu
 
 This instructs `rustc` to generate code specifically for a particular processor.
 
 You can run `rustc --print target-cpus` to see the valid options to pass
-and the default target CPU for the current buid target.
+and the default target CPU for the current build target.
 Each target has a default base CPU. Special values include:
 
 * `native` can be passed to use the processor of the host machine.

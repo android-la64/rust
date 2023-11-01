@@ -37,12 +37,12 @@ fn sized_constraint_for_ty<'tcx>(
             Some(&ty) => sized_constraint_for_ty(tcx, adtdef, ty),
         },
 
-        Adt(adt, substs) => {
+        Adt(adt, args) => {
             // recursive case
             let adt_tys = adt.sized_constraint(tcx);
             debug!("sized_constraint_for_ty({:?}) intermediate = {:?}", ty, adt_tys);
             adt_tys
-                .subst_iter_copied(tcx, substs)
+                .iter_instantiated(tcx, args)
                 .flat_map(|ty| sized_constraint_for_ty(tcx, adtdef, ty))
                 .collect()
         }
@@ -58,11 +58,18 @@ fn sized_constraint_for_ty<'tcx>(
             // we know that `T` is Sized and do not need to check
             // it on the impl.
 
-            let Some(sized_trait) = tcx.lang_items().sized_trait() else { return vec![ty] };
-            let sized_predicate =
-                ty::TraitRef::new(tcx, sized_trait, [ty]).without_const().to_predicate(tcx);
+            let Some(sized_trait_def_id) = tcx.lang_items().sized_trait() else { return vec![ty] };
             let predicates = tcx.predicates_of(adtdef.did()).predicates;
-            if predicates.iter().any(|(p, _)| *p == sized_predicate) { vec![] } else { vec![ty] }
+            if predicates.iter().any(|(p, _)| {
+                p.as_trait_clause().is_some_and(|trait_pred| {
+                    trait_pred.def_id() == sized_trait_def_id
+                        && trait_pred.self_ty().skip_binder() == ty
+                })
+            }) {
+                vec![]
+            } else {
+                vec![ty]
+            }
         }
 
         Placeholder(..) | Bound(..) | Infer(..) => {
@@ -92,24 +99,25 @@ fn defaultness(tcx: TyCtxt<'_>, def_id: LocalDefId) -> hir::Defaultness {
 ///     - a tuple of type parameters or projections, if there are multiple
 ///       such.
 ///     - an Error, if a type is infinitely sized
-fn adt_sized_constraint(tcx: TyCtxt<'_>, def_id: DefId) -> &[Ty<'_>] {
+fn adt_sized_constraint<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    def_id: DefId,
+) -> ty::EarlyBinder<&'tcx ty::List<Ty<'tcx>>> {
     if let Some(def_id) = def_id.as_local() {
         if matches!(tcx.representability(def_id), ty::Representability::Infinite) {
-            return tcx.mk_type_list(&[Ty::new_misc_error(tcx)]);
+            return ty::EarlyBinder::bind(tcx.mk_type_list(&[Ty::new_misc_error(tcx)]));
         }
     }
     let def = tcx.adt_def(def_id);
 
-    let result = tcx.mk_type_list_from_iter(
-        def.variants()
-            .iter()
-            .filter_map(|v| v.tail_opt())
-            .flat_map(|f| sized_constraint_for_ty(tcx, def, tcx.type_of(f.did).subst_identity())),
-    );
+    let result =
+        tcx.mk_type_list_from_iter(def.variants().iter().filter_map(|v| v.tail_opt()).flat_map(
+            |f| sized_constraint_for_ty(tcx, def, tcx.type_of(f.did).instantiate_identity()),
+        ));
 
     debug!("adt_sized_constraint: {:?} => {:?}", def, result);
 
-    result
+    ty::EarlyBinder::bind(result)
 }
 
 /// See `ParamEnv` struct definition for details.
@@ -131,9 +139,11 @@ fn param_env(tcx: TyCtxt<'_>, def_id: DefId) -> ty::ParamEnv<'_> {
     // sure that this will succeed without errors anyway.
 
     if tcx.def_kind(def_id) == DefKind::AssocFn
-        && tcx.associated_item(def_id).container == ty::AssocItemContainer::TraitContainer
+        && let assoc_item = tcx.associated_item(def_id)
+        && assoc_item.container == ty::AssocItemContainer::TraitContainer
+        && assoc_item.defaultness(tcx).has_value()
     {
-        let sig = tcx.fn_sig(def_id).subst_identity();
+        let sig = tcx.fn_sig(def_id).instantiate_identity();
         // We accounted for the binder of the fn sig, so skip the binder.
         sig.skip_binder().visit_with(&mut ImplTraitInTraitFinder {
             tcx,
@@ -146,85 +156,9 @@ fn param_env(tcx: TyCtxt<'_>, def_id: DefId) -> ty::ParamEnv<'_> {
     }
 
     let local_did = def_id.as_local();
-    // FIXME(-Zlower-impl-trait-in-trait-to-assoc-ty): This isn't correct for
-    // RPITITs in const trait fn.
-    let hir_id = local_did.and_then(|def_id| tcx.opt_local_def_id_to_hir_id(def_id));
-
-    // FIXME(consts): This is not exactly in line with the constness query.
-    let constness = match hir_id {
-        Some(hir_id) => match tcx.hir().get(hir_id) {
-            hir::Node::TraitItem(hir::TraitItem { kind: hir::TraitItemKind::Fn(..), .. })
-                if tcx.is_const_default_method(def_id) =>
-            {
-                hir::Constness::Const
-            }
-
-            hir::Node::Item(hir::Item { kind: hir::ItemKind::Const(..), .. })
-            | hir::Node::Item(hir::Item { kind: hir::ItemKind::Static(..), .. })
-            | hir::Node::TraitItem(hir::TraitItem {
-                kind: hir::TraitItemKind::Const(..), ..
-            })
-            | hir::Node::AnonConst(_)
-            | hir::Node::ConstBlock(_)
-            | hir::Node::ImplItem(hir::ImplItem { kind: hir::ImplItemKind::Const(..), .. })
-            | hir::Node::ImplItem(hir::ImplItem {
-                kind:
-                    hir::ImplItemKind::Fn(
-                        hir::FnSig {
-                            header: hir::FnHeader { constness: hir::Constness::Const, .. },
-                            ..
-                        },
-                        ..,
-                    ),
-                ..
-            }) => hir::Constness::Const,
-
-            hir::Node::ImplItem(hir::ImplItem {
-                kind: hir::ImplItemKind::Type(..) | hir::ImplItemKind::Fn(..),
-                ..
-            }) => {
-                let parent_hir_id = tcx.hir().parent_id(hir_id);
-                match tcx.hir().get(parent_hir_id) {
-                    hir::Node::Item(hir::Item {
-                        kind: hir::ItemKind::Impl(hir::Impl { constness, .. }),
-                        ..
-                    }) => *constness,
-                    _ => span_bug!(
-                        tcx.def_span(parent_hir_id.owner),
-                        "impl item's parent node is not an impl",
-                    ),
-                }
-            }
-
-            hir::Node::Item(hir::Item {
-                kind:
-                    hir::ItemKind::Fn(hir::FnSig { header: hir::FnHeader { constness, .. }, .. }, ..),
-                ..
-            })
-            | hir::Node::TraitItem(hir::TraitItem {
-                kind:
-                    hir::TraitItemKind::Fn(
-                        hir::FnSig { header: hir::FnHeader { constness, .. }, .. },
-                        ..,
-                    ),
-                ..
-            })
-            | hir::Node::Item(hir::Item {
-                kind: hir::ItemKind::Impl(hir::Impl { constness, .. }),
-                ..
-            }) => *constness,
-
-            _ => hir::Constness::NotConst,
-        },
-        // FIXME(consts): It's suspicious that a param-env for a foreign item
-        // will always have NotConst param-env, though we don't typically use
-        // that param-env for anything meaningful right now, so it's likely
-        // not an issue.
-        None => hir::Constness::NotConst,
-    };
 
     let unnormalized_env =
-        ty::ParamEnv::new(tcx.mk_clauses(&predicates), traits::Reveal::UserFacing, constness);
+        ty::ParamEnv::new(tcx.mk_clauses(&predicates), traits::Reveal::UserFacing);
 
     let body_id = local_did.unwrap_or(CRATE_DEF_ID);
     let cause = traits::ObligationCause::misc(tcx.def_span(def_id), body_id);
@@ -257,8 +191,10 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for ImplTraitInTraitFinder<'_, 'tcx> {
 
     fn visit_ty(&mut self, ty: Ty<'tcx>) -> std::ops::ControlFlow<Self::BreakTy> {
         if let ty::Alias(ty::Projection, unshifted_alias_ty) = *ty.kind()
-            && self.tcx.is_impl_trait_in_trait(unshifted_alias_ty.def_id)
-            && self.tcx.impl_trait_in_trait_parent_fn(unshifted_alias_ty.def_id) == self.fn_def_id
+            && let Some(ty::ImplTraitInTraitData::Trait { fn_def_id, .. }
+                    | ty::ImplTraitInTraitData::Impl { fn_def_id, .. })
+                = self.tcx.opt_rpitit_info(unshifted_alias_ty.def_id)
+            && fn_def_id == self.fn_def_id
             && self.seen.insert(unshifted_alias_ty.def_id)
         {
             // We have entered some binders as we've walked into the
@@ -282,11 +218,7 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for ImplTraitInTraitFinder<'_, 'tcx> {
             // If we're lowering to associated item, install the opaque type which is just
             // the `type_of` of the trait's associated item. If we're using the old lowering
             // strategy, then just reinterpret the associated type like an opaque :^)
-            let default_ty = if self.tcx.lower_impl_trait_in_trait_to_assoc_ty() {
-                self.tcx.type_of(shifted_alias_ty.def_id).subst(self.tcx, shifted_alias_ty.substs)
-            } else {
-                Ty::new_alias(self.tcx,ty::Opaque, shifted_alias_ty)
-            };
+            let default_ty = self.tcx.type_of(shifted_alias_ty.def_id).instantiate(self.tcx, shifted_alias_ty.args);
 
             self.predicates.push(
                 ty::Binder::bind_with_vars(
@@ -303,7 +235,7 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for ImplTraitInTraitFinder<'_, 'tcx> {
             for bound in self
                 .tcx
                 .item_bounds(unshifted_alias_ty.def_id)
-                .subst_iter(self.tcx, unshifted_alias_ty.substs)
+                .iter_instantiated(self.tcx, unshifted_alias_ty.args)
             {
                 bound.visit_with(self);
             }
@@ -315,22 +247,6 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for ImplTraitInTraitFinder<'_, 'tcx> {
 
 fn param_env_reveal_all_normalized(tcx: TyCtxt<'_>, def_id: DefId) -> ty::ParamEnv<'_> {
     tcx.param_env(def_id).with_reveal_all_normalized(tcx)
-}
-
-fn instance_def_size_estimate<'tcx>(
-    tcx: TyCtxt<'tcx>,
-    instance_def: ty::InstanceDef<'tcx>,
-) -> usize {
-    use ty::InstanceDef;
-
-    match instance_def {
-        InstanceDef::Item(..) | InstanceDef::DropGlue(..) => {
-            let mir = tcx.instance_mir(instance_def);
-            mir.basic_blocks.iter().map(|bb| bb.statements.len() + 1).sum()
-        }
-        // Estimate the size of other compiler-generated shims to be 1.
-        _ => 1,
-    }
 }
 
 /// If `def_id` is an issue 33140 hack impl, returns its self type; otherwise, returns `None`.
@@ -356,8 +272,8 @@ fn issue33140_self_ty(tcx: TyCtxt<'_>, def_id: DefId) -> Option<EarlyBinder<Ty<'
     }
 
     // impl must be `impl Trait for dyn Marker1 + Marker2 + ...`
-    if trait_ref.substs.len() != 1 {
-        debug!("issue33140_self_ty - impl has substs!");
+    if trait_ref.args.len() != 1 {
+        debug!("issue33140_self_ty - impl has args!");
         return None;
     }
 
@@ -408,14 +324,12 @@ fn unsizing_params_for_adt<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId) -> BitSet<u32
     };
 
     // The last field of the structure has to exist and contain type/const parameters.
-    let Some((tail_field, prefix_fields)) =
-        def.non_enum_variant().fields.raw.split_last() else
-    {
+    let Some((tail_field, prefix_fields)) = def.non_enum_variant().fields.raw.split_last() else {
         return BitSet::new_empty(num_params);
     };
 
     let mut unsizing_params = BitSet::new_empty(num_params);
-    for arg in tcx.type_of(tail_field.did).subst_identity().walk() {
+    for arg in tcx.type_of(tail_field.did).instantiate_identity().walk() {
         if let Some(i) = maybe_unsizing_param_idx(arg) {
             unsizing_params.insert(i);
         }
@@ -424,7 +338,7 @@ fn unsizing_params_for_adt<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId) -> BitSet<u32
     // Ensure none of the other fields mention the parameters used
     // in unsizing.
     for field in prefix_fields {
-        for arg in tcx.type_of(field.did).subst_identity().walk() {
+        for arg in tcx.type_of(field.did).instantiate_identity().walk() {
             if let Some(i) = maybe_unsizing_param_idx(arg) {
                 unsizing_params.remove(i);
             }
@@ -440,7 +354,6 @@ pub fn provide(providers: &mut Providers) {
         adt_sized_constraint,
         param_env,
         param_env_reveal_all_normalized,
-        instance_def_size_estimate,
         issue33140_self_ty,
         defaultness,
         unsizing_params_for_adt,

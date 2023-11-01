@@ -65,6 +65,7 @@ mod declared_lints;
 mod renamed_lints;
 
 // begin lints modules, do not remove this comment, it’s used in `update_lints`
+mod absolute_paths;
 mod allow_attributes;
 mod almost_complete_range;
 mod approx_const;
@@ -120,6 +121,7 @@ mod entry;
 mod enum_clike;
 mod enum_variants;
 mod equatable_if_let;
+mod error_impl_error;
 mod escape;
 mod eta_reduction;
 mod excessive_bools;
@@ -131,12 +133,12 @@ mod extra_unused_type_parameters;
 mod fallible_impl_from;
 mod float_literal;
 mod floating_point_arithmetic;
-mod fn_null_check;
 mod format;
 mod format_args;
 mod format_impl;
 mod format_push_string;
 mod formatting;
+mod four_forward_slashes;
 mod from_over_into;
 mod from_raw_with_void_ptr;
 mod from_str_radix_10;
@@ -145,6 +147,7 @@ mod future_not_send;
 mod if_let_mutex;
 mod if_not_else;
 mod if_then_some_else_none;
+mod ignored_unit_patterns;
 mod implicit_hasher;
 mod implicit_return;
 mod implicit_saturating_add;
@@ -184,6 +187,7 @@ mod manual_assert;
 mod manual_async_fn;
 mod manual_bits;
 mod manual_clamp;
+mod manual_float_methods;
 mod manual_is_ascii_check;
 mod manual_let_else;
 mod manual_main_separator_str;
@@ -229,6 +233,7 @@ mod needless_for_each;
 mod needless_if;
 mod needless_late_init;
 mod needless_parens_on_range_literals;
+mod needless_pass_by_ref_mut;
 mod needless_pass_by_value;
 mod needless_question_mark;
 mod needless_update;
@@ -271,6 +276,7 @@ mod redundant_clone;
 mod redundant_closure_call;
 mod redundant_else;
 mod redundant_field_names;
+mod redundant_locals;
 mod redundant_pub_crate;
 mod redundant_slicing;
 mod redundant_static_lifetimes;
@@ -346,11 +352,10 @@ mod zero_div_zero;
 mod zero_sized_map_values;
 // end lints modules, do not remove this comment, it’s used in `update_lints`
 
+use crate::utils::conf::metadata::get_configuration_metadata;
+use crate::utils::conf::TryConf;
 pub use crate::utils::conf::{lookup_conf_file, Conf};
-use crate::utils::{
-    conf::{metadata::get_configuration_metadata, TryConf},
-    FindAll,
-};
+use crate::utils::FindAll;
 
 /// Register all pre expansion lints
 ///
@@ -663,7 +668,6 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     });
     store.register_late_pass(move |_| Box::new(matches::Matches::new(msrv())));
     let matches_for_let_else = conf.matches_for_let_else;
-    store.register_late_pass(move |_| Box::new(manual_let_else::ManualLetElse::new(msrv(), matches_for_let_else)));
     store.register_early_pass(move || Box::new(manual_non_exhaustive::ManualNonExhaustiveStruct::new(msrv())));
     store.register_late_pass(move |_| Box::new(manual_non_exhaustive::ManualNonExhaustiveEnum::new(msrv())));
     store.register_late_pass(move |_| Box::new(manual_strip::ManualStrip::new(msrv())));
@@ -723,7 +727,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|_| Box::new(drop_forget_ref::DropForgetRef));
     store.register_late_pass(|_| Box::new(empty_enum::EmptyEnum));
     store.register_late_pass(|_| Box::new(invalid_upcast_comparisons::InvalidUpcastComparisons));
-    store.register_late_pass(|_| Box::new(regex::Regex));
+    store.register_late_pass(|_| Box::<regex::Regex>::default());
     let ignore_interior_mutability = conf.ignore_interior_mutability.clone();
     store.register_late_pass(move |_| Box::new(copies::CopyAndPaste::new(ignore_interior_mutability.clone())));
     store.register_late_pass(|_| Box::new(copy_iterator::CopyIterator));
@@ -772,7 +776,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|_| Box::<useless_conversion::UselessConversion>::default());
     store.register_late_pass(|_| Box::new(implicit_hasher::ImplicitHasher));
     store.register_late_pass(|_| Box::new(fallible_impl_from::FallibleImplFrom));
-    store.register_late_pass(|_| Box::<question_mark::QuestionMark>::default());
+    store.register_late_pass(move |_| Box::new(question_mark::QuestionMark::new(msrv(), matches_for_let_else)));
     store.register_late_pass(|_| Box::new(question_mark_used::QuestionMarkUsed));
     store.register_early_pass(|| Box::new(suspicious_operation_groupings::SuspiciousOperationGroupings));
     store.register_late_pass(|_| Box::new(suspicious_trait_impl::SuspiciousImpl));
@@ -910,7 +914,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(move |_| Box::new(if_then_some_else_none::IfThenSomeElseNone::new(msrv())));
     store.register_late_pass(|_| Box::new(bool_assert_comparison::BoolAssertComparison));
     store.register_early_pass(move || Box::new(module_style::ModStyle));
-    store.register_late_pass(|_| Box::new(unused_async::UnusedAsync));
+    store.register_late_pass(|_| Box::<unused_async::UnusedAsync>::default());
     let disallowed_types = conf.disallowed_types.clone();
     store.register_late_pass(move |_| Box::new(disallowed_types::DisallowedTypes::new(disallowed_types.clone())));
     let import_renames = conf.enforced_import_renames.clone();
@@ -1003,7 +1007,6 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
             semicolon_outside_block_ignore_multiline,
         ))
     });
-    store.register_late_pass(|_| Box::new(fn_null_check::FnNullCheck));
     store.register_late_pass(|_| Box::new(permissions_set_readonly_false::PermissionsSetReadonlyFalse));
     store.register_late_pass(|_| Box::new(size_of_ref::SizeOfRef));
     store.register_late_pass(|_| Box::new(multiple_unsafe_ops_per_block::MultipleUnsafeOpsPerBlock));
@@ -1058,6 +1061,11 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     let stack_size_threshold = conf.stack_size_threshold;
     store.register_late_pass(move |_| Box::new(large_stack_frames::LargeStackFrames::new(stack_size_threshold)));
     store.register_late_pass(|_| Box::new(single_range_in_vec_init::SingleRangeInVecInit));
+    store.register_late_pass(move |_| {
+        Box::new(needless_pass_by_ref_mut::NeedlessPassByRefMut::new(
+            avoid_breaking_exported_api,
+        ))
+    });
     store.register_late_pass(|_| Box::new(incorrect_impls::IncorrectImpls));
     store.register_late_pass(move |_| {
         Box::new(single_call_fn::SingleCallFn {
@@ -1074,6 +1082,19 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|_| Box::new(manual_range_patterns::ManualRangePatterns));
     store.register_early_pass(|| Box::new(visibility::Visibility));
     store.register_late_pass(move |_| Box::new(tuple_array_conversions::TupleArrayConversions { msrv: msrv() }));
+    store.register_late_pass(|_| Box::new(manual_float_methods::ManualFloatMethods));
+    store.register_late_pass(|_| Box::new(four_forward_slashes::FourForwardSlashes));
+    store.register_late_pass(|_| Box::new(error_impl_error::ErrorImplError));
+    let absolute_paths_max_segments = conf.absolute_paths_max_segments;
+    let absolute_paths_allowed_crates = conf.absolute_paths_allowed_crates.clone();
+    store.register_late_pass(move |_| {
+        Box::new(absolute_paths::AbsolutePaths {
+            absolute_paths_max_segments,
+            absolute_paths_allowed_crates: absolute_paths_allowed_crates.clone(),
+        })
+    });
+    store.register_late_pass(|_| Box::new(redundant_locals::RedundantLocals));
+    store.register_late_pass(|_| Box::new(ignored_unit_patterns::IgnoredUnitPatterns));
     // add lints here, do not remove this comment, it's used in `new_lint`
 }
 

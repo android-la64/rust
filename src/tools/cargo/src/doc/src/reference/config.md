@@ -132,6 +132,7 @@ panic = 'unwind'         # The panic strategy.
 incremental = true       # Incremental compilation.
 codegen-units = 16       # Number of code generation units.
 rpath = false            # Sets the rpath linking option.
+strip = "none"           # Removes symbols or debuginfo.
 [profile.<name>.build-override]  # Overrides build-script settings.
 # Same keys for a normal profile.
 [profile.<name>.package.<name>]  # Override profile for a package.
@@ -316,6 +317,12 @@ variables. The token for [crates.io] may be specified with the
 be specified with environment variables of the form
 `CARGO_REGISTRIES_<name>_TOKEN` where `<name>` is the name of the registry in
 all capital letters.
+
+> **Note:** Cargo also reads and writes credential files without the `.toml`
+> extension, such as `.cargo/credentials`. Support for the `.toml` extension
+> was added in version 1.39. In version 1.68, Cargo writes to the file with the
+> extension by default. However, for backward compatibility reason, when both
+> files exist, Cargo will read and write the file without the extension.
 
 ### Configuration keys
 
@@ -907,6 +914,13 @@ See [panic](profiles.md#panic).
 * Environment: `CARGO_PROFILE_<name>_RPATH`
 
 See [rpath](profiles.md#rpath).
+
+##### `profile.<name>.strip`
+* Type: string
+* default: See profile docs.
+* Environment: `CARGO_PROFILE_<name>_STRIP`
+
+See [strip](profiles.md#strip).
 
 
 #### `[registries]`

@@ -366,10 +366,10 @@ use std::time::SystemTime;
 use anyhow::{bail, format_err, Context as _};
 use cargo_util::{paths, ProcessBuilder};
 use filetime::FileTime;
-use log::{debug, info};
 use serde::de;
 use serde::ser;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, info};
 
 use crate::core::compiler::unit_graph::UnitDep;
 use crate::core::Package;
@@ -1815,7 +1815,7 @@ pub fn parse_dep_info(
     let info = match EncodedDepInfo::parse(&data) {
         Some(info) => info,
         None => {
-            log::warn!("failed to parse cargo's dep-info at {:?}", dep_info);
+            tracing::warn!("failed to parse cargo's dep-info at {:?}", dep_info);
             return Ok(None);
         }
     };
@@ -1857,14 +1857,27 @@ where
         Err(..) => return Some(StaleItem::MissingFile(reference.to_path_buf())),
     };
 
+    let skipable_dirs = if let Ok(cargo_home) = home::cargo_home() {
+        let skipable_dirs: Vec<_> = ["git", "registry"]
+            .into_iter()
+            .map(|subfolder| cargo_home.join(subfolder))
+            .collect();
+        Some(skipable_dirs)
+    } else {
+        None
+    };
+
     for path in paths {
         let path = path.as_ref();
 
-        // Assuming anything in cargo_home is immutable (see also #9455 about marking it readonly)
-        // which avoids rebuilds when CI caches $CARGO_HOME/registry/{index, cache} and
-        // $CARGO_HOME/git/db across runs, keeping the content the same but changing the mtime.
-        if let Ok(true) = home::cargo_home().map(|home| path.starts_with(home)) {
-            continue;
+        // Assuming anything in cargo_home/{git, registry} is immutable
+        // (see also #9455 about marking the src directory readonly) which avoids rebuilds when CI
+        // caches $CARGO_HOME/registry/{index, cache} and $CARGO_HOME/git/db across runs, keeping
+        // the content the same but changing the mtime.
+        if let Some(ref skipable_dirs) = skipable_dirs {
+            if skipable_dirs.iter().any(|dir| path.starts_with(dir)) {
+                continue;
+            }
         }
         let path_mtime = match mtime_cache.entry(path.to_path_buf()) {
             Entry::Occupied(o) => *o.get(),

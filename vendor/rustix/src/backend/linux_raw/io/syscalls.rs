@@ -10,7 +10,12 @@
 use crate::backend::conv::loff_t_from_u64;
 #[cfg(all(
     target_pointer_width = "32",
-    any(target_arch = "arm", target_arch = "mips", target_arch = "power"),
+    any(
+        target_arch = "arm",
+        target_arch = "mips",
+        target_arch = "mips32r6",
+        target_arch = "power"
+    ),
 ))]
 use crate::backend::conv::zero;
 use crate::backend::conv::{
@@ -26,8 +31,6 @@ use crate::io::{self, DupFlags, FdFlags, IoSlice, IoSliceMut, ReadWriteFlags};
 use crate::net::{RecvFlags, SendFlags};
 use core::cmp;
 use core::mem::MaybeUninit;
-#[cfg(target_os = "espidf")]
-use linux_raw_sys::general::F_DUPFD;
 use linux_raw_sys::general::{F_DUPFD_CLOEXEC, F_GETFD, F_SETFD};
 use linux_raw_sys::ioctl::{FIONBIO, FIONREAD};
 
@@ -45,7 +48,12 @@ pub(crate) fn pread(fd: BorrowedFd<'_>, buf: &mut [u8], pos: u64) -> io::Result<
     // <https://github.com/torvalds/linux/blob/fcadab740480e0e0e9fa9bd272acd409884d431a/arch/arm64/kernel/sys32.c#L75>
     #[cfg(all(
         target_pointer_width = "32",
-        any(target_arch = "arm", target_arch = "mips", target_arch = "power"),
+        any(
+            target_arch = "arm",
+            target_arch = "mips",
+            target_arch = "mips32r6",
+            target_arch = "power"
+        ),
     ))]
     unsafe {
         ret_usize(syscall!(
@@ -60,7 +68,12 @@ pub(crate) fn pread(fd: BorrowedFd<'_>, buf: &mut [u8], pos: u64) -> io::Result<
     }
     #[cfg(all(
         target_pointer_width = "32",
-        not(any(target_arch = "arm", target_arch = "mips", target_arch = "power")),
+        not(any(
+            target_arch = "arm",
+            target_arch = "mips",
+            target_arch = "mips32r6",
+            target_arch = "power"
+        )),
     ))]
     unsafe {
         ret_usize(syscall!(
@@ -170,7 +183,12 @@ pub(crate) fn pwrite(fd: BorrowedFd<'_>, buf: &[u8], pos: u64) -> io::Result<usi
     // <https://github.com/torvalds/linux/blob/fcadab740480e0e0e9fa9bd272acd409884d431a/arch/arm64/kernel/sys32.c#L81-L83>
     #[cfg(all(
         target_pointer_width = "32",
-        any(target_arch = "arm", target_arch = "mips", target_arch = "power"),
+        any(
+            target_arch = "arm",
+            target_arch = "mips",
+            target_arch = "mips32r6",
+            target_arch = "power"
+        ),
     ))]
     unsafe {
         ret_usize(syscall_readonly!(
@@ -185,7 +203,12 @@ pub(crate) fn pwrite(fd: BorrowedFd<'_>, buf: &[u8], pos: u64) -> io::Result<usi
     }
     #[cfg(all(
         target_pointer_width = "32",
-        not(any(target_arch = "arm", target_arch = "mips", target_arch = "power")),
+        not(any(
+            target_arch = "arm",
+            target_arch = "mips",
+            target_arch = "mips32r6",
+            target_arch = "power"
+        )),
     ))]
     unsafe {
         ret_usize(syscall_readonly!(
@@ -339,10 +362,7 @@ pub(crate) fn is_read_write(fd: BorrowedFd<'_>) -> io::Result<(bool, bool)> {
         // the write side is shut down.
         #[allow(unreachable_patterns)] // `EAGAIN` equals `EWOULDBLOCK`
         match crate::backend::net::syscalls::send(fd, &[], SendFlags::DONTWAIT) {
-            // TODO or-patterns when we don't need 1.51
-            Err(io::Errno::AGAIN) => (),
-            Err(io::Errno::WOULDBLOCK) => (),
-            Err(io::Errno::NOTSOCK) => (),
+            Err(io::Errno::AGAIN | io::Errno::WOULDBLOCK | io::Errno::NOTSOCK) => (),
             Err(io::Errno::PIPE) => write = false,
             Err(err) => return Err(err),
             Ok(_) => (),
@@ -400,29 +420,6 @@ pub(crate) fn fcntl_setfd(fd: BorrowedFd<'_>, flags: FdFlags) -> io::Result<()> 
     #[cfg(target_pointer_width = "64")]
     unsafe {
         ret(syscall_readonly!(__NR_fcntl, fd, c_uint(F_SETFD), flags))
-    }
-}
-
-#[cfg(target_os = "espidf")]
-#[inline]
-pub(crate) fn fcntl_dupfd(fd: BorrowedFd<'_>, min: RawFd) -> io::Result<OwnedFd> {
-    #[cfg(target_pointer_width = "32")]
-    unsafe {
-        ret_owned_fd(syscall_readonly!(
-            __NR_fcntl64,
-            fd,
-            c_uint(F_DUPFD),
-            raw_fd(min)
-        ))
-    }
-    #[cfg(target_pointer_width = "64")]
-    unsafe {
-        ret_owned_fd(syscall_readonly!(
-            __NR_fcntl,
-            fd,
-            c_uint(F_DUPFD),
-            raw_fd(min)
-        ))
     }
 }
 

@@ -39,7 +39,7 @@ fn main() {
 
     if !Path::new("curl/.git").exists() {
         let _ = Command::new("git")
-            .args(&["submodule", "update", "--init"])
+            .args(&["submodule", "update", "--init", "curl"])
             .status();
     }
 
@@ -100,7 +100,7 @@ fn main() {
             .replace("@LIBCURL_LIBS@", "")
             .replace("@SUPPORT_FEATURES@", "")
             .replace("@SUPPORT_PROTOCOLS@", "")
-            .replace("@CURLVERSION@", "8.1.2"),
+            .replace("@CURLVERSION@", "8.2.1"),
     )
     .unwrap();
 
@@ -180,6 +180,7 @@ fn main() {
         .file("curl/lib/llist.c")
         .file("curl/lib/md5.c")
         .file("curl/lib/mime.c")
+        .file("curl/lib/macos.c")
         .file("curl/lib/mprintf.c")
         .file("curl/lib/mqtt.c")
         .file("curl/lib/multi.c")

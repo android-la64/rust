@@ -26,7 +26,7 @@ use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::fmt::Debug;
 use hashbrown::{HashMap, HashSet};
-use smallvec::SmallVec;
+use smallvec::{smallvec, SmallVec};
 
 /// A range from `from` (inclusive) to `to` (exclusive).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,7 +38,7 @@ pub struct CodeRange {
 impl CodeRange {
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
-        self.from == self.to
+        self.from >= self.to
     }
     #[inline(always)]
     pub fn contains(&self, other: &Self) -> bool {
@@ -64,6 +64,15 @@ impl CodeRange {
             to: pos.next(),
         }
     }
+
+    /// Join two [CodeRange] values together, producing a [CodeRange] that includes both.
+    #[inline(always)]
+    pub fn join(&self, other: CodeRange) -> Self {
+        CodeRange {
+            from: self.from.min(other.from),
+            to: self.to.max(other.to),
+        }
+    }
 }
 
 impl core::cmp::PartialOrd for CodeRange {
@@ -85,11 +94,11 @@ impl core::cmp::Ord for CodeRange {
     }
 }
 
-define_index!(LiveBundleIndex);
-define_index!(LiveRangeIndex);
-define_index!(SpillSetIndex);
+define_index!(LiveBundleIndex, LiveBundles, LiveBundle);
+define_index!(LiveRangeIndex, LiveRanges, LiveRange);
+define_index!(SpillSetIndex, SpillSets, SpillSet);
 define_index!(UseIndex);
-define_index!(VRegIndex);
+define_index!(VRegIndex, VRegs, VRegData);
 define_index!(PRegIndex);
 define_index!(SpillSlotIndex);
 
@@ -114,8 +123,6 @@ pub struct LiveRange {
     pub uses_spill_weight_and_flags: u32,
 
     pub uses: UseList,
-
-    pub merged_into: LiveRangeIndex,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -153,6 +160,9 @@ impl LiveRange {
     }
     #[inline(always)]
     pub fn uses_spill_weight(&self) -> SpillWeight {
+        // NOTE: the spill weight is technically stored in 29 bits, but we ignore the sign bit as
+        // we will always be dealing with positive values. Thus we mask out the top 3 bits to
+        // ensure that the sign bit is clear, then shift left by only two.
         let bits = (self.uses_spill_weight_and_flags & 0x1fff_ffff) << 2;
         SpillWeight::from_f32(f32::from_bits(bits))
     }
@@ -285,17 +295,21 @@ const fn no_bloat_capacity<T>() -> usize {
 
 #[derive(Clone, Debug)]
 pub struct SpillSet {
-    pub vregs: SmallVec<[VRegIndex; no_bloat_capacity::<VRegIndex>()]>,
     pub slot: SpillSlotIndex,
     pub reg_hint: PReg,
     pub class: RegClass,
     pub spill_bundle: LiveBundleIndex,
     pub required: bool,
-    pub size: u8,
     pub splits: u8,
+
+    /// The aggregate [`CodeRange`] of all involved [`LiveRange`]s. The effect of this abstraction
+    /// is that we attempt to allocate one spill slot for the extent of a bundle. For fragmented
+    /// bundles with lots of open space this abstraction is pessimistic, but when bundles are small
+    /// or dense this yields similar results to tracking individual live ranges.
+    pub range: CodeRange,
 }
 
-pub(crate) const MAX_SPLITS_PER_SPILLSET: u8 = 10;
+pub(crate) const MAX_SPLITS_PER_SPILLSET: u8 = 2;
 
 #[derive(Clone, Debug)]
 pub struct VRegData {
@@ -381,6 +395,55 @@ impl BlockparamIn {
     }
 }
 
+impl LiveRanges {
+    pub fn add(&mut self, range: CodeRange) -> LiveRangeIndex {
+        self.push(LiveRange {
+            range,
+            vreg: VRegIndex::invalid(),
+            bundle: LiveBundleIndex::invalid(),
+            uses_spill_weight_and_flags: 0,
+
+            uses: smallvec![],
+        })
+    }
+}
+
+impl LiveBundles {
+    pub fn add(&mut self) -> LiveBundleIndex {
+        self.push(LiveBundle {
+            allocation: Allocation::none(),
+            ranges: smallvec![],
+            spillset: SpillSetIndex::invalid(),
+            prio: 0,
+            spill_weight_and_props: 0,
+        })
+    }
+}
+
+impl VRegs {
+    pub fn add(&mut self, reg: VReg, data: VRegData) -> VRegIndex {
+        let idx = self.push(data);
+        debug_assert_eq!(reg.vreg(), idx.index());
+        idx
+    }
+}
+
+impl core::ops::Index<VReg> for VRegs {
+    type Output = VRegData;
+
+    #[inline(always)]
+    fn index(&self, idx: VReg) -> &Self::Output {
+        &self.storage[idx.vreg()]
+    }
+}
+
+impl core::ops::IndexMut<VReg> for VRegs {
+    #[inline(always)]
+    fn index_mut(&mut self, idx: VReg) -> &mut Self::Output {
+        &mut self.storage[idx.vreg()]
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Env<'a, F: Function> {
     pub func: &'a F,
@@ -391,10 +454,10 @@ pub struct Env<'a, F: Function> {
     pub blockparam_outs: Vec<BlockparamOut>,
     pub blockparam_ins: Vec<BlockparamIn>,
 
-    pub ranges: Vec<LiveRange>,
-    pub bundles: Vec<LiveBundle>,
-    pub spillsets: Vec<SpillSet>,
-    pub vregs: Vec<VRegData>,
+    pub ranges: LiveRanges,
+    pub bundles: LiveBundles,
+    pub spillsets: SpillSets,
+    pub vregs: VRegs,
     pub pregs: Vec<PRegData>,
     pub allocation_queue: PrioQueue,
     pub safepoints: Vec<Inst>, // Sorted list of safepoint insts.
@@ -402,7 +465,7 @@ pub struct Env<'a, F: Function> {
 
     pub spilled_bundles: Vec<LiveBundleIndex>,
     pub spillslots: Vec<SpillSlotData>,
-    pub slots_by_size: Vec<SpillSlotList>,
+    pub slots_by_class: [SpillSlotList; 3],
 
     pub extra_spillslots_by_class: [SmallVec<[Allocation; 2]>; 3],
     pub preferred_victim_by_class: [PReg; 3],
@@ -417,10 +480,7 @@ pub struct Env<'a, F: Function> {
     // was to the approprate PReg.
     pub multi_fixed_reg_fixups: Vec<MultiFixedRegFixup>,
 
-    pub inserted_moves: Vec<InsertedMove>,
-
     // Output:
-    pub edits: Vec<(PosWithPrio, Edit)>,
     pub allocs: Vec<Allocation>,
     pub inst_alloc_offsets: Vec<u32>,
     pub num_spillslots: u32,
@@ -445,7 +505,7 @@ impl<'a, F: Function> Env<'a, F> {
     /// Get the VReg (with bundled RegClass) from a vreg index.
     #[inline]
     pub fn vreg(&self, index: VRegIndex) -> VReg {
-        let class = self.vregs[index.index()]
+        let class = self.vregs[index]
             .class
             .expect("trying to get a VReg before observing its class");
         VReg::new(index.index(), class)
@@ -454,7 +514,7 @@ impl<'a, F: Function> Env<'a, F> {
     /// Record the class of a VReg. We learn this only when we observe
     /// the VRegs in use.
     pub fn observe_vreg_class(&mut self, vreg: VReg) {
-        let old_class = self.vregs[vreg.vreg()].class.replace(vreg.class());
+        let old_class = self.vregs[vreg].class.replace(vreg.class());
         // We should never observe two different classes for two
         // mentions of a VReg in the source program.
         debug_assert!(old_class == None || old_class == Some(vreg.class()));
@@ -462,13 +522,26 @@ impl<'a, F: Function> Env<'a, F> {
 
     /// Is this vreg actually used in the source program?
     pub fn is_vreg_used(&self, index: VRegIndex) -> bool {
-        self.vregs[index.index()].class.is_some()
+        self.vregs[index].class.is_some()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SpillSetRanges {
+    pub btree: BTreeMap<LiveRangeKey, SpillSetIndex>,
+}
+
+impl SpillSetRanges {
+    pub fn new() -> Self {
+        Self {
+            btree: BTreeMap::new(),
+        }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct SpillSlotData {
-    pub ranges: LiveRangeSet,
+    pub ranges: SpillSetRanges,
     pub slots: u32,
     pub alloc: Allocation,
 }
@@ -480,6 +553,13 @@ pub struct SpillSlotList {
 }
 
 impl SpillSlotList {
+    pub fn new() -> Self {
+        SpillSlotList {
+            slots: smallvec![],
+            probe_start: 0,
+        }
+    }
+
     /// Get the next spillslot index in probing order, wrapping around
     /// at the end of the slots list.
     pub(crate) fn next_index(&self, index: usize) -> usize {
@@ -620,6 +700,95 @@ pub enum InsertMovePrio {
     MultiFixedRegSecondary,
     ReusedInput,
     OutEdgeMoves,
+}
+
+#[derive(Debug, Default)]
+pub struct InsertedMoves {
+    pub moves: Vec<InsertedMove>,
+}
+
+impl InsertedMoves {
+    pub fn push(
+        &mut self,
+        pos: ProgPoint,
+        prio: InsertMovePrio,
+        from_alloc: Allocation,
+        to_alloc: Allocation,
+        to_vreg: VReg,
+    ) {
+        trace!(
+            "insert_move: pos {:?} prio {:?} from_alloc {:?} to_alloc {:?} to_vreg {:?}",
+            pos,
+            prio,
+            from_alloc,
+            to_alloc,
+            to_vreg
+        );
+        if from_alloc == to_alloc {
+            trace!(" -> skipping move with same source and  dest");
+            return;
+        }
+        if let Some(from) = from_alloc.as_reg() {
+            debug_assert_eq!(from.class(), to_vreg.class());
+        }
+        if let Some(to) = to_alloc.as_reg() {
+            debug_assert_eq!(to.class(), to_vreg.class());
+        }
+        self.moves.push(InsertedMove {
+            pos_prio: PosWithPrio {
+                pos,
+                prio: prio as u32,
+            },
+            from_alloc,
+            to_alloc,
+            to_vreg,
+        });
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Edits {
+    edits: Vec<(PosWithPrio, Edit)>,
+}
+
+impl Edits {
+    #[inline(always)]
+    pub fn with_capacity(n: usize) -> Self {
+        Self {
+            edits: Vec::with_capacity(n),
+        }
+    }
+
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        self.edits.len()
+    }
+
+    #[inline(always)]
+    pub fn iter(&self) -> impl Iterator<Item = &(PosWithPrio, Edit)> {
+        self.edits.iter()
+    }
+
+    #[inline(always)]
+    pub fn into_edits(self) -> impl Iterator<Item = (ProgPoint, Edit)> {
+        self.edits.into_iter().map(|(pos, edit)| (pos.pos, edit))
+    }
+
+    /// Sort edits by the combination of their program position and priority. This is a stable sort
+    /// to preserve the order of the moves the parallel move resolver inserts.
+    #[inline(always)]
+    pub fn sort(&mut self) {
+        self.edits.sort_by_key(|&(pos_prio, _)| pos_prio.key());
+    }
+
+    pub fn add(&mut self, pos_prio: PosWithPrio, from: Allocation, to: Allocation) {
+        if from != to {
+            if from.is_reg() && to.is_reg() {
+                debug_assert_eq!(from.as_reg().unwrap().class(), to.as_reg().unwrap().class());
+            }
+            self.edits.push((pos_prio, Edit::Move { from, to }));
+        }
+    }
 }
 
 /// The fields in this struct are reversed in sort order so that the entire

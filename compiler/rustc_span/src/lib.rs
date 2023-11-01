@@ -23,6 +23,7 @@
 #![feature(round_char_boundary)]
 #![deny(rustc::untranslatable_diagnostic)]
 #![deny(rustc::diagnostic_outside_of_impl)]
+#![cfg_attr(not(bootstrap), allow(internal_features))]
 
 #[macro_use]
 extern crate rustc_macros;
@@ -605,7 +606,7 @@ impl Span {
         // FIXME: If this span comes from a `derive` macro but it points at code the user wrote,
         // the callsite span and the span will be pointing at different places. It also means that
         // we can safely provide suggestions on this span.
-            || (matches!(self.ctxt().outer_expn_data().kind, ExpnKind::Macro(MacroKind::Derive, _))
+            || (self.in_derive_expansion()
                 && self.parent_callsite().map(|p| (p.lo(), p.hi())) != Some((self.lo(), self.hi())))
     }
 
@@ -685,6 +686,12 @@ impl Span {
     }
 
     /// Walk down the expansion ancestors to find a span that's contained within `outer`.
+    ///
+    /// The span returned by this method may have a different [`SyntaxContext`] as `outer`.
+    /// If you need to extend the span, use [`find_ancestor_inside_same_ctxt`] instead,
+    /// because joining spans with different syntax contexts can create unexpected results.
+    ///
+    /// [`find_ancestor_inside_same_ctxt`]: Self::find_ancestor_inside_same_ctxt
     pub fn find_ancestor_inside(mut self, outer: Span) -> Option<Span> {
         while !outer.contains(self) {
             self = self.parent_callsite()?;
@@ -692,11 +699,34 @@ impl Span {
         Some(self)
     }
 
-    /// Like `find_ancestor_inside`, but specifically for when spans might not
-    /// overlaps. Take care when using this, and prefer `find_ancestor_inside`
-    /// when you know that the spans are nested (modulo macro expansion).
+    /// Walk down the expansion ancestors to find a span with the same [`SyntaxContext`] as
+    /// `other`.
+    ///
+    /// Like [`find_ancestor_inside_same_ctxt`], but specifically for when spans might not
+    /// overlap. Take care when using this, and prefer [`find_ancestor_inside`] or
+    /// [`find_ancestor_inside_same_ctxt`] when you know that the spans are nested (modulo
+    /// macro expansion).
+    ///
+    /// [`find_ancestor_inside`]: Self::find_ancestor_inside
+    /// [`find_ancestor_inside_same_ctxt`]: Self::find_ancestor_inside_same_ctxt
     pub fn find_ancestor_in_same_ctxt(mut self, other: Span) -> Option<Span> {
-        while !Span::eq_ctxt(self, other) {
+        while !self.eq_ctxt(other) {
+            self = self.parent_callsite()?;
+        }
+        Some(self)
+    }
+
+    /// Walk down the expansion ancestors to find a span that's contained within `outer` and
+    /// has the same [`SyntaxContext`] as `outer`.
+    ///
+    /// This method is the combination of [`find_ancestor_inside`] and
+    /// [`find_ancestor_in_same_ctxt`] and should be preferred when extending the returned span.
+    /// If you do not need to modify the span, use [`find_ancestor_inside`] instead.
+    ///
+    /// [`find_ancestor_inside`]: Self::find_ancestor_inside
+    /// [`find_ancestor_in_same_ctxt`]: Self::find_ancestor_in_same_ctxt
+    pub fn find_ancestor_inside_same_ctxt(mut self, outer: Span) -> Option<Span> {
+        while !outer.contains(self) || !self.eq_ctxt(outer) {
             self = self.parent_callsite()?;
         }
         Some(self)
@@ -707,24 +737,28 @@ impl Span {
         self.ctxt().edition()
     }
 
+    /// Is this edition 2015?
     #[inline]
     pub fn is_rust_2015(self) -> bool {
         self.edition().is_rust_2015()
     }
 
+    /// Are we allowed to use features from the Rust 2018 edition?
     #[inline]
-    pub fn rust_2018(self) -> bool {
-        self.edition().rust_2018()
+    pub fn at_least_rust_2018(self) -> bool {
+        self.edition().at_least_rust_2018()
     }
 
+    /// Are we allowed to use features from the Rust 2021 edition?
     #[inline]
-    pub fn rust_2021(self) -> bool {
-        self.edition().rust_2021()
+    pub fn at_least_rust_2021(self) -> bool {
+        self.edition().at_least_rust_2021()
     }
 
+    /// Are we allowed to use features from the Rust 2024 edition?
     #[inline]
-    pub fn rust_2024(self) -> bool {
-        self.edition().rust_2024()
+    pub fn at_least_rust_2024(self) -> bool {
+        self.edition().at_least_rust_2024()
     }
 
     /// Returns the source callee.
@@ -2159,7 +2193,8 @@ where
         // If this is not an empty or invalid span, we want to hash the last
         // position that belongs to it, as opposed to hashing the first
         // position past it.
-        let Some((file, line_lo, col_lo, line_hi, col_hi)) = ctx.span_data_to_lines_and_cols(&span) else {
+        let Some((file, line_lo, col_lo, line_hi, col_hi)) = ctx.span_data_to_lines_and_cols(&span)
+        else {
             Hash::hash(&TAG_INVALID_SPAN, hasher);
             return;
         };

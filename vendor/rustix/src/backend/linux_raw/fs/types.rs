@@ -600,7 +600,11 @@ pub enum FlockOperation {
 // On 32-bit, and mips64, Linux's `struct stat64` has a 32-bit `st_mtime` and
 // friends, so we use our own struct, populated from `statx` where possible, to
 // avoid the y2038 bug.
-#[cfg(any(target_pointer_width = "32", target_arch = "mips64"))]
+#[cfg(any(
+    target_pointer_width = "32",
+    target_arch = "mips64",
+    target_arch = "mips64r6"
+))]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 #[allow(missing_docs)]
@@ -627,7 +631,11 @@ pub struct Stat {
 ///
 /// [`statat`]: crate::fs::statat
 /// [`fstat`]: crate::fs::fstat
-#[cfg(all(target_pointer_width = "64", not(target_arch = "mips64")))]
+#[cfg(all(
+    target_pointer_width = "64",
+    not(target_arch = "mips64"),
+    not(target_arch = "mips64r6")
+))]
 pub type Stat = linux_raw_sys::general::stat;
 
 /// `struct statfs` for use with [`statfs`] and [`fstatfs`].
@@ -688,117 +696,9 @@ pub type RawMode = c::c_uint;
 pub type Dev = u64;
 
 /// `__fsword_t`
-#[cfg(not(target_arch = "mips64"))]
+#[cfg(not(any(target_arch = "mips64", target_arch = "mips64r6")))]
 pub type FsWord = linux_raw_sys::general::__fsword_t;
 
 /// `__fsword_t`
-#[cfg(target_arch = "mips64")]
+#[cfg(any(target_arch = "mips64", target_arch = "mips64r6"))]
 pub type FsWord = i64;
-
-bitflags! {
-    /// `MS_*` constants for use with [`mount`].
-    ///
-    /// [`mount`]: crate::fs::mount
-    #[repr(transparent)]
-    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-    pub struct MountFlags: c::c_uint {
-        /// `MS_BIND`
-        const BIND = linux_raw_sys::general::MS_BIND;
-
-        /// `MS_DIRSYNC`
-        const DIRSYNC = linux_raw_sys::general::MS_DIRSYNC;
-
-        /// `MS_LAZYTIME`
-        const LAZYTIME = linux_raw_sys::general::MS_LAZYTIME;
-
-        /// `MS_MANDLOCK`
-        #[doc(alias = "MANDLOCK")]
-        const PERMIT_MANDATORY_FILE_LOCKING = linux_raw_sys::general::MS_MANDLOCK;
-
-        /// `MS_NOATIME`
-        const NOATIME = linux_raw_sys::general::MS_NOATIME;
-
-        /// `MS_NODEV`
-        const NODEV = linux_raw_sys::general::MS_NODEV;
-
-        /// `MS_NODIRATIME`
-        const NODIRATIME = linux_raw_sys::general::MS_NODIRATIME;
-
-        /// `MS_NOEXEC`
-        const NOEXEC = linux_raw_sys::general::MS_NOEXEC;
-
-        /// `MS_NOSUID`
-        const NOSUID = linux_raw_sys::general::MS_NOSUID;
-
-        /// `MS_RDONLY`
-        const RDONLY = linux_raw_sys::general::MS_RDONLY;
-
-        /// `MS_REC`
-        const REC = linux_raw_sys::general::MS_REC;
-
-        /// `MS_RELATIME`
-        const RELATIME = linux_raw_sys::general::MS_RELATIME;
-
-        /// `MS_SILENT`
-        const SILENT = linux_raw_sys::general::MS_SILENT;
-
-        /// `MS_STRICTATIME`
-        const STRICTATIME = linux_raw_sys::general::MS_STRICTATIME;
-
-        /// `MS_SYNCHRONOUS`
-        const SYNCHRONOUS = linux_raw_sys::general::MS_SYNCHRONOUS;
-
-        /// `MS_NOSYMFOLLOW`
-        const NOSYMFOLLOW = linux_raw_sys::general::MS_NOSYMFOLLOW;
-    }
-}
-
-bitflags! {
-    /// `MS_*` constants for use with [`change_mount`].
-    ///
-    /// [`change_mount`]: crate::fs::mount::change_mount
-    #[repr(transparent)]
-    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-    pub struct MountPropagationFlags: c::c_uint {
-        /// `MS_SHARED`
-        const SHARED = linux_raw_sys::general::MS_SHARED;
-        /// `MS_PRIVATE`
-        const PRIVATE = linux_raw_sys::general::MS_PRIVATE;
-        /// `MS_SLAVE`
-        const SLAVE = linux_raw_sys::general::MS_SLAVE;
-        /// `MS_UNBINDABLE`
-        const UNBINDABLE = linux_raw_sys::general::MS_UNBINDABLE;
-        /// `MS_REC`
-        const REC = linux_raw_sys::general::MS_REC;
-    }
-}
-
-bitflags! {
-    #[repr(transparent)]
-    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-    pub(crate) struct InternalMountFlags: c::c_uint {
-        const REMOUNT = linux_raw_sys::general::MS_REMOUNT;
-        const MOVE = linux_raw_sys::general::MS_MOVE;
-    }
-}
-
-#[repr(transparent)]
-pub(crate) struct MountFlagsArg(pub(crate) c::c_uint);
-
-bitflags! {
-    /// `MNT_*` constants for use with [`unmount`].
-    ///
-    /// [`unmount`]: crate::fs::mount::unmount
-    #[repr(transparent)]
-    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-    pub struct UnmountFlags: c::c_uint {
-        /// `MNT_FORCE`
-        const FORCE = linux_raw_sys::general::MNT_FORCE;
-        /// `MNT_DETACH`
-        const DETACH = linux_raw_sys::general::MNT_DETACH;
-        /// `MNT_EXPIRE`
-        const EXPIRE = linux_raw_sys::general::MNT_EXPIRE;
-        /// `UMOUNT_NOFOLLOW`
-        const NOFOLLOW = linux_raw_sys::general::UMOUNT_NOFOLLOW;
-    }
-}

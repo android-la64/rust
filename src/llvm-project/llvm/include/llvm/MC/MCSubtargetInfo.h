@@ -16,10 +16,10 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Triple.h"
 #include "llvm/MC/MCInstrItineraries.h"
 #include "llvm/MC/MCSchedule.h"
-#include "llvm/MC/SubtargetFeature.h"
+#include "llvm/TargetParser/SubtargetFeature.h"
+#include "llvm/TargetParser/Triple.h"
 #include <cassert>
 #include <cstdint>
 #include <optional>
@@ -230,9 +230,10 @@ public:
     return Found != ProcDesc.end() && StringRef(Found->Key) == CPU;
   }
 
-  ArrayRef<SubtargetSubTypeKV> getCPUTable() const {
+  ArrayRef<SubtargetSubTypeKV> getAllProcessorDescriptions() const {
     return ProcDesc;
   }
+
 
   ArrayRef<SubtargetFeatureKV> getFeatureTable() const {
     return ProcFeatures;

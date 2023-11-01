@@ -39,9 +39,9 @@ are a few:
 
 * The [rust-reduce](https://github.com/jethrogb/rust-reduce) tool can try to reduce
   code automatically.
-  * The [C-reduce](https://embed.cs.utah.edu/creduce/) tool also works
+  * The [C-reduce](https://github.com/csmith-project/creduce) tool also works
     on Rust code, though it requires that you start from a single
-    file. (XXX link to some post explaining how to do it?)
+    file. (A post explaining how to do it can be found [here](https://insaneinside.net/2017/09/12/whole-crate-bug-reduction-with-creduce.html).)
 * pnkfelix's [Rust Bug Minimization Patterns] blog post
   * This post focuses on "heavy bore" techniques, where you are
     starting with a large, complex cargo project that you wish to

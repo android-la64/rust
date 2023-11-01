@@ -10,7 +10,7 @@ This is a guide for how to profile rustc with [perf](https://perf.wiki.kernel.or
   - `debuginfo-level = 1` - enables line debuginfo
   - `jemalloc = false` - lets you do memory use profiling with valgrind
   - leave everything else the defaults
-- Run `./x.py build` to get a full build
+- Run `./x build` to get a full build
 - Make a rustup toolchain pointing to that result
   - see [the "build and run" section for instructions][b-a-r]
 
@@ -282,7 +282,7 @@ Tree
 What happens with `--tree-callees` is that
 
 - we find each sample matching the regular expression
-- we look at the code that is occurs *after* the regex match and try
+- we look at the code that occurs *after* the regex match and try
   to build up a call tree
 
 The `--tree-min-percent 3` option says "only show me things that take

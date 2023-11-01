@@ -1,9 +1,9 @@
 use super::utils::make_iterator_snippet;
 use super::NEVER_LOOP;
-use clippy_utils::consts::constant;
+use clippy_utils::consts::{constant, Constant};
+use clippy_utils::diagnostics::span_lint_and_then;
 use clippy_utils::higher::ForLoop;
 use clippy_utils::source::snippet;
-use clippy_utils::{consts::Constant, diagnostics::span_lint_and_then};
 use rustc_errors::Applicability;
 use rustc_hir::{Block, Destination, Expr, ExprKind, HirId, InlineAsmOperand, Pat, Stmt, StmtKind};
 use rustc_lint::LateContext;
@@ -162,7 +162,9 @@ fn never_loop_expr<'tcx>(
         ExprKind::Binary(_, e1, e2)
         | ExprKind::Assign(e1, e2, _)
         | ExprKind::AssignOp(_, e1, e2)
-        | ExprKind::Index(e1, e2) => never_loop_expr_all(cx, &mut [e1, e2].iter().copied(), ignore_ids, main_loop_id),
+        | ExprKind::Index(e1, e2, _) => {
+            never_loop_expr_all(cx, &mut [e1, e2].iter().copied(), ignore_ids, main_loop_id)
+        },
         ExprKind::Loop(b, _, _, _) => {
             // Break can come from the inner loop so remove them.
             absorb_break(never_loop_block(cx, b, ignore_ids, main_loop_id))

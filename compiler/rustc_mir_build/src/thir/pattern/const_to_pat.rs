@@ -325,6 +325,11 @@ impl<'tcx> ConstToPat<'tcx> {
                 // `PartialEq::eq` on it.
                 return Err(FallbackToConstRef);
             }
+            ty::FnDef(..) => {
+                self.saw_const_match_error.set(true);
+                tcx.sess.emit_err(InvalidPattern { span, non_sm_ty: ty });
+                PatKind::Wild
+            }
             ty::Adt(adt_def, _) if !self.type_marked_structural(ty) => {
                 debug!("adt_def {:?} has !type_marked_structural for cv.ty: {:?}", adt_def, ty,);
                 self.saw_const_match_error.set(true);
@@ -332,20 +337,20 @@ impl<'tcx> ConstToPat<'tcx> {
                 tcx.sess.emit_err(err);
                 PatKind::Wild
             }
-            ty::Adt(adt_def, substs) if adt_def.is_enum() => {
+            ty::Adt(adt_def, args) if adt_def.is_enum() => {
                 let (&variant_index, fields) = cv.unwrap_branch().split_first().unwrap();
                 let variant_index =
                     VariantIdx::from_u32(variant_index.unwrap_leaf().try_to_u32().ok().unwrap());
                 PatKind::Variant {
                     adt_def: *adt_def,
-                    substs,
+                    args,
                     variant_index,
                     subpatterns: self.field_pats(
                         fields.iter().copied().zip(
                             adt_def.variants()[variant_index]
                                 .fields
                                 .iter()
-                                .map(|field| field.ty(self.tcx(), substs)),
+                                .map(|field| field.ty(self.tcx(), args)),
                         ),
                     )?,
                 }
@@ -354,9 +359,9 @@ impl<'tcx> ConstToPat<'tcx> {
                 subpatterns: self
                     .field_pats(cv.unwrap_branch().iter().copied().zip(fields.iter()))?,
             },
-            ty::Adt(def, substs) => PatKind::Leaf {
+            ty::Adt(def, args) => PatKind::Leaf {
                 subpatterns: self.field_pats(cv.unwrap_branch().iter().copied().zip(
-                    def.non_enum_variant().fields.iter().map(|field| field.ty(self.tcx(), substs)),
+                    def.non_enum_variant().fields.iter().map(|field| field.ty(self.tcx(), args)),
                 ))?,
             },
             ty::Slice(elem_ty) => PatKind::Slice {
@@ -440,7 +445,7 @@ impl<'tcx> ConstToPat<'tcx> {
                     }
                 }
             },
-            ty::Bool | ty::Char | ty::Int(_) | ty::Uint(_) | ty::FnDef(..) => PatKind::Constant {
+            ty::Bool | ty::Char | ty::Int(_) | ty::Uint(_) => PatKind::Constant {
                 value: mir::ConstantKind::Ty(ty::Const::new_value(tcx, cv, ty)),
             },
             ty::FnPtr(..) | ty::RawPtr(..) => unreachable!(),

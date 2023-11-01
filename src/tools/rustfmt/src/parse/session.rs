@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use rustc_data_structures::sync::{Lrc, Send};
 use rustc_errors::emitter::{Emitter, EmitterWriter};
 use rustc_errors::translation::Translate;
-use rustc_errors::{ColorConfig, Diagnostic, Handler, Level as DiagnosticLevel, TerminalUrl};
+use rustc_errors::{ColorConfig, Diagnostic, Handler, Level as DiagnosticLevel};
 use rustc_session::parse::ParseSess as RawParseSess;
 use rustc_span::{
     source_map::{FilePathMapping, SourceMap},
@@ -139,30 +139,15 @@ fn default_handler(
             rustc_driver::DEFAULT_LOCALE_RESOURCES.to_vec(),
             false,
         );
-        Box::new(EmitterWriter::stderr(
-            emit_color,
-            Some(source_map.clone()),
-            None,
-            fallback_bundle,
-            false,
-            false,
-            None,
-            false,
-            false,
-            TerminalUrl::No,
-        ))
+        Box::new(EmitterWriter::stderr(emit_color, fallback_bundle).sm(Some(source_map.clone())))
     };
-    Handler::with_emitter(
-        true,
-        None,
-        Box::new(SilentOnIgnoredFilesEmitter {
-            has_non_ignorable_parser_errors: false,
-            source_map,
-            emitter,
-            ignore_path_set,
-            can_reset,
-        }),
-    )
+    Handler::with_emitter(Box::new(SilentOnIgnoredFilesEmitter {
+        has_non_ignorable_parser_errors: false,
+        source_map,
+        emitter,
+        ignore_path_set,
+        can_reset,
+    }))
 }
 
 impl ParseSess {
@@ -233,7 +218,7 @@ impl ParseSess {
     }
 
     pub(crate) fn set_silent_emitter(&mut self) {
-        self.parse_sess.span_diagnostic = Handler::with_emitter(true, None, silent_emitter());
+        self.parse_sess.span_diagnostic = Handler::with_emitter(silent_emitter());
     }
 
     pub(crate) fn span_to_filename(&self, span: Span) -> FileName {

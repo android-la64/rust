@@ -13,7 +13,7 @@ use crate::errors::{
     YieldExprOutsideOfGenerator,
 };
 use crate::fatally_break_rust;
-use crate::method::SelfSource;
+use crate::method::{MethodCallComponents, SelfSource};
 use crate::type_error_struct;
 use crate::Expectation::{self, ExpectCastableToType, ExpectHasType, NoExpectation};
 use crate::{
@@ -44,7 +44,7 @@ use rustc_infer::traits::ObligationCause;
 use rustc_middle::middle::stability;
 use rustc_middle::ty::adjustment::{Adjust, Adjustment, AllowTwoPhase};
 use rustc_middle::ty::error::TypeError::FieldMisMatch;
-use rustc_middle::ty::subst::SubstsRef;
+use rustc_middle::ty::GenericArgsRef;
 use rustc_middle::ty::{self, AdtKind, Ty, TypeVisitableExt};
 use rustc_session::errors::ExprParenthesesNeeded;
 use rustc_session::parse::feature_err;
@@ -60,28 +60,13 @@ use rustc_trait_selection::traits::ObligationCtxt;
 use rustc_trait_selection::traits::{self, ObligationCauseCode};
 
 impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
-    fn check_expr_eq_type(&self, expr: &'tcx hir::Expr<'tcx>, expected: Ty<'tcx>) {
-        let ty = self.check_expr_with_hint(expr, expected);
-        self.demand_eqtype(expr.span, expected, ty);
-    }
-
     pub fn check_expr_has_type_or_error(
         &self,
         expr: &'tcx hir::Expr<'tcx>,
-        expected: Ty<'tcx>,
-        extend_err: impl FnMut(&mut Diagnostic),
+        expected_ty: Ty<'tcx>,
+        extend_err: impl FnOnce(&mut Diagnostic),
     ) -> Ty<'tcx> {
-        self.check_expr_meets_expectation_or_error(expr, ExpectHasType(expected), extend_err)
-    }
-
-    fn check_expr_meets_expectation_or_error(
-        &self,
-        expr: &'tcx hir::Expr<'tcx>,
-        expected: Expectation<'tcx>,
-        mut extend_err: impl FnMut(&mut Diagnostic),
-    ) -> Ty<'tcx> {
-        let expected_ty = expected.to_option(&self).unwrap_or(self.tcx.types.bool);
-        let mut ty = self.check_expr_with_expectation(expr, expected);
+        let mut ty = self.check_expr_with_expectation(expr, ExpectHasType(expected_ty));
 
         // While we don't allow *arbitrary* coercions here, we *do* allow
         // coercions from ! to `expected`.
@@ -341,9 +326,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             }
             ExprKind::Cast(e, t) => self.check_expr_cast(e, t, expr),
             ExprKind::Type(e, t) => {
-                let ty = self.to_ty_saving_user_provided_ty(&t);
-                self.check_expr_eq_type(&e, ty);
-                ty
+                let ascribed_ty = self.to_ty_saving_user_provided_ty(&t);
+                let ty = self.check_expr_with_hint(e, ascribed_ty);
+                self.demand_eqtype(e.span, ascribed_ty, ty);
+                ascribed_ty
             }
             ExprKind::If(cond, then_expr, opt_else_expr) => {
                 self.check_then_else(cond, then_expr, opt_else_expr, expr.span, expected)
@@ -359,7 +345,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 self.check_expr_struct(expr, expected, qpath, fields, base_expr)
             }
             ExprKind::Field(base, field) => self.check_field(expr, &base, field, expected),
-            ExprKind::Index(base, idx) => self.check_expr_index(base, idx, expr),
+            ExprKind::Index(base, idx, brackets_span) => {
+                self.check_expr_index(base, idx, expr, brackets_span)
+            }
             ExprKind::Yield(value, ref src) => self.check_expr_yield(value, expr, src),
             hir::ExprKind::Err(guar) => Ty::new_error(tcx, guar),
         }
@@ -593,8 +581,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         // We always require that the type provided as the value for
         // a type parameter outlives the moment of instantiation.
-        let substs = self.typeck_results.borrow().node_substs(expr.hir_id);
-        self.add_wf_bounds(substs, expr);
+        let args = self.typeck_results.borrow().node_args(expr.hir_id);
+        self.add_wf_bounds(args, expr);
 
         ty
     }
@@ -650,7 +638,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let mut enclosing_breakables = self.enclosing_breakables.borrow_mut();
             let Some(ctxt) = enclosing_breakables.opt_find_breakable(target_id) else {
                 // Avoid ICE when `break` is inside a closure (#65383).
-                return Ty::new_error_with_message(tcx,
+                return Ty::new_error_with_message(
+                    tcx,
                     expr.span,
                     "break was outside loop, but no error was emitted",
                 );
@@ -665,7 +654,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     coerce.coerce_forced_unit(
                         self,
                         &cause,
-                        &mut |mut err| {
+                        |mut err| {
                             self.suggest_mismatched_types_on_tail(
                                 &mut err, expr, ty, e_ty, target_id,
                             );
@@ -761,7 +750,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 coercion.coerce_forced_unit(
                     self,
                     &cause,
-                    &mut |db| {
+                    |db| {
                         let span = fn_decl.output.span();
                         if let Ok(snippet) = self.tcx.sess.source_map().span_to_snippet(span) {
                             db.span_label(
@@ -773,7 +762,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     true,
                 );
             } else {
-                coercion.coerce_forced_unit(self, &cause, &mut |_| (), true);
+                coercion.coerce_forced_unit(self, &cause, |_| (), true);
             }
         }
         self.tcx.types.never
@@ -1280,7 +1269,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 // We could add a "consider `foo::<params>`" suggestion here, but I wasn't able to
                 // trigger this codepath causing `structurally_resolve_type` to emit an error.
 
-                self.enforce_context_effects(expr.hir_id, expr.span, method.def_id, method.substs);
+                self.enforce_context_effects(expr.hir_id, expr.span, method.def_id, method.args);
                 self.write_method_call(expr.hir_id, method);
                 Ok(method)
             }
@@ -1292,7 +1281,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         segment.ident,
                         SelfSource::MethodCall(rcvr),
                         error,
-                        Some((rcvr, args)),
+                        Some(MethodCallComponents { receiver: rcvr, args, full_expr: expr }),
                         expected,
                         false,
                     ) {
@@ -1333,7 +1322,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 t_cast,
                 t.span,
                 expr.span,
-                self.param_env.constness(),
+                hir::Constness::NotConst,
             ) {
                 Ok(cast_check) => {
                     debug!(
@@ -1390,11 +1379,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let parent_node = self.tcx.hir().parent_iter(expr.hir_id).find(|(_, node)| {
             !matches!(node, hir::Node::Expr(hir::Expr { kind: hir::ExprKind::AddrOf(..), .. }))
         });
-        let Some((_,
+        let Some((
+            _,
             hir::Node::Local(hir::Local { ty: Some(ty), .. })
-            | hir::Node::Item(hir::Item { kind: hir::ItemKind::Const(ty, _), .. }))
-        ) = parent_node else {
-            return
+            | hir::Node::Item(hir::Item { kind: hir::ItemKind::Const(ty, _, _), .. }),
+        )) = parent_node
+        else {
+            return;
         };
         if let hir::TyKind::Array(_, length) = ty.peel_refs().kind
             && let hir::ArrayLen::Body(hir::AnonConst { hir_id, .. }) = length
@@ -1425,7 +1416,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         // Create a new function context.
         let def_id = block.def_id;
-        let fcx = FnCtxt::new(self, self.param_env.with_const(), def_id);
+        let fcx = FnCtxt::new(self, self.param_env, def_id);
         crate::GatherLocalsVisitor::new(&fcx).visit_body(body);
 
         let ty = fcx.check_expr_with_expectation(&body.value, expected);
@@ -1617,7 +1608,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // re-link the regions that EIfEO can erase.
         self.demand_eqtype(span, adt_ty_hint, adt_ty);
 
-        let ty::Adt(adt, substs) = adt_ty.kind() else {
+        let ty::Adt(adt, args) = adt_ty.kind() else {
             span_bug!(span, "non-ADT passed to check_expr_struct_fields");
         };
         let adt_kind = adt.adt_kind();
@@ -1646,7 +1637,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     tcx.check_stability(v_field.did, Some(expr_id), field.span, None);
                 }
 
-                self.field_ty(field.span, v_field, substs)
+                self.field_ty(field.span, v_field, args)
             } else {
                 error_happened = true;
                 let guar = if let Some(prev_span) = seen_fields.get(&ident) {
@@ -1678,7 +1669,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             if let Some(mut diag) = diag {
                 if idx == ast_fields.len() - 1 {
                     if remaining_fields.is_empty() {
-                        self.suggest_fru_from_range(field, variant, substs, &mut diag);
+                        self.suggest_fru_from_range(field, variant, args, &mut diag);
                         diag.emit();
                     } else {
                         diag.stash(field.span, StashKey::MaybeFruTypo);
@@ -1718,7 +1709,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let fru_tys = if self.tcx.features().type_changing_struct_update {
                 if adt.is_struct() {
                     // Make some fresh substitutions for our ADT type.
-                    let fresh_substs = self.fresh_substs_for_item(base_expr.span, adt.did());
+                    let fresh_args = self.fresh_args_for_item(base_expr.span, adt.did());
                     // We do subtyping on the FRU fields first, so we can
                     // learn exactly what types we expect the base expr
                     // needs constrained to be compatible with the struct
@@ -1727,13 +1718,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         .fields
                         .iter()
                         .map(|f| {
-                            let fru_ty = self.normalize(
-                                expr_span,
-                                self.field_ty(base_expr.span, f, fresh_substs),
-                            );
+                            let fru_ty = self
+                                .normalize(expr_span, self.field_ty(base_expr.span, f, fresh_args));
                             let ident = self.tcx.adjust_ident(f.ident(self.tcx), variant.def_id);
                             if let Some(_) = remaining_fields.remove(&ident) {
-                                let target_ty = self.field_ty(base_expr.span, f, substs);
+                                let target_ty = self.field_ty(base_expr.span, f, args);
                                 let cause = self.misc(base_expr.span);
                                 match self.at(&cause, self.param_env).sup(
                                     DefineOpaqueTypes::No,
@@ -1760,7 +1749,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                             self.resolve_vars_if_possible(fru_ty)
                         })
                         .collect();
-                    // The use of fresh substs that we have subtyped against
+                    // The use of fresh args that we have subtyped against
                     // our base ADT type's fields allows us to guide inference
                     // along so that, e.g.
                     // ```
@@ -1778,7 +1767,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     // `MyStruct<'a, _, F2, C>`, as opposed to just `_`...
                     // This is important to allow coercions to happen in
                     // `other_struct` itself. See `coerce-in-base-expr.rs`.
-                    let fresh_base_ty = Ty::new_adt(self.tcx, *adt, fresh_substs);
+                    let fresh_base_ty = Ty::new_adt(self.tcx, *adt, fresh_args);
                     self.check_expr_has_type_or_error(
                         base_expr,
                         self.resolve_vars_if_possible(fresh_base_ty),
@@ -1810,10 +1799,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     }
                 });
                 match adt_ty.kind() {
-                    ty::Adt(adt, substs) if adt.is_struct() => variant
+                    ty::Adt(adt, args) if adt.is_struct() => variant
                         .fields
                         .iter()
-                        .map(|f| self.normalize(expr_span, f.ty(self.tcx, substs)))
+                        .map(|f| self.normalize(expr_span, f.ty(self.tcx, args)))
                         .collect(),
                     _ => {
                         self.tcx
@@ -1841,7 +1830,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     remaining_fields,
                     variant,
                     ast_fields,
-                    substs,
+                    args,
                 );
             }
         }
@@ -1878,7 +1867,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         remaining_fields: FxHashMap<Ident, (FieldIdx, &ty::FieldDef)>,
         variant: &'tcx ty::VariantDef,
         ast_fields: &'tcx [hir::ExprField<'tcx>],
-        substs: SubstsRef<'tcx>,
+        args: GenericArgsRef<'tcx>,
     ) {
         let len = remaining_fields.len();
 
@@ -1889,7 +1878,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         let mut truncated_fields_error = String::new();
         let remaining_fields_names = match &displayable_field_names[..] {
-            [field1] => format!("`{}`", field1),
+            [field1] => format!("`{field1}`"),
             [field1, field2] => format!("`{field1}` and `{field2}`"),
             [field1, field2, field3] => format!("`{field1}`, `{field2}` and `{field3}`"),
             _ => {
@@ -1917,7 +1906,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err.span_label(span, format!("missing {remaining_fields_names}{truncated_fields_error}"));
 
         if let Some(last) = ast_fields.last() {
-            self.suggest_fru_from_range(last, variant, substs, &mut err);
+            self.suggest_fru_from_range(last, variant, args, &mut err);
         }
 
         err.emit();
@@ -1929,7 +1918,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         &self,
         last_expr_field: &hir::ExprField<'tcx>,
         variant: &ty::VariantDef,
-        substs: SubstsRef<'tcx>,
+        args: GenericArgsRef<'tcx>,
         err: &mut Diagnostic,
     ) {
         // I don't use 'is_range_literal' because only double-sided, half-open ranges count.
@@ -1942,7 +1931,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 variant.fields.iter().find(|field| field.ident(self.tcx) == last_expr_field.ident)
             && let range_def_id = self.tcx.lang_items().range_struct()
             && variant_field
-                .and_then(|field| field.ty(self.tcx, substs).ty_adt_def())
+                .and_then(|field| field.ty(self.tcx, args).ty_adt_def())
                 .map(|adt| adt.did())
                 != range_def_id
         {
@@ -2116,16 +2105,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     );
                 }
                 _ => {
-                    err.span_label(variant_ident_span, format!("`{adt}` defined here", adt = ty));
+                    err.span_label(variant_ident_span, format!("`{ty}` defined here"));
                     err.span_label(field.ident.span, "field does not exist");
                     err.span_suggestion_verbose(
                         expr_span,
-                        format!(
-                            "`{adt}` is a tuple {kind_name}, use the appropriate syntax",
-                            adt = ty,
-                            kind_name = kind_name,
-                        ),
-                        format!("{adt}(/* fields */)", adt = ty),
+                        format!("`{ty}` is a tuple {kind_name}, use the appropriate syntax",),
+                        format!("{ty}(/* fields */)"),
                         Applicability::HasPlaceholders,
                     );
                 }
@@ -2242,7 +2227,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // dynamic limit, to never omit just one field
         let limit = if names.len() == 6 { 6 } else { 5 };
         let mut display =
-            names.iter().take(limit).map(|n| format!("`{}`", n)).collect::<Vec<_>>().join(", ");
+            names.iter().take(limit).map(|n| format!("`{n}`")).collect::<Vec<_>>().join(", ");
         if names.len() > limit {
             display = format!("{} ... and {} others", display, names.len() - limit);
         }
@@ -2265,7 +2250,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         while let Some((deref_base_ty, _)) = autoderef.next() {
             debug!("deref_base_ty: {:?}", deref_base_ty);
             match deref_base_ty.kind() {
-                ty::Adt(base_def, substs) if !base_def.is_enum() => {
+                ty::Adt(base_def, args) if !base_def.is_enum() => {
                     debug!("struct named {:?}", deref_base_ty);
                     let body_hir_id = self.tcx.hir().local_def_id_to_hir_id(self.body_id);
                     let (ident, def_scope) =
@@ -2275,7 +2260,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         .iter_enumerated()
                         .find(|(_, f)| f.ident(self.tcx).normalize_to_macros_2_0() == ident)
                     {
-                        let field_ty = self.field_ty(expr.span, field, substs);
+                        let field_ty = self.field_ty(expr.span, field, args);
                         // Save the index of all fields regardless of their visibility in case
                         // of error recovery.
                         self.write_field_index(expr.hir_id, index);
@@ -2416,7 +2401,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         base: &'tcx hir::Expr<'tcx>,
         ty: Ty<'tcx>,
     ) {
-        let Some(output_ty) = self.get_impl_future_output_ty(ty) else { return; };
+        let Some(output_ty) = self.get_impl_future_output_ty(ty) else {
+            return;
+        };
         let mut add_label = true;
         if let ty::Adt(def, _) = output_ty.kind() {
             // no field access on enum type
@@ -2711,7 +2698,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         // try to add a suggestion in case the field is a nested field of a field of the Adt
         let mod_id = self.tcx.parent_module(id).to_def_id();
-        if let Some((fields, substs)) =
+        if let Some((fields, args)) =
             self.get_field_candidates_considering_privacy(span, expr_t, mod_id)
         {
             let candidate_fields: Vec<_> = fields
@@ -2720,7 +2707,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         span,
                         &|candidate_field, _| candidate_field.ident(self.tcx()) == field,
                         candidate_field,
-                        substs,
+                        args,
                         vec![],
                         mod_id,
                     )
@@ -2775,12 +2762,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         span: Span,
         base_ty: Ty<'tcx>,
         mod_id: DefId,
-    ) -> Option<(impl Iterator<Item = &'tcx ty::FieldDef> + 'tcx, SubstsRef<'tcx>)> {
+    ) -> Option<(impl Iterator<Item = &'tcx ty::FieldDef> + 'tcx, GenericArgsRef<'tcx>)> {
         debug!("get_field_candidates(span: {:?}, base_t: {:?}", span, base_ty);
 
         for (base_t, _) in self.autoderef(span, base_ty) {
             match base_t.kind() {
-                ty::Adt(base_def, substs) if !base_def.is_enum() => {
+                ty::Adt(base_def, args) if !base_def.is_enum() => {
                     let tcx = self.tcx;
                     let fields = &base_def.non_enum_variant().fields;
                     // Some struct, e.g. some that impl `Deref`, have all private fields
@@ -2795,7 +2782,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                             .filter(move |field| field.vis.is_accessible_from(mod_id, tcx))
                             // For compile-time reasons put a limit on number of fields we search
                             .take(100),
-                        substs,
+                        args,
                     ));
                 }
                 _ => {}
@@ -2811,7 +2798,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         span: Span,
         matches: &impl Fn(&ty::FieldDef, Ty<'tcx>) -> bool,
         candidate_field: &ty::FieldDef,
-        subst: SubstsRef<'tcx>,
+        subst: GenericArgsRef<'tcx>,
         mut field_path: Vec<Ident>,
         mod_id: DefId,
     ) -> Option<Vec<Ident>> {
@@ -2855,6 +2842,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         base: &'tcx hir::Expr<'tcx>,
         idx: &'tcx hir::Expr<'tcx>,
         expr: &'tcx hir::Expr<'tcx>,
+        brackets_span: Span,
     ) -> Ty<'tcx> {
         let base_t = self.check_expr(&base);
         let idx_t = self.check_expr(&idx);
@@ -2888,7 +2876,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
                     let mut err = type_error_struct!(
                         self.tcx.sess,
-                        expr.span,
+                        brackets_span,
                         base_t,
                         E0608,
                         "cannot index into a value of type `{base_t}`",
@@ -2902,16 +2890,14 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                             && let ast::LitKind::Int(i, ast::LitIntType::Unsuffixed) = lit.node
                             && i < types.len().try_into().expect("expected tuple index to be < usize length")
                         {
-                            let snip = self.tcx.sess.source_map().span_to_snippet(base.span);
-                            if let Ok(snip) = snip {
-                                err.span_suggestion(
-                                    expr.span,
-                                    "to access tuple elements, use",
-                                    format!("{snip}.{i}"),
-                                    Applicability::MachineApplicable,
-                                );
-                                needs_note = false;
-                            }
+
+                            err.span_suggestion(
+                                brackets_span,
+                                "to access tuple elements, use",
+                                format!(".{i}"),
+                                Applicability::MachineApplicable,
+                            );
+                            needs_note = false;
                         } else if let ExprKind::Path(..) = idx.peel_borrows().kind {
                             err.span_label(idx.span, "cannot access tuple elements at a variable index");
                         }
@@ -2970,9 +2956,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         self.commit_if_ok(|_| {
             let ocx = ObligationCtxt::new(self);
-            let impl_substs = self.fresh_substs_for_item(base_expr.span, impl_def_id);
+            let impl_args = self.fresh_args_for_item(base_expr.span, impl_def_id);
             let impl_trait_ref =
-                self.tcx.impl_trait_ref(impl_def_id).unwrap().subst(self.tcx, impl_substs);
+                self.tcx.impl_trait_ref(impl_def_id).unwrap().instantiate(self.tcx, impl_args);
             let cause = self.misc(base_expr.span);
 
             // Match the impl self type against the base ty. If this fails,
@@ -2989,7 +2975,6 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         ty::Binder::dummy(ty::TraitPredicate {
                             trait_ref: impl_trait_ref,
                             polarity: ty::ImplPolarity::Positive,
-                            constness: ty::BoundConstness::NotConst,
                         }),
                         |derived| {
                             traits::ImplDerivedObligation(Box::new(
@@ -3004,7 +2989,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     )
                 },
                 self.param_env,
-                self.tcx.predicates_of(impl_def_id).instantiate(self.tcx, impl_substs),
+                self.tcx.predicates_of(impl_def_id).instantiate(self.tcx, impl_args),
             ));
 
             // Normalize the output type, which we can use later on as the
@@ -3012,7 +2997,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let element_ty = ocx.normalize(
                 &cause,
                 self.param_env,
-                Ty::new_projection(self.tcx, index_trait_output_def_id, impl_trait_ref.substs),
+                Ty::new_projection(self.tcx, index_trait_output_def_id, impl_trait_ref.args),
             );
 
             let errors = ocx.select_where_possible();
@@ -3020,7 +3005,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             // will still delay a span bug in `report_fulfillment_errors`.
             Ok::<_, NoSolution>((
                 self.err_ctxt().report_fulfillment_errors(&errors),
-                impl_trait_ref.substs.type_at(1),
+                impl_trait_ref.args.type_at(1),
                 element_ty,
             ))
         })
@@ -3152,7 +3137,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let container = self.structurally_resolve_type(expr.span, current_container);
 
             match container.kind() {
-                ty::Adt(container_def, substs) if !container_def.is_enum() => {
+                ty::Adt(container_def, args) if !container_def.is_enum() => {
                     let block = self.tcx.hir().local_def_id_to_hir_id(self.body_id);
                     let (ident, def_scope) =
                         self.tcx.adjust_ident_and_get_scope(field, container_def.did(), block);
@@ -3162,7 +3147,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         .iter_enumerated()
                         .find(|(_, f)| f.ident(self.tcx).normalize_to_macros_2_0() == ident)
                     {
-                        let field_ty = self.field_ty(expr.span, field, substs);
+                        let field_ty = self.field_ty(expr.span, field, args);
 
                         // FIXME: DSTs with static alignment should be allowed
                         self.require_type_is_sized(field_ty, expr.span, traits::MiscObligation);

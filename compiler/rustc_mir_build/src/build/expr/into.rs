@@ -47,7 +47,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             ExprKind::Block { block: ast_block } => {
                 this.ast_block(destination, block, ast_block, source_info)
             }
-            ExprKind::Match { scrutinee, ref arms } => {
+            ExprKind::Match { scrutinee, ref arms, .. } => {
                 this.match_expr(destination, expr_span, block, &this.thir[scrutinee], arms)
             }
             ExprKind::If { cond, then, else_opt, if_then_scope } => {
@@ -317,7 +317,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             ExprKind::Adt(box AdtExpr {
                 adt_def,
                 variant_index,
-                substs,
+                args,
                 ref user_ty,
                 ref fields,
                 ref base,
@@ -382,7 +382,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                 let adt = Box::new(AggregateKind::Adt(
                     adt_def.did(),
                     variant_index,
-                    substs,
+                    args,
                     user_ty,
                     active_field_index,
                 ));

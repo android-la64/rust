@@ -2,6 +2,7 @@
 #[path = "../libm/src/math/mod.rs"]
 mod libm;
 
+#[allow(unused_macros)]
 macro_rules! no_mangle {
     ($(fn $fun:ident($($iid:ident : $ity:ty),+) -> $oty:ty;)+) => {
         intrinsics! {
@@ -95,7 +96,8 @@ no_mangle! {
     target_os = "xous",
     all(target_arch = "x86_64", target_os = "uefi"),
     all(target_arch = "xtensa", target_os = "none"),
-    all(target_vendor = "fortanix", target_env = "sgx")
+    all(target_vendor = "fortanix", target_env = "sgx"),
+    target_os = "windows"
 ))]
 intrinsics! {
     pub extern "C" fn lgamma_r(x: f64, s: &mut i32) -> f64 {

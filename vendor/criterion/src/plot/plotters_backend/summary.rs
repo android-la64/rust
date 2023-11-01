@@ -120,7 +120,7 @@ fn line_comparison_series_data<'a>(
 ) -> (&'static str, Vec<(Option<&'a String>, Vec<f64>, Vec<f64>)>) {
     let max = all_curves
         .iter()
-        .map(|&&(_, ref data)| Sample::new(data).mean())
+        .map(|&(_, data)| Sample::new(data).mean())
         .fold(::std::f64::NAN, f64::max);
 
     let mut dummy = [1.0];
@@ -159,7 +159,7 @@ pub fn violin(
     axis_scale: AxisScale,
 ) {
     let all_curves_vec = all_curves.iter().rev().cloned().collect::<Vec<_>>();
-    let all_curves: &[&(&BenchmarkId, Vec<f64>)] = &*all_curves_vec;
+    let all_curves: &[&(&BenchmarkId, Vec<f64>)] = &all_curves_vec;
 
     let mut kdes = all_curves
         .iter()
@@ -176,7 +176,7 @@ pub fn violin(
 
     let mut xs = kdes
         .iter()
-        .flat_map(|&(_, ref x, _)| x.iter())
+        .flat_map(|(_, x, _)| x.iter())
         .filter(|&&x| x > 0.);
     let (mut min, mut max) = {
         let &first = xs.next().unwrap();
@@ -250,7 +250,7 @@ fn draw_violin_figure<XR: AsRangedCoord<Value = f64>, YR: AsRangedCoord<Value = 
             .draw_series(AreaSeries::new(
                 x.iter().zip(y.iter()).map(|(x, y)| (*x, base + *y / 2.0)),
                 base,
-                &DARK_BLUE,
+                DARK_BLUE,
             ))
             .unwrap();
 
@@ -258,7 +258,7 @@ fn draw_violin_figure<XR: AsRangedCoord<Value = f64>, YR: AsRangedCoord<Value = 
             .draw_series(AreaSeries::new(
                 x.iter().zip(y.iter()).map(|(x, y)| (*x, base - *y / 2.0)),
                 base,
-                &DARK_BLUE,
+                DARK_BLUE,
             ))
             .unwrap();
     }

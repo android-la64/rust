@@ -12,20 +12,20 @@
 //! code was written, and check if the span contains that text. Note this will only work correctly
 //! if the span is not from a `macro_rules` based macro.
 
-use rustc_ast::{
-    ast::{AttrKind, Attribute, IntTy, LitIntType, LitKind, StrStyle, UintTy},
-    token::CommentKind,
-    AttrStyle,
-};
+use rustc_ast::ast::{AttrKind, Attribute, IntTy, LitIntType, LitKind, StrStyle, UintTy};
+use rustc_ast::token::CommentKind;
+use rustc_ast::AttrStyle;
+use rustc_hir::intravisit::FnKind;
 use rustc_hir::{
-    intravisit::FnKind, Block, BlockCheckMode, Body, Closure, Destination, Expr, ExprKind, FieldDef, FnHeader, HirId,
-    Impl, ImplItem, ImplItemKind, IsAuto, Item, ItemKind, LoopSource, MatchSource, MutTy, Node, QPath, TraitItem,
-    TraitItemKind, Ty, TyKind, UnOp, UnsafeSource, Unsafety, Variant, VariantData, YieldSource,
+    Block, BlockCheckMode, Body, Closure, Destination, Expr, ExprKind, FieldDef, FnHeader, HirId, Impl, ImplItem,
+    ImplItemKind, IsAuto, Item, ItemKind, LoopSource, MatchSource, MutTy, Node, QPath, TraitItem, TraitItemKind, Ty,
+    TyKind, UnOp, UnsafeSource, Unsafety, Variant, VariantData, YieldSource,
 };
 use rustc_lint::{LateContext, LintContext};
 use rustc_middle::ty::TyCtxt;
 use rustc_session::Session;
-use rustc_span::{symbol::Ident, Span, Symbol};
+use rustc_span::symbol::Ident;
+use rustc_span::{Span, Symbol};
 use rustc_target::spec::abi::Abi;
 
 /// The search pattern to look for. Used by `span_matches_pat`
@@ -149,7 +149,7 @@ fn expr_search_pat(tcx: TyCtxt<'_>, e: &Expr<'_>) -> (Pat, Pat) {
             (Pat::Str("for"), Pat::Str("}"))
         },
         ExprKind::Match(_, _, MatchSource::Normal) => (Pat::Str("match"), Pat::Str("}")),
-        ExprKind::Match(e, _, MatchSource::TryDesugar) => (expr_search_pat(tcx, e).0, Pat::Str("?")),
+        ExprKind::Match(e, _, MatchSource::TryDesugar(_)) => (expr_search_pat(tcx, e).0, Pat::Str("?")),
         ExprKind::Match(e, _, MatchSource::AwaitDesugar) | ExprKind::Yield(e, YieldSource::Await { .. }) => {
             (expr_search_pat(tcx, e).0, Pat::Str("await"))
         },
@@ -163,7 +163,7 @@ fn expr_search_pat(tcx: TyCtxt<'_>, e: &Expr<'_>) -> (Pat, Pat) {
         ) => (Pat::Str("unsafe"), Pat::Str("}")),
         ExprKind::Block(_, None) => (Pat::Str("{"), Pat::Str("}")),
         ExprKind::Field(e, name) => (expr_search_pat(tcx, e).0, Pat::Sym(name.name)),
-        ExprKind::Index(e, _) => (expr_search_pat(tcx, e).0, Pat::Str("]")),
+        ExprKind::Index(e, _, _) => (expr_search_pat(tcx, e).0, Pat::Str("]")),
         ExprKind::Path(ref path) => qpath_search_pat(path),
         ExprKind::AddrOf(_, _, e) => (Pat::Str("&"), expr_search_pat(tcx, e).1),
         ExprKind::Break(Destination { label: None, .. }, None) => (Pat::Str("break"), Pat::Str("break")),
@@ -339,7 +339,7 @@ fn ty_search_pat(ty: &Ty<'_>) -> (Pat, Pat) {
         TyKind::Tup(..) => (Pat::Str("("), Pat::Str(")")),
         TyKind::OpaqueDef(..) => (Pat::Str("impl"), Pat::Str("")),
         TyKind::Path(qpath) => qpath_search_pat(&qpath),
-        // NOTE: This is missing `TraitObject`. It always return true then.
+        // NOTE: This is missing `TraitObject`. It will always return true then.
         _ => (Pat::Str(""), Pat::Str("")),
     }
 }

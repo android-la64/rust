@@ -11,6 +11,7 @@ use rustc_data_structures::steal::Steal;
 use rustc_data_structures::sync::{Lrc, OnceCell, WorkerLocal};
 use rustc_errors::PResult;
 use rustc_expand::base::{ExtCtxt, LintStoreExpand};
+use rustc_feature::Features;
 use rustc_fs_util::try_canonicalize;
 use rustc_hir::def_id::{StableCrateId, LOCAL_CRATE};
 use rustc_lint::{unerased_lint_store, BufferedEarlyLint, EarlyCheckNode, LintStore};
@@ -72,43 +73,16 @@ fn count_nodes(krate: &ast::Crate) -> usize {
     counter.count
 }
 
-pub fn register_plugins<'a>(
-    sess: &'a Session,
-    metadata_loader: &'a dyn MetadataLoader,
-    register_lints: impl Fn(&Session, &mut LintStore),
+pub(crate) fn create_lint_store(
+    sess: &Session,
+    metadata_loader: &dyn MetadataLoader,
+    register_lints: Option<impl Fn(&Session, &mut LintStore)>,
     pre_configured_attrs: &[ast::Attribute],
-    crate_name: Symbol,
-) -> Result<LintStore> {
-    // these need to be set "early" so that expansion sees `quote` if enabled.
-    let features = rustc_expand::config::features(sess, pre_configured_attrs);
-    sess.init_features(features);
-
-    let crate_types = util::collect_crate_types(sess, pre_configured_attrs);
-    sess.init_crate_types(crate_types);
-
-    let stable_crate_id = StableCrateId::new(
-        crate_name,
-        sess.crate_types().contains(&CrateType::Executable),
-        sess.opts.cg.metadata.clone(),
-        sess.cfg_version,
-    );
-    sess.stable_crate_id.set(stable_crate_id).expect("not yet initialized");
-    rustc_incremental::prepare_session_directory(sess, crate_name, stable_crate_id)?;
-
-    if sess.opts.incremental.is_some() {
-        sess.time("incr_comp_garbage_collect_session_directories", || {
-            if let Err(e) = rustc_incremental::garbage_collect_session_directories(sess) {
-                warn!(
-                    "Error while trying to garbage collect incremental \
-                     compilation cache directory: {}",
-                    e
-                );
-            }
-        });
-    }
-
+) -> LintStore {
     let mut lint_store = rustc_lint::new_lint_store(sess.enable_internal_lints());
-    register_lints(sess, &mut lint_store);
+    if let Some(register_lints) = register_lints {
+        register_lints(sess, &mut lint_store);
+    }
 
     let registrars = sess.time("plugin_loading", || {
         plugin::load::load_plugins(sess, metadata_loader, pre_configured_attrs)
@@ -120,11 +94,12 @@ pub fn register_plugins<'a>(
         }
     });
 
-    Ok(lint_store)
+    lint_store
 }
 
 fn pre_expansion_lint<'a>(
     sess: &Session,
+    features: &Features,
     lint_store: &LintStore,
     registered_tools: &RegisteredTools,
     check_node: impl EarlyCheckNode<'a>,
@@ -134,6 +109,7 @@ fn pre_expansion_lint<'a>(
         || {
             rustc_lint::check_ast_node(
                 sess,
+                features,
                 true,
                 lint_store,
                 registered_tools,
@@ -152,13 +128,14 @@ impl LintStoreExpand for LintStoreExpandImpl<'_> {
     fn pre_expansion_lint(
         &self,
         sess: &Session,
+        features: &Features,
         registered_tools: &RegisteredTools,
         node_id: ast::NodeId,
         attrs: &[ast::Attribute],
         items: &[rustc_ast::ptr::P<ast::Item>],
         name: Symbol,
     ) {
-        pre_expansion_lint(sess, self.0, registered_tools, (node_id, attrs, items), name);
+        pre_expansion_lint(sess, features, self.0, registered_tools, (node_id, attrs, items), name);
     }
 }
 
@@ -174,10 +151,18 @@ fn configure_and_expand(
 ) -> ast::Crate {
     let tcx = resolver.tcx();
     let sess = tcx.sess;
+    let features = tcx.features();
     let lint_store = unerased_lint_store(tcx);
     let crate_name = tcx.crate_name(LOCAL_CRATE);
     let lint_check_node = (&krate, pre_configured_attrs);
-    pre_expansion_lint(sess, lint_store, tcx.registered_tools(()), lint_check_node, crate_name);
+    pre_expansion_lint(
+        sess,
+        features,
+        lint_store,
+        tcx.registered_tools(()),
+        lint_check_node,
+        crate_name,
+    );
     rustc_builtin_macros::register_builtin_macros(resolver);
 
     let num_standard_library_imports = sess.time("crate_injection", || {
@@ -186,6 +171,7 @@ fn configure_and_expand(
             pre_configured_attrs,
             resolver,
             sess,
+            features,
         )
     });
 
@@ -225,16 +211,15 @@ fn configure_and_expand(
         }
 
         // Create the config for macro expansion
-        let features = sess.features_untracked();
         let recursion_limit = get_recursion_limit(pre_configured_attrs, sess);
         let cfg = rustc_expand::expand::ExpansionConfig {
-            features: Some(features),
+            crate_name: crate_name.to_string(),
+            features,
             recursion_limit,
             trace_mac: sess.opts.unstable_opts.trace_macros,
             should_test: sess.is_test_crate(),
             span_debug: sess.opts.unstable_opts.span_debug,
             proc_macro_backtrace: sess.opts.unstable_opts.proc_macro_backtrace,
-            ..rustc_expand::expand::ExpansionConfig::default(crate_name.to_string())
         };
 
         let lint_store = LintStoreExpandImpl(lint_store);
@@ -268,14 +253,19 @@ fn configure_and_expand(
     });
 
     sess.time("maybe_building_test_harness", || {
-        rustc_builtin_macros::test_harness::inject(&mut krate, sess, resolver)
+        rustc_builtin_macros::test_harness::inject(&mut krate, sess, features, resolver)
     });
 
     let has_proc_macro_decls = sess.time("AST_validation", || {
-        rustc_ast_passes::ast_validation::check_crate(sess, &krate, resolver.lint_buffer())
+        rustc_ast_passes::ast_validation::check_crate(
+            sess,
+            features,
+            &krate,
+            resolver.lint_buffer(),
+        )
     });
 
-    let crate_types = sess.crate_types();
+    let crate_types = tcx.crate_types();
     let is_executable_crate = crate_types.contains(&CrateType::Executable);
     let is_proc_macro_crate = crate_types.contains(&CrateType::ProcMacro);
 
@@ -297,6 +287,7 @@ fn configure_and_expand(
         rustc_builtin_macros::proc_macro_harness::inject(
             &mut krate,
             sess,
+            features,
             resolver,
             is_proc_macro_crate,
             has_proc_macro_decls,
@@ -327,7 +318,7 @@ fn early_lint_checks(tcx: TyCtxt<'_>, (): ()) {
 
     // Needs to go *after* expansion to be able to check the results of macro expansion.
     sess.time("complete_gated_feature_checking", || {
-        rustc_ast_passes::feature_gate::check_crate(&krate, sess);
+        rustc_ast_passes::feature_gate::check_crate(&krate, sess, tcx.features());
     });
 
     // Add all buffered lints from the `ParseSess` to the `Session`.
@@ -356,6 +347,7 @@ fn early_lint_checks(tcx: TyCtxt<'_>, (): ()) {
     let lint_store = unerased_lint_store(tcx);
     rustc_lint::check_ast_node(
         sess,
+        tcx.features(),
         false,
         lint_store,
         tcx.registered_tools(()),
@@ -367,11 +359,12 @@ fn early_lint_checks(tcx: TyCtxt<'_>, (): ()) {
 
 // Returns all the paths that correspond to generated files.
 fn generated_output_paths(
-    sess: &Session,
+    tcx: TyCtxt<'_>,
     outputs: &OutputFilenames,
     exact_name: bool,
     crate_name: Symbol,
 ) -> Vec<PathBuf> {
+    let sess = tcx.sess;
     let mut out_filenames = Vec::new();
     for output_type in sess.opts.output_types.keys() {
         let out_filename = outputs.path(*output_type);
@@ -380,7 +373,7 @@ fn generated_output_paths(
             // If the filename has been overridden using `-o`, it will not be modified
             // by appending `.rlib`, `.exe`, etc., so we can skip this transformation.
             OutputType::Exe if !exact_name => {
-                for crate_type in sess.crate_types().iter() {
+                for crate_type in tcx.crate_types().iter() {
                     let p = filename_for_input(sess, *crate_type, crate_name, outputs);
                     out_filenames.push(p.as_path().to_path_buf());
                 }
@@ -613,7 +606,7 @@ fn output_filenames(tcx: TyCtxt<'_>, (): ()) -> Arc<OutputFilenames> {
     let outputs = util::build_output_filenames(&krate.attrs, sess);
 
     let output_paths =
-        generated_output_paths(sess, &outputs, sess.io.output_file.is_some(), crate_name);
+        generated_output_paths(tcx, &outputs, sess.io.output_file.is_some(), crate_name);
 
     // Ensure the source file isn't accidentally overwritten during compilation.
     if let Some(ref input_path) = sess.io.input.opt_path() {
@@ -691,6 +684,8 @@ pub static DEFAULT_EXTERN_QUERY_PROVIDERS: LazyLock<ExternProviders> = LazyLock:
 
 pub fn create_global_ctxt<'tcx>(
     compiler: &'tcx Compiler,
+    crate_types: Vec<CrateType>,
+    stable_crate_id: StableCrateId,
     lint_store: Lrc<LintStore>,
     dep_graph: DepGraph,
     untracked: Untracked,
@@ -723,6 +718,8 @@ pub fn create_global_ctxt<'tcx>(
         gcx_cell.get_or_init(move || {
             TyCtxt::create_global_ctxt(
                 sess,
+                crate_types,
+                stable_crate_id,
                 lint_store,
                 arena,
                 hir_arena,
@@ -846,10 +843,11 @@ fn analysis(tcx: TyCtxt<'_>, (): ()) -> Result<()> {
                     },
                     {
                         sess.time("lint_checking", || {
-                            rustc_lint::check_crate(tcx, || {
-                                rustc_lint::BuiltinCombinedLateLintPass::new()
-                            });
+                            rustc_lint::check_crate(tcx);
                         });
+                    },
+                    {
+                        tcx.ensure().clashing_extern_declarations(());
                     }
                 );
             },

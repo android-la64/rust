@@ -11,6 +11,7 @@ use std::ffi::CStr;
 use std::mem::MaybeUninit;
 use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
+use std::time::Duration;
 
 use super::utils::{
     self, boot_time, c_buf_to_string, from_cstr_array, get_frequency_for_cpu, get_sys_value,
@@ -77,6 +78,7 @@ pub struct System {
 impl SystemExt for System {
     const IS_SUPPORTED: bool = true;
     const SUPPORTED_SIGNALS: &'static [Signal] = supported_signals();
+    const MINIMUM_CPU_UPDATE_INTERVAL: Duration = Duration::from_millis(100);
 
     fn new_with_specifics(refreshes: RefreshKind) -> System {
         let system_info = SystemInfo::new();
@@ -142,6 +144,9 @@ impl SystemExt for System {
         if refresh_kind.cpu_usage() {
             self.system_info
                 .get_cpu_usage(&mut self.global_cpu, &mut self.cpus);
+        }
+        if refresh_kind.frequency() {
+            self.global_cpu.frequency = self.cpus.get(0).map(|cpu| cpu.frequency).unwrap_or(0);
         }
     }
 

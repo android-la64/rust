@@ -16,6 +16,7 @@ use rustc_ast_pretty::pprust;
 use rustc_attr::{self as attr, TransparencyError};
 use rustc_data_structures::fx::{FxHashMap, FxIndexMap};
 use rustc_errors::{Applicability, ErrorGuaranteed};
+use rustc_feature::Features;
 use rustc_lint_defs::builtin::{
     RUST_2021_INCOMPATIBLE_OR_PATTERNS, SEMICOLON_IN_EXPRESSIONS_FROM_MACROS,
 };
@@ -249,7 +250,7 @@ fn expand_macro<'cx>(
                 trace_macros_note(&mut cx.expansions, sp, msg);
             }
 
-            let p = Parser::new(sess, tts, false, None);
+            let p = Parser::new(sess, tts, None);
 
             if is_local {
                 cx.resolver.record_macro_rule_usage(node_id, i);
@@ -257,7 +258,7 @@ fn expand_macro<'cx>(
 
             // Let the context choose how to interpret the result.
             // Weird, but useful for X-macros.
-            return Box::new(ParserAnyMacro {
+            Box::new(ParserAnyMacro {
                 parser: p,
 
                 // Pass along the original expansion site and the name of the macro
@@ -269,18 +270,17 @@ fn expand_macro<'cx>(
                 is_trailing_mac: cx.current_expansion.is_trailing_mac,
                 arm_span,
                 is_local,
-            });
+            })
         }
         Err(CanRetry::No(_)) => {
             debug!("Will not retry matching as an error was emitted already");
-            return DummyResult::any(sp);
+            DummyResult::any(sp)
         }
         Err(CanRetry::Yes) => {
-            // Retry and emit a better error below.
+            // Retry and emit a better error.
+            diagnostics::failed_to_match_macro(cx, sp, def_span, name, arg, lhses)
         }
     }
-
-    diagnostics::failed_to_match_macro(cx, sp, def_span, name, arg, lhses)
 }
 
 pub(super) enum CanRetry {
@@ -376,6 +376,7 @@ pub(super) fn try_match_macro<'matcher, T: Tracker<'matcher>>(
 /// Converts a macro item into a syntax extension.
 pub fn compile_declarative_macro(
     sess: &Session,
+    features: &Features,
     def: &ast::Item,
     edition: Edition,
 ) -> (SyntaxExtension, Vec<(usize, Span)>) {
@@ -383,6 +384,7 @@ pub fn compile_declarative_macro(
     let mk_syn_ext = |expander| {
         SyntaxExtension::new(
             sess,
+            features,
             SyntaxExtensionKind::LegacyBang(expander),
             def.span,
             Vec::new(),
@@ -447,7 +449,7 @@ pub fn compile_declarative_macro(
 
     let create_parser = || {
         let body = macro_def.body.tokens.clone();
-        Parser::new(&sess.parse_sess, body, true, rustc_parse::MACRO_ARGUMENTS)
+        Parser::new(&sess.parse_sess, body, rustc_parse::MACRO_ARGUMENTS)
     };
 
     let parser = create_parser();
@@ -457,8 +459,8 @@ pub fn compile_declarative_macro(
         match tt_parser.parse_tt(&mut Cow::Owned(parser), &argument_gram, &mut NoopTracker) {
             Success(m) => m,
             Failure(()) => {
-                // The fast `NoopTracker` doesn't have any info on failure, so we need to retry it with another one
-                // that gives us the information we need.
+                // The fast `NoopTracker` doesn't have any info on failure, so we need to retry it
+                // with another one that gives us the information we need.
                 // For this we need to reclone the macro body as the previous parser consumed it.
                 let retry_parser = create_parser();
 
@@ -500,11 +502,11 @@ pub fn compile_declarative_macro(
             .map(|m| {
                 if let MatchedTokenTree(tt) = m {
                     let tt = mbe::quoted::parse(
-                        TokenStream::new(vec![tt.clone()]),
+                        &TokenStream::new(vec![tt.clone()]),
                         true,
                         &sess.parse_sess,
                         def.id,
-                        sess.features_untracked(),
+                        features,
                         edition,
                     )
                     .pop()
@@ -524,11 +526,11 @@ pub fn compile_declarative_macro(
             .map(|m| {
                 if let MatchedTokenTree(tt) = m {
                     return mbe::quoted::parse(
-                        TokenStream::new(vec![tt.clone()]),
+                        &TokenStream::new(vec![tt.clone()]),
                         false,
                         &sess.parse_sess,
                         def.id,
-                        sess.features_untracked(),
+                        features,
                         edition,
                     )
                     .pop()
@@ -554,7 +556,7 @@ pub fn compile_declarative_macro(
     let (transparency, transparency_error) = attr::find_transparency(&def.attrs, macro_rules);
     match transparency_error {
         Some(TransparencyError::UnknownTransparency(value, span)) => {
-            diag.span_err(span, format!("unknown macro transparency: `{}`", value));
+            diag.span_err(span, format!("unknown macro transparency: `{value}`"));
         }
         Some(TransparencyError::MultipleTransparencyAttrs(old_span, new_span)) => {
             diag.span_err(vec![old_span, new_span], "multiple macro transparency attributes");
@@ -1197,10 +1199,10 @@ fn check_matcher_core<'tt>(
                                     may_be = may_be
                                 ),
                             );
-                            err.span_label(sp, format!("not allowed after `{}` fragments", kind));
+                            err.span_label(sp, format!("not allowed after `{kind}` fragments"));
 
                             if kind == NonterminalKind::PatWithOr
-                                && sess.edition.rust_2021()
+                                && sess.edition.at_least_rust_2021()
                                 && next_token.is_token(&BinOp(token::BinOpToken::Or))
                             {
                                 let suggestion = quoted_tt_to_string(&TokenTree::MetaVarDecl(
@@ -1221,8 +1223,7 @@ fn check_matcher_core<'tt>(
                                 &[] => {}
                                 &[t] => {
                                     err.note(format!(
-                                        "only {} is allowed after `{}` fragments",
-                                        t, kind,
+                                        "only {t} is allowed after `{kind}` fragments",
                                     ));
                                 }
                                 ts => {
@@ -1327,7 +1328,7 @@ fn is_in_follow(tok: &mbe::TokenTree, kind: NonterminalKind) -> IsInFollow {
                     _ => IsInFollow::No(TOKENS),
                 }
             }
-            NonterminalKind::PatWithOr { .. } => {
+            NonterminalKind::PatWithOr => {
                 const TOKENS: &[&str] = &["`=>`", "`,`", "`=`", "`if`", "`in`"];
                 match tok {
                     TokenTree::Token(token) => match token.kind {
@@ -1407,9 +1408,9 @@ fn is_in_follow(tok: &mbe::TokenTree, kind: NonterminalKind) -> IsInFollow {
 fn quoted_tt_to_string(tt: &mbe::TokenTree) -> String {
     match tt {
         mbe::TokenTree::Token(token) => pprust::token_to_string(&token).into(),
-        mbe::TokenTree::MetaVar(_, name) => format!("${}", name),
-        mbe::TokenTree::MetaVarDecl(_, name, Some(kind)) => format!("${}:{}", name, kind),
-        mbe::TokenTree::MetaVarDecl(_, name, None) => format!("${}:", name),
+        mbe::TokenTree::MetaVar(_, name) => format!("${name}"),
+        mbe::TokenTree::MetaVarDecl(_, name, Some(kind)) => format!("${name}:{kind}"),
+        mbe::TokenTree::MetaVarDecl(_, name, None) => format!("${name}:"),
         _ => panic!(
             "{}",
             "unexpected mbe::TokenTree::{Sequence or Delimited} \
@@ -1418,6 +1419,11 @@ fn quoted_tt_to_string(tt: &mbe::TokenTree) -> String {
     }
 }
 
-pub(super) fn parser_from_cx(sess: &ParseSess, tts: TokenStream, recovery: Recovery) -> Parser<'_> {
-    Parser::new(sess, tts, true, rustc_parse::MACRO_ARGUMENTS).recovery(recovery)
+pub(super) fn parser_from_cx(
+    sess: &ParseSess,
+    mut tts: TokenStream,
+    recovery: Recovery,
+) -> Parser<'_> {
+    tts.desugar_doc_comments();
+    Parser::new(sess, tts, rustc_parse::MACRO_ARGUMENTS).recovery(recovery)
 }

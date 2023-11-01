@@ -1240,11 +1240,11 @@ fn test() {
             16..66 'for _ ...     }': IntoIterator::IntoIter<()>
             16..66 'for _ ...     }': &mut IntoIterator::IntoIter<()>
             16..66 'for _ ...     }': fn next<IntoIterator::IntoIter<()>>(&mut IntoIterator::IntoIter<()>) -> Option<<IntoIterator::IntoIter<()> as Iterator>::Item>
-            16..66 'for _ ...     }': Option<Iterator::Item<IntoIterator::IntoIter<()>>>
+            16..66 'for _ ...     }': Option<IntoIterator::Item<()>>
             16..66 'for _ ...     }': ()
             16..66 'for _ ...     }': ()
             16..66 'for _ ...     }': ()
-            20..21 '_': Iterator::Item<IntoIterator::IntoIter<()>>
+            20..21 '_': IntoIterator::Item<()>
             25..39 '{ let x = 0; }': ()
             31..32 'x': i32
             35..36 '0': i32
@@ -1267,6 +1267,8 @@ fn test() {
         "#,
         expect![[r#"
             10..59 '{     ...   } }': ()
+            16..57 'while ...     }': !
+            16..57 'while ...     }': ()
             16..57 'while ...     }': ()
             22..30 '{ true }': bool
             24..28 'true': bool
@@ -1976,5 +1978,25 @@ fn x(a: [i32; 4]) {
     let b = a.f();
 }
         "#,
+    );
+}
+
+#[test]
+fn dont_unify_on_casts() {
+    // #15246
+    check_types(
+        r#"
+fn unify(_: [bool; 1]) {}
+fn casted(_: *const bool) {}
+fn default<T>() -> T { loop {} }
+
+fn test() {
+    let foo = default();
+      //^^^ [bool; 1]
+
+    casted(&foo as *const _);
+    unify(foo);
+}
+"#,
     );
 }

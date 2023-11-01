@@ -3,10 +3,10 @@ use crate::llvm;
 use crate::abi::Abi;
 use crate::builder::Builder;
 use crate::common::CodegenCx;
-use crate::coverageinfo::map_data::{CounterExpression, FunctionCoverage};
+use crate::coverageinfo::ffi::{CounterExpression, CounterMappingRegion};
+use crate::coverageinfo::map_data::FunctionCoverage;
 
 use libc::c_uint;
-use llvm::coverageinfo::CounterMappingRegion;
 use rustc_codegen_ssa::traits::{
     BaseTypeMethods, BuilderMethods, ConstMethods, CoverageInfoBuilderMethods, MiscMethods,
     StaticMethods,
@@ -16,24 +16,21 @@ use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
 use rustc_llvm::RustString;
 use rustc_middle::bug;
-use rustc_middle::mir::coverage::{
-    CodeRegion, CounterValueReference, CoverageKind, ExpressionOperandId, InjectedExpressionId, Op,
-};
+use rustc_middle::mir::coverage::{CodeRegion, CounterId, CoverageKind, ExpressionId, Op, Operand};
 use rustc_middle::mir::Coverage;
 use rustc_middle::ty;
 use rustc_middle::ty::layout::{FnAbiOf, HasTyCtxt};
-use rustc_middle::ty::subst::InternalSubsts;
+use rustc_middle::ty::GenericArgs;
 use rustc_middle::ty::Instance;
 use rustc_middle::ty::Ty;
 
 use std::cell::RefCell;
-use std::ffi::CString;
 
-mod ffi;
+pub(crate) mod ffi;
 pub(crate) mod map_data;
 pub mod mapgen;
 
-const UNUSED_FUNCTION_COUNTER_ID: CounterValueReference = CounterValueReference::START;
+const UNUSED_FUNCTION_COUNTER_ID: CounterId = CounterId::START;
 
 const VAR_ALIGN_BYTES: usize = 8;
 
@@ -125,7 +122,7 @@ impl<'tcx> CoverageInfoBuilderMethods<'tcx> for Builder<'_, '_, 'tcx> {
                     let fn_name = bx.get_pgo_func_name_var(instance);
                     let hash = bx.const_u64(function_source_hash);
                     let num_counters = bx.const_u32(coverageinfo.num_counters);
-                    let index = bx.const_u32(id.zero_based_index());
+                    let index = bx.const_u32(id.as_u32());
                     debug!(
                         "codegen intrinsic instrprof.increment(fn_name={:?}, hash={:?}, num_counters={:?}, index={:?})",
                         fn_name, hash, num_counters, index,
@@ -178,7 +175,7 @@ impl<'tcx> Builder<'_, '_, 'tcx> {
     fn add_coverage_counter(
         &mut self,
         instance: Instance<'tcx>,
-        id: CounterValueReference,
+        id: CounterId,
         region: CodeRegion,
     ) -> bool {
         if let Some(coverage_context) = self.coverage_context() {
@@ -202,10 +199,10 @@ impl<'tcx> Builder<'_, '_, 'tcx> {
     fn add_coverage_counter_expression(
         &mut self,
         instance: Instance<'tcx>,
-        id: InjectedExpressionId,
-        lhs: ExpressionOperandId,
+        id: ExpressionId,
+        lhs: Operand,
         op: Op,
-        rhs: ExpressionOperandId,
+        rhs: Operand,
         region: Option<CodeRegion>,
     ) -> bool {
         if let Some(coverage_context) = self.coverage_context() {
@@ -250,7 +247,7 @@ fn declare_unused_fn<'tcx>(cx: &CodegenCx<'_, 'tcx>, def_id: DefId) -> Instance<
 
     let instance = Instance::new(
         def_id,
-        InternalSubsts::for_item(tcx, def_id, |param, _| {
+        GenericArgs::for_item(tcx, def_id, |param, _| {
             if let ty::GenericParamDefKind::Lifetime = param.kind {
                 tcx.lifetimes.re_erased.into()
             } else {
@@ -334,21 +331,32 @@ fn create_pgo_func_name_var<'ll, 'tcx>(
     cx: &CodegenCx<'ll, 'tcx>,
     instance: Instance<'tcx>,
 ) -> &'ll llvm::Value {
-    let mangled_fn_name = CString::new(cx.tcx.symbol_name(instance).name)
-        .expect("error converting function name to C string");
+    let mangled_fn_name: &str = cx.tcx.symbol_name(instance).name;
     let llfn = cx.get_fn(instance);
-    unsafe { llvm::LLVMRustCoverageCreatePGOFuncNameVar(llfn, mangled_fn_name.as_ptr()) }
+    unsafe {
+        llvm::LLVMRustCoverageCreatePGOFuncNameVar(
+            llfn,
+            mangled_fn_name.as_ptr().cast(),
+            mangled_fn_name.len(),
+        )
+    }
 }
 
 pub(crate) fn write_filenames_section_to_buffer<'a>(
-    filenames: impl IntoIterator<Item = &'a CString>,
+    filenames: impl IntoIterator<Item = &'a str>,
     buffer: &RustString,
 ) {
-    let c_str_vec = filenames.into_iter().map(|cstring| cstring.as_ptr()).collect::<Vec<_>>();
+    let (pointers, lengths) = filenames
+        .into_iter()
+        .map(|s: &str| (s.as_ptr().cast(), s.len()))
+        .unzip::<_, _, Vec<_>, Vec<_>>();
+
     unsafe {
         llvm::LLVMRustCoverageWriteFilenamesSectionToBuffer(
-            c_str_vec.as_ptr(),
-            c_str_vec.len(),
+            pointers.as_ptr(),
+            pointers.len(),
+            lengths.as_ptr(),
+            lengths.len(),
             buffer,
         );
     }
@@ -373,12 +381,7 @@ pub(crate) fn write_mapping_to_buffer(
     }
 }
 
-pub(crate) fn hash_str(strval: &str) -> u64 {
-    let strval = CString::new(strval).expect("null error converting hashable str to C string");
-    unsafe { llvm::LLVMRustCoverageHashCString(strval.as_ptr()) }
-}
-
-pub(crate) fn hash_bytes(bytes: Vec<u8>) -> u64 {
+pub(crate) fn hash_bytes(bytes: &[u8]) -> u64 {
     unsafe { llvm::LLVMRustCoverageHashByteArray(bytes.as_ptr().cast(), bytes.len()) }
 }
 
@@ -413,6 +416,7 @@ pub(crate) fn save_cov_data_to_mod<'ll, 'tcx>(
 
 pub(crate) fn save_func_record_to_mod<'ll, 'tcx>(
     cx: &CodegenCx<'ll, 'tcx>,
+    covfun_section_name: &str,
     func_name_hash: u64,
     func_record_val: &'ll llvm::Value,
     is_used: bool,
@@ -428,20 +432,33 @@ pub(crate) fn save_func_record_to_mod<'ll, 'tcx>(
     let func_record_var_name =
         format!("__covrec_{:X}{}", func_name_hash, if is_used { "u" } else { "" });
     debug!("function record var name: {:?}", func_record_var_name);
-
-    let func_record_section_name = llvm::build_string(|s| unsafe {
-        llvm::LLVMRustCoverageWriteFuncSectionNameToString(cx.llmod, s);
-    })
-    .expect("Rust Coverage function record section name failed UTF-8 conversion");
-    debug!("function record section name: {:?}", func_record_section_name);
+    debug!("function record section name: {:?}", covfun_section_name);
 
     let llglobal = llvm::add_global(cx.llmod, cx.val_ty(func_record_val), &func_record_var_name);
     llvm::set_initializer(llglobal, func_record_val);
     llvm::set_global_constant(llglobal, true);
     llvm::set_linkage(llglobal, llvm::Linkage::LinkOnceODRLinkage);
     llvm::set_visibility(llglobal, llvm::Visibility::Hidden);
-    llvm::set_section(llglobal, &func_record_section_name);
+    llvm::set_section(llglobal, covfun_section_name);
     llvm::set_alignment(llglobal, VAR_ALIGN_BYTES);
     llvm::set_comdat(cx.llmod, llglobal, &func_record_var_name);
     cx.add_used_global(llglobal);
+}
+
+/// Returns the section name string to pass through to the linker when embedding
+/// per-function coverage information in the object file, according to the target
+/// platform's object file format.
+///
+/// LLVM's coverage tools read coverage mapping details from this section when
+/// producing coverage reports.
+///
+/// Typical values are:
+/// - `__llvm_covfun` on Linux
+/// - `__LLVM_COV,__llvm_covfun` on macOS (includes `__LLVM_COV,` segment prefix)
+/// - `.lcovfun$M` on Windows (includes `$M` sorting suffix)
+pub(crate) fn covfun_section_name(cx: &CodegenCx<'_, '_>) -> String {
+    llvm::build_string(|s| unsafe {
+        llvm::LLVMRustCoverageWriteFuncSectionNameToString(cx.llmod, s);
+    })
+    .expect("Rust Coverage function record section name failed UTF-8 conversion")
 }

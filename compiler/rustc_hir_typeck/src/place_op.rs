@@ -284,7 +284,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let mut exprs = vec![expr];
 
         while let hir::ExprKind::Field(ref expr, _)
-        | hir::ExprKind::Index(ref expr, _)
+        | hir::ExprKind::Index(ref expr, _, _)
         | hir::ExprKind::Unary(hir::UnOp::Deref, ref expr) = exprs.last().unwrap().kind
         {
             exprs.push(expr);
@@ -392,7 +392,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 // We also could not use `expr_ty_adjusted` of index_expr because reborrowing
                 // during coercions can also cause type of index_expr to differ from `T`,
                 // which can potentially cause regionck failure (#74933).
-                Some(self.typeck_results.borrow().node_substs(expr.hir_id).type_at(1))
+                Some(self.typeck_results.borrow().node_args(expr.hir_id).type_at(1))
             }
         };
         let arg_tys = arg_ty.as_slice();

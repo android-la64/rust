@@ -199,7 +199,7 @@ statements is only implemented for LLVM, at this time.
 [backend-lowering-mir]: backend/lowering-mir.md
 [codegen-statement]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/mir/struct.FunctionCx.html#method.codegen_statement
 [codegen-coverage]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/mir/struct.FunctionCx.html#method.codegen_coverage
-[function-coverage]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/coverageinfo/map/struct.FunctionCoverage.html
+[function-coverage]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_llvm/coverageinfo/map_data/struct.FunctionCoverage.html
 [instrprof-increment]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/traits/trait.BuilderMethods.html#tymethod.instrprof_increment
 
 ### Coverage Map Generation
@@ -279,8 +279,8 @@ Coverage instrumentation in the MIR is validated by a `mir-opt` test:
 
 More complete testing of end-to-end coverage instrumentation and reports are
 done in the `run-make-fulldeps` tests, with sample Rust programs (to be
-instrumented) in the [`coverage`][coverage-test-samples] directory, and the
-actual tests and expected results in [`coverage-reports`].
+instrumented) in the [`tests/run-coverage`] directory,
+together with the actual tests and expected results.
 
 Finally, the [`coverage-llvmir`] test compares compiles a simple Rust program
 with `-C instrument-coverage` and compares the compiled program's LLVM IR to
@@ -292,13 +292,12 @@ Expected results for both the `mir-opt` tests and the `coverage*` tests under
 `run-make-fulldeps` can be refreshed by running:
 
 ```shell
-$ ./x.py test mir-opt --bless
-$ ./x.py test tests/run-make-fulldeps/coverage --bless
+$ ./x test mir-opt --bless
+$ ./x test tests/run-make-fulldeps/coverage --bless
 ```
 
 [mir-opt-test]: https://github.com/rust-lang/rust/blob/master/tests/mir-opt/instrument_coverage.rs
-[coverage-test-samples]: https://github.com/rust-lang/rust/tree/master/tests/run-make/coverage
-[`coverage-reports`]: https://github.com/rust-lang/rust/tree/master/tests/run-make/coverage-reports
+[`tests/run-coverage`]: https://github.com/rust-lang/rust/tree/master/tests/run-coverage
 [spanview-debugging]: compiler-debugging.md#viewing-spanview-output
 [`coverage-llvmir`]: https://github.com/rust-lang/rust/tree/master/tests/run-make/coverage-llvmir
 
@@ -466,7 +465,7 @@ function--[`bcb_from_bb()`][bcb-from-bb]--to look up a `BasicCoverageBlock` from
 [graph-traits]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_data_structures/graph/index.html#traits
 [mir-dev-guide]: mir/index.md
 [compute-basic-coverage-blocks]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/coverage/graph/struct.CoverageGraph.html#method.compute_basic_coverage_blocks
-[simplify-cfg]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/simplify/struct.SimplifyCfg.html
+[simplify-cfg]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/simplify/enum.SimplifyCfg.html
 [rust-lang/rust#78544]: https://github.com/rust-lang/rust/issues/78544
 [mir-debugging]: mir/debugging.md
 [bcb-from-bb]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/coverage/graph/struct.CoverageGraph.html#method.bcb_from_bb

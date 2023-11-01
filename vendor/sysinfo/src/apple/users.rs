@@ -6,33 +6,8 @@ use crate::{
 };
 
 use crate::sys::utils;
-use libc::{c_char, endpwent, getgrgid, getgrouplist, getpwent, gid_t, setpwent, strlen};
-
-fn get_user_groups(name: *const c_char, group_id: gid_t) -> Vec<String> {
-    let mut add = 0;
-
-    loop {
-        let mut nb_groups = 256 + add;
-        let mut groups = Vec::with_capacity(nb_groups as _);
-        unsafe {
-            if getgrouplist(name, group_id as _, groups.as_mut_ptr(), &mut nb_groups) == -1 {
-                add += 100;
-                continue;
-            }
-            groups.set_len(nb_groups as _);
-            return groups
-                .into_iter()
-                .filter_map(|g| {
-                    let group = getgrgid(g as _);
-                    if group.is_null() {
-                        return None;
-                    }
-                    utils::cstr_to_rust((*group).gr_name)
-                })
-                .collect();
-        }
-    }
-}
+use libc::{c_char, endpwent, getpwent, setpwent, strlen};
+use std::collections::HashMap;
 
 fn endswith(s1: *const c_char, s2: &[u8]) -> bool {
     if s1.is_null() {
@@ -53,13 +28,19 @@ fn users_list<F>(filter: F) -> Vec<User>
 where
     F: Fn(*const c_char, u32) -> bool,
 {
-    let mut users = Vec::new();
+    let mut users = HashMap::with_capacity(10);
+    let mut buffer = Vec::with_capacity(2048);
+    let mut groups = Vec::with_capacity(256);
 
     unsafe {
         setpwent();
         loop {
             let pw = getpwent();
             if pw.is_null() {
+                // The call was interrupted by a signal, retrying.
+                if std::io::Error::last_os_error().kind() == std::io::ErrorKind::Interrupted {
+                    continue;
+                }
                 break;
             }
 
@@ -67,24 +48,33 @@ where
                 // This is not a "real" or "local" user.
                 continue;
             }
-
-            let groups = get_user_groups((*pw).pw_name, (*pw).pw_gid);
-            let uid = (*pw).pw_uid;
-            let gid = (*pw).pw_gid;
             if let Some(name) = utils::cstr_to_rust((*pw).pw_name) {
-                users.push(User {
-                    uid: Uid(uid),
-                    gid: Gid(gid),
-                    name,
-                    groups,
-                });
+                if users.contains_key(&name) {
+                    continue;
+                }
+
+                let groups = crate::users::get_user_groups(
+                    (*pw).pw_name,
+                    (*pw).pw_gid,
+                    &mut groups,
+                    &mut buffer,
+                );
+                let uid = (*pw).pw_uid;
+                let gid = (*pw).pw_gid;
+                users.insert(name, (Uid(uid), Gid(gid), groups));
             }
         }
         endpwent();
     }
-    users.sort_unstable_by(|x, y| x.name.partial_cmp(&y.name).unwrap());
-    users.dedup_by(|a, b| a.name == b.name);
     users
+        .into_iter()
+        .map(|(name, (uid, gid, groups))| User {
+            uid,
+            gid,
+            name,
+            groups,
+        })
+        .collect()
 }
 
 pub(crate) fn get_users_list() -> Vec<User> {

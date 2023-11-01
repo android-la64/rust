@@ -297,11 +297,11 @@ impl ExprCollector<'_> {
                         let (result_expr_id, prev_binding_owner) =
                             this.initialize_binding_owner(syntax_ptr);
                         let inner_expr = this.collect_block(e);
-                        let x = this.db.intern_anonymous_const(ConstBlockLoc {
+                        let it = this.db.intern_anonymous_const(ConstBlockLoc {
                             parent: this.owner,
                             root: inner_expr,
                         });
-                        this.body.exprs[result_expr_id] = Expr::Const(x);
+                        this.body.exprs[result_expr_id] = Expr::Const(it);
                         this.current_binding_owner = prev_binding_owner;
                         result_expr_id
                     })
@@ -313,21 +313,15 @@ impl ExprCollector<'_> {
                 let body = self.collect_labelled_block_opt(label, e.loop_body());
                 self.alloc_expr(Expr::Loop { body, label }, syntax_ptr)
             }
-            ast::Expr::WhileExpr(e) => {
-                let label = e.label().map(|label| self.collect_label(label));
-                let body = self.collect_labelled_block_opt(label, e.loop_body());
-                let condition = self.collect_expr_opt(e.condition());
-
-                self.alloc_expr(Expr::While { condition, body, label }, syntax_ptr)
-            }
+            ast::Expr::WhileExpr(e) => self.collect_while_loop(syntax_ptr, e),
             ast::Expr::ForExpr(e) => self.collect_for_loop(syntax_ptr, e),
             ast::Expr::CallExpr(e) => {
                 let is_rustc_box = {
                     let attrs = e.attrs();
-                    attrs.filter_map(|x| x.as_simple_atom()).any(|x| x == "rustc_box")
+                    attrs.filter_map(|it| it.as_simple_atom()).any(|it| it == "rustc_box")
                 };
                 if is_rustc_box {
-                    let expr = self.collect_expr_opt(e.arg_list().and_then(|x| x.args().next()));
+                    let expr = self.collect_expr_opt(e.arg_list().and_then(|it| it.args().next()));
                     self.alloc_expr(Expr::Box { expr }, syntax_ptr)
                 } else {
                     let callee = self.collect_expr_opt(e.expr());
@@ -731,6 +725,32 @@ impl ExprCollector<'_> {
         expr_id
     }
 
+    /// Desugar `ast::WhileExpr` from: `[opt_ident]: while <cond> <body>` into:
+    /// ```ignore (pseudo-rust)
+    /// [opt_ident]: loop {
+    ///   if <cond> {
+    ///     <body>
+    ///   }
+    ///   else {
+    ///     break;
+    ///   }
+    /// }
+    /// ```
+    /// FIXME: Rustc wraps the condition in a construct equivalent to `{ let _t = <cond>; _t }`
+    /// to preserve drop semantics. We should probably do the same in future.
+    fn collect_while_loop(&mut self, syntax_ptr: AstPtr<ast::Expr>, e: ast::WhileExpr) -> ExprId {
+        let label = e.label().map(|label| self.collect_label(label));
+        let body = self.collect_labelled_block_opt(label, e.loop_body());
+        let condition = self.collect_expr_opt(e.condition());
+        let break_expr =
+            self.alloc_expr(Expr::Break { expr: None, label: None }, syntax_ptr.clone());
+        let if_expr = self.alloc_expr(
+            Expr::If { condition, then_branch: body, else_branch: Some(break_expr) },
+            syntax_ptr.clone(),
+        );
+        self.alloc_expr(Expr::Loop { body: if_expr, label }, syntax_ptr)
+    }
+
     /// Desugar `ast::ForExpr` from: `[opt_ident]: for <pat> in <head> <body>` into:
     /// ```ignore (pseudo-rust)
     /// match IntoIterator::into_iter(<head>) {
@@ -781,7 +801,7 @@ impl ExprCollector<'_> {
             pat: self.alloc_pat_desugared(some_pat),
             guard: None,
             expr: self.with_opt_labeled_rib(label, |this| {
-                this.collect_expr_opt(e.loop_body().map(|x| x.into()))
+                this.collect_expr_opt(e.loop_body().map(|it| it.into()))
             }),
         };
         let iter_name = Name::generate_new_name();
@@ -874,10 +894,10 @@ impl ExprCollector<'_> {
             }),
             guard: None,
             expr: {
-                let x = self.alloc_expr(Expr::Path(Path::from(break_name)), syntax_ptr.clone());
+                let it = self.alloc_expr(Expr::Path(Path::from(break_name)), syntax_ptr.clone());
                 let callee = self.alloc_expr(Expr::Path(try_from_residual), syntax_ptr.clone());
                 let result = self.alloc_expr(
-                    Expr::Call { callee, args: Box::new([x]), is_assignee_expr: false },
+                    Expr::Call { callee, args: Box::new([it]), is_assignee_expr: false },
                     syntax_ptr.clone(),
                 );
                 self.alloc_expr(
@@ -893,15 +913,14 @@ impl ExprCollector<'_> {
         self.alloc_expr(Expr::Match { expr, arms }, syntax_ptr)
     }
 
-    fn collect_macro_call<F, T, U>(
+    fn collect_macro_call<T, U>(
         &mut self,
         mcall: ast::MacroCall,
         syntax_ptr: AstPtr<ast::MacroCall>,
         record_diagnostics: bool,
-        collector: F,
+        collector: impl FnOnce(&mut Self, Option<T>) -> U,
     ) -> U
     where
-        F: FnOnce(&mut Self, Option<T>) -> U,
         T: ast::AstNode,
     {
         // File containing the macro call. Expansion errors will be attached here.
@@ -1240,12 +1259,12 @@ impl ExprCollector<'_> {
                 pats.push(self.collect_pat(first, binding_list));
                 binding_list.reject_new = true;
                 for rest in it {
-                    for (_, x) in binding_list.is_used.iter_mut() {
-                        *x = false;
+                    for (_, it) in binding_list.is_used.iter_mut() {
+                        *it = false;
                     }
                     pats.push(self.collect_pat(rest, binding_list));
-                    for (&id, &x) in binding_list.is_used.iter() {
-                        if !x {
+                    for (&id, &is_used) in binding_list.is_used.iter() {
+                        if !is_used {
                             self.body.bindings[id].problems =
                                 Some(BindingProblems::NotBoundAcrossAll);
                         }
@@ -1352,9 +1371,9 @@ impl ExprCollector<'_> {
             // FIXME: implement in a way that also builds source map and calculates assoc resolutions in type inference.
             ast::Pat::RangePat(p) => {
                 let mut range_part_lower = |p: Option<ast::Pat>| {
-                    p.and_then(|x| match &x {
-                        ast::Pat::LiteralPat(x) => {
-                            Some(Box::new(LiteralOrConst::Literal(pat_literal_to_hir(x)?.0)))
+                    p.and_then(|it| match &it {
+                        ast::Pat::LiteralPat(it) => {
+                            Some(Box::new(LiteralOrConst::Literal(pat_literal_to_hir(it)?.0)))
                         }
                         ast::Pat::IdentPat(p) => {
                             let name =
@@ -1451,9 +1470,7 @@ impl ExprCollector<'_> {
         &self,
         lifetime: Option<ast::Lifetime>,
     ) -> Result<Option<LabelId>, BodyDiagnostic> {
-        let Some(lifetime) = lifetime else {
-            return Ok(None)
-        };
+        let Some(lifetime) = lifetime else { return Ok(None) };
         let name = Name::new_lifetime(&lifetime);
 
         for (rib_idx, rib) in self.label_ribs.iter().enumerate().rev() {

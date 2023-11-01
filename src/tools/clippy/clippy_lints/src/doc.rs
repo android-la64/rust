@@ -16,7 +16,7 @@ use rustc_ast::token::CommentKind;
 use rustc_data_structures::fx::FxHashSet;
 use rustc_data_structures::sync::Lrc;
 use rustc_errors::emitter::EmitterWriter;
-use rustc_errors::{Applicability, Handler, SuggestionStyle, TerminalUrl};
+use rustc_errors::{Applicability, Handler, SuggestionStyle};
 use rustc_hir as hir;
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_hir::{AnonConst, Expr};
@@ -31,9 +31,8 @@ use rustc_session::{declare_tool_lint, impl_lint_pass};
 use rustc_span::edition::Edition;
 use rustc_span::source_map::{BytePos, FilePathMapping, SourceMap, Span};
 use rustc_span::{sym, FileName, Pos};
-use std::io;
 use std::ops::Range;
-use std::thread;
+use std::{io, thread};
 use url::Url;
 
 declare_clippy_lint! {
@@ -295,7 +294,9 @@ impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
 
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item<'_>) {
         let attrs = cx.tcx.hir().attrs(item.hir_id());
-        let Some(headers) = check_attrs(cx, &self.valid_idents, attrs) else { return };
+        let Some(headers) = check_attrs(cx, &self.valid_idents, attrs) else {
+            return;
+        };
         match item.kind {
             hir::ItemKind::Fn(ref sig, _, body_id) => {
                 if !(is_entrypoint_fn(cx, item.owner_id.to_def_id()) || in_external_macro(cx.tcx.sess, item.span)) {
@@ -339,7 +340,9 @@ impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
 
     fn check_trait_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::TraitItem<'_>) {
         let attrs = cx.tcx.hir().attrs(item.hir_id());
-        let Some(headers) = check_attrs(cx, &self.valid_idents, attrs) else { return };
+        let Some(headers) = check_attrs(cx, &self.valid_idents, attrs) else {
+            return;
+        };
         if let hir::TraitItemKind::Fn(ref sig, ..) = item.kind {
             if !in_external_macro(cx.tcx.sess, item.span) {
                 lint_for_missing_headers(cx, item.owner_id, sig, headers, None, None);
@@ -349,7 +352,9 @@ impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
 
     fn check_impl_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::ImplItem<'_>) {
         let attrs = cx.tcx.hir().attrs(item.hir_id());
-        let Some(headers) = check_attrs(cx, &self.valid_idents, attrs) else { return };
+        let Some(headers) = check_attrs(cx, &self.valid_idents, attrs) else {
+            return;
+        };
         if self.in_trait_impl || in_external_macro(cx.tcx.sess, item.span) {
             return;
         }
@@ -711,20 +716,8 @@ fn check_code(cx: &LateContext<'_>, text: &str, edition: Edition, span: Span) {
                 let sm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
                 let fallback_bundle =
                     rustc_errors::fallback_fluent_bundle(rustc_driver::DEFAULT_LOCALE_RESOURCES.to_vec(), false);
-                let emitter = EmitterWriter::new(
-                    Box::new(io::sink()),
-                    None,
-                    None,
-                    fallback_bundle,
-                    false,
-                    false,
-                    false,
-                    None,
-                    false,
-                    false,
-                    TerminalUrl::No,
-                );
-                let handler = Handler::with_emitter(false, None, Box::new(emitter));
+                let emitter = EmitterWriter::new(Box::new(io::sink()), fallback_bundle);
+                let handler = Handler::with_emitter(Box::new(emitter)).disable_warnings();
                 let sess = ParseSess::with_span_handler(handler, sm);
 
                 let mut parser = match maybe_new_parser_from_source_str(&sess, filename, code) {

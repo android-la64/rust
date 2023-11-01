@@ -13,11 +13,10 @@ use rustc_ast as ast;
 use rustc_ast::tokenstream::TokenTree;
 use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
-use rustc_hir::def_id::{DefId, LOCAL_CRATE};
+use rustc_hir::def_id::{DefId, LocalDefId, LOCAL_CRATE};
 use rustc_middle::mir;
 use rustc_middle::mir::interpret::ConstValue;
-use rustc_middle::ty::subst::{GenericArgKind, SubstsRef};
-use rustc_middle::ty::{self, TyCtxt};
+use rustc_middle::ty::{self, GenericArgKind, GenericArgsRef, TyCtxt};
 use rustc_span::symbol::{kw, sym, Symbol};
 use std::fmt::Write as _;
 use std::mem;
@@ -39,11 +38,15 @@ pub(crate) fn krate(cx: &mut DocContext<'_>) -> Crate {
             for it in &module.items {
                 // `compiler_builtins` should be masked too, but we can't apply
                 // `#[doc(masked)]` to the injected `extern crate` because it's unstable.
-                if it.is_extern_crate()
-                    && (it.attrs.has_doc_flag(sym::masked)
-                        || cx.tcx.is_compiler_builtins(it.item_id.krate()))
-                {
+                if cx.tcx.is_compiler_builtins(it.item_id.krate()) {
                     cx.cache.masked_crates.insert(it.item_id.krate());
+                } else if it.is_extern_crate()
+                    && it.attrs.has_doc_flag(sym::masked)
+                    && let Some(def_id) = it.item_id.as_def_id()
+                    && let Some(local_def_id) = def_id.as_local()
+                    && let Some(cnum) = cx.tcx.extern_mod_stmt_cnum(local_def_id)
+                {
+                    cx.cache.masked_crates.insert(cnum);
                 }
             }
         }
@@ -71,7 +74,7 @@ pub(crate) fn krate(cx: &mut DocContext<'_>) -> Crate {
     Crate { module, external_traits: cx.external_traits.clone() }
 }
 
-pub(crate) fn substs_to_args<'tcx>(
+pub(crate) fn ty_args_to_args<'tcx>(
     cx: &mut DocContext<'tcx>,
     args: ty::Binder<'tcx, &'tcx [ty::GenericArg<'tcx>]>,
     has_self: bool,
@@ -114,12 +117,12 @@ fn external_generic_args<'tcx>(
     did: DefId,
     has_self: bool,
     bindings: ThinVec<TypeBinding>,
-    substs: ty::Binder<'tcx, SubstsRef<'tcx>>,
+    ty_args: ty::Binder<'tcx, GenericArgsRef<'tcx>>,
 ) -> GenericArgs {
-    let args = substs_to_args(cx, substs.map_bound(|substs| &substs[..]), has_self, Some(did));
+    let args = ty_args_to_args(cx, ty_args.map_bound(|args| &args[..]), has_self, Some(did));
 
     if cx.tcx.fn_trait_kind_from_def_id(did).is_some() {
-        let ty = substs
+        let ty = ty_args
             .iter()
             .nth(if has_self { 1 } else { 0 })
             .unwrap()
@@ -147,7 +150,7 @@ pub(super) fn external_path<'tcx>(
     did: DefId,
     has_self: bool,
     bindings: ThinVec<TypeBinding>,
-    substs: ty::Binder<'tcx, SubstsRef<'tcx>>,
+    args: ty::Binder<'tcx, GenericArgsRef<'tcx>>,
 ) -> Path {
     let def_kind = cx.tcx.def_kind(did);
     let name = cx.tcx.item_name(did);
@@ -155,7 +158,7 @@ pub(super) fn external_path<'tcx>(
         res: Res::Def(def_kind, did),
         segments: thin_vec![PathSegment {
             name,
-            args: external_generic_args(cx, did, has_self, bindings, substs),
+            args: external_generic_args(cx, did, has_self, bindings, args),
         }],
     }
 }
@@ -217,7 +220,7 @@ pub(crate) fn build_deref_target_impls(
 
 pub(crate) fn name_from_pat(p: &hir::Pat<'_>) -> Symbol {
     use rustc_hir::*;
-    debug!("trying to get a name from pattern: {:?}", p);
+    debug!("trying to get a name from pattern: {p:?}");
 
     Symbol::intern(&match p.kind {
         PatKind::Wild | PatKind::Struct(..) => return kw::Underscore,
@@ -250,7 +253,7 @@ pub(crate) fn name_from_pat(p: &hir::Pat<'_>) -> Symbol {
 
 pub(crate) fn print_const(cx: &DocContext<'_>, n: ty::Const<'_>) -> String {
     match n.kind() {
-        ty::ConstKind::Unevaluated(ty::UnevaluatedConst { def, substs: _ }) => {
+        ty::ConstKind::Unevaluated(ty::UnevaluatedConst { def, args: _ }) => {
             let s = if let Some(def) = def.as_local() {
                 print_const_expr(cx.tcx, cx.tcx.hir().body_owned_by(def))
             } else {
@@ -275,7 +278,7 @@ pub(crate) fn print_evaluated_const(
     underscores_and_type: bool,
 ) -> Option<String> {
     tcx.const_eval_poly(def_id).ok().and_then(|val| {
-        let ty = tcx.type_of(def_id).subst_identity();
+        let ty = tcx.type_of(def_id).instantiate_identity();
         match (val, ty.kind()) {
             (_, &ty::Ref(..)) => None,
             (ConstValue::Scalar(_), &ty::Adt(_, _)) => None,
@@ -460,7 +463,7 @@ pub(crate) fn print_const_expr(tcx: TyCtxt<'_>, body: hir::BodyId) -> String {
 
 /// Given a type Path, resolve it to a Type using the TyCtxt
 pub(crate) fn resolve_type(cx: &mut DocContext<'_>, path: Path) -> Type {
-    debug!("resolve_type({:?})", path);
+    debug!("resolve_type({path:?})");
 
     match path.res {
         Res::PrimTy(p) => Primitive(PrimitiveType::from(p)),
@@ -479,12 +482,6 @@ pub(crate) fn get_auto_trait_and_blanket_impls(
     cx: &mut DocContext<'_>,
     item_def_id: DefId,
 ) -> impl Iterator<Item = Item> {
-    // FIXME: To be removed once `parallel_compiler` bugs are fixed!
-    // More information in <https://github.com/rust-lang/rust/pull/106930>.
-    if cfg!(parallel_compiler) {
-        return vec![].into_iter().chain(vec![].into_iter());
-    }
-
     let auto_impls = cx
         .sess()
         .prof
@@ -505,16 +502,30 @@ pub(crate) fn get_auto_trait_and_blanket_impls(
 /// [`href()`]: crate::html::format::href
 pub(crate) fn register_res(cx: &mut DocContext<'_>, res: Res) -> DefId {
     use DefKind::*;
-    debug!("register_res({:?})", res);
+    debug!("register_res({res:?})");
 
     let (kind, did) = match res {
         Res::Def(
-            kind @ (AssocTy | AssocFn | AssocConst | Variant | Fn | TyAlias | Enum | Trait | Struct
-            | Union | Mod | ForeignTy | Const | Static(_) | Macro(..) | TraitAlias),
+            kind @ (AssocTy
+            | AssocFn
+            | AssocConst
+            | Variant
+            | Fn
+            | TyAlias { .. }
+            | Enum
+            | Trait
+            | Struct
+            | Union
+            | Mod
+            | ForeignTy
+            | Const
+            | Static(_)
+            | Macro(..)
+            | TraitAlias),
             did,
         ) => (kind.into(), did),
 
-        _ => panic!("register_res: unexpected {:?}", res),
+        _ => panic!("register_res: unexpected {res:?}"),
     };
     if did.is_local() {
         return did;
@@ -592,8 +603,12 @@ pub(super) fn render_macro_arms<'a>(
 ) -> String {
     let mut out = String::new();
     for matcher in matchers {
-        writeln!(out, "    {} => {{ ... }}{}", render_macro_matcher(tcx, matcher), arm_delim)
-            .unwrap();
+        writeln!(
+            out,
+            "    {matcher} => {{ ... }}{arm_delim}",
+            matcher = render_macro_matcher(tcx, matcher),
+        )
+        .unwrap();
     }
     out
 }
@@ -609,22 +624,54 @@ pub(super) fn display_macro_source(
     let matchers = def.body.tokens.chunks(4).map(|arm| &arm[0]);
 
     if def.macro_rules {
-        format!("macro_rules! {} {{\n{}}}", name, render_macro_arms(cx.tcx, matchers, ";"))
+        format!("macro_rules! {name} {{\n{arms}}}", arms = render_macro_arms(cx.tcx, matchers, ";"))
     } else {
         if matchers.len() <= 1 {
             format!(
-                "{}macro {}{} {{\n    ...\n}}",
-                visibility_to_src_with_space(Some(vis), cx.tcx, def_id),
-                name,
-                matchers.map(|matcher| render_macro_matcher(cx.tcx, matcher)).collect::<String>(),
+                "{vis}macro {name}{matchers} {{\n    ...\n}}",
+                vis = visibility_to_src_with_space(Some(vis), cx.tcx, def_id),
+                matchers = matchers
+                    .map(|matcher| render_macro_matcher(cx.tcx, matcher))
+                    .collect::<String>(),
             )
         } else {
             format!(
-                "{}macro {} {{\n{}}}",
-                visibility_to_src_with_space(Some(vis), cx.tcx, def_id),
-                name,
-                render_macro_arms(cx.tcx, matchers, ","),
+                "{vis}macro {name} {{\n{arms}}}",
+                vis = visibility_to_src_with_space(Some(vis), cx.tcx, def_id),
+                arms = render_macro_arms(cx.tcx, matchers, ","),
             )
         }
     }
+}
+
+pub(crate) fn inherits_doc_hidden(
+    tcx: TyCtxt<'_>,
+    mut def_id: LocalDefId,
+    stop_at: Option<LocalDefId>,
+) -> bool {
+    let hir = tcx.hir();
+    while let Some(id) = tcx.opt_local_parent(def_id) {
+        if let Some(stop_at) = stop_at && id == stop_at {
+            return false;
+        }
+        def_id = id;
+        if tcx.is_doc_hidden(def_id.to_def_id()) {
+            return true;
+        } else if let Some(node) = hir.find_by_def_id(def_id) &&
+            matches!(
+                node,
+                hir::Node::Item(hir::Item { kind: hir::ItemKind::Impl(_), .. }),
+            )
+        {
+            // `impl` blocks stand a bit on their own: unless they have `#[doc(hidden)]` directly
+            // on them, they don't inherit it from the parent context.
+            return false;
+        }
+    }
+    false
+}
+
+#[inline]
+pub(crate) fn should_ignore_res(res: Res) -> bool {
+    matches!(res, Res::Def(DefKind::Ctor(..), _) | Res::SelfCtor(..))
 }

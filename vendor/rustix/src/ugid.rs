@@ -75,18 +75,17 @@ impl Gid {
     }
 }
 
-// Return the raw value of the IDs. In case of `None` it returns `u32::MAX`
-// since it has the same bit pattern as `-1` indicating no change to the
-// owner/group ID.
-pub(crate) fn translate_fchown_args(owner: Option<Uid>, group: Option<Gid>) -> (u32, u32) {
+// Return the raw value of the IDs. In case of `None` it returns `!0` since it
+// has the same bit pattern as `-1` indicating no change to the owner/group ID.
+pub(crate) fn translate_fchown_args(owner: Option<Uid>, group: Option<Gid>) -> (RawUid, RawGid) {
     let ow = match owner {
         Some(o) => o.as_raw(),
-        None => u32::MAX,
+        None => !0,
     };
 
     let gr = match group {
         Some(g) => g.as_raw(),
-        None => u32::MAX,
+        None => !0,
     };
 
     (ow, gr)
@@ -94,8 +93,6 @@ pub(crate) fn translate_fchown_args(owner: Option<Uid>, group: Option<Gid>) -> (
 
 #[test]
 fn test_sizes() {
-    use core::mem::size_of;
-
-    assert_eq!(size_of::<RawUid>(), size_of::<u32>());
-    assert_eq!(size_of::<RawGid>(), size_of::<u32>());
+    assert_eq_size!(RawUid, u32);
+    assert_eq_size!(RawGid, u32);
 }

@@ -216,7 +216,7 @@ impl<'a> IntoDiagnostic<'a> for MissingTypeParams {
             "parameters",
             self.missing_type_params
                 .iter()
-                .map(|n| format!("`{}`", n))
+                .map(|n| format!("`{n}`"))
                 .collect::<Vec<_>>()
                 .join(", "),
         );
@@ -917,4 +917,13 @@ pub(crate) enum LateBoundInApit {
 pub struct UnusedAssociatedTypeBounds {
     #[suggestion(code = "")]
     pub span: Span,
+}
+
+#[derive(Diagnostic)]
+#[diag(hir_analysis_assoc_bound_on_const)]
+#[note]
+pub struct AssocBoundOnConst {
+    #[primary_span]
+    pub span: Span,
+    pub descr: &'static str,
 }

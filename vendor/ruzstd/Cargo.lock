@@ -439,12 +439,12 @@ dependencies = [
 
 [[package]]
 name = "ruzstd"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "byteorder",
  "criterion",
  "rand",
- "thiserror",
+ "thiserror-core",
  "twox-hash",
 ]
 
@@ -540,19 +540,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "thiserror"
-version = "1.0.32"
+name = "thiserror-core"
+version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5f6586b7f764adc0231f4c79be7b920e766bb2f3e51b3661cdb263828f19994"
+checksum = "0d97345f6437bb2004cd58819d8a9ef8e36cdd7661c2abc4bbde0a7c40d9f497"
 dependencies = [
- "thiserror-impl",
+ "thiserror-core-impl",
 ]
 
 [[package]]
-name = "thiserror-impl"
-version = "1.0.32"
+name = "thiserror-core-impl"
+version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12bafc5b54507e0149cdf1b145a5d80ab80a90bcd9275df43d4fff68460f6c21"
+checksum = "10ac1c5050e43014d16b2f94d0d2ce79e65ffdd8b38d8048f9c8f6a8a6da62ac"
 dependencies = [
  "proc-macro2",
  "quote",

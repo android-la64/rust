@@ -4,8 +4,6 @@
 #![allow(unused_must_use, non_upper_case_globals)]
 #![allow(clippy::manual_range_contains)]
 
-extern crate sysinfo;
-
 use std::io::{self, BufRead, Write};
 use std::str::FromStr;
 use sysinfo::Signal::*;
@@ -124,7 +122,10 @@ fn print_help() {
         &mut io::stdout(),
         "frequency          : Displays CPU frequency"
     );
-    writeln!(&mut io::stdout(), "users              : Displays all users");
+    writeln!(
+        &mut io::stdout(),
+        "users              : Displays all users and their groups"
+    );
     writeln!(
         &mut io::stdout(),
         "system             : Displays system information (such as name, version and hostname)"
@@ -264,8 +265,9 @@ fn interpret_input(input: &str, sys: &mut System) -> bool {
             for (interface_name, data) in sys.networks().iter() {
                 writeln!(
                     &mut io::stdout(),
-                    "{}:\n  input data  (new / total): {} / {} B\n  output data (new / total): {} / {} B",
+                    "{}:\n  ether {}\n  input data  (new / total): {} / {} B\n  output data (new / total): {} / {} B",
                     interface_name,
+                    data.mac_address(),
                     data.received(),
                     data.total_received(),
                     data.transmitted(),
@@ -326,7 +328,12 @@ fn interpret_input(input: &str, sys: &mut System) -> bool {
         }
         "users" => {
             for user in sys.users() {
-                writeln!(&mut io::stdout(), "{:?}", user.name());
+                writeln!(
+                    &mut io::stdout(),
+                    "{:?} => {:?}",
+                    user.name(),
+                    user.groups()
+                );
             }
         }
         "boot_time" => {
@@ -342,11 +349,7 @@ fn interpret_input(input: &str, sys: &mut System) -> bool {
             let minutes = uptime / 60;
             writeln!(
                 &mut io::stdout(),
-                "{} days {} hours {} minutes ({} seconds in total)",
-                days,
-                hours,
-                minutes,
-                up,
+                "{days} days {hours} hours {minutes} minutes ({up} seconds in total)",
             );
         }
         x if x.starts_with("refresh") => {
@@ -365,11 +368,7 @@ fn interpret_input(input: &str, sys: &mut System) -> bool {
                     if sys.refresh_process(pid) {
                         writeln!(&mut io::stdout(), "Process `{pid}` updated successfully");
                     } else {
-                        writeln!(
-                            &mut io::stdout(),
-                            "Process `{}` couldn't be updated...",
-                            pid
-                        );
+                        writeln!(&mut io::stdout(), "Process `{pid}` couldn't be updated...");
                     }
                 } else {
                     writeln!(&mut io::stdout(), "Invalid [pid] received...");
@@ -377,9 +376,8 @@ fn interpret_input(input: &str, sys: &mut System) -> bool {
             } else {
                 writeln!(
                     &mut io::stdout(),
-                    "\"{}\": Unknown command. Enter 'help' if you want to get the commands' \
+                    "\"{x}\": Unknown command. Enter 'help' if you want to get the commands' \
                      list.",
-                    x
                 );
             }
         }
@@ -410,9 +408,8 @@ fn interpret_input(input: &str, sys: &mut System) -> bool {
         e => {
             writeln!(
                 &mut io::stdout(),
-                "\"{}\": Unknown command. Enter 'help' if you want to get the commands' \
+                "\"{e}\": Unknown command. Enter 'help' if you want to get the commands' \
                  list.",
-                e
             );
         }
     }

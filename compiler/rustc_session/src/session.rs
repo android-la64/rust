@@ -17,7 +17,7 @@ use rustc_data_structures::fx::{FxHashMap, FxIndexSet};
 use rustc_data_structures::jobserver::{self, Client};
 use rustc_data_structures::profiling::{duration_to_secs_str, SelfProfiler, SelfProfilerRef};
 use rustc_data_structures::sync::{
-    self, AtomicU64, AtomicUsize, Lock, Lrc, OnceCell, OneThread, Ordering, Ordering::SeqCst,
+    self, AtomicU64, AtomicUsize, Lock, Lrc, OneThread, Ordering, Ordering::SeqCst,
 };
 use rustc_errors::annotate_snippet_emitter_writer::AnnotateSnippetEmitterWriter;
 use rustc_errors::emitter::{Emitter, EmitterWriter, HumanReadableErrorType};
@@ -151,16 +151,6 @@ pub struct Session {
     pub sysroot: PathBuf,
     /// Input, input file path and output file path to this compilation process.
     pub io: CompilerIO,
-
-    crate_types: OnceCell<Vec<CrateType>>,
-    /// The `stable_crate_id` is constructed out of the crate name and all the
-    /// `-C metadata` arguments passed to the compiler. Its value forms a unique
-    /// global identifier for the crate. It is used to allow multiple crates
-    /// with the same name to coexist. See the
-    /// `rustc_symbol_mangling` crate for more information.
-    pub stable_crate_id: OnceCell<StableCrateId>,
-
-    features: OnceCell<rustc_feature::Features>,
 
     incr_comp_session: OneThread<RefCell<IncrCompSession>>,
     /// Used for incremental compilation tests. Will only be populated if
@@ -310,53 +300,9 @@ impl Session {
         self.parse_sess.span_diagnostic.emit_future_breakage_report(diags);
     }
 
-    pub fn local_stable_crate_id(&self) -> StableCrateId {
-        self.stable_crate_id.get().copied().unwrap()
-    }
-
-    pub fn crate_types(&self) -> &[CrateType] {
-        self.crate_types.get().unwrap().as_slice()
-    }
-
     /// Returns true if the crate is a testing one.
     pub fn is_test_crate(&self) -> bool {
         self.opts.test
-    }
-
-    pub fn needs_crate_hash(&self) -> bool {
-        // Why is the crate hash needed for these configurations?
-        // - debug_assertions: for the "fingerprint the result" check in
-        //   `rustc_query_system::query::plumbing::execute_job`.
-        // - incremental: for query lookups.
-        // - needs_metadata: for putting into crate metadata.
-        // - instrument_coverage: for putting into coverage data (see
-        //   `hash_mir_source`).
-        cfg!(debug_assertions)
-            || self.opts.incremental.is_some()
-            || self.needs_metadata()
-            || self.instrument_coverage()
-    }
-
-    pub fn metadata_kind(&self) -> MetadataKind {
-        self.crate_types()
-            .iter()
-            .map(|ty| match *ty {
-                CrateType::Executable | CrateType::Staticlib | CrateType::Cdylib => {
-                    MetadataKind::None
-                }
-                CrateType::Rlib => MetadataKind::Uncompressed,
-                CrateType::Dylib | CrateType::ProcMacro => MetadataKind::Compressed,
-            })
-            .max()
-            .unwrap_or(MetadataKind::None)
-    }
-
-    pub fn needs_metadata(&self) -> bool {
-        self.metadata_kind() != MetadataKind::None
-    }
-
-    pub fn init_crate_types(&self, crate_types: Vec<CrateType>) {
-        self.crate_types.set(crate_types).expect("`crate_types` was initialized twice")
     }
 
     #[rustc_lint_diagnostics]
@@ -677,7 +623,7 @@ impl Session {
     pub fn delay_span_bug<S: Into<MultiSpan>>(
         &self,
         sp: S,
-        msg: impl Into<DiagnosticMessage>,
+        msg: impl Into<String>,
     ) -> ErrorGuaranteed {
         self.diagnostic().delay_span_bug(sp, msg)
     }
@@ -755,21 +701,6 @@ impl Session {
 
     pub fn instrument_coverage_except_unused_functions(&self) -> bool {
         self.opts.cg.instrument_coverage() == InstrumentCoverage::ExceptUnusedFunctions
-    }
-
-    /// Gets the features enabled for the current compilation session.
-    /// DO NOT USE THIS METHOD if there is a TyCtxt available, as it circumvents
-    /// dependency tracking. Use tcx.features() instead.
-    #[inline]
-    pub fn features_untracked(&self) -> &rustc_feature::Features {
-        self.features.get().unwrap()
-    }
-
-    pub fn init_features(&self, features: rustc_feature::Features) {
-        match self.features.set(features) {
-            Ok(()) => {}
-            Err(_) => panic!("`features` was initialized twice"),
-        }
     }
 
     pub fn is_sanitizer_cfi_enabled(&self) -> bool {
@@ -995,18 +926,18 @@ impl Session {
     }
 
     /// Are we allowed to use features from the Rust 2018 edition?
-    pub fn rust_2018(&self) -> bool {
-        self.edition().rust_2018()
+    pub fn at_least_rust_2018(&self) -> bool {
+        self.edition().at_least_rust_2018()
     }
 
     /// Are we allowed to use features from the Rust 2021 edition?
-    pub fn rust_2021(&self) -> bool {
-        self.edition().rust_2021()
+    pub fn at_least_rust_2021(&self) -> bool {
+        self.edition().at_least_rust_2021()
     }
 
     /// Are we allowed to use features from the Rust 2024 edition?
-    pub fn rust_2024(&self) -> bool {
-        self.edition().rust_2024()
+    pub fn at_least_rust_2024(&self) -> bool {
+        self.edition().at_least_rust_2024()
     }
 
     /// Returns `true` if we should use the PLT for shared library calls.
@@ -1055,6 +986,10 @@ impl Session {
 impl Session {
     pub fn verbose(&self) -> bool {
         self.opts.unstable_opts.verbose
+    }
+
+    pub fn print_llvm_stats(&self) -> bool {
+        self.opts.unstable_opts.print_codegen_stats
     }
 
     pub fn verify_llvm_ir(&self) -> bool {
@@ -1346,18 +1281,15 @@ fn default_emitter(
                 );
                 Box::new(emitter.ui_testing(sopts.unstable_opts.ui_testing))
             } else {
-                let emitter = EmitterWriter::stderr(
-                    color_config,
-                    Some(source_map),
-                    bundle,
-                    fallback_bundle,
-                    short,
-                    sopts.unstable_opts.teach,
-                    sopts.diagnostic_width,
-                    macro_backtrace,
-                    track_diagnostics,
-                    terminal_url,
-                );
+                let emitter = EmitterWriter::stderr(color_config, fallback_bundle)
+                    .fluent_bundle(bundle)
+                    .sm(Some(source_map))
+                    .short_message(short)
+                    .teach(sopts.unstable_opts.teach)
+                    .diagnostic_width(sopts.diagnostic_width)
+                    .macro_backtrace(macro_backtrace)
+                    .track_diagnostics(track_diagnostics)
+                    .terminal_url(terminal_url);
                 Box::new(emitter.ui_testing(sopts.unstable_opts.ui_testing))
             }
         }
@@ -1392,6 +1324,7 @@ pub fn build_session(
     file_loader: Option<Box<dyn FileLoader + Send + Sync + 'static>>,
     target_override: Option<Target>,
     cfg_version: &'static str,
+    ice_file: Option<PathBuf>,
 ) -> Session {
     // FIXME: This is not general enough to make the warning lint completely override
     // normal diagnostic warnings, since the warning lint can also be denied and changed
@@ -1420,7 +1353,7 @@ pub fn build_session(
     let loader = file_loader.unwrap_or_else(|| Box::new(RealFileLoader));
     let hash_kind = sopts.unstable_opts.src_hash_algorithm.unwrap_or_else(|| {
         if target_cfg.is_like_msvc {
-            SourceFileHashAlgorithm::Sha1
+            SourceFileHashAlgorithm::Sha256
         } else {
             SourceFileHashAlgorithm::Md5
         }
@@ -1437,10 +1370,11 @@ pub fn build_session(
     );
     let emitter = default_emitter(&sopts, registry, source_map.clone(), bundle, fallback_bundle);
 
-    let span_diagnostic = rustc_errors::Handler::with_emitter_and_flags(
-        emitter,
-        sopts.unstable_opts.diagnostic_handler_flags(can_emit_warnings),
-    );
+    let mut span_diagnostic = rustc_errors::Handler::with_emitter(emitter)
+        .with_flags(sopts.unstable_opts.diagnostic_handler_flags(can_emit_warnings));
+    if let Some(ice_file) = ice_file {
+        span_diagnostic = span_diagnostic.with_ice_file(ice_file);
+    }
 
     let self_profiler = if let SwitchWithOptPath::Enabled(ref d) = sopts.unstable_opts.self_profile
     {
@@ -1513,9 +1447,6 @@ pub fn build_session(
         parse_sess,
         sysroot,
         io,
-        crate_types: OnceCell::new(),
-        stable_crate_id: OnceCell::new(),
-        features: OnceCell::new(),
         incr_comp_session: OneThread::new(RefCell::new(IncrCompSession::NotInitialized)),
         cgu_reuse_tracker,
         prof,
@@ -1616,11 +1547,17 @@ fn validate_commandline_args_with_session_available(sess: &Session) {
 
     // LLVM CFI requires LTO.
     if sess.is_sanitizer_cfi_enabled()
-        && !(sess.lto() == config::Lto::Fat
-            || sess.lto() == config::Lto::Thin
-            || sess.opts.cg.linker_plugin_lto.enabled())
+        && !(sess.lto() == config::Lto::Fat || sess.opts.cg.linker_plugin_lto.enabled())
     {
         sess.emit_err(errors::SanitizerCfiRequiresLto);
+    }
+
+    // LLVM CFI using rustc LTO requires a single codegen unit.
+    if sess.is_sanitizer_cfi_enabled()
+        && sess.lto() == config::Lto::Fat
+        && !(sess.codegen_units().as_usize() == 1)
+    {
+        sess.emit_err(errors::SanitizerCfiRequiresSingleCodegenUnit);
     }
 
     // LLVM CFI is incompatible with LLVM KCFI.
@@ -1731,7 +1668,7 @@ pub struct EarlyErrorHandler {
 impl EarlyErrorHandler {
     pub fn new(output: ErrorOutputType) -> Self {
         let emitter = mk_emitter(output);
-        Self { handler: rustc_errors::Handler::with_emitter(true, None, emitter) }
+        Self { handler: rustc_errors::Handler::with_emitter(emitter) }
     }
 
     pub fn abort_if_errors(&self) {
@@ -1745,7 +1682,7 @@ impl EarlyErrorHandler {
         self.handler.abort_if_errors();
 
         let emitter = mk_emitter(output);
-        self.handler = Handler::with_emitter(true, None, emitter);
+        self.handler = Handler::with_emitter(emitter);
     }
 
     #[allow(rustc::untranslatable_diagnostic)]
@@ -1788,18 +1725,7 @@ fn mk_emitter(output: ErrorOutputType) -> Box<dyn Emitter + sync::Send + 'static
     let emitter: Box<dyn Emitter + sync::Send> = match output {
         config::ErrorOutputType::HumanReadable(kind) => {
             let (short, color_config) = kind.unzip();
-            Box::new(EmitterWriter::stderr(
-                color_config,
-                None,
-                None,
-                fallback_bundle,
-                short,
-                false,
-                None,
-                false,
-                false,
-                TerminalUrl::No,
-            ))
+            Box::new(EmitterWriter::stderr(color_config, fallback_bundle).short_message(short))
         }
         config::ErrorOutputType::Json { pretty, json_rendered } => Box::new(JsonEmitter::basic(
             pretty,

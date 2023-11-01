@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.63"
 name = "ui_test"
-version = "0.11.6"
+version = "0.11.7"
 description = "A test framework for testing rustc diagnostics output"
 readme = "README.md"
 license = "MIT OR Apache-2.0"

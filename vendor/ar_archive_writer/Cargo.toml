@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "ar_archive_writer"
-version = "0.1.4"
+version = "0.1.5"
 description = "A writer for object file ar archives"
 readme = "Readme.md"
 keywords = [
@@ -23,7 +23,7 @@ license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/rust-lang/ar_archive_writer"
 
 [dependencies.object]
-version = "0.31.0"
+version = "0.32.0"
 features = [
     "std",
     "read",

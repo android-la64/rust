@@ -10,7 +10,7 @@ use rustc_hir::def_id::DefId;
 use rustc_index::IndexVec;
 use rustc_session::config::OptLevel;
 use rustc_span::symbol::{sym, Symbol};
-use rustc_span::{Span, DUMMY_SP};
+use rustc_span::{ErrorGuaranteed, Span, DUMMY_SP};
 use rustc_target::abi::call::FnAbi;
 use rustc_target::abi::*;
 use rustc_target::spec::{abi::Abi as SpecAbi, HasTargetSpec, PanicStrategy, Target};
@@ -212,6 +212,7 @@ pub enum LayoutError<'tcx> {
     Unknown(Ty<'tcx>),
     SizeOverflow(Ty<'tcx>),
     NormalizationFailure(Ty<'tcx>, NormalizationError<'tcx>),
+    ReferencesError(ErrorGuaranteed),
     Cycle,
 }
 
@@ -224,6 +225,7 @@ impl<'tcx> LayoutError<'tcx> {
             SizeOverflow(_) => middle_values_too_big,
             NormalizationFailure(_, _) => middle_cannot_be_normalized,
             Cycle => middle_cycle,
+            ReferencesError(_) => middle_layout_references_error,
         }
     }
 
@@ -237,6 +239,7 @@ impl<'tcx> LayoutError<'tcx> {
                 E::NormalizationFailure { ty, failure_ty: e.get_type_for_failure() }
             }
             Cycle => E::Cycle,
+            ReferencesError(_) => E::ReferencesError,
         }
     }
 }
@@ -246,9 +249,9 @@ impl<'tcx> LayoutError<'tcx> {
 impl<'tcx> fmt::Display for LayoutError<'tcx> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            LayoutError::Unknown(ty) => write!(f, "the type `{}` has an unknown layout", ty),
+            LayoutError::Unknown(ty) => write!(f, "the type `{ty}` has an unknown layout"),
             LayoutError::SizeOverflow(ty) => {
-                write!(f, "values of the type `{}` are too big for the current architecture", ty)
+                write!(f, "values of the type `{ty}` are too big for the current architecture")
             }
             LayoutError::NormalizationFailure(t, e) => write!(
                 f,
@@ -257,6 +260,7 @@ impl<'tcx> fmt::Display for LayoutError<'tcx> {
                 e.get_type_for_failure()
             ),
             LayoutError::Cycle => write!(f, "a cycle occurred during layout computation"),
+            LayoutError::ReferencesError(_) => write!(f, "the type has an unknown layout"),
         }
     }
 }
@@ -323,7 +327,8 @@ impl<'tcx> SizeSkeleton<'tcx> {
             Err(
                 e @ LayoutError::Cycle
                 | e @ LayoutError::SizeOverflow(_)
-                | e @ LayoutError::NormalizationFailure(..),
+                | e @ LayoutError::NormalizationFailure(..)
+                | e @ LayoutError::ReferencesError(_),
             ) => return Err(e),
         };
 
@@ -374,7 +379,7 @@ impl<'tcx> SizeSkeleton<'tcx> {
                 }
             }
 
-            ty::Adt(def, substs) => {
+            ty::Adt(def, args) => {
                 // Only newtypes and enums w/ nullable pointer optimization.
                 if def.is_union() || def.variants().is_empty() || def.variants().len() > 2 {
                     return Err(err);
@@ -385,7 +390,7 @@ impl<'tcx> SizeSkeleton<'tcx> {
                     let i = VariantIdx::from_usize(i);
                     let fields =
                         def.variant(i).fields.iter().map(|field| {
-                            SizeSkeleton::compute(field.ty(tcx, substs), tcx, param_env)
+                            SizeSkeleton::compute(field.ty(tcx, args), tcx, param_env)
                         });
                     let mut ptr = None;
                     for field in fields {
@@ -741,9 +746,9 @@ where
 
                 let fields = match this.ty.kind() {
                     ty::Adt(def, _) if def.variants().is_empty() =>
-                        bug!("for_variant called on zero-variant enum"),
+                        bug!("for_variant called on zero-variant enum {}", this.ty),
                     ty::Adt(def, _) => def.variant(variant_index).fields.len(),
-                    _ => bug!(),
+                    _ => bug!("`ty_and_layout_for_variant` on unexpected type {}", this.ty),
                 };
                 tcx.mk_layout(LayoutS {
                     variants: Variants::Single { index: variant_index },
@@ -755,6 +760,8 @@ where
                     largest_niche: None,
                     align: tcx.data_layout.i8_align,
                     size: Size::ZERO,
+                    max_repr_align: None,
+                    unadjusted_abi_align: tcx.data_layout.i8_align.abi,
                 })
             }
 
@@ -861,9 +868,9 @@ where
                         // offers better information than `std::ptr::metadata::VTable`,
                         // and we rely on this layout information to trigger a panic in
                         // `std::mem::uninitialized::<&dyn Trait>()`, for example.
-                        if let ty::Adt(def, substs) = metadata.kind()
+                        if let ty::Adt(def, args) = metadata.kind()
                             && Some(def.did()) == tcx.lang_items().dyn_metadata()
-                            && substs.type_at(0).is_trait()
+                            && args.type_at(0).is_trait()
                         {
                             mk_dyn_vtable()
                         } else {
@@ -885,16 +892,15 @@ where
                 ty::Str => TyMaybeWithLayout::Ty(tcx.types.u8),
 
                 // Tuples, generators and closures.
-                ty::Closure(_, ref substs) => field_ty_or_layout(
-                    TyAndLayout { ty: substs.as_closure().tupled_upvars_ty(), ..this },
+                ty::Closure(_, ref args) => field_ty_or_layout(
+                    TyAndLayout { ty: args.as_closure().tupled_upvars_ty(), ..this },
                     cx,
                     i,
                 ),
 
-                ty::Generator(def_id, ref substs, _) => match this.variants {
+                ty::Generator(def_id, ref args, _) => match this.variants {
                     Variants::Single { index } => TyMaybeWithLayout::Ty(
-                        substs
-                            .as_generator()
+                        args.as_generator()
                             .state_tys(def_id, tcx)
                             .nth(index.as_usize())
                             .unwrap()
@@ -905,18 +911,18 @@ where
                         if i == tag_field {
                             return TyMaybeWithLayout::TyAndLayout(tag_layout(tag));
                         }
-                        TyMaybeWithLayout::Ty(substs.as_generator().prefix_tys().nth(i).unwrap())
+                        TyMaybeWithLayout::Ty(args.as_generator().prefix_tys()[i])
                     }
                 },
 
                 ty::Tuple(tys) => TyMaybeWithLayout::Ty(tys[i]),
 
                 // ADTs.
-                ty::Adt(def, substs) => {
+                ty::Adt(def, args) => {
                     match this.variants {
                         Variants::Single { index } => {
                             let field = &def.variant(index).fields[FieldIdx::from_usize(i)];
-                            TyMaybeWithLayout::Ty(field.ty(tcx, substs))
+                            TyMaybeWithLayout::Ty(field.ty(tcx, args))
                         }
 
                         // Discriminant field for enums (where applicable).
@@ -1233,6 +1239,8 @@ pub fn fn_can_unwind(tcx: TyCtxt<'_>, fn_def_id: Option<DefId>, abi: SpecAbi) ->
         | EfiApi
         | AvrInterrupt
         | AvrNonBlockingInterrupt
+        | RiscvInterruptM
+        | RiscvInterruptS
         | CCmseNonSecureCall
         | Wasm
         | PlatformIntrinsic

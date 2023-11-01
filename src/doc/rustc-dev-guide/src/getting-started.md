@@ -57,7 +57,7 @@ even if you can't figure out who to ping.
 Another way to find experts for a given part of the compiler is to see who has made recent commits.
 For example, to find people who have recently worked on name resolution since the 1.68.2 release,
 you could run `git shortlog -n 1.68.2.. compiler/rustc_resolve/`. Ignore any commits starting with
-"Rollup merge" or commits by `@bors` (see [CI contribution prodcedures](./contributing.md#ci) for
+"Rollup merge" or commits by `@bors` (see [CI contribution procedures](./contributing.md#ci) for
 more information about these commits).
 
 [map]: https://github.com/rust-lang/compiler-team/blob/master/content/experts/map.toml
@@ -90,7 +90,7 @@ filtering the search to areas you're interested in. For example:
 Not all important or beginner work has issue labels.
 See below for how to find work that isn't labelled.
 
-[help-wanted-search]: https://github.com/issues?q=is%3Aopen+is%3Aissue+org%3Arust-lang+no%3Aassignee+label%3AE-easy%2C%22good+first+issue%22%2Cgood-first-issue%2CE-medium%2CE-help-wanted%2CE-mentor+-label%3AS-blocked+
+[help-wanted-search]: https://github.com/issues?q=is%3Aopen+is%3Aissue+org%3Arust-lang+no%3Aassignee+label%3AE-easy%2C%22good+first+issue%22%2Cgood-first-issue%2CE-medium%2CEasy%2CE-help-wanted%2CE-mentor+-label%3AS-blocked+
 [Triage]: ./contributing.md#issue-triage
 
 ### Recurring work

@@ -22,7 +22,7 @@ use rustc_target::spec::abi::Abi as CallAbi;
 
 use crate::errors::{LongRunning, LongRunningWarn};
 use crate::interpret::{
-    self, compile_time_machine, AllocId, ConstAllocation, FnVal, Frame, ImmTy, InterpCx,
+    self, compile_time_machine, AllocId, ConstAllocation, FnArg, FnVal, Frame, ImmTy, InterpCx,
     InterpResult, OpTy, PlaceTy, Pointer, Scalar,
 };
 use crate::{errors, fluent_generated as fluent};
@@ -201,7 +201,7 @@ impl<'mir, 'tcx: 'mir> CompileTimeEvalContext<'mir, 'tcx> {
     fn hook_special_const_fn(
         &mut self,
         instance: ty::Instance<'tcx>,
-        args: &[OpTy<'tcx>],
+        args: &[FnArg<'tcx>],
         dest: &PlaceTy<'tcx>,
         ret: Option<mir::BasicBlock>,
     ) -> InterpResult<'tcx, Option<ty::Instance<'tcx>>> {
@@ -210,12 +210,13 @@ impl<'mir, 'tcx: 'mir> CompileTimeEvalContext<'mir, 'tcx> {
         if Some(def_id) == self.tcx.lang_items().panic_display()
             || Some(def_id) == self.tcx.lang_items().begin_panic_fn()
         {
+            let args = self.copy_fn_args(args)?;
             // &str or &&str
             assert!(args.len() == 1);
 
-            let mut msg_place = self.deref_operand(&args[0])?;
+            let mut msg_place = self.deref_pointer(&args[0])?;
             while msg_place.layout.ty.is_ref() {
-                msg_place = self.deref_operand(&msg_place.into())?;
+                msg_place = self.deref_pointer(&msg_place)?;
             }
 
             let msg = Symbol::intern(self.read_str(&msg_place)?);
@@ -229,15 +230,16 @@ impl<'mir, 'tcx: 'mir> CompileTimeEvalContext<'mir, 'tcx> {
                 *self.tcx,
                 ty::ParamEnv::reveal_all(),
                 const_def_id,
-                instance.substs,
+                instance.args,
             )
             .unwrap()
             .unwrap();
 
             return Ok(Some(new_instance));
         } else if Some(def_id) == self.tcx.lang_items().align_offset_fn() {
+            let args = self.copy_fn_args(args)?;
             // For align_offset, we replace the function call if the pointer has no address.
-            match self.align_offset(instance, args, dest, ret)? {
+            match self.align_offset(instance, &args, dest, ret)? {
                 ControlFlow::Continue(()) => return Ok(Some(instance)),
                 ControlFlow::Break(()) => return Ok(None),
             }
@@ -293,7 +295,7 @@ impl<'mir, 'tcx: 'mir> CompileTimeEvalContext<'mir, 'tcx> {
                     self.eval_fn_call(
                         FnVal::Instance(instance),
                         (CallAbi::Rust, fn_abi),
-                        &[addr, align],
+                        &[FnArg::Copy(addr), FnArg::Copy(align)],
                         /* with_caller_location = */ false,
                         dest,
                         ret,
@@ -425,52 +427,41 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for CompileTimeInterpreter<'mir,
 
     fn find_mir_or_eval_fn(
         ecx: &mut InterpCx<'mir, 'tcx, Self>,
-        instance: ty::Instance<'tcx>,
+        orig_instance: ty::Instance<'tcx>,
         _abi: CallAbi,
-        args: &[OpTy<'tcx>],
+        args: &[FnArg<'tcx>],
         dest: &PlaceTy<'tcx>,
         ret: Option<mir::BasicBlock>,
         _unwind: mir::UnwindAction, // unwinding is not supported in consts
     ) -> InterpResult<'tcx, Option<(&'mir mir::Body<'tcx>, ty::Instance<'tcx>)>> {
-        debug!("find_mir_or_eval_fn: {:?}", instance);
+        debug!("find_mir_or_eval_fn: {:?}", orig_instance);
+
+        // Replace some functions.
+        let Some(instance) = ecx.hook_special_const_fn(orig_instance, args, dest, ret)? else {
+            // Call has already been handled.
+            return Ok(None);
+        };
 
         // Only check non-glue functions
         if let ty::InstanceDef::Item(def) = instance.def {
             // Execution might have wandered off into other crates, so we cannot do a stability-
-            // sensitive check here. But we can at least rule out functions that are not const
-            // at all.
-            if !ecx.tcx.is_const_fn_raw(def) {
-                // allow calling functions inside a trait marked with #[const_trait].
-                if !ecx.tcx.is_const_default_method(def) {
-                    // We certainly do *not* want to actually call the fn
-                    // though, so be sure we return here.
-                    throw_unsup_format!("calling non-const function `{}`", instance)
-                }
-            }
-
-            let Some(new_instance) = ecx.hook_special_const_fn(instance, args, dest, ret)? else {
-                return Ok(None);
-            };
-
-            if new_instance != instance {
-                // We call another const fn instead.
-                // However, we return the *original* instance to make backtraces work out
-                // (and we hope this does not confuse the FnAbi checks too much).
-                return Ok(Self::find_mir_or_eval_fn(
-                    ecx,
-                    new_instance,
-                    _abi,
-                    args,
-                    dest,
-                    ret,
-                    _unwind,
-                )?
-                .map(|(body, _instance)| (body, instance)));
+            // sensitive check here. But we can at least rule out functions that are not const at
+            // all. That said, we have to allow calling functions inside a trait marked with
+            // #[const_trait]. These *are* const-checked!
+            // FIXME: why does `is_const_fn_raw` not classify them as const?
+            if (!ecx.tcx.is_const_fn_raw(def) && !ecx.tcx.is_const_default_method(def))
+                || ecx.tcx.has_attr(def, sym::rustc_do_not_const_check)
+            {
+                // We certainly do *not* want to actually call the fn
+                // though, so be sure we return here.
+                throw_unsup_format!("calling non-const function `{}`", instance)
             }
         }
 
         // This is a const fn. Call it.
-        Ok(Some((ecx.load_mir(instance.def, None)?, instance)))
+        // In case of replacement, we return the *original* instance to make backtraces work out
+        // (and we hope this does not confuse the FnAbi checks too much).
+        Ok(Some((ecx.load_mir(instance.def, None)?, orig_instance)))
     }
 
     fn call_intrinsic(

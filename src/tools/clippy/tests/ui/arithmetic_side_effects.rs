@@ -481,4 +481,16 @@ pub fn issue_10792() {
     let _ = 10 / TWO.c;
 }
 
+pub fn issue_11145() {
+    let mut x: Wrapping<u32> = Wrapping(0_u32);
+    x += 1;
+}
+
+pub fn issue_11262() {
+    let one = 1;
+    let zero = 0;
+    let _ = 2 / one;
+    let _ = 2 / zero;
+}
+
 fn main() {}

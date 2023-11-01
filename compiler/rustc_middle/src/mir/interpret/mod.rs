@@ -138,15 +138,15 @@ use rustc_target::abi::{AddressSpace, Endian, HasDataLayout};
 
 use crate::mir;
 use crate::ty::codec::{TyDecoder, TyEncoder};
-use crate::ty::subst::GenericArgKind;
+use crate::ty::GenericArgKind;
 use crate::ty::{self, Instance, Ty, TyCtxt};
 
 pub use self::error::{
-    struct_error, CheckInAllocMsg, ErrorHandled, EvalToAllocationRawResult, EvalToConstValueResult,
-    EvalToValTreeResult, ExpectedKind, InterpError, InterpErrorInfo, InterpResult, InvalidMetaKind,
-    InvalidProgramInfo, MachineStopType, PointerKind, ReportedErrorInfo, ResourceExhaustionInfo,
-    ScalarSizeMismatch, UndefinedBehaviorInfo, UninitBytesAccess, UnsupportedOpInfo,
-    ValidationErrorInfo, ValidationErrorKind,
+    struct_error, BadBytesAccess, CheckInAllocMsg, ErrorHandled, EvalToAllocationRawResult,
+    EvalToConstValueResult, EvalToValTreeResult, ExpectedKind, InterpError, InterpErrorInfo,
+    InterpResult, InvalidMetaKind, InvalidProgramInfo, MachineStopType, PointerKind,
+    ReportedErrorInfo, ResourceExhaustionInfo, ScalarSizeMismatch, UndefinedBehaviorInfo,
+    UnsupportedOpInfo, ValidationErrorInfo, ValidationErrorKind,
 };
 
 pub use self::value::{get_slice_bytes, ConstAlloc, ConstValue, Scalar};
@@ -176,7 +176,7 @@ impl<'tcx> GlobalId<'tcx> {
     pub fn display(self, tcx: TyCtxt<'tcx>) -> String {
         let instance_name = with_no_trimmed_paths!(tcx.def_path_str(self.instance.def.def_id()));
         if let Some(promoted) = self.promoted {
-            format!("{}::{:?}", instance_name, promoted)
+            format!("{instance_name}::{promoted:?}")
         } else {
             instance_name
         }
@@ -274,7 +274,7 @@ pub struct AllocDecodingState {
     // For each `AllocId`, we keep track of which decoding state it's currently in.
     decoding_state: Vec<Lock<State>>,
     // The offsets of each allocation in the data stream.
-    data_offsets: Vec<u32>,
+    data_offsets: Vec<u64>,
 }
 
 impl AllocDecodingState {
@@ -289,7 +289,7 @@ impl AllocDecodingState {
         AllocDecodingSession { state: self, session_id }
     }
 
-    pub fn new(data_offsets: Vec<u32>) -> Self {
+    pub fn new(data_offsets: Vec<u64>) -> Self {
         let decoding_state =
             std::iter::repeat_with(|| Lock::new(State::Empty)).take(data_offsets.len()).collect();
 
@@ -559,7 +559,7 @@ impl<'tcx> TyCtxt<'tcx> {
         // However, formatting code relies on function identity (see #58320), so we only do
         // this for generic functions. Lifetime parameters are ignored.
         let is_generic = instance
-            .substs
+            .args
             .into_iter()
             .any(|kind| !matches!(kind.unpack(), GenericArgKind::Lifetime(_)));
         if is_generic {
@@ -609,7 +609,7 @@ impl<'tcx> TyCtxt<'tcx> {
     /// Panics in case the `AllocId` is dangling. Since that is impossible for `AllocId`s in
     /// constants (as all constants must pass interning and validation that check for dangling
     /// ids), this function is frequently used throughout rustc, but should not be used within
-    /// the miri engine.
+    /// the interpreter.
     pub fn global_alloc(self, id: AllocId) -> GlobalAlloc<'tcx> {
         match self.try_get_global_alloc(id) {
             Some(alloc) => alloc,

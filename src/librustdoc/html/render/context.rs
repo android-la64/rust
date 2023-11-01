@@ -162,7 +162,7 @@ impl<'tcx> Context<'tcx> {
         self.shared.tcx.sess
     }
 
-    pub(super) fn derive_id(&mut self, id: String) -> String {
+    pub(super) fn derive_id<S: AsRef<str> + ToString>(&mut self, id: S) -> String {
         self.id_map.derive(id)
     }
 
@@ -206,15 +206,14 @@ impl<'tcx> Context<'tcx> {
             format!("API documentation for the Rust `{}` crate.", self.shared.layout.krate)
         } else {
             format!(
-                "API documentation for the Rust `{}` {} in crate `{}`.",
-                it.name.as_ref().unwrap(),
-                tyname,
-                self.shared.layout.krate
+                "API documentation for the Rust `{name}` {tyname} in crate `{krate}`.",
+                name = it.name.as_ref().unwrap(),
+                krate = self.shared.layout.krate,
             )
         };
         let name;
         let tyname_s = if it.is_crate() {
-            name = format!("{} crate", tyname);
+            name = format!("{tyname} crate");
             name.as_str()
         } else {
             tyname.as_str()
@@ -264,7 +263,12 @@ impl<'tcx> Context<'tcx> {
                             current_path.push_str(&item_path(ty, names.last().unwrap().as_str()));
                             redirections.borrow_mut().insert(current_path, path);
                         }
-                        None => return layout::redirect(&format!("{}{}", self.root_path(), path)),
+                        None => {
+                            return layout::redirect(&format!(
+                                "{root}{path}",
+                                root = self.root_path()
+                            ));
+                        }
                     }
                 }
             }
@@ -382,11 +386,7 @@ impl<'tcx> Context<'tcx> {
             let hiline = span.hi(self.sess()).line;
             format!(
                 "#{}",
-                if loline == hiline {
-                    loline.to_string()
-                } else {
-                    format!("{}-{}", loline, hiline)
-                }
+                if loline == hiline { loline.to_string() } else { format!("{loline}-{hiline}") }
             )
         } else {
             "".to_string()
@@ -798,15 +798,18 @@ impl<'tcx> FormatRenderer<'tcx> for Context<'tcx> {
             if let Some(def_id) = item.def_id() && self.cache().inlined_items.contains(&def_id) {
                 self.is_inside_inlined_module = true;
             }
-        } else if item.is_doc_hidden() {
+        } else if !self.cache().document_hidden && item.is_doc_hidden() {
             // We're not inside an inlined module anymore since this one cannot be re-exported.
             self.is_inside_inlined_module = false;
         }
 
         // Render sidebar-items.js used throughout this module.
         if !self.render_redirect_pages {
-            let (clean::StrippedItem(box clean::ModuleItem(ref module)) | clean::ModuleItem(ref module)) = *item.kind
-            else { unreachable!() };
+            let (clean::StrippedItem(box clean::ModuleItem(ref module))
+            | clean::ModuleItem(ref module)) = *item.kind
+            else {
+                unreachable!()
+            };
             let items = self.build_sidebar_items(module);
             let js_dst = self.dst.join(&format!("sidebar-items{}.js", self.shared.resource_suffix));
             let v = format!("window.SIDEBAR_ITEMS = {};", serde_json::to_string(&items).unwrap());
@@ -852,12 +855,12 @@ impl<'tcx> FormatRenderer<'tcx> for Context<'tcx> {
             // If the item is a macro, redirect from the old macro URL (with !)
             // to the new one (without).
             if item_type == ItemType::Macro {
-                let redir_name = format!("{}.{}!.html", item_type, name);
+                let redir_name = format!("{item_type}.{name}!.html");
                 if let Some(ref redirections) = self.shared.redirections {
                     let crate_name = &self.shared.layout.krate;
                     redirections.borrow_mut().insert(
-                        format!("{}/{}", crate_name, redir_name),
-                        format!("{}/{}", crate_name, file_name),
+                        format!("{crate_name}/{redir_name}"),
+                        format!("{crate_name}/{file_name}"),
                     );
                 } else {
                     let v = layout::redirect(file_name);

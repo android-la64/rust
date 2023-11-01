@@ -10,15 +10,13 @@ use object::{
     ObjectSymbol, SectionFlags, SectionKind, SymbolFlags, SymbolKind, SymbolScope,
 };
 
-use snap::write::FrameEncoder;
-
-use object::elf::NT_GNU_PROPERTY_TYPE_0;
 use rustc_data_structures::memmap::Mmap;
 use rustc_data_structures::owned_slice::{try_slice_owned, OwnedSlice};
 use rustc_metadata::fs::METADATA_FILENAME;
 use rustc_metadata::EncodedMetadata;
 use rustc_session::cstore::MetadataLoader;
 use rustc_session::Session;
+use rustc_span::sym;
 use rustc_target::abi::Endian;
 use rustc_target::spec::{ef_avr_arch, RelocModel, Target};
 
@@ -124,7 +122,7 @@ fn add_gnu_property_note(
     let mut data: Vec<u8> = Vec::new();
     let n_namsz: u32 = 4; // Size of the n_name field
     let n_descsz: u32 = 16; // Size of the n_desc field
-    let n_type: u32 = NT_GNU_PROPERTY_TYPE_0; // Type of note descriptor
+    let n_type: u32 = object::elf::NT_GNU_PROPERTY_TYPE_0; // Type of note descriptor
     let header_values = [n_namsz, n_descsz, n_type];
     header_values.iter().for_each(|v| {
         data.extend_from_slice(&match endianness {
@@ -134,8 +132,8 @@ fn add_gnu_property_note(
     });
     data.extend_from_slice(b"GNU\0"); // Owner of the program property note
     let pr_type: u32 = match architecture {
-        Architecture::X86_64 => 0xc0000002,
-        Architecture::Aarch64 => 0xc0000000,
+        Architecture::X86_64 => object::elf::GNU_PROPERTY_X86_FEATURE_1_AND,
+        Architecture::Aarch64 => object::elf::GNU_PROPERTY_AARCH64_FEATURE_1_AND,
         _ => unreachable!(),
     };
     let pr_datasz: u32 = 4; //size of the pr_data field
@@ -161,20 +159,19 @@ pub(super) fn get_metadata_xcoff<'a>(path: &Path, data: &'a [u8]) -> Result<&'a 
     {
         let offset = metadata_symbol.address() as usize;
         if offset < 4 {
-            return Err(format!("Invalid metadata symbol offset: {}", offset));
+            return Err(format!("Invalid metadata symbol offset: {offset}"));
         }
         // The offset specifies the location of rustc metadata in the comment section.
         // The metadata is preceded by a 4-byte length field.
         let len = u32::from_be_bytes(info_data[(offset - 4)..offset].try_into().unwrap()) as usize;
         if offset + len > (info_data.len() as usize) {
             return Err(format!(
-                "Metadata at offset {} with size {} is beyond .info section",
-                offset, len
+                "Metadata at offset {offset} with size {len} is beyond .info section"
             ));
         }
         return Ok(&info_data[offset..(offset + len)]);
     } else {
-        return Err(format!("Unable to find symbol {}", AIX_METADATA_SYMBOL_NAME));
+        return Err(format!("Unable to find symbol {AIX_METADATA_SYMBOL_NAME}"));
     };
 }
 
@@ -194,8 +191,8 @@ pub(crate) fn create_object_file(sess: &Session) -> Option<write::Object<'static
         }
         "x86" => Architecture::I386,
         "s390x" => Architecture::S390x,
-        "mips" => Architecture::Mips,
-        "mips64" => Architecture::Mips64,
+        "mips" | "mips32r6" => Architecture::Mips,
+        "mips64" | "mips64r6" => Architecture::Mips64,
         "x86_64" => {
             if sess.target.pointer_width == 32 {
                 Architecture::X86_64_X32
@@ -213,6 +210,7 @@ pub(crate) fn create_object_file(sess: &Session) -> Option<write::Object<'static
         "hexagon" => Architecture::Hexagon,
         "bpf" => Architecture::Bpf,
         "loongarch64" => Architecture::LoongArch64,
+        "csky" => Architecture::Csky,
         // Unsupported architecture.
         _ => return None,
     };
@@ -243,8 +241,16 @@ pub(crate) fn create_object_file(sess: &Session) -> Option<write::Object<'static
                 s if s.contains("r6") => elf::EF_MIPS_ARCH_32R6,
                 _ => elf::EF_MIPS_ARCH_32R2,
             };
-            // The only ABI LLVM supports for 32-bit MIPS CPUs is o32.
-            let mut e_flags = elf::EF_MIPS_CPIC | elf::EF_MIPS_ABI_O32 | arch;
+
+            let mut e_flags = elf::EF_MIPS_CPIC | arch;
+
+            // If the ABI is explicitly given, use it or default to O32.
+            match sess.target.options.llvm_abiname.to_lowercase().as_str() {
+                "n32" => e_flags |= elf::EF_MIPS_ABI2,
+                "o32" => e_flags |= elf::EF_MIPS_ABI_O32,
+                _ => e_flags |= elf::EF_MIPS_ABI_O32,
+            };
+
             if sess.target.options.relocation_model != RelocModel::Static {
                 e_flags |= elf::EF_MIPS_PIC;
             }
@@ -267,41 +273,51 @@ pub(crate) fn create_object_file(sess: &Session) -> Option<write::Object<'static
         Architecture::Riscv32 | Architecture::Riscv64 => {
             // Source: https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/079772828bd10933d34121117a222b4cc0ee2200/riscv-elf.adoc
             let mut e_flags: u32 = 0x0;
-            let features = &sess.target.options.features;
+
             // Check if compressed is enabled
-            if features.contains("+c") {
+            // `unstable_target_features` is used here because "c" is gated behind riscv_target_feature.
+            if sess.unstable_target_features.contains(&sym::c) {
                 e_flags |= elf::EF_RISCV_RVC;
             }
 
-            // Select the appropriate floating-point ABI
-            if features.contains("+d") {
-                e_flags |= elf::EF_RISCV_FLOAT_ABI_DOUBLE;
-            } else if features.contains("+f") {
-                e_flags |= elf::EF_RISCV_FLOAT_ABI_SINGLE;
-            } else {
-                e_flags |= elf::EF_RISCV_FLOAT_ABI_SOFT;
+            // Set the appropriate flag based on ABI
+            // This needs to match LLVM `RISCVELFStreamer.cpp`
+            match &*sess.target.llvm_abiname {
+                "" | "ilp32" | "lp64" => (),
+                "ilp32f" | "lp64f" => e_flags |= elf::EF_RISCV_FLOAT_ABI_SINGLE,
+                "ilp32d" | "lp64d" => e_flags |= elf::EF_RISCV_FLOAT_ABI_DOUBLE,
+                "ilp32e" => e_flags |= elf::EF_RISCV_RVE,
+                _ => bug!("unknown RISC-V ABI name"),
             }
+
             e_flags
         }
         Architecture::LoongArch64 => {
             // Source: https://github.com/loongson/la-abi-specs/blob/release/laelf.adoc#e_flags-identifies-abi-type-and-version
             let mut e_flags: u32 = elf::EF_LARCH_OBJABI_V1;
-            let features = &sess.target.options.features;
 
-            // Select the appropriate floating-point ABI
-            if features.contains("+d") {
-                e_flags |= elf::EF_LARCH_ABI_DOUBLE_FLOAT;
-            } else if features.contains("+f") {
-                e_flags |= elf::EF_LARCH_ABI_SINGLE_FLOAT;
-            } else {
-                e_flags |= elf::EF_LARCH_ABI_SOFT_FLOAT;
+            // Set the appropriate flag based on ABI
+            // This needs to match LLVM `LoongArchELFStreamer.cpp`
+            match &*sess.target.llvm_abiname {
+                "ilp32s" | "lp64s" => e_flags |= elf::EF_LARCH_ABI_SOFT_FLOAT,
+                "ilp32f" | "lp64f" => e_flags |= elf::EF_LARCH_ABI_SINGLE_FLOAT,
+                "ilp32d" | "lp64d" => e_flags |= elf::EF_LARCH_ABI_DOUBLE_FLOAT,
+                _ => bug!("unknown RISC-V ABI name"),
             }
+
             e_flags
         }
         Architecture::Avr => {
             // Resolve the ISA revision and set
             // the appropriate EF_AVR_ARCH flag.
             ef_avr_arch(&sess.target.options.cpu)
+        }
+        Architecture::Csky => {
+            let e_flags = match sess.target.options.abi.as_ref() {
+                "abiv2" => elf::EF_CSKY_ABIV2,
+                _ => elf::EF_CSKY_ABIV1,
+            };
+            e_flags
         }
         _ => 0,
     };
@@ -474,19 +490,15 @@ pub fn create_compressed_metadata_file(
     metadata: &EncodedMetadata,
     symbol_name: &str,
 ) -> Vec<u8> {
-    let mut compressed = rustc_metadata::METADATA_HEADER.to_vec();
-    // Our length will be backfilled once we're done writing
-    compressed.write_all(&[0; 4]).unwrap();
-    FrameEncoder::new(&mut compressed).write_all(metadata.raw_data()).unwrap();
-    let meta_len = rustc_metadata::METADATA_HEADER.len();
-    let data_len = (compressed.len() - meta_len - 4) as u32;
-    compressed[meta_len..meta_len + 4].copy_from_slice(&data_len.to_be_bytes());
+    let mut packed_metadata = rustc_metadata::METADATA_HEADER.to_vec();
+    packed_metadata.write_all(&(metadata.raw_data().len() as u32).to_be_bytes()).unwrap();
+    packed_metadata.extend(metadata.raw_data());
 
     let Some(mut file) = create_object_file(sess) else {
-        return compressed.to_vec();
+        return packed_metadata.to_vec();
     };
     if file.format() == BinaryFormat::Xcoff {
-        return create_compressed_metadata_file_for_xcoff(file, &compressed, symbol_name);
+        return create_compressed_metadata_file_for_xcoff(file, &packed_metadata, symbol_name);
     }
     let section = file.add_section(
         file.segment_name(StandardSegment::Data).to_vec(),
@@ -500,14 +512,14 @@ pub fn create_compressed_metadata_file(
         }
         _ => {}
     };
-    let offset = file.append_section_data(section, &compressed, 1);
+    let offset = file.append_section_data(section, &packed_metadata, 1);
 
     // For MachO and probably PE this is necessary to prevent the linker from throwing away the
     // .rustc section. For ELF this isn't necessary, but it also doesn't harm.
     file.add_symbol(Symbol {
         name: symbol_name.as_bytes().to_vec(),
         value: offset,
-        size: compressed.len() as u64,
+        size: packed_metadata.len() as u64,
         kind: SymbolKind::Data,
         scope: SymbolScope::Dynamic,
         weak: false,

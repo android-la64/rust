@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.59"
 name = "sysinfo"
-version = "0.26.7"
+version = "0.29.2"
 authors = ["Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 exclude = ["/test-unknown"]
 description = "Library to get system information such as processes, CPUs, disks, components and networks"
@@ -26,12 +26,20 @@ categories = [
 license = "MIT"
 repository = "https://github.com/GuillaumeGomez/sysinfo"
 
+[package.metadata.docs.rs]
+cargo-args = ["-Zbuild-std"]
+default-target = "x86_64-unknown-linux-gnu"
+features = ["serde"]
+targets = [
+    "i686-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+    "i686-pc-windows-msvc",
+    "x86_64-unknown-freebsd",
+]
+
 [lib]
 name = "sysinfo"
-crate_type = [
-    "rlib",
-    "cdylib",
-]
 
 [dependencies.cfg-if]
 version = "1.0"
@@ -39,6 +47,13 @@ version = "1.0"
 [dependencies.rayon]
 version = "^1.5.1"
 optional = true
+
+[dependencies.serde]
+version = "^1.0.152"
+optional = true
+
+[dev-dependencies.serde_json]
+version = "1.0"
 
 [features]
 apple-app-store = ["apple-sandbox"]
@@ -59,7 +74,7 @@ version = "0.8"
 version = "1.0"
 
 [target."cfg(not(any(target_os = \"unknown\", target_arch = \"wasm32\")))".dependencies.libc]
-version = "^0.2.112"
+version = "^0.2.144"
 
 [target."cfg(windows)".dependencies.ntapi]
 version = "0.4"
@@ -97,4 +112,7 @@ features = [
     "securitybaseapi",
     "shellapi",
     "std",
+    "iphlpapi",
+    "winsock2",
+    "sddl",
 ]

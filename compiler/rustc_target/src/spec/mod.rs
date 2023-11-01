@@ -42,7 +42,7 @@ use crate::spec::crt_objects::{CrtObjects, LinkSelfContainedDefault};
 use rustc_data_structures::stable_hasher::{HashStable, StableHasher};
 use rustc_fs_util::try_canonicalize;
 use rustc_serialize::{Decodable, Decoder, Encodable, Encoder};
-use rustc_span::symbol::{sym, Symbol};
+use rustc_span::symbol::{kw, sym, Symbol};
 use serde_json::Value;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -74,6 +74,7 @@ mod l4re_base;
 mod linux_base;
 mod linux_gnu_base;
 mod linux_musl_base;
+mod linux_ohos_base;
 mod linux_uclibc_base;
 mod msvc_base;
 mod netbsd_base;
@@ -82,8 +83,10 @@ mod openbsd_base;
 mod redox_base;
 mod solaris_base;
 mod solid_base;
+mod teeos_base;
 mod thumb_base;
 mod uefi_msvc_base;
+mod unikraft_linux_musl_base;
 mod vxworks_base;
 mod wasm_base;
 mod windows_gnu_base;
@@ -335,7 +338,7 @@ impl LinkerFlavor {
             || stem == "clang++"
             || stem.ends_with("-clang++")
         {
-            (Some(Cc::Yes), None)
+            (Some(Cc::Yes), Some(Lld::No))
         } else if stem == "wasm-ld"
             || stem.ends_with("-wasm-ld")
             || stem == "ld.lld"
@@ -652,6 +655,43 @@ pub enum RelocModel {
     RopiRwpi,
 }
 
+impl RelocModel {
+    pub fn desc(&self) -> &str {
+        match *self {
+            RelocModel::Static => "static",
+            RelocModel::Pic => "pic",
+            RelocModel::Pie => "pie",
+            RelocModel::DynamicNoPic => "dynamic-no-pic",
+            RelocModel::Ropi => "ropi",
+            RelocModel::Rwpi => "rwpi",
+            RelocModel::RopiRwpi => "ropi-rwpi",
+        }
+    }
+    pub const fn desc_symbol(&self) -> Symbol {
+        match *self {
+            RelocModel::Static => kw::Static,
+            RelocModel::Pic => sym::pic,
+            RelocModel::Pie => sym::pie,
+            RelocModel::DynamicNoPic => sym::dynamic_no_pic,
+            RelocModel::Ropi => sym::ropi,
+            RelocModel::Rwpi => sym::rwpi,
+            RelocModel::RopiRwpi => sym::ropi_rwpi,
+        }
+    }
+
+    pub const fn all() -> [Symbol; 7] {
+        [
+            RelocModel::Static.desc_symbol(),
+            RelocModel::Pic.desc_symbol(),
+            RelocModel::Pie.desc_symbol(),
+            RelocModel::DynamicNoPic.desc_symbol(),
+            RelocModel::Ropi.desc_symbol(),
+            RelocModel::Rwpi.desc_symbol(),
+            RelocModel::RopiRwpi.desc_symbol(),
+        ]
+    }
+}
+
 impl FromStr for RelocModel {
     type Err = ();
 
@@ -671,16 +711,7 @@ impl FromStr for RelocModel {
 
 impl ToJson for RelocModel {
     fn to_json(&self) -> Json {
-        match *self {
-            RelocModel::Static => "static",
-            RelocModel::Pic => "pic",
-            RelocModel::Pie => "pie",
-            RelocModel::DynamicNoPic => "dynamic-no-pic",
-            RelocModel::Ropi => "ropi",
-            RelocModel::Rwpi => "rwpi",
-            RelocModel::RopiRwpi => "ropi-rwpi",
-        }
-        .to_json()
+        self.desc().to_json()
     }
 }
 
@@ -1243,6 +1274,7 @@ supported_targets! {
     ("i586-unknown-linux-gnu", i586_unknown_linux_gnu),
     ("loongarch64-unknown-linux-gnu", loongarch64_unknown_linux_gnu),
     ("m68k-unknown-linux-gnu", m68k_unknown_linux_gnu),
+    ("csky-unknown-linux-gnuabiv2", csky_unknown_linux_gnuabiv2),
     ("mips-unknown-linux-gnu", mips_unknown_linux_gnu),
     ("mips64-unknown-linux-gnuabi64", mips64_unknown_linux_gnuabi64),
     ("mips64el-unknown-linux-gnuabi64", mips64el_unknown_linux_gnuabi64),
@@ -1298,6 +1330,7 @@ supported_targets! {
     ("armv7-linux-androideabi", armv7_linux_androideabi),
     ("thumbv7neon-linux-androideabi", thumbv7neon_linux_androideabi),
     ("aarch64-linux-android", aarch64_linux_android),
+    ("riscv64-linux-android", riscv64_linux_android),
 
     ("aarch64-unknown-freebsd", aarch64_unknown_freebsd),
     ("armv6-unknown-freebsd", armv6_unknown_freebsd),
@@ -1401,6 +1434,7 @@ supported_targets! {
     ("wasm32-unknown-emscripten", wasm32_unknown_emscripten),
     ("wasm32-unknown-unknown", wasm32_unknown_unknown),
     ("wasm32-wasi", wasm32_wasi),
+    ("wasm32-wasi-preview1-threads", wasm32_wasi_preview1_threads),
     ("wasm64-unknown-unknown", wasm64_unknown_unknown),
 
     ("thumbv6m-none-eabi", thumbv6m_none_eabi),
@@ -1417,7 +1451,10 @@ supported_targets! {
     ("msp430-none-elf", msp430_none_elf),
 
     ("aarch64-unknown-hermit", aarch64_unknown_hermit),
+    ("riscv64gc-unknown-hermit", riscv64gc_unknown_hermit),
     ("x86_64-unknown-hermit", x86_64_unknown_hermit),
+
+    ("x86_64-unikraft-linux-musl", x86_64_unikraft_linux_musl),
 
     ("riscv32i-unknown-none-elf", riscv32i_unknown_none_elf),
     ("riscv32im-unknown-none-elf", riscv32im_unknown_none_elf),
@@ -1432,6 +1469,8 @@ supported_targets! {
     ("riscv64gc-unknown-none-elf", riscv64gc_unknown_none_elf),
     ("riscv64gc-unknown-linux-gnu", riscv64gc_unknown_linux_gnu),
     ("riscv64gc-unknown-linux-musl", riscv64gc_unknown_linux_musl),
+
+    ("sparc-unknown-none-elf", sparc_unknown_none_elf),
 
     ("loongarch64-unknown-none", loongarch64_unknown_none),
     ("loongarch64-unknown-none-softfloat", loongarch64_unknown_none_softfloat),
@@ -1485,6 +1524,8 @@ supported_targets! {
 
     ("x86_64-unknown-none", x86_64_unknown_none),
 
+    ("aarch64-unknown-teeos", aarch64_unknown_teeos),
+
     ("mips64-openwrt-linux-musl", mips64_openwrt_linux_musl),
 
     ("aarch64-unknown-nto-qnx710", aarch64_unknown_nto_qnx_710),
@@ -1493,6 +1534,7 @@ supported_targets! {
 
     ("aarch64-unknown-linux-ohos", aarch64_unknown_linux_ohos),
     ("armv7-unknown-linux-ohos", armv7_unknown_linux_ohos),
+    ("x86_64-unknown-linux-ohos", x86_64_unknown_linux_ohos),
 }
 
 /// Cow-Vec-Str: Cow<'static, [Cow<'static, str>]>
@@ -1908,6 +1950,9 @@ pub struct TargetOptions {
     /// Use platform dependent mcount function
     pub mcount: StaticCow<str>,
 
+    /// Use LLVM intrinsic for mcount function name
+    pub llvm_mcount_intrinsic: Option<StaticCow<str>>,
+
     /// LLVM ABI name, corresponds to the '-mabi' parameter available in multilib C compilers
     pub llvm_abiname: StaticCow<str>,
 
@@ -2169,6 +2214,7 @@ impl Default for TargetOptions {
             override_export_symbols: None,
             merge_functions: MergeFunctions::Aliases,
             mcount: "mcount".into(),
+            llvm_mcount_intrinsic: None,
             llvm_abiname: "".into(),
             relax_elf_relocations: false,
             llvm_args: cvs![],
@@ -2257,6 +2303,7 @@ impl Target {
             PtxKernel => self.arch == "nvptx64",
             Msp430Interrupt => self.arch == "msp430",
             AmdGpuKernel => self.arch == "amdgcn",
+            RiscvInterruptM | RiscvInterruptS => ["riscv32", "riscv64"].contains(&&self.arch[..]),
             AvrInterrupt | AvrNonBlockingInterrupt => self.arch == "avr",
             Wasm => ["wasm32", "wasm64"].contains(&&self.arch[..]),
             Thiscall { .. } => self.arch == "x86",
@@ -2688,7 +2735,7 @@ impl Target {
                 let name = (stringify!($key_name)).replace("_", "-");
                 obj.remove(&name).and_then(|o| o.as_str().and_then(|s| {
                     match lookup_abi(s) {
-                        Some(abi) => base.$key_name = Some(abi),
+                        Ok(abi) => base.$key_name = Some(abi),
                         _ => return Some(Err(format!("'{}' is not a valid value for abi", s))),
                     }
                     Some(Ok(()))
@@ -2825,6 +2872,7 @@ impl Target {
         key!(override_export_symbols, opt_list);
         key!(merge_functions, MergeFunctions)?;
         key!(mcount = "target-mcount");
+        key!(llvm_mcount_intrinsic, optional);
         key!(llvm_abiname);
         key!(relax_elf_relocations, bool);
         key!(llvm_args, list);
@@ -3081,6 +3129,7 @@ impl ToJson for Target {
         target_option_val!(override_export_symbols);
         target_option_val!(merge_functions);
         target_option_val!(mcount, "target-mcount");
+        target_option_val!(llvm_mcount_intrinsic);
         target_option_val!(llvm_abiname);
         target_option_val!(relax_elf_relocations);
         target_option_val!(llvm_args);

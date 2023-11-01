@@ -42,7 +42,8 @@ pub(super) fn failed_to_match_macro<'cx>(
         return result;
     }
 
-    let Some(BestFailure { token, msg: label, remaining_matcher, .. }) = tracker.best_failure else {
+    let Some(BestFailure { token, msg: label, remaining_matcher, .. }) = tracker.best_failure
+    else {
         return DummyResult::any(sp);
     };
 
@@ -256,7 +257,7 @@ pub(super) fn emit_frag_parse_err(
                         e.span_suggestion_verbose(
                             site_span,
                             "surround the macro invocation with `{}` to interpret the expansion as a statement",
-                            format!("{{ {}; }}", snippet),
+                            format!("{{ {snippet}; }}"),
                             Applicability::MaybeIncorrect,
                         );
                     }

@@ -9,7 +9,7 @@
 
 use rustc_attr as attr;
 use rustc_hir as hir;
-use rustc_hir::def_id::LocalDefId;
+use rustc_hir::def_id::{LocalDefId, LocalModDefId};
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_middle::hir::nested_filter;
 use rustc_middle::query::Providers;
@@ -45,7 +45,7 @@ impl NonConstExpr {
 
             Self::Loop(ForLoop) | Self::Match(ForLoopDesugar) => &[sym::const_for],
 
-            Self::Match(TryDesugar) => &[sym::const_try],
+            Self::Match(TryDesugar(_)) => &[sym::const_try],
 
             // All other expressions are allowed.
             Self::Loop(Loop | While) | Self::Match(Normal | FormatArgs) => &[],
@@ -55,7 +55,7 @@ impl NonConstExpr {
     }
 }
 
-fn check_mod_const_bodies(tcx: TyCtxt<'_>, module_def_id: LocalDefId) {
+fn check_mod_const_bodies(tcx: TyCtxt<'_>, module_def_id: LocalModDefId) {
     let mut vis = CheckConstVisitor::new(tcx);
     tcx.hir().visit_item_likes_in_module(module_def_id, &mut vis);
 }
@@ -157,10 +157,8 @@ impl<'tcx> CheckConstVisitor<'tcx> {
                 // is a pretty narrow case, however.
                 if tcx.sess.is_nightly_build() {
                     for gate in missing_secondary {
-                        let note = format!(
-                            "add `#![feature({})]` to the crate attributes to enable",
-                            gate,
-                        );
+                        let note =
+                            format!("add `#![feature({gate})]` to the crate attributes to enable",);
                         err.help(note);
                     }
                 }

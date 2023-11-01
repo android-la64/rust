@@ -2,17 +2,16 @@ use crate::astconv::{AstConv, OnlySelfBounds, PredicateFilter};
 use crate::bounds::Bounds;
 use crate::collect::ItemCtxt;
 use crate::constrained_generic_params as cgp;
-use hir::{HirId, Lifetime, Node};
+use hir::{HirId, Node};
 use rustc_data_structures::fx::FxIndexSet;
 use rustc_hir as hir;
 use rustc_hir::def::DefKind;
 use rustc_hir::def_id::{DefId, LocalDefId};
 use rustc_hir::intravisit::{self, Visitor};
-use rustc_middle::ty::subst::InternalSubsts;
 use rustc_middle::ty::{self, Ty, TyCtxt};
-use rustc_middle::ty::{GenericPredicates, Generics, ImplTraitInTraitData, ToPredicate};
-use rustc_span::symbol::{sym, Ident};
-use rustc_span::{Span, Symbol, DUMMY_SP};
+use rustc_middle::ty::{GenericPredicates, ImplTraitInTraitData, ToPredicate};
+use rustc_span::symbol::Ident;
+use rustc_span::{Span, DUMMY_SP};
 
 /// Returns a list of all type predicates (explicit and implicit) for the definition with
 /// ID `def_id`. This includes all predicates returned by `predicates_defined_on`, plus
@@ -38,17 +37,10 @@ pub(super) fn predicates_of(tcx: TyCtxt<'_>, def_id: DefId) -> ty::GenericPredic
         // from the trait itself that *shouldn't* be shown as the source of
         // an obligation and instead be skipped. Otherwise we'd use
         // `tcx.def_span(def_id);`
-
-        let constness = if tcx.has_attr(def_id, sym::const_trait) {
-            ty::BoundConstness::ConstIfConst
-        } else {
-            ty::BoundConstness::NotConst
-        };
-
         let span = rustc_span::DUMMY_SP;
         result.predicates =
             tcx.arena.alloc_from_iter(result.predicates.iter().copied().chain(std::iter::once((
-                ty::TraitRef::identity(tcx, def_id).with_constness(constness).to_predicate(tcx),
+                ty::TraitRef::identity(tcx, def_id).to_predicate(tcx),
                 span,
             ))));
     }
@@ -63,33 +55,25 @@ fn gather_explicit_predicates_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::Gen
     use rustc_hir::*;
 
     match tcx.opt_rpitit_info(def_id.to_def_id()) {
-        Some(ImplTraitInTraitData::Trait { opaque_def_id, fn_def_id }) => {
-            let opaque_ty_id = tcx.hir().local_def_id_to_hir_id(opaque_def_id.expect_local());
-            let opaque_ty_node = tcx.hir().get(opaque_ty_id);
-            let Node::Item(&Item { kind: ItemKind::OpaqueTy(OpaqueTy { lifetime_mapping, .. }), .. }) = opaque_ty_node else {
-                bug!("unexpected {opaque_ty_node:?}")
-            };
-
+        Some(ImplTraitInTraitData::Trait { fn_def_id, .. }) => {
             let mut predicates = Vec::new();
 
             // RPITITs should inherit the predicates of their parent. This is
             // both to ensure that the RPITITs are only instantiated when the
             // parent predicates would hold, and also so that the param-env
             // inherits these predicates as assumptions.
-            let identity_substs = InternalSubsts::identity_for_item(tcx, def_id);
-            predicates.extend(
-                tcx.explicit_predicates_of(fn_def_id).instantiate_own(tcx, identity_substs),
-            );
+            let identity_args = ty::GenericArgs::identity_for_item(tcx, def_id);
+            predicates
+                .extend(tcx.explicit_predicates_of(fn_def_id).instantiate_own(tcx, identity_args));
 
             // We also install bidirectional outlives predicates for the RPITIT
             // to keep the duplicates lifetimes from opaque lowering in sync.
+            // We only need to compute bidirectional outlives for the duplicated
+            // opaque lifetimes, which explains the slicing below.
             compute_bidirectional_outlives_predicates(
                 tcx,
-                def_id,
-                lifetime_mapping.iter().map(|(lifetime, def_id)| {
-                    (*lifetime, (*def_id, lifetime.ident.name, lifetime.ident.span))
-                }),
-                tcx.generics_of(def_id.to_def_id()),
+                &tcx.generics_of(def_id.to_def_id()).params
+                    [tcx.generics_of(fn_def_id).params.len()..],
                 &mut predicates,
             );
 
@@ -104,15 +88,15 @@ fn gather_explicit_predicates_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::Gen
             let trait_assoc_predicates =
                 tcx.explicit_predicates_of(assoc_item.trait_item_def_id.unwrap());
 
-            let impl_assoc_identity_substs = InternalSubsts::identity_for_item(tcx, def_id);
+            let impl_assoc_identity_args = ty::GenericArgs::identity_for_item(tcx, def_id);
             let impl_def_id = tcx.parent(fn_def_id);
-            let impl_trait_ref_substs =
-                tcx.impl_trait_ref(impl_def_id).unwrap().subst_identity().substs;
+            let impl_trait_ref_args =
+                tcx.impl_trait_ref(impl_def_id).unwrap().instantiate_identity().args;
 
-            let impl_assoc_substs =
-                impl_assoc_identity_substs.rebase_onto(tcx, impl_def_id, impl_trait_ref_substs);
+            let impl_assoc_args =
+                impl_assoc_identity_args.rebase_onto(tcx, impl_def_id, impl_trait_ref_args);
 
-            let impl_predicates = trait_assoc_predicates.instantiate_own(tcx, impl_assoc_substs);
+            let impl_predicates = trait_assoc_predicates.instantiate_own(tcx, impl_assoc_args);
 
             return ty::GenericPredicates {
                 parent: Some(impl_def_id),
@@ -146,13 +130,15 @@ fn gather_explicit_predicates_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::Gen
         Node::Item(item) => match item.kind {
             ItemKind::Impl(impl_) => {
                 if impl_.defaultness.is_default() {
-                    is_default_impl_trait =
-                        tcx.impl_trait_ref(def_id).map(|t| ty::Binder::dummy(t.subst_identity()));
+                    is_default_impl_trait = tcx
+                        .impl_trait_ref(def_id)
+                        .map(|t| ty::Binder::dummy(t.instantiate_identity()));
                 }
                 impl_.generics
             }
             ItemKind::Fn(.., generics, _)
             | ItemKind::TyAlias(_, generics)
+            | ItemKind::Const(_, generics, _)
             | ItemKind::Enum(_, generics)
             | ItemKind::Struct(_, generics)
             | ItemKind::Union(_, generics) => generics,
@@ -200,7 +186,7 @@ fn gather_explicit_predicates_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::Gen
     // (see below). Recall that a default impl is not itself an impl, but rather a
     // set of defaults that can be incorporated into another impl.
     if let Some(trait_ref) = is_default_impl_trait {
-        predicates.insert((trait_ref.without_const().to_predicate(tcx), tcx.def_span(def_id)));
+        predicates.insert((trait_ref.to_predicate(tcx), tcx.def_span(def_id)));
     }
 
     // Collect the region predicates that were declared inline as
@@ -333,8 +319,8 @@ fn gather_explicit_predicates_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::Gen
     // in trait checking. See `setup_constraining_predicates`
     // for details.
     if let Node::Item(&Item { kind: ItemKind::Impl { .. }, .. }) = node {
-        let self_ty = tcx.type_of(def_id).subst_identity();
-        let trait_ref = tcx.impl_trait_ref(def_id).map(ty::EarlyBinder::subst_identity);
+        let self_ty = tcx.type_of(def_id).instantiate_identity();
+        let trait_ref = tcx.impl_trait_ref(def_id).map(ty::EarlyBinder::instantiate_identity);
         cgp::setup_constraining_predicates(
             tcx,
             &mut predicates,
@@ -354,21 +340,7 @@ fn gather_explicit_predicates_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::Gen
         };
         debug!(?lifetimes);
 
-        let lifetime_mapping = std::iter::zip(lifetimes, ast_generics.params)
-            .map(|(arg, dup)| {
-                let hir::GenericArg::Lifetime(arg) = arg else { bug!() };
-                (**arg, dup)
-            })
-            .filter(|(_, dup)| matches!(dup.kind, hir::GenericParamKind::Lifetime { .. }))
-            .map(|(lifetime, dup)| (lifetime, (dup.def_id, dup.name.ident().name, dup.span)));
-
-        compute_bidirectional_outlives_predicates(
-            tcx,
-            def_id,
-            lifetime_mapping,
-            generics,
-            &mut predicates,
-        );
+        compute_bidirectional_outlives_predicates(tcx, &generics.params, &mut predicates);
         debug!(?predicates);
     }
 
@@ -382,39 +354,28 @@ fn gather_explicit_predicates_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::Gen
 /// enforce that these lifetimes stay in sync.
 fn compute_bidirectional_outlives_predicates<'tcx>(
     tcx: TyCtxt<'tcx>,
-    item_def_id: LocalDefId,
-    lifetime_mapping: impl Iterator<Item = (Lifetime, (LocalDefId, Symbol, Span))>,
-    generics: &Generics,
+    opaque_own_params: &[ty::GenericParamDef],
     predicates: &mut Vec<(ty::Clause<'tcx>, Span)>,
 ) {
-    let icx = ItemCtxt::new(tcx, item_def_id);
-
-    for (arg, (dup_def, name, span)) in lifetime_mapping {
-        let orig_region = icx.astconv().ast_region_to_region(&arg, None);
-        if !matches!(orig_region.kind(), ty::ReEarlyBound(..)) {
-            // There is no late-bound lifetime to actually match up here, since the lifetime doesn't
-            // show up in the opaque's parent's substs.
-            continue;
+    for param in opaque_own_params {
+        let orig_lifetime = tcx.map_rpit_lifetime_to_fn_lifetime(param.def_id.expect_local());
+        if let ty::ReEarlyBound(..) = *orig_lifetime {
+            let dup_lifetime = ty::Region::new_early_bound(
+                tcx,
+                ty::EarlyBoundRegion { def_id: param.def_id, index: param.index, name: param.name },
+            );
+            let span = tcx.def_span(param.def_id);
+            predicates.push((
+                ty::ClauseKind::RegionOutlives(ty::OutlivesPredicate(orig_lifetime, dup_lifetime))
+                    .to_predicate(tcx),
+                span,
+            ));
+            predicates.push((
+                ty::ClauseKind::RegionOutlives(ty::OutlivesPredicate(dup_lifetime, orig_lifetime))
+                    .to_predicate(tcx),
+                span,
+            ));
         }
-
-        let Some(dup_index) = generics.param_def_id_to_index(icx.tcx, dup_def.to_def_id()) else { bug!() };
-
-        let dup_region = ty::Region::new_early_bound(
-            tcx,
-            ty::EarlyBoundRegion { def_id: dup_def.to_def_id(), index: dup_index, name },
-        );
-
-        predicates.push((
-            ty::ClauseKind::RegionOutlives(ty::OutlivesPredicate(orig_region, dup_region))
-                .to_predicate(tcx),
-            span,
-        ));
-
-        predicates.push((
-            ty::ClauseKind::RegionOutlives(ty::OutlivesPredicate(dup_region, orig_region))
-                .to_predicate(tcx),
-            span,
-        ));
     }
 }
 
@@ -493,20 +454,20 @@ pub(super) fn explicit_predicates_of<'tcx>(
         // Remove bounds on associated types from the predicates, they will be
         // returned by `explicit_item_bounds`.
         let predicates_and_bounds = tcx.trait_explicit_predicates_and_bounds(def_id);
-        let trait_identity_substs = InternalSubsts::identity_for_item(tcx, def_id);
+        let trait_identity_args = ty::GenericArgs::identity_for_item(tcx, def_id);
 
         let is_assoc_item_ty = |ty: Ty<'tcx>| {
             // For a predicate from a where clause to become a bound on an
             // associated type:
-            // * It must use the identity substs of the item.
+            // * It must use the identity args of the item.
             //   * We're in the scope of the trait, so we can't name any
             //     parameters of the GAT. That means that all we need to
-            //     check are that the substs of the projection are the
-            //     identity substs of the trait.
+            //     check are that the args of the projection are the
+            //     identity args of the trait.
             // * It must be an associated type for this trait (*not* a
             //   supertrait).
             if let ty::Alias(ty::Projection, projection) = ty.kind() {
-                projection.substs == trait_identity_substs
+                projection.args == trait_identity_args
                     // FIXME(return_type_notation): This check should be more robust
                     && !tcx.is_impl_trait_in_trait(projection.def_id)
                     && tcx.associated_item(projection.def_id).container_id(tcx)
@@ -757,6 +718,7 @@ pub(super) fn type_param_predicates(
                 ItemKind::Fn(.., generics, _)
                 | ItemKind::Impl(&hir::Impl { generics, .. })
                 | ItemKind::TyAlias(_, generics)
+                | ItemKind::Const(_, generics, _)
                 | ItemKind::OpaqueTy(&OpaqueTy {
                     generics,
                     origin: hir::OpaqueTyOrigin::TyAlias { .. },
@@ -770,8 +732,7 @@ pub(super) fn type_param_predicates(
                     if param_id == item_hir_id {
                         let identity_trait_ref =
                             ty::TraitRef::identity(tcx, item_def_id.to_def_id());
-                        extend =
-                            Some((identity_trait_ref.without_const().to_predicate(tcx), item.span));
+                        extend = Some((identity_trait_ref.to_predicate(tcx), item.span));
                     }
                     generics
                 }

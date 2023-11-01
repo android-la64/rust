@@ -30,7 +30,7 @@ fn eval_main(db: &TestDB, file_id: FileId) -> Result<(String, String), MirEvalEr
             db.trait_environment(func_id.into()),
         )
         .map_err(|e| MirEvalError::MirLowerError(func_id.into(), e))?;
-    let (result, stdout, stderr) = interpret_mir(db, &body, false);
+    let (result, stdout, stderr) = interpret_mir(db, body, false, None);
     result?;
     Ok((stdout, stderr))
 }
@@ -179,6 +179,50 @@ fn main() {
     }
 }
     "#,
+    );
+}
+
+#[test]
+fn drop_struct_field() {
+    check_pass(
+        r#"
+//- minicore: drop, add, option, cell, builtin_impls
+
+use core::cell::Cell;
+
+fn should_not_reach() {
+    _ // FIXME: replace this function with panic when that works
+}
+
+struct X<'a>(&'a Cell<i32>);
+impl<'a> Drop for X<'a> {
+    fn drop(&mut self) {
+        self.0.set(self.0.get() + 1)
+    }
+}
+
+struct Tuple<'a>(X<'a>, X<'a>, X<'a>);
+
+fn main() {
+    let s = Cell::new(0);
+    {
+        let x0 = X(&s);
+        let xt = Tuple(x0, X(&s), X(&s));
+        let x1 = xt.1;
+        if s.get() != 0 {
+            should_not_reach();
+        }
+        drop(xt.0);
+        if s.get() != 1 {
+            should_not_reach();
+        }
+    }
+    // FIXME: this should be 3
+    if s.get() != 2 {
+        should_not_reach();
+    }
+}
+"#,
     );
 }
 
@@ -611,6 +655,78 @@ fn main() {
 }
         "#,
     );
+}
+
+#[test]
+fn self_with_capital_s() {
+    check_pass(
+        r#"
+//- minicore: fn, add, copy
+
+struct S1;
+
+impl S1 {
+    fn f() {
+        Self;
+    }
+}
+
+struct S2 {
+    f1: i32,
+}
+
+impl S2 {
+    fn f() {
+        Self { f1: 5 };
+    }
+}
+
+struct S3(i32);
+
+impl S3 {
+    fn f() {
+        Self(2);
+        Self;
+        let this = Self;
+        this(2);
+    }
+}
+
+fn main() {
+    S1::f();
+    S2::f();
+    S3::f();
+}
+        "#,
+    );
+}
+
+#[test]
+fn syscalls() {
+    check_pass(
+        r#"
+//- minicore: option
+
+extern "C" {
+    pub unsafe extern "C" fn syscall(num: i64, ...) -> i64;
+}
+
+const SYS_getrandom: i64 = 318;
+
+fn should_not_reach() {
+    _ // FIXME: replace this function with panic when that works
+}
+
+fn main() {
+    let mut x: i32 = 0;
+    let r = syscall(SYS_getrandom, &mut x, 4usize, 0);
+    if r != 4 {
+        should_not_reach();
+    }
+}
+
+"#,
+    )
 }
 
 #[test]

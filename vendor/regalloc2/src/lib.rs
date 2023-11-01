@@ -30,7 +30,7 @@ macro_rules! trace {
 
 macro_rules! trace_enabled {
     () => {
-        cfg!(feature = "trace-log")
+        cfg!(feature = "trace-log") && ::log::log_enabled!(::log::Level::Trace)
     };
 }
 
@@ -57,6 +57,9 @@ pub mod checker;
 
 #[cfg(feature = "fuzzing")]
 pub mod fuzzing;
+
+#[cfg(feature = "enable-serde")]
+pub mod serialize;
 
 #[cfg(feature = "enable-serde")]
 use serde::{Deserialize, Serialize};

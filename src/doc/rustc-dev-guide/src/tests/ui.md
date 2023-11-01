@@ -88,7 +88,7 @@ check for output files:
   contents of the stored output files by lines opposed to checking for strict
   equality.
 
-UI tests run with with `-Zdeduplicate-diagnostics=no` flag which disables
+UI tests run with `-Zdeduplicate-diagnostics=no` flag which disables
 rustc's built-in diagnostic deduplication mechanism.
 This means you may see some duplicate messages in the output.
 This helps illuminate situations where duplicate diagnostics are being
@@ -390,7 +390,7 @@ Tests with the `*-pass` headers can be overridden with the `--pass`
 command-line option:
 
 ```sh
-./x.py test tests/ui --pass check
+./x test tests/ui --pass check
 ```
 
 The `--pass` option only affects UI tests.
@@ -485,7 +485,7 @@ Then, it applies the suggestion and compares against `.fixed` (they must match).
 Finally, the fixed source is compiled, and this compilation is required to succeed.
 
 Usually when creating a rustfix test you will generate the `.fixed` file
-automatically with the `x.py test --bless` option.
+automatically with the `x test --bless` option.
 
 The `run-rustfix` header will cause *all* suggestions to be applied, even
 if they are not [`MachineApplicable`](../diagnostics.md#suggestions).
@@ -515,7 +515,7 @@ If in the rare case you encounter a test that has different behavior, you can
 run something like the following to generate the alternate stderr file:
 
 ```sh
-./x.py test tests/ui --compare-mode=polonius --bless
+./x test tests/ui --compare-mode=polonius --bless
 ```
 
 Currently none of the compare modes are checked in CI for UI tests.

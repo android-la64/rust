@@ -1,3 +1,54 @@
+# 0.8.8
+
+## Fixed
+
+* Fix compilation on WASI (https://github.com/tokio-rs/mio/pull/1676).
+
+# 0.8.7
+
+## Added
+
+* Add/fix support for tvOS and watchOS, Mio should now build for tvOS and
+  watchOS, but we don't have a CI setup yet
+  (https://github.com/tokio-rs/mio/pull/1658).
+
+## Changed
+
+* Made the `log` dependency optional behind the `log` feature flag (enabled by
+  default). Users that disabled Mio's default features will now not see any
+  logging from Mio, enabling the `log` feature will fix that. This was done in
+  response to the `log` crate increasing it's MSRV to v1.60, see
+  https://github.com/rust-lang/log/pull/552
+  (https://github.com/tokio-rs/mio/pull/1673).
+* Update windows-sys dependency to v0.48
+  (https://github.com/tokio-rs/mio/pull/1663).
+
+## Fixed
+
+* Fix overflow in `Poll::poll` when using `Duration::MAX` as timeout
+  (https://github.com/tokio-rs/mio/pull/1657).
+
+# 0.8.6
+
+## Added
+
+* `Interest::PRIORITY` on Linux and Android, to trigger `Event::is_priority`
+  (https://github.com/tokio-rs/mio/pull/1647).
+
+## Changed
+
+* Updated windows-sys to 0.45
+  (https://github.com/tokio-rs/mio/pull/1644).
+* We started testing with sanitizers on the CI
+  (https://github.com/tokio-rs/mio/pull/1648).
+
+## Fixed
+
+* A number of potential fd leaks when setup resulted in an error right after
+  creation (https://github.com/tokio-rs/mio/pull/1636).
+* Less truncating for timeout values in `Poll::poll`
+  (https://github.com/tokio-rs/mio/pull/1642).
+
 # 0.8.5
 
 ## Changed

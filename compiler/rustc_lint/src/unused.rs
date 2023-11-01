@@ -94,7 +94,9 @@ declare_lint_pass!(UnusedResults => [UNUSED_MUST_USE, UNUSED_RESULTS]);
 
 impl<'tcx> LateLintPass<'tcx> for UnusedResults {
     fn check_stmt(&mut self, cx: &LateContext<'_>, s: &hir::Stmt<'_>) {
-        let hir::StmtKind::Semi(mut expr) = s.kind else { return; };
+        let hir::StmtKind::Semi(mut expr) = s.kind else {
+            return;
+        };
 
         let mut expr_is_from_block = false;
         while let hir::ExprKind::Block(blk, ..) = expr.kind
@@ -284,22 +286,25 @@ impl<'tcx> LateLintPass<'tcx> for UnusedResults {
                 }
                 ty::Adt(def, _) => is_def_must_use(cx, def.did(), span),
                 ty::Alias(ty::Opaque, ty::AliasTy { def_id: def, .. }) => {
-                    elaborate(cx.tcx, cx.tcx.explicit_item_bounds(def).subst_identity_iter_copied())
-                        // We only care about self bounds for the impl-trait
-                        .filter_only_self()
-                        .find_map(|(pred, _span)| {
-                            // We only look at the `DefId`, so it is safe to skip the binder here.
-                            if let ty::ClauseKind::Trait(ref poly_trait_predicate) =
-                                pred.kind().skip_binder()
-                            {
-                                let def_id = poly_trait_predicate.trait_ref.def_id;
+                    elaborate(
+                        cx.tcx,
+                        cx.tcx.explicit_item_bounds(def).instantiate_identity_iter_copied(),
+                    )
+                    // We only care about self bounds for the impl-trait
+                    .filter_only_self()
+                    .find_map(|(pred, _span)| {
+                        // We only look at the `DefId`, so it is safe to skip the binder here.
+                        if let ty::ClauseKind::Trait(ref poly_trait_predicate) =
+                            pred.kind().skip_binder()
+                        {
+                            let def_id = poly_trait_predicate.trait_ref.def_id;
 
-                                is_def_must_use(cx, def_id, span)
-                            } else {
-                                None
-                            }
-                        })
-                        .map(|inner| MustUsePath::Opaque(Box::new(inner)))
+                            is_def_must_use(cx, def_id, span)
+                        } else {
+                            None
+                        }
+                    })
+                    .map(|inner| MustUsePath::Opaque(Box::new(inner)))
                 }
                 ty::Dynamic(binders, _, _) => binders.iter().find_map(|predicate| {
                     if let ty::ExistentialPredicate::Trait(ref trait_ref) = predicate.skip_binder()
@@ -409,7 +414,7 @@ impl<'tcx> LateLintPass<'tcx> for UnusedResults {
             match path {
                 MustUsePath::Suppressed => {}
                 MustUsePath::Boxed(path) => {
-                    let descr_pre = &format!("{}boxed ", descr_pre);
+                    let descr_pre = &format!("{descr_pre}boxed ");
                     emit_must_use_untranslated(
                         cx,
                         path,
@@ -421,7 +426,7 @@ impl<'tcx> LateLintPass<'tcx> for UnusedResults {
                     );
                 }
                 MustUsePath::Opaque(path) => {
-                    let descr_pre = &format!("{}implementer{} of ", descr_pre, plural_suffix);
+                    let descr_pre = &format!("{descr_pre}implementer{plural_suffix} of ");
                     emit_must_use_untranslated(
                         cx,
                         path,
@@ -433,7 +438,7 @@ impl<'tcx> LateLintPass<'tcx> for UnusedResults {
                     );
                 }
                 MustUsePath::TraitObject(path) => {
-                    let descr_post = &format!(" trait object{}{}", plural_suffix, descr_post);
+                    let descr_post = &format!(" trait object{plural_suffix}{descr_post}");
                     emit_must_use_untranslated(
                         cx,
                         path,
@@ -446,7 +451,7 @@ impl<'tcx> LateLintPass<'tcx> for UnusedResults {
                 }
                 MustUsePath::TupleElement(elems) => {
                     for (index, path) in elems {
-                        let descr_post = &format!(" in tuple element {}", index);
+                        let descr_post = &format!(" in tuple element {index}");
                         emit_must_use_untranslated(
                             cx,
                             path,
@@ -459,7 +464,7 @@ impl<'tcx> LateLintPass<'tcx> for UnusedResults {
                     }
                 }
                 MustUsePath::Array(path, len) => {
-                    let descr_pre = &format!("{}array{} of ", descr_pre, plural_suffix);
+                    let descr_pre = &format!("{descr_pre}array{plural_suffix} of ");
                     emit_must_use_untranslated(
                         cx,
                         path,
@@ -648,7 +653,7 @@ trait UnusedDelimLint {
                     ExprKind::Call(fn_, _params) => fn_,
                     ExprKind::Cast(expr, _ty) => expr,
                     ExprKind::Type(expr, _ty) => expr,
-                    ExprKind::Index(base, _subscript) => base,
+                    ExprKind::Index(base, _subscript, _) => base,
                     _ => break,
                 };
                 if !classify::expr_requires_semi_to_be_stmt(innermost) {
@@ -661,6 +666,24 @@ trait UnusedDelimLint {
         if !followed_by_block {
             return false;
         }
+
+        // Check if we need parens for `match &( Struct { feild:  }) {}`.
+        {
+            let mut innermost = inner;
+            loop {
+                innermost = match &innermost.kind {
+                    ExprKind::AddrOf(_, _, expr) => expr,
+                    _ => {
+                        if parser::contains_exterior_struct_lit(&innermost) {
+                            return true;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         let mut innermost = inner;
         loop {
             innermost = match &innermost.kind {
@@ -825,7 +848,7 @@ trait UnusedDelimLint {
                 (value, UnusedDelimsCtx::ReturnValue, false, Some(left), None, true)
             }
 
-            Index(_, ref value) => (value, UnusedDelimsCtx::IndexExpr, false, None, None, false),
+            Index(_, ref value, _) => (value, UnusedDelimsCtx::IndexExpr, false, None, None, false),
 
             Assign(_, ref value, _) | AssignOp(.., ref value) => {
                 (value, UnusedDelimsCtx::AssignedValue, false, None, None, false)

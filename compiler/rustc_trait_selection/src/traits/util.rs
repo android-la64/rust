@@ -4,7 +4,7 @@ use rustc_data_structures::fx::FxHashSet;
 use rustc_errors::Diagnostic;
 use rustc_hir::def_id::DefId;
 use rustc_infer::infer::InferOk;
-use rustc_middle::ty::SubstsRef;
+use rustc_middle::ty::GenericArgsRef;
 use rustc_middle::ty::{self, ImplSubject, ToPredicate, Ty, TyCtxt, TypeVisitableExt};
 use rustc_span::Span;
 use smallvec::SmallVec;
@@ -50,7 +50,7 @@ impl<'tcx> TraitAliasExpansionInfo<'tcx> {
         diag.span_label(self.top().1, top_label);
         if self.path.len() > 1 {
             for (_, sp) in self.path.iter().rev().skip(1).take(self.path.len() - 2) {
-                diag.span_label(*sp, format!("referenced here ({})", use_desc));
+                diag.span_label(*sp, format!("referenced here ({use_desc})"));
             }
         }
         if self.top().1 != self.bottom().1 {
@@ -58,7 +58,7 @@ impl<'tcx> TraitAliasExpansionInfo<'tcx> {
             // redundant labels.
             diag.span_label(
                 self.bottom().1,
-                format!("trait alias used in trait object type ({})", use_desc),
+                format!("trait alias used in trait object type ({use_desc})"),
             );
         }
     }
@@ -101,7 +101,7 @@ impl<'tcx> TraitAliasExpander<'tcx> {
     fn expand(&mut self, item: &TraitAliasExpansionInfo<'tcx>) -> bool {
         let tcx = self.tcx;
         let trait_ref = item.trait_ref();
-        let pred = trait_ref.without_const().to_predicate(tcx);
+        let pred = trait_ref.to_predicate(tcx);
 
         debug!("expand_trait_aliases: trait_ref={:?}", trait_ref);
 
@@ -113,9 +113,13 @@ impl<'tcx> TraitAliasExpander<'tcx> {
 
         // Don't recurse if this trait alias is already on the stack for the DFS search.
         let anon_pred = anonymize_predicate(tcx, pred);
-        if item.path.iter().rev().skip(1).any(|&(tr, _)| {
-            anonymize_predicate(tcx, tr.without_const().to_predicate(tcx)) == anon_pred
-        }) {
+        if item
+            .path
+            .iter()
+            .rev()
+            .skip(1)
+            .any(|&(tr, _)| anonymize_predicate(tcx, tr.to_predicate(tcx)) == anon_pred)
+        {
             return false;
         }
 
@@ -194,24 +198,24 @@ impl Iterator for SupertraitDefIds<'_> {
 // Other
 ///////////////////////////////////////////////////////////////////////////
 
-/// Instantiate all bound parameters of the impl subject with the given substs,
+/// Instantiate all bound parameters of the impl subject with the given args,
 /// returning the resulting subject and all obligations that arise.
 /// The obligations are closed under normalization.
 pub fn impl_subject_and_oblig<'a, 'tcx>(
     selcx: &mut SelectionContext<'a, 'tcx>,
     param_env: ty::ParamEnv<'tcx>,
     impl_def_id: DefId,
-    impl_substs: SubstsRef<'tcx>,
+    impl_args: GenericArgsRef<'tcx>,
     cause: impl Fn(usize, Span) -> ObligationCause<'tcx>,
 ) -> (ImplSubject<'tcx>, impl Iterator<Item = PredicateObligation<'tcx>>) {
     let subject = selcx.tcx().impl_subject(impl_def_id);
-    let subject = subject.subst(selcx.tcx(), impl_substs);
+    let subject = subject.instantiate(selcx.tcx(), impl_args);
 
     let InferOk { value: subject, obligations: normalization_obligations1 } =
         selcx.infcx.at(&ObligationCause::dummy(), param_env).normalize(subject);
 
     let predicates = selcx.tcx().predicates_of(impl_def_id);
-    let predicates = predicates.instantiate(selcx.tcx(), impl_substs);
+    let predicates = predicates.instantiate(selcx.tcx(), impl_args);
     let InferOk { value: predicates, obligations: normalization_obligations2 } =
         selcx.infcx.at(&ObligationCause::dummy(), param_env).normalize(predicates);
     let impl_obligations = super::predicates_for_generics(cause, param_env, predicates);
@@ -241,9 +245,9 @@ pub fn upcast_choices<'tcx>(
 /// Given an upcast trait object described by `object`, returns the
 /// index of the method `method_def_id` (which should be part of
 /// `object.upcast_trait_ref`) within the vtable for `object`.
-pub fn get_vtable_index_of_object_method<'tcx, N>(
+pub fn get_vtable_index_of_object_method<'tcx>(
     tcx: TyCtxt<'tcx>,
-    object: &super::ImplSourceObjectData<N>,
+    vtable_base: usize,
     method_def_id: DefId,
 ) -> Option<usize> {
     // Count number of methods preceding the one we are selecting and
@@ -252,7 +256,7 @@ pub fn get_vtable_index_of_object_method<'tcx, N>(
         .iter()
         .copied()
         .position(|def_id| def_id == method_def_id)
-        .map(|index| object.vtable_base + index)
+        .map(|index| vtable_base + index)
 }
 
 pub fn closure_trait_ref_and_return_type<'tcx>(
@@ -303,13 +307,13 @@ pub enum TupleArgumentsFlag {
     No,
 }
 
-// Verify that the trait item and its implementation have compatible substs lists
-pub fn check_substs_compatible<'tcx>(
+// Verify that the trait item and its implementation have compatible args lists
+pub fn check_args_compatible<'tcx>(
     tcx: TyCtxt<'tcx>,
     assoc_item: ty::AssocItem,
-    substs: ty::SubstsRef<'tcx>,
+    args: ty::GenericArgsRef<'tcx>,
 ) -> bool {
-    fn check_substs_compatible_inner<'tcx>(
+    fn check_args_compatible_inner<'tcx>(
         tcx: TyCtxt<'tcx>,
         generics: &'tcx ty::Generics,
         args: &'tcx [ty::GenericArg<'tcx>],
@@ -322,7 +326,7 @@ pub fn check_substs_compatible<'tcx>(
 
         if let Some(parent) = generics.parent
             && let parent_generics = tcx.generics_of(parent)
-            && !check_substs_compatible_inner(tcx, parent_generics, parent_args) {
+            && !check_args_compatible_inner(tcx, parent_generics, parent_args) {
             return false;
         }
 
@@ -339,7 +343,7 @@ pub fn check_substs_compatible<'tcx>(
     }
 
     let generics = tcx.generics_of(assoc_item.def_id);
-    // Chop off any additional substs (RPITIT) substs
-    let substs = &substs[0..generics.count().min(substs.len())];
-    check_substs_compatible_inner(tcx, generics, substs)
+    // Chop off any additional args (RPITIT) args
+    let args = &args[0..generics.count().min(args.len())];
+    check_args_compatible_inner(tcx, generics, args)
 }

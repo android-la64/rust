@@ -178,11 +178,11 @@ use rustc_middle::mir::{self, Local, Location};
 use rustc_middle::query::TyCtxtAt;
 use rustc_middle::ty::adjustment::{CustomCoerceUnsized, PointerCoercion};
 use rustc_middle::ty::print::with_no_trimmed_paths;
-use rustc_middle::ty::subst::{GenericArgKind, InternalSubsts};
 use rustc_middle::ty::{
     self, GenericParamDefKind, Instance, InstanceDef, Ty, TyCtxt, TypeFoldable, TypeVisitableExt,
     VtblEntry,
 };
+use rustc_middle::ty::{GenericArgKind, GenericArgs};
 use rustc_middle::{middle::codegen_fn_attrs::CodegenFnAttrFlags, mir::visit::TyContext};
 use rustc_session::config::EntryFnType;
 use rustc_session::lint::builtin::LARGE_ASSIGNMENTS;
@@ -384,7 +384,7 @@ fn collect_items_rec<'tcx>(
 
             if let Ok(alloc) = tcx.eval_static_initializer(def_id) {
                 for &id in alloc.inner().provenance().ptrs().values() {
-                    collect_miri(tcx, id, &mut used_items);
+                    collect_alloc(tcx, id, &mut used_items);
                 }
             }
 
@@ -393,7 +393,7 @@ fn collect_items_rec<'tcx>(
                     starting_item.span,
                     MonoItem::Fn(Instance {
                         def: InstanceDef::ThreadLocalShim(def_id),
-                        substs: InternalSubsts::empty(),
+                        args: GenericArgs::empty(),
                     }),
                 ));
             }
@@ -555,7 +555,7 @@ fn check_recursion_limit<'tcx>(
 
 fn check_type_length_limit<'tcx>(tcx: TyCtxt<'tcx>, instance: Instance<'tcx>) {
     let type_length = instance
-        .substs
+        .args
         .iter()
         .flat_map(|arg| arg.walk())
         .filter(|arg| match arg.unpack() {
@@ -659,11 +659,11 @@ impl<'a, 'tcx> MirVisitor<'tcx> for MirUsedCollector<'a, 'tcx> {
                 let source_ty = operand.ty(self.body, self.tcx);
                 let source_ty = self.monomorphize(source_ty);
                 match *source_ty.kind() {
-                    ty::Closure(def_id, substs) => {
+                    ty::Closure(def_id, args) => {
                         let instance = Instance::resolve_closure(
                             self.tcx,
                             def_id,
-                            substs,
+                            args,
                             ty::ClosureKind::FnOnce,
                         )
                         .expect("failed to normalize and resolve closure during codegen");
@@ -875,12 +875,11 @@ fn visit_fn_use<'tcx>(
     source: Span,
     output: &mut MonoItems<'tcx>,
 ) {
-    if let ty::FnDef(def_id, substs) = *ty.kind() {
+    if let ty::FnDef(def_id, args) = *ty.kind() {
         let instance = if is_direct_call {
-            ty::Instance::expect_resolve(tcx, ty::ParamEnv::reveal_all(), def_id, substs)
+            ty::Instance::expect_resolve(tcx, ty::ParamEnv::reveal_all(), def_id, args)
         } else {
-            match ty::Instance::resolve_for_fn_ptr(tcx, ty::ParamEnv::reveal_all(), def_id, substs)
-            {
+            match ty::Instance::resolve_for_fn_ptr(tcx, ty::ParamEnv::reveal_all(), def_id, args) {
                 Some(instance) => instance,
                 _ => bug!("failed to resolve instance for {ty}"),
             }
@@ -1043,7 +1042,7 @@ fn find_vtable_types_for_unsizing<'tcx>(
         // T as dyn* Trait
         (_, &ty::Dynamic(_, _, ty::DynStar)) => ptr_vtable(source_ty, target_ty),
 
-        (&ty::Adt(source_adt_def, source_substs), &ty::Adt(target_adt_def, target_substs)) => {
+        (&ty::Adt(source_adt_def, source_args), &ty::Adt(target_adt_def, target_args)) => {
             assert_eq!(source_adt_def, target_adt_def);
 
             let CustomCoerceUnsized::Struct(coerce_index) =
@@ -1059,8 +1058,8 @@ fn find_vtable_types_for_unsizing<'tcx>(
 
             find_vtable_types_for_unsizing(
                 tcx,
-                source_fields[coerce_index].ty(*tcx, source_substs),
-                target_fields[coerce_index].ty(*tcx, target_substs),
+                source_fields[coerce_index].ty(*tcx, source_args),
+                target_fields[coerce_index].ty(*tcx, target_args),
             )
         }
         _ => bug!(
@@ -1245,7 +1244,7 @@ impl<'v> RootCollector<'_, 'v> {
             self.tcx,
             ty::ParamEnv::reveal_all(),
             start_def_id,
-            self.tcx.mk_substs(&[main_ret_ty.into()]),
+            self.tcx.mk_args(&[main_ret_ty.into()]),
         )
         .unwrap()
         .unwrap();
@@ -1292,8 +1291,8 @@ fn create_mono_items_for_default_impls<'tcx>(
             )
         }
     };
-    let impl_substs = InternalSubsts::for_item(tcx, item.owner_id.to_def_id(), only_region_params);
-    let trait_ref = trait_ref.subst(tcx, impl_substs);
+    let impl_args = GenericArgs::for_item(tcx, item.owner_id.to_def_id(), only_region_params);
+    let trait_ref = trait_ref.instantiate(tcx, impl_args);
 
     // Unlike 'lazy' monomorphization that begins by collecting items transitively
     // called by `main` or other global items, when eagerly monomorphizing impl
@@ -1304,7 +1303,7 @@ fn create_mono_items_for_default_impls<'tcx>(
     // consider higher-ranked predicates such as `for<'a> &'a mut [u8]: Copy` to
     // be trivially false. We must now check that the impl has no impossible-to-satisfy
     // predicates.
-    if tcx.subst_and_check_impossible_predicates((item.owner_id.to_def_id(), impl_substs)) {
+    if tcx.subst_and_check_impossible_predicates((item.owner_id.to_def_id(), impl_args)) {
         return;
     }
 
@@ -1322,8 +1321,8 @@ fn create_mono_items_for_default_impls<'tcx>(
 
         // As mentioned above, the method is legal to eagerly instantiate if it
         // only has lifetime substitutions. This is validated by
-        let substs = trait_ref.substs.extend_to(tcx, method.def_id, only_region_params);
-        let instance = ty::Instance::expect_resolve(tcx, param_env, method.def_id, substs);
+        let args = trait_ref.args.extend_to(tcx, method.def_id, only_region_params);
+        let instance = ty::Instance::expect_resolve(tcx, param_env, method.def_id, args);
 
         let mono_item = create_fn_mono_item(tcx, instance, DUMMY_SP);
         if mono_item.node.is_instantiable(tcx) && should_codegen_locally(tcx, &instance) {
@@ -1332,8 +1331,8 @@ fn create_mono_items_for_default_impls<'tcx>(
     }
 }
 
-/// Scans the miri alloc in order to find function calls, closures, and drop-glue.
-fn collect_miri<'tcx>(tcx: TyCtxt<'tcx>, alloc_id: AllocId, output: &mut MonoItems<'tcx>) {
+/// Scans the CTFE alloc in order to find function calls, closures, and drop-glue.
+fn collect_alloc<'tcx>(tcx: TyCtxt<'tcx>, alloc_id: AllocId, output: &mut MonoItems<'tcx>) {
     match tcx.global_alloc(alloc_id) {
         GlobalAlloc::Static(def_id) => {
             assert!(!tcx.is_thread_local_static(def_id));
@@ -1347,7 +1346,7 @@ fn collect_miri<'tcx>(tcx: TyCtxt<'tcx>, alloc_id: AllocId, output: &mut MonoIte
             trace!("collecting {:?} with {:#?}", alloc_id, alloc);
             for &inner in alloc.inner().provenance().ptrs().values() {
                 rustc_data_structures::stack::ensure_sufficient_stack(|| {
-                    collect_miri(tcx, inner, output);
+                    collect_alloc(tcx, inner, output);
                 });
             }
         }
@@ -1359,7 +1358,7 @@ fn collect_miri<'tcx>(tcx: TyCtxt<'tcx>, alloc_id: AllocId, output: &mut MonoIte
         }
         GlobalAlloc::VTable(ty, trait_ref) => {
             let alloc_id = tcx.vtable_allocation((ty, trait_ref));
-            collect_miri(tcx, alloc_id, output)
+            collect_alloc(tcx, alloc_id, output)
         }
     }
 }
@@ -1382,10 +1381,10 @@ fn collect_const_value<'tcx>(
     output: &mut MonoItems<'tcx>,
 ) {
     match value {
-        ConstValue::Scalar(Scalar::Ptr(ptr, _size)) => collect_miri(tcx, ptr.provenance, output),
+        ConstValue::Scalar(Scalar::Ptr(ptr, _size)) => collect_alloc(tcx, ptr.provenance, output),
         ConstValue::Slice { data: alloc, start: _, end: _ } | ConstValue::ByRef { alloc, .. } => {
             for &id in alloc.inner().provenance().ptrs().values() {
-                collect_miri(tcx, id, output);
+                collect_alloc(tcx, id, output);
             }
         }
         _ => {}

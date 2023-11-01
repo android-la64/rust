@@ -58,7 +58,9 @@ pub struct Process {
     run_time: u64,
     pub(crate) status: ProcessStatus,
     user_id: Uid,
+    effective_user_id: Uid,
     group_id: Gid,
+    effective_group_id: Gid,
     read_bytes: u64,
     old_read_bytes: u64,
     written_bytes: u64,
@@ -140,20 +142,39 @@ impl ProcessExt for Process {
         Some(&self.user_id)
     }
 
+    fn effective_user_id(&self) -> Option<&Uid> {
+        Some(&self.effective_user_id)
+    }
+
     fn group_id(&self) -> Option<Gid> {
         Some(self.group_id)
+    }
+
+    fn effective_group_id(&self) -> Option<Gid> {
+        Some(self.effective_group_id)
     }
 
     fn wait(&self) {
         let mut status = 0;
         // attempt waiting
         unsafe {
-            if libc::waitpid(self.pid.0, &mut status, 0) < 0 {
+            if retry_eintr!(libc::waitpid(self.pid.0, &mut status, 0)) < 0 {
                 // attempt failed (non-child process) so loop until process ends
                 let duration = std::time::Duration::from_millis(10);
                 while kill(self.pid.0, 0) == 0 {
                     std::thread::sleep(duration);
                 }
+            }
+        }
+    }
+
+    fn session_id(&self) -> Option<Pid> {
+        unsafe {
+            let session_id = libc::getsid(self.pid.0);
+            if session_id < 0 {
+                None
+            } else {
+                Some(Pid(session_id))
             }
         }
     }
@@ -248,7 +269,9 @@ pub(crate) unsafe fn get_process_data(
         pid: Pid(kproc.ki_pid),
         parent,
         user_id: Uid(kproc.ki_ruid),
+        effective_user_id: Uid(kproc.ki_uid),
         group_id: Gid(kproc.ki_rgid),
+        effective_group_id: Gid(kproc.ki_svgid),
         start_time,
         run_time: now.saturating_sub(start_time),
         cpu_usage,

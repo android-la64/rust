@@ -18,6 +18,7 @@ use crate::ColorConfig;
 use regex::{Captures, Regex};
 use rustfix::{apply_suggestions, get_suggestions_from_json, Filter};
 
+use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -41,7 +42,7 @@ use crate::extract_gdb_version;
 use crate::is_android_gdb_target;
 
 mod debugger;
-use debugger::{check_debugger_output, DebuggerCommands};
+use debugger::DebuggerCommands;
 
 #[cfg(test)]
 mod tests;
@@ -664,6 +665,7 @@ impl<'test> TestCx<'test> {
 
     fn normalize_coverage_output(&self, coverage: &str) -> Result<String, String> {
         let normalized = self.normalize_output(coverage, &[]);
+        let normalized = Self::anonymize_coverage_line_numbers(&normalized);
 
         let mut lines = normalized.lines().collect::<Vec<_>>();
 
@@ -672,6 +674,21 @@ impl<'test> TestCx<'test> {
 
         let joined_lines = lines.iter().flat_map(|line| [line, "\n"]).collect::<String>();
         Ok(joined_lines)
+    }
+
+    /// Replace line numbers in coverage reports with the placeholder `LL`,
+    /// so that the tests are less sensitive to lines being added/removed.
+    fn anonymize_coverage_line_numbers(coverage: &str) -> Cow<'_, str> {
+        // The coverage reporter prints line numbers at the start of a line.
+        // They are truncated or left-padded to occupy exactly 5 columns.
+        // (`LineNumberColumnWidth` in `SourceCoverageViewText.cpp`.)
+        // A pipe character `|` appears immediately after the final digit.
+        //
+        // Line numbers that appear inside expansion/instantiation subviews
+        // have an additional prefix of `  |` for each nesting level.
+        static LINE_NUMBER_RE: Lazy<Regex> =
+            Lazy::new(|| Regex::new(r"(?m:^)(?<prefix>(?:  \|)*) *[0-9]+\|").unwrap());
+        LINE_NUMBER_RE.replace_all(coverage, "$prefix   LL|")
     }
 
     /// Coverage reports can describe multiple source files, separated by
@@ -868,6 +885,8 @@ impl<'test> TestCx<'test> {
             .args(&["--target", &self.config.target])
             .arg("-L")
             .arg(&aux_dir)
+            .arg("-A")
+            .arg("internal_features")
             .args(&self.props.compile_flags)
             .envs(self.props.rustc_env.clone());
         self.maybe_add_external_args(&mut rustc, &self.config.target_rustcflags);
@@ -936,7 +955,9 @@ impl<'test> TestCx<'test> {
             .arg("-L")
             .arg(&self.config.build_base)
             .arg("-L")
-            .arg(aux_dir);
+            .arg(aux_dir)
+            .arg("-A")
+            .arg("internal_features");
         self.set_revision_flags(&mut rustc);
         self.maybe_add_external_args(&mut rustc, &self.config.target_rustcflags);
         rustc.args(&self.props.compile_flags);
@@ -997,16 +1018,13 @@ impl<'test> TestCx<'test> {
         };
 
         // Parse debugger commands etc from test files
-        let DebuggerCommands { commands, check_lines, breakpoint_lines, .. } =
-            match DebuggerCommands::parse_from(
-                &self.testpaths.file,
-                self.config,
-                prefixes,
-                self.revision,
-            ) {
-                Ok(cmds) => cmds,
-                Err(e) => self.fatal(&e),
-            };
+        let dbg_cmds = DebuggerCommands::parse_from(
+            &self.testpaths.file,
+            self.config,
+            prefixes,
+            self.revision,
+        )
+        .unwrap_or_else(|e| self.fatal(&e));
 
         // https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/debugger-commands
         let mut script_str = String::with_capacity(2048);
@@ -1023,12 +1041,12 @@ impl<'test> TestCx<'test> {
 
         // Set breakpoints on every line that contains the string "#break"
         let source_file_name = self.testpaths.file.file_name().unwrap().to_string_lossy();
-        for line in &breakpoint_lines {
+        for line in &dbg_cmds.breakpoint_lines {
             script_str.push_str(&format!("bp `{}:{}`\n", source_file_name, line));
         }
 
         // Append the other `cdb-command:`s
-        for line in &commands {
+        for line in &dbg_cmds.commands {
             script_str.push_str(line);
             script_str.push_str("\n");
         }
@@ -1058,7 +1076,7 @@ impl<'test> TestCx<'test> {
             self.fatal_proc_rec("Error while running CDB", &debugger_run_result);
         }
 
-        if let Err(e) = check_debugger_output(&debugger_run_result, &check_lines) {
+        if let Err(e) = dbg_cmds.check_output(&debugger_run_result) {
             self.fatal_proc_rec(&e, &debugger_run_result);
         }
     }
@@ -1088,17 +1106,14 @@ impl<'test> TestCx<'test> {
             PREFIXES
         };
 
-        let DebuggerCommands { commands, check_lines, breakpoint_lines } =
-            match DebuggerCommands::parse_from(
-                &self.testpaths.file,
-                self.config,
-                prefixes,
-                self.revision,
-            ) {
-                Ok(cmds) => cmds,
-                Err(e) => self.fatal(&e),
-            };
-        let mut cmds = commands.join("\n");
+        let dbg_cmds = DebuggerCommands::parse_from(
+            &self.testpaths.file,
+            self.config,
+            prefixes,
+            self.revision,
+        )
+        .unwrap_or_else(|e| self.fatal(&e));
+        let mut cmds = dbg_cmds.commands.join("\n");
 
         // compile test file (it should have 'compile-flags:-g' in the header)
         let should_run = self.run_if_enabled();
@@ -1132,13 +1147,14 @@ impl<'test> TestCx<'test> {
                  ./{}/stage2/lib/rustlib/{}/lib/\n",
                 self.config.host, self.config.target
             ));
-            for line in &breakpoint_lines {
+            for line in &dbg_cmds.breakpoint_lines {
                 script_str.push_str(
-                    &format!(
+                    format!(
                         "break {:?}:{}\n",
                         self.testpaths.file.file_name().unwrap().to_string_lossy(),
                         *line
-                    )[..],
+                    )
+                    .as_str(),
                 );
             }
             script_str.push_str(&cmds);
@@ -1279,7 +1295,7 @@ impl<'test> TestCx<'test> {
             }
 
             // Add line breakpoints
-            for line in &breakpoint_lines {
+            for line in &dbg_cmds.breakpoint_lines {
                 script_str.push_str(&format!(
                     "break '{}':{}\n",
                     self.testpaths.file.file_name().unwrap().to_string_lossy(),
@@ -1315,7 +1331,7 @@ impl<'test> TestCx<'test> {
             self.fatal_proc_rec("gdb failed to execute", &debugger_run_result);
         }
 
-        if let Err(e) = check_debugger_output(&debugger_run_result, &check_lines) {
+        if let Err(e) = dbg_cmds.check_output(&debugger_run_result) {
             self.fatal_proc_rec(&e, &debugger_run_result);
         }
     }
@@ -1372,16 +1388,13 @@ impl<'test> TestCx<'test> {
         };
 
         // Parse debugger commands etc from test files
-        let DebuggerCommands { commands, check_lines, breakpoint_lines, .. } =
-            match DebuggerCommands::parse_from(
-                &self.testpaths.file,
-                self.config,
-                prefixes,
-                self.revision,
-            ) {
-                Ok(cmds) => cmds,
-                Err(e) => self.fatal(&e),
-            };
+        let dbg_cmds = DebuggerCommands::parse_from(
+            &self.testpaths.file,
+            self.config,
+            prefixes,
+            self.revision,
+        )
+        .unwrap_or_else(|e| self.fatal(&e));
 
         // Write debugger script:
         // We don't want to hang when calling `quit` while the process is still running
@@ -1430,7 +1443,7 @@ impl<'test> TestCx<'test> {
 
         // Set breakpoints on every line that contains the string "#break"
         let source_file_name = self.testpaths.file.file_name().unwrap().to_string_lossy();
-        for line in &breakpoint_lines {
+        for line in &dbg_cmds.breakpoint_lines {
             script_str.push_str(&format!(
                 "breakpoint set --file '{}' --line {}\n",
                 source_file_name, line
@@ -1438,7 +1451,7 @@ impl<'test> TestCx<'test> {
         }
 
         // Append the other commands
-        for line in &commands {
+        for line in &dbg_cmds.commands {
             script_str.push_str(line);
             script_str.push_str("\n");
         }
@@ -1458,7 +1471,7 @@ impl<'test> TestCx<'test> {
             self.fatal_proc_rec("Error while running LLDB", &debugger_run_result);
         }
 
-        if let Err(e) = check_debugger_output(&debugger_run_result, &check_lines) {
+        if let Err(e) = dbg_cmds.check_output(&debugger_run_result) {
             self.fatal_proc_rec(&e, &debugger_run_result);
         }
     }
@@ -1649,7 +1662,7 @@ impl<'test> TestCx<'test> {
         if self.props.known_bug {
             if !expected_errors.is_empty() {
                 self.fatal_proc_rec(
-                    "`known_bug` tests should not have an expected errors",
+                    "`known_bug` tests should not have an expected error",
                     proc_res,
                 );
             }
@@ -1875,6 +1888,8 @@ impl<'test> TestCx<'test> {
             .arg("--deny")
             .arg("warnings")
             .arg(&self.testpaths.file)
+            .arg("-A")
+            .arg("internal_features")
             .args(&self.props.compile_flags);
 
         if self.config.mode == RustdocJson {
@@ -1941,7 +1956,8 @@ impl<'test> TestCx<'test> {
                 let mut test_client =
                     Command::new(self.config.remote_test_client.as_ref().unwrap());
                 test_client
-                    .args(&["run", &support_libs.len().to_string(), &prog])
+                    .args(&["run", &support_libs.len().to_string()])
+                    .arg(&prog)
                     .args(support_libs)
                     .args(args);
 
@@ -2338,6 +2354,14 @@ impl<'test> TestCx<'test> {
                 // Hide line numbers to reduce churn
                 rustc.arg("-Zui-testing");
                 rustc.arg("-Zdeduplicate-diagnostics=no");
+                // #[cfg(not(bootstrap)] unconditionally pass flag after beta bump
+                // since `ui-fulldeps --stage=1` builds using the stage 0 compiler,
+                // which doesn't have this flag.
+                if !(self.config.stage_id.starts_with("stage1-")
+                    && self.config.suite == "ui-fulldeps")
+                {
+                    rustc.arg("-Zwrite-long-types-to-disk=no");
+                }
                 // FIXME: use this for other modes too, for perf?
                 rustc.arg("-Cstrip=debuginfo");
             }
@@ -2459,6 +2483,14 @@ impl<'test> TestCx<'test> {
             rustc.args(&["-A", "unused"]);
         }
 
+        // #[cfg(not(bootstrap)] unconditionally pass flag after beta bump
+        // since `ui-fulldeps --stage=1` builds using the stage 0 compiler,
+        // which doesn't have this lint.
+        if !(self.config.stage_id.starts_with("stage1-") && self.config.suite == "ui-fulldeps") {
+            // Allow tests to use internal features.
+            rustc.args(&["-A", "internal_features"]);
+        }
+
         if self.props.force_host {
             self.maybe_add_external_args(&mut rustc, &self.config.host_rustcflags);
             if !is_rustdoc {
@@ -2516,7 +2548,7 @@ impl<'test> TestCx<'test> {
         // If this is emscripten, then run tests under nodejs
         if self.config.target.contains("emscripten") {
             if let Some(ref p) = self.config.nodejs {
-                args.push(p.clone());
+                args.push(p.into());
             } else {
                 self.fatal("emscripten target requested and no NodeJS binary found (--nodejs)");
             }
@@ -2524,7 +2556,7 @@ impl<'test> TestCx<'test> {
         // shim
         } else if self.config.target.contains("wasm32") {
             if let Some(ref p) = self.config.nodejs {
-                args.push(p.clone());
+                args.push(p.into());
             } else {
                 self.fatal("wasm32 target requested and no NodeJS binary found (--nodejs)");
             }
@@ -2536,13 +2568,12 @@ impl<'test> TestCx<'test> {
                 .unwrap() // chop off `ui`
                 .parent()
                 .unwrap(); // chop off `tests`
-            args.push(src.join("src/etc/wasm32-shim.js").display().to_string());
+            args.push(src.join("src/etc/wasm32-shim.js").into_os_string());
         }
 
         let exe_file = self.make_exe_name();
 
-        // FIXME (#9639): This needs to handle non-utf8 paths
-        args.push(exe_file.to_str().unwrap().to_owned());
+        args.push(exe_file.into_os_string());
 
         // Add the arguments in the run_flags directive
         args.extend(self.split_maybe_args(&self.props.run_flags));
@@ -2551,12 +2582,16 @@ impl<'test> TestCx<'test> {
         ProcArgs { prog, args }
     }
 
-    fn split_maybe_args(&self, argstr: &Option<String>) -> Vec<String> {
+    fn split_maybe_args(&self, argstr: &Option<String>) -> Vec<OsString> {
         match *argstr {
             Some(ref s) => s
                 .split(' ')
                 .filter_map(|s| {
-                    if s.chars().all(|c| c.is_whitespace()) { None } else { Some(s.to_owned()) }
+                    if s.chars().all(|c| c.is_whitespace()) {
+                        None
+                    } else {
+                        Some(OsString::from(s))
+                    }
                 })
                 .collect(),
             None => Vec::new(),
@@ -2758,6 +2793,10 @@ impl<'test> TestCx<'test> {
         let proc_res = self.compile_test_and_save_ir();
         if !proc_res.status.success() {
             self.fatal_proc_rec("compilation failed!", &proc_res);
+        }
+
+        if let Some(PassMode::Build) = self.pass_mode() {
+            return;
         }
 
         let output_path = self.output_base_name().with_extension("ll");
@@ -4153,8 +4192,8 @@ impl<'test> TestCx<'test> {
                   # Match paths that don't include spaces.
                   (?:\\[\pL\pN\.\-_']+)+\.\pL+
                 |
-                  # If the path starts with a well-known root, then allow spaces.
-                  \$(?:DIR|SRC_DIR|TEST_BUILD_DIR|BUILD_DIR|LIB_DIR)(?:\\[\pL\pN\.\-_' ]+)+
+                  # If the path starts with a well-known root, then allow spaces and no file extension.
+                  \$(?:DIR|SRC_DIR|TEST_BUILD_DIR|BUILD_DIR|LIB_DIR)(?:\\[\pL\pN\.\-_'\ ]+)+
                 )"#,
             )
             .unwrap()
@@ -4359,8 +4398,8 @@ impl<'test> TestCx<'test> {
 }
 
 struct ProcArgs {
-    prog: String,
-    args: Vec<String>,
+    prog: OsString,
+    args: Vec<OsString>,
 }
 
 pub struct ProcRes {

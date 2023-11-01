@@ -14,6 +14,7 @@
 #![no_builtins]
 #![no_std]
 #![allow(unused_features)]
+#![allow(internal_features)]
 // We use `u128` in a whole bunch of places which we currently agree with the
 // compiler on ABIs and such, so we should be "good enough" for now and changes
 // to the `u128` ABI will be reflected here.
@@ -50,13 +51,17 @@ pub mod int;
     all(target_arch = "xtensa", target_os = "none"),
     all(target_arch = "mips", target_os = "none"),
     target_os = "xous",
-    all(target_vendor = "fortanix", target_env = "sgx")
+    all(target_vendor = "fortanix", target_env = "sgx"),
+    target_os = "windows"
 ))]
 pub mod math;
 pub mod mem;
 
 #[cfg(target_arch = "arm")]
 pub mod arm;
+
+#[cfg(target_arch = "aarch64")]
+pub mod aarch64;
 
 #[cfg(all(target_arch = "aarch64", target_os = "linux", not(feature = "no-asm"),))]
 pub mod aarch64_linux;

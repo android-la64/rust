@@ -100,14 +100,10 @@
 #![cfg_attr(rustc_attrs, feature(rustc_attrs))]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![cfg_attr(all(wasi_ext, target_os = "wasi", feature = "std"), feature(wasi_ext))]
-#![cfg_attr(
-    all(linux_raw, naked_functions, target_arch = "x86"),
-    feature(naked_functions)
-)]
 #![cfg_attr(core_ffi_c, feature(core_ffi_c))]
 #![cfg_attr(core_c_str, feature(core_c_str))]
-#![cfg_attr(alloc_c_string, feature(alloc_ffi))]
 #![cfg_attr(alloc_c_string, feature(alloc_c_string))]
+#![cfg_attr(alloc_ffi, feature(alloc_ffi))]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(feature = "rustc-dep-of-std", feature(ip))]
 #![cfg_attr(
@@ -126,6 +122,16 @@
 
 #[cfg(not(feature = "rustc-dep-of-std"))]
 extern crate alloc;
+
+// Use `static_assertions` macros if we have them, or a polyfill otherwise.
+#[cfg(all(test, static_assertions))]
+#[macro_use]
+#[allow(unused_imports)]
+extern crate static_assertions;
+#[cfg(all(test, not(static_assertions)))]
+#[macro_use]
+#[allow(unused_imports)]
+mod static_assertions;
 
 // Internal utilities.
 #[cfg(not(windows))]
@@ -149,7 +155,7 @@ pub(crate) mod bitcast;
 // versions of libc and not others.
 #[cfg(any(
     all(linux_raw, feature = "use-libc-auxv"),
-    all(libc, not(any(windows, target_os = "wasi")))
+    all(libc, not(any(windows, target_os = "espidf", target_os = "wasi")))
 ))]
 #[macro_use]
 mod weak;
@@ -204,21 +210,26 @@ pub mod io;
 #[cfg(feature = "io_uring")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "io_uring")))]
 pub mod io_uring;
-#[cfg(not(any(windows, target_os = "wasi")))]
+#[cfg(not(any(windows, target_os = "espidf", target_os = "wasi")))]
 #[cfg(feature = "mm")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "mm")))]
 pub mod mm;
+#[cfg(linux_kernel)]
+#[cfg(feature = "mount")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "mount")))]
+pub mod mount;
 #[cfg(not(any(target_os = "redox", target_os = "wasi")))]
 #[cfg(feature = "net")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "net")))]
 pub mod net;
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "espidf")))]
 #[cfg(feature = "param")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "param")))]
 pub mod param;
 #[cfg(not(windows))]
 #[cfg(any(
     feature = "fs",
+    feature = "mount",
     feature = "net",
     all(
         linux_raw,
@@ -232,7 +243,10 @@ pub mod param;
         )
     )
 ))]
-#[cfg_attr(doc_cfg, doc(cfg(any(feature = "fs", feature = "net"))))]
+#[cfg_attr(
+    doc_cfg,
+    doc(cfg(any(feature = "fs", feature = "mount", feature = "net")))
+)]
 pub mod path;
 #[cfg(feature = "pipe")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "pipe")))]
@@ -271,7 +285,7 @@ pub mod termios;
 #[cfg(feature = "thread")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "thread")))]
 pub mod thread;
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "espidf")))]
 #[cfg(feature = "time")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "time")))]
 pub mod time;
@@ -284,8 +298,14 @@ pub mod time;
 #[cfg_attr(doc_cfg, doc(cfg(feature = "runtime")))]
 pub mod runtime;
 
+// Temporarily provide some mount functions for use in the fs module for
+// backwards compatibility.
+#[cfg(linux_kernel)]
+#[cfg(all(feature = "fs", not(feature = "mount")))]
+pub(crate) mod mount;
+
 // Private modules used by multiple public modules.
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "espidf")))]
 #[cfg(any(feature = "thread", feature = "time", target_arch = "x86"))]
 mod clockid;
 #[cfg(not(any(windows, target_os = "wasi")))]
@@ -301,7 +321,7 @@ mod pid;
 #[cfg(any(feature = "process", feature = "thread"))]
 #[cfg(linux_kernel)]
 mod prctl;
-#[cfg(not(any(windows, target_os = "wasi")))]
+#[cfg(not(any(windows, target_os = "espidf", target_os = "wasi")))]
 #[cfg(any(feature = "process", feature = "runtime", all(bsd, feature = "event")))]
 mod signal;
 #[cfg(not(windows))]

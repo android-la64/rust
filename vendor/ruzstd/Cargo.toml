@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "ruzstd"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Moritz Borcherding <moritz.borcherding@web.de>"]
 exclude = [
     "decodecorpus_files/*",
@@ -25,15 +25,26 @@ readme = "Readme.md"
 license = "MIT"
 repository = "https://github.com/KillingSpark/zstd-rs"
 
+[[bin]]
+name = "zstd"
+required-features = ["std"]
+
+[[bin]]
+name = "zstd_stream"
+required-features = ["std"]
+
 [[bench]]
 name = "reversedbitreader_bench"
 harness = false
 
 [dependencies.byteorder]
 version = "1.4"
+default-features = false
 
 [dependencies.thiserror]
-version = "1"
+version = "1.0.38"
+default-features = false
+package = "thiserror-core"
 
 [dependencies.twox-hash]
 version = "1.6"
@@ -44,3 +55,7 @@ version = "0.3"
 
 [dev-dependencies.rand]
 version = "0.8.5"
+
+[features]
+default = ["std"]
+std = ["thiserror/std"]

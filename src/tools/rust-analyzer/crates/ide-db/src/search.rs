@@ -127,7 +127,7 @@ impl SearchScope {
     }
 
     /// Build a search scope spanning the given module and all its submodules.
-    fn module_and_children(db: &RootDatabase, module: hir::Module) -> SearchScope {
+    pub fn module_and_children(db: &RootDatabase, module: hir::Module) -> SearchScope {
         let mut entries = IntMap::default();
 
         let (file_id, range) = {
@@ -149,10 +149,8 @@ impl SearchScope {
 
         let mut to_visit: Vec<_> = module.children(db).collect();
         while let Some(module) = to_visit.pop() {
-            if let InFile { file_id, value: ModuleSource::SourceFile(_) } =
-                module.definition_source(db)
-            {
-                entries.insert(file_id.original_file(db), None);
+            if let Some(file_id) = module.as_source_file_id(db) {
+                entries.insert(file_id, None);
             }
             to_visit.extend(module.children(db));
         }
@@ -331,7 +329,7 @@ impl Definition {
 pub struct FindUsages<'a> {
     def: Definition,
     sema: &'a Semantics<'a, RootDatabase>,
-    scope: Option<SearchScope>,
+    scope: Option<&'a SearchScope>,
     /// The container of our definition should it be an assoc item
     assoc_item_container: Option<hir::AssocItemContainer>,
     /// whether to search for the `Self` type of the definition
@@ -342,19 +340,19 @@ pub struct FindUsages<'a> {
 
 impl<'a> FindUsages<'a> {
     /// Enable searching for `Self` when the definition is a type or `self` for modules.
-    pub fn include_self_refs(mut self) -> FindUsages<'a> {
+    pub fn include_self_refs(mut self) -> Self {
         self.include_self_kw_refs = def_to_ty(self.sema, &self.def);
         self.search_self_mod = true;
         self
     }
 
     /// Limit the search to a given [`SearchScope`].
-    pub fn in_scope(self, scope: SearchScope) -> FindUsages<'a> {
+    pub fn in_scope(self, scope: &'a SearchScope) -> Self {
         self.set_scope(Some(scope))
     }
 
     /// Limit the search to a given [`SearchScope`].
-    pub fn set_scope(mut self, scope: Option<SearchScope>) -> FindUsages<'a> {
+    pub fn set_scope(mut self, scope: Option<&'a SearchScope>) -> Self {
         assert!(self.scope.is_none());
         self.scope = scope;
         self
@@ -378,7 +376,7 @@ impl<'a> FindUsages<'a> {
         res
     }
 
-    fn search(&self, sink: &mut dyn FnMut(FileId, FileReference) -> bool) {
+    pub fn search(&self, sink: &mut dyn FnMut(FileId, FileReference) -> bool) {
         let _p = profile::span("FindUsages:search");
         let sema = self.sema;
 

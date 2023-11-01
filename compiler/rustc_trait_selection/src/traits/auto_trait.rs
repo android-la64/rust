@@ -97,7 +97,6 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                 orig_env,
                 ty::TraitPredicate {
                     trait_ref,
-                    constness: ty::BoundConstness::NotConst,
                     polarity: if polarity {
                         ImplPolarity::Positive
                     } else {
@@ -152,21 +151,16 @@ impl<'tcx> AutoTraitFinder<'tcx> {
         // traits::project will see that 'T: SomeTrait' is in our ParamEnv, allowing
         // SelectionContext to return it back to us.
 
-        let Some((new_env, user_env)) = self.evaluate_predicates(
-            &infcx,
-            trait_did,
-            ty,
-            orig_env,
-            orig_env,
-            &mut fresh_preds,
-        ) else {
+        let Some((new_env, user_env)) =
+            self.evaluate_predicates(&infcx, trait_did, ty, orig_env, orig_env, &mut fresh_preds)
+        else {
             return AutoTraitResult::NegativeImpl;
         };
 
         let (full_env, full_user_env) = self
             .evaluate_predicates(&infcx, trait_did, ty, new_env, user_env, &mut fresh_preds)
             .unwrap_or_else(|| {
-                panic!("Failed to fully process: {:?} {:?} {:?}", ty, trait_did, orig_env)
+                panic!("Failed to fully process: {ty:?} {trait_did:?} {orig_env:?}")
             });
 
         debug!(
@@ -183,7 +177,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
         ocx.register_bound(ObligationCause::dummy(), full_env, ty, trait_did);
         let errors = ocx.select_all_or_error();
         if !errors.is_empty() {
-            panic!("Unable to fulfill trait {:?} for '{:?}': {:?}", trait_did, ty, errors);
+            panic!("Unable to fulfill trait {trait_did:?} for '{ty:?}': {errors:?}");
         }
 
         let outlives_env = OutlivesEnvironment::new(full_env);
@@ -265,7 +259,6 @@ impl<'tcx> AutoTraitFinder<'tcx> {
         predicates.push_back(ty::Binder::dummy(ty::TraitPredicate {
             trait_ref: ty::TraitRef::new(infcx.tcx, trait_did, [ty]),
 
-            constness: ty::BoundConstness::NotConst,
             // Auto traits are positive
             polarity: ty::ImplPolarity::Positive,
         }));
@@ -329,7 +322,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                 }
                 Ok(None) => {}
                 Err(SelectionError::Unimplemented) => {
-                    if self.is_param_no_infer(pred.skip_binder().trait_ref.substs) {
+                    if self.is_param_no_infer(pred.skip_binder().trait_ref.args) {
                         already_visited.remove(&pred);
                         self.add_user_pred(&mut user_computed_preds, pred.to_predicate(self.tcx));
                         predicates.push_back(pred);
@@ -339,12 +332,12 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                              {:?} {:?} {:?}",
                             ty,
                             pred,
-                            pred.skip_binder().trait_ref.substs
+                            pred.skip_binder().trait_ref.args
                         );
                         return None;
                     }
                 }
-                _ => panic!("Unexpected error for '{:?}': {:?}", ty, result),
+                _ => panic!("Unexpected error for '{ty:?}': {result:?}"),
             };
 
             let normalized_preds =
@@ -352,14 +345,12 @@ impl<'tcx> AutoTraitFinder<'tcx> {
             new_env = ty::ParamEnv::new(
                 tcx.mk_clauses_from_iter(normalized_preds.filter_map(|p| p.as_clause())),
                 param_env.reveal(),
-                param_env.constness(),
             );
         }
 
         let final_user_env = ty::ParamEnv::new(
             tcx.mk_clauses_from_iter(user_computed_preds.into_iter().filter_map(|p| p.as_clause())),
             user_env.reveal(),
-            user_env.constness(),
         );
         debug!(
             "evaluate_nested_obligations(ty={:?}, trait_did={:?}): succeeded with '{:?}' \
@@ -406,17 +397,17 @@ impl<'tcx> AutoTraitFinder<'tcx> {
             ) = (new_pred.kind().skip_binder(), old_pred.kind().skip_binder())
             {
                 if new_trait.def_id() == old_trait.def_id() {
-                    let new_substs = new_trait.trait_ref.substs;
-                    let old_substs = old_trait.trait_ref.substs;
+                    let new_args = new_trait.trait_ref.args;
+                    let old_args = old_trait.trait_ref.args;
 
-                    if !new_substs.types().eq(old_substs.types()) {
+                    if !new_args.types().eq(old_args.types()) {
                         // We can't compare lifetimes if the types are different,
                         // so skip checking `old_pred`.
                         return true;
                     }
 
                     for (new_region, old_region) in
-                        iter::zip(new_substs.regions(), old_substs.regions())
+                        iter::zip(new_args.regions(), old_args.regions())
                     {
                         match (*new_region, *old_region) {
                             // If both predicates have an `ReLateBound` (a HRTB) in the
@@ -569,8 +560,8 @@ impl<'tcx> AutoTraitFinder<'tcx> {
         finished_map
     }
 
-    fn is_param_no_infer(&self, substs: SubstsRef<'_>) -> bool {
-        self.is_of_param(substs.type_at(0)) && !substs.types().any(|t| t.has_infer_types())
+    fn is_param_no_infer(&self, args: GenericArgsRef<'_>) -> bool {
+        self.is_of_param(args.type_at(0)) && !args.types().any(|t| t.has_infer_types())
     }
 
     pub fn is_of_param(&self, ty: Ty<'_>) -> bool {
@@ -641,7 +632,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                     // an inference variable.
                     // Additionally, we check if we've seen this predicate before,
                     // to avoid rendering duplicate bounds to the user.
-                    if self.is_param_no_infer(p.skip_binder().projection_ty.substs)
+                    if self.is_param_no_infer(p.skip_binder().projection_ty.args)
                         && !p.term().skip_binder().has_infer_types()
                         && is_new_pred
                     {
@@ -754,7 +745,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                             // subobligations or getting an error) when we started off with
                             // inference variables
                             if p.term().skip_binder().has_infer_types() {
-                                panic!("Unexpected result when selecting {:?} {:?}", ty, obligation)
+                                panic!("Unexpected result when selecting {ty:?} {obligation:?}")
                             }
                         }
                     }

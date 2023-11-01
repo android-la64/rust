@@ -1,4 +1,5 @@
-#![doc(html_root_url = "https://docs.rs/opener/0.5.2")]
+#![doc(html_root_url = "https://docs.rs/opener/0.6.1")]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 //! This crate provides the [`open`] function, which opens a file or link with the default program
 //! configured on the system:
@@ -26,6 +27,8 @@
     unused_qualifications
 )]
 
+#[cfg(all(feature = "reveal", target_os = "linux"))]
+mod freedesktop;
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 mod linux_and_more;
 #[cfg(target_os = "macos")]
@@ -99,7 +102,10 @@ where
             .stdout(Stdio::null())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(OpenError::Io)?;
+            .map_err(|err| OpenError::Spawn {
+                cmds: browser_var,
+                source: err,
+            })?;
 
         Ok(())
     } else {
@@ -107,14 +113,44 @@ where
     }
 }
 
+/// Opens the default file explorer and reveals a file or folder in its containing folder.
+///
+/// ## Errors
+/// This function may or may not return an error if the path does not exist.
+///
+/// ## Platform Implementation Details
+/// - On Windows and Windows Subsystem for Linux (WSL) the `explorer.exe /select, <path>` command is used.
+/// - On Mac the system `open -R` command is used.
+/// - On non-WSL Linux the [`file-manager-interface`] or the [`org.freedesktop.portal.OpenURI`] DBus Interface is used if available,
+///   falling back to opening the containing folder with [`open`].
+/// - On other platforms, the containing folder is shown with [`open`].
+///
+/// [`org.freedesktop.portal.OpenURI`]: https://flatpak.github.io/xdg-desktop-portal/#gdbus-org.freedesktop.portal.OpenURI
+/// [`file-manager-interface`]: https://freedesktop.org/wiki/Specifications/file-manager-interface/
+#[cfg(feature = "reveal")]
+pub fn reveal<P>(path: P) -> Result<(), OpenError>
+where
+    P: AsRef<std::path::Path>,
+{
+    sys::reveal(path.as_ref())
+}
+
 /// An error type representing the failure to open a path. Possibly returned by the [`open`]
 /// function.
-///
-/// The `ExitStatus` variant will never be returned on Windows.
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum OpenError {
     /// An IO error occurred.
     Io(io::Error),
+
+    /// There was an error spawning command(s).
+    Spawn {
+        /// The command(s) that failed to spawn.
+        cmds: String,
+
+        /// The underlying error.
+        source: io::Error,
+    },
 
     /// A command exited with a non-zero exit status.
     ExitStatus {
@@ -134,6 +170,9 @@ impl Display for OpenError {
         match self {
             OpenError::Io(_) => {
                 write!(f, "IO error")?;
+            }
+            OpenError::Spawn { cmds, source: _ } => {
+                write!(f, "error spawning command(s) '{cmds}'")?;
             }
             OpenError::ExitStatus {
                 cmd,
@@ -157,6 +196,7 @@ impl Error for OpenError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             OpenError::Io(inner) => Some(inner),
+            OpenError::Spawn { cmds: _, source } => Some(source),
             OpenError::ExitStatus { .. } => None,
         }
     }

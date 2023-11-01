@@ -1,6 +1,7 @@
 #[test]
 fn test_dict_parsing() {
     use crate::decoding::dictionary::Dictionary;
+    use alloc::vec;
     let mut raw = vec![0u8; 8];
 
     // correct magic num
@@ -75,9 +76,14 @@ fn test_dict_parsing() {
 
 #[test]
 fn test_dict_decoding() {
+    extern crate std;
     use crate::frame_decoder;
+    use alloc::borrow::ToOwned;
+    use alloc::string::{String, ToString};
+    use alloc::vec::Vec;
     use std::fs;
     use std::io::Read;
+    use std::println;
 
     let mut success_counter = 0;
     let mut fail_counter_diff = 0;
@@ -99,7 +105,8 @@ fn test_dict_decoding() {
     });
 
     let mut frame_dec = frame_decoder::FrameDecoder::new();
-    frame_dec.add_dict(&dict).unwrap();
+    let dict = crate::decoding::dictionary::Dictionary::decode_dict(&dict).unwrap();
+    frame_dec.add_dict(dict).unwrap();
 
     for file in files {
         let f = file.unwrap();

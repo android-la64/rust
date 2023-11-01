@@ -3,7 +3,7 @@
 
 // run-pass
 
-#![feature(const_trait_impl)]
+#![feature(const_trait_impl, effects)]
 #![feature(min_specialization)]
 
 #[const_trait]

@@ -195,10 +195,10 @@ use std::task::{ready, Poll};
 use anyhow::Context as _;
 use cargo_util::paths::{self, exclude_from_backups_and_indexing};
 use flate2::read::GzDecoder;
-use log::debug;
 use serde::Deserialize;
 use serde::Serialize;
 use tar::Archive;
+use tracing::debug;
 
 use crate::core::dependency::Dependency;
 use crate::core::source::MaybePackage;
@@ -589,9 +589,9 @@ impl<'cfg> RegistrySource<'cfg> {
                 }
                 _ => {
                     if ok == "ok" {
-                        log::debug!("old `ok` content found, clearing cache");
+                        tracing::debug!("old `ok` content found, clearing cache");
                     } else {
-                        log::warn!("unrecognized .cargo-ok content, clearing cache: {ok}");
+                        tracing::warn!("unrecognized .cargo-ok content, clearing cache: {ok}");
                     }
                     // See comment of `unpack_package` about why removing all stuff.
                     paths::remove_dir_all(dst.as_path_unlocked())?;
@@ -694,6 +694,7 @@ impl<'cfg> RegistrySource<'cfg> {
             .summaries(&package.name(), &req, &mut *self.ops)?
             .expect("a downloaded dep now pending!?")
             .map(|s| s.summary.clone())
+            .filter(|s| s.version() == package.version())
             .next()
             .expect("summary not found");
         if let Some(cksum) = summary_with_cksum.checksum() {
@@ -887,7 +888,7 @@ impl<'cfg> Source for RegistrySource<'cfg> {
 
 impl RegistryConfig {
     /// File name of [`RegistryConfig`].
-    const NAME: &str = "config.json";
+    const NAME: &'static str = "config.json";
 }
 
 /// Get the maximum upack size that Cargo permits

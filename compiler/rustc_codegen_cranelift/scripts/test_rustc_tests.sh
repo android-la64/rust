@@ -32,6 +32,8 @@ rm tests/ui/parser/unclosed-delimiter-in-dep.rs # submodule contains //~ERROR
 # missing features
 # ================
 
+rm -r tests/run-make/comment-section # cg_clif doesn't yet write the .comment section
+
 # requires stack unwinding
 # FIXME add needs-unwind to this test
 rm -r tests/run-make/libtest-junit
@@ -47,6 +49,8 @@ rm tests/ui/proc-macro/allowed-signatures.rs
 # vendor intrinsics
 rm tests/ui/sse2.rs # cpuid not supported, so sse2 not detected
 rm tests/ui/simd/array-type.rs # "Index argument for `simd_insert` is not a constant"
+rm tests/ui/simd/intrinsic/generic-bswap-byte.rs # simd_bswap not yet implemented
+rm tests/ui/simd/intrinsic/generic-arithmetic-pass.rs # many missing simd intrinsics
 
 # exotic linkages
 rm tests/ui/issues/issue-33992.rs # unsupported linkages
@@ -98,8 +102,11 @@ rm -r tests/run-make/sepcomp-inlining # same
 rm -r tests/run-make/sepcomp-separate # same
 rm -r tests/run-make/sepcomp-cci-copies # same
 rm -r tests/run-make/volatile-intrinsics # same
+rm -r tests/run-make/llvm-ident # same
+rm -r tests/run-make/no-builtins-attribute # same
 rm tests/ui/abi/stack-protector.rs # requires stack protector support
 rm -r tests/run-make/emit-stack-sizes # requires support for -Z emit-stack-sizes
+rm -r tests/run-make/optimization-remarks-dir # remarks are LLVM specific
 
 # giving different but possibly correct results
 # =============================================
@@ -118,6 +125,9 @@ rm tests/ui/suggestions/derive-trait-for-method-call.rs # same
 rm tests/ui/typeck/issue-46112.rs # same
 rm tests/ui/consts/const_cmp_type_id.rs # same
 rm tests/ui/consts/issue-73976-monomorphic.rs # same
+rm tests/ui/rfcs/rfc-3348-c-string-literals/non-ascii.rs # same
+rm tests/ui/consts/const-eval/nonnull_as_ref_ub.rs # same
+rm tests/ui/consts/issue-94675.rs # same
 
 # rustdoc-clif passes extra args, suppressing the help message when no args are passed
 rm -r tests/run-make/issue-88756-default-output
@@ -143,6 +153,8 @@ rm -r tests/run-make/used # same
 rm -r tests/run-make/no-alloc-shim
 rm -r tests/run-make/emit-to-stdout
 
+rm -r tests/run-make/extern-fn-explicit-align # argument alignment not yet supported
+
 # bugs in the test suite
 # ======================
 rm tests/ui/backtrace.rs # TODO warning
@@ -162,7 +174,7 @@ index ea06b620c4c..b969d0009c6 100644
 @@ -9,7 +9,7 @@ RUSTC_ORIGINAL := \$(RUSTC)
  BARE_RUSTC := \$(HOST_RPATH_ENV) '\$(RUSTC)'
  BARE_RUSTDOC := \$(HOST_RPATH_ENV) '\$(RUSTDOC)'
- RUSTC := \$(BARE_RUSTC) --out-dir \$(TMPDIR) -L \$(TMPDIR) \$(RUSTFLAGS)
+ RUSTC := \$(BARE_RUSTC) --out-dir \$(TMPDIR) -L \$(TMPDIR) \$(RUSTFLAGS) -Ainternal_features
 -RUSTDOC := \$(BARE_RUSTDOC) -L \$(TARGET_RPATH_DIR)
 +RUSTDOC := \$(BARE_RUSTDOC)
  ifdef RUSTC_LINKER

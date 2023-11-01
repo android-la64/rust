@@ -10,6 +10,7 @@ use rustc_hir::def_id::{DefId, DefIdMap, DefIdSet, LocalDefId};
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_hir::{HirId, Path};
 use rustc_interface::interface;
+use rustc_lint::{late_lint_mod, MissingDoc};
 use rustc_middle::hir::nested_filter;
 use rustc_middle::ty::{ParamEnv, Ty, TyCtxt};
 use rustc_session::config::{self, CrateType, ErrorOutputType, ResolveDocLinks};
@@ -45,7 +46,7 @@ pub(crate) struct DocContext<'tcx> {
     // The current set of parameter substitutions,
     // for expanding type aliases at the HIR level:
     /// Table `DefId` of type, lifetime, or const parameter -> substituted type, lifetime, or const
-    pub(crate) substs: DefIdMap<clean::SubstParam>,
+    pub(crate) args: DefIdMap<clean::SubstParam>,
     pub(crate) current_type_aliases: DefIdMap<usize>,
     /// Table synthetic type parameter for `impl Trait` in argument position -> bounds
     pub(crate) impl_trait_bounds: FxHashMap<ImplTraitParam, Vec<clean::GenericBound>>,
@@ -85,17 +86,17 @@ impl<'tcx> DocContext<'tcx> {
     /// the substitutions for a type alias' RHS.
     pub(crate) fn enter_alias<F, R>(
         &mut self,
-        substs: DefIdMap<clean::SubstParam>,
+        args: DefIdMap<clean::SubstParam>,
         def_id: DefId,
         f: F,
     ) -> R
     where
         F: FnOnce(&mut Self) -> R,
     {
-        let old_substs = mem::replace(&mut self.substs, substs);
+        let old_args = mem::replace(&mut self.args, args);
         *self.current_type_aliases.entry(def_id).or_insert(0) += 1;
         let r = f(self);
-        self.substs = old_substs;
+        self.args = old_args;
         if let Some(count) = self.current_type_aliases.get_mut(&def_id) {
             *count -= 1;
             if *count == 0 {
@@ -136,19 +137,13 @@ pub(crate) fn new_handler(
         ErrorOutputType::HumanReadable(kind) => {
             let (short, color_config) = kind.unzip();
             Box::new(
-                EmitterWriter::stderr(
-                    color_config,
-                    source_map.map(|sm| sm as _),
-                    None,
-                    fallback_bundle,
-                    short,
-                    unstable_opts.teach,
-                    diagnostic_width,
-                    false,
-                    unstable_opts.track_diagnostics,
-                    TerminalUrl::No,
-                )
-                .ui_testing(unstable_opts.ui_testing),
+                EmitterWriter::stderr(color_config, fallback_bundle)
+                    .sm(source_map.map(|sm| sm as _))
+                    .short_message(short)
+                    .teach(unstable_opts.teach)
+                    .diagnostic_width(diagnostic_width)
+                    .track_diagnostics(unstable_opts.track_diagnostics)
+                    .ui_testing(unstable_opts.ui_testing),
             )
         }
         ErrorOutputType::Json { pretty, json_rendered } => {
@@ -173,10 +168,8 @@ pub(crate) fn new_handler(
         }
     };
 
-    rustc_errors::Handler::with_emitter_and_flags(
-        emitter,
-        unstable_opts.diagnostic_handler_flags(true),
-    )
+    rustc_errors::Handler::with_emitter(emitter)
+        .with_flags(unstable_opts.diagnostic_handler_flags(true))
 }
 
 /// Parse, resolve, and typecheck the given crate.
@@ -270,8 +263,9 @@ pub(crate) fn create_config(
         parse_sess_created: None,
         register_lints: Some(Box::new(crate::lint::register_lints)),
         override_queries: Some(|_sess, providers, _external_providers| {
+            // We do not register late module lints, so this only runs `MissingDoc`.
             // Most lints will require typechecking, so just don't run them.
-            providers.lint_mod = |_, _| {};
+            providers.lint_mod = |tcx, module_def_id| late_lint_mod(tcx, module_def_id, MissingDoc);
             // hack so that `used_trait_imports` won't try to call typeck
             providers.used_trait_imports = |_, _| {
                 static EMPTY_SET: LazyLock<UnordSet<LocalDefId>> = LazyLock::new(UnordSet::default);
@@ -289,13 +283,14 @@ pub(crate) fn create_config(
 
                 let hir = tcx.hir();
                 let body = hir.body(hir.body_owned_by(def_id));
-                debug!("visiting body for {:?}", def_id);
+                debug!("visiting body for {def_id:?}");
                 EmitIgnoredResolutionErrors::new(tcx).visit_body(body);
                 (rustc_interface::DEFAULT_QUERY_PROVIDERS.typeck)(tcx, def_id)
             };
         }),
         make_codegen_backend: None,
         registry: rustc_driver::diagnostics_registry(),
+        ice_file: None,
     }
 }
 
@@ -324,9 +319,7 @@ pub(crate) fn run_global_ctxt(
         tcx.hir().for_each_module(|module| tcx.ensure().check_mod_item_types(module))
     });
     tcx.sess.abort_if_errors();
-    tcx.sess.time("missing_docs", || {
-        rustc_lint::check_crate(tcx, rustc_lint::builtin::MissingDoc::new);
-    });
+    tcx.sess.time("missing_docs", || rustc_lint::check_crate(tcx));
     tcx.sess.time("check_mod_attrs", || {
         tcx.hir().for_each_module(|module| tcx.ensure().check_mod_attrs(module))
     });
@@ -340,12 +333,12 @@ pub(crate) fn run_global_ctxt(
         param_env: ParamEnv::empty(),
         external_traits: Default::default(),
         active_extern_traits: Default::default(),
-        substs: Default::default(),
+        args: Default::default(),
         current_type_aliases: Default::default(),
         impl_trait_bounds: Default::default(),
         generated_synthetics: Default::default(),
         auto_traits,
-        cache: Cache::new(render_options.document_private),
+        cache: Cache::new(render_options.document_private, render_options.document_hidden),
         inlined: FxHashSet::default(),
         output_format,
         render_options,
@@ -384,7 +377,7 @@ pub(crate) fn run_global_ctxt(
 
     fn report_deprecated_attr(name: &str, diag: &rustc_errors::Handler, sp: Span) {
         let mut msg =
-            diag.struct_span_warn(sp, format!("the `#![doc({})]` attribute is deprecated", name));
+            diag.struct_span_warn(sp, format!("the `#![doc({name})]` attribute is deprecated"));
         msg.note(
             "see issue #44136 <https://github.com/rust-lang/rust/issues/44136> \
             for more information",
@@ -477,7 +470,7 @@ impl<'tcx> Visitor<'tcx> for EmitIgnoredResolutionErrors<'tcx> {
     }
 
     fn visit_path(&mut self, path: &Path<'tcx>, _id: HirId) {
-        debug!("visiting path {:?}", path);
+        debug!("visiting path {path:?}");
         if path.res == Res::Err {
             // We have less context here than in rustc_resolve,
             // so we can only emit the name and span.
@@ -494,8 +487,7 @@ impl<'tcx> Visitor<'tcx> for EmitIgnoredResolutionErrors<'tcx> {
                 self.tcx.sess,
                 path.span,
                 E0433,
-                "failed to resolve: {}",
-                label
+                "failed to resolve: {label}",
             );
             err.span_label(path.span, label);
             err.note("this error was originally ignored because you are running `rustdoc`");

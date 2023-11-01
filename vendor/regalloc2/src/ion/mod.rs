@@ -57,25 +57,27 @@ impl<'a, F: Function> Env<'a, F> {
             liveouts: Vec::with_capacity(func.num_blocks()),
             blockparam_outs: vec![],
             blockparam_ins: vec![],
-            bundles: Vec::with_capacity(n),
-            ranges: Vec::with_capacity(4 * n),
-            spillsets: Vec::with_capacity(n),
-            vregs: Vec::with_capacity(n),
+            bundles: LiveBundles::with_capacity(n),
+            ranges: LiveRanges::with_capacity(4 * n),
+            spillsets: SpillSets::with_capacity(n),
+            vregs: VRegs::with_capacity(n),
             pregs: vec![],
             allocation_queue: PrioQueue::new(),
             safepoints: vec![],
             safepoints_per_vreg: HashMap::new(),
             spilled_bundles: vec![],
             spillslots: vec![],
-            slots_by_size: vec![],
+            slots_by_class: [
+                SpillSlotList::new(),
+                SpillSlotList::new(),
+                SpillSlotList::new(),
+            ],
             allocated_bundle_count: 0,
 
             extra_spillslots_by_class: [smallvec![], smallvec![], smallvec![]],
             preferred_victim_by_class: [PReg::invalid(), PReg::invalid(), PReg::invalid()],
 
             multi_fixed_reg_fixups: vec![],
-            inserted_moves: vec![],
-            edits: Vec::with_capacity(n),
             allocs: Vec::with_capacity(4 * n),
             inst_alloc_offsets: vec![],
             num_spillslots: 0,
@@ -104,14 +106,14 @@ impl<'a, F: Function> Env<'a, F> {
         Ok(())
     }
 
-    pub(crate) fn run(&mut self) -> Result<(), RegAllocError> {
+    pub(crate) fn run(&mut self) -> Result<Edits, RegAllocError> {
         self.process_bundles()?;
         self.try_allocating_regs_for_spilled_bundles();
         self.allocate_spillslots();
-        self.apply_allocations_and_insert_moves();
-        self.resolve_inserted_moves();
+        let moves = self.apply_allocations_and_insert_moves();
+        let edits = self.resolve_inserted_moves(moves);
         self.compute_stackmaps();
-        Ok(())
+        Ok(edits)
     }
 }
 
@@ -130,18 +132,14 @@ pub fn run<F: Function>(
     let mut env = Env::new(func, mach_env, cfginfo, enable_annotations);
     env.init()?;
 
-    env.run()?;
+    let edits = env.run()?;
 
     if enable_annotations {
         env.dump_results();
     }
 
     Ok(Output {
-        edits: env
-            .edits
-            .into_iter()
-            .map(|(pos_prio, edit)| (pos_prio.pos, edit))
-            .collect(),
+        edits: edits.into_edits().collect(),
         allocs: env.allocs,
         inst_alloc_offsets: env.inst_alloc_offsets,
         num_spillslots: env.num_spillslots as usize,

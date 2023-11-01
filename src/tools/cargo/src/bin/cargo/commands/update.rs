@@ -6,14 +6,14 @@ use cargo::util::print_available_packages;
 pub fn cli() -> Command {
     subcommand("update")
         .about("Update dependencies as recorded in the local lock file")
-        .arg_quiet()
-        .arg(flag("workspace", "Only update the workspace packages").short('w'))
-        .arg_package_spec_simple("Package to update")
-        .arg(flag(
-            "aggressive",
-            "Force updating all dependencies of SPEC as well when used with -p",
-        ))
         .arg_dry_run("Don't actually write the lockfile")
+        .arg(
+            flag(
+                "aggressive",
+                "Force updating all dependencies of SPEC as well when used with -p",
+            )
+            .conflicts_with("precise"),
+        )
         .arg(
             opt(
                 "precise",
@@ -22,6 +22,13 @@ pub fn cli() -> Command {
             .value_name("PRECISE")
             .requires("package"),
         )
+        .arg_quiet()
+        .arg(
+            flag("workspace", "Only update the workspace packages")
+                .short('w')
+                .help_heading(heading::PACKAGE_SELECTION),
+        )
+        .arg_package_spec_simple("Package to update")
         .arg_manifest_path()
         .after_help("Run `cargo help update` for more detailed information.\n")
 }

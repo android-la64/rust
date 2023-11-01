@@ -141,6 +141,57 @@ fn test_environ() {
     }
 }
 
+// Test to ensure that a process with a lot of environment variables doesn't get truncated.
+// More information in <https://github.com/GuillaumeGomez/sysinfo/issues/886>.
+#[test]
+fn test_big_environ() {
+    if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
+        return;
+    }
+    const SIZE: usize = 30_000;
+    let mut big_env = String::with_capacity(SIZE);
+    for _ in 0..SIZE {
+        big_env.push('a');
+    }
+    let mut p = if cfg!(target_os = "windows") {
+        std::process::Command::new("waitfor")
+            .arg("/t")
+            .arg("3")
+            .arg("EnvironSignal")
+            .stdout(std::process::Stdio::null())
+            .env("FOO", &big_env)
+            .spawn()
+            .unwrap()
+    } else {
+        std::process::Command::new("sleep")
+            .arg("3")
+            .stdout(std::process::Stdio::null())
+            .env("FOO", &big_env)
+            .spawn()
+            .unwrap()
+    };
+
+    let pid = Pid::from_u32(p.id() as _);
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    let mut s = sysinfo::System::new();
+    s.refresh_processes();
+    p.kill().expect("Unable to kill process.");
+
+    let processes = s.processes();
+    let p = processes.get(&pid);
+
+    if let Some(p) = p {
+        assert_eq!(p.pid(), pid);
+        // FIXME: instead of ignoring the test on CI, try to find out what's wrong...
+        if std::env::var("APPLE_CI").is_err() {
+            let env = format!("FOO={big_env}");
+            assert!(p.environ().iter().any(|e| *e == env));
+        }
+    } else {
+        panic!("Process not found!");
+    }
+}
+
 #[test]
 fn test_process_refresh() {
     let mut s = sysinfo::System::new();
@@ -293,6 +344,17 @@ fn test_process_times() {
     }
 }
 
+// Checks that `session_id` is working.
+#[test]
+fn test_process_session_id() {
+    if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
+        return;
+    }
+    let mut s = sysinfo::System::new();
+    s.refresh_processes();
+    assert!(s.processes().values().any(|p| p.session_id().is_some()));
+}
+
 // Checks that `refresh_processes` is removing dead processes.
 #[test]
 fn test_refresh_processes() {
@@ -335,6 +397,50 @@ fn test_refresh_processes() {
     s.refresh_processes();
     // Checks that the process isn't listed anymore.
     assert!(s.process(pid).is_none());
+}
+
+// Checks that `refresh_processes` is adding and removing task.
+#[test]
+#[cfg(all(
+    any(target_os = "linux", target_os = "android"),
+    not(feature = "unknown-ci")
+))]
+fn test_refresh_tasks() {
+    if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
+        return;
+    }
+    let task_name = "task_1_second";
+    std::thread::Builder::new()
+        .name(task_name.into())
+        .spawn(|| {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        })
+        .unwrap();
+
+    let pid = Pid::from_u32(std::process::id() as _);
+
+    // Checks that the task is listed as it should.
+    let mut s = sysinfo::System::new();
+    s.refresh_processes();
+
+    assert!(s
+        .process(pid)
+        .unwrap()
+        .tasks
+        .values()
+        .any(|t| t.name() == task_name));
+
+    // Let's give some time to the system to clean up...
+    std::thread::sleep(std::time::Duration::from_secs(2));
+
+    s.refresh_processes();
+
+    assert!(!s
+        .process(pid)
+        .unwrap()
+        .tasks
+        .values()
+        .any(|t| t.name() == task_name));
 }
 
 // Checks that `refresh_process` is NOT removing dead processes.
@@ -425,6 +531,8 @@ fn test_wait_non_child() {
         return;
     }
 
+    let before = std::time::Instant::now();
+
     // spawn non child process.
     let p = if !cfg!(target_os = "linux") {
         return;
@@ -439,8 +547,6 @@ fn test_wait_non_child() {
     };
     let pid = Pid::from_u32(p.id());
 
-    let before = std::time::Instant::now();
-
     let mut s = sysinfo::System::new();
     s.refresh_process(pid);
     let process = s.process(pid).expect("Process not found!");
@@ -452,6 +558,104 @@ fn test_wait_non_child() {
     assert!(!s.refresh_process(pid));
 
     // should wait for 2s.
-    assert!(before.elapsed() > std::time::Duration::from_millis(2000));
-    assert!(before.elapsed() < std::time::Duration::from_millis(3000));
+    assert!(
+        before.elapsed() > std::time::Duration::from_millis(1900),
+        "Elapsed time {:?} is not greater than 1900ms",
+        before.elapsed()
+    );
+    assert!(
+        before.elapsed() < std::time::Duration::from_millis(3000),
+        "Elapsed time {:?} is not less than 3000ms",
+        before.elapsed()
+    );
+}
+
+#[test]
+fn test_process_iterator_lifetimes() {
+    if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
+        return;
+    }
+
+    let s = sysinfo::System::new_with_specifics(
+        sysinfo::RefreshKind::new().with_processes(sysinfo::ProcessRefreshKind::new()),
+    );
+
+    let process: Option<&sysinfo::Process>;
+    {
+        let name = String::from("");
+        // errors before PR #904: name does not live long enough
+        process = s.processes_by_name(&name).next();
+    }
+    process.unwrap();
+
+    let process: Option<&sysinfo::Process>;
+    {
+        // worked fine before and after: &'static str lives longer than System, error couldn't appear
+        process = s.processes_by_name("").next();
+    }
+    process.unwrap();
+}
+
+// Regression test for <https://github.com/GuillaumeGomez/sysinfo/issues/918>.
+#[test]
+fn test_process_cpu_usage() {
+    use sysinfo::{ProcessExt, System, SystemExt};
+
+    if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
+        return;
+    }
+
+    let mut sys = System::new_all();
+    std::thread::sleep(System::MINIMUM_CPU_UPDATE_INTERVAL);
+    sys.refresh_all();
+
+    let max_usage = sys.cpus().len() as f32 * 100.;
+
+    for process in sys.processes().values() {
+        assert!(process.cpu_usage() <= max_usage);
+    }
+}
+
+#[test]
+fn test_process_creds() {
+    use sysinfo::{ProcessExt, System, SystemExt};
+
+    if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
+        return;
+    }
+
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    // Just ensure there is at least one process on the system whose credentials can be retrieved.
+    assert!(sys.processes().values().any(|process| {
+        if process.user_id().is_none() {
+            return false;
+        }
+
+        #[cfg(not(windows))]
+        {
+            if process.group_id().is_none()
+                || process.effective_user_id().is_none()
+                || process.effective_group_id().is_none()
+            {
+                return false;
+            }
+        }
+
+        true
+    }));
+
+    // On Windows, make sure no process has real group ID and no effective IDs.
+    #[cfg(windows)]
+    assert!(sys.processes().values().all(|process| {
+        if process.group_id().is_some()
+            || process.effective_user_id().is_some()
+            || process.effective_group_id().is_some()
+        {
+            return false;
+        }
+
+        true
+    }));
 }

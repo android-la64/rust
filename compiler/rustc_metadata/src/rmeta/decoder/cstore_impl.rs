@@ -6,6 +6,7 @@ use crate::rmeta::AttrFlags;
 
 use rustc_ast as ast;
 use rustc_attr::Deprecation;
+use rustc_data_structures::sync::Lrc;
 use rustc_hir::def::{CtorKind, DefKind, Res};
 use rustc_hir::def_id::{CrateNum, DefId, DefIdMap, LOCAL_CRATE};
 use rustc_hir::definitions::{DefKey, DefPath, DefPathHash};
@@ -23,7 +24,6 @@ use rustc_span::hygiene::{ExpnHash, ExpnId};
 use rustc_span::symbol::{kw, Symbol};
 use rustc_span::Span;
 
-use rustc_data_structures::sync::Lrc;
 use std::any::Any;
 
 use super::{Decodable, DecodeContext, DecodeIterator};
@@ -246,6 +246,7 @@ provide! { tcx, def_id, other, cdata,
         debug_assert_eq!(tcx.def_kind(def_id), DefKind::OpaqueTy);
         cdata.root.tables.is_type_alias_impl_trait.get(cdata, def_id.index)
     }
+    assumed_wf_types_for_rpitit => { table }
     collect_return_position_impl_trait_in_trait_tys => {
         Ok(cdata
             .root
@@ -403,10 +404,8 @@ pub(in crate::rmeta) fn provide(providers: &mut Providers) {
                         .contains(&id)
                 })
         },
-        native_libraries: |tcx, LocalCrate| native_libs::collect(tcx),
-        foreign_modules: |tcx, LocalCrate| {
-            foreign_modules::collect(tcx).into_iter().map(|m| (m.def_id, m)).collect()
-        },
+        native_libraries: native_libs::collect,
+        foreign_modules: foreign_modules::collect,
 
         // Returns a map from a sufficiently visible external item (i.e., an
         // external item that is visible from at least one local module) to a
@@ -523,12 +522,13 @@ impl CStore {
         self.get_crate_data(def.krate).get_ctor(def.index)
     }
 
-    pub fn load_macro_untracked(&self, id: DefId, sess: &Session) -> LoadedMacro {
+    pub fn load_macro_untracked(&self, id: DefId, tcx: TyCtxt<'_>) -> LoadedMacro {
+        let sess = tcx.sess;
         let _prof_timer = sess.prof.generic_activity("metadata_load_macro");
 
         let data = self.get_crate_data(id.krate);
         if data.root.is_proc_macro_crate() {
-            return LoadedMacro::ProcMacro(data.load_proc_macro(id.index, sess));
+            return LoadedMacro::ProcMacro(data.load_proc_macro(id.index, tcx));
         }
 
         let span = data.get_span(id.index, sess);

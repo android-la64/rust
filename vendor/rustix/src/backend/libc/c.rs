@@ -12,10 +12,6 @@ pub(crate) const PROC_SUPER_MAGIC: u32 = 0x0000_9fa0;
 #[cfg(all(linux_kernel, target_env = "musl"))]
 pub(crate) const NFS_SUPER_MAGIC: u32 = 0x0000_6969;
 
-// Submitted upstream in <https://github.com/rust-lang/libc/pull/3272>.
-#[cfg(all(linux_kernel, feature = "net"))]
-pub(crate) const IPPROTO_ETHERNET: c_int = linux_raw_sys::net::IPPROTO_ETHERNET as _;
-
 // TODO: Upstream these.
 #[cfg(all(linux_kernel, feature = "net"))]
 pub(crate) const ETH_P_TSN: c_int = linux_raw_sys::if_ether::ETH_P_TSN as _;
@@ -66,7 +62,9 @@ pub(crate) const ETH_P_MCTP: c_int = linux_raw_sys::if_ether::ETH_P_MCTP as _;
     linux_kernel,
     any(
         target_arch = "mips",
+        target_arch = "mips32r6",
         target_arch = "mips64",
+        target_arch = "mips64r6",
         target_arch = "sparc",
         target_arch = "sparc64"
     )
@@ -97,8 +95,6 @@ pub(crate) use {
 
 #[cfg(target_os = "vxworks")]
 pub(super) use libc::_Vx_ticks64_t as _Vx_ticks_t;
-#[cfg(target_os = "aix")]
-pub(super) use libc::blksize64_t as blksize_t;
 #[cfg(linux_kernel)]
 pub(super) use libc::fallocate64 as fallocate;
 #[cfg(not(any(target_arch = "aarch64", target_arch = "riscv64")))]
@@ -108,7 +104,15 @@ pub(super) use libc::open64 as open;
 pub(super) use libc::posix_fallocate64 as posix_fallocate;
 #[cfg(any(all(linux_like, not(target_os = "android")), target_os = "aix"))]
 pub(super) use libc::{blkcnt64_t as blkcnt_t, rlim64_t as rlim_t};
-#[cfg(any(linux_like, target_os = "aix"))]
+#[cfg(target_os = "aix")]
+pub(super) use libc::{
+    blksize64_t as blksize_t, fstat64 as fstat, fstatat, fstatfs64 as fstatfs,
+    fstatvfs64 as fstatvfs, ftruncate64 as ftruncate, getrlimit64 as getrlimit, ino_t,
+    lseek64 as lseek, mmap, off64_t as off_t, openat, posix_fadvise64 as posix_fadvise, preadv,
+    pwritev, rlimit64 as rlimit, setrlimit64 as setrlimit, statfs64 as statfs,
+    statvfs64 as statvfs, RLIM_INFINITY,
+};
+#[cfg(linux_like)]
 pub(super) use libc::{
     fstat64 as fstat, fstatat64 as fstatat, fstatfs64 as fstatfs, fstatvfs64 as fstatvfs,
     ftruncate64 as ftruncate, getrlimit64 as getrlimit, ino64_t as ino_t, lseek64 as lseek,
@@ -121,12 +125,19 @@ pub(super) use libc::{
     host_info64_t as host_info_t, host_statistics64 as host_statistics,
     vm_statistics64_t as vm_statistics_t,
 };
-#[cfg(not(all(linux_kernel, any(target_pointer_width = "32", target_arch = "mips64"))))]
+#[cfg(not(all(
+    linux_kernel,
+    any(
+        target_pointer_width = "32",
+        target_arch = "mips64",
+        target_arch = "mips64r6"
+    )
+)))]
 #[cfg(any(linux_like, target_os = "aix"))]
 pub(super) use libc::{lstat64 as lstat, stat64 as stat};
 #[cfg(any(linux_kernel, target_os = "aix", target_os = "emscripten"))]
 pub(super) use libc::{pread64 as pread, pwrite64 as pwrite};
-#[cfg(any(target_os = "aix", target_os = "linux", target_os = "emscripten"))]
+#[cfg(any(target_os = "linux", target_os = "emscripten"))]
 pub(super) use libc::{preadv64 as preadv, pwritev64 as pwritev};
 
 #[cfg(all(target_os = "linux", target_env = "gnu"))]

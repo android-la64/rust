@@ -4,6 +4,8 @@ use std::collections::{hash_map, HashMap};
 use std::mem::MaybeUninit;
 
 use super::utils;
+use crate::common::MacAddr;
+use crate::network::refresh_networks_addresses;
 use crate::{NetworkExt, NetworksExt, NetworksIter};
 
 macro_rules! old_and_new {
@@ -37,6 +39,7 @@ impl NetworksExt for Networks {
         }
         // Remove interfaces which are gone.
         self.interfaces.retain(|_, n| n.updated);
+        refresh_networks_addresses(&mut self.interfaces);
     }
 
     fn refresh(&mut self) {
@@ -85,7 +88,7 @@ impl Networks {
                 let data = &data.ifmd_data;
                 match self.interfaces.entry(name) {
                     hash_map::Entry::Occupied(mut e) => {
-                        let mut interface = e.get_mut();
+                        let interface = e.get_mut();
 
                         old_and_new!(interface, ifi_ibytes, old_ifi_ibytes, data);
                         old_and_new!(interface, ifi_obytes, old_ifi_obytes, data);
@@ -114,6 +117,7 @@ impl Networks {
                             ifi_oerrors: data.ifi_oerrors,
                             old_ifi_oerrors: 0,
                             updated: true,
+                            mac_addr: MacAddr::UNSPECIFIED,
                         });
                     }
                 }
@@ -146,6 +150,8 @@ pub struct NetworkData {
     old_ifi_oerrors: u64,
     /// Whether or not the above data has been updated during refresh
     updated: bool,
+    /// MAC address
+    pub(crate) mac_addr: MacAddr,
 }
 
 impl NetworkExt for NetworkData {
@@ -195,5 +201,9 @@ impl NetworkExt for NetworkData {
 
     fn total_errors_on_transmitted(&self) -> u64 {
         self.ifi_oerrors
+    }
+
+    fn mac_address(&self) -> MacAddr {
+        self.mac_addr
     }
 }

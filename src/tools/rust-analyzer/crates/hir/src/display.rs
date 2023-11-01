@@ -18,9 +18,9 @@ use hir_ty::{
 };
 
 use crate::{
-    Adt, AsAssocItem, AssocItemContainer, Const, ConstParam, Enum, Field, Function, GenericParam,
-    HasCrate, HasVisibility, LifetimeParam, Macro, Module, Static, Struct, Trait, TraitAlias,
-    TyBuilder, Type, TypeAlias, TypeOrConstParam, TypeParam, Union, Variant,
+    Adt, AsAssocItem, AssocItemContainer, Const, ConstParam, Enum, ExternCrateDecl, Field,
+    Function, GenericParam, HasCrate, HasVisibility, LifetimeParam, Macro, Module, Static, Struct,
+    Trait, TraitAlias, TyBuilder, Type, TypeAlias, TypeOrConstParam, TypeParam, Union, Variant,
 };
 
 impl HirDisplay for Function {
@@ -238,6 +238,18 @@ impl HirDisplay for Type {
     }
 }
 
+impl HirDisplay for ExternCrateDecl {
+    fn hir_fmt(&self, f: &mut HirFormatter<'_>) -> Result<(), HirDisplayError> {
+        write_visibility(self.module(f.db).id, self.visibility(f.db), f)?;
+        f.write_str("extern crate ")?;
+        write!(f, "{}", self.name(f.db).display(f.db.upcast()))?;
+        if let Some(alias) = self.alias(f.db) {
+            write!(f, " as {alias}",)?;
+        }
+        Ok(())
+    }
+}
+
 impl HirDisplay for GenericParam {
     fn hir_fmt(&self, f: &mut HirFormatter<'_>) -> Result<(), HirDisplayError> {
         match self {
@@ -251,8 +263,8 @@ impl HirDisplay for GenericParam {
 impl HirDisplay for TypeOrConstParam {
     fn hir_fmt(&self, f: &mut HirFormatter<'_>) -> Result<(), HirDisplayError> {
         match self.split(f.db) {
-            either::Either::Left(x) => x.hir_fmt(f),
-            either::Either::Right(x) => x.hir_fmt(f),
+            either::Either::Left(it) => it.hir_fmt(f),
+            either::Either::Right(it) => it.hir_fmt(f),
         }
     }
 }
@@ -303,11 +315,11 @@ fn write_generic_params(
 ) -> Result<(), HirDisplayError> {
     let params = f.db.generic_params(def);
     if params.lifetimes.is_empty()
-        && params.type_or_consts.iter().all(|x| x.1.const_param().is_none())
+        && params.type_or_consts.iter().all(|it| it.1.const_param().is_none())
         && params
             .type_or_consts
             .iter()
-            .filter_map(|x| x.1.type_param())
+            .filter_map(|it| it.1.type_param())
             .all(|param| !matches!(param.provenance, TypeParamProvenance::TypeParamList))
     {
         return Ok(());

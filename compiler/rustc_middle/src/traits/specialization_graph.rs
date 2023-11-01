@@ -43,7 +43,7 @@ impl Graph {
     /// The parent of a given impl, which is the `DefId` of the trait when the
     /// impl is a "specialization root".
     pub fn parent(&self, child: DefId) -> DefId {
-        *self.parent.get(&child).unwrap_or_else(|| panic!("Failed to get parent for {:?}", child))
+        *self.parent.get(&child).unwrap_or_else(|| panic!("Failed to get parent for {child:?}"))
     }
 }
 
@@ -259,7 +259,9 @@ pub fn ancestors(
 
     if let Some(reported) = specialization_graph.has_errored {
         Err(reported)
-    } else if let Err(reported) = tcx.type_of(start_from_impl).subst_identity().error_reported() {
+    } else if let Err(reported) =
+        tcx.type_of(start_from_impl).instantiate_identity().error_reported()
+    {
         Err(reported)
     } else {
         Ok(Ancestors {

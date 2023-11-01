@@ -418,7 +418,7 @@ impl TryFrom<ScalarInt> for char {
 
     #[inline]
     fn try_from(int: ScalarInt) -> Result<Self, Self::Error> {
-        let Ok(bits) = int.to_bits(Size::from_bytes(std::mem::size_of::<char>())) else  {
+        let Ok(bits) = int.to_bits(Size::from_bytes(std::mem::size_of::<char>())) else {
             return Err(CharTryFromScalarInt);
         };
         match char::from_u32(bits.try_into().unwrap()) {
@@ -463,7 +463,7 @@ impl TryFrom<ScalarInt> for Double {
 impl fmt::Debug for ScalarInt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Dispatch to LowerHex below.
-        write!(f, "0x{:x}", self)
+        write!(f, "0x{self:x}")
     }
 }
 

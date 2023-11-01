@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "thorin-dwp"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["David Wood <david.wood@huawei.com>"]
 description = "Library for building DWARF packages from input DWARF objects and packages"
 homepage = "https://docs.rs/thorin-dwp"
@@ -27,14 +27,13 @@ keywords = [
 categories = ["development-tools::debugging"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/thorin"
-resolver = "1"
 
 [lib]
 name = "thorin"
 bench = false
 
 [dependencies.gimli]
-version = "0.26.1"
+version = "0.28.0"
 features = [
     "read",
     "write",
@@ -43,10 +42,10 @@ features = [
 default-features = false
 
 [dependencies.hashbrown]
-version = "0.12.0"
+version = "0.14.0"
 
 [dependencies.object]
-version = "0.31.0"
+version = "0.32.0"
 features = [
     "archive",
     "read",

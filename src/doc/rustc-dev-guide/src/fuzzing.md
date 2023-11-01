@@ -36,7 +36,7 @@ project, please read this guide before reporting fuzzer-generated bugs!
 If you're not sure whether or not an ICE is a duplicate of one that's already
 been reported, please go ahead and report it and link to issues you think might
 be related. In general, ICEs on the same line but with different *query stacks*
-are usually distinct bugs. For example, [#109020][#109202] and [#109129][#109129]
+are usually distinct bugs. For example, [#109020][#109020] and [#109129][#109129]
 had similar error messages:
 
 ```
@@ -100,7 +100,7 @@ to avoid introducing syntax, type-, and borrow-checking errors while using
 these tools, post both the complete and minimized test cases. Generally,
 *syntax-aware* tools give the best results in the least amount of time.
 [`treereduce-rust`][treereduce] and [picireny][picireny] are syntax-aware.
-`halfempty` is not, but is generally a high-quality tool.
+[`halfempty`][halfempty] is not, but is generally a high-quality tool.
 
 [halfempty]: https://github.com/googleprojectzero/halfempty
 [picireny]: https://github.com/renatahodovan/picireny

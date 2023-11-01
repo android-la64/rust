@@ -115,6 +115,10 @@ pub struct CannotEnableCrtStaticLinux;
 pub struct SanitizerCfiRequiresLto;
 
 #[derive(Diagnostic)]
+#[diag(session_sanitizer_cfi_requires_single_codegen_unit)]
+pub struct SanitizerCfiRequiresSingleCodegenUnit;
+
+#[derive(Diagnostic)]
 #[diag(session_sanitizer_cfi_canonical_jump_tables_requires_cfi)]
 pub struct SanitizerCfiCanonicalJumpTablesRequiresCfi;
 
@@ -164,6 +168,13 @@ pub struct FileIsNotWriteable<'a> {
 }
 
 #[derive(Diagnostic)]
+#[diag(session_file_write_fail)]
+pub(crate) struct FileWriteFail<'a> {
+    pub path: &'a std::path::Path,
+    pub err: String,
+}
+
+#[derive(Diagnostic)]
 #[diag(session_crate_name_does_not_match)]
 pub struct CrateNameDoesNotMatch {
     #[primary_span]
@@ -192,6 +203,14 @@ pub struct InvalidCharacterInCrateName {
     pub span: Option<Span>,
     pub character: char,
     pub crate_name: Symbol,
+    #[subdiagnostic]
+    pub crate_name_help: Option<InvalidCrateNameHelp>,
+}
+
+#[derive(Subdiagnostic)]
+pub enum InvalidCrateNameHelp {
+    #[help(session_invalid_character_in_create_name_help)]
+    AddCrateName,
 }
 
 #[derive(Subdiagnostic)]

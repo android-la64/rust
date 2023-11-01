@@ -18,6 +18,7 @@ use rustc_errors::{
     Applicability, DiagnosticBuilder, DiagnosticMessage, ErrorGuaranteed, IntoDiagnostic,
     MultiSpan, PResult,
 };
+use rustc_feature::Features;
 use rustc_lint_defs::builtin::PROC_MACRO_BACK_COMPAT;
 use rustc_lint_defs::{BufferedEarlyLint, BuiltinLintDiagnostics, RegisteredTools};
 use rustc_parse::{self, parser, MACRO_ARGUMENTS};
@@ -767,6 +768,7 @@ impl SyntaxExtension {
     /// and other properties converted from attributes.
     pub fn new(
         sess: &Session,
+        features: &Features,
         kind: SyntaxExtensionKind,
         span: Span,
         helper_attrs: Vec<Symbol>,
@@ -816,7 +818,7 @@ impl SyntaxExtension {
             allow_internal_unstable: (!allow_internal_unstable.is_empty())
                 .then(|| allow_internal_unstable.into()),
             stability: stability.map(|(s, _)| s),
-            deprecation: attr::find_deprecation(&sess, attrs).map(|(d, _)| d),
+            deprecation: attr::find_deprecation(&sess, features, attrs).map(|(d, _)| d),
             helper_attrs,
             edition,
             builtin_name,
@@ -957,6 +959,7 @@ pub trait LintStoreExpand {
     fn pre_expansion_lint(
         &self,
         sess: &Session,
+        features: &Features,
         registered_tools: &RegisteredTools,
         node_id: NodeId,
         attrs: &[Attribute],
@@ -1147,7 +1150,7 @@ impl<'a> ExtCtxt<'a> {
     pub fn span_warn<S: Into<MultiSpan>>(&self, sp: S, msg: impl Into<DiagnosticMessage>) {
         self.sess.parse_sess.span_diagnostic.span_warn(sp, msg);
     }
-    pub fn span_bug<S: Into<MultiSpan>>(&self, sp: S, msg: impl Into<DiagnosticMessage>) -> ! {
+    pub fn span_bug<S: Into<MultiSpan>>(&self, sp: S, msg: impl Into<String>) -> ! {
         self.sess.parse_sess.span_diagnostic.span_bug(sp, msg);
     }
     pub fn trace_macros_diag(&mut self) {
@@ -1366,7 +1369,7 @@ pub fn parse_macro_name_and_helper_attrs(
         return None;
     }
     let Some(trait_attr) = list[0].meta_item() else {
-        diag.emit_err(errors::NotAMetaItem {span: list[0].span()});
+        diag.emit_err(errors::NotAMetaItem { span: list[0].span() });
         return None;
     };
     let trait_ident = match trait_attr.ident() {

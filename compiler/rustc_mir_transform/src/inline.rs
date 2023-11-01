@@ -1,6 +1,7 @@
 //! Inlining pass for MIR functions
 use crate::deref_separator::deref_finder;
 use rustc_attr::InlineAttr;
+use rustc_const_eval::transform::validate::validate_types;
 use rustc_hir::def_id::DefId;
 use rustc_index::bit_set::BitSet;
 use rustc_index::Idx;
@@ -10,7 +11,7 @@ use rustc_middle::mir::*;
 use rustc_middle::ty::TypeVisitableExt;
 use rustc_middle::ty::{self, Instance, InstanceDef, ParamEnv, Ty, TyCtxt};
 use rustc_session::config::OptLevel;
-use rustc_target::abi::{FieldIdx, FIRST_VARIANT};
+use rustc_target::abi::FieldIdx;
 use rustc_target::spec::abi::Abi;
 
 use crate::simplify::{remove_dead_blocks, CfgSimplifier};
@@ -105,7 +106,7 @@ struct Inliner<'tcx> {
     /// Caller codegen attributes.
     codegen_fn_attrs: &'tcx CodegenFnAttrs,
     /// Stack of inlined instances.
-    /// We only check the `DefId` and not the substs because we want to
+    /// We only check the `DefId` and not the args because we want to
     /// avoid inlining cases of polymorphic recursion.
     /// The number of `DefId`s is finite, so checking history is enough
     /// to ensure that we do not loop endlessly while inlining.
@@ -200,6 +201,19 @@ impl<'tcx> Inliner<'tcx> {
             return Err("failed to normalize callee body");
         };
 
+        // Normally, this shouldn't be required, but trait normalization failure can create a
+        // validation ICE.
+        if !validate_types(
+            self.tcx,
+            MirPhase::Runtime(RuntimePhase::Optimized),
+            self.param_env,
+            &callee_body,
+        )
+        .is_empty()
+        {
+            return Err("failed to validate callee body");
+        }
+
         // Check call signature compatibility.
         // Normally, this shouldn't be required, but trait normalization failure can create a
         // validation ICE.
@@ -209,19 +223,29 @@ impl<'tcx> Inliner<'tcx> {
             return Err("failed to normalize return type");
         }
         if callsite.fn_sig.abi() == Abi::RustCall {
-            let (arg_tuple, skipped_args) = match &args[..] {
-                [arg_tuple] => (arg_tuple, 0),
-                [_, arg_tuple] => (arg_tuple, 1),
+            // FIXME: Don't inline user-written `extern "rust-call"` functions,
+            // since this is generally perf-negative on rustc, and we hope that
+            // LLVM will inline these functions instead.
+            if callee_body.spread_arg.is_some() {
+                return Err("do not inline user-written rust-call functions");
+            }
+
+            let (self_arg, arg_tuple) = match &args[..] {
+                [arg_tuple] => (None, arg_tuple),
+                [self_arg, arg_tuple] => (Some(self_arg), arg_tuple),
                 _ => bug!("Expected `rust-call` to have 1 or 2 args"),
             };
 
+            let self_arg_ty =
+                self_arg.map(|self_arg| self_arg.ty(&caller_body.local_decls, self.tcx));
+
             let arg_tuple_ty = arg_tuple.ty(&caller_body.local_decls, self.tcx);
-            let ty::Tuple(arg_tuple_tys) = arg_tuple_ty.kind() else {
+            let ty::Tuple(arg_tuple_tys) = *arg_tuple_ty.kind() else {
                 bug!("Closure arguments are not passed as a tuple");
             };
 
             for (arg_ty, input) in
-                arg_tuple_tys.iter().zip(callee_body.args_iter().skip(skipped_args))
+                self_arg_ty.into_iter().chain(arg_tuple_tys).zip(callee_body.args_iter())
             {
                 let input_type = callee_body.local_decls[input].ty;
                 if !util::is_subtype(self.tcx, self.param_env, input_type, arg_ty) {
@@ -329,11 +353,11 @@ impl<'tcx> Inliner<'tcx> {
         let terminator = bb_data.terminator();
         if let TerminatorKind::Call { ref func, target, fn_span, .. } = terminator.kind {
             let func_ty = func.ty(caller_body, self.tcx);
-            if let ty::FnDef(def_id, substs) = *func_ty.kind() {
-                // To resolve an instance its substs have to be fully normalized.
-                let substs = self.tcx.try_normalize_erasing_regions(self.param_env, substs).ok()?;
+            if let ty::FnDef(def_id, args) = *func_ty.kind() {
+                // To resolve an instance its args have to be fully normalized.
+                let args = self.tcx.try_normalize_erasing_regions(self.param_env, args).ok()?;
                 let callee =
-                    Instance::resolve(self.tcx, self.param_env, def_id, substs).ok().flatten()?;
+                    Instance::resolve(self.tcx, self.param_env, def_id, args).ok().flatten()?;
 
                 if let InstanceDef::Virtual(..) | InstanceDef::Intrinsic(_) = callee.def {
                     return None;
@@ -343,7 +367,7 @@ impl<'tcx> Inliner<'tcx> {
                     return None;
                 }
 
-                let fn_sig = self.tcx.fn_sig(def_id).subst(self.tcx, substs);
+                let fn_sig = self.tcx.fn_sig(def_id).instantiate(self.tcx, args);
                 let source_info = SourceInfo { span: fn_span, ..terminator.source_info };
 
                 return Some(CallSite { callee, fn_sig, block: bb, target, source_info });
@@ -368,7 +392,7 @@ impl<'tcx> Inliner<'tcx> {
         // inlining. This is to ensure that the final crate doesn't have MIR that
         // reference unexported symbols
         if callsite.callee.def_id().is_local() {
-            let is_generic = callsite.callee.substs.non_erasable_generics().next().is_some();
+            let is_generic = callsite.callee.args.non_erasable_generics().next().is_some();
             if !is_generic && !callee_attrs.requests_inline() {
                 return Err("not exported");
             }
@@ -437,12 +461,7 @@ impl<'tcx> Inliner<'tcx> {
             instance: callsite.callee,
             callee_body,
             cost: 0,
-            validation: Ok(()),
         };
-
-        for var_debug_info in callee_body.var_debug_info.iter() {
-            checker.visit_var_debug_info(var_debug_info);
-        }
 
         // Traverse the MIR manually so we can account for the effects of inlining on the CFG.
         let mut work_list = vec![START_BLOCK];
@@ -479,9 +498,6 @@ impl<'tcx> Inliner<'tcx> {
                 work_list.extend(term.successors())
             }
         }
-
-        // Abort if type validation found anything fishy.
-        checker.validation?;
 
         // N.B. We still apply our cost threshold to #[inline(always)] functions.
         // That attribute is often applied to very large functions that exceed LLVM's (very
@@ -774,11 +790,10 @@ struct CostChecker<'b, 'tcx> {
     cost: usize,
     callee_body: &'b Body<'tcx>,
     instance: ty::Instance<'tcx>,
-    validation: Result<(), &'static str>,
 }
 
 impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
-    fn visit_statement(&mut self, statement: &Statement<'tcx>, location: Location) {
+    fn visit_statement(&mut self, statement: &Statement<'tcx>, _: Location) {
         // Don't count StorageLive/StorageDead in the inlining cost.
         match statement.kind {
             StatementKind::StorageLive(_)
@@ -787,11 +802,9 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
             | StatementKind::Nop => {}
             _ => self.cost += INSTR_COST,
         }
-
-        self.super_statement(statement, location);
     }
 
-    fn visit_terminator(&mut self, terminator: &Terminator<'tcx>, location: Location) {
+    fn visit_terminator(&mut self, terminator: &Terminator<'tcx>, _: Location) {
         let tcx = self.tcx;
         match terminator.kind {
             TerminatorKind::Drop { ref place, unwind, .. } => {
@@ -835,109 +848,6 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
             }
             _ => self.cost += INSTR_COST,
         }
-
-        self.super_terminator(terminator, location);
-    }
-
-    /// This method duplicates code from MIR validation in an attempt to detect type mismatches due
-    /// to normalization failure.
-    fn visit_projection_elem(
-        &mut self,
-        place_ref: PlaceRef<'tcx>,
-        elem: PlaceElem<'tcx>,
-        context: PlaceContext,
-        location: Location,
-    ) {
-        if let ProjectionElem::Field(f, ty) = elem {
-            let parent_ty = place_ref.ty(&self.callee_body.local_decls, self.tcx);
-            let check_equal = |this: &mut Self, f_ty| {
-                // Fast path if there is nothing to substitute.
-                if ty == f_ty {
-                    return;
-                }
-                let ty = this.instance.subst_mir(this.tcx, ty::EarlyBinder::bind(&ty));
-                let f_ty = this.instance.subst_mir(this.tcx, ty::EarlyBinder::bind(&f_ty));
-                if ty == f_ty {
-                    return;
-                }
-                if !util::is_subtype(this.tcx, this.param_env, ty, f_ty) {
-                    trace!(?ty, ?f_ty);
-                    this.validation = Err("failed to normalize projection type");
-                    return;
-                }
-            };
-
-            let kind = match parent_ty.ty.kind() {
-                &ty::Alias(ty::Opaque, ty::AliasTy { def_id, substs, .. }) => {
-                    self.tcx.type_of(def_id).subst(self.tcx, substs).kind()
-                }
-                kind => kind,
-            };
-
-            match kind {
-                ty::Tuple(fields) => {
-                    let Some(f_ty) = fields.get(f.as_usize()) else {
-                        self.validation = Err("malformed MIR");
-                        return;
-                    };
-                    check_equal(self, *f_ty);
-                }
-                ty::Adt(adt_def, substs) => {
-                    let var = parent_ty.variant_index.unwrap_or(FIRST_VARIANT);
-                    let Some(field) = adt_def.variant(var).fields.get(f) else {
-                        self.validation = Err("malformed MIR");
-                        return;
-                    };
-                    check_equal(self, field.ty(self.tcx, substs));
-                }
-                ty::Closure(_, substs) => {
-                    let substs = substs.as_closure();
-                    let Some(f_ty) = substs.upvar_tys().nth(f.as_usize()) else {
-                        self.validation = Err("malformed MIR");
-                        return;
-                    };
-                    check_equal(self, f_ty);
-                }
-                &ty::Generator(def_id, substs, _) => {
-                    let f_ty = if let Some(var) = parent_ty.variant_index {
-                        let gen_body = if def_id == self.callee_body.source.def_id() {
-                            self.callee_body
-                        } else {
-                            self.tcx.optimized_mir(def_id)
-                        };
-
-                        let Some(layout) = gen_body.generator_layout() else {
-                            self.validation = Err("malformed MIR");
-                            return;
-                        };
-
-                        let Some(&local) = layout.variant_fields[var].get(f) else {
-                            self.validation = Err("malformed MIR");
-                            return;
-                        };
-
-                        let Some(f_ty) = layout.field_tys.get(local) else {
-                            self.validation = Err("malformed MIR");
-                            return;
-                        };
-
-                        f_ty.ty
-                    } else {
-                        let Some(f_ty) = substs.as_generator().prefix_tys().nth(f.index()) else {
-                            self.validation = Err("malformed MIR");
-                            return;
-                        };
-
-                        f_ty
-                    };
-
-                    check_equal(self, f_ty);
-                }
-                _ => self.validation = Err("malformed MIR"),
-            }
-        }
-
-        self.super_projection_elem(place_ref, elem, context, location);
     }
 }
 
@@ -1143,10 +1053,10 @@ fn try_instance_mir<'tcx>(
 ) -> Result<&'tcx Body<'tcx>, &'static str> {
     match instance {
         ty::InstanceDef::DropGlue(_, Some(ty)) => match ty.kind() {
-            ty::Adt(def, substs) => {
+            ty::Adt(def, args) => {
                 let fields = def.all_fields();
                 for field in fields {
-                    let field_ty = field.ty(tcx, substs);
+                    let field_ty = field.ty(tcx, args);
                     if field_ty.has_param() && field_ty.has_projections() {
                         return Err("cannot build drop shim for polymorphic type");
                     }

@@ -4,44 +4,31 @@ use cargo::ops;
 
 pub fn cli() -> Command {
     subcommand("login")
-        .about(
-            "Save an api token from the registry locally. \
-             If token is not specified, it will be read from stdin.",
-        )
-        .arg_quiet()
+        .about("Log in to a registry.")
         .arg(Arg::new("token").action(ArgAction::Set))
         .arg(opt("registry", "Registry to use").value_name("REGISTRY"))
         .arg(
-            flag(
-                "generate-keypair",
-                "Generate a public/secret keypair (unstable)",
-            )
-            .conflicts_with("token"),
+            Arg::new("args")
+                .help("Arguments for the credential provider (unstable)")
+                .num_args(0..)
+                .last(true),
         )
-        .arg(
-            flag("secret-key", "Prompt for secret key (unstable)")
-                .conflicts_with_all(&["generate-keypair", "token"]),
-        )
-        .arg(
-            opt(
-                "key-subject",
-                "Set the key subject for this registry (unstable)",
-            )
-            .value_name("SUBJECT")
-            .conflicts_with("token"),
-        )
+        .arg_quiet()
         .after_help("Run `cargo help login` for more detailed information.\n")
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
     let registry = args.registry(config)?;
+    let extra_args = args
+        .get_many::<String>("args")
+        .unwrap_or_default()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
     ops::registry_login(
         config,
         args.get_one::<String>("token").map(|s| s.as_str().into()),
         registry.as_deref(),
-        args.flag("generate-keypair"),
-        args.flag("secret-key"),
-        args.get_one("key-subject").map(String::as_str),
+        &extra_args,
     )?;
     Ok(())
 }

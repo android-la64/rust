@@ -1,6 +1,7 @@
 // Take a look at the license at the top of the repository in the LICENSE file.
 
 #![doc = include_str!("../README.md")]
+#![cfg_attr(feature = "serde", doc = include_str!("../md_doc/serde.md"))]
 #![allow(unknown_lints)]
 #![deny(missing_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
@@ -24,15 +25,23 @@ cfg_if::cfg_if! {
     } else if #[cfg(any(target_os = "macos", target_os = "ios"))] {
         mod apple;
         use apple as sys;
-        extern crate core_foundation_sys;
+        pub(crate) mod users;
+        mod network_helper_nix;
+        use network_helper_nix as network_helper;
+        mod network;
+
+        // This is needed because macos uses `int*` for `getgrouplist`...
+        pub(crate) type GroupId = libc::c_int;
+        pub(crate) use libc::__error as libc_errno;
 
         #[cfg(test)]
         pub(crate) const MIN_USERS: usize = 1;
     } else if #[cfg(windows)] {
         mod windows;
         use windows as sys;
-        extern crate winapi;
-        extern crate ntapi;
+        mod network_helper_win;
+        use network_helper_win as network_helper;
+        mod network;
 
         #[cfg(test)]
         pub(crate) const MIN_USERS: usize = 1;
@@ -40,6 +49,16 @@ cfg_if::cfg_if! {
         mod linux;
         use linux as sys;
         pub(crate) mod users;
+        mod network_helper_nix;
+        use network_helper_nix as network_helper;
+        mod network;
+
+        // This is needed because macos uses `int*` for `getgrouplist`...
+        pub(crate) type GroupId = libc::gid_t;
+        #[cfg(target_os = "linux")]
+        pub(crate) use libc::__errno_location as libc_errno;
+        #[cfg(target_os = "android")]
+        pub(crate) use libc::__errno as libc_errno;
 
         #[cfg(test)]
         pub(crate) const MIN_USERS: usize = 1;
@@ -47,6 +66,13 @@ cfg_if::cfg_if! {
         mod freebsd;
         use freebsd as sys;
         pub(crate) mod users;
+        mod network_helper_nix;
+        use network_helper_nix as network_helper;
+        mod network;
+
+        // This is needed because macos uses `int*` for `getgrouplist`...
+        pub(crate) type GroupId = libc::gid_t;
+        pub(crate) use libc::__error as libc_errno;
 
         #[cfg(test)]
         pub(crate) const MIN_USERS: usize = 1;
@@ -60,8 +86,8 @@ cfg_if::cfg_if! {
 }
 
 pub use common::{
-    get_current_pid, CpuRefreshKind, DiskType, DiskUsage, Gid, LoadAvg, NetworksIter, Pid, PidExt,
-    ProcessRefreshKind, ProcessStatus, RefreshKind, Signal, Uid, User,
+    get_current_pid, CpuRefreshKind, DiskKind, DiskUsage, Gid, LoadAvg, MacAddr, NetworksIter, Pid,
+    PidExt, ProcessRefreshKind, ProcessStatus, RefreshKind, Signal, Uid, User,
 };
 pub use sys::{Component, Cpu, Disk, NetworkData, Networks, Process, System};
 pub use traits::{
@@ -75,14 +101,16 @@ pub use c_interface::*;
 mod c_interface;
 mod common;
 mod debug;
+#[cfg(feature = "serde")]
+mod serde;
 mod system;
 mod traits;
 mod utils;
 
-/// This function is only used on linux targets, on the other platforms it does nothing and returns
+/// This function is only used on Linux targets, on the other platforms it does nothing and returns
 /// `false`.
 ///
-/// On linux, to improve performance, we keep a `/proc` file open for each process we index with
+/// On Linux, to improve performance, we keep a `/proc` file open for each process we index with
 /// a maximum number of files open equivalent to half of the system limit.
 ///
 /// The problem is that some users might need all the available file descriptors so we need to
@@ -324,6 +352,25 @@ mod test {
                 .iter()
                 .filter_map(|(_, p)| p.user_id())
                 .any(|uid| s.get_user_by_id(uid).is_some()));
+        }
+    }
+
+    #[test]
+    fn check_all_process_uids_resolvable() {
+        if System::IS_SUPPORTED {
+            let s = System::new_with_specifics(
+                RefreshKind::new()
+                    .with_processes(ProcessRefreshKind::new().with_user())
+                    .with_users_list(),
+            );
+
+            // For every process where we can get a user ID, we should also be able
+            // to find that user ID in the global user list
+            for process in s.processes().values() {
+                if let Some(uid) = process.user_id() {
+                    assert!(s.get_user_by_id(uid).is_some(), "No UID {:?} found", uid);
+                }
+            }
         }
     }
 

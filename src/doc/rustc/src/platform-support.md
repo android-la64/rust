@@ -101,7 +101,7 @@ target | notes
 `x86_64-unknown-freebsd` | 64-bit FreeBSD
 `x86_64-unknown-illumos` | illumos
 `x86_64-unknown-linux-musl` | 64-bit Linux with MUSL
-`x86_64-unknown-netbsd` | NetBSD/amd64
+[`x86_64-unknown-netbsd`](platform-support/netbsd.md) | NetBSD/amd64
 
 ## Tier 2
 
@@ -128,7 +128,7 @@ target | std | notes
 `aarch64-apple-ios` | ✓ | ARM64 iOS
 [`aarch64-apple-ios-sim`](platform-support/aarch64-apple-ios-sim.md) | ✓ | Apple iOS Simulator on ARM64
 `aarch64-fuchsia` | ✓ | Alias for `aarch64-unknown-fuchsia`
-`aarch64-unknown-fuchsia` | ✓ | ARM64 Fuchsia
+[`aarch64-unknown-fuchsia`](platform-support/fuchsia.md) | ✓ | ARM64 Fuchsia
 [`aarch64-linux-android`](platform-support/android.md) | ✓ | ARM64 Android
 `aarch64-unknown-none-softfloat` | * | Bare ARM64, softfloat
 `aarch64-unknown-none` | * | Bare ARM64, hardfloat
@@ -159,7 +159,7 @@ target | std | notes
 `mips64-unknown-linux-muslabi64` | ✓ | MIPS64 Linux, n64 ABI, MUSL
 `mips64el-unknown-linux-muslabi64` | ✓ | MIPS64 (LE) Linux, n64 ABI, MUSL
 `mipsel-unknown-linux-musl` | ✓ | MIPS (LE) Linux with MUSL
-`nvptx64-nvidia-cuda` | * | --emit=asm generates PTX code that [runs on NVIDIA GPUs]
+[`nvptx64-nvidia-cuda`](platform-support/nvptx64-nvidia-cuda.md) | * | --emit=asm generates PTX code that [runs on NVIDIA GPUs]
 `riscv32i-unknown-none-elf` | * | Bare RISC-V (RV32I ISA)
 `riscv32imac-unknown-none-elf` | * | Bare RISC-V (RV32IMAC ISA)
 `riscv32imc-unknown-none-elf` | * | Bare RISC-V (RV32IMC ISA)
@@ -176,13 +176,15 @@ target | std | notes
 `thumbv8m.base-none-eabi` | * | Bare ARMv8-M Baseline
 `thumbv8m.main-none-eabi` | * | Bare ARMv8-M Mainline
 `thumbv8m.main-none-eabihf` | * | Bare ARMv8-M Mainline, hardfloat
+[`sparc-unknown-none-elf`](./platform-support/sparc-unknown-none-elf.md) | * | Bare 32-bit SPARC V7+
 `wasm32-unknown-emscripten` | ✓ | WebAssembly via Emscripten
 `wasm32-unknown-unknown` | ✓ | WebAssembly
 `wasm32-wasi` | ✓ | WebAssembly with WASI
+[`wasm32-wasi-preview1-threads`](platform-support/wasm32-wasi-preview1-threads.md) | ✓ | WebAssembly with WASI Preview 1 and threads
 `x86_64-apple-ios` | ✓ | 64-bit x86 iOS
 [`x86_64-fortanix-unknown-sgx`](platform-support/x86_64-fortanix-unknown-sgx.md) | ✓ | [Fortanix ABI] for 64-bit Intel SGX
 `x86_64-fuchsia` | ✓ | Alias for `x86_64-unknown-fuchsia`
-`x86_64-unknown-fuchsia` | ✓ | 64-bit Fuchsia
+[`x86_64-unknown-fuchsia`](platform-support/fuchsia.md) | ✓ | 64-bit x86 Fuchsia
 [`x86_64-linux-android`](platform-support/android.md) | ✓ | 64-bit x86 Android
 `x86_64-pc-solaris` | ✓ | 64-bit Solaris 10/11, illumos
 `x86_64-unknown-linux-gnux32` | ✓ | 64-bit Linux (x32 ABI) (kernel 4.15, glibc 2.27)
@@ -220,9 +222,10 @@ target | std | host | notes
 [`aarch64-nintendo-switch-freestanding`](platform-support/aarch64-nintendo-switch-freestanding.md) | * |  | ARM64 Nintendo Switch, Horizon
 [`aarch64-pc-windows-gnullvm`](platform-support/pc-windows-gnullvm.md) | ✓ | ✓ |
 [`aarch64-unknown-linux-ohos`](platform-support/openharmony.md) | ✓ |  | ARM64 OpenHarmony |
+[`aarch64-unknown-teeos`](platform-support/aarch64-unknown-teeos.md) | ? |  | ARM64 TEEOS |
 [`aarch64-unknown-nto-qnx710`](platform-support/nto-qnx.md) | ✓ |  | ARM64 QNX Neutrino 7.1 RTOS |
 `aarch64-unknown-freebsd` | ✓ | ✓ | ARM64 FreeBSD
-`aarch64-unknown-hermit` | ✓ |  | ARM64 HermitCore
+[`aarch64-unknown-hermit`](platform-support/hermit.md) | ✓ |  | ARM64 Hermit
 `aarch64-unknown-linux-gnu_ilp32` | ✓ | ✓ | ARM64 Linux (ILP32 ABI)
 [`aarch64-unknown-netbsd`](platform-support/netbsd.md) | ✓ | ✓ | ARM64 NetBSD
 [`aarch64-unknown-openbsd`](platform-support/openbsd.md) | ✓ | ✓ | ARM64 OpenBSD
@@ -257,6 +260,7 @@ target | std | host | notes
 `avr-unknown-gnu-atmega328` | * |  | AVR. Requires `-Z build-std=core`
 `bpfeb-unknown-none` | * |  | BPF (big endian)
 `bpfel-unknown-none` | * |  | BPF (little endian)
+`csky-unknown-linux-gnuabiv2` | ✓ |  | C-SKY abiv2 Linux(little endian)
 `hexagon-unknown-linux-musl` | ? |  |
 `i386-apple-ios` | ✓ |  | 32-bit x86 iOS
 [`i586-pc-nto-qnx700`](platform-support/nto-qnx.md) | * |  | 32-bit x86 QNX Neutrino 7.0 RTOS |
@@ -277,10 +281,10 @@ target | std | host | notes
 [`mipsel-sony-psx`](platform-support/mipsel-sony-psx.md) | * |  | MIPS (LE) Sony PlayStation 1 (PSX)
 `mipsel-unknown-linux-uclibc` | ✓ |  | MIPS (LE) Linux with uClibc
 `mipsel-unknown-none` | * |  | Bare MIPS (LE) softfloat
-`mipsisa32r6-unknown-linux-gnu` | ? |  |
-`mipsisa32r6el-unknown-linux-gnu` | ? |  |
-`mipsisa64r6-unknown-linux-gnuabi64` | ? |  |
-`mipsisa64r6el-unknown-linux-gnuabi64` | ? |  |
+[`mipsisa32r6-unknown-linux-gnu`](platform-support/mips-release-6.md) | ? |  | 32-bit MIPS Release 6 Big Endian
+[`mipsisa32r6el-unknown-linux-gnu`](platform-support/mips-release-6.md) | ? |  | 32-bit MIPS Release 6 Little Endian
+[`mipsisa64r6-unknown-linux-gnuabi64`](platform-support/mips-release-6.md) | ? |  | 64-bit MIPS Release 6 Big Endian
+[`mipsisa64r6el-unknown-linux-gnuabi64`](platform-support/mips-release-6.md) | ✓ | ✓ | 64-bit MIPS Release 6 Little Endian
 `msp430-none-elf` | * |  | 16-bit MSP430 microcontrollers
 `powerpc-unknown-linux-gnuspe` | ✓ |  | PowerPC SPE Linux
 `powerpc-unknown-linux-musl` | ? |  |
@@ -302,11 +306,13 @@ target | std | host | notes
 [`riscv32imac-unknown-xous-elf`](platform-support/riscv32imac-unknown-xous-elf.md) | ? |  | RISC-V Xous (RV32IMAC ISA)
 [`riscv32imc-esp-espidf`](platform-support/esp-idf.md) | ✓ |  | RISC-V ESP-IDF
 [`riscv32imac-esp-espidf`](platform-support/esp-idf.md) | ✓ |  | RISC-V ESP-IDF
+[`riscv64gc-unknown-hermit`](platform-support/hermit.md) | ✓ |   | RISC-V Hermit
 `riscv64gc-unknown-freebsd` |   |   | RISC-V FreeBSD
 `riscv64gc-unknown-fuchsia` |   |   | RISC-V Fuchsia
 `riscv64gc-unknown-linux-musl` |   |   | RISC-V Linux (kernel 4.20, musl 1.2.0)
-[`riscv64gc-unknown-netbsd`](platform-support/netbsd.md) | ✓ | ? | RISC-V NetBSD
+[`riscv64gc-unknown-netbsd`](platform-support/netbsd.md) | ✓ | ✓ | RISC-V NetBSD
 [`riscv64gc-unknown-openbsd`](platform-support/openbsd.md) | ✓ | ✓ | OpenBSD/riscv64
+[`riscv64-linux-android`](platform-support/android.md) |   |   | RISC-V 64-bit Android
 `s390x-unknown-linux-musl` |  |  | S390x Linux (kernel 3.2, MUSL)
 `sparc-unknown-linux-gnu` | ✓ |  | 32-bit SPARC Linux
 [`sparc64-unknown-netbsd`](platform-support/netbsd.md) | ✓ | ✓ | NetBSD/sparc64
@@ -324,14 +330,16 @@ target | std | host | notes
 [`x86_64-pc-windows-gnullvm`](platform-support/pc-windows-gnullvm.md) | ✓ | ✓ |
 `x86_64-pc-windows-msvc` | * |  | 64-bit Windows XP support
 `x86_64-sun-solaris` | ? |  | Deprecated target for 64-bit Solaris 10/11, illumos
+[`x86_64-unikraft-linux-musl`](platform-support/unikraft-linux-musl.md) | ✓ |   | 64-bit Unikraft with musl
 `x86_64-unknown-dragonfly` | ✓ | ✓ | 64-bit DragonFlyBSD
 `x86_64-unknown-haiku` | ✓ | ✓ | 64-bit Haiku
-`x86_64-unknown-hermit` | ✓ |  | HermitCore
+[`x86_64-unknown-hermit`](platform-support/hermit.md) | ✓ |  | x86_64 Hermit
 `x86_64-unknown-l4re-uclibc` | ? |  |
+[`x86_64-unknown-linux-ohos`](platform-support/openharmony.md) | ✓ |  | x86_64 OpenHarmony |
 [`x86_64-unknown-openbsd`](platform-support/openbsd.md) | ✓ | ✓ | 64-bit OpenBSD
 `x86_64-uwp-windows-gnu` | ✓ |  |
 `x86_64-uwp-windows-msvc` | ✓ |  |
 `x86_64-wrs-vxworks` | ? |  |
-`x86_64h-apple-darwin` | ✓ | ✓ | macOS with late-gen Intel (at least Haswell)
+[`x86_64h-apple-darwin`](platform-support/x86_64h-apple-darwin.md) | ✓ | ✓ | macOS with late-gen Intel (at least Haswell)
 
 [runs on NVIDIA GPUs]: https://github.com/japaric-archived/nvptx#targets

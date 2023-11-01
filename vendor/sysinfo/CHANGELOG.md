@@ -1,3 +1,102 @@
+# 0.29.1
+
+ * Update `libc` version to 0.2.144.
+ * Linux/FreeBSD/macOS: Fix retrieval of users groups in multi-threaded context.
+
+# 0.29.0
+
+ * Add `ProcessExt::effective_user_id` and `ProcessExt::effective_group_id`.
+ * Rename `DiskType` into `DiskKind`.
+ * Rename `DiskExt::type_` into `DiskExt::kind`.
+ * macOS: Correctly handle `ProcessStatus` and remove public `ThreadStatus` field.
+ * Windows 11: Fix CPU core usage.
+
+# 0.28.4
+
+ * macOS: Improve CPU computation.
+ * Strengthen a process test (needed for debian).
+
+# 0.28.3
+
+ * FreeBSD/Windows: Add missing frequency for global CPU.
+ * macOS: Fix used memory computation.
+ * macOS: Improve available memory computation.
+ * Windows: Fix potential panic when getting process data.
+
+# 0.28.2
+
+ * Linux: Improve CPU usage computation.
+
+# 0.28.1
+
+ * macOS: Fix overflow when computing CPU usage.
+
+# 0.28.0
+
+ * Linux: Fix name and CPU usage for processes tasks.
+ * unix: Keep all users, even "not real" accounts.
+ * Windows: Use SID for Users ID.
+ * Fix C API.
+ * Disable default cdylib compilation.
+ * Add `serde` feature to enable serialization.
+ * Linux: Handle `Idle` state in `ProcessStatus`.
+ * Linux: Add brand and name of ARM CPUs.
+
+# 0.27.8
+
+ * macOS: Fix overflow when computing CPU usage.
+
+# 0.27.7
+
+ * macOS: Fix process CPU usage computation
+ * Linux: Improve ARM CPU `brand` and `name` information.
+ * Windows: Fix resource leak.
+ * Documentation improvements.
+
+# 0.27.6
+
+ * Make `MacAddr` public.
+
+# 0.27.5
+
+ * Linux: Improve compatibility with upcoming `libc` changes for musl targets.
+
+# 0.27.4
+
+ * Create `SystemExt::MINIMUM_CPU_UPDATE_INTERVAL` constant.
+ * Fix consecutive processes updates CPU usage computation.
+
+# 0.27.3
+
+ * macOS: Fix free/available memory computation.
+ * Fix processes_by_name* lifetimes
+
+# 0.27.2
+
+ * Linux: Fix consecutive process CPU usage updates.
+ * Linux: Ignore NFS disks.
+
+# 0.27.1
+
+ * Unix systems: Fix network address segfault issue.
+
+# 0.27.0
+
+ * Add `NetworkExt::mac_address` method and `MacAddr` type.
+ * Linux: Fix truncated environment retrieval.
+ * Implement `TryFrom<usize>` and `FromStr` for `Gid` and `Uid`.
+ * Implement `TryFrom<usize>` for `Pid`.
+ * Fix documentation of `System::new` about CPU list not loaded by default.
+
+# 0.26.9
+
+ * (backport) Linux: Improve compatibility with upcoming `libc` changes for musl targets.
+
+# 0.26.8
+
+ * Add `ProcessExt::session_id` method.
+ * Linux: Ignore NFS disks.
+
 # 0.26.7
 
  * Apple: Greatly improve disk retrieval (I recommend reading the pull request first comment for more information here: <https://github.com/GuillaumeGomez/sysinfo/pull/855>).

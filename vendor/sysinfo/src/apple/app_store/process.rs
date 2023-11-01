@@ -76,9 +76,21 @@ impl ProcessExt for Process {
         None
     }
 
+    fn effective_user_id(&self) -> Option<&Uid> {
+        None
+    }
+
     fn group_id(&self) -> Option<Gid> {
         None
     }
 
+    fn effective_group_id(&self) -> Option<Gid> {
+        None
+    }
+
     fn wait(&self) {}
+
+    fn session_id(&self) -> Option<Pid> {
+        None
+    }
 }

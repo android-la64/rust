@@ -16,6 +16,7 @@ use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 // This whole thing is to prevent having too many files open at once. It could be problematic
 // for processes using a lot of files and using sysinfo at the same time.
@@ -28,7 +29,7 @@ pub(crate) static mut REMAINING_FILES: once_cell::sync::Lazy<Arc<Mutex<isize>>> 
                 rlim_max: 0,
             };
             if libc::getrlimit(libc::RLIMIT_NOFILE, &mut limits) != 0 {
-                // Most linux system now defaults to 1024.
+                // Most Linux system now defaults to 1024.
                 return Arc::new(Mutex::new(1024 / 2));
             }
             // We save the value in case the update fails.
@@ -55,7 +56,7 @@ pub(crate) fn get_max_nb_fds() -> isize {
             rlim_max: 0,
         };
         if libc::getrlimit(libc::RLIMIT_NOFILE, &mut limits) != 0 {
-            // Most linux system now defaults to 1024.
+            // Most Linux system now defaults to 1024.
             1024 / 2
         } else {
             limits.rlim_max as isize / 2
@@ -81,11 +82,8 @@ fn boot_time() -> u64 {
         }
     }
     // Either we didn't find "btime" or "/proc/stat" wasn't available for some reason...
-    let mut up = libc::timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    };
     unsafe {
+        let mut up: libc::timespec = std::mem::zeroed();
         if libc::clock_gettime(libc::CLOCK_BOOTTIME, &mut up) == 0 {
             up.tv_sec as u64
         } else {
@@ -207,7 +205,7 @@ impl System {
             if compute_cpu {
                 compute_cpu_usage(proc_, total_time, max_value);
             }
-            proc_.updated = false;
+            unset_updated(proc_);
             true
         });
     }
@@ -220,6 +218,7 @@ impl System {
 impl SystemExt for System {
     const IS_SUPPORTED: bool = true;
     const SUPPORTED_SIGNALS: &'static [Signal] = supported_signals();
+    const MINIMUM_CPU_UPDATE_INTERVAL: Duration = Duration::from_millis(200);
 
     fn new_with_specifics(refreshes: RefreshKind) -> System {
         let process_list = Process::new(Pid(0));
@@ -311,7 +310,7 @@ impl SystemExt for System {
 
     fn refresh_process_specifics(&mut self, pid: Pid, refresh_kind: ProcessRefreshKind) -> bool {
         let uptime = self.uptime();
-        let found = match _get_process_data(
+        match _get_process_data(
             &Path::new("/proc/").join(pid.to_string()),
             &mut self.process_list,
             Pid(0),
@@ -321,32 +320,33 @@ impl SystemExt for System {
         ) {
             Ok((Some(p), pid)) => {
                 self.process_list.tasks.insert(pid, p);
-                true
             }
-            Ok(_) => true,
-            Err(_) => false,
+            Ok(_) => {}
+            Err(_e) => {
+                sysinfo_debug!("Cannot get information for PID {:?}: {:?}", pid, _e);
+                return false;
+            }
         };
-        if found {
-            if refresh_kind.cpu() {
-                self.refresh_cpus(true, CpuRefreshKind::new().with_cpu_usage());
+        if refresh_kind.cpu() {
+            self.refresh_cpus(true, CpuRefreshKind::new().with_cpu_usage());
 
-                if self.cpus.is_empty() {
-                    sysinfo_debug!("Cannot compute process CPU usage: no cpus found...");
-                    return found;
-                }
-                let (new, old) = self.cpus.get_global_raw_times();
-                let total_time = (if old >= new { 1 } else { new - old }) as f32;
-
-                let max_cpu_usage = self.get_max_process_cpu_usage();
-                if let Some(p) = self.process_list.tasks.get_mut(&pid) {
-                    compute_cpu_usage(p, total_time / self.cpus.len() as f32, max_cpu_usage);
-                    p.updated = false;
-                }
-            } else if let Some(p) = self.process_list.tasks.get_mut(&pid) {
-                p.updated = false;
+            if self.cpus.is_empty() {
+                eprintln!("Cannot compute process CPU usage: no cpus found...");
+                return true;
             }
+            let (new, old) = self.cpus.get_global_raw_times();
+            let total_time = (if old >= new { 1 } else { new - old }) as f32;
+            let total_time = total_time / self.cpus.len() as f32;
+
+            let max_cpu_usage = self.get_max_process_cpu_usage();
+            if let Some(p) = self.process_list.tasks.get_mut(&pid) {
+                compute_cpu_usage(p, total_time, max_cpu_usage);
+                unset_updated(p);
+            }
+        } else if let Some(p) = self.process_list.tasks.get_mut(&pid) {
+            unset_updated(p);
         }
-        found
+        true
     }
 
     fn refresh_disks_list(&mut self) {

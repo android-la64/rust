@@ -10,9 +10,9 @@ use crate::util::hex::short_hash;
 use crate::util::Config;
 use anyhow::Context;
 use cargo_util::paths::exclude_from_backups_and_indexing;
-use log::trace;
 use std::fmt::{self, Debug, Formatter};
 use std::task::Poll;
+use tracing::trace;
 use url::Url;
 
 /// `GitSource` contains one or more packages gathering from a Git repository.
@@ -164,7 +164,10 @@ impl<'cfg> Debug for GitSource<'cfg> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "git repo at {}", self.remote.url())?;
 
-        match self.manifest_reference.pretty_ref() {
+        // TODO(-Znext-lockfile-bump): set it to true when stabilizing
+        // lockfile v4, because we want Source ID serialization to be
+        // consistent with lockfile.
+        match self.manifest_reference.pretty_ref(false) {
             Some(s) => write!(f, " ({})", s),
             None => Ok(()),
         }

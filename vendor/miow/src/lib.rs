@@ -1,16 +1,15 @@
-//! A zero overhead Windows I/O library
-
+#![doc = include_str!("../README.md")]
 #![cfg(windows)]
 #![deny(missing_docs)]
 #![allow(bad_style)]
-#![doc(html_root_url = "https://docs.rs/miow/0.3/x86_64-pc-windows-msvc/")]
+#![doc(html_root_url = "https://docs.rs/miow/latest/")]
 
 use std::cmp;
 use std::io;
 use std::time::Duration;
 
 use windows_sys::Win32::Foundation::BOOL;
-use windows_sys::Win32::System::WindowsProgramming::INFINITE;
+use windows_sys::Win32::System::Threading::INFINITE;
 
 #[cfg(test)]
 macro_rules! t {

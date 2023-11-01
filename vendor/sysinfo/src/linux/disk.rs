@@ -1,7 +1,7 @@
 // Take a look at the license at the top of the repository in the LICENSE file.
 
 use crate::sys::utils::{get_all_data, to_cpath};
-use crate::{DiskExt, DiskType};
+use crate::{DiskExt, DiskKind};
 
 use libc::statvfs;
 use std::ffi::{OsStr, OsString};
@@ -19,7 +19,7 @@ macro_rules! cast {
 #[doc = include_str!("../../md_doc/disk.md")]
 #[derive(PartialEq, Eq)]
 pub struct Disk {
-    type_: DiskType,
+    type_: DiskKind,
     device_name: OsString,
     file_system: Vec<u8>,
     mount_point: PathBuf,
@@ -29,7 +29,7 @@ pub struct Disk {
 }
 
 impl DiskExt for Disk {
-    fn type_(&self) -> DiskType {
+    fn kind(&self) -> DiskKind {
         self.type_
     }
 
@@ -61,7 +61,7 @@ impl DiskExt for Disk {
         unsafe {
             let mut stat: statvfs = mem::zeroed();
             let mount_point_cpath = to_cpath(&self.mount_point);
-            if statvfs(mount_point_cpath.as_ptr() as *const _, &mut stat) == 0 {
+            if retry_eintr!(statvfs(mount_point_cpath.as_ptr() as *const _, &mut stat)) == 0 {
                 let tmp = cast!(stat.f_bsize).saturating_mul(cast!(stat.f_bavail));
                 self.available_space = cast!(tmp);
                 true
@@ -84,7 +84,7 @@ fn new_disk(
     let mut available = 0;
     unsafe {
         let mut stat: statvfs = mem::zeroed();
-        if statvfs(mount_point_cpath.as_ptr() as *const _, &mut stat) == 0 {
+        if retry_eintr!(statvfs(mount_point_cpath.as_ptr() as *const _, &mut stat)) == 0 {
             let bsize = cast!(stat.f_bsize);
             let blocks = cast!(stat.f_blocks);
             let bavail = cast!(stat.f_bavail);
@@ -111,7 +111,7 @@ fn new_disk(
 }
 
 #[allow(clippy::manual_range_contains)]
-fn find_type_for_device_name(device_name: &OsStr) -> DiskType {
+fn find_type_for_device_name(device_name: &OsStr) -> DiskKind {
     // The format of devices are as follows:
     //  - device_name is symbolic link in the case of /dev/mapper/
     //     and /dev/root, and the target is corresponding device under
@@ -171,13 +171,13 @@ fn find_type_for_device_name(device_name: &OsStr) -> DiskType {
         .ok()
     {
         // The disk is marked as rotational so it's a HDD.
-        Some(1) => DiskType::HDD,
+        Some(1) => DiskKind::HDD,
         // The disk is marked as non-rotational so it's very likely a SSD.
-        Some(0) => DiskType::SSD,
+        Some(0) => DiskKind::SSD,
         // Normally it shouldn't happen but welcome to the wonderful world of IT! :D
-        Some(x) => DiskType::Unknown(x),
+        Some(x) => DiskKind::Unknown(x),
         // The information isn't available...
-        None => DiskType::Unknown(-1),
+        None => DiskKind::Unknown(-1),
     }
 }
 
@@ -234,7 +234,9 @@ fn get_all_disks_inner(content: &str) -> Vec<Disk> {
                 "pstore" | // https://www.kernel.org/doc/Documentation/ABI/testing/pstore
                 "squashfs" | // squashfs is a compressed read-only file system (for snaps)
                 "rpc_pipefs" | // The pipefs pseudo file system service
-                "iso9660" // optical media
+                "iso9660" | // optical media
+                "nfs4" | // calling statvfs on a mounted NFS may hang
+                "nfs" // nfs2 or nfs3
             );
 
             !(filtered ||

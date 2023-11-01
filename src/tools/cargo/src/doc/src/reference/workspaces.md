@@ -56,7 +56,6 @@ version = "0.1.0"    # the current version, obeying semver
 authors = ["Alice <a@example.com>", "Bob <b@example.com>"]
 ```
 
-<a id="virtual-manifest"></a>
 #### Virtual workspace
 
 Alternatively, a `Cargo.toml` file can be created with a `[workspace]` section
@@ -68,6 +67,7 @@ you want to keep all the packages organized in separate directories.
 # [PROJECT_DIR]/Cargo.toml
 [workspace]
 members = ["hello_world"]
+resolver = "2"
 ```
 
 ```toml
@@ -75,8 +75,14 @@ members = ["hello_world"]
 [package]
 name = "hello_world" # the name of the package
 version = "0.1.0"    # the current version, obeying semver
+edition = "2021"     # the edition, will have no effect on a resolver used in the workspace
 authors = ["Alice <a@example.com>", "Bob <b@example.com>"]
 ```
+
+Note that in a virtual manifest the [`resolver = "2"`](resolver.md#resolver-versions)
+should be specified manually. It is usually deduced from the [`package.edition`][package-edition]
+field which is absent in virtual manifests and the edition field of a member
+won't affect the resolver used by the workspace.
 
 ### The `members` and `exclude` fields 
 
@@ -242,6 +248,7 @@ if that makes sense for the tool in question.
 [package]: manifest.md#the-package-section
 [`Cargo.lock`]: ../guide/cargo-toml-vs-cargo-lock.md
 [package-metadata]: manifest.md#the-metadata-table
+[package-edition]: manifest.md#the-edition-field
 [output directory]: ../guide/build-cache.md
 [patch]: overriding-dependencies.md#the-patch-section
 [replace]: overriding-dependencies.md#the-replace-section
@@ -253,3 +260,17 @@ if that makes sense for the tool in question.
 [specifying-dependencies]: specifying-dependencies.md
 [features]: features.md
 [inheriting-a-dependency-from-a-workspace]: specifying-dependencies.md#inheriting-a-dependency-from-a-workspace
+
+<script>
+(function() {
+    var fragments = {
+        "#virtual-manifest": "workspaces.html#virtual-workspace",
+    };
+    var target = fragments[window.location.hash];
+    if (target) {
+        var url = window.location.toString();
+        var base = url.substring(0, url.lastIndexOf('/'));
+        window.location.replace(base + "/" + target);
+    }
+})();
+</script>

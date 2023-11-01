@@ -319,7 +319,7 @@ define_Conf! {
     /// Lint: DISALLOWED_NAMES.
     ///
     /// The list of disallowed names to lint about. NB: `bar` is not here since it has legitimate uses. The value
-    /// `".."` can be used as part of the list to indicate, that the configured values should be appended to the
+    /// `".."` can be used as part of the list to indicate that the configured values should be appended to the
     /// default configuration of Clippy. By default, any configuration will replace the default value.
     (disallowed_names: Vec<String> = super::DEFAULT_DISALLOWED_NAMES.iter().map(ToString::to_string).collect()),
     /// Lint: SEMICOLON_INSIDE_BLOCK.
@@ -551,6 +551,16 @@ define_Conf! {
     ///
     /// Whether to allow `r#""#` when `r""` can be used
     (allow_one_hash_in_raw_strings: bool = false),
+    /// Lint: ABSOLUTE_PATHS.
+    ///
+    /// The maximum number of segments a path can have before being linted, anything above this will
+    /// be linted.
+    (absolute_paths_max_segments: u64 = 2),
+    /// Lint: ABSOLUTE_PATHS.
+    ///
+    /// Which crates to allow absolute paths from
+    (absolute_paths_allowed_crates: rustc_data_structures::fx::FxHashSet<String> =
+        rustc_data_structures::fx::FxHashSet::default()),
 }
 
 /// Search for the configuration file.

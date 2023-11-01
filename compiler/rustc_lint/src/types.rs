@@ -17,7 +17,7 @@ use rustc_errors::DiagnosticMessage;
 use rustc_hir as hir;
 use rustc_hir::{is_range_literal, Expr, ExprKind, Node};
 use rustc_middle::ty::layout::{IntegerExt, LayoutOf, SizeSkeleton};
-use rustc_middle::ty::subst::SubstsRef;
+use rustc_middle::ty::GenericArgsRef;
 use rustc_middle::ty::{
     self, AdtKind, Ty, TyCtxt, TypeSuperVisitable, TypeVisitable, TypeVisitableExt,
 };
@@ -560,7 +560,10 @@ fn lint_nan<'tcx>(
         let expr = expr.peel_blocks().peel_borrows();
         match expr.kind {
             ExprKind::Path(qpath) => {
-                let Some(def_id) = cx.typeck_results().qpath_res(&qpath, expr.hir_id).opt_def_id() else { return false; };
+                let Some(def_id) = cx.typeck_results().qpath_res(&qpath, expr.hir_id).opt_def_id()
+                else {
+                    return false;
+                };
 
                 matches!(cx.tcx.get_diagnostic_name(def_id), Some(sym::f32_nan | sym::f64_nan))
             }
@@ -569,32 +572,36 @@ fn lint_nan<'tcx>(
     }
 
     fn eq_ne(
+        cx: &LateContext<'_>,
         e: &hir::Expr<'_>,
         l: &hir::Expr<'_>,
         r: &hir::Expr<'_>,
         f: impl FnOnce(Span, Span) -> InvalidNanComparisonsSuggestion,
     ) -> InvalidNanComparisons {
-        let suggestion =
+        // FIXME(#72505): This suggestion can be restored if `f{32,64}::is_nan` is made const.
+        let suggestion = (!cx.tcx.hir().is_inside_const_context(e.hir_id)).then(|| {
             if let Some(l_span) = l.span.find_ancestor_inside(e.span) &&
-                let Some(r_span) = r.span.find_ancestor_inside(e.span) {
+                let Some(r_span) = r.span.find_ancestor_inside(e.span)
+            {
                 f(l_span, r_span)
             } else {
                 InvalidNanComparisonsSuggestion::Spanless
-            };
+            }
+        });
 
         InvalidNanComparisons::EqNe { suggestion }
     }
 
     let lint = match binop.node {
         hir::BinOpKind::Eq | hir::BinOpKind::Ne if is_nan(cx, l) => {
-            eq_ne(e, l, r, |l_span, r_span| InvalidNanComparisonsSuggestion::Spanful {
+            eq_ne(cx, e, l, r, |l_span, r_span| InvalidNanComparisonsSuggestion::Spanful {
                 nan_plus_binop: l_span.until(r_span),
                 float: r_span.shrink_to_hi(),
                 neg: (binop.node == hir::BinOpKind::Ne).then(|| r_span.shrink_to_lo()),
             })
         }
         hir::BinOpKind::Eq | hir::BinOpKind::Ne if is_nan(cx, r) => {
-            eq_ne(e, l, r, |l_span, r_span| InvalidNanComparisonsSuggestion::Spanful {
+            eq_ne(cx, e, l, r, |l_span, r_span| InvalidNanComparisonsSuggestion::Spanful {
                 nan_plus_binop: l_span.shrink_to_hi().to(r_span),
                 float: l_span.shrink_to_hi(),
                 neg: (binop.node == hir::BinOpKind::Ne).then(|| l_span.shrink_to_lo()),
@@ -805,20 +812,19 @@ pub fn transparent_newtype_field<'a, 'tcx>(
 ) -> Option<&'a ty::FieldDef> {
     let param_env = tcx.param_env(variant.def_id);
     variant.fields.iter().find(|field| {
-        let field_ty = tcx.type_of(field.did).subst_identity();
+        let field_ty = tcx.type_of(field.did).instantiate_identity();
         let is_zst = tcx.layout_of(param_env.and(field_ty)).is_ok_and(|layout| layout.is_zst());
         !is_zst
     })
 }
 
 /// Is type known to be non-null?
-fn ty_is_known_nonnull<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>, mode: CItemKind) -> bool {
-    let tcx = cx.tcx;
+fn ty_is_known_nonnull<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>, mode: CItemKind) -> bool {
     match ty.kind() {
         ty::FnPtr(_) => true,
         ty::Ref(..) => true,
         ty::Adt(def, _) if def.is_box() && matches!(mode, CItemKind::Definition) => true,
-        ty::Adt(def, substs) if def.repr().transparent() && !def.is_union() => {
+        ty::Adt(def, args) if def.repr().transparent() && !def.is_union() => {
             let marked_non_null = nonnull_optimization_guaranteed(tcx, *def);
 
             if marked_non_null {
@@ -832,8 +838,8 @@ fn ty_is_known_nonnull<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>, mode: CItemKi
 
             def.variants()
                 .iter()
-                .filter_map(|variant| transparent_newtype_field(cx.tcx, variant))
-                .any(|field| ty_is_known_nonnull(cx, field.ty(tcx, substs), mode))
+                .filter_map(|variant| transparent_newtype_field(tcx, variant))
+                .any(|field| ty_is_known_nonnull(tcx, field.ty(tcx, args), mode))
         }
         _ => false,
     }
@@ -841,15 +847,12 @@ fn ty_is_known_nonnull<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>, mode: CItemKi
 
 /// Given a non-null scalar (or transparent) type `ty`, return the nullable version of that type.
 /// If the type passed in was not scalar, returns None.
-fn get_nullable_type<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>) -> Option<Ty<'tcx>> {
-    let tcx = cx.tcx;
+fn get_nullable_type<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> Option<Ty<'tcx>> {
     Some(match *ty.kind() {
-        ty::Adt(field_def, field_substs) => {
+        ty::Adt(field_def, field_args) => {
             let inner_field_ty = {
-                let mut first_non_zst_ty = field_def
-                    .variants()
-                    .iter()
-                    .filter_map(|v| transparent_newtype_field(cx.tcx, v));
+                let mut first_non_zst_ty =
+                    field_def.variants().iter().filter_map(|v| transparent_newtype_field(tcx, v));
                 debug_assert_eq!(
                     first_non_zst_ty.clone().count(),
                     1,
@@ -858,9 +861,9 @@ fn get_nullable_type<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>) -> Option<Ty<'t
                 first_non_zst_ty
                     .next_back()
                     .expect("No non-zst fields in transparent type.")
-                    .ty(tcx, field_substs)
+                    .ty(tcx, field_args)
             };
-            return get_nullable_type(cx, inner_field_ty);
+            return get_nullable_type(tcx, inner_field_ty);
         }
         ty::Int(ty) => Ty::new_int(tcx, ty),
         ty::Uint(ty) => Ty::new_uint(tcx, ty),
@@ -892,43 +895,44 @@ fn get_nullable_type<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>) -> Option<Ty<'t
 /// `core::ptr::NonNull`, and `#[repr(transparent)]` newtypes.
 /// FIXME: This duplicates code in codegen.
 pub(crate) fn repr_nullable_ptr<'tcx>(
-    cx: &LateContext<'tcx>,
+    tcx: TyCtxt<'tcx>,
+    param_env: ty::ParamEnv<'tcx>,
     ty: Ty<'tcx>,
     ckind: CItemKind,
 ) -> Option<Ty<'tcx>> {
-    debug!("is_repr_nullable_ptr(cx, ty = {:?})", ty);
-    if let ty::Adt(ty_def, substs) = ty.kind() {
+    debug!("is_repr_nullable_ptr(tcx, ty = {:?})", ty);
+    if let ty::Adt(ty_def, args) = ty.kind() {
         let field_ty = match &ty_def.variants().raw[..] {
             [var_one, var_two] => match (&var_one.fields.raw[..], &var_two.fields.raw[..]) {
-                ([], [field]) | ([field], []) => field.ty(cx.tcx, substs),
+                ([], [field]) | ([field], []) => field.ty(tcx, args),
                 _ => return None,
             },
             _ => return None,
         };
 
-        if !ty_is_known_nonnull(cx, field_ty, ckind) {
+        if !ty_is_known_nonnull(tcx, field_ty, ckind) {
             return None;
         }
 
         // At this point, the field's type is known to be nonnull and the parent enum is Option-like.
         // If the computed size for the field and the enum are different, the nonnull optimization isn't
         // being applied (and we've got a problem somewhere).
-        let compute_size_skeleton = |t| SizeSkeleton::compute(t, cx.tcx, cx.param_env).unwrap();
+        let compute_size_skeleton = |t| SizeSkeleton::compute(t, tcx, param_env).unwrap();
         if !compute_size_skeleton(ty).same_size(compute_size_skeleton(field_ty)) {
             bug!("improper_ctypes: Option nonnull optimization not applied?");
         }
 
         // Return the nullable type this Option-like enum can be safely represented with.
-        let field_ty_abi = &cx.layout_of(field_ty).unwrap().abi;
+        let field_ty_abi = &tcx.layout_of(param_env.and(field_ty)).unwrap().abi;
         if let Abi::Scalar(field_ty_scalar) = field_ty_abi {
-            match field_ty_scalar.valid_range(cx) {
+            match field_ty_scalar.valid_range(&tcx) {
                 WrappingRange { start: 0, end }
-                    if end == field_ty_scalar.size(&cx.tcx).unsigned_int_max() - 1 =>
+                    if end == field_ty_scalar.size(&tcx).unsigned_int_max() - 1 =>
                 {
-                    return Some(get_nullable_type(cx, field_ty).unwrap());
+                    return Some(get_nullable_type(tcx, field_ty).unwrap());
                 }
                 WrappingRange { start: 1, .. } => {
-                    return Some(get_nullable_type(cx, field_ty).unwrap());
+                    return Some(get_nullable_type(tcx, field_ty).unwrap());
                 }
                 WrappingRange { start, end } => {
                     unreachable!("Unhandled start and end range: ({}, {})", start, end)
@@ -960,9 +964,9 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
         &self,
         cache: &mut FxHashSet<Ty<'tcx>>,
         field: &ty::FieldDef,
-        substs: SubstsRef<'tcx>,
+        args: GenericArgsRef<'tcx>,
     ) -> FfiResult<'tcx> {
-        let field_ty = field.ty(self.cx.tcx, substs);
+        let field_ty = field.ty(self.cx.tcx, args);
         let field_ty = self
             .cx
             .tcx
@@ -978,14 +982,14 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
         ty: Ty<'tcx>,
         def: ty::AdtDef<'tcx>,
         variant: &ty::VariantDef,
-        substs: SubstsRef<'tcx>,
+        args: GenericArgsRef<'tcx>,
     ) -> FfiResult<'tcx> {
         use FfiResult::*;
 
         let transparent_with_all_zst_fields = if def.repr().transparent() {
             if let Some(field) = transparent_newtype_field(self.cx.tcx, variant) {
                 // Transparent newtypes have at most one non-ZST field which needs to be checked..
-                match self.check_field_type_for_ffi(cache, field, substs) {
+                match self.check_field_type_for_ffi(cache, field, args) {
                     FfiUnsafe { ty, .. } if ty.is_unit() => (),
                     r => return r,
                 }
@@ -1003,7 +1007,7 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
         // We can't completely trust `repr(C)` markings, so make sure the fields are actually safe.
         let mut all_phantom = !variant.fields.is_empty();
         for field in &variant.fields {
-            all_phantom &= match self.check_field_type_for_ffi(cache, &field, substs) {
+            all_phantom &= match self.check_field_type_for_ffi(cache, &field, args) {
                 FfiSafe => false,
                 // `()` fields are FFI-safe!
                 FfiUnsafe { ty, .. } if ty.is_unit() => false,
@@ -1037,7 +1041,7 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
         }
 
         match *ty.kind() {
-            ty::Adt(def, substs) => {
+            ty::Adt(def, args) => {
                 if def.is_box() && matches!(self.mode, CItemKind::Definition) {
                     if ty.boxed_ty().is_sized(tcx, self.cx.param_env) {
                         return FfiSafe;
@@ -1100,7 +1104,7 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
                             };
                         }
 
-                        self.check_variant_for_ffi(cache, ty, def, def.non_enum_variant(), substs)
+                        self.check_variant_for_ffi(cache, ty, def, def.non_enum_variant(), args)
                     }
                     AdtKind::Enum => {
                         if def.variants().is_empty() {
@@ -1113,7 +1117,9 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
                         if !def.repr().c() && !def.repr().transparent() && def.repr().int.is_none()
                         {
                             // Special-case types like `Option<extern fn()>`.
-                            if repr_nullable_ptr(self.cx, ty, self.mode).is_none() {
+                            if repr_nullable_ptr(self.cx.tcx, self.cx.param_env, ty, self.mode)
+                                .is_none()
+                            {
                                 return FfiUnsafe {
                                     ty,
                                     reason: fluent::lint_improper_ctypes_enum_repr_reason,
@@ -1141,7 +1147,7 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
                                 };
                             }
 
-                            match self.check_variant_for_ffi(cache, ty, def, variant, substs) {
+                            match self.check_variant_for_ffi(cache, ty, def, variant, args) {
                                 FfiSafe => (),
                                 r => return r,
                             }
@@ -1376,7 +1382,7 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
     /// For a external ABI function, argument types and the result type are walked to find fn-ptr
     /// types that have external ABIs, as these still need checked.
     fn check_fn(&mut self, def_id: LocalDefId, decl: &'tcx hir::FnDecl<'_>) {
-        let sig = self.cx.tcx.fn_sig(def_id).subst_identity();
+        let sig = self.cx.tcx.fn_sig(def_id).instantiate_identity();
         let sig = self.cx.tcx.erase_late_bound_regions(sig);
 
         for (input_ty, input_hir) in iter::zip(sig.inputs(), decl.inputs) {
@@ -1394,7 +1400,7 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
 
     /// Check if a function's argument types and result type are "ffi-safe".
     fn check_foreign_fn(&mut self, def_id: LocalDefId, decl: &'tcx hir::FnDecl<'_>) {
-        let sig = self.cx.tcx.fn_sig(def_id).subst_identity();
+        let sig = self.cx.tcx.fn_sig(def_id).instantiate_identity();
         let sig = self.cx.tcx.erase_late_bound_regions(sig);
 
         for (input_ty, input_hir) in iter::zip(sig.inputs(), decl.inputs) {
@@ -1407,7 +1413,7 @@ impl<'a, 'tcx> ImproperCTypesVisitor<'a, 'tcx> {
     }
 
     fn check_foreign_static(&mut self, id: hir::OwnerId, span: Span) {
-        let ty = self.cx.tcx.type_of(id).subst_identity();
+        let ty = self.cx.tcx.type_of(id).instantiate_identity();
         self.check_type_for_ffi_and_report_errors(span, ty, true, false);
     }
 
@@ -1513,7 +1519,7 @@ impl<'tcx> LateLintPass<'tcx> for ImproperCTypesDefinitions {
                 self.check_ty_maybe_containing_foreign_fnptr(
                     cx,
                     ty,
-                    cx.tcx.type_of(item.owner_id).subst_identity(),
+                    cx.tcx.type_of(item.owner_id).instantiate_identity(),
                 );
             }
             // See `check_fn`..
@@ -1538,7 +1544,7 @@ impl<'tcx> LateLintPass<'tcx> for ImproperCTypesDefinitions {
         self.check_ty_maybe_containing_foreign_fnptr(
             cx,
             field.ty,
-            cx.tcx.type_of(field.def_id).subst_identity(),
+            cx.tcx.type_of(field.def_id).instantiate_identity(),
         );
     }
 
@@ -1573,13 +1579,13 @@ declare_lint_pass!(VariantSizeDifferences => [VARIANT_SIZE_DIFFERENCES]);
 impl<'tcx> LateLintPass<'tcx> for VariantSizeDifferences {
     fn check_item(&mut self, cx: &LateContext<'_>, it: &hir::Item<'_>) {
         if let hir::ItemKind::Enum(ref enum_definition, _) = it.kind {
-            let t = cx.tcx.type_of(it.owner_id).subst_identity();
+            let t = cx.tcx.type_of(it.owner_id).instantiate_identity();
             let ty = cx.tcx.erase_regions(t);
             let Ok(layout) = cx.layout_of(ty) else { return };
-            let Variants::Multiple {
-                    tag_encoding: TagEncoding::Direct, tag, ref variants, ..
-                } = &layout.variants else {
-                return
+            let Variants::Multiple { tag_encoding: TagEncoding::Direct, tag, ref variants, .. } =
+                &layout.variants
+            else {
+                return;
             };
 
             let tag_size = tag.size(&cx.tcx).bytes();
@@ -1693,7 +1699,7 @@ impl InvalidAtomicOrdering {
             && recognized_names.contains(&method_path.ident.name)
             && let Some(m_def_id) = cx.typeck_results().type_dependent_def_id(expr.hir_id)
             && let Some(impl_did) = cx.tcx.impl_of_method(m_def_id)
-            && let Some(adt) = cx.tcx.type_of(impl_did).subst_identity().ty_adt_def()
+            && let Some(adt) = cx.tcx.type_of(impl_did).instantiate_identity().ty_adt_def()
             // skip extension traits, only lint functions from the standard library
             && cx.tcx.trait_id_of_impl(impl_did).is_none()
             && let parent = cx.tcx.parent(adt.did())
@@ -1752,8 +1758,13 @@ impl InvalidAtomicOrdering {
     }
 
     fn check_atomic_compare_exchange(cx: &LateContext<'_>, expr: &Expr<'_>) {
-        let Some((method, args)) = Self::inherent_atomic_method_call(cx, expr, &[sym::fetch_update, sym::compare_exchange, sym::compare_exchange_weak])
-            else {return };
+        let Some((method, args)) = Self::inherent_atomic_method_call(
+            cx,
+            expr,
+            &[sym::fetch_update, sym::compare_exchange, sym::compare_exchange_weak],
+        ) else {
+            return;
+        };
 
         let fail_order_arg = match method {
             sym::fetch_update => &args[1],

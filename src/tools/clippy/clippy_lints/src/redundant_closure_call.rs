@@ -6,8 +6,7 @@ use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_hir::intravisit as hir_visit;
-use rustc_hir::intravisit::Visitor as HirVisitor;
-use rustc_hir::intravisit::Visitor;
+use rustc_hir::intravisit::{Visitor as HirVisitor, Visitor};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::hir::nested_filter;
 use rustc_middle::lint::in_external_macro;
@@ -53,7 +52,7 @@ impl ReturnVisitor {
 
 impl<'tcx> Visitor<'tcx> for ReturnVisitor {
     fn visit_expr(&mut self, ex: &'tcx hir::Expr<'tcx>) {
-        if let hir::ExprKind::Ret(_) | hir::ExprKind::Match(.., hir::MatchSource::TryDesugar) = ex.kind {
+        if let hir::ExprKind::Ret(_) | hir::ExprKind::Match(.., hir::MatchSource::TryDesugar(_)) = ex.kind {
             self.found_return = true;
         } else {
             hir_visit::walk_expr(self, ex);

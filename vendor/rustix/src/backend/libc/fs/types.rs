@@ -1,6 +1,7 @@
 use crate::backend::c;
 use bitflags::bitflags;
 
+#[cfg(not(target_os = "espidf"))]
 bitflags! {
     /// `*_OK` constants for use with [`accessat`].
     ///
@@ -22,7 +23,7 @@ bitflags! {
     }
 }
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "espidf", target_os = "redox")))]
 bitflags! {
     /// `AT_*` constants for use with [`openat`], [`statat`], and other `*at`
     /// functions.
@@ -85,67 +86,68 @@ bitflags! {
     #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     pub struct Mode: RawMode {
         /// `S_IRWXU`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const RWXU = c::S_IRWXU as RawMode;
 
         /// `S_IRUSR`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const RUSR = c::S_IRUSR as RawMode;
 
         /// `S_IWUSR`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const WUSR = c::S_IWUSR as RawMode;
 
         /// `S_IXUSR`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const XUSR = c::S_IXUSR as RawMode;
 
         /// `S_IRWXG`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const RWXG = c::S_IRWXG as RawMode;
 
         /// `S_IRGRP`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const RGRP = c::S_IRGRP as RawMode;
 
         /// `S_IWGRP`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const WGRP = c::S_IWGRP as RawMode;
 
         /// `S_IXGRP`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const XGRP = c::S_IXGRP as RawMode;
 
         /// `S_IRWXO`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const RWXO = c::S_IRWXO as RawMode;
 
         /// `S_IROTH`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const ROTH = c::S_IROTH as RawMode;
 
         /// `S_IWOTH`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const WOTH = c::S_IWOTH as RawMode;
 
         /// `S_IXOTH`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const XOTH = c::S_IXOTH as RawMode;
 
         /// `S_ISUID`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const SUID = c::S_ISUID as RawMode;
 
         /// `S_ISGID`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const SGID = c::S_ISGID as RawMode;
 
         /// `S_ISVTX`
-        #[cfg(not(target_os = "wasi"))] // WASI doesn't have Unix-style mode flags.
+        #[cfg(not(any(target_os = "espidf", target_os = "wasi")))] // WASI doesn't have Unix-style mode flags.
         const SVTX = c::S_ISVTX as RawMode;
     }
 }
 
+#[cfg(not(target_os = "espidf"))]
 impl Mode {
     /// Construct a `Mode` from the mode bits of the `st_mode` field of a
     /// `Stat`.
@@ -161,6 +163,7 @@ impl Mode {
     }
 }
 
+#[cfg(not(target_os = "espidf"))]
 impl From<RawMode> for Mode {
     /// Support conversions from raw mode values to `Mode`.
     ///
@@ -174,6 +177,7 @@ impl From<RawMode> for Mode {
     }
 }
 
+#[cfg(not(target_os = "espidf"))]
 impl From<Mode> for RawMode {
     /// Support conversions from `Mode` to raw mode values.
     ///
@@ -214,10 +218,11 @@ bitflags! {
         const CREATE = bitcast!(c::O_CREAT);
 
         /// `O_DIRECTORY`
+        #[cfg(not(target_os = "espidf"))]
         const DIRECTORY = bitcast!(c::O_DIRECTORY);
 
         /// `O_DSYNC`
-        #[cfg(not(any(target_os = "dragonfly", target_os = "redox")))]
+        #[cfg(not(any(target_os = "dragonfly", target_os = "espidf", target_os = "l4re", target_os = "redox")))]
         const DSYNC = bitcast!(c::O_DSYNC);
 
         /// `O_EXCL`
@@ -231,6 +236,7 @@ bitflags! {
         const FSYNC = bitcast!(c::O_FSYNC);
 
         /// `O_NOFOLLOW`
+        #[cfg(not(target_os = "espidf"))]
         const NOFOLLOW = bitcast!(c::O_NOFOLLOW);
 
         /// `O_NONBLOCK`
@@ -246,7 +252,7 @@ bitflags! {
         const RDWR = bitcast!(c::O_RDWR);
 
         /// `O_NOCTTY`
-        #[cfg(not(target_os = "redox"))]
+        #[cfg(not(any(target_os = "espidf", target_os = "l4re", target_os = "redox")))]
         const NOCTTY = bitcast!(c::O_NOCTTY);
 
         /// `O_RSYNC`
@@ -259,7 +265,7 @@ bitflags! {
         const RSYNC = bitcast!(c::O_RSYNC);
 
         /// `O_SYNC`
-        #[cfg(not(target_os = "redox"))]
+        #[cfg(not(any(target_os = "l4re", target_os = "redox")))]
         const SYNC = bitcast!(c::O_SYNC);
 
         /// `O_TRUNC`
@@ -489,7 +495,13 @@ impl FileType {
     }
 
     /// Construct a `FileType` from the `d_type` field of a `c::dirent`.
-    #[cfg(not(any(solarish, target_os = "haiku", target_os = "redox")))]
+    #[cfg(not(any(
+        solarish,
+        target_os = "espidf",
+        target_os = "haiku",
+        target_os = "nto",
+        target_os = "redox"
+    )))]
     #[inline]
     pub(crate) const fn from_dirent_d_type(d_type: u8) -> Self {
         match d_type {
@@ -516,6 +528,7 @@ impl FileType {
     netbsdlike,
     solarish,
     target_os = "dragonfly",
+    target_os = "espidf",
     target_os = "haiku",
     target_os = "redox",
 )))]
@@ -725,7 +738,14 @@ bitflags! {
     }
 }
 
-#[cfg(not(any(netbsdlike, solarish, target_os = "aix", target_os = "redox")))]
+#[cfg(not(any(
+    netbsdlike,
+    solarish,
+    target_os = "aix",
+    target_os = "espidf",
+    target_os = "nto",
+    target_os = "redox"
+)))]
 bitflags! {
     /// `FALLOC_FL_*` constants for use with [`fallocate`].
     ///
@@ -753,10 +773,11 @@ bitflags! {
         #[cfg(not(any(
             bsd,
             target_os = "aix",
-            target_os = "haiku",
-            target_os = "linux",
             target_os = "emscripten",
             target_os = "fuchsia",
+            target_os = "haiku",
+            target_os = "l4re",
+            target_os = "linux",
             target_os = "wasi",
         )))]
         const NO_HIDE_STALE = bitcast!(c::FALLOC_FL_NO_HIDE_STALE);
@@ -831,9 +852,11 @@ bitflags! {
         const NOEXEC = c::ST_NOEXEC as u64;
 
         /// `ST_NOSUID`
+        #[cfg(not(target_os = "espidf"))]
         const NOSUID = c::ST_NOSUID as u64;
 
         /// `ST_RDONLY`
+        #[cfg(not(target_os = "espidf"))]
         const RDONLY = c::ST_RDONLY as u64;
 
         /// `ST_RELATIME`
@@ -850,7 +873,7 @@ bitflags! {
 ///
 /// [`flock`]: crate::fs::flock
 /// [`fcntl_lock`]: crate::fs::fcntl_lock
-#[cfg(not(target_os = "wasi"))]
+#[cfg(not(any(target_os = "espidf", target_os = "wasi")))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u32)]
 pub enum FlockOperation {
@@ -923,8 +946,10 @@ pub struct Stat {
 #[cfg(not(any(
     linux_like,
     solarish,
+    target_os = "espidf",
     target_os = "haiku",
     target_os = "netbsd",
+    target_os = "nto",
     target_os = "redox",
     target_os = "wasi",
 )))]
@@ -1062,9 +1087,15 @@ pub type FsWord = u32;
 pub type FsWord = u64;
 
 /// `__fsword_t`
-// s390x uses `u32` for `statfs` entries, even though `__fsword_t` is `u64`.
-#[cfg(all(target_os = "linux", target_arch = "s390x"))]
+// s390x uses `u32` for `statfs` entries on glibc, even though `__fsword_t` is
+// `u64`.
+#[cfg(all(target_os = "linux", target_arch = "s390x", target_env = "gnu"))]
 pub type FsWord = u32;
+
+/// `__fsword_t`
+// s390x uses `u64` for `statfs` entries on musl.
+#[cfg(all(target_os = "linux", target_arch = "s390x", target_env = "musl"))]
+pub type FsWord = u64;
 
 /// `copyfile_state_t`—State for use with [`fcopyfile`].
 ///
@@ -1074,112 +1105,3 @@ pub type FsWord = u32;
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 pub struct copyfile_state_t(pub(crate) *mut c::c_void);
-
-#[cfg(linux_kernel)]
-bitflags! {
-    /// `MS_*` constants for use with [`mount`].
-    ///
-    /// [`mount`]: crate::fs::mount
-    #[repr(transparent)]
-    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-    pub struct MountFlags: c::c_ulong {
-        /// `MS_BIND`
-        const BIND = c::MS_BIND;
-
-        /// `MS_DIRSYNC`
-        const DIRSYNC = c::MS_DIRSYNC;
-
-        /// `MS_LAZYTIME`
-        const LAZYTIME = c::MS_LAZYTIME;
-
-        /// `MS_MANDLOCK`
-        #[doc(alias = "MANDLOCK")]
-        const PERMIT_MANDATORY_FILE_LOCKING = c::MS_MANDLOCK;
-
-        /// `MS_NOATIME`
-        const NOATIME = c::MS_NOATIME;
-
-        /// `MS_NODEV`
-        const NODEV = c::MS_NODEV;
-
-        /// `MS_NODIRATIME`
-        const NODIRATIME = c::MS_NODIRATIME;
-
-        /// `MS_NOEXEC`
-        const NOEXEC = c::MS_NOEXEC;
-
-        /// `MS_NOSUID`
-        const NOSUID = c::MS_NOSUID;
-
-        /// `MS_RDONLY`
-        const RDONLY = c::MS_RDONLY;
-
-        /// `MS_REC`
-        const REC = c::MS_REC;
-
-        /// `MS_RELATIME`
-        const RELATIME = c::MS_RELATIME;
-
-        /// `MS_SILENT`
-        const SILENT = c::MS_SILENT;
-
-        /// `MS_STRICTATIME`
-        const STRICTATIME = c::MS_STRICTATIME;
-
-        /// `MS_SYNCHRONOUS`
-        const SYNCHRONOUS = c::MS_SYNCHRONOUS;
-    }
-}
-
-#[cfg(linux_kernel)]
-bitflags! {
-    /// `MS_*` constants for use with [`change_mount`].
-    ///
-    /// [`change_mount`]: crate::fs::mount::change_mount
-    #[repr(transparent)]
-    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-    pub struct MountPropagationFlags: c::c_ulong {
-        /// `MS_SHARED`
-        const SHARED = c::MS_SHARED;
-        /// `MS_PRIVATE`
-        const PRIVATE = c::MS_PRIVATE;
-        /// `MS_SLAVE`
-        const SLAVE = c::MS_SLAVE;
-        /// `MS_UNBINDABLE`
-        const UNBINDABLE = c::MS_UNBINDABLE;
-        /// `MS_REC`
-        const REC = c::MS_REC;
-    }
-}
-
-#[cfg(linux_kernel)]
-bitflags! {
-    #[repr(transparent)]
-    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-    pub(crate) struct InternalMountFlags: c::c_ulong {
-        const REMOUNT = c::MS_REMOUNT;
-        const MOVE = c::MS_MOVE;
-    }
-}
-
-#[cfg(linux_kernel)]
-pub(crate) struct MountFlagsArg(pub(crate) c::c_ulong);
-
-#[cfg(linux_kernel)]
-bitflags! {
-    /// `MNT_*` constants for use with [`unmount`].
-    ///
-    /// [`unmount`]: crate::fs::mount::unmount
-    #[repr(transparent)]
-    #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-    pub struct UnmountFlags: u32 {
-        /// `MNT_FORCE`
-        const FORCE = bitcast!(c::MNT_FORCE);
-        /// `MNT_DETACH`
-        const DETACH = bitcast!(c::MNT_DETACH);
-        /// `MNT_EXPIRE`
-        const EXPIRE = bitcast!(c::MNT_EXPIRE);
-        /// `UMOUNT_NOFOLLOW`
-        const NOFOLLOW = bitcast!(c::UMOUNT_NOFOLLOW);
-    }
-}

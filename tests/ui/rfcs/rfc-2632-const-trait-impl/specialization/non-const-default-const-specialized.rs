@@ -1,9 +1,9 @@
 // Tests that a non-const default impl can be specialized by a const trait impl,
 // but that the default impl cannot be used in a const context.
+// known-bug: #110395
+// FIXME run-pass
 
-// run-pass
-
-#![feature(const_trait_impl)]
+#![feature(const_trait_impl, effects)]
 #![feature(min_specialization)]
 
 #[const_trait]

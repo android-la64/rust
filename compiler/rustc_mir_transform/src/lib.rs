@@ -75,7 +75,7 @@ mod errors;
 mod ffi_unwind_calls;
 mod function_item_references;
 mod generator;
-mod inline;
+pub mod inline;
 mod instsimplify;
 mod large_enums;
 mod lower_intrinsics;
@@ -338,38 +338,16 @@ fn inner_mir_for_ctfe(tcx: TyCtxt<'_>, def: LocalDefId) -> Body<'_> {
         return shim::build_adt_ctor(tcx, def.to_def_id());
     }
 
-    let context = tcx
-        .hir()
-        .body_const_context(def)
-        .expect("mir_for_ctfe should not be used for runtime functions");
-
-    let body = tcx.mir_drops_elaborated_and_const_checked(def).borrow().clone();
+    let body = tcx.mir_drops_elaborated_and_const_checked(def);
+    let body = match tcx.hir().body_const_context(def) {
+        // consts and statics do not have `optimized_mir`, so we can steal the body instead of
+        // cloning it.
+        Some(hir::ConstContext::Const | hir::ConstContext::Static(_)) => body.steal(),
+        Some(hir::ConstContext::ConstFn) => body.borrow().clone(),
+        None => bug!("`mir_for_ctfe` called on non-const {def:?}"),
+    };
 
     let mut body = remap_mir_for_const_eval_select(tcx, body, hir::Constness::Const);
-
-    match context {
-        // Do not const prop functions, either they get executed at runtime or exported to metadata,
-        // so we run const prop on them, or they don't, in which case we const evaluate some control
-        // flow paths of the function and any errors in those paths will get emitted as const eval
-        // errors.
-        hir::ConstContext::ConstFn => {}
-        // Static items always get evaluated, so we can just let const eval see if any erroneous
-        // control flow paths get executed.
-        hir::ConstContext::Static(_) => {}
-        // Associated constants get const prop run so we detect common failure situations in the
-        // crate that defined the constant.
-        // Technically we want to not run on regular const items, but oli-obk doesn't know how to
-        // conveniently detect that at this point without looking at the HIR.
-        hir::ConstContext::Const => {
-            pm::run_passes(
-                tcx,
-                &mut body,
-                &[&const_prop::ConstProp],
-                Some(MirPhase::Runtime(RuntimePhase::Optimized)),
-            );
-        }
-    }
-
     pm::run_passes(tcx, &mut body, &[&ctfe_limit::CtfeLimit], None);
 
     body
@@ -446,10 +424,16 @@ fn mir_drops_elaborated_and_const_checked(tcx: TyCtxt<'_>, def: LocalDefId) -> &
 
     run_analysis_to_runtime_passes(tcx, &mut body);
 
+    // Now that drop elaboration has been performed, we can check for
+    // unconditional drop recursion.
+    rustc_mir_build::lints::check_drop_recursion(tcx, &body);
+
     tcx.alloc_steal_mir(body)
 }
 
-fn run_analysis_to_runtime_passes<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
+// Made public such that `mir_drops_elaborated_and_const_checked` can be overridden
+// by custom rustc drivers, running all the steps by themselves.
+pub fn run_analysis_to_runtime_passes<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
     assert!(body.phase == MirPhase::Analysis(AnalysisPhase::Initial));
     let did = body.source.def_id();
 
@@ -553,6 +537,7 @@ fn run_optimization_passes<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
             &normalize_array_len::NormalizeArrayLen, // has to run after `slice::len` lowering
             &const_goto::ConstGoto,
             &remove_unneeded_drops::RemoveUnneededDrops,
+            &ref_prop::ReferencePropagation,
             &sroa::ScalarReplacementOfAggregates,
             &match_branches::MatchBranchSimplification,
             // inst combine is after MatchBranchSimplification to clean up Ne(_1, false)
@@ -560,7 +545,6 @@ fn run_optimization_passes<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
             &instsimplify::InstSimplify,
             &simplify::SimplifyLocals::BeforeConstProp,
             &copy_prop::CopyProp,
-            &ref_prop::ReferencePropagation,
             // Perform `SeparateConstSwitch` after SSA-based analyses, as cloning blocks may
             // destroy the SSA property. It should still happen before const-propagation, so the
             // latter pass will leverage the created opportunities.
@@ -615,7 +599,7 @@ fn inner_optimized_mir(tcx: TyCtxt<'_>, did: LocalDefId) -> Body<'_> {
         // computes and caches its result.
         Some(hir::ConstContext::ConstFn) => tcx.ensure_with_value().mir_for_ctfe(did),
         None => {}
-        Some(other) => panic!("do not use `optimized_mir` for constants: {:?}", other),
+        Some(other) => panic!("do not use `optimized_mir` for constants: {other:?}"),
     }
     debug!("about to call mir_drops_elaborated...");
     let body = tcx.mir_drops_elaborated_and_const_checked(did).steal();

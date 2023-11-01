@@ -6,10 +6,9 @@ use clippy_utils::{
 };
 use if_chain::if_chain;
 use rustc_errors::Applicability;
+use rustc_hir::def::Res;
 use rustc_hir::LangItem::{OptionNone, OptionSome, ResultErr, ResultOk};
-use rustc_hir::{
-    def::Res, Arm, BindingAnnotation, Expr, ExprKind, MatchSource, Mutability, Pat, PatKind, Path, QPath, UnOp,
-};
+use rustc_hir::{Arm, BindingAnnotation, Expr, ExprKind, MatchSource, Mutability, Pat, PatKind, Path, QPath, UnOp};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 use rustc_span::SyntaxContext;
@@ -156,7 +155,7 @@ fn try_get_option_occurrence<'tcx>(
                 });
                 if let ExprKind::Path(QPath::Resolved(None, Path { res: Res::Local(local_id), .. })) = e.kind {
                     match some_captures.get(local_id)
-                        .or_else(|| (method_sugg == "map_or_else").then_some(()).and_then(|_| none_captures.get(local_id)))
+                        .or_else(|| (method_sugg == "map_or_else").then_some(()).and_then(|()| none_captures.get(local_id)))
                     {
                         Some(CaptureKind::Value | CaptureKind::Ref(Mutability::Mut)) => return None,
                         Some(CaptureKind::Ref(Mutability::Not)) if as_mut => return None,

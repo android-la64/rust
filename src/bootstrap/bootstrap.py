@@ -97,7 +97,7 @@ def _download(path, url, probably_big, verbose, exception):
         print("downloading {}".format(url), file=sys.stderr)
 
     try:
-        if probably_big or verbose:
+        if (probably_big or verbose) and "GITHUB_ACTIONS" not in os.environ:
             option = "-#"
         else:
             option = "-s"
@@ -256,7 +256,7 @@ def default_build_triple(verbose):
     if uname is None:
         return 'x86_64-pc-windows-msvc'
 
-    kernel, cputype, processor = uname.decode(default_encoding).split()
+    kernel, cputype, processor = uname.decode(default_encoding).split(maxsplit=2)
 
     # The goal here is to come up with the same triple as LLVM would,
     # at least for the subset of platforms we're willing to target.
@@ -332,6 +332,7 @@ def default_build_triple(verbose):
         'i786': 'i686',
         'loongarch64': 'loongarch64',
         'm68k': 'm68k',
+        'csky': 'csky',
         'powerpc': 'powerpc',
         'powerpc64': 'powerpc64',
         'powerpc64le': 'powerpc64le',
@@ -472,7 +473,9 @@ class FakeArgs:
 
 class RustBuild(object):
     """Provide all the methods required to build Rust"""
-    def __init__(self, config_toml="", args=FakeArgs()):
+    def __init__(self, config_toml="", args=None):
+        if args is None:
+            args = FakeArgs()
         self.git_version = None
         self.nix_deps_dir = None
         self._should_fix_bins_and_dylibs = None
@@ -914,12 +917,7 @@ class RustBuild(object):
 
         # preserve existing RUSTFLAGS
         env.setdefault("RUSTFLAGS", "")
-        # we need to explicitly add +xgot here so that we can successfully bootstrap
-        # a usable stage1 compiler
-        # FIXME: remove this if condition on the next bootstrap bump
-        # cfg(bootstrap)
-        if self.build_triple().startswith('mips'):
-            env["RUSTFLAGS"] += " -Ctarget-feature=+xgot"
+
         target_features = []
         if self.get_toml("crt-static", build_section) == "true":
             target_features += ["+crt-static"]

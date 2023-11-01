@@ -330,7 +330,7 @@ set a baseline for optimizations:
 
 The test should be annotated with `// EMIT_MIR` comments that specify files that
 will contain the expected MIR output.
-You can use `x.py test --bless` to create the initial expected files.
+You can use `x test --bless` to create the initial expected files.
 
 There are several forms the `EMIT_MIR` comment can take:
 
@@ -380,7 +380,7 @@ There is a [`tools.mk`] Makefile which you can include which provides a bunch of
 utilities to make it easier to run commands and compare outputs.
 Take a look at some of the other tests for some examples on how to get started.
 
-[`tools.mk`]: https://github.com/rust-lang/rust/blob/master/tests/run-make-fulldeps/tools.mk
+[`tools.mk`]: https://github.com/rust-lang/rust/blob/master/tests/run-make/tools.mk
 [`tests/run-make`]: https://github.com/rust-lang/rust/tree/master/tests/run-make
 
 
@@ -452,7 +452,7 @@ compiler, and `no-prefer-dynamic` is needed to tell compiletest to not use
 `prefer-dynamic` which is not compatible with proc-macros.
 The `#![crate_type]` attribute is needed to specify the correct crate-type.
 
-Then in your test, you can build with with `aux-build`:
+Then in your test, you can build with `aux-build`:
 
 ```rust,ignore
 // aux-build: my-proc-macro.rs
@@ -503,10 +503,9 @@ currently only apply to the test as a whole, not to particular
 revisions. The only headers that are intended to really work when
 customized to a revision are error patterns and compiler flags.
 
-
 ## Compare modes
 
-Compiletest can be run in different modes, called *compare modes*, which can
+Compiletest can be run in different modes, called _compare modes_, which can
 be used to compare the behavior of all tests with different compiler flags
 enabled.
 This can help highlight what differences might appear with certain flags, and
@@ -516,7 +515,7 @@ To run the tests in a different mode, you need to pass the `--compare-mode`
 CLI flag:
 
 ```bash
-./x.py test tests/ui --compare-mode=chalk
+./x test tests/ui --compare-mode=chalk
 ```
 
 The possible compare modes are:
@@ -537,5 +536,5 @@ following settings:
   enabling split-DWARF.
 
 Note that compare modes are separate to [revisions](#revisions).
-All revisions are tested when running `./x.py test tests/ui`, however
+All revisions are tested when running `./x test tests/ui`, however
 compare-modes must be manually run individually via the `--compare-mode` flag.

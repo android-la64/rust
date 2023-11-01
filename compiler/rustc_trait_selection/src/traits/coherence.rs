@@ -7,7 +7,7 @@
 use crate::infer::outlives::env::OutlivesEnvironment;
 use crate::infer::InferOk;
 use crate::traits::outlives_bounds::InferCtxtExt as _;
-use crate::traits::select::IntercrateAmbiguityCause;
+use crate::traits::select::{IntercrateAmbiguityCause, TreatInductiveCycleAs};
 use crate::traits::util::impl_subject_and_oblig;
 use crate::traits::SkipLeakCheck;
 use crate::traits::{
@@ -24,6 +24,7 @@ use rustc_middle::traits::DefiningAnchor;
 use rustc_middle::ty::fast_reject::{DeepRejectCtxt, TreatParams};
 use rustc_middle::ty::visit::{TypeVisitable, TypeVisitableExt};
 use rustc_middle::ty::{self, Ty, TyCtxt, TypeVisitor};
+use rustc_session::lint::builtin::COINDUCTIVE_OVERLAP_IN_COHERENCE;
 use rustc_span::symbol::sym;
 use rustc_span::DUMMY_SP;
 use std::fmt::Debug;
@@ -96,9 +97,7 @@ pub fn overlapping_impls(
     let impl1_ref = tcx.impl_trait_ref(impl1_def_id);
     let impl2_ref = tcx.impl_trait_ref(impl2_def_id);
     let may_overlap = match (impl1_ref, impl2_ref) {
-        (Some(a), Some(b)) => {
-            drcx.substs_refs_may_unify(a.skip_binder().substs, b.skip_binder().substs)
-        }
+        (Some(a), Some(b)) => drcx.args_refs_may_unify(a.skip_binder().args, b.skip_binder().args),
         (None, None) => {
             let self_ty1 = tcx.type_of(impl1_def_id).skip_binder();
             let self_ty2 = tcx.type_of(impl2_def_id).skip_binder();
@@ -143,24 +142,26 @@ fn with_fresh_ty_vars<'cx, 'tcx>(
     impl_def_id: DefId,
 ) -> ty::ImplHeader<'tcx> {
     let tcx = selcx.tcx();
-    let impl_substs = selcx.infcx.fresh_substs_for_item(DUMMY_SP, impl_def_id);
+    let impl_args = selcx.infcx.fresh_args_for_item(DUMMY_SP, impl_def_id);
 
     let header = ty::ImplHeader {
         impl_def_id,
-        self_ty: tcx.type_of(impl_def_id).subst(tcx, impl_substs),
-        trait_ref: tcx.impl_trait_ref(impl_def_id).map(|i| i.subst(tcx, impl_substs)),
+        self_ty: tcx.type_of(impl_def_id).instantiate(tcx, impl_args),
+        trait_ref: tcx.impl_trait_ref(impl_def_id).map(|i| i.instantiate(tcx, impl_args)),
         predicates: tcx
             .predicates_of(impl_def_id)
-            .instantiate(tcx, impl_substs)
+            .instantiate(tcx, impl_args)
             .iter()
-            .map(|(c, _)| c.as_predicate())
+            .map(|(c, s)| (c.as_predicate(), s))
             .collect(),
     };
 
-    let InferOk { value: mut header, obligations } =
-        selcx.infcx.at(&ObligationCause::dummy(), param_env).normalize(header);
+    let InferOk { value: mut header, obligations } = selcx
+        .infcx
+        .at(&ObligationCause::dummy_with_span(tcx.def_span(impl_def_id)), param_env)
+        .normalize(header);
 
-    header.predicates.extend(obligations.into_iter().map(|o| o.predicate));
+    header.predicates.extend(obligations.into_iter().map(|o| (o.predicate, o.cause.span)));
     header
 }
 
@@ -209,16 +210,76 @@ fn overlap<'tcx>(
     let equate_obligations = equate_impl_headers(selcx.infcx, &impl1_header, &impl2_header)?;
     debug!("overlap: unification check succeeded");
 
-    if overlap_mode.use_implicit_negative()
-        && impl_intersection_has_impossible_obligation(
-            selcx,
-            param_env,
-            &impl1_header,
-            impl2_header,
-            equate_obligations,
-        )
-    {
-        return None;
+    if overlap_mode.use_implicit_negative() {
+        for mode in [TreatInductiveCycleAs::Ambig, TreatInductiveCycleAs::Recur] {
+            if let Some(failing_obligation) = selcx.with_treat_inductive_cycle_as(mode, |selcx| {
+                impl_intersection_has_impossible_obligation(
+                    selcx,
+                    param_env,
+                    &impl1_header,
+                    &impl2_header,
+                    &equate_obligations,
+                )
+            }) {
+                if matches!(mode, TreatInductiveCycleAs::Recur) {
+                    let first_local_impl = impl1_header
+                        .impl_def_id
+                        .as_local()
+                        .or(impl2_header.impl_def_id.as_local())
+                        .expect("expected one of the impls to be local");
+                    infcx.tcx.struct_span_lint_hir(
+                        COINDUCTIVE_OVERLAP_IN_COHERENCE,
+                        infcx.tcx.local_def_id_to_hir_id(first_local_impl),
+                        infcx.tcx.def_span(first_local_impl),
+                        format!(
+                            "implementations {} will conflict in the future",
+                            match impl1_header.trait_ref {
+                                Some(trait_ref) => {
+                                    let trait_ref = infcx.resolve_vars_if_possible(trait_ref);
+                                    format!(
+                                        "of `{}` for `{}`",
+                                        trait_ref.print_only_trait_path(),
+                                        trait_ref.self_ty()
+                                    )
+                                }
+                                None => format!(
+                                    "for `{}`",
+                                    infcx.resolve_vars_if_possible(impl1_header.self_ty)
+                                ),
+                            },
+                        ),
+                        |lint| {
+                            lint.note(
+                                "impls that are not considered to overlap may be considered to \
+                                overlap in the future",
+                            )
+                            .span_label(
+                                infcx.tcx.def_span(impl1_header.impl_def_id),
+                                "the first impl is here",
+                            )
+                            .span_label(
+                                infcx.tcx.def_span(impl2_header.impl_def_id),
+                                "the second impl is here",
+                            );
+                            if !failing_obligation.cause.span.is_dummy() {
+                                lint.span_label(
+                                    failing_obligation.cause.span,
+                                    format!(
+                                        "`{}` may be considered to hold in future releases, \
+                                        causing the impls to overlap",
+                                        infcx
+                                            .resolve_vars_if_possible(failing_obligation.predicate)
+                                    ),
+                                );
+                            }
+                            lint
+                        },
+                    );
+                }
+
+                return None;
+            }
+        }
     }
 
     // We toggle the `leak_check` by using `skip_leak_check` when constructing the
@@ -286,40 +347,30 @@ fn impl_intersection_has_impossible_obligation<'cx, 'tcx>(
     selcx: &mut SelectionContext<'cx, 'tcx>,
     param_env: ty::ParamEnv<'tcx>,
     impl1_header: &ty::ImplHeader<'tcx>,
-    impl2_header: ty::ImplHeader<'tcx>,
-    obligations: PredicateObligations<'tcx>,
-) -> bool {
+    impl2_header: &ty::ImplHeader<'tcx>,
+    obligations: &PredicateObligations<'tcx>,
+) -> Option<PredicateObligation<'tcx>> {
     let infcx = selcx.infcx;
 
-    let obligation_guaranteed_to_fail = move |obligation: &PredicateObligation<'tcx>| {
-        if infcx.next_trait_solver() {
-            infcx.evaluate_obligation(obligation).map_or(false, |result| !result.may_apply())
-        } else {
-            // We use `evaluate_root_obligation` to correctly track
-            // intercrate ambiguity clauses. We do not need this in the
-            // new solver.
-            selcx.evaluate_root_obligation(obligation).map_or(
-                false, // Overflow has occurred, and treat the obligation as possibly holding.
-                |result| !result.may_apply(),
-            )
-        }
-    };
-
-    let opt_failing_obligation = [&impl1_header.predicates, &impl2_header.predicates]
+    [&impl1_header.predicates, &impl2_header.predicates]
         .into_iter()
         .flatten()
-        .map(|&predicate| {
-            Obligation::new(infcx.tcx, ObligationCause::dummy(), param_env, predicate)
+        .map(|&(predicate, span)| {
+            Obligation::new(infcx.tcx, ObligationCause::dummy_with_span(span), param_env, predicate)
         })
-        .chain(obligations)
-        .find(obligation_guaranteed_to_fail);
-
-    if let Some(failing_obligation) = opt_failing_obligation {
-        debug!("overlap: obligation unsatisfiable {:?}", failing_obligation);
-        true
-    } else {
-        false
-    }
+        .chain(obligations.into_iter().cloned())
+        .find(|obligation: &PredicateObligation<'tcx>| {
+            if infcx.next_trait_solver() {
+                infcx.evaluate_obligation(obligation).map_or(false, |result| !result.may_apply())
+            } else {
+                // We use `evaluate_root_obligation` to correctly track intercrate
+                // ambiguity clauses. We cannot use this in the new solver.
+                selcx.evaluate_root_obligation(obligation).map_or(
+                    false, // Overflow has occurred, and treat the obligation as possibly holding.
+                    |result| !result.may_apply(),
+                )
+            }
+        })
 }
 
 /// Check if both impls can be satisfied by a common type by considering whether
@@ -353,13 +404,13 @@ fn impl_intersection_has_negative_obligation(
         &infcx,
         ObligationCause::dummy(),
         impl_env,
-        tcx.impl_subject(impl1_def_id).subst_identity(),
+        tcx.impl_subject(impl1_def_id).instantiate_identity(),
     ) {
         Ok(s) => s,
         Err(err) => {
             tcx.sess.delay_span_bug(
                 tcx.def_span(impl1_def_id),
-                format!("failed to fully normalize {:?}: {:?}", impl1_def_id, err),
+                format!("failed to fully normalize {impl1_def_id:?}: {err:?}"),
             );
             return false;
         }
@@ -367,16 +418,16 @@ fn impl_intersection_has_negative_obligation(
 
     // Attempt to prove that impl2 applies, given all of the above.
     let selcx = &mut SelectionContext::new(&infcx);
-    let impl2_substs = infcx.fresh_substs_for_item(DUMMY_SP, impl2_def_id);
+    let impl2_args = infcx.fresh_args_for_item(DUMMY_SP, impl2_def_id);
     let (subject2, normalization_obligations) =
-        impl_subject_and_oblig(selcx, impl_env, impl2_def_id, impl2_substs, |_, _| {
+        impl_subject_and_oblig(selcx, impl_env, impl2_def_id, impl2_args, |_, _| {
             ObligationCause::dummy()
         });
 
     // do the impls unify? If not, then it's not currently possible to prove any
     // obligations about their intersection.
     let Ok(InferOk { obligations: equate_obligations, .. }) =
-        infcx.at(&ObligationCause::dummy(), impl_env).eq(DefineOpaqueTypes::No,subject1, subject2)
+        infcx.at(&ObligationCause::dummy(), impl_env).eq(DefineOpaqueTypes::No, subject1, subject2)
     else {
         debug!("explicit_disjoint: {:?} does not unify with {:?}", subject1, subject2);
         return false;
@@ -437,8 +488,7 @@ fn prove_negated_obligation<'tcx>(
     let body_def_id = body_def_id.as_local().unwrap_or(CRATE_DEF_ID);
 
     let ocx = ObligationCtxt::new(&infcx);
-    let Ok(wf_tys) = ocx.assumed_wf_types(param_env, body_def_id)
-    else {
+    let Ok(wf_tys) = ocx.assumed_wf_types(param_env, body_def_id) else {
         return false;
     };
 
@@ -455,22 +505,23 @@ fn prove_negated_obligation<'tcx>(
 /// This both checks whether any downstream or sibling crates could
 /// implement it and whether an upstream crate can add this impl
 /// without breaking backwards compatibility.
-#[instrument(level = "debug", skip(tcx), ret)]
-pub fn trait_ref_is_knowable<'tcx>(
+#[instrument(level = "debug", skip(tcx, lazily_normalize_ty), ret)]
+pub fn trait_ref_is_knowable<'tcx, E: Debug>(
     tcx: TyCtxt<'tcx>,
     trait_ref: ty::TraitRef<'tcx>,
-) -> Result<(), Conflict> {
+    mut lazily_normalize_ty: impl FnMut(Ty<'tcx>) -> Result<Ty<'tcx>, E>,
+) -> Result<Result<(), Conflict>, E> {
     if Some(trait_ref.def_id) == tcx.lang_items().fn_ptr_trait() {
         // The only types implementing `FnPtr` are function pointers,
         // so if there's no impl of `FnPtr` in the current crate,
         // then such an impl will never be added in the future.
-        return Ok(());
+        return Ok(Ok(()));
     }
 
-    if orphan_check_trait_ref(trait_ref, InCrate::Remote).is_ok() {
+    if orphan_check_trait_ref(trait_ref, InCrate::Remote, &mut lazily_normalize_ty)?.is_ok() {
         // A downstream or cousin crate is allowed to implement some
         // substitution of this trait-ref.
-        return Err(Conflict::Downstream);
+        return Ok(Err(Conflict::Downstream));
     }
 
     if trait_ref_is_local_or_fundamental(tcx, trait_ref) {
@@ -479,7 +530,7 @@ pub fn trait_ref_is_knowable<'tcx>(
         // allowed to implement a substitution of this trait ref, which
         // means impls could only come from dependencies of this crate,
         // which we already know about.
-        return Ok(());
+        return Ok(Ok(()));
     }
 
     // This is a remote non-fundamental trait, so if another crate
@@ -490,10 +541,10 @@ pub fn trait_ref_is_knowable<'tcx>(
     // and if we are an intermediate owner, then we don't care
     // about future-compatibility, which means that we're OK if
     // we are an owner.
-    if orphan_check_trait_ref(trait_ref, InCrate::Local).is_ok() {
-        Ok(())
+    if orphan_check_trait_ref(trait_ref, InCrate::Local, &mut lazily_normalize_ty)?.is_ok() {
+        Ok(Ok(()))
     } else {
-        Err(Conflict::Upstream)
+        Ok(Err(Conflict::Upstream))
     }
 }
 
@@ -520,7 +571,7 @@ pub enum OrphanCheckErr<'tcx> {
 pub fn orphan_check(tcx: TyCtxt<'_>, impl_def_id: DefId) -> Result<(), OrphanCheckErr<'_>> {
     // We only except this routine to be invoked on implementations
     // of a trait, not inherent implementations.
-    let trait_ref = tcx.impl_trait_ref(impl_def_id).unwrap().subst_identity();
+    let trait_ref = tcx.impl_trait_ref(impl_def_id).unwrap().instantiate_identity();
     debug!(?trait_ref);
 
     // If the *trait* is local to the crate, ok.
@@ -529,7 +580,7 @@ pub fn orphan_check(tcx: TyCtxt<'_>, impl_def_id: DefId) -> Result<(), OrphanChe
         return Ok(());
     }
 
-    orphan_check_trait_ref(trait_ref, InCrate::Local)
+    orphan_check_trait_ref::<!>(trait_ref, InCrate::Local, |ty| Ok(ty)).unwrap()
 }
 
 /// Checks whether a trait-ref is potentially implementable by a crate.
@@ -618,11 +669,12 @@ pub fn orphan_check(tcx: TyCtxt<'_>, impl_def_id: DefId) -> Result<(), OrphanChe
 ///
 /// Note that this function is never called for types that have both type
 /// parameters and inference variables.
-#[instrument(level = "trace", ret)]
-fn orphan_check_trait_ref<'tcx>(
+#[instrument(level = "trace", skip(lazily_normalize_ty), ret)]
+fn orphan_check_trait_ref<'tcx, E: Debug>(
     trait_ref: ty::TraitRef<'tcx>,
     in_crate: InCrate,
-) -> Result<(), OrphanCheckErr<'tcx>> {
+    lazily_normalize_ty: impl FnMut(Ty<'tcx>) -> Result<Ty<'tcx>, E>,
+) -> Result<Result<(), OrphanCheckErr<'tcx>>, E> {
     if trait_ref.has_infer() && trait_ref.has_param() {
         bug!(
             "can't orphan check a trait ref with both params and inference variables {:?}",
@@ -630,9 +682,10 @@ fn orphan_check_trait_ref<'tcx>(
         );
     }
 
-    let mut checker = OrphanChecker::new(in_crate);
-    match trait_ref.visit_with(&mut checker) {
+    let mut checker = OrphanChecker::new(in_crate, lazily_normalize_ty);
+    Ok(match trait_ref.visit_with(&mut checker) {
         ControlFlow::Continue(()) => Err(OrphanCheckErr::NonLocalInputType(checker.non_local_tys)),
+        ControlFlow::Break(OrphanCheckEarlyExit::NormalizationFailure(err)) => return Err(err),
         ControlFlow::Break(OrphanCheckEarlyExit::ParamTy(ty)) => {
             // Does there exist some local type after the `ParamTy`.
             checker.search_first_local_ty = true;
@@ -645,34 +698,39 @@ fn orphan_check_trait_ref<'tcx>(
             }
         }
         ControlFlow::Break(OrphanCheckEarlyExit::LocalTy(_)) => Ok(()),
-    }
+    })
 }
 
-struct OrphanChecker<'tcx> {
+struct OrphanChecker<'tcx, F> {
     in_crate: InCrate,
     in_self_ty: bool,
+    lazily_normalize_ty: F,
     /// Ignore orphan check failures and exclusively search for the first
     /// local type.
     search_first_local_ty: bool,
     non_local_tys: Vec<(Ty<'tcx>, bool)>,
 }
 
-impl<'tcx> OrphanChecker<'tcx> {
-    fn new(in_crate: InCrate) -> Self {
+impl<'tcx, F, E> OrphanChecker<'tcx, F>
+where
+    F: FnOnce(Ty<'tcx>) -> Result<Ty<'tcx>, E>,
+{
+    fn new(in_crate: InCrate, lazily_normalize_ty: F) -> Self {
         OrphanChecker {
             in_crate,
             in_self_ty: true,
+            lazily_normalize_ty,
             search_first_local_ty: false,
             non_local_tys: Vec::new(),
         }
     }
 
-    fn found_non_local_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<OrphanCheckEarlyExit<'tcx>> {
+    fn found_non_local_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<OrphanCheckEarlyExit<'tcx, E>> {
         self.non_local_tys.push((t, self.in_self_ty));
         ControlFlow::Continue(())
     }
 
-    fn found_param_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<OrphanCheckEarlyExit<'tcx>> {
+    fn found_param_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<OrphanCheckEarlyExit<'tcx, E>> {
         if self.search_first_local_ty {
             ControlFlow::Continue(())
         } else {
@@ -688,18 +746,28 @@ impl<'tcx> OrphanChecker<'tcx> {
     }
 }
 
-enum OrphanCheckEarlyExit<'tcx> {
+enum OrphanCheckEarlyExit<'tcx, E> {
+    NormalizationFailure(E),
     ParamTy(Ty<'tcx>),
     LocalTy(Ty<'tcx>),
 }
 
-impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for OrphanChecker<'tcx> {
-    type BreakTy = OrphanCheckEarlyExit<'tcx>;
+impl<'tcx, F, E> TypeVisitor<TyCtxt<'tcx>> for OrphanChecker<'tcx, F>
+where
+    F: FnMut(Ty<'tcx>) -> Result<Ty<'tcx>, E>,
+{
+    type BreakTy = OrphanCheckEarlyExit<'tcx, E>;
     fn visit_region(&mut self, _r: ty::Region<'tcx>) -> ControlFlow<Self::BreakTy> {
         ControlFlow::Continue(())
     }
 
     fn visit_ty(&mut self, ty: Ty<'tcx>) -> ControlFlow<Self::BreakTy> {
+        // Need to lazily normalize here in with `-Ztrait-solver=next-coherence`.
+        let ty = match (self.lazily_normalize_ty)(ty) {
+            Ok(ty) => ty,
+            Err(err) => return ControlFlow::Break(OrphanCheckEarlyExit::NormalizationFailure(err)),
+        };
+
         let result = match *ty.kind() {
             ty::Bool
             | ty::Char
@@ -729,11 +797,11 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for OrphanChecker<'tcx> {
 
             // For fundamental types, we just look inside of them.
             ty::Ref(_, ty, _) => ty.visit_with(self),
-            ty::Adt(def, substs) => {
+            ty::Adt(def, args) => {
                 if self.def_id_is_local(def.did()) {
                     ControlFlow::Break(OrphanCheckEarlyExit::LocalTy(ty))
                 } else if def.is_fundamental() {
-                    substs.visit_with(self)
+                    args.visit_with(self)
                 } else {
                     self.found_non_local_ty(ty)
                 }

@@ -13,6 +13,15 @@
 //! to certain types. To record this, we use the union-find implementation from
 //! the `ena` crate, which is extracted from rustc.
 
+mod cast;
+pub(crate) mod closure;
+mod coerce;
+mod expr;
+mod mutability;
+mod pat;
+mod path;
+pub(crate) mod unify;
+
 use std::{convert::identity, ops::Index};
 
 use chalk_ir::{
@@ -60,15 +69,8 @@ pub use coerce::could_coerce;
 #[allow(unreachable_pub)]
 pub use unify::could_unify;
 
-pub(crate) use self::closure::{CaptureKind, CapturedItem, CapturedItemWithoutTy};
-
-pub(crate) mod unify;
-mod path;
-mod expr;
-mod pat;
-mod coerce;
-pub(crate) mod closure;
-mod mutability;
+use cast::CastCheck;
+pub(crate) use closure::{CaptureKind, CapturedItem, CapturedItemWithoutTy};
 
 /// The entry point of type inference.
 pub(crate) fn infer_query(db: &dyn HirDatabase, def: DefWithBodyId) -> Arc<InferenceResult> {
@@ -290,7 +292,7 @@ impl Default for InternedStandardTypes {
 ///    ```
 ///
 ///    Note that for a struct, the 'deep' unsizing of the struct is not recorded.
-///    E.g., `struct Foo<T> { x: T }` we can coerce &Foo<[i32; 4]> to &Foo<[i32]>
+///    E.g., `struct Foo<T> { it: T }` we can coerce &Foo<[i32; 4]> to &Foo<[i32]>
 ///    The autoderef and -ref are the same as in the above example, but the type
 ///    stored in `unsize` is `Foo<[i32]>`, we don't store any further detail about
 ///    the underlying conversions from `[i32; 4]` to `[i32]`.
@@ -508,6 +510,8 @@ pub(crate) struct InferenceContext<'a> {
     diverges: Diverges,
     breakables: Vec<BreakableContext>,
 
+    deferred_cast_checks: Vec<CastCheck>,
+
     // fields related to closure capture
     current_captures: Vec<CapturedItemWithoutTy>,
     current_closure: Option<ClosureId>,
@@ -582,7 +586,8 @@ impl<'a> InferenceContext<'a> {
             resolver,
             diverges: Diverges::Maybe,
             breakables: Vec::new(),
-            current_captures: vec![],
+            deferred_cast_checks: Vec::new(),
+            current_captures: Vec::new(),
             current_closure: None,
             deferred_closures: FxHashMap::default(),
             closure_dependencies: FxHashMap::default(),
@@ -594,7 +599,7 @@ impl<'a> InferenceContext<'a> {
     // used this function for another workaround, mention it here. If you really need this function and believe that
     // there is no problem in it being `pub(crate)`, remove this comment.
     pub(crate) fn resolve_all(self) -> InferenceResult {
-        let InferenceContext { mut table, mut result, .. } = self;
+        let InferenceContext { mut table, mut result, deferred_cast_checks, .. } = self;
         // Destructure every single field so whenever new fields are added to `InferenceResult` we
         // don't forget to handle them here.
         let InferenceResult {
@@ -621,6 +626,13 @@ impl<'a> InferenceContext<'a> {
         } = &mut result;
 
         table.fallback_if_possible();
+
+        // Comment from rustc:
+        // Even though coercion casts provide type hints, we check casts after fallback for
+        // backwards compatibility. This makes fallback a stronger type hint than a cast coercion.
+        for cast in deferred_cast_checks {
+            cast.check(&mut table);
+        }
 
         // FIXME resolve obligations as well (use Guidance if necessary)
         table.resolve_obligations_as_possible();
@@ -1172,7 +1184,7 @@ impl<'a> InferenceContext<'a> {
         unresolved: Option<usize>,
         path: &ModPath,
     ) -> (Ty, Option<VariantId>) {
-        let remaining = unresolved.map(|x| path.segments()[x..].len()).filter(|x| x > &0);
+        let remaining = unresolved.map(|it| path.segments()[it..].len()).filter(|it| it > &0);
         match remaining {
             None => {
                 let variant = ty.as_adt().and_then(|(adt_id, _)| match adt_id {
@@ -1232,7 +1244,9 @@ impl<'a> InferenceContext<'a> {
             .as_function()?
             .lookup(self.db.upcast())
             .container
-        else { return None };
+        else {
+            return None;
+        };
         self.resolve_output_on(trait_)
     }
 
@@ -1322,7 +1336,7 @@ impl Expectation {
     /// The primary use case is where the expected type is a fat pointer,
     /// like `&[isize]`. For example, consider the following statement:
     ///
-    ///     let x: &[isize] = &[1, 2, 3];
+    ///     let it: &[isize] = &[1, 2, 3];
     ///
     /// In this case, the expected type for the `&[1, 2, 3]` expression is
     /// `&[isize]`. If however we were to say that `[1, 2, 3]` has the

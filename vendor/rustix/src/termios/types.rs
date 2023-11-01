@@ -31,15 +31,19 @@ pub struct Termios {
     #[cfg(any(
         linux_like,
         target_env = "newlib",
-        target_os = "haiku",
         target_os = "fuchsia",
+        target_os = "haiku",
         target_os = "redox"
     ))]
     pub line_discipline: c::cc_t,
 
     /// How are various special control codes handled?
     #[doc(alias = "c_cc")]
+    #[cfg(not(target_os = "haiku"))]
     pub special_codes: SpecialCodes,
+
+    #[cfg(target_os = "nto")]
+    pub(crate) __reserved: [c::c_uint; 3],
 
     /// Line discipline.
     // On PowerPC, this field comes after `c_cc`.
@@ -51,20 +55,28 @@ pub struct Termios {
     ///
     /// On Linux and BSDs, this is the arbitrary integer speed value. On all
     /// other platforms, this is the encoded speed value.
+    #[cfg(not(any(solarish, all(libc, target_env = "newlib"), target_os = "aix")))]
     pub(crate) input_speed: c::speed_t,
 
     /// See the `output_speed` and `set_output_seed` functions.
     ///
     /// On Linux and BSDs, this is the integer speed value. On all other
     /// platforms, this is the encoded speed value.
+    #[cfg(not(any(solarish, all(libc, target_env = "newlib"), target_os = "aix")))]
     pub(crate) output_speed: c::speed_t,
+
+    /// How are various special control codes handled?
+    #[doc(alias = "c_cc")]
+    #[cfg(target_os = "haiku")]
+    pub special_codes: SpecialCodes,
 }
 
 impl Termios {
-    /// `cfmakeraw(self)`—Set a `Termios` value to the settings for "raw" mode.
+    /// `cfmakeraw(self)`—Set a `Termios` value to the settings for “raw” mode.
     ///
     /// In raw mode, input is available a byte at a time, echoing is disabled,
     /// and special terminal input and output codes are disabled.
+    #[cfg(not(target_os = "nto"))]
     #[doc(alias = "cfmakeraw")]
     #[inline]
     pub fn make_raw(&mut self) {
@@ -88,8 +100,20 @@ impl Termios {
             self.input_speed as u32
         }
 
+        // On illumos, `input_speed` is not present.
+        #[cfg(any(solarish, all(libc, target_env = "newlib"), target_os = "aix"))]
+        unsafe {
+            speed::decode(c::cfgetispeed(crate::utils::as_ptr(self).cast())).unwrap()
+        }
+
         // On other platforms, it's the encoded speed.
-        #[cfg(not(any(linux_kernel, bsd)))]
+        #[cfg(not(any(
+            linux_kernel,
+            bsd,
+            solarish,
+            all(libc, target_env = "newlib"),
+            target_os = "aix"
+        )))]
         {
             speed::decode(self.input_speed).unwrap()
         }
@@ -109,8 +133,20 @@ impl Termios {
             self.output_speed as u32
         }
 
+        // On illumos, `output_speed` is not present.
+        #[cfg(any(solarish, all(libc, target_env = "newlib"), target_os = "aix"))]
+        unsafe {
+            speed::decode(c::cfgetospeed(crate::utils::as_ptr(self).cast())).unwrap()
+        }
+
         // On other platforms, it's the encoded speed.
-        #[cfg(not(any(linux_kernel, bsd)))]
+        #[cfg(not(any(
+            linux_kernel,
+            bsd,
+            solarish,
+            all(libc, target_env = "newlib"),
+            target_os = "aix"
+        )))]
         {
             speed::decode(self.output_speed).unwrap()
         }
@@ -123,6 +159,7 @@ impl Termios {
     /// encoded constant value. Not all implementations support all integer
     /// values; use the constants in the [`speed`] module for likely-supported
     /// speeds.
+    #[cfg(not(target_os = "nto"))]
     #[doc(alias = "cfsetspeed")]
     #[doc(alias = "CBAUD")]
     #[doc(alias = "CBAUDEX")]
@@ -180,8 +217,8 @@ impl core::fmt::Debug for Termios {
         #[cfg(any(
             linux_like,
             target_env = "newlib",
-            target_os = "haiku",
             target_os = "fuchsia",
+            target_os = "haiku",
             target_os = "redox"
         ))]
         {
@@ -227,7 +264,7 @@ bitflags! {
         const ICRNL = c::ICRNL;
 
         /// `IUCLC`
-        #[cfg(any(linux_kernel, solarish, target_os = "haiku"))]
+        #[cfg(any(linux_kernel, solarish, target_os = "aix", target_os = "haiku", target_os = "nto"))]
         const IUCLC = c::IUCLC;
 
         /// `IXON`
@@ -246,14 +283,12 @@ bitflags! {
 
         /// `IUTF8`
         #[cfg(not(any(
+            freebsdlike,
+            netbsdlike,
             solarish,
             target_os = "aix",
-            target_os = "dragonfly",
             target_os = "emscripten",
-            target_os = "freebsd",
             target_os = "haiku",
-            target_os = "netbsd",
-            target_os = "openbsd",
             target_os = "redox",
         )))]
         const IUTF8 = c::IUTF8;
@@ -271,9 +306,8 @@ bitflags! {
         /// `OLCUC`
         #[cfg(not(any(
             apple,
+            freebsdlike,
             target_os = "aix",
-            target_os = "dragonfly",
-            target_os = "freebsd",
             target_os = "netbsd",
             target_os = "redox",
         )))]
@@ -516,7 +550,7 @@ bitflags! {
         const CLOCAL = c::CLOCAL;
 
         /// `CRTSCTS`
-        #[cfg(not(any(target_os = "aix", target_os = "redox")))]
+        #[cfg(not(any(target_os = "aix", target_os = "nto", target_os = "redox")))]
         const CRTSCTS = c::CRTSCTS;
 
         /// `CMSPAR`
@@ -526,6 +560,7 @@ bitflags! {
             target_os = "aix",
             target_os = "emscripten",
             target_os = "haiku",
+            target_os = "nto",
             target_os = "redox",
         )))]
         const CMSPAR = c::CMSPAR;
@@ -533,7 +568,7 @@ bitflags! {
 }
 
 bitflags! {
-    /// Flags controlling "local" terminal modes.
+    /// Flags controlling “local” terminal modes.
     #[repr(transparent)]
     #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
     pub struct LocalModes: c::tcflag_t {
@@ -546,7 +581,7 @@ bitflags! {
         const ECHOCTL = c::ECHOCTL;
 
         /// `ECHOPRT`
-        #[cfg(not(target_os = "redox"))]
+        #[cfg(not(any(target_os = "nto", target_os = "redox")))]
         const ECHOPRT = c::ECHOPRT;
 
         /// `ECHOKE`
@@ -554,15 +589,15 @@ bitflags! {
         const ECHOKE = c::ECHOKE;
 
         /// `FLUSHO`
-        #[cfg(not(target_os = "redox"))]
+        #[cfg(not(any(target_os = "nto", target_os = "redox")))]
         const FLUSHO = c::FLUSHO;
 
         /// `PENDIN`
-        #[cfg(not(target_os = "redox"))]
+        #[cfg(not(any(target_os = "nto", target_os = "redox")))]
         const PENDIN = c::PENDIN;
 
         /// `EXTPROC`
-        #[cfg(not(any(target_os = "aix", target_os = "haiku", target_os = "redox")))]
+        #[cfg(not(any(target_os = "aix", target_os = "haiku", target_os = "nto", target_os = "redox")))]
         const EXTPROC = c::EXTPROC;
 
         /// `ISIG`
@@ -760,7 +795,7 @@ pub mod speed {
     /// Translate from a `c::speed_t` code to an arbitrary integer speed value
     /// `u32`.
     #[cfg(not(any(linux_kernel, bsd)))]
-    pub(crate) fn decode(encoded_speed: c::speed_t) -> Option<u32> {
+    pub(crate) const fn decode(encoded_speed: c::speed_t) -> Option<u32> {
         match encoded_speed {
             c::B0 => Some(0),
             c::B50 => Some(50),
@@ -782,35 +817,73 @@ pub mod speed {
             c::B57600 => Some(57600),
             #[cfg(not(target_os = "aix"))]
             c::B115200 => Some(115_200),
-            #[cfg(not(target_os = "aix"))]
+            #[cfg(not(any(target_os = "aix", target_os = "nto")))]
             c::B230400 => Some(230_400),
             #[cfg(not(any(
                 apple,
                 target_os = "aix",
                 target_os = "dragonfly",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "openbsd"
             )))]
             c::B460800 => Some(460_800),
-            #[cfg(not(any(bsd, solarish, target_os = "aix", target_os = "haiku")))]
+            #[cfg(not(any(
+                bsd,
+                solarish,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto"
+            )))]
             c::B500000 => Some(500_000),
-            #[cfg(not(any(bsd, solarish, target_os = "aix", target_os = "haiku")))]
+            #[cfg(not(any(
+                bsd,
+                solarish,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto"
+            )))]
             c::B576000 => Some(576_000),
             #[cfg(not(any(
                 apple,
                 target_os = "aix",
                 target_os = "dragonfly",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "openbsd"
             )))]
             c::B921600 => Some(921_600),
-            #[cfg(not(any(bsd, target_os = "aix", target_os = "haiku", target_os = "solaris")))]
+            #[cfg(not(any(
+                bsd,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto",
+                target_os = "solaris"
+            )))]
             c::B1000000 => Some(1_000_000),
-            #[cfg(not(any(bsd, target_os = "aix", target_os = "haiku", target_os = "solaris")))]
+            #[cfg(not(any(
+                bsd,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto",
+                target_os = "solaris"
+            )))]
             c::B1152000 => Some(1_152_000),
-            #[cfg(not(any(bsd, target_os = "aix", target_os = "haiku", target_os = "solaris")))]
+            #[cfg(not(any(
+                bsd,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto",
+                target_os = "solaris"
+            )))]
             c::B1500000 => Some(1_500_000),
-            #[cfg(not(any(bsd, target_os = "aix", target_os = "haiku", target_os = "solaris")))]
+            #[cfg(not(any(
+                bsd,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto",
+                target_os = "solaris"
+            )))]
             c::B2000000 => Some(2_000_000),
             #[cfg(not(any(
                 target_arch = "sparc",
@@ -818,6 +891,7 @@ pub mod speed {
                 bsd,
                 target_os = "aix",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "solaris",
             )))]
             c::B2500000 => Some(2_500_000),
@@ -827,6 +901,7 @@ pub mod speed {
                 bsd,
                 target_os = "aix",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "solaris",
             )))]
             c::B3000000 => Some(3_000_000),
@@ -836,6 +911,7 @@ pub mod speed {
                 bsd,
                 target_os = "aix",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "solaris",
             )))]
             c::B3500000 => Some(3_500_000),
@@ -845,6 +921,7 @@ pub mod speed {
                 bsd,
                 target_os = "aix",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "solaris",
             )))]
             c::B4000000 => Some(4_000_000),
@@ -855,7 +932,7 @@ pub mod speed {
     /// Translate from an arbitrary `u32` arbitrary integer speed value to a
     /// `c::speed_t` code.
     #[cfg(not(bsd))]
-    pub(crate) fn encode(speed: u32) -> Option<c::speed_t> {
+    pub(crate) const fn encode(speed: u32) -> Option<c::speed_t> {
         match speed {
             0 => Some(c::B0),
             50 => Some(c::B50),
@@ -877,35 +954,73 @@ pub mod speed {
             57600 => Some(c::B57600),
             #[cfg(not(target_os = "aix"))]
             115_200 => Some(c::B115200),
-            #[cfg(not(target_os = "aix"))]
+            #[cfg(not(any(target_os = "aix", target_os = "nto")))]
             230_400 => Some(c::B230400),
             #[cfg(not(any(
                 apple,
                 target_os = "aix",
                 target_os = "dragonfly",
                 target_os = "haiku",
-                target_os = "openbsd"
+                target_os = "nto",
+                target_os = "openbsd",
             )))]
             460_800 => Some(c::B460800),
-            #[cfg(not(any(bsd, solarish, target_os = "aix", target_os = "haiku")))]
+            #[cfg(not(any(
+                bsd,
+                solarish,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto"
+            )))]
             500_000 => Some(c::B500000),
-            #[cfg(not(any(bsd, solarish, target_os = "aix", target_os = "haiku")))]
+            #[cfg(not(any(
+                bsd,
+                solarish,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto"
+            )))]
             576_000 => Some(c::B576000),
             #[cfg(not(any(
                 apple,
                 target_os = "aix",
                 target_os = "dragonfly",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "openbsd"
             )))]
             921_600 => Some(c::B921600),
-            #[cfg(not(any(bsd, target_os = "aix", target_os = "haiku", target_os = "solaris")))]
+            #[cfg(not(any(
+                bsd,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto",
+                target_os = "solaris"
+            )))]
             1_000_000 => Some(c::B1000000),
-            #[cfg(not(any(bsd, target_os = "aix", target_os = "haiku", target_os = "solaris")))]
+            #[cfg(not(any(
+                bsd,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto",
+                target_os = "solaris"
+            )))]
             1_152_000 => Some(c::B1152000),
-            #[cfg(not(any(bsd, target_os = "aix", target_os = "haiku", target_os = "solaris")))]
+            #[cfg(not(any(
+                bsd,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto",
+                target_os = "solaris"
+            )))]
             1_500_000 => Some(c::B1500000),
-            #[cfg(not(any(bsd, target_os = "aix", target_os = "haiku", target_os = "solaris")))]
+            #[cfg(not(any(
+                bsd,
+                target_os = "aix",
+                target_os = "haiku",
+                target_os = "nto",
+                target_os = "solaris"
+            )))]
             2_000_000 => Some(c::B2000000),
             #[cfg(not(any(
                 target_arch = "sparc",
@@ -913,6 +1028,7 @@ pub mod speed {
                 bsd,
                 target_os = "aix",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "solaris",
             )))]
             2_500_000 => Some(c::B2500000),
@@ -922,6 +1038,7 @@ pub mod speed {
                 bsd,
                 target_os = "aix",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "solaris",
             )))]
             3_000_000 => Some(c::B3000000),
@@ -931,6 +1048,7 @@ pub mod speed {
                 bsd,
                 target_os = "aix",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "solaris",
             )))]
             3_500_000 => Some(c::B3500000),
@@ -940,6 +1058,7 @@ pub mod speed {
                 bsd,
                 target_os = "aix",
                 target_os = "haiku",
+                target_os = "nto",
                 target_os = "solaris",
             )))]
             4_000_000 => Some(c::B4000000),
@@ -996,14 +1115,11 @@ impl SpecialCodeIndex {
 
     /// `VSWTC`
     #[cfg(not(any(
-        apple,
+        bsd,
         solarish,
         target_os = "aix",
-        target_os = "dragonfly",
-        target_os = "freebsd",
         target_os = "haiku",
-        target_os = "netbsd",
-        target_os = "openbsd",
+        target_os = "nto",
     )))]
     pub const VSWTC: Self = Self(c::VSWTC as usize);
 
@@ -1138,31 +1254,51 @@ fn termios_layouts() {
         // On everything except PowerPC, `termios` matches `termios2` except for
         // the addition of `c_ispeed` and `c_ospeed`.
         #[cfg(not(any(target_arch = "powerpc", target_arch = "powerpc64")))]
-        assert_eq!(
+        const_assert_eq!(
             memoffset::offset_of!(Termios, input_speed),
             core::mem::size_of::<c::termios>()
         );
 
         // On PowerPC, `termios2` is `termios`.
         #[cfg(any(target_arch = "powerpc", target_arch = "powerpc64"))]
-        assert_eq!(
-            core::mem::size_of::<c::termios2>(),
-            core::mem::size_of::<c::termios>()
-        );
+        assert_eq_size!(c::termios2, c::termios);
     }
 
     #[cfg(not(linux_raw))]
     {
-        #[cfg(not(all(
-            target_env = "gnu",
-            any(
-                target_arch = "sparc",
-                target_arch = "sparc64",
-                target_arch = "mips",
-                target_arch = "mips64"
-            )
-        )))]
+        // On Mips, Sparc, and Android, the libc lacks the ospeed and ispeed
+        // fields.
+        #[cfg(all(
+            not(all(
+                target_env = "gnu",
+                any(
+                    target_arch = "mips",
+                    target_arch = "mips32r6",
+                    target_arch = "mips64",
+                    target_arch = "mips64r6",
+                    target_arch = "sparc",
+                    target_arch = "sparc64"
+                )
+            )),
+            not(all(libc, target_os = "android"))
+        ))]
         check_renamed_type!(Termios, termios);
+        #[cfg(not(all(
+            not(all(
+                target_env = "gnu",
+                any(
+                    target_arch = "mips",
+                    target_arch = "mips32r6",
+                    target_arch = "mips64",
+                    target_arch = "mips64r6",
+                    target_arch = "sparc",
+                    target_arch = "sparc64"
+                )
+            )),
+            not(all(libc, target_os = "android"))
+        )))]
+        const_assert!(core::mem::size_of::<Termios>() >= core::mem::size_of::<c::termios>());
+
         check_renamed_struct_renamed_field!(Termios, termios, input_modes, c_iflag);
         check_renamed_struct_renamed_field!(Termios, termios, output_modes, c_oflag);
         check_renamed_struct_renamed_field!(Termios, termios, control_modes, c_cflag);
@@ -1170,8 +1306,8 @@ fn termios_layouts() {
         #[cfg(any(
             linux_like,
             target_env = "newlib",
-            target_os = "haiku",
             target_os = "fuchsia",
+            target_os = "haiku",
             target_os = "redox"
         ))]
         check_renamed_struct_renamed_field!(Termios, termios, line_discipline, c_line);
@@ -1199,11 +1335,16 @@ fn termios_layouts() {
 }
 
 #[test]
-#[cfg(not(any(solarish, target_os = "emscripten")))]
+#[cfg(not(any(
+    solarish,
+    target_os = "emscripten",
+    target_os = "haiku",
+    target_os = "redox"
+)))]
 fn termios_legacy() {
     // Check that our doc aliases above are correct.
-    assert_eq!(c::EXTA, c::B19200);
-    assert_eq!(c::EXTB, c::B38400);
+    const_assert_eq!(c::EXTA, c::B19200);
+    const_assert_eq!(c::EXTB, c::B38400);
 }
 
 #[cfg(bsd)]
@@ -1211,10 +1352,10 @@ fn termios_legacy() {
 fn termios_bsd() {
     // On BSD platforms we can assume that the `B*` constants have their
     // arbitrary integer speed value. Confirm this.
-    assert_eq!(c::B0, 0);
-    assert_eq!(c::B50, 50);
-    assert_eq!(c::B19200, 19200);
-    assert_eq!(c::B38400, 38400);
+    const_assert_eq!(c::B0, 0);
+    const_assert_eq!(c::B50, 50);
+    const_assert_eq!(c::B19200, 19200);
+    const_assert_eq!(c::B38400, 38400);
 }
 
 #[test]
@@ -1242,26 +1383,36 @@ fn termios_ioctl_contiguity() {
     // When using `termios2`, we assume that we can add the optional actions
     // value to the ioctl request code. Test this assumption.
 
-    assert_eq!(c::TCSETS2, c::TCSETS2 + 0);
-    assert_eq!(c::TCSETSW2, c::TCSETS2 + 1);
-    assert_eq!(c::TCSETSF2, c::TCSETS2 + 2);
+    const_assert_eq!(c::TCSETS2, c::TCSETS2 + 0);
+    const_assert_eq!(c::TCSETSW2, c::TCSETS2 + 1);
+    const_assert_eq!(c::TCSETSF2, c::TCSETS2 + 2);
 
-    assert_eq!(c::TCSANOW - c::TCSANOW, 0);
-    assert_eq!(c::TCSADRAIN - c::TCSANOW, 1);
-    assert_eq!(c::TCSAFLUSH - c::TCSANOW, 2);
+    const_assert_eq!(c::TCSANOW - c::TCSANOW, 0);
+    const_assert_eq!(c::TCSADRAIN - c::TCSANOW, 1);
+    const_assert_eq!(c::TCSAFLUSH - c::TCSANOW, 2);
 
     // MIPS is different here.
-    #[cfg(any(target_arch = "mips", target_arch = "mips64"))]
+    #[cfg(any(
+        target_arch = "mips",
+        target_arch = "mips32r6",
+        target_arch = "mips64",
+        target_arch = "mips64r6"
+    ))]
     {
         assert_eq!(i128::from(c::TCSANOW) - i128::from(c::TCSETS), 0);
         assert_eq!(i128::from(c::TCSADRAIN) - i128::from(c::TCSETS), 1);
         assert_eq!(i128::from(c::TCSAFLUSH) - i128::from(c::TCSETS), 2);
     }
-    #[cfg(not(any(target_arch = "mips", target_arch = "mips64")))]
+    #[cfg(not(any(
+        target_arch = "mips",
+        target_arch = "mips32r6",
+        target_arch = "mips64",
+        target_arch = "mips64r6"
+    )))]
     {
-        assert_eq!(c::TCSANOW, 0);
-        assert_eq!(c::TCSADRAIN, 1);
-        assert_eq!(c::TCSAFLUSH, 2);
+        const_assert_eq!(c::TCSANOW, 0);
+        const_assert_eq!(c::TCSADRAIN, 1);
+        const_assert_eq!(c::TCSAFLUSH, 2);
     }
 }
 
@@ -1269,5 +1420,5 @@ fn termios_ioctl_contiguity() {
 #[test]
 fn termios_cibaud() {
     // Test an assumption.
-    assert_eq!(c::CIBAUD, c::CBAUD << c::IBSHIFT);
+    const_assert_eq!(c::CIBAUD, c::CBAUD << c::IBSHIFT);
 }

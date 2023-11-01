@@ -12,8 +12,8 @@
 #[cfg(target_arch = "x86")]
 use super::reg::{ArgReg, RetReg, SyscallNumber, A0, A1, A2, A3, A4, A5, R0};
 use super::vdso;
-#[cfg(all(asm, target_arch = "x86"))]
-use core::arch::asm;
+#[cfg(target_arch = "x86")]
+use core::arch::global_asm;
 use core::mem::transmute;
 use core::ptr::null_mut;
 use core::sync::atomic::AtomicPtr;
@@ -45,6 +45,10 @@ pub(crate) fn clock_gettime(which_clock: ClockId) -> __kernel_timespec {
             None => init_clock_gettime(),
         };
         let r0 = callee(which_clock as c::c_int, result.as_mut_ptr());
+        // The `ClockId` enum only contains clocks which never fail. It may be
+        // tempting to change this to `debug_assert_eq`, however they can still
+        // fail on uncommon kernel configs, so we leave this in place to ensure
+        // that we don't execute undefined behavior if they ever do fail.
         assert_eq!(r0, 0);
         result.assume_init()
     }
@@ -227,6 +231,7 @@ pub(super) type SyscallType = unsafe extern "C" fn();
 
 /// Initialize `CLOCK_GETTIME` and return its value.
 #[cfg(feature = "time")]
+#[cold]
 fn init_clock_gettime() -> ClockGettimeType {
     init();
     // SAFETY: Load the function address from static storage that we
@@ -236,6 +241,7 @@ fn init_clock_gettime() -> ClockGettimeType {
 
 /// Initialize `SYSCALL` and return its value.
 #[cfg(target_arch = "x86")]
+#[cold]
 fn init_syscall() -> SyscallType {
     init();
     // SAFETY: Load the function address from static storage that we
@@ -310,20 +316,33 @@ unsafe fn _rustix_clock_gettime_via_syscall(
     ret(syscall!(__NR_clock_gettime, c_int(clockid), res))
 }
 
-/// A symbol pointing to an `int 0x80` instruction. This “function” is only
-/// called from assembly, and only with the x86 syscall calling convention,
-/// so its signature here is not its true signature.
-#[cfg(all(asm, target_arch = "x86"))]
-#[naked]
-unsafe extern "C" fn rustix_int_0x80() {
-    asm!("int $$0x80", "ret", options(noreturn))
-}
-
-// The outline version of the `rustix_int_0x80` above.
-#[cfg(all(not(asm), target_arch = "x86"))]
+#[cfg(target_arch = "x86")]
 extern "C" {
+    /// A symbol pointing to an `int 0x80` instruction. This “function” is only
+    /// called from assembly, and only with the x86 syscall calling convention.
+    /// so its signature here is not its true signature.
+    ///
+    /// This extern block and the `global_asm!` below can be replaced with
+    /// `#[naked]` if it's stabilized.
     fn rustix_int_0x80();
 }
+
+#[cfg(target_arch = "x86")]
+global_asm!(
+    r#"
+    .section    .text.rustix_int_0x80,"ax",@progbits
+    .p2align    4
+    .weak       rustix_int_0x80
+    .hidden     rustix_int_0x80
+    .type       rustix_int_0x80, @function
+rustix_int_0x80:
+    .cfi_startproc
+    int    0x80
+    ret
+    .cfi_endproc
+    .size rustix_int_0x80, .-rustix_int_0x80
+"#
+);
 
 fn minimal_init() {
     // SAFETY: Store default function addresses in static storage so that if we
@@ -380,9 +399,9 @@ fn init() {
             let ptr = vdso.sym(cstr!("LINUX_4.15"), cstr!("__vdso_clock_gettime"));
             #[cfg(target_arch = "powerpc64")]
             let ptr = vdso.sym(cstr!("LINUX_2.6.15"), cstr!("__kernel_clock_gettime"));
-            #[cfg(target_arch = "mips")]
+            #[cfg(any(target_arch = "mips", target_arch = "mips32r6"))]
             let ptr = vdso.sym(cstr!("LINUX_2.6"), cstr!("__vdso_clock_gettime64"));
-            #[cfg(target_arch = "mips64")]
+            #[cfg(any(target_arch = "mips64", target_arch = "mips64r6"))]
             let ptr = vdso.sym(cstr!("LINUX_2.6"), cstr!("__vdso_clock_gettime"));
 
             // On all 64-bit platforms, the 64-bit `clock_gettime` symbols are
@@ -392,7 +411,12 @@ fn init() {
 
             // On some 32-bit platforms, the 64-bit `clock_gettime` symbols are not
             // available on older kernel versions.
-            #[cfg(any(target_arch = "arm", target_arch = "mips", target_arch = "x86"))]
+            #[cfg(any(
+                target_arch = "arm",
+                target_arch = "mips",
+                target_arch = "mips32r6",
+                target_arch = "x86"
+            ))]
             let ok = !ptr.is_null();
 
             if ok {

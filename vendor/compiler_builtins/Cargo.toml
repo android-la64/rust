@@ -10,8 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2018"
 name = "compiler_builtins"
-version = "0.1.95"
+version = "0.1.100"
 authors = ["Jorge Aparicio <japaricious@gmail.com>"]
 links = "compiler-rt"
 include = [

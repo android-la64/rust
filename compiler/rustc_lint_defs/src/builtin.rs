@@ -2847,6 +2847,45 @@ declare_lint! {
 }
 
 declare_lint! {
+    /// The `unnameable_test_items` lint detects [`#[test]`][test] functions
+    /// that are not able to be run by the test harness because they are in a
+    /// position where they are not nameable.
+    ///
+    /// [test]: https://doc.rust-lang.org/reference/attributes/testing.html#the-test-attribute
+    ///
+    /// ### Example
+    ///
+    /// ```rust,test
+    /// fn main() {
+    ///     #[test]
+    ///     fn foo() {
+    ///         // This test will not fail because it does not run.
+    ///         assert_eq!(1, 2);
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// In order for the test harness to run a test, the test function must be
+    /// located in a position where it can be accessed from the crate root.
+    /// This generally means it must be defined in a module, and not anywhere
+    /// else such as inside another function. The compiler previously allowed
+    /// this without an error, so a lint was added as an alert that a test is
+    /// not being used. Whether or not this should be allowed has not yet been
+    /// decided, see [RFC 2471] and [issue #36629].
+    ///
+    /// [RFC 2471]: https://github.com/rust-lang/rfcs/pull/2471#issuecomment-397414443
+    /// [issue #36629]: https://github.com/rust-lang/rust/issues/36629
+    pub UNNAMEABLE_TEST_ITEMS,
+    Warn,
+    "detects an item that cannot be named being marked as `#[test_case]`",
+    report_in_external_macro
+}
+
+declare_lint! {
     /// The `useless_deprecated` lint detects deprecation attributes with no effect.
     ///
     /// ### Example
@@ -3316,6 +3355,7 @@ declare_lint_pass! {
         // tidy-alphabetical-start
         ABSOLUTE_PATHS_NOT_STARTING_WITH_CRATE,
         AMBIGUOUS_ASSOCIATED_ITEMS,
+        AMBIGUOUS_GLOB_IMPORTS,
         AMBIGUOUS_GLOB_REEXPORTS,
         ARITHMETIC_OVERFLOW,
         ASM_SUB_REGISTER,
@@ -3326,6 +3366,7 @@ declare_lint_pass! {
         BYTE_SLICE_IN_PACKED_STRUCT_WITH_DERIVE,
         CENUM_IMPL_DROP_CAST,
         COHERENCE_LEAK_CHECK,
+        COINDUCTIVE_OVERLAP_IN_COHERENCE,
         CONFLICTING_REPR_HINTS,
         CONST_EVALUATABLE_UNCHECKED,
         CONST_ITEM_MUTATION,
@@ -3400,7 +3441,9 @@ declare_lint_pass! {
         UNFULFILLED_LINT_EXPECTATIONS,
         UNINHABITED_STATIC,
         UNKNOWN_CRATE_TYPES,
+        UNKNOWN_DIAGNOSTIC_ATTRIBUTES,
         UNKNOWN_LINTS,
+        UNNAMEABLE_TEST_ITEMS,
         UNNAMEABLE_TYPES,
         UNREACHABLE_CODE,
         UNREACHABLE_PATTERNS,
@@ -3923,7 +3966,6 @@ declare_lint! {
     ///
     /// // in crate B
     /// #![feature(non_exhaustive_omitted_patterns_lint)]
-    ///
     /// match Bar::A {
     ///     Bar::A => {},
     ///     #[warn(non_exhaustive_omitted_patterns)]
@@ -4052,12 +4094,12 @@ declare_lint! {
     ///
     /// The compiler disables the automatic implementation if an explicit one
     /// exists for given type constructor. The exact rules governing this
-    /// are currently unsound, quite subtle, and will be modified in the future.
-    /// This change will cause the automatic implementation to be disabled in more
+    /// were previously unsound, quite subtle, and have been recently modified.
+    /// This change caused the automatic implementation to be disabled in more
     /// cases, potentially breaking some code.
     pub SUSPICIOUS_AUTO_TRAIT_IMPLS,
     Warn,
-    "the rules governing auto traits will change in the future",
+    "the rules governing auto traits have recently changed resulting in potential breakage",
     @future_incompatible = FutureIncompatibleInfo {
         reason: FutureIncompatibilityReason::FutureReleaseSemanticsChange,
         reference: "issue #93367 <https://github.com/rust-lang/rust/issues/93367>",
@@ -4084,7 +4126,7 @@ declare_lint! {
     ///
     /// ### Explanation
     ///
-    /// The preferred location for where clauses on associated types in impls
+    /// The preferred location for where clauses on associated types
     /// is after the type. However, for most of generic associated types development,
     /// it was only accepted before the equals. To provide a transition period and
     /// further evaluate this change, both are currently accepted. At some point in
@@ -4379,4 +4421,109 @@ declare_lint! {
     Allow,
     "effective visibility of a type is larger than the area in which it can be named",
     @feature_gate = sym::type_privacy_lints;
+}
+
+declare_lint! {
+    /// The `coinductive_overlap_in_coherence` lint detects impls which are currently
+    /// considered not overlapping, but may be considered to overlap if support for
+    /// coinduction is added to the trait solver.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    /// #![deny(coinductive_overlap_in_coherence)]
+    ///
+    /// trait CyclicTrait {}
+    /// impl<T: CyclicTrait> CyclicTrait for T {}
+    ///
+    /// trait Trait {}
+    /// impl<T: CyclicTrait> Trait for T {}
+    /// // conflicting impl with the above
+    /// impl Trait for u8 {}
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// We have two choices for impl which satisfy `u8: Trait`: the blanket impl
+    /// for generic `T`, and the direct impl for `u8`. These two impls nominally
+    /// overlap, since we can infer `T = u8` in the former impl, but since the where
+    /// clause `u8: CyclicTrait` would end up resulting in a cycle (since it depends
+    /// on itself), the blanket impl is not considered to hold for `u8`. This will
+    /// change in a future release.
+    pub COINDUCTIVE_OVERLAP_IN_COHERENCE,
+    Warn,
+    "impls that are not considered to overlap may be considered to \
+    overlap in the future",
+    @future_incompatible = FutureIncompatibleInfo {
+        reference: "issue #114040 <https://github.com/rust-lang/rust/issues/114040>",
+    };
+}
+
+declare_lint! {
+    /// The `unknown_diagnostic_attributes` lint detects unrecognized diagnostic attributes.
+    ///
+    /// ### Example
+    ///
+    /// ```rust
+    /// #![feature(diagnostic_namespace)]
+    /// #[diagnostic::does_not_exist]
+    /// struct Foo;
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// It is usually a mistake to specify a diagnostic attribute that does not exist. Check
+    /// the spelling, and check the diagnostic attribute listing for the correct name. Also
+    /// consider if you are using an old version of the compiler, and the attribute
+    /// is only available in a newer version.
+    pub UNKNOWN_DIAGNOSTIC_ATTRIBUTES,
+    Warn,
+    "unrecognized diagnostic attribute"
+}
+
+declare_lint! {
+    /// The `ambiguous_glob_imports` lint detects glob imports that should report ambiguity
+    /// errors, but previously didn't do that due to rustc bugs.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,compile_fail
+    ///
+    /// #![deny(ambiguous_glob_imports)]
+    /// pub fn foo() -> u32 {
+    ///     use sub::*;
+    ///     C
+    /// }
+    ///
+    /// mod sub {
+    ///     mod mod1 { pub const C: u32 = 1; }
+    ///     mod mod2 { pub const C: u32 = 2; }
+    ///
+    ///     pub use mod1::*;
+    ///     pub use mod2::*;
+    /// }
+    /// ```
+    ///
+    /// {{produces}}
+    ///
+    /// ### Explanation
+    ///
+    /// Previous versions of Rust compile it successfully because it
+    /// had lost the ambiguity error when resolve `use sub::mod2::*`.
+    ///
+    /// This is a [future-incompatible] lint to transition this to a
+    /// hard error in the future.
+    ///
+    /// [future-incompatible]: ../index.md#future-incompatible-lints
+    pub AMBIGUOUS_GLOB_IMPORTS,
+    Warn,
+    "detects certain glob imports that require reporting an ambiguity error",
+    @future_incompatible = FutureIncompatibleInfo {
+        reason: FutureIncompatibilityReason::FutureReleaseError,
+        reference: "issue #114095 <https://github.com/rust-lang/rust/issues/114095>",
+    };
 }

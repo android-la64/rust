@@ -175,7 +175,7 @@ The maximum amount of nesting a block can reside in
 
 ## `disallowed-names`
 The list of disallowed names to lint about. NB: `bar` is not here since it has legitimate uses. The value
-`".."` can be used as part of the list to indicate, that the configured values should be appended to the
+`".."` can be used as part of the list to indicate that the configured values should be appended to the
 default configuration of Clippy. By default, any configuration will replace the default value.
 
 **Default Value:** `["foo", "baz", "quux"]` (`Vec<String>`)
@@ -728,5 +728,26 @@ Whether to allow `r#""#` when `r""` can be used
 ---
 **Affected lints:**
 * [`unnecessary_raw_string_hashes`](https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_raw_string_hashes)
+
+
+## `absolute-paths-max-segments`
+The maximum number of segments a path can have before being linted, anything above this will
+be linted.
+
+**Default Value:** `2` (`u64`)
+
+---
+**Affected lints:**
+* [`absolute_paths`](https://rust-lang.github.io/rust-clippy/master/index.html#absolute_paths)
+
+
+## `absolute-paths-allowed-crates`
+Which crates to allow absolute paths from
+
+**Default Value:** `{}` (`rustc_data_structures::fx::FxHashSet<String>`)
+
+---
+**Affected lints:**
+* [`absolute_paths`](https://rust-lang.github.io/rust-clippy/master/index.html#absolute_paths)
 
 
