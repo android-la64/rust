@@ -32,15 +32,14 @@ use crate::fs::{
     StatVfsMountFlags, StatxFlags, Timestamps, Uid, XattrFlags,
 };
 use crate::io;
-use core::mem::{transmute, zeroed, MaybeUninit};
+use core::mem::MaybeUninit;
 #[cfg(any(target_arch = "mips64", target_arch = "mips64r6"))]
 use linux_raw_sys::general::stat as linux_stat64;
 use linux_raw_sys::general::{
-    __kernel_fsid_t, __kernel_timespec, open_how, statx, AT_EACCESS, AT_FDCWD, AT_REMOVEDIR,
-    AT_SYMLINK_NOFOLLOW, F_ADD_SEALS, F_GETFL, F_GET_SEALS, F_SETFL, SEEK_CUR, SEEK_DATA, SEEK_END,
-    SEEK_HOLE, SEEK_SET, STATX__RESERVED,
+    __kernel_fsid_t, open_how, statx, AT_EACCESS, AT_FDCWD, AT_REMOVEDIR, AT_SYMLINK_NOFOLLOW,
+    F_ADD_SEALS, F_GETFL, F_GET_SEALS, F_SETFL, SEEK_CUR, SEEK_DATA, SEEK_END, SEEK_HOLE, SEEK_SET,
+    STATX__RESERVED,
 };
-use linux_raw_sys::ioctl::{BLKPBSZGET, BLKSSZGET, EXT4_IOC_RESIZE_FS, FICLONE};
 #[cfg(target_pointer_width = "32")]
 use {
     crate::backend::conv::{hi, lo, slice_just_addr},
@@ -160,6 +159,30 @@ pub(crate) fn chownat(
 }
 
 #[inline]
+pub(crate) fn chown(path: &CStr, owner: Option<Uid>, group: Option<Gid>) -> io::Result<()> {
+    // Most architectures have a `chown` syscall.
+    #[cfg(not(any(target_arch = "aarch64", target_arch = "riscv64")))]
+    unsafe {
+        let (ow, gr) = crate::ugid::translate_fchown_args(owner, group);
+        ret(syscall_readonly!(__NR_chown, path, c_uint(ow), c_uint(gr)))
+    }
+
+    // Aarch64 and RISC-V don't, so use `fchownat`.
+    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    unsafe {
+        let (ow, gr) = crate::ugid::translate_fchown_args(owner, group);
+        ret(syscall_readonly!(
+            __NR_fchownat,
+            raw_fd(AT_FDCWD),
+            path,
+            c_uint(ow),
+            c_uint(gr),
+            zero()
+        ))
+    }
+}
+
+#[inline]
 pub(crate) fn fchown(fd: BorrowedFd<'_>, owner: Option<Uid>, group: Option<Gid>) -> io::Result<()> {
     unsafe {
         let (ow, gr) = crate::ugid::translate_fchown_args(owner, group);
@@ -207,9 +230,7 @@ pub(crate) fn seek(fd: BorrowedFd<'_>, pos: SeekFrom) -> io::Result<u64> {
         }
         SeekFrom::End(offset) => (SEEK_END, offset),
         SeekFrom::Current(offset) => (SEEK_CUR, offset),
-        #[cfg(target_os = "linux")]
         SeekFrom::Data(offset) => (SEEK_DATA, offset),
-        #[cfg(target_os = "linux")]
         SeekFrom::Hole(offset) => (SEEK_HOLE, offset),
     };
     _seek(fd, offset, whence)
@@ -915,6 +936,7 @@ fn statfs_to_statvfs(statfs: StatFs) -> StatVfs {
     }
 }
 
+#[cfg(feature = "alloc")]
 #[inline]
 pub(crate) fn readlink(path: &CStr, buf: &mut [u8]) -> io::Result<usize> {
     let (buf_addr_mut, buf_len) = slice_mut(buf);
@@ -929,6 +951,7 @@ pub(crate) fn readlink(path: &CStr, buf: &mut [u8]) -> io::Result<usize> {
     }
 }
 
+#[cfg(feature = "alloc")]
 #[inline]
 pub(crate) fn readlinkat(
     dirfd: BorrowedFd<'_>,
@@ -1028,38 +1051,37 @@ pub(crate) fn fcntl_lock(fd: BorrowedFd<'_>, operation: FlockOperation) -> io::R
         FlockOperation::NonBlockingUnlock => (F_SETLK, F_UNLCK),
     };
 
+    let lock = flock {
+        l_type: l_type as _,
+
+        // When `l_len` is zero, this locks all the bytes from
+        // `l_whence`/`l_start` to the end of the file, even as the
+        // file grows dynamically.
+        l_whence: SEEK_SET as _,
+        l_start: 0,
+        l_len: 0,
+
+        // Unused.
+        l_pid: 0,
+    };
+
+    #[cfg(target_pointer_width = "32")]
     unsafe {
-        let lock = flock {
-            l_type: l_type as _,
-
-            // When `l_len` is zero, this locks all the bytes from
-            // `l_whence`/`l_start` to the end of the file, even as the
-            // file grows dynamically.
-            l_whence: SEEK_SET as _,
-            l_start: 0,
-            l_len: 0,
-
-            ..zeroed()
-        };
-
-        #[cfg(target_pointer_width = "32")]
-        {
-            ret(syscall_readonly!(
-                __NR_fcntl64,
-                fd,
-                c_uint(cmd),
-                by_ref(&lock)
-            ))
-        }
-        #[cfg(target_pointer_width = "64")]
-        {
-            ret(syscall_readonly!(
-                __NR_fcntl,
-                fd,
-                c_uint(cmd),
-                by_ref(&lock)
-            ))
-        }
+        ret(syscall_readonly!(
+            __NR_fcntl64,
+            fd,
+            c_uint(cmd),
+            by_ref(&lock)
+        ))
+    }
+    #[cfg(target_pointer_width = "64")]
+    unsafe {
+        ret(syscall_readonly!(
+            __NR_fcntl,
+            fd,
+            c_uint(cmd),
+            by_ref(&lock)
+        ))
     }
 }
 
@@ -1235,6 +1257,7 @@ pub(crate) fn mkdirat(dirfd: BorrowedFd<'_>, path: &CStr, mode: Mode) -> io::Res
     unsafe { ret(syscall_readonly!(__NR_mkdirat, dirfd, path, mode)) }
 }
 
+#[cfg(feature = "alloc")]
 #[inline]
 pub(crate) fn getdents(fd: BorrowedFd<'_>, dirent: &mut [u8]) -> io::Result<usize> {
     let (dirent_addr_mut, dirent_len) = slice_mut(dirent);
@@ -1269,9 +1292,6 @@ fn _utimensat(
     times: &Timestamps,
     flags: AtFlags,
 ) -> io::Result<()> {
-    // Assert that `Timestamps` has the expected layout.
-    let _ = unsafe { transmute::<Timestamps, [__kernel_timespec; 2]>(times.clone()) };
-
     // `utimensat_time64` was introduced in Linux 5.1. The old `utimensat`
     // syscall is not y2038-compatible on 32-bit architectures.
     #[cfg(target_pointer_width = "32")]
@@ -1626,37 +1646,10 @@ pub(crate) fn fremovexattr(fd: BorrowedFd<'_>, name: &CStr) -> io::Result<()> {
     unsafe { ret(syscall_readonly!(__NR_fremovexattr, fd, name)) }
 }
 
-#[inline]
-pub(crate) fn ioctl_blksszget(fd: BorrowedFd) -> io::Result<u32> {
-    let mut result = MaybeUninit::<c::c_uint>::uninit();
-    unsafe {
-        ret(syscall!(__NR_ioctl, fd, c_uint(BLKSSZGET), &mut result))?;
-        Ok(result.assume_init() as u32)
-    }
-}
+#[test]
+fn test_sizes() {
+    assert_eq_size!(linux_raw_sys::general::__kernel_loff_t, u64);
 
-#[inline]
-pub(crate) fn ioctl_blkpbszget(fd: BorrowedFd) -> io::Result<u32> {
-    let mut result = MaybeUninit::<c::c_uint>::uninit();
-    unsafe {
-        ret(syscall!(__NR_ioctl, fd, c_uint(BLKPBSZGET), &mut result))?;
-        Ok(result.assume_init() as u32)
-    }
-}
-
-#[inline]
-pub(crate) fn ioctl_ficlone(fd: BorrowedFd<'_>, src_fd: BorrowedFd<'_>) -> io::Result<()> {
-    unsafe { ret(syscall_readonly!(__NR_ioctl, fd, c_uint(FICLONE), src_fd)) }
-}
-
-#[inline]
-pub(crate) fn ext4_ioc_resize_fs(fd: BorrowedFd<'_>, blocks: u64) -> io::Result<()> {
-    unsafe {
-        ret(syscall_readonly!(
-            __NR_ioctl,
-            fd,
-            c_uint(EXT4_IOC_RESIZE_FS),
-            by_ref(&blocks)
-        ))
-    }
+    // Assert that `Timestamps` has the expected layout.
+    assert_eq_size!([linux_raw_sys::general::__kernel_timespec; 2], Timestamps);
 }

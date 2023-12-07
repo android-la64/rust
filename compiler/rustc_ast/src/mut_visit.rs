@@ -510,6 +510,9 @@ pub fn noop_visit_ty<T: MutVisitor>(ty: &mut P<Ty>, vis: &mut T) {
             visit_vec(bounds, |bound| vis.visit_param_bound(bound));
         }
         TyKind::MacCall(mac) => vis.visit_mac_call(mac),
+        TyKind::AnonStruct(fields) | TyKind::AnonUnion(fields) => {
+            fields.flat_map_in_place(|field| vis.flat_map_field_def(field));
+        }
     }
     vis.visit_span(span);
     visit_lazy_tts(tokens, vis);
@@ -1363,7 +1366,7 @@ pub fn noop_visit_expr<T: MutVisitor>(
             vis.visit_ty(ty);
         }
         ExprKind::AddrOf(_, _, ohs) => vis.visit_expr(ohs),
-        ExprKind::Let(pat, scrutinee, _) => {
+        ExprKind::Let(pat, scrutinee, _, _) => {
             vis.visit_pat(pat);
             vis.visit_expr(scrutinee);
         }

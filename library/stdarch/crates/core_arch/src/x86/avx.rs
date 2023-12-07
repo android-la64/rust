@@ -738,7 +738,7 @@ pub const _CMP_TRUE_US: i32 = 0x1f;
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cmp_pd<const IMM5: i32>(a: __m128d, b: __m128d) -> __m128d {
     static_assert_uimm_bits!(IMM5, 5);
-    vcmppd(a, b, IMM5 as i8)
+    vcmppd(a, b, const { IMM5 as i8 })
 }
 
 /// Compares packed double-precision (64-bit) floating-point
@@ -768,7 +768,7 @@ pub unsafe fn _mm256_cmp_pd<const IMM5: i32>(a: __m256d, b: __m256d) -> __m256d 
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cmp_ps<const IMM5: i32>(a: __m128, b: __m128) -> __m128 {
     static_assert_uimm_bits!(IMM5, 5);
-    vcmpps(a, b, IMM5 as i8)
+    vcmpps(a, b, const { IMM5 as i8 })
 }
 
 /// Compares packed single-precision (32-bit) floating-point
@@ -783,7 +783,7 @@ pub unsafe fn _mm_cmp_ps<const IMM5: i32>(a: __m128, b: __m128) -> __m128 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_cmp_ps<const IMM5: i32>(a: __m256, b: __m256) -> __m256 {
     static_assert_uimm_bits!(IMM5, 5);
-    vcmpps256(a, b, IMM5 as u8)
+    vcmpps256(a, b, const { IMM5 as u8 })
 }
 
 /// Compares the lower double-precision (64-bit) floating-point element in
@@ -1028,7 +1028,7 @@ pub unsafe fn _mm_permutevar_ps(a: __m128, b: __m128i) -> __m128 {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_permute_ps)
 #[inline]
 #[target_feature(enable = "avx")]
-#[cfg_attr(test, assert_instr(vpermilps, IMM8 = 9))]
+#[cfg_attr(test, assert_instr(vshufps, IMM8 = 9))]
 #[rustc_legacy_const_generics(1)]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_permute_ps<const IMM8: i32>(a: __m256) -> __m256 {
@@ -1055,7 +1055,7 @@ pub unsafe fn _mm256_permute_ps<const IMM8: i32>(a: __m256) -> __m256 {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_permute_ps)
 #[inline]
 #[target_feature(enable = "avx,sse")]
-#[cfg_attr(test, assert_instr(vpermilps, IMM8 = 9))]
+#[cfg_attr(test, assert_instr(vshufps, IMM8 = 9))]
 #[rustc_legacy_const_generics(1)]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_permute_ps<const IMM8: i32>(a: __m128) -> __m128 {
@@ -1102,7 +1102,7 @@ pub unsafe fn _mm_permutevar_pd(a: __m128d, b: __m128i) -> __m128d {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_permute_pd)
 #[inline]
 #[target_feature(enable = "avx")]
-#[cfg_attr(test, assert_instr(vpermilpd, IMM4 = 0x1))]
+#[cfg_attr(test, assert_instr(vshufpd, IMM4 = 0x1))]
 #[rustc_legacy_const_generics(1)]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_permute_pd<const IMM4: i32>(a: __m256d) -> __m256d {
@@ -1125,7 +1125,7 @@ pub unsafe fn _mm256_permute_pd<const IMM4: i32>(a: __m256d) -> __m256d {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_permute_pd)
 #[inline]
 #[target_feature(enable = "avx,sse2")]
-#[cfg_attr(test, assert_instr(vpermilpd, IMM2 = 0x1))]
+#[cfg_attr(test, assert_instr(vshufpd, IMM2 = 0x1))]
 #[rustc_legacy_const_generics(1)]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_permute_pd<const IMM2: i32>(a: __m128d) -> __m128d {
@@ -1439,7 +1439,7 @@ pub unsafe fn _mm256_loadu_pd(mem_addr: *const f64) -> __m256d {
 #[cfg_attr(test, assert_instr(vmovups))] // FIXME vmovupd expected
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_storeu_pd(mem_addr: *mut f64, a: __m256d) {
-    storeupd256(mem_addr, a);
+    mem_addr.cast::<__m256d>().write_unaligned(a);
 }
 
 /// Loads 256-bits (composed of 8 packed single-precision (32-bit)
@@ -1471,7 +1471,7 @@ pub unsafe fn _mm256_loadu_ps(mem_addr: *const f32) -> __m256 {
 #[cfg_attr(test, assert_instr(vmovups))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_storeu_ps(mem_addr: *mut f32, a: __m256) {
-    storeups256(mem_addr, a);
+    mem_addr.cast::<__m256>().write_unaligned(a);
 }
 
 /// Loads 256-bits of integer data from memory into result.
@@ -1519,7 +1519,7 @@ pub unsafe fn _mm256_loadu_si256(mem_addr: *const __m256i) -> __m256i {
 }
 
 /// Stores 256-bits of integer data from `a` into memory.
-/// 	`mem_addr` does not need to be aligned on any particular boundary.
+/// `mem_addr` does not need to be aligned on any particular boundary.
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_storeu_si256)
 #[inline]
@@ -1527,7 +1527,7 @@ pub unsafe fn _mm256_loadu_si256(mem_addr: *const __m256i) -> __m256i {
 #[cfg_attr(test, assert_instr(vmovups))] // FIXME vmovdqu expected
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_storeu_si256(mem_addr: *mut __m256i, a: __m256i) {
-    storeudq256(mem_addr as *mut i8, a.as_i8x32());
+    mem_addr.write_unaligned(a);
 }
 
 /// Loads packed double-precision (64-bit) floating-point elements from memory
@@ -2974,12 +2974,6 @@ extern "C" {
     fn vbroadcastf128ps256(a: &__m128) -> __m256;
     #[link_name = "llvm.x86.avx.vbroadcastf128.pd.256"]
     fn vbroadcastf128pd256(a: &__m128d) -> __m256d;
-    #[link_name = "llvm.x86.avx.storeu.pd.256"]
-    fn storeupd256(mem_addr: *mut f64, a: __m256d);
-    #[link_name = "llvm.x86.avx.storeu.ps.256"]
-    fn storeups256(mem_addr: *mut f32, a: __m256);
-    #[link_name = "llvm.x86.avx.storeu.dq.256"]
-    fn storeudq256(mem_addr: *mut i8, a: i8x32);
     #[link_name = "llvm.x86.avx.maskload.pd.256"]
     fn maskloadpd256(mem_addr: *const i8, mask: i64x4) -> __m256d;
     #[link_name = "llvm.x86.avx.maskstore.pd.256"]

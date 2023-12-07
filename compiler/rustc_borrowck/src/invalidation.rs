@@ -159,7 +159,9 @@ impl<'cx, 'tcx> Visitor<'tcx> for InvalidationGenerator<'cx, 'tcx> {
 
                 self.mutate_place(location, *resume_arg, Deep);
             }
-            TerminatorKind::Resume | TerminatorKind::Return | TerminatorKind::GeneratorDrop => {
+            TerminatorKind::UnwindResume
+            | TerminatorKind::Return
+            | TerminatorKind::GeneratorDrop => {
                 // Invalidate all borrows of local places
                 let borrow_set = self.borrow_set;
                 let start = self.location_table.start_index(location);
@@ -200,7 +202,7 @@ impl<'cx, 'tcx> Visitor<'tcx> for InvalidationGenerator<'cx, 'tcx> {
                 }
             }
             TerminatorKind::Goto { target: _ }
-            | TerminatorKind::Terminate
+            | TerminatorKind::UnwindTerminate(_)
             | TerminatorKind::Unreachable
             | TerminatorKind::FalseEdge { real_target: _, imaginary_target: _ }
             | TerminatorKind::FalseUnwind { real_target: _, unwind: _ } => {
@@ -251,8 +253,8 @@ impl<'cx, 'tcx> InvalidationGenerator<'cx, 'tcx> {
         match rvalue {
             &Rvalue::Ref(_ /*rgn*/, bk, place) => {
                 let access_kind = match bk {
-                    BorrowKind::Shallow => {
-                        (Shallow(Some(ArtificialField::ShallowBorrow)), Read(ReadKind::Borrow(bk)))
+                    BorrowKind::Fake => {
+                        (Shallow(Some(ArtificialField::FakeBorrow)), Read(ReadKind::Borrow(bk)))
                     }
                     BorrowKind::Shared => (Deep, Read(ReadKind::Borrow(bk))),
                     BorrowKind::Mut { .. } => {
@@ -374,8 +376,8 @@ impl<'cx, 'tcx> InvalidationGenerator<'cx, 'tcx> {
                         // have already taken the reservation
                     }
 
-                    (Read(_), BorrowKind::Shallow | BorrowKind::Shared)
-                    | (Read(ReadKind::Borrow(BorrowKind::Shallow)), BorrowKind::Mut { .. }) => {
+                    (Read(_), BorrowKind::Fake | BorrowKind::Shared)
+                    | (Read(ReadKind::Borrow(BorrowKind::Fake)), BorrowKind::Mut { .. }) => {
                         // Reads don't invalidate shared or shallow borrows
                     }
 
@@ -420,7 +422,7 @@ impl<'cx, 'tcx> InvalidationGenerator<'cx, 'tcx> {
 
             // only mutable borrows should be 2-phase
             assert!(match borrow.kind {
-                BorrowKind::Shared | BorrowKind::Shallow => false,
+                BorrowKind::Shared | BorrowKind::Fake => false,
                 BorrowKind::Mut { .. } => true,
             });
 

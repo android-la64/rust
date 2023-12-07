@@ -32,9 +32,8 @@ use windows_sys::Win32::Storage::FileSystem::{
     FILE_SHARE_WRITE, OPEN_EXISTING,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateSemaphoreW, ReleaseSemaphore, WaitForSingleObjectEx,
+    CreateSemaphoreW, ReleaseSemaphore, WaitForSingleObjectEx, INFINITE,
 };
-use windows_sys::Win32::System::WindowsProgramming::INFINITE;
 use windows_sys::Win32::System::IO::{CancelIo, OVERLAPPED};
 
 const BUF_SIZE: u32 = 16384;
@@ -278,7 +277,7 @@ fn start_read(rd: &ReadData, event_handler: Arc<Mutex<dyn EventHandler>>, handle
     };
 
     unsafe {
-        let mut overlapped: Box<OVERLAPPED> = Box::new(mem::zeroed());
+        let mut overlapped = std::mem::ManuallyDrop::new(Box::new(mem::zeroed::<OVERLAPPED>()));
         // When using callback based async requests, we are allowed to use the hEvent member
         // for our own purposes
 
@@ -295,19 +294,18 @@ fn start_read(rd: &ReadData, event_handler: Arc<Mutex<dyn EventHandler>>, handle
             monitor_subdir,
             flags,
             &mut 0u32 as *mut u32, // not used for async reqs
-            &mut *overlapped as *mut OVERLAPPED,
+            (&mut **overlapped) as *mut OVERLAPPED,
             Some(handle_event),
         );
 
         if ret == 0 {
             // error reading. retransmute request memory to allow drop.
-            // allow overlapped to drop by omitting forget()
+            // Because of the error, ownership of the `overlapped` alloc was not passed
+            // over to `ReadDirectoryChangesW`.
+            // So we can claim ownership back.
+            let _overlapped_alloc = std::mem::ManuallyDrop::into_inner(overlapped);
             let request: Box<ReadDirectoryRequest> = mem::transmute(request_p);
-
             ReleaseSemaphore(request.data.complete_sem, 1, ptr::null_mut());
-        } else {
-            // read ok. forget overlapped to let the completion routine handle memory
-            mem::forget(overlapped);
         }
     }
 }
@@ -353,6 +351,12 @@ unsafe extern "system" fn handle_event(
         };
 
         if !skip {
+            log::trace!(
+                "Event: path = `{}`, action = {:?}",
+                path.display(),
+                (*cur_entry).Action
+            );
+
             let newe = Event::new(EventKind::Any).add_path(path);
 
             fn emit_event(event_handler: &Mutex<dyn EventHandler>, res: Result<Event>) {
@@ -502,7 +506,7 @@ impl ReadDirectoryChangesWatcher {
 }
 
 impl Watcher for ReadDirectoryChangesWatcher {
-    fn new<F: EventHandler>(event_handler: F, config: Config) -> Result<Self> {
+    fn new<F: EventHandler>(event_handler: F, _config: Config) -> Result<Self> {
         // create dummy channel for meta event
         // TODO: determine the original purpose of this - can we remove it?
         let (meta_tx, _) = unbounded();

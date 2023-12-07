@@ -1,20 +1,18 @@
 #[derive(thiserror::Error, Debug, Clone)]
 #[allow(missing_docs)]
 pub enum Error {
-    #[error("Cannot represent times before UNIX epoch at timestamp {timestamp}")]
-    TooEarly { timestamp: i64 },
     #[error("Could not convert a duration into a date")]
     RelativeTimeConversion,
     #[error("Date string can not be parsed")]
     InvalidDateString { input: String },
-    #[error("Dates past 2038 can not be represented.")]
+    #[error("The heat-death of the universe happens before this date")]
     InvalidDate(#[from] std::num::TryFromIntError),
     #[error("Current time is missing but required to handle relative dates.")]
     MissingCurrentTime,
 }
 
 pub(crate) mod function {
-    use std::{convert::TryInto, str::FromStr, time::SystemTime};
+    use std::{str::FromStr, time::SystemTime};
 
     use time::{format_description::well_known, Date, OffsetDateTime};
 
@@ -24,7 +22,7 @@ pub(crate) mod function {
             format::{DEFAULT, GITOXIDE, ISO8601, ISO8601_STRICT, SHORT},
             Sign,
         },
-        Time,
+        SecondsSinceUnixEpoch, Time,
     };
 
     #[allow(missing_docs)]
@@ -36,42 +34,33 @@ pub(crate) mod function {
 
         Ok(if let Ok(val) = Date::parse(input, SHORT) {
             let val = val.with_hms(0, 0, 0).expect("date is in range").assume_utc();
-            Time::new(val.unix_timestamp().try_into()?, val.offset().whole_seconds())
+            Time::new(val.unix_timestamp(), val.offset().whole_seconds())
         } else if let Ok(val) = OffsetDateTime::parse(input, &well_known::Rfc2822) {
-            Time::new(val.unix_timestamp().try_into()?, val.offset().whole_seconds())
+            Time::new(val.unix_timestamp(), val.offset().whole_seconds())
         } else if let Ok(val) = OffsetDateTime::parse(input, ISO8601) {
-            Time::new(val.unix_timestamp().try_into()?, val.offset().whole_seconds())
+            Time::new(val.unix_timestamp(), val.offset().whole_seconds())
         } else if let Ok(val) = OffsetDateTime::parse(input, ISO8601_STRICT) {
-            Time::new(val.unix_timestamp().try_into()?, val.offset().whole_seconds())
+            Time::new(val.unix_timestamp(), val.offset().whole_seconds())
         } else if let Ok(val) = OffsetDateTime::parse(input, GITOXIDE) {
-            Time::new(val.unix_timestamp().try_into()?, val.offset().whole_seconds())
+            Time::new(val.unix_timestamp(), val.offset().whole_seconds())
         } else if let Ok(val) = OffsetDateTime::parse(input, DEFAULT) {
-            Time::new(val.unix_timestamp().try_into()?, val.offset().whole_seconds())
-        } else if let Ok(val) = u32::from_str(input) {
+            Time::new(val.unix_timestamp(), val.offset().whole_seconds())
+        } else if let Ok(val) = SecondsSinceUnixEpoch::from_str(input) {
             // Format::Unix
             Time::new(val, 0)
         } else if let Some(val) = parse_raw(input) {
             // Format::Raw
             val
         } else if let Some(time) = relative::parse(input, now).transpose()? {
-            Time::new(timestamp(time)?, time.offset().whole_seconds())
+            Time::new(time.unix_timestamp(), time.offset().whole_seconds())
         } else {
             return Err(Error::InvalidDateString { input: input.into() });
         })
     }
 
-    fn timestamp(date: OffsetDateTime) -> Result<u32, Error> {
-        let timestamp = date.unix_timestamp();
-        if timestamp < 0 {
-            Err(Error::TooEarly { timestamp })
-        } else {
-            Ok(timestamp.try_into()?)
-        }
-    }
-
     fn parse_raw(input: &str) -> Option<Time> {
         let mut split = input.split_whitespace();
-        let seconds_since_unix_epoch: u32 = split.next()?.parse().ok()?;
+        let seconds: SecondsSinceUnixEpoch = split.next()?.parse().ok()?;
         let offset = split.next()?;
         if offset.len() != 5 || split.next().is_some() {
             return None;
@@ -88,8 +77,8 @@ pub(crate) mod function {
             offset_in_seconds *= -1;
         };
         let time = Time {
-            seconds_since_unix_epoch,
-            offset_in_seconds,
+            seconds,
+            offset: offset_in_seconds,
             sign,
         };
         Some(time)

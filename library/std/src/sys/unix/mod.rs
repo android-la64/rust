@@ -204,6 +204,10 @@ pub unsafe fn init(argc: isize, argv: *const *const u8, sigpipe: u8) {
             }
             if let Some(handler) = handler {
                 rtassert!(signal(libc::SIGPIPE, handler) != libc::SIG_ERR);
+                #[cfg(target_os = "hurd")]
+                {
+                    rtassert!(signal(libc::SIGLOST, handler) != libc::SIG_ERR);
+                }
             }
         }
     }
@@ -239,6 +243,11 @@ pub unsafe fn cleanup() {
 pub use crate::sys::android::signal;
 #[cfg(not(target_os = "android"))]
 pub use libc::signal;
+
+#[inline]
+pub(crate) fn is_interrupted(errno: i32) -> bool {
+    errno == libc::EINTR
+}
 
 pub fn decode_error_kind(errno: i32) -> ErrorKind {
     use ErrorKind::*;
@@ -315,7 +324,7 @@ where
 {
     loop {
         match cvt(f()) {
-            Err(ref e) if e.kind() == ErrorKind::Interrupted => {}
+            Err(ref e) if e.is_interrupted() => {}
             other => return other,
         }
     }

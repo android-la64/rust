@@ -1,15 +1,16 @@
 mod _ref {
     use bstr::ByteSlice;
+    use winnow::{error::StrContext, prelude::*};
 
     use crate::{signature::decode, IdentityRef, Signature, SignatureRef};
 
     impl<'a> SignatureRef<'a> {
         /// Deserialize a signature from the given `data`.
-        pub fn from_bytes<E>(data: &'a [u8]) -> Result<SignatureRef<'a>, nom::Err<E>>
+        pub fn from_bytes<E>(mut data: &'a [u8]) -> Result<SignatureRef<'a>, winnow::error::ErrMode<E>>
         where
-            E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+            E: winnow::error::ParserError<&'a [u8]> + winnow::error::AddContext<&'a [u8], StrContext>,
         {
-            decode(data).map(|(_, t)| t)
+            decode.parse_next(&mut data)
         }
 
         /// Create an owned instance from this shared one.
@@ -94,7 +95,7 @@ pub(crate) mod write {
     /// Output
     impl Signature {
         /// Serialize this instance to `out` in the git serialization format for actors.
-        pub fn write_to(&self, out: impl std::io::Write) -> std::io::Result<()> {
+        pub fn write_to(&self, out: &mut dyn std::io::Write) -> std::io::Result<()> {
             self.to_ref().write_to(out)
         }
         /// Computes the number of bytes necessary to serialize this signature
@@ -105,7 +106,7 @@ pub(crate) mod write {
 
     impl<'a> SignatureRef<'a> {
         /// Serialize this instance to `out` in the git serialization format for actors.
-        pub fn write_to(&self, mut out: impl std::io::Write) -> std::io::Result<()> {
+        pub fn write_to(&self, out: &mut dyn std::io::Write) -> std::io::Result<()> {
             out.write_all(validated_token(self.name)?)?;
             out.write_all(b" ")?;
             out.write_all(b"<")?;

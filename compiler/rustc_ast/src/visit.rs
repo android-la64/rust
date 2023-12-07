@@ -438,6 +438,9 @@ pub fn walk_ty<'a, V: Visitor<'a>>(visitor: &mut V, typ: &'a Ty) {
         TyKind::Infer | TyKind::ImplicitSelf | TyKind::Err => {}
         TyKind::MacCall(mac) => visitor.visit_mac_call(mac),
         TyKind::Never | TyKind::CVarArgs => {}
+        TyKind::AnonStruct(ref fields, ..) | TyKind::AnonUnion(ref fields, ..) => {
+            walk_list!(visitor, visit_field_def, fields)
+        }
     }
 }
 
@@ -824,7 +827,7 @@ pub fn walk_expr<'a, V: Visitor<'a>>(visitor: &mut V, expression: &'a Expr) {
             visitor.visit_expr(subexpression);
             visitor.visit_ty(typ)
         }
-        ExprKind::Let(pat, expr, _) => {
+        ExprKind::Let(pat, expr, _, _) => {
             visitor.visit_pat(pat);
             visitor.visit_expr(expr);
         }

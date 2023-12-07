@@ -100,7 +100,7 @@ fn main() {
             .replace("@LIBCURL_LIBS@", "")
             .replace("@SUPPORT_FEATURES@", "")
             .replace("@SUPPORT_PROTOCOLS@", "")
-            .replace("@CURLVERSION@", "8.2.1"),
+            .replace("@CURLVERSION@", "8.4.0"),
     )
     .unwrap();
 
@@ -145,10 +145,10 @@ fn main() {
         .file("curl/lib/cookie.c")
         .file("curl/lib/curl_addrinfo.c")
         .file("curl/lib/curl_get_line.c")
-        .file("curl/lib/curl_log.c")
         .file("curl/lib/curl_memrchr.c")
         .file("curl/lib/curl_range.c")
         .file("curl/lib/curl_threads.c")
+        .file("curl/lib/curl_trc.c")
         .file("curl/lib/doh.c")
         .file("curl/lib/dynbuf.c")
         .file("curl/lib/dynhds.c")
@@ -443,6 +443,7 @@ fn main() {
     if target.contains("-apple-") {
         println!("cargo:rustc-link-lib=framework=Security");
         println!("cargo:rustc-link-lib=framework=CoreFoundation");
+        println!("cargo:rustc-link-lib=framework=CoreServices");
         println!("cargo:rustc-link-lib=framework=SystemConfiguration");
     }
 }

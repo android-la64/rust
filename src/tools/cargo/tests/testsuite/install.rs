@@ -72,6 +72,18 @@ fn toolchain() {
 }
 
 #[cargo_test]
+fn url() {
+    pkg("foo", "0.0.1");
+    cargo_process("install https://github.com/bar/foo")
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] invalid package name: `https://github.com/bar/foo`
+    Use `cargo install --git https://github.com/bar/foo` if you meant to install from a git repository.")
+        .run();
+}
+
+#[cargo_test]
 fn simple_with_message_format() {
     pkg("foo", "0.0.1");
 
@@ -1600,8 +1612,13 @@ fn inline_version_without_name() {
     pkg("foo", "0.1.2");
 
     cargo_process("install @0.1.1")
-        .with_status(101)
-        .with_stderr("error: missing crate name for `@0.1.1`")
+        .with_status(1)
+        .with_stderr(
+            "error: invalid value '@0.1.1' for '[crate]...': missing crate name before '@'
+
+For more information, try '--help'.
+",
+        )
         .run();
 }
 
@@ -1612,7 +1629,7 @@ fn inline_and_explicit_version() {
 
     cargo_process("install foo@0.1.1 --version 0.1.1")
         .with_status(101)
-        .with_stderr("error: cannot specify both `@0.1.1` and `--version`")
+        .with_stderr("error: cannot specify both `@<VERSION>` and `--version <VERSION>`")
         .run();
 }
 
@@ -1827,7 +1844,7 @@ fn install_empty_argument() {
     cargo_process("install")
         .arg("")
         .with_status(1)
-        .with_stderr_contains("[ERROR] a value is required for '[crate]...' but none was supplied")
+        .with_stderr_contains("[ERROR] invalid value '' for '[crate]...': crate name is empty")
         .run();
 }
 
@@ -2275,9 +2292,9 @@ fn failed_install_retains_temp_directory() {
     .unwrap();
 
     // Find the path in the output.
-    let start = stderr.find("found at `").unwrap() + 10;
-    let end = stderr[start..].find('.').unwrap() - 1;
-    let path = Path::new(&stderr[start..(end + start)]);
+    let stderr = stderr.split_once("found at `").unwrap().1;
+    let end = stderr.find('.').unwrap() - 1;
+    let path = Path::new(&stderr[..end]);
     assert!(path.exists());
     assert!(path.join("release/deps").exists());
 }
@@ -2425,4 +2442,24 @@ fn ambiguous_registry_vs_local_package() {
         )
         .run();
     assert_has_installed_exe(cargo_home(), "foo");
+}
+
+#[cargo_test]
+fn install_with_redundant_default_mode() {
+    pkg("foo", "0.0.1");
+
+    cargo_process("install foo --release")
+        .with_stderr(
+            "\
+error: unexpected argument '--release' found
+
+  tip: `--release` is the default for `cargo install`; instead `--debug` is supported
+
+Usage: cargo[EXE] install [OPTIONS] [crate]...
+
+For more information, try '--help'.
+",
+        )
+        .with_status(1)
+        .run();
 }

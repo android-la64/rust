@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "globset"
-version = "0.4.10"
+version = "0.4.13"
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 Cross platform single glob and glob set matching. Glob set matching is the
@@ -37,10 +37,10 @@ name = "globset"
 bench = false
 
 [dependencies.aho-corasick]
-version = "0.7.3"
+version = "1.0.2"
 
 [dependencies.bstr]
-version = "1.1.0"
+version = "1.6.0"
 features = ["std"]
 default-features = false
 
@@ -52,7 +52,7 @@ version = "0.4.5"
 optional = true
 
 [dependencies.regex]
-version = "1.1.5"
+version = "1.8.3"
 features = [
     "perf",
     "std",

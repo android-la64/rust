@@ -47,14 +47,16 @@ pub fn cli() -> Command {
             "Fix all targets (default)",
         )
         .arg_features()
-        .arg_jobs()
+        .arg_parallel()
         .arg_release("Fix artifacts in release mode, with optimizations")
         .arg_profile("Build artifacts with the specified profile")
         .arg_target_triple("Fix for the target triple")
         .arg_target_dir()
         .arg_timings()
         .arg_manifest_path()
-        .after_help("Run `cargo help fix` for more detailed information.\n")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help fix</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {

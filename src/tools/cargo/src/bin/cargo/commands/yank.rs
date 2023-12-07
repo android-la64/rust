@@ -16,16 +16,16 @@ pub fn cli() -> Command {
             "undo",
             "Undo a yank, putting a version back into the index",
         ))
-        .arg(opt("index", "Registry index to yank from").value_name("INDEX"))
-        .arg(opt("registry", "Registry to use").value_name("REGISTRY"))
+        .arg_index("Registry index URL to yank from")
+        .arg_registry("Registry to yank from")
         .arg(opt("token", "API token to use when authenticating").value_name("TOKEN"))
         .arg_quiet()
-        .after_help("Run `cargo help yank` for more detailed information.\n")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help yank</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
-    let registry = args.registry(config)?;
-
     let (krate, version) = resolve_crate(
         args.get_one::<String>("crate").map(String::as_str),
         args.get_one::<String>("version").map(String::as_str),
@@ -39,9 +39,8 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
         krate.map(|s| s.to_string()),
         version.map(|s| s.to_string()),
         args.get_one::<String>("token").cloned().map(Secret::from),
-        args.get_one::<String>("index").cloned(),
+        args.registry_or_index(config)?,
         args.flag("undo"),
-        registry,
     )?;
     Ok(())
 }

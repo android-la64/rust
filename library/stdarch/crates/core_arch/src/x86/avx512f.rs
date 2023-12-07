@@ -17141,9 +17141,11 @@ pub unsafe fn _mm_maskz_ror_epi64<const IMM8: i32>(k: __mmask8, a: __m128i) -> _
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm512_slli_epi32<const IMM8: u32>(a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i32x16();
-    let r = vpsllid(a, IMM8);
-    transmute(r)
+    if IMM8 >= 32 {
+        _mm512_setzero_si512()
+    } else {
+        transmute(simd_shl(a.as_u32x16(), u32x16::splat(IMM8 as u32)))
+    }
 }
 
 /// Shift packed 32-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17159,9 +17161,12 @@ pub unsafe fn _mm512_mask_slli_epi32<const IMM8: u32>(
     a: __m512i,
 ) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i32x16();
-    let shf = vpsllid(a, IMM8);
-    transmute(simd_select_bitmask(k, shf, src.as_i32x16()))
+    let shf = if IMM8 >= 32 {
+        u32x16::splat(0)
+    } else {
+        simd_shl(a.as_u32x16(), u32x16::splat(IMM8))
+    };
+    transmute(simd_select_bitmask(k, shf, src.as_u32x16()))
 }
 
 /// Shift packed 32-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17173,10 +17178,13 @@ pub unsafe fn _mm512_mask_slli_epi32<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm512_maskz_slli_epi32<const IMM8: u32>(k: __mmask16, a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i32x16();
-    let shf = vpsllid(a, IMM8);
-    let zero = _mm512_setzero_si512().as_i32x16();
-    transmute(simd_select_bitmask(k, shf, zero))
+    if IMM8 >= 32 {
+        _mm512_setzero_si512()
+    } else {
+        let shf = simd_shl(a.as_u32x16(), u32x16::splat(IMM8));
+        let zero = u32x16::splat(0);
+        transmute(simd_select_bitmask(k, shf, zero))
+    }
 }
 
 /// Shift packed 32-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17192,9 +17200,12 @@ pub unsafe fn _mm256_mask_slli_epi32<const IMM8: u32>(
     a: __m256i,
 ) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psllid256(a.as_i32x8(), imm8);
-    transmute(simd_select_bitmask(k, r, src.as_i32x8()))
+    let r = if IMM8 >= 32 {
+        u32x8::splat(0)
+    } else {
+        simd_shl(a.as_u32x8(), u32x8::splat(IMM8))
+    };
+    transmute(simd_select_bitmask(k, r, src.as_u32x8()))
 }
 
 /// Shift packed 32-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17206,10 +17217,13 @@ pub unsafe fn _mm256_mask_slli_epi32<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm256_maskz_slli_epi32<const IMM8: u32>(k: __mmask8, a: __m256i) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psllid256(a.as_i32x8(), imm8);
-    let zero = _mm256_setzero_si256().as_i32x8();
-    transmute(simd_select_bitmask(k, r, zero))
+    if IMM8 >= 32 {
+        _mm256_setzero_si256()
+    } else {
+        let r = simd_shl(a.as_u32x8(), u32x8::splat(IMM8));
+        let zero = u32x8::splat(0);
+        transmute(simd_select_bitmask(k, r, zero))
+    }
 }
 
 /// Shift packed 32-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17225,9 +17239,12 @@ pub unsafe fn _mm_mask_slli_epi32<const IMM8: u32>(
     a: __m128i,
 ) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psllid128(a.as_i32x4(), imm8);
-    transmute(simd_select_bitmask(k, r, src.as_i32x4()))
+    let r = if IMM8 >= 32 {
+        u32x4::splat(0)
+    } else {
+        simd_shl(a.as_u32x4(), u32x4::splat(IMM8))
+    };
+    transmute(simd_select_bitmask(k, r, src.as_u32x4()))
 }
 
 /// Shift packed 32-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17239,10 +17256,13 @@ pub unsafe fn _mm_mask_slli_epi32<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm_maskz_slli_epi32<const IMM8: u32>(k: __mmask8, a: __m128i) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psllid128(a.as_i32x4(), imm8);
-    let zero = _mm_setzero_si128().as_i32x4();
-    transmute(simd_select_bitmask(k, r, zero))
+    if IMM8 >= 32 {
+        _mm_setzero_si128()
+    } else {
+        let r = simd_shl(a.as_u32x4(), u32x4::splat(IMM8));
+        let zero = u32x4::splat(0);
+        transmute(simd_select_bitmask(k, r, zero))
+    }
 }
 
 /// Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and store the results in dst.
@@ -17254,9 +17274,11 @@ pub unsafe fn _mm_maskz_slli_epi32<const IMM8: u32>(k: __mmask8, a: __m128i) -> 
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm512_srli_epi32<const IMM8: u32>(a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i32x16();
-    let r = vpsrlid(a, IMM8);
-    transmute(r)
+    if IMM8 >= 32 {
+        _mm512_setzero_si512()
+    } else {
+        transmute(simd_shr(a.as_u32x16(), u32x16::splat(IMM8)))
+    }
 }
 
 /// Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17272,9 +17294,12 @@ pub unsafe fn _mm512_mask_srli_epi32<const IMM8: u32>(
     a: __m512i,
 ) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i32x16();
-    let shf = vpsrlid(a, IMM8);
-    transmute(simd_select_bitmask(k, shf, src.as_i32x16()))
+    let shf = if IMM8 >= 32 {
+        u32x16::splat(0)
+    } else {
+        simd_shr(a.as_u32x16(), u32x16::splat(IMM8))
+    };
+    transmute(simd_select_bitmask(k, shf, src.as_u32x16()))
 }
 
 /// Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17286,10 +17311,13 @@ pub unsafe fn _mm512_mask_srli_epi32<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm512_maskz_srli_epi32<const IMM8: u32>(k: __mmask16, a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i32x16();
-    let shf = vpsrlid(a, IMM8);
-    let zero = _mm512_setzero_si512().as_i32x16();
-    transmute(simd_select_bitmask(k, shf, zero))
+    if IMM8 >= 32 {
+        _mm512_setzero_si512()
+    } else {
+        let shf = simd_shr(a.as_u32x16(), u32x16::splat(IMM8));
+        let zero = u32x16::splat(0);
+        transmute(simd_select_bitmask(k, shf, zero))
+    }
 }
 
 /// Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17305,9 +17333,12 @@ pub unsafe fn _mm256_mask_srli_epi32<const IMM8: u32>(
     a: __m256i,
 ) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psrlid256(a.as_i32x8(), imm8);
-    transmute(simd_select_bitmask(k, r, src.as_i32x8()))
+    let r = if IMM8 >= 32 {
+        u32x8::splat(0)
+    } else {
+        simd_shr(a.as_u32x8(), u32x8::splat(IMM8))
+    };
+    transmute(simd_select_bitmask(k, r, src.as_u32x8()))
 }
 
 /// Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17319,10 +17350,13 @@ pub unsafe fn _mm256_mask_srli_epi32<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm256_maskz_srli_epi32<const IMM8: u32>(k: __mmask8, a: __m256i) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psrlid256(a.as_i32x8(), imm8);
-    let zero = _mm256_setzero_si256().as_i32x8();
-    transmute(simd_select_bitmask(k, r, zero))
+    if IMM8 >= 32 {
+        _mm256_setzero_si256()
+    } else {
+        let r = simd_shr(a.as_u32x8(), u32x8::splat(IMM8));
+        let zero = u32x8::splat(0);
+        transmute(simd_select_bitmask(k, r, zero))
+    }
 }
 
 /// Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17338,9 +17372,12 @@ pub unsafe fn _mm_mask_srli_epi32<const IMM8: u32>(
     a: __m128i,
 ) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psrlid128(a.as_i32x4(), imm8);
-    transmute(simd_select_bitmask(k, r, src.as_i32x4()))
+    let r = if IMM8 >= 32 {
+        u32x4::splat(0)
+    } else {
+        simd_shr(a.as_u32x4(), u32x4::splat(IMM8))
+    };
+    transmute(simd_select_bitmask(k, r, src.as_u32x4()))
 }
 
 /// Shift packed 32-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17352,10 +17389,13 @@ pub unsafe fn _mm_mask_srli_epi32<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm_maskz_srli_epi32<const IMM8: u32>(k: __mmask8, a: __m128i) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psrlid128(a.as_i32x4(), imm8);
-    let zero = _mm_setzero_si128().as_i32x4();
-    transmute(simd_select_bitmask(k, r, zero))
+    if IMM8 >= 32 {
+        _mm_setzero_si128()
+    } else {
+        let r = simd_shr(a.as_u32x4(), u32x4::splat(IMM8));
+        let zero = u32x4::splat(0);
+        transmute(simd_select_bitmask(k, r, zero))
+    }
 }
 
 /// Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and store the results in dst.
@@ -17367,9 +17407,11 @@ pub unsafe fn _mm_maskz_srli_epi32<const IMM8: u32>(k: __mmask8, a: __m128i) -> 
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm512_slli_epi64<const IMM8: u32>(a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x8();
-    let r = vpslliq(a, IMM8);
-    transmute(r)
+    if IMM8 >= 64 {
+        _mm512_setzero_si512()
+    } else {
+        transmute(simd_shl(a.as_u64x8(), u64x8::splat(IMM8 as u64)))
+    }
 }
 
 /// Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17385,9 +17427,12 @@ pub unsafe fn _mm512_mask_slli_epi64<const IMM8: u32>(
     a: __m512i,
 ) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x8();
-    let shf = vpslliq(a, IMM8);
-    transmute(simd_select_bitmask(k, shf, src.as_i64x8()))
+    let shf = if IMM8 >= 64 {
+        u64x8::splat(0)
+    } else {
+        simd_shl(a.as_u64x8(), u64x8::splat(IMM8 as u64))
+    };
+    transmute(simd_select_bitmask(k, shf, src.as_u64x8()))
 }
 
 /// Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17399,10 +17444,13 @@ pub unsafe fn _mm512_mask_slli_epi64<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm512_maskz_slli_epi64<const IMM8: u32>(k: __mmask8, a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x8();
-    let shf = vpslliq(a, IMM8);
-    let zero = _mm512_setzero_si512().as_i64x8();
-    transmute(simd_select_bitmask(k, shf, zero))
+    if IMM8 >= 64 {
+        _mm512_setzero_si512()
+    } else {
+        let shf = simd_shl(a.as_u64x8(), u64x8::splat(IMM8 as u64));
+        let zero = u64x8::splat(0);
+        transmute(simd_select_bitmask(k, shf, zero))
+    }
 }
 
 /// Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17418,9 +17466,12 @@ pub unsafe fn _mm256_mask_slli_epi64<const IMM8: u32>(
     a: __m256i,
 ) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = pslliq256(a.as_i64x4(), imm8);
-    transmute(simd_select_bitmask(k, r, src.as_i64x4()))
+    let r = if IMM8 >= 64 {
+        u64x4::splat(0)
+    } else {
+        simd_shl(a.as_u64x4(), u64x4::splat(IMM8 as u64))
+    };
+    transmute(simd_select_bitmask(k, r, src.as_u64x4()))
 }
 
 /// Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17432,10 +17483,13 @@ pub unsafe fn _mm256_mask_slli_epi64<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm256_maskz_slli_epi64<const IMM8: u32>(k: __mmask8, a: __m256i) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = pslliq256(a.as_i64x4(), imm8);
-    let zero = _mm256_setzero_si256().as_i64x4();
-    transmute(simd_select_bitmask(k, r, zero))
+    if IMM8 >= 64 {
+        _mm256_setzero_si256()
+    } else {
+        let r = simd_shl(a.as_u64x4(), u64x4::splat(IMM8 as u64));
+        let zero = u64x4::splat(0);
+        transmute(simd_select_bitmask(k, r, zero))
+    }
 }
 
 /// Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17451,9 +17505,12 @@ pub unsafe fn _mm_mask_slli_epi64<const IMM8: u32>(
     a: __m128i,
 ) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = pslliq128(a.as_i64x2(), imm8);
-    transmute(simd_select_bitmask(k, r, src.as_i64x2()))
+    let r = if IMM8 >= 64 {
+        u64x2::splat(0)
+    } else {
+        simd_shl(a.as_u64x2(), u64x2::splat(IMM8 as u64))
+    };
+    transmute(simd_select_bitmask(k, r, src.as_u64x2()))
 }
 
 /// Shift packed 64-bit integers in a left by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17465,10 +17522,13 @@ pub unsafe fn _mm_mask_slli_epi64<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm_maskz_slli_epi64<const IMM8: u32>(k: __mmask8, a: __m128i) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = pslliq128(a.as_i64x2(), imm8);
-    let zero = _mm_setzero_si128().as_i64x2();
-    transmute(simd_select_bitmask(k, r, zero))
+    if IMM8 >= 64 {
+        _mm_setzero_si128()
+    } else {
+        let r = simd_shl(a.as_u64x2(), u64x2::splat(IMM8 as u64));
+        let zero = u64x2::splat(0);
+        transmute(simd_select_bitmask(k, r, zero))
+    }
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and store the results in dst.
@@ -17480,9 +17540,11 @@ pub unsafe fn _mm_maskz_slli_epi64<const IMM8: u32>(k: __mmask8, a: __m128i) -> 
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm512_srli_epi64<const IMM8: u32>(a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x8();
-    let r = vpsrliq(a, IMM8);
-    transmute(r)
+    if IMM8 >= 64 {
+        _mm512_setzero_si512()
+    } else {
+        transmute(simd_shr(a.as_u64x8(), u64x8::splat(IMM8 as u64)))
+    }
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17498,9 +17560,12 @@ pub unsafe fn _mm512_mask_srli_epi64<const IMM8: u32>(
     a: __m512i,
 ) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x8();
-    let shf = vpsrliq(a, IMM8);
-    transmute(simd_select_bitmask(k, shf, src.as_i64x8()))
+    let shf = if IMM8 >= 64 {
+        u64x8::splat(0)
+    } else {
+        simd_shr(a.as_u64x8(), u64x8::splat(IMM8 as u64))
+    };
+    transmute(simd_select_bitmask(k, shf, src.as_u64x8()))
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17512,10 +17577,13 @@ pub unsafe fn _mm512_mask_srli_epi64<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm512_maskz_srli_epi64<const IMM8: u32>(k: __mmask8, a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x8();
-    let shf = vpsrliq(a, IMM8);
-    let zero = _mm512_setzero_si512().as_i64x8();
-    transmute(simd_select_bitmask(k, shf, zero))
+    if IMM8 >= 64 {
+        _mm512_setzero_si512()
+    } else {
+        let shf = simd_shr(a.as_u64x8(), u64x8::splat(IMM8 as u64));
+        let zero = u64x8::splat(0);
+        transmute(simd_select_bitmask(k, shf, zero))
+    }
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17531,9 +17599,12 @@ pub unsafe fn _mm256_mask_srli_epi64<const IMM8: u32>(
     a: __m256i,
 ) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psrliq256(a.as_i64x4(), imm8);
-    transmute(simd_select_bitmask(k, r, src.as_i64x4()))
+    let r = if IMM8 >= 64 {
+        u64x4::splat(0)
+    } else {
+        simd_shr(a.as_u64x4(), u64x4::splat(IMM8 as u64))
+    };
+    transmute(simd_select_bitmask(k, r, src.as_u64x4()))
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17545,10 +17616,13 @@ pub unsafe fn _mm256_mask_srli_epi64<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm256_maskz_srli_epi64<const IMM8: u32>(k: __mmask8, a: __m256i) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psrliq256(a.as_i64x4(), imm8);
-    let zero = _mm256_setzero_si256().as_i64x4();
-    transmute(simd_select_bitmask(k, r, zero))
+    if IMM8 >= 64 {
+        _mm256_setzero_si256()
+    } else {
+        let r = simd_shr(a.as_u64x4(), u64x4::splat(IMM8 as u64));
+        let zero = u64x4::splat(0);
+        transmute(simd_select_bitmask(k, r, zero))
+    }
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -17564,9 +17638,12 @@ pub unsafe fn _mm_mask_srli_epi64<const IMM8: u32>(
     a: __m128i,
 ) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psrliq128(a.as_i64x2(), imm8);
-    transmute(simd_select_bitmask(k, r, src.as_i64x2()))
+    let r = if IMM8 >= 64 {
+        u64x2::splat(0)
+    } else {
+        simd_shr(a.as_u64x2(), u64x2::splat(IMM8 as u64))
+    };
+    transmute(simd_select_bitmask(k, r, src.as_u64x2()))
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in zeros, and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
@@ -17578,10 +17655,13 @@ pub unsafe fn _mm_mask_srli_epi64<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm_maskz_srli_epi64<const IMM8: u32>(k: __mmask8, a: __m128i) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let imm8 = IMM8 as i32;
-    let r = psrliq128(a.as_i64x2(), imm8);
-    let zero = _mm_setzero_si128().as_i64x2();
-    transmute(simd_select_bitmask(k, r, zero))
+    if IMM8 >= 64 {
+        _mm_setzero_si128()
+    } else {
+        let r = simd_shr(a.as_u64x2(), u64x2::splat(IMM8 as u64));
+        let zero = u64x2::splat(0);
+        transmute(simd_select_bitmask(k, r, zero))
+    }
 }
 
 /// Shift packed 32-bit integers in a left by count while shifting in zeros, and store the results in dst.
@@ -18147,9 +18227,7 @@ pub unsafe fn _mm_maskz_sra_epi64(k: __mmask8, a: __m128i, count: __m128i) -> __
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm512_srai_epi32<const IMM8: u32>(a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i32x16();
-    let r = vpsraid512(a, IMM8);
-    transmute(r)
+    transmute(simd_shr(a.as_i32x16(), i32x16::splat(IMM8.min(31) as i32)))
 }
 
 /// Shift packed 32-bit integers in a right by imm8 while shifting in sign bits, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -18165,8 +18243,7 @@ pub unsafe fn _mm512_mask_srai_epi32<const IMM8: u32>(
     a: __m512i,
 ) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i32x16();
-    let r = vpsraid512(a, IMM8);
+    let r = simd_shr(a.as_i32x16(), i32x16::splat(IMM8.min(31) as i32));
     transmute(simd_select_bitmask(k, r, src.as_i32x16()))
 }
 
@@ -18179,9 +18256,8 @@ pub unsafe fn _mm512_mask_srai_epi32<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm512_maskz_srai_epi32<const IMM8: u32>(k: __mmask16, a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i32x16();
-    let r = vpsraid512(a, IMM8);
-    let zero = _mm512_setzero_si512().as_i32x16();
+    let r = simd_shr(a.as_i32x16(), i32x16::splat(IMM8.min(31) as i32));
+    let zero = i32x16::splat(0);
     transmute(simd_select_bitmask(k, r, zero))
 }
 
@@ -18197,8 +18273,7 @@ pub unsafe fn _mm256_mask_srai_epi32<const IMM8: u32>(
     k: __mmask8,
     a: __m256i,
 ) -> __m256i {
-    let imm8 = IMM8 as i32;
-    let r = psraid256(a.as_i32x8(), imm8);
+    let r = simd_shr(a.as_i32x8(), i32x8::splat(IMM8.min(31) as i32));
     transmute(simd_select_bitmask(k, r, src.as_i32x8()))
 }
 
@@ -18210,9 +18285,8 @@ pub unsafe fn _mm256_mask_srai_epi32<const IMM8: u32>(
 #[cfg_attr(test, assert_instr(vpsrad, IMM8 = 1))]
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm256_maskz_srai_epi32<const IMM8: u32>(k: __mmask8, a: __m256i) -> __m256i {
-    let imm8 = IMM8 as i32;
-    let r = psraid256(a.as_i32x8(), imm8);
-    let zero = _mm256_setzero_si256().as_i32x8();
+    let r = simd_shr(a.as_i32x8(), i32x8::splat(IMM8.min(31) as i32));
+    let zero = i32x8::splat(0);
     transmute(simd_select_bitmask(k, r, zero))
 }
 
@@ -18228,8 +18302,7 @@ pub unsafe fn _mm_mask_srai_epi32<const IMM8: u32>(
     k: __mmask8,
     a: __m128i,
 ) -> __m128i {
-    let imm8 = IMM8 as i32;
-    let r = psraid128(a.as_i32x4(), imm8);
+    let r = simd_shr(a.as_i32x4(), i32x4::splat(IMM8.min(31) as i32));
     transmute(simd_select_bitmask(k, r, src.as_i32x4()))
 }
 
@@ -18241,9 +18314,8 @@ pub unsafe fn _mm_mask_srai_epi32<const IMM8: u32>(
 #[cfg_attr(test, assert_instr(vpsrad, IMM8 = 1))]
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm_maskz_srai_epi32<const IMM8: u32>(k: __mmask8, a: __m128i) -> __m128i {
-    let imm8 = IMM8 as i32;
-    let r = psraid128(a.as_i32x4(), imm8);
-    let zero = _mm_setzero_si128().as_i32x4();
+    let r = simd_shr(a.as_i32x4(), i32x4::splat(IMM8.min(31) as i32));
+    let zero = i32x4::splat(0);
     transmute(simd_select_bitmask(k, r, zero))
 }
 
@@ -18256,9 +18328,7 @@ pub unsafe fn _mm_maskz_srai_epi32<const IMM8: u32>(k: __mmask8, a: __m128i) -> 
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm512_srai_epi64<const IMM8: u32>(a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x8();
-    let r = vpsraiq(a, IMM8);
-    transmute(r)
+    transmute(simd_shr(a.as_i64x8(), i64x8::splat(IMM8.min(63) as i64)))
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in sign bits, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -18274,8 +18344,7 @@ pub unsafe fn _mm512_mask_srai_epi64<const IMM8: u32>(
     a: __m512i,
 ) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x8();
-    let shf = vpsraiq(a, IMM8);
+    let shf = simd_shr(a.as_i64x8(), i64x8::splat(IMM8.min(63) as i64));
     transmute(simd_select_bitmask(k, shf, src.as_i64x8()))
 }
 
@@ -18288,9 +18357,8 @@ pub unsafe fn _mm512_mask_srai_epi64<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm512_maskz_srai_epi64<const IMM8: u32>(k: __mmask8, a: __m512i) -> __m512i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x8();
-    let shf = vpsraiq(a, IMM8);
-    let zero = _mm512_setzero_si512().as_i64x8();
+    let shf = simd_shr(a.as_i64x8(), i64x8::splat(IMM8.min(63) as i64));
+    let zero = i64x8::splat(0);
     transmute(simd_select_bitmask(k, shf, zero))
 }
 
@@ -18303,9 +18371,7 @@ pub unsafe fn _mm512_maskz_srai_epi64<const IMM8: u32>(k: __mmask8, a: __m512i) 
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm256_srai_epi64<const IMM8: u32>(a: __m256i) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x4();
-    let r = vpsraiq256(a, IMM8);
-    transmute(r)
+    transmute(simd_shr(a.as_i64x4(), i64x4::splat(IMM8.min(63) as i64)))
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in sign bits, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -18321,8 +18387,7 @@ pub unsafe fn _mm256_mask_srai_epi64<const IMM8: u32>(
     a: __m256i,
 ) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x4();
-    let shf = vpsraiq256(a, IMM8);
+    let shf = simd_shr(a.as_i64x4(), i64x4::splat(IMM8.min(63) as i64));
     transmute(simd_select_bitmask(k, shf, src.as_i64x4()))
 }
 
@@ -18335,9 +18400,8 @@ pub unsafe fn _mm256_mask_srai_epi64<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm256_maskz_srai_epi64<const IMM8: u32>(k: __mmask8, a: __m256i) -> __m256i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x4();
-    let shf = vpsraiq256(a, IMM8);
-    let zero = _mm256_setzero_si256().as_i64x4();
+    let shf = simd_shr(a.as_i64x4(), i64x4::splat(IMM8.min(63) as i64));
+    let zero = i64x4::splat(0);
     transmute(simd_select_bitmask(k, shf, zero))
 }
 
@@ -18350,9 +18414,7 @@ pub unsafe fn _mm256_maskz_srai_epi64<const IMM8: u32>(k: __mmask8, a: __m256i) 
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm_srai_epi64<const IMM8: u32>(a: __m128i) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x2();
-    let r = vpsraiq128(a, IMM8);
-    transmute(r)
+    transmute(simd_shr(a.as_i64x2(), i64x2::splat(IMM8.min(63) as i64)))
 }
 
 /// Shift packed 64-bit integers in a right by imm8 while shifting in sign bits, and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
@@ -18368,8 +18430,7 @@ pub unsafe fn _mm_mask_srai_epi64<const IMM8: u32>(
     a: __m128i,
 ) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x2();
-    let shf = vpsraiq128(a, IMM8);
+    let shf = simd_shr(a.as_i64x2(), i64x2::splat(IMM8.min(63) as i64));
     transmute(simd_select_bitmask(k, shf, src.as_i64x2()))
 }
 
@@ -18382,9 +18443,8 @@ pub unsafe fn _mm_mask_srai_epi64<const IMM8: u32>(
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm_maskz_srai_epi64<const IMM8: u32>(k: __mmask8, a: __m128i) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    let a = a.as_i64x2();
-    let shf = vpsraiq128(a, IMM8);
-    let zero = _mm_setzero_si128().as_i64x2();
+    let shf = simd_shr(a.as_i64x2(), i64x2::splat(IMM8.min(63) as i64));
+    let zero = i64x2::splat(0);
     transmute(simd_select_bitmask(k, shf, zero))
 }
 
@@ -19383,7 +19443,7 @@ pub unsafe fn _mm_maskz_srlv_epi64(k: __mmask8, a: __m128i, count: __m128i) -> _
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_permute_ps&expand=4170)
 #[inline]
 #[target_feature(enable = "avx512f")]
-#[cfg_attr(test, assert_instr(vpermilps, MASK = 0b11_00_01_11))]
+#[cfg_attr(test, assert_instr(vshufps, MASK = 0b11_00_01_11))]
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm512_permute_ps<const MASK: i32>(a: __m512) -> __m512 {
     static_assert_uimm_bits!(MASK, 8);
@@ -19416,7 +19476,7 @@ pub unsafe fn _mm512_permute_ps<const MASK: i32>(a: __m512) -> __m512 {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_mask_permute_ps&expand=4168)
 #[inline]
 #[target_feature(enable = "avx512f")]
-#[cfg_attr(test, assert_instr(vpermilps, MASK = 0b11_00_01_11))]
+#[cfg_attr(test, assert_instr(vshufps, MASK = 0b11_00_01_11))]
 #[rustc_legacy_const_generics(3)]
 pub unsafe fn _mm512_mask_permute_ps<const MASK: i32>(
     src: __m512,
@@ -19433,7 +19493,7 @@ pub unsafe fn _mm512_mask_permute_ps<const MASK: i32>(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_maskz_permute_ps&expand=4169)
 #[inline]
 #[target_feature(enable = "avx512f")]
-#[cfg_attr(test, assert_instr(vpermilps, MASK = 0b11_00_01_11))]
+#[cfg_attr(test, assert_instr(vshufps, MASK = 0b11_00_01_11))]
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm512_maskz_permute_ps<const MASK: i32>(k: __mmask16, a: __m512) -> __m512 {
     static_assert_uimm_bits!(MASK, 8);
@@ -19447,7 +19507,7 @@ pub unsafe fn _mm512_maskz_permute_ps<const MASK: i32>(k: __mmask16, a: __m512) 
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_mask_permute_ps&expand=4165)
 #[inline]
 #[target_feature(enable = "avx512f,avx512vl")]
-#[cfg_attr(test, assert_instr(vpermilps, MASK = 0b11_00_01_11))]
+#[cfg_attr(test, assert_instr(vshufps, MASK = 0b11_00_01_11))]
 #[rustc_legacy_const_generics(3)]
 pub unsafe fn _mm256_mask_permute_ps<const MASK: i32>(
     src: __m256,
@@ -19463,7 +19523,7 @@ pub unsafe fn _mm256_mask_permute_ps<const MASK: i32>(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_maskz_permute_ps&expand=4166)
 #[inline]
 #[target_feature(enable = "avx512f,avx512vl")]
-#[cfg_attr(test, assert_instr(vpermilps, MASK = 0b11_00_01_11))]
+#[cfg_attr(test, assert_instr(vshufps, MASK = 0b11_00_01_11))]
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm256_maskz_permute_ps<const MASK: i32>(k: __mmask8, a: __m256) -> __m256 {
     let r = _mm256_permute_ps::<MASK>(a);
@@ -19476,7 +19536,7 @@ pub unsafe fn _mm256_maskz_permute_ps<const MASK: i32>(k: __mmask8, a: __m256) -
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_mask_permute_ps&expand=4162)
 #[inline]
 #[target_feature(enable = "avx512f,avx512vl")]
-#[cfg_attr(test, assert_instr(vpermilps, MASK = 0b11_00_01_11))]
+#[cfg_attr(test, assert_instr(vshufps, MASK = 0b11_00_01_11))]
 #[rustc_legacy_const_generics(3)]
 pub unsafe fn _mm_mask_permute_ps<const MASK: i32>(src: __m128, k: __mmask8, a: __m128) -> __m128 {
     let r = _mm_permute_ps::<MASK>(a);
@@ -19488,7 +19548,7 @@ pub unsafe fn _mm_mask_permute_ps<const MASK: i32>(src: __m128, k: __mmask8, a: 
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_maskz_permute_ps&expand=4163)
 #[inline]
 #[target_feature(enable = "avx512f,avx512vl")]
-#[cfg_attr(test, assert_instr(vpermilps, MASK = 0b11_00_01_11))]
+#[cfg_attr(test, assert_instr(vshufps, MASK = 0b11_00_01_11))]
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm_maskz_permute_ps<const MASK: i32>(k: __mmask8, a: __m128) -> __m128 {
     let r = _mm_permute_ps::<MASK>(a);
@@ -19501,7 +19561,7 @@ pub unsafe fn _mm_maskz_permute_ps<const MASK: i32>(k: __mmask8, a: __m128) -> _
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_permute_pd&expand=4161)
 #[inline]
 #[target_feature(enable = "avx512f")]
-#[cfg_attr(test, assert_instr(vpermilpd, MASK = 0b11_01_10_01))]
+#[cfg_attr(test, assert_instr(vshufpd, MASK = 0b11_01_10_01))]
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm512_permute_pd<const MASK: i32>(a: __m512d) -> __m512d {
     static_assert_uimm_bits!(MASK, 8);
@@ -19526,7 +19586,7 @@ pub unsafe fn _mm512_permute_pd<const MASK: i32>(a: __m512d) -> __m512d {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_mask_permute_pd&expand=4159)
 #[inline]
 #[target_feature(enable = "avx512f")]
-#[cfg_attr(test, assert_instr(vpermilpd, MASK = 0b11_01_10_01))]
+#[cfg_attr(test, assert_instr(vshufpd, MASK = 0b11_01_10_01))]
 #[rustc_legacy_const_generics(3)]
 pub unsafe fn _mm512_mask_permute_pd<const MASK: i32>(
     src: __m512d,
@@ -19543,7 +19603,7 @@ pub unsafe fn _mm512_mask_permute_pd<const MASK: i32>(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_maskz_permute_pd&expand=4160)
 #[inline]
 #[target_feature(enable = "avx512f")]
-#[cfg_attr(test, assert_instr(vpermilpd, MASK = 0b11_01_10_01))]
+#[cfg_attr(test, assert_instr(vshufpd, MASK = 0b11_01_10_01))]
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm512_maskz_permute_pd<const MASK: i32>(k: __mmask8, a: __m512d) -> __m512d {
     static_assert_uimm_bits!(MASK, 8);
@@ -19557,7 +19617,7 @@ pub unsafe fn _mm512_maskz_permute_pd<const MASK: i32>(k: __mmask8, a: __m512d) 
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_mask_permute_pd&expand=4156)
 #[inline]
 #[target_feature(enable = "avx512f,avx512vl")]
-#[cfg_attr(test, assert_instr(vpermilpd, MASK = 0b11_01))]
+#[cfg_attr(test, assert_instr(vshufpd, MASK = 0b11_01))]
 #[rustc_legacy_const_generics(3)]
 pub unsafe fn _mm256_mask_permute_pd<const MASK: i32>(
     src: __m256d,
@@ -19574,7 +19634,7 @@ pub unsafe fn _mm256_mask_permute_pd<const MASK: i32>(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_maskz_permute_pd&expand=4157)
 #[inline]
 #[target_feature(enable = "avx512f,avx512vl")]
-#[cfg_attr(test, assert_instr(vpermilpd, MASK = 0b11_01))]
+#[cfg_attr(test, assert_instr(vshufpd, MASK = 0b11_01))]
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm256_maskz_permute_pd<const MASK: i32>(k: __mmask8, a: __m256d) -> __m256d {
     static_assert_uimm_bits!(MASK, 4);
@@ -19588,7 +19648,7 @@ pub unsafe fn _mm256_maskz_permute_pd<const MASK: i32>(k: __mmask8, a: __m256d) 
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_mask_permute_pd&expand=4153)
 #[inline]
 #[target_feature(enable = "avx512f,avx512vl")]
-#[cfg_attr(test, assert_instr(vpermilpd, IMM2 = 0b01))]
+#[cfg_attr(test, assert_instr(vshufpd, IMM2 = 0b01))]
 #[rustc_legacy_const_generics(3)]
 pub unsafe fn _mm_mask_permute_pd<const IMM2: i32>(
     src: __m128d,
@@ -19605,7 +19665,7 @@ pub unsafe fn _mm_mask_permute_pd<const IMM2: i32>(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_maskz_permute_pd&expand=4154)
 #[inline]
 #[target_feature(enable = "avx512f,avx512vl")]
-#[cfg_attr(test, assert_instr(vpermilpd, IMM2 = 0b01))]
+#[cfg_attr(test, assert_instr(vshufpd, IMM2 = 0b01))]
 #[rustc_legacy_const_generics(2)]
 pub unsafe fn _mm_maskz_permute_pd<const IMM2: i32>(k: __mmask8, a: __m128d) -> __m128d {
     static_assert_uimm_bits!(IMM2, 2);
@@ -21035,7 +21095,7 @@ pub unsafe fn _mm_mask2_permutex2var_pd(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=512_shuffle_epi32&expand=5150)
 #[inline]
 #[target_feature(enable = "avx512f")]
-#[cfg_attr(test, assert_instr(vpermilps, MASK = 9))] //should be vpshufd
+#[cfg_attr(test, assert_instr(vshufps, MASK = 9))] //should be vpshufd
 #[rustc_legacy_const_generics(1)]
 pub unsafe fn _mm512_shuffle_epi32<const MASK: _MM_PERM_ENUM>(a: __m512i) -> __m512i {
     static_assert_uimm_bits!(MASK, 8);
@@ -29721,7 +29781,7 @@ pub unsafe fn _mm_loadu_epi32(mem_addr: *const i32) -> __m128i {
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovdw))]
 pub unsafe fn _mm512_mask_cvtepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask16, a: __m512i) {
-    vpmovdwmem(mem_addr as *mut i8, a.as_i32x16(), k);
+    vpmovdwmem(mem_addr, a.as_i32x16(), k);
 }
 
 /// Convert packed 32-bit integers in a to packed 16-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29731,7 +29791,7 @@ pub unsafe fn _mm512_mask_cvtepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask16,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovdw))]
 pub unsafe fn _mm256_mask_cvtepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovdwmem256(mem_addr as *mut i8, a.as_i32x8(), k);
+    vpmovdwmem256(mem_addr, a.as_i32x8(), k);
 }
 
 /// Convert packed 32-bit integers in a to packed 16-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29741,7 +29801,7 @@ pub unsafe fn _mm256_mask_cvtepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, 
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovdw))]
 pub unsafe fn _mm_mask_cvtepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovdwmem128(mem_addr as *mut i8, a.as_i32x4(), k);
+    vpmovdwmem128(mem_addr, a.as_i32x4(), k);
 }
 
 /// Convert packed signed 32-bit integers in a to packed 16-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29751,7 +29811,7 @@ pub unsafe fn _mm_mask_cvtepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: 
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovsdw))]
 pub unsafe fn _mm512_mask_cvtsepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask16, a: __m512i) {
-    vpmovsdwmem(mem_addr as *mut i8, a.as_i32x16(), k);
+    vpmovsdwmem(mem_addr, a.as_i32x16(), k);
 }
 
 /// Convert packed signed 32-bit integers in a to packed 16-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29761,7 +29821,7 @@ pub unsafe fn _mm512_mask_cvtsepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask16
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsdw))]
 pub unsafe fn _mm256_mask_cvtsepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovsdwmem256(mem_addr as *mut i8, a.as_i32x8(), k);
+    vpmovsdwmem256(mem_addr, a.as_i32x8(), k);
 }
 
 /// Convert packed signed 32-bit integers in a to packed 16-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29771,7 +29831,7 @@ pub unsafe fn _mm256_mask_cvtsepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsdw))]
 pub unsafe fn _mm_mask_cvtsepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovsdwmem128(mem_addr as *mut i8, a.as_i32x4(), k);
+    vpmovsdwmem128(mem_addr, a.as_i32x4(), k);
 }
 
 /// Convert packed unsigned 32-bit integers in a to packed 16-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29781,7 +29841,7 @@ pub unsafe fn _mm_mask_cvtsepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a:
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovusdw))]
 pub unsafe fn _mm512_mask_cvtusepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask16, a: __m512i) {
-    vpmovusdwmem(mem_addr as *mut i8, a.as_i32x16(), k);
+    vpmovusdwmem(mem_addr, a.as_i32x16(), k);
 }
 
 /// Convert packed unsigned 32-bit integers in a to packed unsigned 16-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29791,7 +29851,7 @@ pub unsafe fn _mm512_mask_cvtusepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask1
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusdw))]
 pub unsafe fn _mm256_mask_cvtusepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovusdwmem256(mem_addr as *mut i8, a.as_i32x8(), k);
+    vpmovusdwmem256(mem_addr, a.as_i32x8(), k);
 }
 
 /// Convert packed unsigned 32-bit integers in a to packed unsigned 16-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29801,7 +29861,7 @@ pub unsafe fn _mm256_mask_cvtusepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusdw))]
 pub unsafe fn _mm_mask_cvtusepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovusdwmem128(mem_addr as *mut i8, a.as_i32x4(), k);
+    vpmovusdwmem128(mem_addr, a.as_i32x4(), k);
 }
 
 /// Convert packed 32-bit integers in a to packed 8-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29811,7 +29871,7 @@ pub unsafe fn _mm_mask_cvtusepi32_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovdb))]
 pub unsafe fn _mm512_mask_cvtepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask16, a: __m512i) {
-    vpmovdbmem(mem_addr as *mut i8, a.as_i32x16(), k);
+    vpmovdbmem(mem_addr, a.as_i32x16(), k);
 }
 
 /// Convert packed 32-bit integers in a to packed 8-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29821,7 +29881,7 @@ pub unsafe fn _mm512_mask_cvtepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask16, 
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovdb))]
 pub unsafe fn _mm256_mask_cvtepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovdbmem256(mem_addr as *mut i8, a.as_i32x8(), k);
+    vpmovdbmem256(mem_addr, a.as_i32x8(), k);
 }
 
 /// Convert packed 32-bit integers in a to packed 8-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29831,7 +29891,7 @@ pub unsafe fn _mm256_mask_cvtepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovdb))]
 pub unsafe fn _mm_mask_cvtepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovdbmem128(mem_addr as *mut i8, a.as_i32x4(), k);
+    vpmovdbmem128(mem_addr, a.as_i32x4(), k);
 }
 
 /// Convert packed signed 32-bit integers in a to packed 8-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29841,7 +29901,7 @@ pub unsafe fn _mm_mask_cvtepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: _
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovsdb))]
 pub unsafe fn _mm512_mask_cvtsepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask16, a: __m512i) {
-    vpmovsdbmem(mem_addr as *mut i8, a.as_i32x16(), k);
+    vpmovsdbmem(mem_addr, a.as_i32x16(), k);
 }
 
 /// Convert packed signed 32-bit integers in a to packed 8-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29851,7 +29911,7 @@ pub unsafe fn _mm512_mask_cvtsepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask16,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsdb))]
 pub unsafe fn _mm256_mask_cvtsepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovsdbmem256(mem_addr as *mut i8, a.as_i32x8(), k);
+    vpmovsdbmem256(mem_addr, a.as_i32x8(), k);
 }
 
 /// Convert packed signed 32-bit integers in a to packed 8-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29861,7 +29921,7 @@ pub unsafe fn _mm256_mask_cvtsepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, 
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsdb))]
 pub unsafe fn _mm_mask_cvtsepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovsdbmem128(mem_addr as *mut i8, a.as_i32x4(), k);
+    vpmovsdbmem128(mem_addr, a.as_i32x4(), k);
 }
 
 /// Convert packed unsigned 32-bit integers in a to packed 8-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29871,7 +29931,7 @@ pub unsafe fn _mm_mask_cvtsepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: 
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovusdb))]
 pub unsafe fn _mm512_mask_cvtusepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask16, a: __m512i) {
-    vpmovusdbmem(mem_addr as *mut i8, a.as_i32x16(), k);
+    vpmovusdbmem(mem_addr, a.as_i32x16(), k);
 }
 
 /// Convert packed unsigned 32-bit integers in a to packed 8-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29881,7 +29941,7 @@ pub unsafe fn _mm512_mask_cvtusepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask16
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusdb))]
 pub unsafe fn _mm256_mask_cvtusepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovusdbmem256(mem_addr as *mut i8, a.as_i32x8(), k);
+    vpmovusdbmem256(mem_addr, a.as_i32x8(), k);
 }
 
 /// Convert packed unsigned 32-bit integers in a to packed 8-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29891,7 +29951,7 @@ pub unsafe fn _mm256_mask_cvtusepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusdb))]
 pub unsafe fn _mm_mask_cvtusepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovusdbmem128(mem_addr as *mut i8, a.as_i32x4(), k);
+    vpmovusdbmem128(mem_addr, a.as_i32x4(), k);
 }
 
 /// Convert packed 64-bit integers in a to packed 16-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29901,7 +29961,7 @@ pub unsafe fn _mm_mask_cvtusepi32_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a:
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovqw))]
 pub unsafe fn _mm512_mask_cvtepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m512i) {
-    vpmovqwmem(mem_addr as *mut i8, a.as_i64x8(), k);
+    vpmovqwmem(mem_addr, a.as_i64x8(), k);
 }
 
 /// Convert packed 64-bit integers in a to packed 16-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29911,7 +29971,7 @@ pub unsafe fn _mm512_mask_cvtepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, 
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovqw))]
 pub unsafe fn _mm256_mask_cvtepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovqwmem256(mem_addr as *mut i8, a.as_i64x4(), k);
+    vpmovqwmem256(mem_addr, a.as_i64x4(), k);
 }
 
 /// Convert packed 64-bit integers in a to packed 16-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29921,7 +29981,7 @@ pub unsafe fn _mm256_mask_cvtepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, 
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovqw))]
 pub unsafe fn _mm_mask_cvtepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovqwmem128(mem_addr as *mut i8, a.as_i64x2(), k);
+    vpmovqwmem128(mem_addr, a.as_i64x2(), k);
 }
 
 /// Convert packed signed 64-bit integers in a to packed 16-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29931,7 +29991,7 @@ pub unsafe fn _mm_mask_cvtepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: 
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovsqw))]
 pub unsafe fn _mm512_mask_cvtsepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m512i) {
-    vpmovsqwmem(mem_addr as *mut i8, a.as_i64x8(), k);
+    vpmovsqwmem(mem_addr, a.as_i64x8(), k);
 }
 
 /// Convert packed signed 64-bit integers in a to packed 16-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29941,7 +30001,7 @@ pub unsafe fn _mm512_mask_cvtsepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsqw))]
 pub unsafe fn _mm256_mask_cvtsepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovsqwmem256(mem_addr as *mut i8, a.as_i64x4(), k);
+    vpmovsqwmem256(mem_addr, a.as_i64x4(), k);
 }
 
 /// Convert packed signed 64-bit integers in a to packed 16-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29951,7 +30011,7 @@ pub unsafe fn _mm256_mask_cvtsepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsqw))]
 pub unsafe fn _mm_mask_cvtsepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovsqwmem128(mem_addr as *mut i8, a.as_i64x2(), k);
+    vpmovsqwmem128(mem_addr, a.as_i64x2(), k);
 }
 
 /// Convert packed unsigned 64-bit integers in a to packed 16-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29961,7 +30021,7 @@ pub unsafe fn _mm_mask_cvtsepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a:
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovusqw))]
 pub unsafe fn _mm512_mask_cvtusepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m512i) {
-    vpmovusqwmem(mem_addr as *mut i8, a.as_i64x8(), k);
+    vpmovusqwmem(mem_addr, a.as_i64x8(), k);
 }
 
 /// Convert packed unsigned 64-bit integers in a to packed 16-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29971,7 +30031,7 @@ pub unsafe fn _mm512_mask_cvtusepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusqw))]
 pub unsafe fn _mm256_mask_cvtusepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovusqwmem256(mem_addr as *mut i8, a.as_i64x4(), k);
+    vpmovusqwmem256(mem_addr, a.as_i64x4(), k);
 }
 
 /// Convert packed unsigned 64-bit integers in a to packed 16-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29981,7 +30041,7 @@ pub unsafe fn _mm256_mask_cvtusepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusqw))]
 pub unsafe fn _mm_mask_cvtusepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovusqwmem128(mem_addr as *mut i8, a.as_i64x2(), k);
+    vpmovusqwmem128(mem_addr, a.as_i64x2(), k);
 }
 
 /// Convert packed 64-bit integers in a to packed 8-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -29991,7 +30051,7 @@ pub unsafe fn _mm_mask_cvtusepi64_storeu_epi16(mem_addr: *mut i8, k: __mmask8, a
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovqb))]
 pub unsafe fn _mm512_mask_cvtepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m512i) {
-    vpmovqbmem(mem_addr as *mut i8, a.as_i64x8(), k);
+    vpmovqbmem(mem_addr, a.as_i64x8(), k);
 }
 
 /// Convert packed 64-bit integers in a to packed 8-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30001,7 +30061,7 @@ pub unsafe fn _mm512_mask_cvtepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovqb))]
 pub unsafe fn _mm256_mask_cvtepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovqbmem256(mem_addr as *mut i8, a.as_i64x4(), k);
+    vpmovqbmem256(mem_addr, a.as_i64x4(), k);
 }
 
 /// Convert packed 64-bit integers in a to packed 8-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30011,7 +30071,7 @@ pub unsafe fn _mm256_mask_cvtepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovqb))]
 pub unsafe fn _mm_mask_cvtepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovqbmem128(mem_addr as *mut i8, a.as_i64x2(), k);
+    vpmovqbmem128(mem_addr, a.as_i64x2(), k);
 }
 
 /// Convert packed signed 64-bit integers in a to packed 8-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30021,7 +30081,7 @@ pub unsafe fn _mm_mask_cvtepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: _
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovsqb))]
 pub unsafe fn _mm512_mask_cvtsepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m512i) {
-    vpmovsqbmem(mem_addr as *mut i8, a.as_i64x8(), k);
+    vpmovsqbmem(mem_addr, a.as_i64x8(), k);
 }
 
 /// Convert packed signed 64-bit integers in a to packed 8-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30031,7 +30091,7 @@ pub unsafe fn _mm512_mask_cvtsepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, 
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsqb))]
 pub unsafe fn _mm256_mask_cvtsepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovsqbmem256(mem_addr as *mut i8, a.as_i64x4(), k);
+    vpmovsqbmem256(mem_addr, a.as_i64x4(), k);
 }
 
 /// Convert packed signed 64-bit integers in a to packed 8-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30041,7 +30101,7 @@ pub unsafe fn _mm256_mask_cvtsepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, 
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsqb))]
 pub unsafe fn _mm_mask_cvtsepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovsqbmem128(mem_addr as *mut i8, a.as_i64x2(), k);
+    vpmovsqbmem128(mem_addr, a.as_i64x2(), k);
 }
 
 /// Convert packed unsigned 64-bit integers in a to packed 8-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30051,7 +30111,7 @@ pub unsafe fn _mm_mask_cvtsepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: 
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovusqb))]
 pub unsafe fn _mm512_mask_cvtusepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m512i) {
-    vpmovusqbmem(mem_addr as *mut i8, a.as_i64x8(), k);
+    vpmovusqbmem(mem_addr, a.as_i64x8(), k);
 }
 
 /// Convert packed unsigned 64-bit integers in a to packed 8-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30061,7 +30121,7 @@ pub unsafe fn _mm512_mask_cvtusepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusqb))]
 pub unsafe fn _mm256_mask_cvtusepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovusqbmem256(mem_addr as *mut i8, a.as_i64x4(), k);
+    vpmovusqbmem256(mem_addr, a.as_i64x4(), k);
 }
 
 /// Convert packed unsigned 64-bit integers in a to packed 8-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30071,7 +30131,7 @@ pub unsafe fn _mm256_mask_cvtusepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusqb))]
 pub unsafe fn _mm_mask_cvtusepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovusqbmem128(mem_addr as *mut i8, a.as_i64x2(), k);
+    vpmovusqbmem128(mem_addr, a.as_i64x2(), k);
 }
 
 ///Convert packed 64-bit integers in a to packed 32-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30081,7 +30141,7 @@ pub unsafe fn _mm_mask_cvtusepi64_storeu_epi8(mem_addr: *mut i8, k: __mmask8, a:
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovqd))]
 pub unsafe fn _mm512_mask_cvtepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: __m512i) {
-    vpmovqdmem(mem_addr as *mut i8, a.as_i64x8(), k);
+    vpmovqdmem(mem_addr, a.as_i64x8(), k);
 }
 
 ///Convert packed 64-bit integers in a to packed 32-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30091,7 +30151,7 @@ pub unsafe fn _mm512_mask_cvtepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, 
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovqd))]
 pub unsafe fn _mm256_mask_cvtepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovqdmem256(mem_addr as *mut i8, a.as_i64x4(), k);
+    vpmovqdmem256(mem_addr, a.as_i64x4(), k);
 }
 
 ///Convert packed 64-bit integers in a to packed 32-bit integers with truncation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30101,7 +30161,7 @@ pub unsafe fn _mm256_mask_cvtepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, 
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovqd))]
 pub unsafe fn _mm_mask_cvtepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovqdmem128(mem_addr as *mut i8, a.as_i64x2(), k);
+    vpmovqdmem128(mem_addr, a.as_i64x2(), k);
 }
 
 /// Convert packed signed 64-bit integers in a to packed 32-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30111,7 +30171,7 @@ pub unsafe fn _mm_mask_cvtepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: 
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovsqd))]
 pub unsafe fn _mm512_mask_cvtsepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: __m512i) {
-    vpmovsqdmem(mem_addr as *mut i8, a.as_i64x8(), k);
+    vpmovsqdmem(mem_addr, a.as_i64x8(), k);
 }
 
 /// Convert packed signed 64-bit integers in a to packed 32-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30121,7 +30181,7 @@ pub unsafe fn _mm512_mask_cvtsepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsqd))]
 pub unsafe fn _mm256_mask_cvtsepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovsqdmem256(mem_addr as *mut i8, a.as_i64x4(), k);
+    vpmovsqdmem256(mem_addr, a.as_i64x4(), k);
 }
 
 /// Convert packed signed 64-bit integers in a to packed 32-bit integers with signed saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30131,7 +30191,7 @@ pub unsafe fn _mm256_mask_cvtsepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8,
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovsqd))]
 pub unsafe fn _mm_mask_cvtsepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovsqdmem128(mem_addr as *mut i8, a.as_i64x2(), k);
+    vpmovsqdmem128(mem_addr, a.as_i64x2(), k);
 }
 
 /// Convert packed unsigned 64-bit integers in a to packed 32-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30141,7 +30201,7 @@ pub unsafe fn _mm_mask_cvtsepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a:
 #[target_feature(enable = "avx512f")]
 #[cfg_attr(test, assert_instr(vpmovusqd))]
 pub unsafe fn _mm512_mask_cvtusepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: __m512i) {
-    vpmovusqdmem(mem_addr as *mut i8, a.as_i64x8(), k);
+    vpmovusqdmem(mem_addr, a.as_i64x8(), k);
 }
 
 /// Convert packed unsigned 64-bit integers in a to packed 32-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30151,7 +30211,7 @@ pub unsafe fn _mm512_mask_cvtusepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusqd))]
 pub unsafe fn _mm256_mask_cvtusepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: __m256i) {
-    vpmovusqdmem256(mem_addr as *mut i8, a.as_i64x4(), k);
+    vpmovusqdmem256(mem_addr, a.as_i64x4(), k);
 }
 
 /// Convert packed unsigned 64-bit integers in a to packed 32-bit integers with unsigned saturation, and store the active results (those with their respective bit set in writemask k) to unaligned memory at base_addr.
@@ -30161,7 +30221,7 @@ pub unsafe fn _mm256_mask_cvtusepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8
 #[target_feature(enable = "avx512f,avx512vl")]
 #[cfg_attr(test, assert_instr(vpmovusqd))]
 pub unsafe fn _mm_mask_cvtusepi64_storeu_epi32(mem_addr: *mut i8, k: __mmask8, a: __m128i) {
-    vpmovusqdmem128(mem_addr as *mut i8, a.as_i64x2(), k);
+    vpmovusqdmem128(mem_addr, a.as_i64x2(), k);
 }
 
 /// Store 512-bits (composed of 16 packed 32-bit integers) from a into memory. mem_addr does not need to be aligned on any particular boundary.
@@ -38449,38 +38509,6 @@ extern "C" {
     #[link_name = "llvm.x86.avx512.psrlv.q.512"]
     fn vpsrlvq(a: i64x8, b: i64x8) -> i64x8;
 
-    #[link_name = "llvm.x86.avx512.pslli.d.512"]
-    fn vpsllid(a: i32x16, imm8: u32) -> i32x16;
-
-    #[link_name = "llvm.x86.avx2.pslli.d"]
-    fn psllid256(a: i32x8, imm8: i32) -> i32x8;
-    #[link_name = "llvm.x86.sse2.pslli.d"]
-    fn psllid128(a: i32x4, imm8: i32) -> i32x4;
-
-    #[link_name = "llvm.x86.avx512.psrli.d.512"]
-    fn vpsrlid(a: i32x16, imm8: u32) -> i32x16;
-
-    #[link_name = "llvm.x86.avx2.psrli.d"]
-    fn psrlid256(a: i32x8, imm8: i32) -> i32x8;
-    #[link_name = "llvm.x86.sse2.psrli.d"]
-    fn psrlid128(a: i32x4, imm8: i32) -> i32x4;
-
-    #[link_name = "llvm.x86.avx512.pslli.q.512"]
-    fn vpslliq(a: i64x8, imm8: u32) -> i64x8;
-
-    #[link_name = "llvm.x86.avx2.pslli.q"]
-    fn pslliq256(a: i64x4, imm8: i32) -> i64x4;
-    #[link_name = "llvm.x86.sse2.pslli.q"]
-    fn pslliq128(a: i64x2, imm8: i32) -> i64x2;
-
-    #[link_name = "llvm.x86.avx512.psrli.q.512"]
-    fn vpsrliq(a: i64x8, imm8: u32) -> i64x8;
-
-    #[link_name = "llvm.x86.avx2.psrli.q"]
-    fn psrliq256(a: i64x4, imm8: i32) -> i64x4;
-    #[link_name = "llvm.x86.sse2.psrli.q"]
-    fn psrliq128(a: i64x2, imm8: i32) -> i64x2;
-
     #[link_name = "llvm.x86.avx512.psll.d.512"]
     fn vpslld(a: i32x16, count: i32x4) -> i32x16;
     #[link_name = "llvm.x86.avx512.psrl.d.512"]
@@ -38499,20 +38527,6 @@ extern "C" {
     fn vpsraq256(a: i64x4, count: i64x2) -> i64x4;
     #[link_name = "llvm.x86.avx512.psra.q.128"]
     fn vpsraq128(a: i64x2, count: i64x2) -> i64x2;
-
-    #[link_name = "llvm.x86.avx512.psrai.d.512"]
-    fn vpsraid512(a: i32x16, imm8: u32) -> i32x16;
-    #[link_name = "llvm.x86.avx2.psrai.d"]
-    fn psraid256(a: i32x8, imm8: i32) -> i32x8;
-    #[link_name = "llvm.x86.sse2.psrai.d"]
-    fn psraid128(a: i32x4, imm8: i32) -> i32x4;
-
-    #[link_name = "llvm.x86.avx512.psrai.q.512"]
-    fn vpsraiq(a: i64x8, imm8: u32) -> i64x8;
-    #[link_name = "llvm.x86.avx512.psrai.q.256"]
-    fn vpsraiq256(a: i64x4, imm8: u32) -> i64x4;
-    #[link_name = "llvm.x86.avx512.psrai.q.128"]
-    fn vpsraiq128(a: i64x2, imm8: u32) -> i64x2;
 
     #[link_name = "llvm.x86.avx512.psrav.d.512"]
     fn vpsravd(a: i32x16, count: i32x16) -> i32x16;

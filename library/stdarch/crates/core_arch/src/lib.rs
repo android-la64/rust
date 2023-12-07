@@ -2,6 +2,7 @@
 #![allow(improper_ctypes_definitions)]
 #![allow(dead_code)]
 #![allow(unused_features)]
+#![allow(internal_features)]
 #![deny(rust_2018_idioms)]
 #![feature(
     custom_inner_attributes,
@@ -12,6 +13,7 @@
     proc_macro_hygiene,
     stmt_expr_attributes,
     core_intrinsics,
+    intrinsics,
     no_core,
     rustc_attrs,
     stdsimd,

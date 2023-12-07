@@ -18,16 +18,12 @@ mod list {
         fn bytes_to_patterns(_bytes: &[u8], _source: &Path) -> Vec<Mapping<Self::Value>> {
             vec![]
         }
-
-        fn may_use_glob_pattern(_pattern: &gix_glob::Pattern) -> bool {
-            unreachable!("won't be called")
-        }
     }
 
     #[test]
     fn from_bytes_base() {
         {
-            let list = List::<Dummy>::from_bytes(&[], "a/b/source", None);
+            let list = List::<Dummy>::from_bytes(&[], "a/b/source".into(), None);
             assert_eq!(list.base, None, "no root always means no-base, i.e. globals lists");
             assert_eq!(
                 list.source.as_deref(),
@@ -52,7 +48,7 @@ mod list {
         }
 
         {
-            let list = List::<Dummy>::from_bytes(&[], "a/b/source", Some(Path::new("c/")));
+            let list = List::<Dummy>::from_bytes(&[], "a/b/source".into(), Some(Path::new("c/")));
             assert_eq!(
                 list.base, None,
                 "if root doesn't contain source, it silently skips it as base"
@@ -67,7 +63,7 @@ mod list {
 
     #[test]
     fn strip_base_handle_recompute_basename_pos() {
-        let list = List::<Dummy>::from_bytes(&[], "a/b/source", Some(Path::new("")));
+        let list = List::<Dummy>::from_bytes(&[], "a/b/source".into(), Some(Path::new("")));
         assert_eq!(
             list.base.as_ref().expect("set"),
             "a/b/",
@@ -86,5 +82,17 @@ mod list {
             Some(("c/File".into(), Some(2))),
             "otherwise the basename is recomputed, case folding is effective"
         );
+    }
+
+    #[test]
+    fn from_file() {
+        let mut buf = Vec::new();
+        for path in [
+            Path::new(".").join("non-existing-dir").join("pattern-file"),
+            Path::new("file").to_owned(),
+        ] {
+            let list = List::<Dummy>::from_file(path, None, false, &mut buf).expect("no io error");
+            assert!(list.is_none(), "the file does not exist");
+        }
     }
 }

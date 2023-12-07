@@ -2499,7 +2499,6 @@ fn test_into_flattened_size_overflow() {
     let _ = v.into_flattened();
 }
 
-#[cfg(not(bootstrap))]
 #[test]
 fn test_box_zero_allocator() {
     use core::{alloc::AllocError, cell::RefCell};
@@ -2562,4 +2561,14 @@ fn test_box_zero_allocator() {
 
     // Ensure all ZSTs have been freed.
     assert!(alloc.state.borrow().0.is_empty());
+}
+
+#[test]
+fn test_vec_from_array_ref() {
+    assert_eq!(Vec::from(&[1, 2, 3]), vec![1, 2, 3]);
+}
+
+#[test]
+fn test_vec_from_array_mut_ref() {
+    assert_eq!(Vec::from(&mut [1, 2, 3]), vec![1, 2, 3]);
 }

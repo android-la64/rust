@@ -3,8 +3,10 @@ use std::fmt::{self, Debug, Formatter};
 use std::path::{Path, PathBuf};
 use std::task::Poll;
 
-use crate::core::source::MaybePackage;
-use crate::core::{Dependency, Package, PackageId, QueryKind, Source, SourceId, Summary};
+use crate::core::{Dependency, Package, PackageId, SourceId, Summary};
+use crate::sources::source::MaybePackage;
+use crate::sources::source::QueryKind;
+use crate::sources::source::Source;
 use crate::sources::PathSource;
 use crate::util::errors::CargoResult;
 use crate::util::Config;
@@ -221,9 +223,8 @@ impl<'cfg> Source for DirectorySource<'cfg> {
     }
 
     fn verify(&self, id: PackageId) -> CargoResult<()> {
-        let (pkg, cksum) = match self.packages.get(&id) {
-            Some(&(ref pkg, ref cksum)) => (pkg, cksum),
-            None => anyhow::bail!("failed to find entry for `{}` in directory source", id),
+        let Some((pkg, cksum)) = self.packages.get(&id) else {
+            anyhow::bail!("failed to find entry for `{}` in directory source", id);
         };
 
         for (file, cksum) in cksum.files.iter() {

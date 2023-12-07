@@ -239,6 +239,7 @@ pub fn to_windows_separators<'a>(path: impl Into<Cow<'a, BStr>>) -> Cow<'a, BStr
 /// Resolve relative components virtually without accessing the file system, e.g. turn `a/./b/c/.././..` into `a`,
 /// without keeping intermediate `..` and `/a/../b/..` becomes `/`.
 /// If the input path was relative and ends up being the `current_dir`, `.` is returned instead of the full path to `current_dir`.
+/// Note that single `.` components as well as duplicate separators are left untouched.
 ///
 /// This is particularly useful when manipulating paths that are based on user input, and not resolving intermediate
 /// symlinks keeps the path similar to what the user provided. If that's not desirable, use `[realpath()][crate::realpath()`
@@ -248,14 +249,12 @@ pub fn to_windows_separators<'a>(path: impl Into<Cow<'a, BStr>>) -> Cow<'a, BStr
 /// as typical return value of `std::env::current_dir()`.
 /// As a `current_dir` like `/c` can be exhausted by paths like `../../r`, `None` will be returned to indicate the inability
 /// to produce a logically consistent path.
-pub fn normalize<'a>(path: impl Into<Cow<'a, Path>>, current_dir: impl AsRef<Path>) -> Option<Cow<'a, Path>> {
+pub fn normalize<'a>(path: Cow<'a, Path>, current_dir: &Path) -> Option<Cow<'a, Path>> {
     use std::path::Component::ParentDir;
 
-    let path = path.into();
     if !path.components().any(|c| matches!(c, ParentDir)) {
         return Some(path);
     }
-    let current_dir = current_dir.as_ref();
     let mut current_dir_opt = Some(current_dir);
     let was_relative = path.is_relative();
     let components = path.components();

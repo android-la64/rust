@@ -148,13 +148,13 @@ impl oid {
     #[must_use]
     pub fn hex_to_buf(&self, buf: &mut [u8]) -> usize {
         let num_hex_bytes = self.bytes.len() * 2;
-        hex::encode_to_slice(&self.bytes, &mut buf[..num_hex_bytes]).expect("to count correctly");
+        faster_hex::hex_encode(&self.bytes, &mut buf[..num_hex_bytes]).expect("to count correctly");
         num_hex_bytes
     }
 
     /// Write ourselves to `out` in hexadecimal notation.
     #[inline]
-    pub fn write_hex_to(&self, mut out: impl std::io::Write) -> std::io::Result<()> {
+    pub fn write_hex_to(&self, out: &mut dyn std::io::Write) -> std::io::Result<()> {
         let mut hex = crate::Kind::hex_buf();
         let hex_len = self.hex_to_buf(&mut hex);
         out.write_all(&hex[..hex_len])

@@ -125,16 +125,16 @@ impl<const CONFIG: EncodedConfig> Iso8601<CONFIG> {
                     *parsed = parsed
                         .with_hour_24(hour)
                         .ok_or(InvalidComponent("hour"))?
-                        .with_minute((fractional_part * Second.per(Minute) as f64) as _)
+                        .with_minute((fractional_part * Second::per(Minute) as f64) as _)
                         .ok_or(InvalidComponent("minute"))?
                         .with_second(
-                            (fractional_part * Second.per(Hour) as f64 % Minute.per(Hour) as f64)
+                            (fractional_part * Second::per(Hour) as f64 % Minute::per(Hour) as f64)
                                 as _,
                         )
                         .ok_or(InvalidComponent("second"))?
                         .with_subsecond(
-                            (fractional_part * Nanosecond.per(Hour) as f64
-                                % Nanosecond.per(Second) as f64) as _,
+                            (fractional_part * Nanosecond::per(Hour) as f64
+                                % Nanosecond::per(Second) as f64) as _,
                         )
                         .ok_or(InvalidComponent("subsecond"))?;
                     return Ok(input);
@@ -162,11 +162,11 @@ impl<const CONFIG: EncodedConfig> Iso8601<CONFIG> {
                     *parsed = parsed
                         .with_minute(minute)
                         .ok_or(InvalidComponent("minute"))?
-                        .with_second((fractional_part * Second.per(Minute) as f64) as _)
+                        .with_second((fractional_part * Second::per(Minute) as f64) as _)
                         .ok_or(InvalidComponent("second"))?
                         .with_subsecond(
-                            (fractional_part * Nanosecond.per(Minute) as f64
-                                % Nanosecond.per(Second) as f64) as _,
+                            (fractional_part * Nanosecond::per(Minute) as f64
+                                % Nanosecond::per(Second) as f64) as _,
                         )
                         .ok_or(InvalidComponent("subsecond"))?;
                     return Ok(input);
@@ -209,7 +209,7 @@ impl<const CONFIG: EncodedConfig> Iso8601<CONFIG> {
                 Some(ParsedItem(input, (second, Some(fractional_part)))) => (
                     input,
                     second,
-                    round(fractional_part * Nanosecond.per(Second) as f64) as _,
+                    round(fractional_part * Nanosecond::per(Second) as f64) as _,
                 ),
                 None if extended_kind.is_extended() => {
                     return Err(error::Parse::ParseFromDescription(InvalidComponent(
@@ -271,17 +271,23 @@ impl<const CONFIG: EncodedConfig> Iso8601<CONFIG> {
                 };
             }
 
-            let input = min(input)
-                .and_then(|parsed_item| {
-                    parsed_item.consume_value(|min| {
-                        parsed.set_offset_minute_signed(if sign == b'-' {
+            match min(input) {
+                Some(ParsedItem(new_input, min)) => {
+                    input = new_input;
+                    parsed
+                        .set_offset_minute_signed(if sign == b'-' {
                             -(min as i8)
                         } else {
                             min as _
                         })
-                    })
-                })
-                .ok_or(InvalidComponent("offset minute"))?;
+                        .ok_or(InvalidComponent("offset minute"))?;
+                }
+                None => {
+                    // Omitted offset minute is assumed to be zero.
+                    parsed.set_offset_minute_signed(0);
+                }
+            }
+
             // If `:` was present, the format has already been set to extended. As such, this call
             // will do nothing in that case. If there wasn't `:` but minutes were
             // present, we know it's the basic format. Do not use `?` on the call, as

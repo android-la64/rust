@@ -62,6 +62,7 @@ impl<'repo> Reference<'repo> {
     }
 }
 
+/// Peeling
 impl<'repo> Reference<'repo> {
     /// Follow all symbolic targets this reference might point to and peel the underlying object
     /// to the end of the chain, and return it.
@@ -69,9 +70,9 @@ impl<'repo> Reference<'repo> {
     /// This is useful to learn where this reference is ultimately pointing to.
     pub fn peel_to_id_in_place(&mut self) -> Result<Id<'repo>, peel::Error> {
         let repo = &self.repo;
-        let oid = self.inner.peel_to_id_in_place(&repo.refs, |oid, buf| {
+        let oid = self.inner.peel_to_id_in_place(&repo.refs, &mut |oid, buf| {
             repo.objects
-                .try_find(oid, buf)
+                .try_find(&oid, buf)
                 .map(|po| po.map(|(o, _l)| (o.kind, o.data)))
         })?;
         Ok(Id::from_id(oid, repo))
@@ -80,6 +81,18 @@ impl<'repo> Reference<'repo> {
     /// Similar to [`peel_to_id_in_place()`][Reference::peel_to_id_in_place()], but consumes this instance.
     pub fn into_fully_peeled_id(mut self) -> Result<Id<'repo>, peel::Error> {
         self.peel_to_id_in_place()
+    }
+
+    /// Follow this symbolic reference one level and return the ref it refers to.
+    ///
+    /// Returns `None` if this is not a symbolic reference, hence the leaf of the chain.
+    pub fn follow(&self) -> Option<Result<Reference<'repo>, gix_ref::file::find::existing::Error>> {
+        self.inner.follow(&self.repo.refs).map(|res| {
+            res.map(|r| Reference {
+                inner: r,
+                repo: self.repo,
+            })
+        })
     }
 }
 

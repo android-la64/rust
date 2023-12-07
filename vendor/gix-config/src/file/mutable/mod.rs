@@ -9,10 +9,10 @@ pub(crate) mod section;
 pub(crate) mod value;
 
 fn escape_value(value: &BStr) -> BString {
-    let starts_with_whitespace = value.first().map_or(false, |b| b.is_ascii_whitespace());
+    let starts_with_whitespace = value.first().map_or(false, u8::is_ascii_whitespace);
     let ends_with_whitespace = value
         .get(value.len().saturating_sub(1))
-        .map_or(false, |b| b.is_ascii_whitespace());
+        .map_or(false, u8::is_ascii_whitespace);
     let contains_comment_indicators = value.find_byteset(b";#").is_some();
     let quote = starts_with_whitespace || ends_with_whitespace || contains_comment_indicators;
 
@@ -74,7 +74,7 @@ impl<'a> Whitespace<'a> {
                 .find_map(|(idx, e)| matches!(e, Event::SectionKey(_)).then(|| idx));
         key_pos
             .map(|key_pos| {
-                let pre_key = s.0[..key_pos].iter().rev().next().and_then(|e| match e {
+                let pre_key = s.0[..key_pos].iter().next_back().and_then(|e| match e {
                     Event::Whitespace(s) => Some(s.clone()),
                     _ => None,
                 });

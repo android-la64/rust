@@ -47,75 +47,22 @@ pub(crate) trait DigitCount {
     /// The number of digits in the stringified value.
     fn num_digits(self) -> u8;
 }
-impl DigitCount for u8 {
-    fn num_digits(self) -> u8 {
-        // Using a lookup table as with u32 is *not* faster in standalone benchmarks.
-        if self < 10 {
-            1
-        } else if self < 100 {
-            2
-        } else {
-            3
-        }
-    }
-}
-impl DigitCount for u16 {
-    fn num_digits(self) -> u8 {
-        // Using a lookup table as with u32 is *not* faster in standalone benchmarks.
-        if self < 10 {
-            1
-        } else if self < 100 {
-            2
-        } else if self < 1_000 {
-            3
-        } else if self < 10_000 {
-            4
-        } else {
-            5
-        }
-    }
+
+/// A macro to generate implementations of `DigitCount` for unsigned integers.
+macro_rules! impl_digit_count {
+    ($($t:ty),* $(,)?) => {
+        $(impl DigitCount for $t {
+            fn num_digits(self) -> u8 {
+                match self.checked_ilog10() {
+                    Some(n) => (n as u8) + 1,
+                    None => 1,
+                }
+            }
+        })*
+    };
 }
 
-impl DigitCount for u32 {
-    fn num_digits(self) -> u8 {
-        /// Lookup table
-        const TABLE: &[u64] = &[
-            0x0001_0000_0000,
-            0x0001_0000_0000,
-            0x0001_0000_0000,
-            0x0001_FFFF_FFF6,
-            0x0002_0000_0000,
-            0x0002_0000_0000,
-            0x0002_FFFF_FF9C,
-            0x0003_0000_0000,
-            0x0003_0000_0000,
-            0x0003_FFFF_FC18,
-            0x0004_0000_0000,
-            0x0004_0000_0000,
-            0x0004_0000_0000,
-            0x0004_FFFF_D8F0,
-            0x0005_0000_0000,
-            0x0005_0000_0000,
-            0x0005_FFFE_7960,
-            0x0006_0000_0000,
-            0x0006_0000_0000,
-            0x0006_FFF0_BDC0,
-            0x0007_0000_0000,
-            0x0007_0000_0000,
-            0x0007_0000_0000,
-            0x0007_FF67_6980,
-            0x0008_0000_0000,
-            0x0008_0000_0000,
-            0x0008_FA0A_1F00,
-            0x0009_0000_0000,
-            0x0009_0000_0000,
-            0x0009_C465_3600,
-            0x000A_0000_0000,
-            0x000A_0000_0000,
-        ];
-        ((self as u64 + TABLE[31_u32.saturating_sub(self.leading_zeros()) as usize]) >> 32) as _
-    }
-}
+impl_digit_count!(u8, u16, u32);
 // endregion extension trait
 
 /// Write all bytes to the output, returning the number of bytes written.
@@ -250,7 +197,19 @@ pub(crate) fn format_component(
         (UnixTimestamp(modifier), Some(date), Some(time), Some(offset)) => {
             fmt_unix_timestamp(output, date, time, offset, modifier)?
         }
-        _ => return Err(error::Format::InsufficientTypeInformation),
+        (End(modifier::End {}), ..) => 0,
+
+        // This is functionally the same as a wildcard arm, but it will cause an error if a new
+        // component is added. This is to avoid a bug where a new component, the code compiles, and
+        // formatting fails.
+        // Allow unreachable patterns because some branches may be fully matched above.
+        #[allow(unreachable_patterns)]
+        (
+            Day(_) | Month(_) | Ordinal(_) | Weekday(_) | WeekNumber(_) | Year(_) | Hour(_)
+            | Minute(_) | Period(_) | Second(_) | Subsecond(_) | OffsetHour(_) | OffsetMinute(_)
+            | OffsetSecond(_) | Ignore(_) | UnixTimestamp(_) | End(_),
+            ..,
+        ) => return Err(error::Format::InsufficientTypeInformation),
     })
 }
 
@@ -532,11 +491,13 @@ fn fmt_unix_timestamp(
         }
         modifier::UnixTimestampPrecision::Millisecond => format_number_pad_none(
             output,
-            (date_time.unix_timestamp_nanos() / Nanosecond.per(Millisecond) as i128).unsigned_abs(),
+            (date_time.unix_timestamp_nanos() / Nanosecond::per(Millisecond) as i128)
+                .unsigned_abs(),
         ),
         modifier::UnixTimestampPrecision::Microsecond => format_number_pad_none(
             output,
-            (date_time.unix_timestamp_nanos() / Nanosecond.per(Microsecond) as i128).unsigned_abs(),
+            (date_time.unix_timestamp_nanos() / Nanosecond::per(Microsecond) as i128)
+                .unsigned_abs(),
         ),
         modifier::UnixTimestampPrecision::Nanosecond => {
             format_number_pad_none(output, date_time.unix_timestamp_nanos().unsigned_abs())

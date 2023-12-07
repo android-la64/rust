@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "openssl"
-version = "0.10.55"
+version = "0.10.57"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
 description = "OpenSSL bindings"
 readme = "README.md"
@@ -30,13 +30,13 @@ license = "Apache-2.0"
 repository = "https://github.com/sfackler/rust-openssl"
 
 [dependencies.bitflags]
-version = "1.0"
+version = "2.2.1"
 
 [dependencies.cfg-if]
 version = "1.0"
 
 [dependencies.ffi]
-version = "0.9.89"
+version = "0.9.92"
 package = "openssl-sys"
 
 [dependencies.foreign-types]

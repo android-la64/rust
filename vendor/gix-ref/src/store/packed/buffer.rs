@@ -20,6 +20,7 @@ pub mod open {
     use std::path::PathBuf;
 
     use memmap2::Mmap;
+    use winnow::{prelude::*, stream::Offset};
 
     use crate::store_impl::packed;
 
@@ -29,8 +30,7 @@ pub mod open {
         ///
         /// In order to allow fast lookups and optimizations, the contents of the packed refs must be sorted.
         /// If that's not the case, they will be sorted on the fly with the data being written into a memory buffer.
-        pub fn open(path: impl Into<PathBuf>, use_memory_map_if_larger_than_bytes: u64) -> Result<Self, Error> {
-            let path = path.into();
+        pub fn open(path: PathBuf, use_memory_map_if_larger_than_bytes: u64) -> Result<Self, Error> {
             let (backing, offset) = {
                 let backing = if std::fs::metadata(&path)?.len() <= use_memory_map_if_larger_than_bytes {
                     packed::Backing::InMemory(std::fs::read(&path)?)
@@ -45,10 +45,12 @@ pub mod open {
                 };
 
                 let (offset, sorted) = {
-                    let data = backing.as_ref();
-                    if *data.first().unwrap_or(&b' ') == b'#' {
-                        let (records, header) = packed::decode::header::<()>(data).map_err(|_| Error::HeaderParsing)?;
-                        let offset = records.as_ptr() as usize - data.as_ptr() as usize;
+                    let mut input = backing.as_ref();
+                    if *input.first().unwrap_or(&b' ') == b'#' {
+                        let header = packed::decode::header::<()>
+                            .parse_next(&mut input)
+                            .map_err(|_| Error::HeaderParsing)?;
+                        let offset = input.offset_from(&backing.as_ref());
                         (offset, header.sorted)
                     } else {
                         (0, false)

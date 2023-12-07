@@ -413,7 +413,7 @@ pub const unsafe fn size_of_val_raw<T: ?Sized>(val: *const T) -> usize {
 #[inline]
 #[must_use]
 #[stable(feature = "rust1", since = "1.0.0")]
-#[deprecated(note = "use `align_of` instead", since = "1.2.0")]
+#[deprecated(note = "use `align_of` instead", since = "1.2.0", suggestion = "align_of")]
 pub fn min_align_of<T>() -> usize {
     intrinsics::min_align_of::<T>()
 }
@@ -436,7 +436,7 @@ pub fn min_align_of<T>() -> usize {
 #[inline]
 #[must_use]
 #[stable(feature = "rust1", since = "1.0.0")]
-#[deprecated(note = "use `align_of_val` instead", since = "1.2.0")]
+#[deprecated(note = "use `align_of_val` instead", since = "1.2.0", suggestion = "align_of_val")]
 pub fn min_align_of_val<T: ?Sized>(val: &T) -> usize {
     // SAFETY: val is a reference, so it's a valid raw pointer
     unsafe { intrinsics::min_align_of_val(val) }
@@ -1051,7 +1051,7 @@ pub const fn copy<T: Copy>(x: &T) -> T {
 #[inline]
 #[must_use]
 #[stable(feature = "rust1", since = "1.0.0")]
-#[rustc_const_unstable(feature = "const_transmute_copy", issue = "83165")]
+#[rustc_const_stable(feature = "const_transmute_copy", since = "1.74.0")]
 pub const unsafe fn transmute_copy<Src, Dst>(src: &Src) -> Dst {
     assert!(
         size_of::<Src>() >= size_of::<Dst>(),
@@ -1125,6 +1125,13 @@ impl<T> fmt::Debug for Discriminant<T> {
 /// for more information.
 ///
 /// [Reference]: ../../reference/items/enumerations.html#custom-discriminant-values-for-fieldless-enumerations
+///
+/// The value of a [`Discriminant<T>`] is independent of any *free lifetimes* in `T`. As such,
+/// reading or writing a `Discriminant<Foo<'a>>` as a `Discriminant<Foo<'b>>` (whether via
+/// [`transmute`] or otherwise) is always sound. Note that this is **not** true for other kinds
+/// of generic parameters and for higher-ranked lifetimes; `Discriminant<Foo<A>>` and
+/// `Discriminant<Foo<B>>` as well as `Discriminant<Bar<dyn for<'a> Trait<'a>>>` and
+/// `Discriminant<Bar<dyn Trait<'static>>>` may be incompatible.
 ///
 /// # Examples
 ///

@@ -1,5 +1,6 @@
 use libc;
 use raw::git_strarray;
+use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
 use std::ops::Range;
@@ -462,6 +463,7 @@ impl<'repo> DoubleEndedIterator for Refspecs<'repo> {
             .and_then(|i| self.remote.get_refspec(i))
     }
 }
+impl<'repo> FusedIterator for Refspecs<'repo> {}
 impl<'repo> ExactSizeIterator for Refspecs<'repo> {}
 
 #[allow(missing_docs)] // not documented in libgit2 :(
@@ -588,6 +590,7 @@ impl<'cb> Binding for FetchOptions<'cb> {
             prune: crate::call::convert(&self.prune),
             update_fetchhead: crate::call::convert(&self.update_fetchhead),
             download_tags: crate::call::convert(&self.download_tags),
+            depth: 0, // GIT_FETCH_DEPTH_FULL.
             follow_redirects: self.follow_redirects.raw(),
             custom_headers: git_strarray {
                 count: self.custom_headers_ptrs.len(),

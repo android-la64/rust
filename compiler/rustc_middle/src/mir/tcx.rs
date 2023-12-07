@@ -69,7 +69,7 @@ impl<'tcx> PlaceTy<'tcx> {
         param_env: ty::ParamEnv<'tcx>,
         elem: &ProjectionElem<V, T>,
         mut handle_field: impl FnMut(&Self, FieldIdx, T) -> Ty<'tcx>,
-        mut handle_opaque_cast: impl FnMut(&Self, T) -> Ty<'tcx>,
+        mut handle_opaque_cast_and_subtype: impl FnMut(&Self, T) -> Ty<'tcx>,
     ) -> PlaceTy<'tcx>
     where
         V: ::std::fmt::Debug,
@@ -110,7 +110,12 @@ impl<'tcx> PlaceTy<'tcx> {
                 PlaceTy { ty: self.ty, variant_index: Some(index) }
             }
             ProjectionElem::Field(f, fty) => PlaceTy::from_ty(handle_field(&self, f, fty)),
-            ProjectionElem::OpaqueCast(ty) => PlaceTy::from_ty(handle_opaque_cast(&self, ty)),
+            ProjectionElem::OpaqueCast(ty) => {
+                PlaceTy::from_ty(handle_opaque_cast_and_subtype(&self, ty))
+            }
+            ProjectionElem::Subtype(ty) => {
+                PlaceTy::from_ty(handle_opaque_cast_and_subtype(&self, ty))
+            }
         };
         debug!("projection_ty self: {:?} elem: {:?} yields: {:?}", self, elem, answer);
         answer
@@ -227,7 +232,7 @@ impl<'tcx> Operand<'tcx> {
     {
         match self {
             &Operand::Copy(ref l) | &Operand::Move(ref l) => l.ty(local_decls, tcx).ty,
-            Operand::Constant(c) => c.literal.ty(),
+            Operand::Constant(c) => c.const_.ty(),
         }
     }
 }
@@ -273,7 +278,7 @@ impl BorrowKind {
 
             // We have no type corresponding to a shallow borrow, so use
             // `&` as an approximation.
-            BorrowKind::Shallow => hir::Mutability::Not,
+            BorrowKind::Fake => hir::Mutability::Not,
         }
     }
 }

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "curl-sys"
-version = "0.4.65+curl-8.2.1"
+version = "0.4.68+curl-8.4.0"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 build = "build.rs"
 links = "curl"
@@ -76,12 +76,9 @@ optional = true
 [target."cfg(target_env = \"msvc\")".build-dependencies.vcpkg]
 version = "0.2"
 
-[target."cfg(windows)".dependencies.winapi]
-version = "0.3"
-features = [
-    "winsock2",
-    "ws2def",
-]
+[target."cfg(windows)".dependencies.windows-sys]
+version = "0.48"
+features = ["Win32_Networking_WinSock"]
 
 [badges.appveyor]
 repository = "alexcrichton/curl-rust"

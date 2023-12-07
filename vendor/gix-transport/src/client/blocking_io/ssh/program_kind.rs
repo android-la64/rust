@@ -31,7 +31,6 @@ impl ProgramKind {
         if disallow_shell {
             prepare.use_shell = false;
         }
-        let host = url.host().expect("present in ssh urls");
         match self {
             ProgramKind::Ssh => {
                 if desired_version != Protocol::V1 {
@@ -54,7 +53,7 @@ impl ProgramKind {
             }
             ProgramKind::Simple => {
                 if url.port.is_some() {
-                    return Err(ssh::invocation::Error {
+                    return Err(ssh::invocation::Error::Unsupported {
                         command: ssh_cmd.into(),
                         function: "setting the port",
                     });
@@ -62,8 +61,18 @@ impl ProgramKind {
             }
         };
         let host_as_ssh_arg = match url.user() {
-            Some(user) => format!("{user}@{host}"),
-            None => host.into(),
+            Some(user) => {
+                let host = url.host().expect("present in ssh urls");
+                format!("{user}@{host}")
+            }
+            None => {
+                let host = url
+                    .host_argument_safe()
+                    .ok_or_else(|| ssh::invocation::Error::AmbiguousHostName {
+                        host: url.host().expect("ssh host always set").into(),
+                    })?;
+                host.into()
+            }
         };
 
         // Try to force ssh to yield english messages (for parsing later)
@@ -107,7 +116,7 @@ impl ProgramKind {
 impl<'a> From<&'a OsStr> for ProgramKind {
     fn from(v: &'a OsStr) -> Self {
         let p = std::path::Path::new(v);
-        match p.file_stem().and_then(|s| s.to_str()) {
+        match p.file_stem().and_then(OsStr::to_str) {
             None => ProgramKind::Simple,
             Some(stem) => {
                 if stem.eq_ignore_ascii_case("ssh") {

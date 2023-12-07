@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.65"
 name = "gix-traverse"
-version = "0.26.0"
+version = "0.33.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -21,21 +21,33 @@ include = [
     "CHANGELOG.md",
 ]
 autotests = false
-description = "A WIP crate of the gitoxide project"
-license = "MIT/Apache-2.0"
+description = "A crate of the gitoxide project"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
 
 [lib]
 doctest = false
 
+[dependencies.gix-commitgraph]
+version = "^0.21.0"
+
+[dependencies.gix-date]
+version = "^0.8.0"
+
 [dependencies.gix-hash]
-version = "^0.11.2"
+version = "^0.13.0"
 
 [dependencies.gix-hashtable]
-version = "^0.2.1"
+version = "^0.4.0"
 
 [dependencies.gix-object]
-version = "^0.30.0"
+version = "^0.37.0"
+
+[dependencies.gix-revwalk]
+version = "^0.8.0"
+
+[dependencies.smallvec]
+version = "1.10.0"
 
 [dependencies.thiserror]
 version = "1.0.32"

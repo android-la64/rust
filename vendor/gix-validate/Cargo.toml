@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.65"
 name = "gix-validate"
-version = "0.7.5"
+version = "0.8.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -21,7 +21,7 @@ include = [
     "CHANGELOG.md",
 ]
 description = "Validation functions for various kinds of names in git"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
 
 [lib]

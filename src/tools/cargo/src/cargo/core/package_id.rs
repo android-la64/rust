@@ -10,7 +10,7 @@ use std::sync::OnceLock;
 use serde::de;
 use serde::ser;
 
-use crate::core::source::SourceId;
+use crate::core::SourceId;
 use crate::util::interning::InternedString;
 use crate::util::{CargoResult, ToSemver};
 
@@ -85,14 +85,12 @@ impl<'de> de::Deserialize<'de> for PackageId {
         let mut s = string.splitn(3, ' ');
         let name = s.next().unwrap();
         let name = InternedString::new(name);
-        let version = match s.next() {
-            Some(s) => s,
-            None => return Err(de::Error::custom("invalid serialized PackageId")),
+        let Some(version) = s.next() else {
+            return Err(de::Error::custom("invalid serialized PackageId"));
         };
         let version = version.to_semver().map_err(de::Error::custom)?;
-        let url = match s.next() {
-            Some(s) => s,
-            None => return Err(de::Error::custom("invalid serialized PackageId")),
+        let Some(url) = s.next() else {
+            return Err(de::Error::custom("invalid serialized PackageId"));
         };
         let url = if url.starts_with('(') && url.ends_with(')') {
             &url[1..url.len() - 1]
@@ -238,7 +236,7 @@ impl fmt::Debug for PackageId {
 #[cfg(test)]
 mod tests {
     use super::PackageId;
-    use crate::core::source::SourceId;
+    use crate::core::SourceId;
     use crate::sources::CRATES_IO_INDEX;
     use crate::util::IntoUrl;
 
@@ -251,43 +249,6 @@ mod tests {
         assert!(PackageId::new("foo", "1", repo).is_err());
         assert!(PackageId::new("foo", "bar", repo).is_err());
         assert!(PackageId::new("foo", "", repo).is_err());
-    }
-
-    #[test]
-    fn debug() {
-        let loc = CRATES_IO_INDEX.into_url().unwrap();
-        let pkg_id = PackageId::new("foo", "1.0.0", SourceId::for_registry(&loc).unwrap()).unwrap();
-        assert_eq!(
-            r#"PackageId { name: "foo", version: "1.0.0", source: "registry `crates-io`" }"#,
-            format!("{:?}", pkg_id)
-        );
-
-        let expected = r#"
-PackageId {
-    name: "foo",
-    version: "1.0.0",
-    source: "registry `crates-io`",
-}
-"#
-        .trim();
-
-        // Can be removed once trailing commas in Debug have reached the stable
-        // channel.
-        let expected_without_trailing_comma = r#"
-PackageId {
-    name: "foo",
-    version: "1.0.0",
-    source: "registry `crates-io`"
-}
-"#
-        .trim();
-
-        let actual = format!("{:#?}", pkg_id);
-        if actual.ends_with(",\n}") {
-            assert_eq!(actual, expected);
-        } else {
-            assert_eq!(actual, expected_without_trailing_comma);
-        }
     }
 
     #[test]

@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.65"
 name = "gix-revision"
-version = "0.15.2"
+version = "0.22.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -21,9 +21,9 @@ include = [
     "CHANGELOG.md",
     "README.md",
 ]
-description = "A WIP crate of the gitoxide project dealing with finding names for revisions and parsing specifications"
+description = "A crate of the gitoxide project dealing with finding names for revisions and parsing specifications"
 readme = "README.md"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
 
 [package.metadata.docs.rs]
@@ -47,19 +47,22 @@ version = "0.2.1"
 optional = true
 
 [dependencies.gix-date]
-version = "^0.5.1"
+version = "^0.8.0"
 
 [dependencies.gix-hash]
-version = "^0.11.2"
+version = "^0.13.0"
 
 [dependencies.gix-hashtable]
-version = "^0.2.1"
+version = "^0.4.0"
 
 [dependencies.gix-object]
-version = "^0.30.0"
+version = "^0.37.0"
 
 [dependencies.gix-revwalk]
-version = "^0.1.0"
+version = "^0.8.0"
+
+[dependencies.gix-trace]
+version = "^0.1.3"
 
 [dependencies.serde]
 version = "1.0.114"
@@ -73,6 +76,8 @@ version = "1.0.26"
 [dev-dependencies]
 
 [features]
+default = ["describe"]
+describe = []
 serde = [
     "dep:serde",
     "gix-hash/serde",

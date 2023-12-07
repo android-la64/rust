@@ -118,7 +118,7 @@ fn encode_const<'tcx>(
             // bool value false is encoded as 0 and true as 1.
             match c.ty().kind() {
                 ty::Int(ity) => {
-                    let bits = c.eval_bits(tcx, ty::ParamEnv::reveal_all(), c.ty());
+                    let bits = c.eval_bits(tcx, ty::ParamEnv::reveal_all());
                     let val = Integer::from_int_ty(&tcx, *ity).size().sign_extend(bits) as i128;
                     if val < 0 {
                         s.push('n');
@@ -126,7 +126,7 @@ fn encode_const<'tcx>(
                     let _ = write!(s, "{val}");
                 }
                 ty::Uint(_) => {
-                    let val = c.eval_bits(tcx, ty::ParamEnv::reveal_all(), c.ty());
+                    let val = c.eval_bits(tcx, ty::ParamEnv::reveal_all());
                     let _ = write!(s, "{val}");
                 }
                 ty::Bool => {
@@ -447,7 +447,7 @@ fn encode_ty<'tcx>(
             typeid.push('b');
         }
 
-        ty::Int(..) | ty::Uint(..) | ty::Float(..) => {
+        ty::Int(..) | ty::Uint(..) => {
             // u<length><type-name> as vendor extended type
             let mut s = String::from(match ty.kind() {
                 ty::Int(IntTy::I8) => "u2i8",
@@ -462,12 +462,21 @@ fn encode_ty<'tcx>(
                 ty::Uint(UintTy::U64) => "u3u64",
                 ty::Uint(UintTy::U128) => "u4u128",
                 ty::Uint(UintTy::Usize) => "u5usize",
-                ty::Float(FloatTy::F32) => "u3f32",
-                ty::Float(FloatTy::F64) => "u3f64",
-                _ => "",
+                _ => bug!("encode_ty: unexpected `{:?}`", ty.kind()),
             });
             compress(dict, DictKey::Ty(ty, TyQ::None), &mut s);
             typeid.push_str(&s);
+        }
+
+        // Rust's f32 and f64 single (32-bit) and double (64-bit) precision floating-point types
+        // have IEEE-754 binary32 and binary64 floating-point layouts, respectively.
+        //
+        // (See https://rust-lang.github.io/unsafe-code-guidelines/layout/scalars.html#fixed-width-floating-point-types.)
+        ty::Float(float_ty) => {
+            typeid.push(match float_ty {
+                FloatTy::F32 => 'f',
+                FloatTy::F64 => 'd',
+            });
         }
 
         ty::Char => {
@@ -711,7 +720,6 @@ fn encode_ty<'tcx>(
         | ty::Bound(..)
         | ty::Error(..)
         | ty::GeneratorWitness(..)
-        | ty::GeneratorWitnessMIR(..)
         | ty::Infer(..)
         | ty::Placeholder(..) => {
             bug!("encode_ty: unexpected `{:?}`", ty.kind());
@@ -964,12 +972,7 @@ fn transform_ty<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>, options: TransformTyOptio
             );
         }
 
-        ty::Bound(..)
-        | ty::Error(..)
-        | ty::GeneratorWitnessMIR(..)
-        | ty::Infer(..)
-        | ty::Param(..)
-        | ty::Placeholder(..) => {
+        ty::Bound(..) | ty::Error(..) | ty::Infer(..) | ty::Param(..) | ty::Placeholder(..) => {
             bug!("transform_ty: unexpected `{:?}`", ty.kind());
         }
     }

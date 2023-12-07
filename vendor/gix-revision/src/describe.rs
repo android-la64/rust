@@ -168,6 +168,13 @@ pub(crate) mod function {
             first_parent,
         }: Options<'name>,
     ) -> Result<Option<Outcome<'name>>, Error> {
+        let _span = gix_trace::coarse!(
+            "gix_revision::describe()",
+            commit = %commit,
+            name_count = name_by_oid.len(),
+            max_candidates,
+            first_parent
+        );
         max_candidates = max_candidates.min(MAX_CANDIDATES);
         if let Some(name) = name_by_oid.get(commit) {
             return Ok(Some(Outcome {
@@ -306,11 +313,11 @@ pub(crate) mod function {
         graph
             .insert_parents(
                 &commit,
-                |parent_id, parent_commit_date| {
+                &mut |parent_id, parent_commit_date| {
                     queue.insert(parent_commit_date as u32, parent_id);
                     commit_flags
                 },
-                |_parent_id, flags| *flags |= commit_flags,
+                &mut |_parent_id, flags| *flags |= commit_flags,
                 first_parent,
             )
             .map_err(|err| Error::InsertParentsToGraph { err, oid: commit })?;

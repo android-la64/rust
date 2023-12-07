@@ -4,14 +4,15 @@ use std::fmt;
 
 use either::Either;
 use hir::{
-    symbols::FileSymbol, AssocItem, Documentation, FieldSource, HasAttrs, HasContainer, HasSource,
-    HirDisplay, HirFileId, InFile, LocalSource, ModuleSource,
+    symbols::FileSymbol, AssocItem, FieldSource, HasContainer, HasSource, HirDisplay, HirFileId,
+    InFile, LocalSource, ModuleSource,
 };
 use ide_db::{
     base_db::{FileId, FileRange},
-    SymbolKind,
+    defs::Definition,
+    documentation::{Documentation, HasDocs},
+    RootDatabase, SymbolKind,
 };
-use ide_db::{defs::Definition, RootDatabase};
 use stdx::never;
 use syntax::{
     ast::{self, HasName},
@@ -175,8 +176,12 @@ impl TryToNav for FileSymbol {
 
         Some(NavigationTarget {
             file_id: full_range.file_id,
-            name: if self.is_alias { self.def.name(db)?.to_smol_str() } else { self.name.clone() },
-            alias: if self.is_alias { Some(self.name.clone()) } else { None },
+            name: self
+                .is_alias
+                .then(|| self.def.name(db))
+                .flatten()
+                .map_or_else(|| self.name.clone(), |it| it.to_smol_str()),
+            alias: self.is_alias.then(|| self.name.clone()),
             kind: Some(hir::ModuleDefId::from(self.def).into()),
             full_range: full_range.range,
             focus_range,
@@ -323,7 +328,7 @@ impl ToNavFromAst for hir::TraitAlias {
 
 impl<D> TryToNav for D
 where
-    D: HasSource + ToNavFromAst + Copy + HasAttrs + HirDisplay,
+    D: HasSource + ToNavFromAst + Copy + HasDocs + HirDisplay,
     D::Ast: ast::HasName,
 {
     fn try_to_nav(&self, db: &RootDatabase) -> Option<NavigationTarget> {

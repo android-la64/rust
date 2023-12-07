@@ -1,10 +1,11 @@
 pub use gix_config::*;
 use gix_features::threading::OnceCell;
 
-use crate::{bstr::BString, repository::identity, revision::spec, Repository};
+use crate::{bstr::BString, repository::identity, Repository};
 
 pub(crate) mod cache;
 mod snapshot;
+#[cfg(feature = "credentials")]
 pub use snapshot::credential_helpers;
 
 ///
@@ -43,6 +44,23 @@ pub struct CommitAutoRollback<'repo> {
 pub(crate) mod section {
     pub fn is_trusted(meta: &gix_config::file::Metadata) -> bool {
         meta.trust == gix_sec::Trust::Full || meta.source.kind() != gix_config::source::Kind::Repository
+    }
+}
+
+///
+pub mod set_value {
+    /// The error produced when calling [`SnapshotMut::set(_subsection)?_value()`][crate::config::SnapshotMut::set_value()]
+    #[derive(Debug, thiserror::Error)]
+    #[allow(missing_docs)]
+    pub enum Error {
+        #[error(transparent)]
+        SetRaw(#[from] gix_config::file::set_raw_value::Error),
+        #[error(transparent)]
+        Validate(#[from] crate::config::tree::key::validate::Error),
+        #[error("The key needs a subsection parameter to be valid.")]
+        SubSectionRequired,
+        #[error("The key must not be used with a subsection")]
+        SubSectionForbidden,
     }
 }
 
@@ -102,6 +120,20 @@ pub mod diff {
 }
 
 ///
+pub mod stat_options {
+    /// The error produced when collecting stat information, and returned by [Repository::stat_options()](crate::Repository::stat_options()).
+    #[derive(Debug, thiserror::Error)]
+    #[allow(missing_docs)]
+    pub enum Error {
+        #[error(transparent)]
+        ConfigCheckStat(#[from] super::key::GenericErrorWithValue),
+        #[error(transparent)]
+        ConfigBoolean(#[from] super::boolean::Error),
+    }
+}
+
+///
+#[cfg(feature = "attributes")]
 pub mod checkout_options {
     /// The error produced when collecting all information needed for checking out files into a worktree.
     #[derive(Debug, thiserror::Error)]
@@ -115,6 +147,8 @@ pub mod checkout_options {
         CheckoutWorkers(#[from] super::checkout::workers::Error),
         #[error(transparent)]
         Attributes(#[from] super::attribute_stack::Error),
+        #[error(transparent)]
+        FilterPipelineOptions(#[from] crate::filter::pipeline::options::Error),
     }
 }
 
@@ -275,6 +309,23 @@ pub mod key {
 }
 
 ///
+pub mod encoding {
+    use crate::bstr::BString;
+
+    /// The error produced when failing to parse the `core.checkRoundTripEncoding` key.
+    #[derive(Debug, thiserror::Error)]
+    #[error("The encoding named '{encoding}' seen in key '{key}={value}' is unsupported")]
+    pub struct Error {
+        /// The configuration key that contained the value.
+        pub key: BString,
+        /// The value that was assigned to `key`.
+        pub value: BString,
+        /// The encoding that failed.
+        pub encoding: BString,
+    }
+}
+
+///
 pub mod checkout {
     ///
     pub mod workers {
@@ -424,6 +475,7 @@ pub mod transport {
                 key: Cow<'static, BStr>,
             },
             #[error("Could not configure the credential helpers for the authenticated proxy url")]
+            #[cfg(feature = "credentials")]
             ConfigureProxyAuthenticate(#[from] crate::config::snapshot::credential_helpers::Error),
             #[error(transparent)]
             InvalidSslVersion(#[from] crate::config::ssl_version::Error),
@@ -459,11 +511,13 @@ pub(crate) struct Cache {
     /// A lazily loaded rewrite list for remote urls
     pub(crate) url_rewrite: OnceCell<crate::remote::url::Rewrite>,
     /// The lazy-loaded rename information for diffs.
+    #[cfg(feature = "blob-diff")]
     pub(crate) diff_renames: OnceCell<Option<crate::object::tree::diff::Rewrites>>,
     /// A lazily loaded mapping to know which url schemes to allow
     #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
     pub(crate) url_scheme: OnceCell<crate::remote::url::SchemePermission>,
     /// The algorithm to use when diffing blobs
+    #[cfg(feature = "blob-diff")]
     pub(crate) diff_algorithm: OnceCell<gix_diff::blob::Algorithm>,
     /// The amount of bytes to use for a memory backed delta pack cache. If `Some(0)`, no cache is used, if `None`
     /// a standard cache is used which costs near to nothing and always pays for itself.
@@ -475,12 +529,14 @@ pub(crate) struct Cache {
     /// The config section filter from the options used to initialize this instance. Keep these in sync!
     filter_config_section: fn(&gix_config::file::Metadata) -> bool,
     /// The object kind to pick if a prefix is ambiguous.
-    pub object_kind_hint: Option<spec::parse::ObjectKindHint>,
+    #[cfg(feature = "revision")]
+    pub object_kind_hint: Option<crate::revision::spec::parse::ObjectKindHint>,
     /// If true, we are on a case-insensitive file system.
     pub ignore_case: bool,
     /// If true, we should default what's possible if something is misconfigured, on case by case basis, to be more resilient.
     /// Also available in options! Keep in sync!
     pub lenient_config: bool,
+    #[cfg_attr(not(feature = "worktree-mutation"), allow(dead_code))]
     attributes: crate::open::permissions::Attributes,
     environment: crate::open::permissions::Environment,
     // TODO: make core.precomposeUnicode available as well.

@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 
 use gix_hash::ObjectId;
+use gix_macros::momo;
 use gix_ref::{
     transaction::{Change, LogChange, PreviousValue, RefEdit, RefLog},
     FullName, PartialNameRef, Target,
@@ -14,6 +15,7 @@ impl crate::Repository {
     ///
     /// It will be created with `constraint` which is most commonly to [only create it][PreviousValue::MustNotExist]
     /// or to [force overwriting a possibly existing tag](PreviousValue::Any).
+    #[momo]
     pub fn tag_reference(
         &self,
         name: impl AsRef<str>,
@@ -60,10 +62,10 @@ impl crate::Repository {
     pub fn set_namespace<'a, Name, E>(
         &mut self,
         namespace: Name,
-    ) -> Result<Option<gix_ref::Namespace>, gix_validate::refname::Error>
+    ) -> Result<Option<gix_ref::Namespace>, gix_validate::reference::name::Error>
     where
         Name: TryInto<&'a PartialNameRef, Error = E>,
-        gix_validate::refname::Error: From<E>,
+        gix_validate::reference::name::Error: From<E>,
     {
         let namespace = gix_ref::namespace::expand(namespace)?;
         Ok(self.refs.namespace.replace(namespace))
@@ -85,14 +87,27 @@ impl crate::Repository {
         Name: TryInto<FullName, Error = E>,
         gix_validate::reference::name::Error: From<E>,
     {
-        let name = name.try_into().map_err(gix_validate::reference::name::Error::from)?;
-        let id = target.into();
+        self.reference_inner(
+            name.try_into().map_err(gix_validate::reference::name::Error::from)?,
+            target.into(),
+            constraint,
+            log_message.into(),
+        )
+    }
+
+    fn reference_inner(
+        &self,
+        name: FullName,
+        id: ObjectId,
+        constraint: PreviousValue,
+        log_message: BString,
+    ) -> Result<Reference<'_>, reference::edit::Error> {
         let mut edits = self.edit_reference(RefEdit {
             change: Change::Update {
                 log: LogChange {
                     mode: RefLog::AndReference,
                     force_create_reflog: false,
-                    message: log_message.into(),
+                    message: log_message,
                 },
                 expected: constraint,
                 new: Target::Peeled(id),
@@ -124,7 +139,7 @@ impl crate::Repository {
 
     /// Edit one or more references as described by their `edits`.
     /// Note that one can set the committer name for use in the ref-log by temporarily
-    /// [overriding the gix-config][crate::Repository::config_snapshot_mut()].
+    /// [overriding the git-config][crate::Repository::config_snapshot_mut()].
     ///
     /// Returns all reference edits, which might be more than where provided due the splitting of symbolic references, and
     /// whose previous (_old_) values are the ones seen on in storage after the reference was locked.
@@ -180,7 +195,7 @@ impl crate::Repository {
     /// The difference to [`head_ref()`][Self::head_ref()] is that the latter requires the reference to exist,
     /// whereas here we merely return a the name of the possibly unborn reference.
     pub fn head_name(&self) -> Result<Option<FullName>, reference::find::existing::Error> {
-        Ok(self.head()?.referent_name().map(|n| n.to_owned()))
+        Ok(self.head()?.referent_name().map(std::borrow::ToOwned::to_owned))
     }
 
     /// Return the reference that `HEAD` points to, or `None` if the head is detached or unborn.

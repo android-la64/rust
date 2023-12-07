@@ -17,19 +17,19 @@ use crate::{
     data::EntryRange,
 };
 
-pub(crate) struct State<P, F, MBFN, T: Send> {
+pub(crate) struct State<F, MBFN, T: Send> {
     pub delta_bytes: Vec<u8>,
     pub fully_resolved_delta_bytes: Vec<u8>,
-    pub progress: P,
+    pub progress: Box<dyn Progress>,
     pub resolve: F,
     pub modify_base: MBFN,
     pub child_items: ItemSliceSend<Item<T>>,
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn deltas<T, F, MBFN, E, R, P>(
-    object_counter: Option<gix_features::progress::StepShared>,
-    size_counter: Option<gix_features::progress::StepShared>,
+pub(crate) fn deltas<T, F, MBFN, E, R>(
+    objects: gix_features::progress::StepShared,
+    size: gix_features::progress::StepShared,
     node: &mut Item<T>,
     State {
         delta_bytes,
@@ -38,7 +38,7 @@ pub(crate) fn deltas<T, F, MBFN, E, R, P>(
         resolve,
         modify_base,
         child_items,
-    }: &mut State<P, F, MBFN, T>,
+    }: &mut State<F, MBFN, T>,
     resolve_data: &R,
     hash_len: usize,
     threads_left: &AtomicIsize,
@@ -47,20 +47,20 @@ pub(crate) fn deltas<T, F, MBFN, E, R, P>(
 where
     T: Send,
     R: Send + Sync,
-    P: Progress,
     F: for<'r> Fn(EntryRange, &'r R) -> Option<&'r [u8]> + Send + Clone,
-    MBFN: FnMut(&mut T, &P, Context<'_>) -> Result<(), E> + Send + Clone,
+    MBFN: FnMut(&mut T, &dyn Progress, Context<'_>) -> Result<(), E> + Send + Clone,
     E: std::error::Error + Send + Sync + 'static,
 {
     let mut decompressed_bytes_by_pack_offset = BTreeMap::new();
-    let decompress_from_resolver = |slice: EntryRange, out: &mut Vec<u8>| -> Result<(data::Entry, u64), Error> {
+    let mut inflate = zlib::Inflate::default();
+    let mut decompress_from_resolver = |slice: EntryRange, out: &mut Vec<u8>| -> Result<(data::Entry, u64), Error> {
         let bytes = resolve(slice.clone(), resolve_data).ok_or(Error::ResolveFailed {
             pack_offset: slice.start,
         })?;
         let entry = data::Entry::from_bytes(bytes, slice.start, hash_len);
         let compressed = &bytes[entry.header_size()..];
         let decompressed_len = entry.decompressed_size as usize;
-        decompress_all_at_once_with(compressed, decompressed_len, out)?;
+        decompress_all_at_once_with(&mut inflate, compressed, decompressed_len, out)?;
         Ok((entry, slice.end))
     };
 
@@ -103,10 +103,8 @@ where
                 },
             )
             .map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)?;
-            object_counter.as_ref().map(|c| c.fetch_add(1, Ordering::SeqCst));
-            size_counter
-                .as_ref()
-                .map(|c| c.fetch_add(base_bytes.len(), Ordering::SeqCst));
+            objects.fetch_add(1, Ordering::Relaxed);
+            size.fetch_add(base_bytes.len(), Ordering::Relaxed);
         }
 
         for mut child in base.into_child_iter() {
@@ -121,7 +119,7 @@ where
             let (result_size, consumed) = data::delta::decode_header_size(&delta_bytes[consumed..]);
             header_ofs += consumed;
 
-            set_len(fully_resolved_delta_bytes, result_size as usize);
+            fully_resolved_delta_bytes.resize(result_size as usize, 0);
             data::delta::apply(&base_bytes, fully_resolved_delta_bytes, &delta_bytes[header_ofs..]);
 
             // FIXME: this actually invalidates the "pack_offset()" computation, which is not obvious to consumers
@@ -136,7 +134,7 @@ where
             } else {
                 modify_base(
                     child.data(),
-                    progress,
+                    &progress,
                     Context {
                         entry: &child_entry,
                         entry_end,
@@ -145,10 +143,8 @@ where
                     },
                 )
                 .map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)?;
-                object_counter.as_ref().map(|c| c.fetch_add(1, Ordering::SeqCst));
-                size_counter
-                    .as_ref()
-                    .map(|c| c.fetch_add(base_bytes.len(), Ordering::SeqCst));
+                objects.fetch_add(1, Ordering::Relaxed);
+                size.fetch_add(base_bytes.len(), Ordering::Relaxed);
             }
         }
 
@@ -168,9 +164,9 @@ where
                 return deltas_mt(
                     initial_threads,
                     decompressed_bytes_by_pack_offset,
-                    object_counter,
-                    size_counter,
-                    progress,
+                    objects,
+                    size,
+                    &progress,
                     nodes,
                     resolve.clone(),
                     resolve_data,
@@ -190,12 +186,12 @@ where
 ///    system. Since this thread will take a controlling function, we may spawn one more than that. In threaded mode, we will finish
 ///    all remaining work.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn deltas_mt<T, F, MBFN, E, R, P>(
+pub(crate) fn deltas_mt<T, F, MBFN, E, R>(
     mut threads_to_create: isize,
     decompressed_bytes_by_pack_offset: BTreeMap<u64, (data::Entry, u64, Vec<u8>)>,
-    object_counter: Option<gix_features::progress::StepShared>,
-    size_counter: Option<gix_features::progress::StepShared>,
-    progress: &P,
+    objects: gix_features::progress::StepShared,
+    size: gix_features::progress::StepShared,
+    progress: &dyn Progress,
     nodes: Vec<(u16, Node<'_, T>)>,
     resolve: F,
     resolve_data: &R,
@@ -207,9 +203,8 @@ pub(crate) fn deltas_mt<T, F, MBFN, E, R, P>(
 where
     T: Send,
     R: Send + Sync,
-    P: Progress,
     F: for<'r> Fn(EntryRange, &'r R) -> Option<&'r [u8]> + Send + Clone,
-    MBFN: FnMut(&mut T, &P, Context<'_>) -> Result<(), E> + Send + Clone,
+    MBFN: FnMut(&mut T, &dyn Progress, Context<'_>) -> Result<(), E> + Send + Clone,
     E: std::error::Error + Send + Sync + 'static,
 {
     let nodes = gix_features::threading::Mutable::new(nodes);
@@ -229,13 +224,14 @@ where
                         let decompressed_bytes_by_pack_offset = &decompressed_bytes_by_pack_offset;
                         let resolve = resolve.clone();
                         let mut modify_base = modify_base.clone();
-                        let object_counter = object_counter.as_ref();
-                        let size_counter = size_counter.as_ref();
+                        let objects = &objects;
+                        let size = &size;
 
                         move || -> Result<(), Error> {
                             let mut fully_resolved_delta_bytes = Vec::new();
                             let mut delta_bytes = Vec::new();
-                            let decompress_from_resolver =
+                            let mut inflate = zlib::Inflate::default();
+                            let mut decompress_from_resolver =
                                 |slice: EntryRange, out: &mut Vec<u8>| -> Result<(data::Entry, u64), Error> {
                                     let bytes = resolve(slice.clone(), resolve_data).ok_or(Error::ResolveFailed {
                                         pack_offset: slice.start,
@@ -243,7 +239,7 @@ where
                                     let entry = data::Entry::from_bytes(bytes, slice.start, hash_len);
                                     let compressed = &bytes[entry.header_size()..];
                                     let decompressed_len = entry.decompressed_size as usize;
-                                    decompress_all_at_once_with(compressed, decompressed_len, out)?;
+                                    decompress_all_at_once_with(&mut inflate, compressed, decompressed_len, out)?;
                                     Ok((entry, slice.end))
                                 };
 
@@ -280,10 +276,8 @@ where
                                         },
                                     )
                                     .map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)?;
-                                    object_counter.as_ref().map(|c| c.fetch_add(1, Ordering::SeqCst));
-                                    size_counter
-                                        .as_ref()
-                                        .map(|c| c.fetch_add(base_bytes.len(), Ordering::SeqCst));
+                                    objects.fetch_add(1, Ordering::Relaxed);
+                                    size.fetch_add(base_bytes.len(), Ordering::Relaxed);
                                 }
 
                                 for mut child in base.into_child_iter() {
@@ -328,10 +322,8 @@ where
                                             },
                                         )
                                         .map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync>)?;
-                                        object_counter.as_ref().map(|c| c.fetch_add(1, Ordering::SeqCst));
-                                        size_counter
-                                            .as_ref()
-                                            .map(|c| c.fetch_add(base_bytes.len(), Ordering::SeqCst));
+                                        objects.fetch_add(1, Ordering::Relaxed);
+                                        size.fetch_add(base_bytes.len(), Ordering::Relaxed);
                                     }
                                 }
                             }
@@ -357,6 +349,9 @@ where
             // but may instead find a good way to set the polling interval instead of hard-coding it.
             std::thread::sleep(poll_interval);
             // Get out of threads are already starving or they would be starving soon as no work is left.
+            //
+            // Lint: ScopedJoinHandle is not the same depending on active features and is not exposed in some cases.
+            #[allow(clippy::redundant_closure_for_method_calls)]
             if threads.iter().any(|t| t.is_finished()) {
                 let mut running_threads = Vec::new();
                 for thread in threads.drain(..) {
@@ -389,35 +384,17 @@ where
     })
 }
 
-fn set_len(v: &mut Vec<u8>, new_len: usize) {
-    if new_len > v.len() {
-        v.reserve_exact(new_len.saturating_sub(v.capacity()) + (v.capacity() - v.len()));
-        // SAFETY:
-        // 1. we have reserved enough capacity to fit `new_len`
-        // 2. the caller is trusted to write into `v` to completely fill `new_len`.
-        #[allow(unsafe_code, clippy::uninit_vec)]
-        unsafe {
-            v.set_len(new_len);
-        }
-    } else {
-        v.truncate(new_len)
-    }
-}
-
-fn decompress_all_at_once_with(b: &[u8], decompressed_len: usize, out: &mut Vec<u8>) -> Result<(), Error> {
-    set_len(out, decompressed_len);
-    use std::cell::RefCell;
-    thread_local! {
-        pub static INFLATE: RefCell<zlib::Inflate> = RefCell::new(zlib::Inflate::default());
-    }
-
-    INFLATE.with(|inflate| {
-        let mut inflate = inflate.borrow_mut();
-        inflate.reset();
-        inflate.once(b, out).map_err(|err| Error::ZlibInflate {
-            source: err,
-            message: "Failed to decompress entry",
-        })
+fn decompress_all_at_once_with(
+    inflate: &mut zlib::Inflate,
+    b: &[u8],
+    decompressed_len: usize,
+    out: &mut Vec<u8>,
+) -> Result<(), Error> {
+    out.resize(decompressed_len, 0);
+    inflate.reset();
+    inflate.once(b, out).map_err(|err| Error::ZlibInflate {
+        source: err,
+        message: "Failed to decompress entry",
     })?;
     Ok(())
 }

@@ -6,8 +6,11 @@ pub use bytesize;
 pub use prodash::{
     self,
     messages::MessageLevel,
-    progress::{Discard, DoOrDiscard, Either, Id, Step, StepShared, Task, ThroughputOnDrop, Value, UNKNOWN},
-    unit, Progress, RawProgress, Unit,
+    progress::{
+        AtomicStep, Discard, DoOrDiscard, Either, Id, Step, StepShared, Task, ThroughputOnDrop, Value, UNKNOWN,
+    },
+    unit, BoxedDynNestedProgress, Count, DynNestedProgress, DynNestedProgressToNestedProgress, NestedProgress,
+    Progress, Unit,
 };
 /// A stub for the portions of the `bytesize` crate that we use internally in `gitoxide`.
 #[cfg(not(feature = "progress-unit-bytes"))]
@@ -77,7 +80,7 @@ pub fn steps() -> Option<Unit> {
     Some(unit::dynamic(unit::Range::new("steps")))
 }
 
-/// A structure passing every [`read`][std::io::Read::read()] call through to the contained Progress instance using [`inc_by(bytes_read)`][Progress::inc_by()].
+/// A structure passing every [`read`](std::io::Read::read()) call through to the contained Progress instance using [`inc_by(bytes_read)`](Count::inc_by()).
 pub struct Read<T, P> {
     /// The implementor of [`std::io::Read`] to which progress is added
     pub inner: T,
@@ -111,7 +114,7 @@ where
     }
 }
 
-/// A structure passing every [`write`][std::io::Write::write()] call through to the contained Progress instance using [`inc_by(bytes_written)`][Progress::inc_by()].
+/// A structure passing every [`write`][std::io::Write::write()] call through to the contained Progress instance using [`inc_by(bytes_written)`](Count::inc_by()).
 ///
 /// This is particularly useful if the final size of the bytes to write is known or can be estimated precisely enough.
 pub struct Write<T, P> {
@@ -134,5 +137,14 @@ where
 
     fn flush(&mut self) -> io::Result<()> {
         self.inner.flush()
+    }
+}
+
+impl<T, P> io::Seek for Write<T, P>
+where
+    T: io::Seek,
+{
+    fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
+        self.inner.seek(pos)
     }
 }

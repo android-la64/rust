@@ -14,7 +14,10 @@ pub fn cli() -> Command {
         .arg_target_triple("Target triple to clean output for")
         .arg_target_dir()
         .arg_manifest_path()
-        .after_help("Run `cargo help clean` for more detailed information.\n")
+        .arg_dry_run("Display what would be deleted without deleting anything")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help clean</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
@@ -27,10 +30,11 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
     let opts = CleanOptions {
         config,
         spec: values(args, "package"),
-        targets: args.targets(),
+        targets: args.targets()?,
         requested_profile: args.get_profile_name(config, "dev", ProfileChecking::Custom)?,
         profile_specified: args.contains_id("profile") || args.flag("release"),
         doc: args.flag("doc"),
+        dry_run: args.dry_run(),
     };
     ops::clean(&ws, &opts)?;
     Ok(())

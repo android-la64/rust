@@ -389,7 +389,7 @@ impl<'a, 'tcx> DocFolder for CacheBuilder<'a, 'tcx> {
         match *item.kind {
             clean::StructItem(..)
             | clean::EnumItem(..)
-            | clean::TypedefItem(..)
+            | clean::TypeAliasItem(..)
             | clean::TraitItem(..)
             | clean::TraitAliasItem(..)
             | clean::FunctionItem(..)
@@ -457,6 +457,7 @@ impl<'a, 'tcx> DocFolder for CacheBuilder<'a, 'tcx> {
             | clean::StructItem(..)
             | clean::UnionItem(..)
             | clean::VariantItem(..)
+            | clean::TypeAliasItem(..)
             | clean::ImplItem(..) => {
                 self.cache.parent_stack.push(ParentStackItem::new(&item));
                 (self.fold_item_recur(item), true)

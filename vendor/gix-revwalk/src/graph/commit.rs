@@ -1,7 +1,8 @@
+use gix_date::SecondsSinceUnixEpoch;
 use smallvec::SmallVec;
 
 use super::LazyCommit;
-use crate::graph::{Commit, CommitterTimestamp, Either, Generation};
+use crate::graph::{Commit, Either, Generation};
 
 impl<'graph> LazyCommit<'graph> {
     /// Return an iterator over the parents of this commit.
@@ -17,15 +18,10 @@ impl<'graph> LazyCommit<'graph> {
     ///
     /// This is the single-most important date for determining recency of commits.
     /// Note that this can only fail if the commit is backed by the object database *and* parsing fails.
-    pub fn committer_timestamp(&self) -> Result<CommitterTimestamp, gix_object::decode::Error> {
+    pub fn committer_timestamp(&self) -> Result<SecondsSinceUnixEpoch, gix_object::decode::Error> {
         Ok(match &self.backing {
-            Either::Left(buf) => {
-                gix_object::CommitRefIter::from_bytes(buf)
-                    .committer()?
-                    .time
-                    .seconds_since_unix_epoch as CommitterTimestamp
-            }
-            Either::Right((cache, pos)) => cache.commit_at(*pos).committer_timestamp(),
+            Either::Left(buf) => gix_object::CommitRefIter::from_bytes(buf).committer()?.time.seconds,
+            Either::Right((cache, pos)) => cache.commit_at(*pos).committer_timestamp() as SecondsSinceUnixEpoch, // a cast as we cannot represent the error and trying seems overkill
         })
     }
 
@@ -53,7 +49,7 @@ impl<'graph> LazyCommit<'graph> {
                         Token::Parent { id } => parents.push(id),
                         Token::Author { .. } => {}
                         Token::Committer { signature } => {
-                            timestamp = Some(signature.time.seconds_since_unix_epoch as CommitterTimestamp);
+                            timestamp = Some(signature.time.seconds);
                             break;
                         }
                         _ => {
@@ -79,7 +75,11 @@ impl<'graph> LazyCommit<'graph> {
                 }
                 Commit {
                     parents,
-                    commit_time: commit.committer_timestamp(),
+                    commit_time: commit.committer_timestamp().try_into().map_err(|_| {
+                        to_owned::Error::CommitGraphTime {
+                            actual: commit.committer_timestamp(),
+                        }
+                    })?,
                     generation: Some(commit.generation()),
                     data,
                 }
@@ -145,5 +145,7 @@ pub mod to_owned {
         Decode(#[from] gix_object::decode::Error),
         #[error("Could not find commit position in graph when traversing parents")]
         CommitGraphParent(#[from] gix_commitgraph::file::commit::Error),
+        #[error("Commit-graph time could not be presented as signed integer: {actual}")]
+        CommitGraphTime { actual: u64 },
     }
 }

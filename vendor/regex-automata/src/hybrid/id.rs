@@ -1,4 +1,4 @@
-/// A state identifier especially tailored for lazy DFAs.
+/// A state identifier specifically tailored for lazy DFAs.
 ///
 /// A lazy state ID logically represents a pointer to a DFA state. In practice,
 /// by limiting the number of DFA states it can address, it reserves some
@@ -12,18 +12,28 @@
 ///
 /// * **Unknown** - The state has not yet been computed. The
 /// parameters used to get this state ID must be re-passed to
-/// [`DFA::next_state`](crate::hybrid::dfa::DFA), which will never return an
-/// unknown state ID.
+/// [`DFA::next_state`](crate::hybrid::dfa::DFA::next_state), which will never
+/// return an unknown state ID.
 /// * **Dead** - A dead state only has transitions to itself. It indicates that
 /// the search cannot do anything else and should stop with whatever result it
 /// has.
 /// * **Quit** - A quit state indicates that the automaton could not answer
 /// whether a match exists or not. Correct search implementations must return a
-/// [`MatchError::Quit`](crate::MatchError::Quit).
-/// * **Start** - A start state indicates that the automaton will begin
-/// searching at a starting state. Branching on this isn't required for
-/// correctness, but a common optimization is to use this to more quickly look
-/// for a prefix.
+/// [`MatchError::quit`](crate::MatchError::quit) when a DFA enters a quit
+/// state.
+/// * **Start** - A start state is a state in which a search can begin.
+/// Lazy DFAs usually have more than one start state. Branching on
+/// this isn't required for correctness, but a common optimization is
+/// to run a prefilter when a search enters a start state. Note that
+/// start states are *not* tagged automatically, and one must enable the
+/// [`Config::specialize_start_states`](crate::hybrid::dfa::Config::specialize_start_states)
+/// setting for start states to be tagged. The reason for this is
+/// that a DFA search loop is usually written to execute a prefilter once it
+/// enters a start state. But if there is no prefilter, this handling can be
+/// quite diastrous as the DFA may ping-pong between the special handling code
+/// and a possible optimized hot path for handling untagged states. When start
+/// states aren't specialized, then they are untagged and remain in the hot
+/// path.
 /// * **Match** - A match state indicates that a match has been found.
 /// Depending on the semantics of your search implementation, it may either
 /// continue until the end of the haystack or a dead state, or it might quit
@@ -44,12 +54,12 @@
 /// Notice also how a correct search implementation deals with
 /// [`CacheError`](crate::hybrid::CacheError)s returned by some of
 /// the lazy DFA routines. When a `CacheError` occurs, it returns
-/// [`MatchError::GaveUp`](crate::MatchError::GaveUp).
+/// [`MatchError::gave_up`](crate::MatchError::gave_up).
 ///
 /// ```
 /// use regex_automata::{
 ///     hybrid::dfa::{Cache, DFA},
-///     HalfMatch, MatchError, PatternID,
+///     HalfMatch, MatchError, Input,
 /// };
 ///
 /// fn find_leftmost_first(
@@ -62,8 +72,9 @@
 ///     // be match states (since DFAs in this crate delay matches by 1
 ///     // byte), so we don't need to check if the start state is a match.
 ///     let mut sid = dfa.start_state_forward(
-///         cache, None, haystack, 0, haystack.len(),
-///     ).map_err(|_| MatchError::GaveUp { offset: 0 })?;
+///         cache,
+///         &Input::new(haystack),
+///     )?;
 ///     let mut last_match = None;
 ///     // Walk all the bytes in the haystack. We can quit early if we see
 ///     // a dead or a quit state. The former means the automaton will
@@ -72,7 +83,7 @@
 ///     for (i, &b) in haystack.iter().enumerate() {
 ///         sid = dfa
 ///             .next_state(cache, sid, b)
-///             .map_err(|_| MatchError::GaveUp { offset: i })?;
+///             .map_err(|_| MatchError::gave_up(i))?;
 ///         if sid.is_tagged() {
 ///             if sid.is_match() {
 ///                 last_match = Some(HalfMatch::new(
@@ -88,18 +99,21 @@
 ///                 if last_match.is_some() {
 ///                     return Ok(last_match);
 ///                 }
-///                 return Err(MatchError::Quit { byte: b, offset: i });
+///                 return Err(MatchError::quit(b, i));
 ///             }
 ///             // Implementors may also want to check for start states and
 ///             // handle them differently for performance reasons. But it is
-///             // not necessary for correctness.
+///             // not necessary for correctness. Note that in order to check
+///             // for start states, you'll need to enable the
+///             // 'specialize_start_states' config knob, otherwise start
+///             // states will not be tagged.
 ///         }
 ///     }
 ///     // Matches are always delayed by 1 byte, so we must explicitly walk
 ///     // the special "EOI" transition at the end of the search.
 ///     sid = dfa
 ///         .next_eoi_state(cache, sid)
-///         .map_err(|_| MatchError::GaveUp { offset: haystack.len() })?;
+///         .map_err(|_| MatchError::gave_up(haystack.len()))?;
 ///     if sid.is_match() {
 ///         last_match = Some(HalfMatch::new(
 ///             dfa.match_pattern(cache, sid, 0),
@@ -175,7 +189,8 @@ impl LazyStateID {
     #[inline]
     pub(crate) fn new(id: usize) -> Result<LazyStateID, LazyStateIDError> {
         if id > LazyStateID::MAX {
-            return Err(LazyStateIDError { attempted: id as u64 });
+            let attempted = u64::try_from(id).unwrap();
+            return Err(LazyStateIDError { attempted });
         }
         Ok(LazyStateID::new_unchecked(id))
     }
@@ -187,18 +202,8 @@ impl LazyStateID {
     /// sacrifice memory safety.
     #[inline]
     const fn new_unchecked(id: usize) -> LazyStateID {
+        // FIXME: Use as_u32() once const functions in traits are stable.
         LazyStateID(id as u32)
-    }
-
-    /// Return this lazy state ID as its raw value if and only if it is not
-    /// tagged (and thus not an unknown, dead, quit, start or match state ID).
-    #[inline]
-    pub(crate) fn as_usize(&self) -> Option<usize> {
-        if self.is_tagged() {
-            None
-        } else {
-            Some(self.as_usize_unchecked())
-        }
     }
 
     /// Return this lazy state ID as an untagged `usize`.
@@ -215,6 +220,7 @@ impl LazyStateID {
     /// be tagged (and thus greater than LazyStateID::MAX).
     #[inline]
     pub(crate) const fn as_usize_unchecked(&self) -> usize {
+        // FIXME: Use as_usize() once const functions in traits are stable.
         self.0 as usize
     }
 
@@ -297,6 +303,11 @@ impl LazyStateID {
 
     /// Return true if and only if this lazy state ID has been tagged as a
     /// start state.
+    ///
+    /// Note that if
+    /// [`Config::specialize_start_states`](crate::hybrid::dfa::Config) is
+    /// disabled (which is the default), then this will always return false
+    /// since start states won't be tagged.
     #[inline]
     pub const fn is_start(&self) -> bool {
         self.as_usize_unchecked() & LazyStateID::MASK_START > 0
@@ -339,77 +350,5 @@ impl core::fmt::Display for LazyStateIDError {
             self.attempted(),
             LazyStateID::MAX,
         )
-    }
-}
-
-/// Represents the current state of an overlapping search.
-///
-/// This is used for overlapping searches since they need to know something
-/// about the previous search. For example, when multiple patterns match at the
-/// same position, this state tracks the last reported pattern so that the next
-/// search knows whether to report another matching pattern or continue with
-/// the search at the next position. Additionally, it also tracks which state
-/// the last search call terminated in.
-///
-/// This type provides no introspection capabilities. The only thing a caller
-/// can do is construct it and pass it around to permit search routines to use
-/// it to track state.
-///
-/// Callers should always provide a fresh state constructed via
-/// [`OverlappingState::start`] when starting a new search. Reusing state from
-/// a previous search may result in incorrect results.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OverlappingState {
-    /// The state ID of the state at which the search was in when the call
-    /// terminated. When this is a match state, `last_match` must be set to a
-    /// non-None value.
-    ///
-    /// A `None` value indicates the start state of the corresponding
-    /// automaton. We cannot use the actual ID, since any one automaton may
-    /// have many start states, and which one is in use depends on several
-    /// search-time factors.
-    id: Option<LazyStateID>,
-    /// Information associated with a match when `id` corresponds to a match
-    /// state.
-    last_match: Option<StateMatch>,
-}
-
-/// Internal state about the last match that occurred. This records both the
-/// offset of the match and the match index.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct StateMatch {
-    /// The index into the matching patterns for the current match state.
-    pub(crate) match_index: usize,
-    /// The offset in the haystack at which the match occurred. This is used
-    /// when reporting multiple matches at the same offset. That is, when
-    /// an overlapping search runs, the first thing it checks is whether it's
-    /// already in a match state, and if so, whether there are more patterns
-    /// to report as matches in that state. If so, it increments `match_index`
-    /// and returns the pattern and this offset. Once `match_index` exceeds the
-    /// number of matching patterns in the current state, the search continues.
-    pub(crate) offset: usize,
-}
-
-impl OverlappingState {
-    /// Create a new overlapping state that begins at the start state of any
-    /// automaton.
-    pub fn start() -> OverlappingState {
-        OverlappingState { id: None, last_match: None }
-    }
-
-    pub(crate) fn id(&self) -> Option<LazyStateID> {
-        self.id
-    }
-
-    pub(crate) fn set_id(&mut self, id: LazyStateID) {
-        self.id = Some(id);
-    }
-
-    pub(crate) fn last_match(&mut self) -> Option<&mut StateMatch> {
-        self.last_match.as_mut()
-    }
-
-    pub(crate) fn set_last_match(&mut self, last_match: StateMatch) {
-        self.last_match = Some(last_match);
     }
 }

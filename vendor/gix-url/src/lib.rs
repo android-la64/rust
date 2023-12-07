@@ -9,6 +9,7 @@
 #![forbid(unsafe_code)]
 
 use bstr::{BStr, BString};
+use std::borrow::Cow;
 
 ///
 pub mod parse;
@@ -47,6 +48,13 @@ pub struct Url {
     /// The port to use when connecting to a host. If `None`, standard ports depending on `scheme` will be used.
     pub port: Option<u16>,
     /// The path portion of the URL, usually the location of the git repository.
+    ///
+    /// # Security-Warning
+    ///
+    /// URLs allow paths to start with `-` which makes it possible to mask command-line arguments as path which then leads to
+    /// the invocation of programs from an attacker controlled URL. See <https://secure.phabricator.com/T12961> for details.
+    ///
+    /// If this value is going to be used in a command-line application, call [Self::path_argument_safe()] instead.
     pub path: bstr::BString,
 }
 
@@ -99,11 +107,12 @@ impl Url {
         self
     }
 
-    /// Turn a file url like `file://relative` into `file:///root/relative`, hence it assures the url's path component is absolute.
-    pub fn canonicalize(&mut self) -> Result<(), gix_path::realpath::Error> {
+    /// Turn a file url like `file://relative` into `file:///root/relative`, hence it assures the url's path component is absolute,
+    /// using `current_dir` if needed to achieve that.
+    pub fn canonicalize(&mut self, current_dir: &std::path::Path) -> Result<(), gix_path::realpath::Error> {
         if self.scheme == Scheme::File {
-            let path = gix_path::from_bstr(self.path.as_ref());
-            let abs_path = gix_path::realpath(path)?;
+            let path = gix_path::from_bstr(Cow::Borrowed(self.path.as_ref()));
+            let abs_path = gix_path::realpath_opts(path.as_ref(), current_dir, gix_path::realpath::MAX_SYMLINKS)?;
             self.path = gix_path::into_bstr(abs_path).into_owned();
         }
         Ok(())
@@ -121,9 +130,34 @@ impl Url {
         self.password.as_deref()
     }
     /// Returns the host mentioned in the url, if present.
+    ///
+    /// # Security-Warning
+    ///
+    /// URLs allow hosts to start with `-` which makes it possible to mask command-line arguments as host which then leads to
+    /// the invocation of programs from an attacker controlled URL. See <https://secure.phabricator.com/T12961> for details.
+    ///
+    /// If this value is going to be used in a command-line application, call [Self::host_argument_safe()] instead.
     pub fn host(&self) -> Option<&str> {
         self.host.as_deref()
     }
+
+    /// Return the host of this URL if present *and* if it can't be mistaken for a command-line argument.
+    ///
+    /// Use this method if the host is going to be passed to a command-line application.
+    pub fn host_argument_safe(&self) -> Option<&str> {
+        self.host().filter(|host| !looks_like_argument(host.as_bytes()))
+    }
+
+    /// Return the path of this URL *and* if it can't be mistaken for a command-line argument.
+    /// Note that it always begins with a slash, which is ignored for this comparison.
+    ///
+    /// Use this method if the path is going to be passed to a command-line application.
+    pub fn path_argument_safe(&self) -> Option<&BStr> {
+        self.path
+            .get(1..)
+            .and_then(|truncated| (!looks_like_argument(truncated)).then_some(self.path.as_ref()))
+    }
+
     /// Returns true if the path portion of the url is `/`.
     pub fn path_is_root(&self) -> bool {
         self.path == "/"
@@ -144,12 +178,17 @@ impl Url {
     }
 }
 
+fn looks_like_argument(b: &[u8]) -> bool {
+    b.first() == Some(&b'-')
+}
+
 /// Transformation
 impl Url {
-    /// Turn a file url like `file://relative` into `file:///root/relative`, hence it assures the url's path component is absolute.
-    pub fn canonicalized(&self) -> Result<Self, gix_path::realpath::Error> {
+    /// Turn a file url like `file://relative` into `file:///root/relative`, hence it assures the url's path component is absolute, using
+    /// `current_dir` if necessary.
+    pub fn canonicalized(&self, current_dir: &std::path::Path) -> Result<Self, gix_path::realpath::Error> {
         let mut res = self.clone();
-        res.canonicalize()?;
+        res.canonicalize(current_dir)?;
         Ok(res)
     }
 }
@@ -157,7 +196,7 @@ impl Url {
 /// Serialization
 impl Url {
     /// Write this URL losslessly to `out`, ready to be parsed again.
-    pub fn write_to(&self, mut out: impl std::io::Write) -> std::io::Result<()> {
+    pub fn write_to(&self, mut out: &mut dyn std::io::Write) -> std::io::Result<()> {
         if !(self.serialize_alternative_form && (self.scheme == Scheme::File || self.scheme == Scheme::Ssh)) {
             out.write_all(self.scheme.as_str().as_bytes())?;
             out.write_all(b"://")?;
@@ -192,9 +231,9 @@ impl Url {
     pub fn to_bstring(&self) -> bstr::BString {
         let mut buf = Vec::with_capacity(
             (5 + 3)
-                + self.user.as_ref().map(|n| n.len()).unwrap_or_default()
+                + self.user.as_ref().map(String::len).unwrap_or_default()
                 + 1
-                + self.host.as_ref().map(|h| h.len()).unwrap_or_default()
+                + self.host.as_ref().map(String::len).unwrap_or_default()
                 + self.port.map(|_| 5).unwrap_or_default()
                 + self.path.len(),
         );

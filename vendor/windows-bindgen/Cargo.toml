@@ -10,11 +10,11 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "windows-bindgen"
-version = "0.49.0"
+version = "0.51.1"
 authors = ["Microsoft"]
-description = "Code gen support for the windows and windows-sys crates"
+description = "Windows metadata compiler"
 readme = "readme.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/microsoft/windows-rs"
@@ -23,10 +23,23 @@ repository = "https://github.com/microsoft/windows-rs"
 default-target = "x86_64-pc-windows-msvc"
 targets = []
 
-[dependencies.metadata]
-version = "0.49.0"
-package = "windows-metadata"
+[dependencies.proc-macro2]
+version = "1.0"
+features = ["span-locations"]
 
-[dependencies.tokens]
-version = "0.48.0"
-package = "windows-tokens"
+[dependencies.rayon]
+version = "1.7"
+
+[dependencies.syn]
+version = "2.0"
+features = [
+    "full",
+    "extra-traits",
+]
+
+[dependencies.windows-metadata]
+version = "0.51.1"
+
+[features]
+default = ["metadata"]
+metadata = []

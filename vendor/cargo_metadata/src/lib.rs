@@ -81,7 +81,7 @@
 use camino::Utf8PathBuf;
 #[cfg(feature = "builder")]
 use derive_builder::Builder;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::env;
 use std::ffi::OsString;
 use std::fmt;
@@ -92,7 +92,7 @@ use std::str::from_utf8;
 
 pub use camino;
 pub use semver;
-use semver::{Version, VersionReq};
+use semver::Version;
 
 #[cfg(feature = "builder")]
 pub use dependency::DependencyBuilder;
@@ -102,14 +102,15 @@ pub use errors::{Error, Result};
 #[allow(deprecated)]
 pub use messages::parse_messages;
 pub use messages::{
-    Artifact, ArtifactProfile, BuildFinished, BuildScript, CompilerMessage, Message, MessageIter,
+    Artifact, ArtifactDebuginfo, ArtifactProfile, BuildFinished, BuildScript, CompilerMessage,
+    Message, MessageIter,
 };
 #[cfg(feature = "builder")]
 pub use messages::{
     ArtifactBuilder, ArtifactProfileBuilder, BuildFinishedBuilder, BuildScriptBuilder,
     CompilerMessageBuilder,
 };
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 mod dependency;
 pub mod diagnostic;
@@ -117,6 +118,7 @@ mod errors;
 mod messages;
 
 /// An "opaque" identifier for a package.
+///
 /// It is possible to inspect the `repr` field, if the need arises, but its
 /// precise format is an implementation detail and is subject to change.
 ///
@@ -128,7 +130,7 @@ pub struct PackageId {
     pub repr: String,
 }
 
-impl std::fmt::Display for PackageId {
+impl fmt::Display for PackageId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.repr, f)
     }
@@ -137,18 +139,6 @@ impl std::fmt::Display for PackageId {
 /// Helpers for default metadata fields
 fn is_null(value: &serde_json::Value) -> bool {
     matches!(value, serde_json::Value::Null)
-}
-
-/// Helper to ensure that hashmaps serialize in sorted order, to make
-/// serialization deterministic.
-fn sorted_map<S: Serializer, K: Serialize + Ord, V: Serialize>(
-    value: &HashMap<K, V>,
-    serializer: S,
-) -> std::result::Result<S::Ok, S::Error> {
-    value
-        .iter()
-        .collect::<BTreeMap<_, _>>()
-        .serialize(serializer)
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -323,8 +313,7 @@ pub struct Package {
     /// Targets provided by the crate (lib, bin, example, test, ...)
     pub targets: Vec<Target>,
     /// Features provided by the crate, mapped to the features required by that feature.
-    #[serde(serialize_with = "sorted_map")]
-    pub features: HashMap<String, Vec<String>>,
+    pub features: BTreeMap<String, Vec<String>>,
     /// Path containing the `Cargo.toml`
     pub manifest_path: Utf8PathBuf,
     /// Categories as given in the `Cargo.toml`
@@ -392,7 +381,9 @@ pub struct Package {
     /// The minimum supported Rust version of this package.
     ///
     /// This is always `None` if running with a version of Cargo older than 1.58.
-    pub rust_version: Option<VersionReq>,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_rust_version")]
+    pub rust_version: Option<Version>,
 }
 
 impl Package {
@@ -418,6 +409,9 @@ impl Package {
 }
 
 /// The source of a package such as crates.io.
+///
+/// It is possible to inspect the `repr` field, if the need arises, but its
+/// precise format is an implementation detail and is subject to change.
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct Source {
@@ -432,7 +426,7 @@ impl Source {
     }
 }
 
-impl std::fmt::Display for Source {
+impl fmt::Display for Source {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.repr, f)
     }
@@ -615,7 +609,7 @@ pub struct MetadataCommand {
     other_options: Vec<String>,
     /// Arbitrary environment variables to set when running `cargo`.  These will be merged into
     /// the calling environment, overriding any which clash.
-    env: HashMap<OsString, OsString>,
+    env: BTreeMap<OsString, OsString>,
     /// Show stderr
     verbose: bool,
 }
@@ -754,7 +748,7 @@ impl MetadataCommand {
             .or_else(|| env::var("CARGO").map(PathBuf::from).ok())
             .unwrap_or_else(|| PathBuf::from("cargo"));
         let mut cmd = Command::new(cargo);
-        cmd.args(&["metadata", "--format-version", "1"]);
+        cmd.args(["metadata", "--format-version", "1"]);
 
         if self.no_deps {
             cmd.arg("--no-deps");
@@ -808,5 +802,83 @@ impl MetadataCommand {
             .find(|line| line.starts_with('{'))
             .ok_or(Error::NoJson)?;
         Self::parse(stdout)
+    }
+}
+
+/// As per the Cargo Book the [`rust-version` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field) must:
+///
+/// > be a bare version number with two or three components;
+/// > it cannot include semver operators or pre-release identifiers.
+///
+/// [`semver::Version`] however requires three components. This function takes
+/// care of appending `.0` if the provided version number only has two components
+/// and ensuring that it does not contain a pre-release version or build metadata.
+fn deserialize_rust_version<'de, D>(
+    deserializer: D,
+) -> std::result::Result<Option<Version>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut buf = match Option::<String>::deserialize(deserializer)? {
+        None => return Ok(None),
+        Some(buf) => buf,
+    };
+
+    for char in buf.chars() {
+        if char == '-' {
+            return Err(serde::de::Error::custom(
+                "pre-release identifiers are not supported in rust-version",
+            ));
+        } else if char == '+' {
+            return Err(serde::de::Error::custom(
+                "build metadata is not supported in rust-version",
+            ));
+        }
+    }
+
+    if buf.matches('.').count() == 1 {
+        // e.g. 1.0 -> 1.0.0
+        buf.push_str(".0");
+    }
+
+    Ok(Some(
+        Version::parse(&buf).map_err(serde::de::Error::custom)?,
+    ))
+}
+
+#[cfg(test)]
+mod test {
+    use semver::Version;
+
+    #[derive(Debug, serde::Deserialize)]
+    struct BareVersion(
+        #[serde(deserialize_with = "super::deserialize_rust_version")] Option<semver::Version>,
+    );
+
+    fn bare_version(str: &str) -> Version {
+        serde_json::from_str::<BareVersion>(&format!(r#""{}""#, str))
+            .unwrap()
+            .0
+            .unwrap()
+    }
+
+    fn bare_version_err(str: &str) -> String {
+        serde_json::from_str::<BareVersion>(&format!(r#""{}""#, str))
+            .unwrap_err()
+            .to_string()
+    }
+
+    #[test]
+    fn test_deserialize_rust_version() {
+        assert_eq!(bare_version("1.2"), Version::new(1, 2, 0));
+        assert_eq!(bare_version("1.2.0"), Version::new(1, 2, 0));
+        assert_eq!(
+            bare_version_err("1.2.0-alpha"),
+            "pre-release identifiers are not supported in rust-version"
+        );
+        assert_eq!(
+            bare_version_err("1.2.0+123"),
+            "build metadata is not supported in rust-version"
+        );
     }
 }

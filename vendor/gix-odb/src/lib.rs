@@ -76,6 +76,12 @@ mod traits;
 
 pub use traits::{Find, FindExt, Header, HeaderExt, Write};
 
+///
+pub mod write {
+    /// The error type returned by the [`Write`](crate::Write) trait.
+    pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
+}
+
 /// A thread-local handle to access any object.
 pub type Handle = Cache<store::Handle<OwnShared<Store>>>;
 /// A thread-local handle to access any object, but thread-safe and independent of the actual type of `OwnShared` or feature toggles in `gix-features`.
@@ -142,11 +148,16 @@ pub fn at_opts(
     replacements: impl IntoIterator<Item = (gix_hash::ObjectId, gix_hash::ObjectId)>,
     options: store::init::Options,
 ) -> std::io::Result<Handle> {
-    let handle = OwnShared::new(Store::at_opts(objects_dir, replacements, options)?).to_handle();
+    let handle = OwnShared::new(Store::at_opts(
+        objects_dir.into(),
+        &mut replacements.into_iter(),
+        options,
+    )?)
+    .to_handle();
     Ok(Cache::from(handle))
 }
 
 /// Create a new cached handle to the object store.
 pub fn at(objects_dir: impl Into<PathBuf>) -> std::io::Result<Handle> {
-    at_opts(objects_dir, Vec::new().into_iter(), Default::default())
+    at_opts(objects_dir, Vec::new(), Default::default())
 }

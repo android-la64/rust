@@ -156,7 +156,7 @@ impl<'tcx> TyCtxt<'tcx> {
                 | DefKind::Enum
                 | DefKind::Trait
                 | DefKind::OpaqueTy
-                | DefKind::TyAlias { .. }
+                | DefKind::TyAlias
                 | DefKind::ForeignTy
                 | DefKind::TraitAlias
                 | DefKind::AssocTy
@@ -855,7 +855,7 @@ impl<'tcx> OpaqueTypeExpander<'tcx> {
                         let hidden_ty = bty.instantiate(self.tcx, args);
                         self.fold_ty(hidden_ty);
                     }
-                    let expanded_ty = Ty::new_generator_witness_mir(self.tcx, def_id, args);
+                    let expanded_ty = Ty::new_generator_witness(self.tcx, def_id, args);
                     self.expanded_cache.insert((def_id, args), expanded_ty);
                     expanded_ty
                 }
@@ -888,7 +888,7 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for OpaqueTypeExpander<'tcx> {
             t
         };
         if self.expand_generators {
-            if let ty::GeneratorWitnessMIR(def_id, args) = *t.kind() {
+            if let ty::GeneratorWitness(def_id, args) = *t.kind() {
                 t = self.expand_generator(def_id, args).unwrap_or(t);
             }
         }
@@ -1025,8 +1025,7 @@ impl<'tcx> Ty<'tcx> {
             | ty::Dynamic(..)
             | ty::Foreign(_)
             | ty::Generator(..)
-            | ty::GeneratorWitness(_)
-            | ty::GeneratorWitnessMIR(..)
+            | ty::GeneratorWitness(..)
             | ty::Infer(_)
             | ty::Alias(..)
             | ty::Param(_)
@@ -1065,8 +1064,7 @@ impl<'tcx> Ty<'tcx> {
             | ty::Dynamic(..)
             | ty::Foreign(_)
             | ty::Generator(..)
-            | ty::GeneratorWitness(_)
-            | ty::GeneratorWitnessMIR(..)
+            | ty::GeneratorWitness(..)
             | ty::Infer(_)
             | ty::Alias(..)
             | ty::Param(_)
@@ -1099,8 +1097,10 @@ impl<'tcx> Ty<'tcx> {
                 // This doesn't depend on regions, so try to minimize distinct
                 // query keys used.
                 // If normalization fails, we just use `query_ty`.
-                let query_ty =
-                    tcx.try_normalize_erasing_regions(param_env, query_ty).unwrap_or(query_ty);
+                debug_assert!(!param_env.has_infer());
+                let query_ty = tcx
+                    .try_normalize_erasing_regions(param_env, query_ty)
+                    .unwrap_or_else(|_| tcx.erase_regions(query_ty));
 
                 tcx.needs_drop_raw(param_env.and(query_ty))
             }
@@ -1194,10 +1194,7 @@ impl<'tcx> Ty<'tcx> {
                 false
             }
 
-            ty::Foreign(_)
-            | ty::GeneratorWitness(..)
-            | ty::GeneratorWitnessMIR(..)
-            | ty::Error(_) => false,
+            ty::Foreign(_) | ty::GeneratorWitness(..) | ty::Error(_) => false,
         }
     }
 
@@ -1292,8 +1289,6 @@ pub fn needs_drop_components<'tcx>(
         | ty::FnDef(..)
         | ty::FnPtr(_)
         | ty::Char
-        | ty::GeneratorWitness(..)
-        | ty::GeneratorWitnessMIR(..)
         | ty::RawPtr(_)
         | ty::Ref(..)
         | ty::Str => Ok(SmallVec::new()),
@@ -1333,7 +1328,8 @@ pub fn needs_drop_components<'tcx>(
         | ty::Placeholder(..)
         | ty::Infer(_)
         | ty::Closure(..)
-        | ty::Generator(..) => Ok(smallvec![ty]),
+        | ty::Generator(..)
+        | ty::GeneratorWitness(..) => Ok(smallvec![ty]),
     }
 }
 
@@ -1364,11 +1360,7 @@ pub fn is_trivially_const_drop(ty: Ty<'_>) -> bool {
 
         // Not trivial because they have components, and instead of looking inside,
         // we'll just perform trait selection.
-        ty::Closure(..)
-        | ty::Generator(..)
-        | ty::GeneratorWitness(_)
-        | ty::GeneratorWitnessMIR(..)
-        | ty::Adt(..) => false,
+        ty::Closure(..) | ty::Generator(..) | ty::GeneratorWitness(..) | ty::Adt(..) => false,
 
         ty::Array(ty, _) | ty::Slice(ty) => is_trivially_const_drop(ty),
 

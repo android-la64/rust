@@ -10,13 +10,13 @@ The term "DFA state" is somewhat overloaded in this crate. In some cases, it
 refers to the set of transitions over an alphabet for a particular state. In
 other cases, it refers to a set of NFA states. The former is really about the
 final representation of a state in a DFA's transition table, where as the
-latter---what this module is focusedon---is closer to an intermediate form that
-is used to help eventually build the transition table.
+latter---what this module is focused on---is closer to an intermediate form
+that is used to help eventually build the transition table.
 
 This module exports four types. All four types represent the same idea: an
 ordered set of NFA states. This ordered set represents the epsilon closure of a
 particular NFA state, where the "epsilon closure" is the set of NFA states that
-can be transitioned to without consuming any input. i.e., Follow all of theNFA
+can be transitioned to without consuming any input. i.e., Follow all of the NFA
 state's epsilon transitions. In addition, this implementation of DFA states
 cares about two other things: the ordered set of pattern IDs corresponding
 to the patterns that match if the state is a match state, and the set of
@@ -46,9 +46,11 @@ a copy). Here are the three types described succinctly:
 and no NFA states. Creating a `StateBuilderEmpty` performs no allocs. A
 `StateBuilderEmpty` can only be used to query its underlying memory capacity,
 or to convert into a builder for recording pattern IDs and/or assertions.
+
 * `StateBuilderMatches` represents a state with zero or more pattern IDs, zero
 or more satisfied assertions and zero NFA state IDs. A `StateBuilderMatches`
 can only be used for adding pattern IDs and recording assertions.
+
 * `StateBuilderNFA` represents a state with zero or more pattern IDs, zero or
 more satisfied assertions and zero or more NFA state IDs. A `StateBuilderNFA`
 can only be used for adding NFA state IDs and recording some assertions.
@@ -58,7 +60,7 @@ DFA state to check if it already exists. If it does, then there's no need to
 freeze it into a `State`. It it doesn't exist, then `StateBuilderNFA::to_state`
 can be called to freeze the builder into an immutable `State`. In either
 case, `clear` should be called on the builder to turn it back into a
-`StateBuilderEmpty` that reuses the underyling memory.
+`StateBuilderEmpty` that reuses the underlying memory.
 
 The main purpose for splitting the builder into these distinct types is to
 make it impossible to do things like adding a pattern ID after adding an NFA
@@ -68,7 +70,7 @@ type below.) If we just used one type for everything, it would be possible for
 callers to use an incorrect interleaving of calls and thus result in a corrupt
 representation. I chose to use more type machinery to make this impossible to
 do because 1) determinization is itself pretty complex and it wouldn't be too
-hard to foul this up and 2) there isn't too much machinery involve and it's
+hard to foul this up and 2) there isn't too much machinery involved and it's
 well contained.
 
 As an optimization, sometimes states won't have certain things set. For
@@ -88,12 +90,11 @@ use core::{convert::TryFrom, mem};
 
 use alloc::{sync::Arc, vec::Vec};
 
-use crate::{
-    nfa::thompson::LookSet,
-    util::{
-        bytes::{self, Endian},
-        id::{PatternID, StateID},
-    },
+use crate::util::{
+    int::{I32, U32},
+    look::LookSet,
+    primitives::{PatternID, StateID},
+    wire::{self, Endian},
 };
 
 /// A DFA state that, at its core, is represented by an ordered set of NFA
@@ -102,7 +103,7 @@ use crate::{
 /// This type is intended to be used only in NFA-to-DFA conversion via powerset
 /// construction.
 ///
-/// It may be cheaply cloned and accessed safely from mulitple threads
+/// It may be cheaply cloned and accessed safely from multiple threads
 /// simultaneously.
 #[derive(Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub(crate) struct State(Arc<[u8]>);
@@ -138,6 +139,10 @@ impl State {
         self.repr().is_from_word()
     }
 
+    pub(crate) fn is_half_crlf(&self) -> bool {
+        self.repr().is_half_crlf()
+    }
+
     pub(crate) fn look_have(&self) -> LookSet {
         self.repr().look_have()
     }
@@ -146,8 +151,8 @@ impl State {
         self.repr().look_need()
     }
 
-    pub(crate) fn match_count(&self) -> usize {
-        self.repr().match_count()
+    pub(crate) fn match_len(&self) -> usize {
+        self.repr().match_len()
     }
 
     pub(crate) fn match_pattern(&self, index: usize) -> PatternID {
@@ -158,6 +163,7 @@ impl State {
         self.repr().match_pattern_ids()
     }
 
+    #[cfg(all(test, not(miri)))]
     pub(crate) fn iter_match_pattern_ids<F: FnMut(PatternID)>(&self, f: F) {
         self.repr().iter_match_pattern_ids(f)
     }
@@ -191,7 +197,7 @@ impl StateBuilderEmpty {
     }
 
     pub(crate) fn into_matches(mut self) -> StateBuilderMatches {
-        self.0.extend_from_slice(&[0, 0, 0]);
+        self.0.extend_from_slice(&[0, 0, 0, 0, 0]);
         StateBuilderMatches(self.0)
     }
 
@@ -224,30 +230,23 @@ impl StateBuilderMatches {
         StateBuilderNFA { repr: self.0, prev_nfa_state_id: StateID::ZERO }
     }
 
-    pub(crate) fn clear(self) -> StateBuilderEmpty {
-        let mut builder = StateBuilderEmpty(self.0);
-        builder.clear();
-        builder
-    }
-
-    pub(crate) fn is_match(&self) -> bool {
-        self.repr().is_match()
-    }
-
-    pub(crate) fn is_from_word(&self) -> bool {
-        self.repr().is_from_word()
-    }
-
     pub(crate) fn set_is_from_word(&mut self) {
         self.repr_vec().set_is_from_word()
     }
 
-    pub(crate) fn look_have(&mut self) -> &mut LookSet {
-        LookSet::from_repr_mut(&mut self.0[1])
+    pub(crate) fn set_is_half_crlf(&mut self) {
+        self.repr_vec().set_is_half_crlf()
     }
 
-    pub(crate) fn look_need(&mut self) -> &mut LookSet {
-        LookSet::from_repr_mut(&mut self.0[2])
+    pub(crate) fn look_have(&self) -> LookSet {
+        LookSet::read_repr(&self.0[1..])
+    }
+
+    pub(crate) fn set_look_have(
+        &mut self,
+        set: impl FnMut(LookSet) -> LookSet,
+    ) {
+        self.repr_vec().set_look_have(set)
     }
 
     pub(crate) fn add_match_pattern_id(&mut self, pid: PatternID) {
@@ -295,29 +294,27 @@ impl StateBuilderNFA {
         builder
     }
 
-    pub(crate) fn is_match(&self) -> bool {
-        self.repr().is_match()
+    pub(crate) fn look_need(&self) -> LookSet {
+        self.repr().look_need()
     }
 
-    pub(crate) fn is_from_word(&self) -> bool {
-        self.repr().is_from_word()
+    pub(crate) fn set_look_have(
+        &mut self,
+        set: impl FnMut(LookSet) -> LookSet,
+    ) {
+        self.repr_vec().set_look_have(set)
     }
 
-    pub(crate) fn look_have(&mut self) -> &mut LookSet {
-        LookSet::from_repr_mut(&mut self.repr[1])
-    }
-
-    pub(crate) fn look_need(&mut self) -> &mut LookSet {
-        LookSet::from_repr_mut(&mut self.repr[2])
+    pub(crate) fn set_look_need(
+        &mut self,
+        set: impl FnMut(LookSet) -> LookSet,
+    ) {
+        self.repr_vec().set_look_need(set)
     }
 
     pub(crate) fn add_nfa_state_id(&mut self, sid: StateID) {
         ReprVec(&mut self.repr)
             .add_nfa_state_id(&mut self.prev_nfa_state_id, sid)
-    }
-
-    pub(crate) fn memory_usage(&self) -> usize {
-        self.repr.len()
     }
 
     pub(crate) fn as_bytes(&self) -> &[u8] {
@@ -355,8 +352,8 @@ impl StateBuilderNFA {
 ///
 /// Byte 1 corresponds to the look-behind assertions that were satisfied by
 /// the transition that created this state. This generally only includes the
-/// StartLine and StartText assertions. (Look-ahead assertions are not tracked
-/// as part of states. Instead, these are applied by re-computing the epsilon
+/// StartLF and Start assertions. (Look-ahead assertions are not tracked as
+/// part of states. Instead, these are applied by re-computing the epsilon
 /// closure of a state when computing the transition function. See `next` in
 /// the parent module.)
 ///
@@ -425,6 +422,14 @@ impl<'a> Repr<'a> {
         self.0[0] & (1 << 2) > 0
     }
 
+    /// Returns true if and only if this state is marked as being inside of a
+    /// CRLF terminator. In the forward direction, this means the state was
+    /// created after seeing a `\r`. In the reverse direction, this means the
+    /// state was created after seeing a `\n`.
+    fn is_half_crlf(&self) -> bool {
+        self.0[0] & (1 << 3) > 0
+    }
+
     /// The set of look-behind assertions that were true in the transition that
     /// created this state.
     ///
@@ -436,7 +441,7 @@ impl<'a> Repr<'a> {
     /// these are re-computed on demand via epsilon closure when computing the
     /// transition function.
     fn look_have(&self) -> LookSet {
-        LookSet::from_repr(self.0[1])
+        LookSet::read_repr(&self.0[1..])
     }
 
     /// The set of look-around (both behind and ahead) assertions that appear
@@ -447,34 +452,34 @@ impl<'a> Repr<'a> {
     /// state has no conditional epsilon transitions, then there is no need
     /// to re-compute the epsilon closure.
     fn look_need(&self) -> LookSet {
-        LookSet::from_repr(self.0[2])
+        LookSet::read_repr(&self.0[3..])
     }
 
     /// Returns the total number of match pattern IDs in this state.
     ///
     /// If this state is not a match state, then this always returns 0.
-    fn match_count(&self) -> usize {
+    fn match_len(&self) -> usize {
         if !self.is_match() {
             return 0;
         } else if !self.has_pattern_ids() {
             1
         } else {
-            self.encoded_pattern_count()
+            self.encoded_pattern_len()
         }
     }
 
     /// Returns the pattern ID for this match state at the given index.
     ///
-    /// If the given index is greater than or equal to `match_count()` for this
+    /// If the given index is greater than or equal to `match_len()` for this
     /// state, then this could panic or return incorrect results.
     fn match_pattern(&self, index: usize) -> PatternID {
         if !self.has_pattern_ids() {
             PatternID::ZERO
         } else {
-            let offset = 7 + index * PatternID::SIZE;
+            let offset = 9 + index * PatternID::SIZE;
             // This is OK since we only ever serialize valid PatternIDs to
             // states.
-            bytes::read_pattern_id_unchecked(&self.0[offset..]).0
+            wire::read_pattern_id_unchecked(&self.0[offset..]).0
         }
     }
 
@@ -502,9 +507,9 @@ impl<'a> Repr<'a> {
             f(PatternID::ZERO);
             return;
         }
-        let mut pids = &self.0[7..self.pattern_offset_end()];
+        let mut pids = &self.0[9..self.pattern_offset_end()];
         while !pids.is_empty() {
-            let pid = bytes::read_u32(pids);
+            let pid = wire::read_u32(pids);
             pids = &pids[PatternID::SIZE..];
             // This is OK since we only ever serialize valid PatternIDs to
             // states. And since pattern IDs can never exceed a usize, the
@@ -525,20 +530,20 @@ impl<'a> Repr<'a> {
             // This is OK since we only ever serialize valid StateIDs to
             // states. And since state IDs can never exceed an isize, they must
             // always be able to fit into a usize, and thus cast is OK.
-            f(StateID::new_unchecked(sid as usize))
+            f(StateID::new_unchecked(sid.as_usize()))
         }
     }
 
     /// Returns the offset into this state's representation where the pattern
     /// IDs end and the NFA state IDs begin.
     fn pattern_offset_end(&self) -> usize {
-        let encoded = self.encoded_pattern_count();
+        let encoded = self.encoded_pattern_len();
         if encoded == 0 {
-            return 3;
+            return 5;
         }
         // This arithmetic is OK since we were able to address this many bytes
         // when writing to the state, thus, it must fit into a usize.
-        encoded.checked_mul(4).unwrap().checked_add(7).unwrap()
+        encoded.checked_mul(4).unwrap().checked_add(9).unwrap()
     }
 
     /// Returns the total number of *encoded* pattern IDs in this state.
@@ -546,13 +551,13 @@ impl<'a> Repr<'a> {
     /// This may return 0 even when this is a match state, since the pattern
     /// ID `PatternID::ZERO` is not encoded when it's the only pattern ID in
     /// the match state (the overwhelming common case).
-    fn encoded_pattern_count(&self) -> usize {
+    fn encoded_pattern_len(&self) -> usize {
         if !self.has_pattern_ids() {
             return 0;
         }
         // This unwrap is OK since the total number of patterns is always
         // guaranteed to fit into a usize.
-        usize::try_from(bytes::read_u32(&self.0[3..7])).unwrap()
+        usize::try_from(wire::read_u32(&self.0[5..9])).unwrap()
     }
 }
 
@@ -563,6 +568,7 @@ impl<'a> core::fmt::Debug for Repr<'a> {
         f.debug_struct("Repr")
             .field("is_match", &self.is_match())
             .field("is_from_word", &self.is_from_word())
+            .field("is_half_crlf", &self.is_half_crlf())
             .field("look_have", &self.look_have())
             .field("look_need", &self.look_need())
             .field("match_pattern_ids", &self.match_pattern_ids())
@@ -608,14 +614,36 @@ impl<'a> ReprVec<'a> {
         self.0[0] |= 1 << 2;
     }
 
-    /// Return a mutable reference to the 'look_have' assertion set.
-    fn look_have_mut(&mut self) -> &mut LookSet {
-        LookSet::from_repr_mut(&mut self.0[1])
+    /// Set this state as having seen half of a CRLF terminator.
+    ///
+    /// In the forward direction, this should be set when a `\r` has been seen.
+    /// In the reverse direction, this should be set when a `\n` has been seen.
+    fn set_is_half_crlf(&mut self) {
+        self.0[0] |= 1 << 3;
     }
 
-    /// Return a mutable reference to the 'look_need' assertion set.
-    fn look_need_mut(&mut self) -> &mut LookSet {
-        LookSet::from_repr_mut(&mut self.0[2])
+    /// The set of look-behind assertions that were true in the transition that
+    /// created this state.
+    fn look_have(&self) -> LookSet {
+        self.repr().look_have()
+    }
+
+    /// The set of look-around (both behind and ahead) assertions that appear
+    /// at least once in this state's set of NFA states.
+    fn look_need(&self) -> LookSet {
+        self.repr().look_need()
+    }
+
+    /// Mutate the set of look-behind assertions that were true in the
+    /// transition that created this state.
+    fn set_look_have(&mut self, mut set: impl FnMut(LookSet) -> LookSet) {
+        set(self.look_have()).write_repr(&mut self.0[1..]);
+    }
+
+    /// Mutate the set of look-around (both behind and ahead) assertions that
+    /// appear at least once in this state's set of NFA states.
+    fn set_look_need(&mut self, mut set: impl FnMut(LookSet) -> LookSet) {
+        set(self.look_need()).write_repr(&mut self.0[3..]);
     }
 
     /// Add a pattern ID to this state. All match states must have at least
@@ -675,14 +703,14 @@ impl<'a> ReprVec<'a> {
             return;
         }
         let patsize = PatternID::SIZE;
-        let pattern_bytes = self.0.len() - 7;
+        let pattern_bytes = self.0.len() - 9;
         // Every pattern ID uses 4 bytes, so number of bytes should be
         // divisible by 4.
         assert_eq!(pattern_bytes % patsize, 0);
         // This unwrap is OK since we are guaranteed that the maximum number
         // of possible patterns fits into a u32.
         let count32 = u32::try_from(pattern_bytes / patsize).unwrap();
-        bytes::NE::write_u32(count32, &mut self.0[3..7]);
+        wire::NE::write_u32(count32, &mut self.0[5..9]);
     }
 
     /// Add an NFA state ID to this state. The order in which NFA states are
@@ -704,7 +732,7 @@ impl<'a> ReprVec<'a> {
 ///
 /// https://developers.google.com/protocol-buffers/docs/encoding#varints
 fn write_vari32(data: &mut Vec<u8>, n: i32) {
-    let mut un = (n as u32) << 1;
+    let mut un = n.to_bits() << 1;
     if n < 0 {
         un = !un;
     }
@@ -717,7 +745,7 @@ fn write_vari32(data: &mut Vec<u8>, n: i32) {
 /// https://developers.google.com/protocol-buffers/docs/encoding#varints
 fn read_vari32(data: &[u8]) -> (i32, usize) {
     let (un, i) = read_varu32(data);
-    let mut n = (un >> 1) as i32;
+    let mut n = i32::from_bits(un >> 1);
     if un & 1 != 0 {
         n = !n;
     }
@@ -733,10 +761,10 @@ fn read_vari32(data: &[u8]) -> (i32, usize) {
 /// https://developers.google.com/protocol-buffers/docs/encoding#varints
 fn write_varu32(data: &mut Vec<u8>, mut n: u32) {
     while n >= 0b1000_0000 {
-        data.push((n as u8) | 0b1000_0000);
+        data.push(n.low_u8() | 0b1000_0000);
         n >>= 7;
     }
-    data.push(n as u8);
+    data.push(n.low_u8());
 }
 
 /// Read an unsigned 32-bit varint. Also, return the number of bytes read.
@@ -750,9 +778,9 @@ fn read_varu32(data: &[u8]) -> (u32, usize) {
     let mut shift: u32 = 0;
     for (i, &b) in data.iter().enumerate() {
         if b < 0b1000_0000 {
-            return (n | ((b as u32) << shift), i + 1);
+            return (n | (u32::from(b) << shift), i + 1);
         }
-        n |= ((b as u32) & 0b0111_1111) << shift;
+        n |= (u32::from(b) & 0b0111_1111) << shift;
         shift += 7;
     }
     (0, 0)
@@ -760,7 +788,7 @@ fn read_varu32(data: &[u8]) -> (u32, usize) {
 
 /// Push a native-endian encoded `n` on to `dst`.
 fn write_u32(dst: &mut Vec<u8>, n: u32) {
-    use crate::util::bytes::{Endian, NE};
+    use crate::util::wire::NE;
 
     let start = dst.len();
     dst.extend(core::iter::repeat(0).take(mem::size_of::<u32>()));
@@ -775,6 +803,7 @@ mod tests {
 
     use super::*;
 
+    #[cfg(not(miri))]
     quickcheck! {
         fn prop_state_read_write_nfa_state_ids(sids: Vec<StateID>) -> bool {
             // Builders states do not permit duplicate IDs.
@@ -829,7 +858,9 @@ mod tests {
             s.iter_nfa_state_ids(|sid| got_sids.push(sid));
             got_pids == pids && got_sids == sids
         }
+    }
 
+    quickcheck! {
         fn prop_read_write_varu32(n: u32) -> bool {
             let mut buf = vec![];
             write_varu32(&mut buf, n);
@@ -845,6 +876,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(miri))]
     fn dedup_state_ids(sids: Vec<StateID>) -> Vec<StateID> {
         let mut set = alloc::collections::BTreeSet::new();
         let mut deduped = vec![];
@@ -858,6 +890,7 @@ mod tests {
         deduped
     }
 
+    #[cfg(not(miri))]
     fn dedup_pattern_ids(pids: Vec<PatternID>) -> Vec<PatternID> {
         let mut set = alloc::collections::BTreeSet::new();
         let mut deduped = vec![];

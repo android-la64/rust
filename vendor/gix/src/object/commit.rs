@@ -1,4 +1,4 @@
-use crate::{bstr, bstr::BStr, revision, Commit, ObjectDetached, Tree};
+use crate::{bstr, bstr::BStr, Commit, ObjectDetached, Tree};
 
 mod error {
     use crate::object;
@@ -65,7 +65,7 @@ impl<'repo> Commit<'repo> {
     /// Decode the commit and obtain the time at which the commit was created.
     ///
     /// For the time at which it was authored, refer to `.decode()?.author.time`.
-    pub fn time(&self) -> Result<gix_actor::Time, Error> {
+    pub fn time(&self) -> Result<gix_date::Time, Error> {
         Ok(self.committer()?.time)
     }
 
@@ -131,12 +131,13 @@ impl<'repo> Commit<'repo> {
     }
 
     /// Obtain a platform for traversing ancestors of this commit.
-    pub fn ancestors(&self) -> revision::walk::Platform<'repo> {
+    pub fn ancestors(&self) -> crate::revision::walk::Platform<'repo> {
         self.id().ancestors()
     }
 
     /// Create a platform to further configure a `git describe` operation to find a name for this commit by looking
     /// at the closest annotated tags (by default) in its past.
+    #[cfg(feature = "revision")]
     pub fn describe(&self) -> crate::commit::describe::Platform<'repo> {
         crate::commit::describe::Platform {
             id: self.id,
@@ -146,6 +147,15 @@ impl<'repo> Commit<'repo> {
             id_as_fallback: false,
             max_candidates: 10,
         }
+    }
+
+    /// Extracts the PGP signature and the data that was used to create the signature, or `None` if it wasn't signed.
+    // TODO: make it possible to verify the signature, probably by wrapping `SignedData`. It's quite some work to do it properly.
+    pub fn signature(
+        &self,
+    ) -> Result<Option<(std::borrow::Cow<'_, BStr>, gix_object::commit::SignedData<'_>)>, gix_object::decode::Error>
+    {
+        gix_object::CommitRefIter::signature(&self.data)
     }
 }
 

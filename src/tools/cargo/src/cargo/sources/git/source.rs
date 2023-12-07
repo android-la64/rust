@@ -1,9 +1,12 @@
 //! See [GitSource].
 
-use crate::core::source::{MaybePackage, QueryKind, Source, SourceId};
 use crate::core::GitReference;
+use crate::core::SourceId;
 use crate::core::{Dependency, Package, PackageId, Summary};
 use crate::sources::git::utils::GitRemote;
+use crate::sources::source::MaybePackage;
+use crate::sources::source::QueryKind;
+use crate::sources::source::Source;
 use crate::sources::PathSource;
 use crate::util::errors::CargoResult;
 use crate::util::hex::short_hash;
@@ -70,7 +73,7 @@ pub struct GitSource<'cfg> {
     source_id: SourceId,
     /// The underlying path source to discover packages inside the Git repository.
     path_source: Option<PathSource<'cfg>>,
-    /// The identifer of this source for Cargo's Git cache directory.
+    /// The identifier of this source for Cargo's Git cache directory.
     /// See [`ident`] for more.
     ident: String,
     config: &'cfg Config,
@@ -120,7 +123,7 @@ impl<'cfg> GitSource<'cfg> {
     }
 
     /// Returns the packages discovered by this source. It may fetch the Git
-    /// repository as well as walk the filesystem if package informations
+    /// repository as well as walk the filesystem if package information
     /// haven't yet updated.
     pub fn read_packages(&mut self) -> CargoResult<Vec<Package>> {
         if self.path_source.is_none() {

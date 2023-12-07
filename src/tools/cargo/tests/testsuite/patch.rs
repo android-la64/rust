@@ -1965,8 +1965,8 @@ fn update_unused_new_version() {
     // Restore the lock file, and see if `update` will work, too.
     fs::copy(p.root().join("Cargo.lock.bak"), p.root().join("Cargo.lock")).unwrap();
 
-    // Try `update -p`.
-    p.cargo("update -p bar")
+    // Try `update <pkg>`.
+    p.cargo("update bar")
         .with_stderr(
             "\
 [UPDATING] `dummy-registry` index
@@ -2425,7 +2425,7 @@ fn can_update_with_alt_reg() {
     p.cargo("check").with_stderr("[FINISHED] [..]").run();
 
     // This does nothing, due to `=` requirement.
-    p.cargo("update -p bar")
+    p.cargo("update bar")
         .with_stderr(
             "\
 [UPDATING] `alternative` index
@@ -2655,6 +2655,48 @@ all possible versions conflict with previously selected packages.
     ... which satisfies dependency `qux = "^0.1.0-beta.2"` of package `foo v0.1.0 ([..])`
 
 failed to select a version for `qux` which could resolve this conflict"#,
+        )
+        .run();
+}
+
+#[cargo_test]
+fn mismatched_version_with_prerelease() {
+    Package::new("prerelease-deps", "0.0.1").publish();
+    // A patch to a location that has an prerelease version
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                 [package]
+                 name = "foo"
+                 version = "0.1.0"
+
+                 [dependencies]
+                 prerelease-deps = "0.1.0"
+
+                 [patch.crates-io]
+                 prerelease-deps = { path = "./prerelease-deps" }
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "prerelease-deps/Cargo.toml",
+            &basic_manifest("prerelease-deps", "0.1.1-pre1"),
+        )
+        .file("prerelease-deps/src/lib.rs", "")
+        .build();
+
+    p.cargo("generate-lockfile")
+        .with_status(101)
+        .with_stderr(
+            r#"[UPDATING] `dummy-registry` index
+[ERROR] failed to select a version for the requirement `prerelease-deps = "^0.1.0"`
+candidate versions found which didn't match: 0.1.1-pre1, 0.0.1
+location searched: `dummy-registry` index (which is replacing registry `crates-io`)
+required by package `foo v0.1.0 [..]`
+if you are looking for the prerelease package it needs to be specified explicitly
+    prerelease-deps = { version = "0.1.1-pre1" }
+perhaps a crate was updated and forgotten to be re-vendored?"#,
         )
         .run();
 }

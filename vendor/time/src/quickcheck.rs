@@ -2,7 +2,7 @@
 //!
 //! This enables users to write tests such as this, and have test values provided automatically:
 //!
-//! ```
+//! ```ignore
 //! # #![allow(dead_code)]
 //! use quickcheck::quickcheck;
 //! use time::Date;
@@ -38,7 +38,6 @@ use alloc::boxed::Box;
 
 use quickcheck::{empty_shrinker, single_shrinker, Arbitrary, Gen};
 
-use crate::convert::*;
 use crate::date_time::{DateTime, MaybeOffset};
 use crate::{Date, Duration, Month, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, Weekday};
 
@@ -73,25 +72,22 @@ impl Arbitrary for Date {
 
 impl Arbitrary for Duration {
     fn arbitrary(g: &mut Gen) -> Self {
-        Self::nanoseconds_i128(arbitrary_between!(
-            i128;
-            g,
-            Self::MIN.whole_nanoseconds(),
-            Self::MAX.whole_nanoseconds()
-        ))
+        Self::new_ranged(<_>::arbitrary(g), <_>::arbitrary(g))
     }
 
     fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
         Box::new(
-            (self.subsec_nanoseconds(), self.whole_seconds())
+            (self.subsec_nanoseconds_ranged(), self.whole_seconds())
                 .shrink()
                 .map(|(mut nanoseconds, seconds)| {
                     // Coerce the sign if necessary.
-                    if (seconds > 0 && nanoseconds < 0) || (seconds < 0 && nanoseconds > 0) {
-                        nanoseconds *= -1;
+                    if (seconds > 0 && nanoseconds.get() < 0)
+                        || (seconds < 0 && nanoseconds.get() > 0)
+                    {
+                        nanoseconds = nanoseconds.neg();
                     }
 
-                    Self::new_unchecked(seconds, nanoseconds)
+                    Self::new_ranged_unchecked(seconds, nanoseconds)
                 }),
         )
     }
@@ -99,20 +95,20 @@ impl Arbitrary for Duration {
 
 impl Arbitrary for Time {
     fn arbitrary(g: &mut Gen) -> Self {
-        Self::__from_hms_nanos_unchecked(
-            arbitrary_between!(u8; g, 0, Hour.per(Day) - 1),
-            arbitrary_between!(u8; g, 0, Minute.per(Hour) - 1),
-            arbitrary_between!(u8; g, 0, Second.per(Minute) - 1),
-            arbitrary_between!(u32; g, 0, Nanosecond.per(Second) - 1),
+        Self::from_hms_nanos_ranged(
+            <_>::arbitrary(g),
+            <_>::arbitrary(g),
+            <_>::arbitrary(g),
+            <_>::arbitrary(g),
         )
     }
 
     fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
         Box::new(
-            self.as_hms_nano()
+            self.as_hms_nano_ranged()
                 .shrink()
                 .map(|(hour, minute, second, nanosecond)| {
-                    Self::__from_hms_nanos_unchecked(hour, minute, second, nanosecond)
+                    Self::from_hms_nanos_ranged(hour, minute, second, nanosecond)
                 }),
         )
     }
@@ -130,20 +126,14 @@ impl Arbitrary for PrimitiveDateTime {
 
 impl Arbitrary for UtcOffset {
     fn arbitrary(g: &mut Gen) -> Self {
-        let seconds =
-            arbitrary_between!(i32; g, -(Second.per(Day) as i32 - 1), Second.per(Day) as i32 - 1);
-        Self::__from_hms_unchecked(
-            (seconds / Second.per(Hour) as i32) as _,
-            ((seconds % Second.per(Hour) as i32) / Minute.per(Hour) as i32) as _,
-            (seconds % Second.per(Minute) as i32) as _,
-        )
+        Self::from_hms_ranged(<_>::arbitrary(g), <_>::arbitrary(g), <_>::arbitrary(g))
     }
 
     fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
         Box::new(
-            self.as_hms().shrink().map(|(hours, minutes, seconds)| {
-                Self::__from_hms_unchecked(hours, minutes, seconds)
-            }),
+            self.as_hms_ranged()
+                .shrink()
+                .map(|(hours, minutes, seconds)| Self::from_hms_ranged(hours, minutes, seconds)),
         )
     }
 }

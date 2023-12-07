@@ -292,6 +292,11 @@
                 "command": "rust-analyzer.viewMemoryLayout",
                 "title": "View Memory Layout",
                 "category": "rust-analyzer"
+            },
+            {
+                "command": "rust-analyzer.toggleCheckOnSave",
+                "title": "Toggle Check on Save",
+                "category": "rust-analyzer"
             }
         ],
         "keybindings": [
@@ -466,16 +471,13 @@
                     "default": false,
                     "type": "boolean"
                 },
-                "rust-analyzer.discoverProjectCommand": {
-                    "markdownDescription": "Sets the command that rust-analyzer uses to generate `rust-project.json` files. This command should only be used\n if a build system like Buck or Bazel is also in use. The command must accept files as arguments and return \n a rust-project.json over stdout.",
+                "rust-analyzer.discoverProjectRunner": {
+                    "markdownDescription": "Sets the extension responsible for determining which extension the rust-analyzer extension uses to generate `rust-project.json` files. This should should only be used\n if a build system like Buck or Bazel is also in use.",
                     "default": null,
                     "type": [
                         "null",
-                        "array"
-                    ],
-                    "items": {
-                        "type": "string"
-                    }
+                        "string"
+                    ]
                 },
                 "rust-analyzer.showUnlinkedFileNotification": {
                     "markdownDescription": "Whether to show a notification for unlinked files asking the user to add the corresponding Cargo.toml to the linked projects setting.",
@@ -700,8 +702,17 @@
                         }
                     ]
                 },
+                "rust-analyzer.check.ignore": {
+                    "markdownDescription": "List of `cargo check` (or other command specified in `check.command`) diagnostics to ignore.\n\nFor example for `cargo check`: `dead_code`, `unused_imports`, `unused_variables`,...",
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                },
                 "rust-analyzer.check.invocationLocation": {
-                    "markdownDescription": "Specifies the working directory for running checks.\n- \"workspace\": run checks for workspaces in the corresponding workspaces' root directories.\n    This falls back to \"root\" if `#rust-analyzer.cargo.checkOnSave.invocationStrategy#` is set to `once`.\n- \"root\": run checks in the project's root directory.\nThis config only has an effect when `#rust-analyzer.cargo.buildScripts.overrideCommand#`\nis set.",
+                    "markdownDescription": "Specifies the working directory for running checks.\n- \"workspace\": run checks for workspaces in the corresponding workspaces' root directories.\n    This falls back to \"root\" if `#rust-analyzer.cargo.check.invocationStrategy#` is set to `once`.\n- \"root\": run checks in the project's root directory.\nThis config only has an effect when `#rust-analyzer.cargo.check.overrideCommand#`\nis set.",
                     "default": "workspace",
                     "type": "string",
                     "enum": [
@@ -714,7 +725,7 @@
                     ]
                 },
                 "rust-analyzer.check.invocationStrategy": {
-                    "markdownDescription": "Specifies the invocation strategy to use when running the checkOnSave command.\nIf `per_workspace` is set, the command will be executed for each workspace.\nIf `once` is set, the command will be executed once.\nThis config only has an effect when `#rust-analyzer.cargo.buildScripts.overrideCommand#`\nis set.",
+                    "markdownDescription": "Specifies the invocation strategy to use when running the check command.\nIf `per_workspace` is set, the command will be executed for each workspace.\nIf `once` is set, the command will be executed once.\nThis config only has an effect when `#rust-analyzer.cargo.check.overrideCommand#`\nis set.",
                     "default": "per_workspace",
                     "type": "string",
                     "enum": [

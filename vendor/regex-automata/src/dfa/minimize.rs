@@ -6,7 +6,7 @@ use crate::{
     dfa::{automaton::Automaton, dense, DEAD},
     util::{
         alphabet,
-        id::{PatternID, StateID},
+        primitives::{PatternID, StateID},
     },
 };
 
@@ -152,13 +152,13 @@ impl<'a> Minimizer<'a> {
 
         // At this point, we now have a minimal partitioning of states, where
         // each partition is an equivalence class of DFA states. Now we need to
-        // use this partioning to update the DFA to only contain one state for
+        // use this partitioning to update the DFA to only contain one state for
         // each partition.
 
         // Create a map from DFA state ID to the representative ID of the
         // equivalence class to which it belongs. The representative ID of an
         // equivalence class of states is the minimum ID in that class.
-        let mut state_to_part = vec![DEAD; self.dfa.state_count()];
+        let mut state_to_part = vec![DEAD; self.dfa.state_len()];
         for p in &self.partitions {
             p.iter(|id| state_to_part[as_index(id)] = p.min());
         }
@@ -167,7 +167,7 @@ impl<'a> Minimizer<'a> {
         // create a map from equivalence IDs to the new IDs. Thus, the new
         // minimal ID of *any* state in the unminimized DFA can be obtained
         // with minimals_ids[state_to_part[old_id]].
-        let mut minimal_ids = vec![DEAD; self.dfa.state_count()];
+        let mut minimal_ids = vec![DEAD; self.dfa.state_len()];
         let mut new_index = 0;
         for state in self.dfa.states() {
             if state_to_part[as_index(state.id())] == state.id() {
@@ -184,15 +184,13 @@ impl<'a> Minimizer<'a> {
 
         // Re-map this DFA in place such that the only states remaining
         // correspond to the representative states of every equivalence class.
-        for id in (0..self.dfa.state_count()).map(as_state_id) {
+        for id in (0..self.dfa.state_len()).map(as_state_id) {
             // If this state isn't a representative for an equivalence class,
             // then we skip it since it won't appear in the minimal DFA.
             if state_to_part[as_index(id)] != id {
                 continue;
             }
-            for (_, next) in self.dfa.state_mut(id).iter_mut() {
-                *next = remap(*next);
-            }
+            self.dfa.remap_state(id, remap);
             self.dfa.swap_states(id, minimal_ids[as_index(id)]);
         }
         // Trim off all unused states from the pre-minimized DFA. This
@@ -208,8 +206,12 @@ impl<'a> Minimizer<'a> {
         // We're already allocating so much that this is probably fine. If this
         // turns out to be costly, then I guess add a `starts_mut` iterator.
         let starts: Vec<_> = self.dfa.starts().collect();
-        for (old_start_id, start_type, pid) in starts {
-            self.dfa.set_start_state(start_type, pid, remap(old_start_id));
+        for (old_start_id, anchored, start_type) in starts {
+            self.dfa.set_start_state(
+                anchored,
+                start_type,
+                remap(old_start_id),
+            );
         }
 
         // Update the match state pattern ID list for multi-regexes. All we
@@ -305,7 +307,7 @@ impl<'a> Minimizer<'a> {
         for state in dfa.states() {
             if dfa.is_match_state(state.id()) {
                 let mut pids = vec![];
-                for i in 0..dfa.match_count(state.id()) {
+                for i in 0..dfa.match_len(state.id()) {
                     pids.push(dfa.match_pattern(state.id(), i));
                 }
                 matching

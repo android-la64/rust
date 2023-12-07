@@ -41,10 +41,12 @@ fn setup_logger() {
     let env = tracing_subscriber::EnvFilter::from_env("CARGO_LOG");
 
     tracing_subscriber::fmt()
+        .with_timer(tracing_subscriber::fmt::time::Uptime::default())
         .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
         .with_writer(std::io::stderr)
         .with_env_filter(env)
         .init();
+    tracing::trace!(start = humantime::format_rfc3339(std::time::SystemTime::now()).to_string());
 }
 
 /// Table for defining the aliases which come builtin in `Cargo`.
@@ -104,17 +106,18 @@ fn list_commands(config: &Config) -> BTreeMap<String, CommandInfo> {
         };
         for entry in entries.filter_map(|e| e.ok()) {
             let path = entry.path();
-            let filename = match path.file_name().and_then(|s| s.to_str()) {
-                Some(filename) => filename,
-                _ => continue,
-            };
-            if !filename.starts_with(prefix) || !filename.ends_with(suffix) {
+            let Some(filename) = path.file_name().and_then(|s| s.to_str()) else {
                 continue;
-            }
+            };
+            let Some(name) = filename
+                .strip_prefix(prefix)
+                .and_then(|s| s.strip_suffix(suffix))
+            else {
+                continue;
+            };
             if is_executable(entry.path()) {
-                let end = filename.len() - suffix.len();
                 commands.insert(
-                    filename[prefix.len()..end].to_string(),
+                    name.to_string(),
                     CommandInfo::External { path: path.clone() },
                 );
             }

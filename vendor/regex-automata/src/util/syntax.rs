@@ -1,4 +1,132 @@
-use regex_syntax::ParserBuilder;
+/*!
+Utilities for dealing with the syntax of a regular expression.
+
+This module currently only exposes a [`Config`] type that
+itself represents a wrapper around the configuration for a
+[`regex-syntax::ParserBuilder`](regex_syntax::ParserBuilder). The purpose of
+this wrapper is to make configuring syntax options very similar to how other
+configuration is done throughout this crate. Namely, instead of duplicating
+syntax options across every builder (of which there are many), we instead
+create small config objects like this one that can be passed around and
+composed.
+*/
+
+use alloc::{vec, vec::Vec};
+
+use regex_syntax::{
+    ast,
+    hir::{self, Hir},
+    Error, ParserBuilder,
+};
+
+/// A convenience routine for parsing a pattern into an HIR value with the
+/// default configuration.
+///
+/// # Example
+///
+/// This shows how to parse a pattern into an HIR value:
+///
+/// ```
+/// use regex_automata::util::syntax;
+///
+/// let hir = syntax::parse(r"([a-z]+)|([0-9]+)")?;
+/// assert_eq!(Some(1), hir.properties().static_explicit_captures_len());
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn parse(pattern: &str) -> Result<Hir, Error> {
+    parse_with(pattern, &Config::default())
+}
+
+/// A convenience routine for parsing many patterns into HIR value with the
+/// default configuration.
+///
+/// # Example
+///
+/// This shows how to parse many patterns into an corresponding HIR values:
+///
+/// ```
+/// use {
+///     regex_automata::util::syntax,
+///     regex_syntax::hir::Properties,
+/// };
+///
+/// let hirs = syntax::parse_many(&[
+///     r"([a-z]+)|([0-9]+)",
+///     r"foo(A-Z]+)bar",
+/// ])?;
+/// let props = Properties::union(hirs.iter().map(|h| h.properties()));
+/// assert_eq!(Some(1), props.static_explicit_captures_len());
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn parse_many<P: AsRef<str>>(patterns: &[P]) -> Result<Vec<Hir>, Error> {
+    parse_many_with(patterns, &Config::default())
+}
+
+/// A convenience routine for parsing a pattern into an HIR value using a
+/// `Config`.
+///
+/// # Example
+///
+/// This shows how to parse a pattern into an HIR value with a non-default
+/// configuration:
+///
+/// ```
+/// use regex_automata::util::syntax;
+///
+/// let hir = syntax::parse_with(
+///     r"^[a-z]+$",
+///     &syntax::Config::new().multi_line(true).crlf(true),
+/// )?;
+/// assert!(hir.properties().look_set().contains_anchor_crlf());
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn parse_with(pattern: &str, config: &Config) -> Result<Hir, Error> {
+    let mut builder = ParserBuilder::new();
+    config.apply(&mut builder);
+    builder.build().parse(pattern)
+}
+
+/// A convenience routine for parsing many patterns into HIR values using a
+/// `Config`.
+///
+/// # Example
+///
+/// This shows how to parse many patterns into an corresponding HIR values
+/// with a non-default configuration:
+///
+/// ```
+/// use {
+///     regex_automata::util::syntax,
+///     regex_syntax::hir::Properties,
+/// };
+///
+/// let patterns = &[
+///     r"([a-z]+)|([0-9]+)",
+///     r"\W",
+///     r"foo(A-Z]+)bar",
+/// ];
+/// let config = syntax::Config::new().unicode(false).utf8(false);
+/// let hirs = syntax::parse_many_with(patterns, &config)?;
+/// let props = Properties::union(hirs.iter().map(|h| h.properties()));
+/// assert!(!props.is_utf8());
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn parse_many_with<P: AsRef<str>>(
+    patterns: &[P],
+    config: &Config,
+) -> Result<Vec<Hir>, Error> {
+    let mut builder = ParserBuilder::new();
+    config.apply(&mut builder);
+    let mut hirs = vec![];
+    for p in patterns.iter() {
+        hirs.push(builder.build().parse(p.as_ref())?);
+    }
+    Ok(hirs)
+}
 
 /// A common set of configuration options that apply to the syntax of a regex.
 ///
@@ -14,10 +142,12 @@ use regex_syntax::ParserBuilder;
 /// in this crate. Instead of re-defining them on every engine's builder, they
 /// are instead provided here as one cohesive unit.
 #[derive(Clone, Copy, Debug)]
-pub struct SyntaxConfig {
+pub struct Config {
     case_insensitive: bool,
     multi_line: bool,
     dot_matches_new_line: bool,
+    crlf: bool,
+    line_terminator: u8,
     swap_greed: bool,
     ignore_whitespace: bool,
     unicode: bool,
@@ -26,14 +156,16 @@ pub struct SyntaxConfig {
     octal: bool,
 }
 
-impl SyntaxConfig {
+impl Config {
     /// Return a new default syntax configuration.
-    pub fn new() -> SyntaxConfig {
+    pub fn new() -> Config {
         // These defaults match the ones used in regex-syntax.
-        SyntaxConfig {
+        Config {
             case_insensitive: false,
             multi_line: false,
             dot_matches_new_line: false,
+            crlf: false,
+            line_terminator: b'\n',
             swap_greed: false,
             ignore_whitespace: false,
             unicode: true,
@@ -51,7 +183,7 @@ impl SyntaxConfig {
     ///
     /// By default this is disabled. It may alternatively be selectively
     /// enabled in the regular expression itself via the `i` flag.
-    pub fn case_insensitive(mut self, yes: bool) -> SyntaxConfig {
+    pub fn case_insensitive(mut self, yes: bool) -> Config {
         self.case_insensitive = yes;
         self
     }
@@ -66,7 +198,7 @@ impl SyntaxConfig {
     ///
     /// By default this is disabled. It may alternatively be selectively
     /// enabled in the regular expression itself via the `m` flag.
-    pub fn multi_line(mut self, yes: bool) -> SyntaxConfig {
+    pub fn multi_line(mut self, yes: bool) -> Config {
         self.multi_line = yes;
         self
     }
@@ -77,7 +209,7 @@ impl SyntaxConfig {
     /// then `.` will match any character except for a new line character.
     ///
     /// Note that `.` is impacted by whether the "unicode" setting is enabled
-    /// or not. When Unicode is enabled (the defualt), `.` will match any UTF-8
+    /// or not. When Unicode is enabled (the default), `.` will match any UTF-8
     /// encoding of any Unicode scalar value (sans a new line, depending on
     /// whether this "dot matches new line" option is enabled). When Unicode
     /// mode is disabled, `.` will match any byte instead. Because of this,
@@ -87,8 +219,50 @@ impl SyntaxConfig {
     ///
     /// By default this is disabled. It may alternatively be selectively
     /// enabled in the regular expression itself via the `s` flag.
-    pub fn dot_matches_new_line(mut self, yes: bool) -> SyntaxConfig {
+    pub fn dot_matches_new_line(mut self, yes: bool) -> Config {
         self.dot_matches_new_line = yes;
+        self
+    }
+
+    /// Enable or disable the "CRLF mode" flag by default.
+    ///
+    /// By default this is disabled. It may alternatively be selectively
+    /// enabled in the regular expression itself via the `R` flag.
+    ///
+    /// When CRLF mode is enabled, the following happens:
+    ///
+    /// * Unless `dot_matches_new_line` is enabled, `.` will match any character
+    /// except for `\r` and `\n`.
+    /// * When `multi_line` mode is enabled, `^` and `$` will treat `\r\n`,
+    /// `\r` and `\n` as line terminators. And in particular, neither will
+    /// match between a `\r` and a `\n`.
+    pub fn crlf(mut self, yes: bool) -> Config {
+        self.crlf = yes;
+        self
+    }
+
+    /// Sets the line terminator for use with `(?u-s:.)` and `(?-us:.)`.
+    ///
+    /// Namely, instead of `.` (by default) matching everything except for `\n`,
+    /// this will cause `.` to match everything except for the byte given.
+    ///
+    /// If `.` is used in a context where Unicode mode is enabled and this byte
+    /// isn't ASCII, then an error will be returned. When Unicode mode is
+    /// disabled, then any byte is permitted, but will return an error if UTF-8
+    /// mode is enabled and it is a non-ASCII byte.
+    ///
+    /// In short, any ASCII value for a line terminator is always okay. But a
+    /// non-ASCII byte might result in an error depending on whether Unicode
+    /// mode or UTF-8 mode are enabled.
+    ///
+    /// Note that if `R` mode is enabled then it always takes precedence and
+    /// the line terminator will be treated as `\r` and `\n` simultaneously.
+    ///
+    /// Note also that this *doesn't* impact the look-around assertions
+    /// `(?m:^)` and `(?m:$)`. That's usually controlled by additional
+    /// configuration in the regex engine itself.
+    pub fn line_terminator(mut self, byte: u8) -> Config {
+        self.line_terminator = byte;
         self
     }
 
@@ -99,7 +273,7 @@ impl SyntaxConfig {
     ///
     /// By default this is disabled. It may alternatively be selectively
     /// enabled in the regular expression itself via the `U` flag.
-    pub fn swap_greed(mut self, yes: bool) -> SyntaxConfig {
+    pub fn swap_greed(mut self, yes: bool) -> Config {
         self.swap_greed = yes;
         self
     }
@@ -112,7 +286,7 @@ impl SyntaxConfig {
     ///
     /// By default, this is disabled. It may be selectively enabled in the
     /// regular expression by using the `x` flag regardless of this setting.
-    pub fn ignore_whitespace(mut self, yes: bool) -> SyntaxConfig {
+    pub fn ignore_whitespace(mut self, yes: bool) -> Config {
         self.ignore_whitespace = yes;
         self
     }
@@ -131,7 +305,7 @@ impl SyntaxConfig {
     /// time. This is especially noticeable if your regex contains character
     /// classes like `\w` that are impacted by whether Unicode is enabled or
     /// not. If Unicode is not necessary, you are encouraged to disable it.
-    pub fn unicode(mut self, yes: bool) -> SyntaxConfig {
+    pub fn unicode(mut self, yes: bool) -> Config {
         self.unicode = yes;
         self
     }
@@ -139,7 +313,7 @@ impl SyntaxConfig {
     /// When disabled, the builder will permit the construction of a regular
     /// expression that may match invalid UTF-8.
     ///
-    /// For example, when [`SyntaxConfig::unicode`] is disabled, then
+    /// For example, when [`Config::unicode`] is disabled, then
     /// expressions like `[^a]` may match invalid UTF-8 since they can match
     /// any single byte that is not `a`. By default, these sub-expressions
     /// are disallowed to avoid returning offsets that split a UTF-8
@@ -150,7 +324,7 @@ impl SyntaxConfig {
     /// When enabled (the default), the builder is guaranteed to produce a
     /// regex that will only ever match valid UTF-8 (otherwise, the builder
     /// will return an error).
-    pub fn utf8(mut self, yes: bool) -> SyntaxConfig {
+    pub fn utf8(mut self, yes: bool) -> Config {
         self.utf8 = yes;
         self
     }
@@ -171,7 +345,7 @@ impl SyntaxConfig {
     /// if callers want to put a limit on the amount of heap space used, then
     /// they should impose a limit on the length, in bytes, of the concrete
     /// pattern string. In particular, this is viable since the parser will
-    /// limit itself to heap space proportional to the lenth of the pattern
+    /// limit itself to heap space proportional to the length of the pattern
     /// string.
     ///
     /// Note that a nest limit of `0` will return a nest limit error for most
@@ -180,7 +354,7 @@ impl SyntaxConfig {
     /// in a nest depth of `1`. In general, a nest limit is not something that
     /// manifests in an obvious way in the concrete syntax, therefore, it
     /// should not be used in a granular way.
-    pub fn nest_limit(mut self, limit: u32) -> SyntaxConfig {
+    pub fn nest_limit(mut self, limit: u32) -> Config {
         self.nest_limit = limit;
         self
     }
@@ -200,7 +374,7 @@ impl SyntaxConfig {
     /// message will explicitly mention that backreferences aren't supported.
     ///
     /// Octal syntax is disabled by default.
-    pub fn octal(mut self, yes: bool) -> SyntaxConfig {
+    pub fn octal(mut self, yes: bool) -> Config {
         self.octal = yes;
         self
     }
@@ -223,6 +397,16 @@ impl SyntaxConfig {
     /// Returns whether "dot matches new line" mode is enabled.
     pub fn get_dot_matches_new_line(&self) -> bool {
         self.dot_matches_new_line
+    }
+
+    /// Returns whether "CRLF" mode is enabled.
+    pub fn get_crlf(&self) -> bool {
+        self.crlf
+    }
+
+    /// Returns the line terminator in this syntax configuration.
+    pub fn get_line_terminator(&self) -> u8 {
+        self.line_terminator
     }
 
     /// Returns whether "swap greed" mode is enabled.
@@ -257,16 +441,42 @@ impl SyntaxConfig {
             .case_insensitive(self.case_insensitive)
             .multi_line(self.multi_line)
             .dot_matches_new_line(self.dot_matches_new_line)
+            .crlf(self.crlf)
+            .line_terminator(self.line_terminator)
             .swap_greed(self.swap_greed)
             .ignore_whitespace(self.ignore_whitespace)
-            .allow_invalid_utf8(!self.utf8)
+            .utf8(self.utf8)
             .nest_limit(self.nest_limit)
             .octal(self.octal);
     }
+
+    /// Applies this configuration to the given AST parser.
+    pub(crate) fn apply_ast(&self, builder: &mut ast::parse::ParserBuilder) {
+        builder
+            .ignore_whitespace(self.ignore_whitespace)
+            .nest_limit(self.nest_limit)
+            .octal(self.octal);
+    }
+
+    /// Applies this configuration to the given AST-to-HIR translator.
+    pub(crate) fn apply_hir(
+        &self,
+        builder: &mut hir::translate::TranslatorBuilder,
+    ) {
+        builder
+            .unicode(self.unicode)
+            .case_insensitive(self.case_insensitive)
+            .multi_line(self.multi_line)
+            .crlf(self.crlf)
+            .dot_matches_new_line(self.dot_matches_new_line)
+            .line_terminator(self.line_terminator)
+            .swap_greed(self.swap_greed)
+            .utf8(self.utf8);
+    }
 }
 
-impl Default for SyntaxConfig {
-    fn default() -> SyntaxConfig {
-        SyntaxConfig::new()
+impl Default for Config {
+    fn default() -> Config {
+        Config::new()
     }
 }

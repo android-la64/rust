@@ -11,7 +11,7 @@
 #![feature(trusted_step)]
 #![feature(try_blocks)]
 #![recursion_limit = "256"]
-#![cfg_attr(not(bootstrap), allow(internal_features))]
+#![allow(internal_features)]
 
 #[macro_use]
 extern crate rustc_middle;
@@ -603,7 +603,7 @@ impl<'cx, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx, R> for MirBorro
 
     fn visit_statement_before_primary_effect(
         &mut self,
-        _results: &R,
+        _results: &mut R,
         flow_state: &Flows<'cx, 'tcx>,
         stmt: &'cx Statement<'tcx>,
         location: Location,
@@ -673,7 +673,7 @@ impl<'cx, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx, R> for MirBorro
 
     fn visit_terminator_before_primary_effect(
         &mut self,
-        _results: &R,
+        _results: &mut R,
         flow_state: &Flows<'cx, 'tcx>,
         term: &'cx Terminator<'tcx>,
         loc: Location,
@@ -770,9 +770,9 @@ impl<'cx, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx, R> for MirBorro
             }
 
             TerminatorKind::Goto { target: _ }
-            | TerminatorKind::Terminate
+            | TerminatorKind::UnwindTerminate(_)
             | TerminatorKind::Unreachable
-            | TerminatorKind::Resume
+            | TerminatorKind::UnwindResume
             | TerminatorKind::Return
             | TerminatorKind::GeneratorDrop
             | TerminatorKind::FalseEdge { real_target: _, imaginary_target: _ }
@@ -784,7 +784,7 @@ impl<'cx, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx, R> for MirBorro
 
     fn visit_terminator_after_primary_effect(
         &mut self,
-        _results: &R,
+        _results: &mut R,
         flow_state: &Flows<'cx, 'tcx>,
         term: &'cx Terminator<'tcx>,
         loc: Location,
@@ -803,7 +803,9 @@ impl<'cx, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx, R> for MirBorro
                 }
             }
 
-            TerminatorKind::Resume | TerminatorKind::Return | TerminatorKind::GeneratorDrop => {
+            TerminatorKind::UnwindResume
+            | TerminatorKind::Return
+            | TerminatorKind::GeneratorDrop => {
                 // Returning from the function implicitly kills storage for all locals and statics.
                 // Often, the storage will already have been killed by an explicit
                 // StorageDead, but we don't always emit those (notably on unwind paths),
@@ -815,7 +817,7 @@ impl<'cx, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'cx, 'tcx, R> for MirBorro
                 }
             }
 
-            TerminatorKind::Terminate
+            TerminatorKind::UnwindTerminate(_)
             | TerminatorKind::Assert { .. }
             | TerminatorKind::Call { .. }
             | TerminatorKind::Drop { .. }
@@ -835,7 +837,7 @@ use self::ReadOrWrite::{Activation, Read, Reservation, Write};
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum ArtificialField {
     ArrayLength,
-    ShallowBorrow,
+    FakeBorrow,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -1074,18 +1076,18 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     Control::Continue
                 }
 
-                (Read(_), BorrowKind::Shared | BorrowKind::Shallow)
-                | (Read(ReadKind::Borrow(BorrowKind::Shallow)), BorrowKind::Mut { .. }) => {
+                (Read(_), BorrowKind::Shared | BorrowKind::Fake)
+                | (Read(ReadKind::Borrow(BorrowKind::Fake)), BorrowKind::Mut { .. }) => {
                     Control::Continue
                 }
 
-                (Reservation(_), BorrowKind::Shallow | BorrowKind::Shared) => {
+                (Reservation(_), BorrowKind::Fake | BorrowKind::Shared) => {
                     // This used to be a future compatibility warning (to be
                     // disallowed on NLL). See rust-lang/rust#56254
                     Control::Continue
                 }
 
-                (Write(WriteKind::Move), BorrowKind::Shallow) => {
+                (Write(WriteKind::Move), BorrowKind::Fake) => {
                     // Handled by initialization checks.
                     Control::Continue
                 }
@@ -1193,8 +1195,8 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         match rvalue {
             &Rvalue::Ref(_ /*rgn*/, bk, place) => {
                 let access_kind = match bk {
-                    BorrowKind::Shallow => {
-                        (Shallow(Some(ArtificialField::ShallowBorrow)), Read(ReadKind::Borrow(bk)))
+                    BorrowKind::Fake => {
+                        (Shallow(Some(ArtificialField::FakeBorrow)), Read(ReadKind::Borrow(bk)))
                     }
                     BorrowKind::Shared => (Deep, Read(ReadKind::Borrow(bk))),
                     BorrowKind::Mut { .. } => {
@@ -1215,7 +1217,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     flow_state,
                 );
 
-                let action = if bk == BorrowKind::Shallow {
+                let action = if bk == BorrowKind::Fake {
                     InitializationRequiringAction::MatchOn
                 } else {
                     InitializationRequiringAction::Borrow
@@ -1567,7 +1569,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
 
             // only mutable borrows should be 2-phase
             assert!(match borrow.kind {
-                BorrowKind::Shared | BorrowKind::Shallow => false,
+                BorrowKind::Shared | BorrowKind::Fake => false,
                 BorrowKind::Mut { .. } => true,
             });
 
@@ -1801,6 +1803,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         for (place_base, elem) in place.iter_projections().rev() {
             match elem {
                 ProjectionElem::Index(_/*operand*/) |
+                ProjectionElem::Subtype(_) |
                 ProjectionElem::OpaqueCast(_) |
                 ProjectionElem::ConstantIndex { .. } |
                 // assigning to P[i] requires P to be valid.
@@ -2000,14 +2003,14 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 | WriteKind::Replace
                 | WriteKind::StorageDeadOrDrop
                 | WriteKind::MutableBorrow(BorrowKind::Shared)
-                | WriteKind::MutableBorrow(BorrowKind::Shallow),
+                | WriteKind::MutableBorrow(BorrowKind::Fake),
             )
             | Write(
                 WriteKind::Move
                 | WriteKind::Replace
                 | WriteKind::StorageDeadOrDrop
                 | WriteKind::MutableBorrow(BorrowKind::Shared)
-                | WriteKind::MutableBorrow(BorrowKind::Shallow),
+                | WriteKind::MutableBorrow(BorrowKind::Fake),
             ) => {
                 if self.is_mutable(place.as_ref(), is_local_mutation_allowed).is_err()
                     && !self.has_buffered_errors()
@@ -2031,7 +2034,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 return false;
             }
             Read(
-                ReadKind::Borrow(BorrowKind::Mut { .. } | BorrowKind::Shared | BorrowKind::Shallow)
+                ReadKind::Borrow(BorrowKind::Mut { .. } | BorrowKind::Shared | BorrowKind::Fake)
                 | ReadKind::Copy,
             ) => {
                 // Access authorized
@@ -2189,6 +2192,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     | ProjectionElem::Index(..)
                     | ProjectionElem::ConstantIndex { .. }
                     | ProjectionElem::Subslice { .. }
+                    | ProjectionElem::Subtype(..)
                     | ProjectionElem::OpaqueCast { .. }
                     | ProjectionElem::Downcast(..) => {
                         let upvar_field_projection = self.is_upvar_field_projection(place);

@@ -17,7 +17,7 @@ use {
     windows_sys::Win32::Foundation::BOOL,
     windows_sys::Win32::Security::SECURITY_ATTRIBUTES,
     windows_sys::Win32::Storage::FileSystem::{
-        FILE_CREATION_DISPOSITION, FILE_FLAGS_AND_ATTRIBUTES, FILE_SHARE_MODE,
+        FILE_ACCESS_FLAGS, FILE_CREATION_DISPOSITION, FILE_FLAGS_AND_ATTRIBUTES, FILE_SHARE_MODE,
     },
     windows_sys::Win32::System::IO::OVERLAPPED,
 };
@@ -45,7 +45,7 @@ pub use libc::{O_CLOEXEC, O_CREAT, O_RDONLY, O_RDWR, O_TRUNC, O_WRONLY};
 extern "system" {
     pub fn CreateFileW(
         lpfilename: PCWSTR,
-        dwdesiredaccess: u32,
+        dwdesiredaccess: FILE_ACCESS_FLAGS,
         dwsharemode: FILE_SHARE_MODE,
         lpsecurityattributes: *const SECURITY_ATTRIBUTES,
         dwcreationdisposition: FILE_CREATION_DISPOSITION,

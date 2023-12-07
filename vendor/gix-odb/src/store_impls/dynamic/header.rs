@@ -1,3 +1,4 @@
+use gix_features::zlib;
 use std::ops::Deref;
 
 use gix_hash::oid;
@@ -15,6 +16,7 @@ where
     fn try_header_inner<'b>(
         &'b self,
         mut id: &'b gix_hash::oid,
+        inflate: &mut zlib::Inflate,
         snapshot: &mut load_index::Snapshot,
         recursion: Option<DeltaBaseRecursion<'_>>,
     ) -> Result<Option<Header>, Error> {
@@ -71,7 +73,7 @@ where
                             },
                         };
                         let entry = pack.entry(pack_offset);
-                        let res = match pack.decode_header(entry, |id| {
+                        let res = match pack.decode_header(entry, inflate, &|id| {
                             index_file.pack_offset_by_id(id).map(|pack_offset| {
                                 gix_pack::data::decode::header::ResolvedBase::InPack(pack.entry(pack_offset))
                             })
@@ -85,9 +87,10 @@ where
                                 let hdr = self
                                     .try_header_inner(
                                         &base_id,
+                                        inflate,
                                         snapshot,
                                         recursion
-                                            .map(|r| r.inc_depth())
+                                            .map(DeltaBaseRecursion::inc_depth)
                                             .or_else(|| DeltaBaseRecursion::new(id).into()),
                                     )
                                     .map_err(|err| Error::DeltaBaseLookup {
@@ -127,7 +130,7 @@ where
                                     .as_ref()
                                     .expect("pack to still be available like just now");
                                 let entry = pack.entry(pack_offset);
-                                pack.decode_header(entry, |id| {
+                                pack.decode_header(entry, inflate, &|id| {
                                     index_file
                                         .pack_offset_by_id(id)
                                         .map(|pack_offset| {
@@ -179,11 +182,10 @@ impl<S> crate::Header for super::Handle<S>
 where
     S: Deref<Target = super::Store> + Clone,
 {
-    type Error = Error;
-
-    fn try_header(&self, id: impl AsRef<oid>) -> Result<Option<Header>, Self::Error> {
-        let id = id.as_ref();
+    fn try_header(&self, id: &oid) -> Result<Option<Header>, crate::find::Error> {
         let mut snapshot = self.snapshot.borrow_mut();
-        self.try_header_inner(id, &mut snapshot, None)
+        let mut inflate = self.inflate.borrow_mut();
+        self.try_header_inner(id, &mut inflate, &mut snapshot, None)
+            .map_err(|err| Box::new(err) as _)
     }
 }

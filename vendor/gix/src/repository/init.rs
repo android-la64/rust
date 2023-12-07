@@ -4,15 +4,16 @@ impl crate::Repository {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_refs_and_objects(
         refs: crate::RefStore,
-        objects: crate::OdbHandle,
+        mut objects: crate::OdbHandle,
         work_tree: Option<std::path::PathBuf>,
         common_dir: Option<std::path::PathBuf>,
         config: crate::config::Cache,
         linked_worktree_options: crate::open::Options,
-        index: crate::worktree::IndexStorage,
+        #[cfg(feature = "index")] index: crate::worktree::IndexStorage,
         shallow_commits: crate::shallow::CommitsStorage,
+        #[cfg(feature = "attributes")] modules: crate::submodule::ModulesFileStorage,
     ) -> Self {
-        let objects = setup_objects(objects, &config);
+        setup_objects(&mut objects, &config);
         crate::Repository {
             bufs: RefCell::new(Vec::with_capacity(4)),
             work_tree,
@@ -21,8 +22,11 @@ impl crate::Repository {
             refs,
             config,
             options: linked_worktree_options,
+            #[cfg(feature = "index")]
             index,
             shallow_commits,
+            #[cfg(feature = "attributes")]
+            modules,
         }
     }
 
@@ -33,7 +37,7 @@ impl crate::Repository {
 }
 
 #[cfg_attr(not(feature = "max-performance-safe"), allow(unused_variables, unused_mut))]
-fn setup_objects(mut objects: crate::OdbHandle, config: &crate::config::Cache) -> crate::OdbHandle {
+pub(crate) fn setup_objects(objects: &mut crate::OdbHandle, config: &crate::config::Cache) {
     #[cfg(feature = "max-performance-safe")]
     {
         match config.pack_cache_bytes {
@@ -54,10 +58,5 @@ fn setup_objects(mut objects: crate::OdbHandle, config: &crate::config::Cache) -
             let bytes = config.object_cache_bytes;
             objects.set_object_cache(move || Box::new(gix_pack::cache::object::MemoryCappedHashmap::new(bytes)));
         }
-        objects
-    }
-    #[cfg(not(feature = "max-performance-safe"))]
-    {
-        objects
     }
 }

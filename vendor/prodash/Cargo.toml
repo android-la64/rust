@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "prodash"
-version = "25.0.0"
+version = "26.2.2"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -78,10 +78,6 @@ harness = false
 version = "1.0.0"
 optional = true
 
-[dependencies.atty]
-version = "0.2.14"
-optional = true
-
 [dependencies.bytesize]
 version = "1.0.1"
 optional = true
@@ -121,6 +117,10 @@ optional = true
 
 [dependencies.humantime]
 version = "2.0.0"
+optional = true
+
+[dependencies.is-terminal]
+version = "0.4.9"
 optional = true
 
 [dependencies.log]
@@ -174,14 +174,11 @@ version = "1.1.0"
 [dev-dependencies.async-io]
 version = "1.1.0"
 
-[dev-dependencies.atty]
-version = "0.2.14"
-
 [dev-dependencies.blocking]
 version = "1.0.0"
 
 [dev-dependencies.criterion]
-version = "0.4.0"
+version = "0.5.1"
 default-features = false
 
 [dev-dependencies.env_logger]
@@ -195,6 +192,9 @@ version = "0.3.5"
 [dev-dependencies.futures-util]
 version = "0.3.4"
 default-features = false
+
+[dev-dependencies.is-terminal]
+version = "0.4.9"
 
 [dev-dependencies.once_cell]
 version = "1.4.0"
@@ -217,7 +217,7 @@ render-line = [
     "humantime",
     "unicode-width",
 ]
-render-line-autoconfigure = ["atty"]
+render-line-autoconfigure = ["is-terminal"]
 render-line-crossterm = ["crosstermion/crossterm"]
 render-line-termion = ["crosstermion/termion"]
 render-tui = [

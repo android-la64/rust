@@ -672,7 +672,6 @@ pub unsafe fn v128_store64_lane<const L: usize>(v: v128, m: *mut u64) {
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[cfg_attr(
     test,
     assert_instr(
@@ -727,7 +726,6 @@ pub const fn i8x16(
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[doc(alias("v128.const"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 #[rustc_const_stable(feature = "wasm_simd", since = "1.54.0")]
@@ -760,7 +758,6 @@ pub const fn u8x16(
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[cfg_attr(
     test,
     assert_instr(
@@ -787,7 +784,6 @@ pub const fn i16x8(a0: i16, a1: i16, a2: i16, a3: i16, a4: i16, a5: i16, a6: i16
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[doc(alias("v128.const"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 #[rustc_const_stable(feature = "wasm_simd", since = "1.54.0")]
@@ -800,7 +796,6 @@ pub const fn u16x8(a0: u16, a1: u16, a2: u16, a3: u16, a4: u16, a5: u16, a6: u16
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[cfg_attr(test, assert_instr(v128.const, a0 = 0, a1 = 1, a2 = 2, a3 = 3))]
 #[doc(alias("v128.const"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
@@ -814,7 +809,6 @@ pub const fn i32x4(a0: i32, a1: i32, a2: i32, a3: i32) -> v128 {
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[doc(alias("v128.const"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 #[rustc_const_stable(feature = "wasm_simd", since = "1.54.0")]
@@ -827,7 +821,6 @@ pub const fn u32x4(a0: u32, a1: u32, a2: u32, a3: u32) -> v128 {
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[cfg_attr(test, assert_instr(v128.const, a0 = 1, a1 = 2))]
 #[doc(alias("v128.const"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
@@ -841,7 +834,6 @@ pub const fn i64x2(a0: i64, a1: i64) -> v128 {
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[doc(alias("v128.const"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 #[rustc_const_stable(feature = "wasm_simd", since = "1.54.0")]
@@ -854,7 +846,6 @@ pub const fn u64x2(a0: u64, a1: u64) -> v128 {
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[cfg_attr(test, assert_instr(v128.const, a0 = 0.0, a1 = 1.0, a2 = 2.0, a3 = 3.0))]
 #[doc(alias("v128.const"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
@@ -868,7 +859,6 @@ pub const fn f32x4(a0: f32, a1: f32, a2: f32, a3: f32) -> v128 {
 /// If possible this will generate a `v128.const` instruction, otherwise it may
 /// be lowered to a sequence of instructions to materialize the vector value.
 #[inline]
-#[target_feature(enable = "simd128")]
 #[cfg_attr(test, assert_instr(v128.const, a0 = 0.0, a1 = 1.0))]
 #[doc(alias("v128.const"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
@@ -3212,7 +3202,7 @@ pub fn i32x4_shr(a: v128, amt: u32) -> v128 {
 #[doc(alias("i32x4.shr_u"))]
 #[stable(feature = "wasm_simd", since = "1.54.0")]
 pub fn u32x4_shr(a: v128, amt: u32) -> v128 {
-    unsafe { simd_shr(a.as_u32x4(), simd::u32x4::splat(amt as u32)).v128() }
+    unsafe { simd_shr(a.as_u32x4(), simd::u32x4::splat(amt)).v128() }
 }
 
 /// Adds two 128-bit vectors as if they were two packed four 32-bit integers.
@@ -4236,10 +4226,10 @@ pub fn f64x2_promote_low_f32x4(a: v128) -> v128 {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
     use core::ops::{Add, Div, Mul, Neg, Sub};
-    use std;
+
     use std::fmt::Debug;
     use std::mem::transmute;
     use std::num::Wrapping;
@@ -4587,8 +4577,8 @@ pub mod tests {
                     u8::MAX.into(),
                 ),
                 i16x8(
-                    i16::MIN.into(),
-                    i16::MAX.into(),
+                    i16::MIN,
+                    i16::MAX,
                     u16::MIN as i16,
                     u16::MAX as i16,
                     0,
@@ -4613,8 +4603,8 @@ pub mod tests {
                     u8::MAX.into(),
                 ),
                 i16x8(
-                    i16::MIN.into(),
-                    i16::MAX.into(),
+                    i16::MIN,
+                    i16::MAX,
                     u16::MIN as i16,
                     u16::MAX as i16,
                     0,
@@ -4634,12 +4624,7 @@ pub mod tests {
         compare_bytes(
             i16x8_narrow_i32x4(
                 i32x4(0, -1, i16::MIN.into(), i16::MAX.into()),
-                i32x4(
-                    i32::MIN.into(),
-                    i32::MAX.into(),
-                    u32::MIN as i32,
-                    u32::MAX as i32,
-                ),
+                i32x4(i32::MIN, i32::MAX, u32::MIN as i32, u32::MAX as i32),
             ),
             i16x8(0, -1, i16::MIN, i16::MAX, i16::MIN, i16::MAX, 0, -1),
         );
@@ -4647,12 +4632,7 @@ pub mod tests {
         compare_bytes(
             u16x8_narrow_i32x4(
                 i32x4(u16::MAX.into(), -1, i16::MIN.into(), i16::MAX.into()),
-                i32x4(
-                    i32::MIN.into(),
-                    i32::MAX.into(),
-                    u32::MIN as i32,
-                    u32::MAX as i32,
-                ),
+                i32x4(i32::MIN, i32::MAX, u32::MIN as i32, u32::MAX as i32),
             ),
             i16x8(-1, 0, 0, i16::MAX, 0, -1, 0, 0),
         );

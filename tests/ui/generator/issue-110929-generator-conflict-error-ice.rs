@@ -1,5 +1,5 @@
 // edition:2021
-// compile-flags: -Zdrop-tracking-mir=yes
+// check-pass
 #![feature(generators)]
 
 fn main() {
@@ -7,6 +7,5 @@ fn main() {
     || {
         let _c = || yield *&mut *x;
         || _ = &mut *x;
-        //~^ cannot borrow `*x` as mutable more than once at a time
     };
 }

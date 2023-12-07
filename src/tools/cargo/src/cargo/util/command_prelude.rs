@@ -1,9 +1,11 @@
 use crate::core::compiler::{BuildConfig, MessageFormat, TimingOutput};
 use crate::core::resolver::CliFeatures;
 use crate::core::{Edition, Workspace};
+use crate::ops::registry::RegistryOrIndex;
 use crate::ops::{CompileFilter, CompileOptions, NewOptions, Packages, VersionControl};
 use crate::util::important_paths::find_root_manifest_for_wd;
 use crate::util::interning::InternedString;
+use crate::util::is_rustup;
 use crate::util::restricted_names::is_glob_pattern;
 use crate::util::toml::{StringOrVec, TomlProfile};
 use crate::util::validate_package_name;
@@ -14,6 +16,7 @@ use crate::util::{
 use crate::CargoResult;
 use anyhow::bail;
 use cargo_util::paths;
+use clap::builder::UnknownArgumentValueParser;
 use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::path::PathBuf;
@@ -25,6 +28,7 @@ pub use clap::{value_parser, Arg, ArgAction, ArgMatches};
 pub use clap::Command;
 
 use super::config::JobsConfig;
+use super::IntoUrl;
 
 pub mod heading {
     pub const PACKAGE_SELECTION: &str = "Package Selection";
@@ -82,17 +86,17 @@ pub trait CommandExt: Sized {
         )
     }
 
-    fn arg_jobs(self) -> Self {
-        self.arg_jobs_without_keep_going()._arg(
+    fn arg_parallel(self) -> Self {
+        self.arg_jobs()._arg(
             flag(
                 "keep-going",
-                "Do not abort the build as soon as there is an error (unstable)",
+                "Do not abort the build as soon as there is an error",
             )
             .help_heading(heading::COMPILATION_OPTIONS),
         )
     }
 
-    fn arg_jobs_without_keep_going(self) -> Self {
+    fn arg_jobs(self) -> Self {
         self._arg(
             opt("jobs", "Number of parallel jobs, defaults to # of CPUs.")
                 .short('j')
@@ -100,6 +104,23 @@ pub trait CommandExt: Sized {
                 .allow_hyphen_values(true)
                 .help_heading(heading::COMPILATION_OPTIONS),
         )
+    }
+
+    fn arg_unsupported_keep_going(self) -> Self {
+        let msg = "use `--no-fail-fast` to run as many tests as possible regardless of failure";
+        let value_parser = UnknownArgumentValueParser::suggest(msg);
+        self._arg(flag("keep-going", "").value_parser(value_parser).hide(true))
+    }
+
+    fn arg_redundant_default_mode(
+        self,
+        default_mode: &'static str,
+        command: &'static str,
+        supported_mode: &'static str,
+    ) -> Self {
+        let msg = format!("`--{default_mode}` is the default for `cargo {command}`; instead `--{supported_mode}` is supported");
+        let value_parser = UnknownArgumentValueParser::suggest(msg);
+        self._arg(flag(default_mode, "").value_parser(value_parser).hide(true))
     }
 
     fn arg_targets_all(
@@ -211,7 +232,10 @@ pub trait CommandExt: Sized {
     }
 
     fn arg_target_triple(self, target: &'static str) -> Self {
-        self._arg(multi_opt("target", "TRIPLE", target).help_heading(heading::COMPILATION_OPTIONS))
+        self._arg(
+            optional_multi_opt("target", "TRIPLE", target)
+                .help_heading(heading::COMPILATION_OPTIONS),
+        )
     }
 
     fn arg_target_dir(self) -> Self {
@@ -253,8 +277,7 @@ pub trait CommandExt: Sized {
             opt(
                 "vcs",
                 "Initialize a new repository for the given version \
-                 control system (git, hg, pijul, or fossil) or do not \
-                 initialize any version control at all (none), overriding \
+                 control system, overriding \
                  a global configuration.",
             )
             .value_name("VCS")
@@ -276,12 +299,21 @@ pub trait CommandExt: Sized {
         )
     }
 
-    fn arg_index(self) -> Self {
-        self._arg(opt("index", "Registry index URL to upload the package to").value_name("INDEX"))
+    fn arg_registry(self, help: &'static str) -> Self {
+        self._arg(opt("registry", help).value_name("REGISTRY"))
+    }
+
+    fn arg_index(self, help: &'static str) -> Self {
+        // Always conflicts with `--registry`.
+        self._arg(
+            opt("index", help)
+                .value_name("INDEX")
+                .conflicts_with("registry"),
+        )
     }
 
     fn arg_dry_run(self, dry_run: &'static str) -> Self {
-        self._arg(flag("dry-run", dry_run))
+        self._arg(flag("dry-run", dry_run).short('n'))
     }
 
     fn arg_ignore_rust_version(self) -> Self {
@@ -299,6 +331,18 @@ pub trait CommandExt: Sized {
     }
 
     fn arg_quiet(self) -> Self {
+        let unsupported_silent_arg = {
+            let value_parser = UnknownArgumentValueParser::suggest_arg("--quiet");
+            flag("silent", "")
+                .short('s')
+                .value_parser(value_parser)
+                .hide(true)
+        };
+        self._arg(flag("quiet", "Do not print cargo log messages").short('q'))
+            ._arg(unsupported_silent_arg)
+    }
+
+    fn arg_quiet_without_unknown_silent_arg_tip(self) -> Self {
         self._arg(flag("quiet", "Do not print cargo log messages").short('q'))
     }
 
@@ -431,11 +475,23 @@ pub trait ArgMatchesExt {
     }
 
     fn keep_going(&self) -> bool {
-        self.flag("keep-going")
+        self.maybe_flag("keep-going")
     }
 
-    fn targets(&self) -> Vec<String> {
-        self._values_of("target")
+    fn targets(&self) -> CargoResult<Vec<String>> {
+        if self.is_present_with_zero_values("target") {
+            let cmd = if is_rustup() {
+                "rustup target list"
+            } else {
+                "rustc --print target-list"
+            };
+            bail!(
+                "\"--target\" takes a target architecture as an argument.
+
+Run `{cmd}` to see possible targets."
+            );
+        }
+        Ok(self._values_of("target"))
     }
 
     fn get_profile_name(
@@ -453,7 +509,7 @@ pub trait ArgMatchesExt {
             (Some(name @ ("dev" | "test" | "bench" | "check")), ProfileChecking::LegacyRustc)
             // `cargo fix` and `cargo check` has legacy handling of this profile name
             | (Some(name @ "test"), ProfileChecking::LegacyTestOnly) => {
-                if self.flag("release") {
+                if self.maybe_flag("release") {
                     config.shell().warn(
                         "the `--release` flag should not be specified with the `--profile` flag\n\
                          The `--release` flag will be ignored.\n\
@@ -477,7 +533,11 @@ pub trait ArgMatchesExt {
             )
         };
 
-        let name = match (self.flag("release"), self.flag("debug"), specified_profile) {
+        let name = match (
+            self.maybe_flag("release"),
+            self.maybe_flag("debug"),
+            specified_profile,
+        ) {
             (false, false, None) => default,
             (true, _, None | Some("release")) => "release",
             (true, _, Some(name)) => return Err(conflict("release", "release", name)),
@@ -584,7 +644,7 @@ pub trait ArgMatchesExt {
             config,
             self.jobs()?,
             self.keep_going(),
-            &self.targets(),
+            &self.targets()?,
             mode,
         )?;
         build_config.message_format = message_format.unwrap_or(MessageFormat::Human);
@@ -620,11 +680,6 @@ pub trait ArgMatchesExt {
             }
         }
 
-        if build_config.keep_going {
-            config
-                .cli_unstable()
-                .fail_if_stable_opt("--keep-going", 10496)?;
-        }
         if build_config.build_plan {
             config
                 .cli_unstable()
@@ -718,29 +773,32 @@ pub trait ArgMatchesExt {
         )
     }
 
-    fn registry(&self, config: &Config) -> CargoResult<Option<String>> {
+    fn registry_or_index(&self, config: &Config) -> CargoResult<Option<RegistryOrIndex>> {
         let registry = self._value_of("registry");
         let index = self._value_of("index");
         let result = match (registry, index) {
-            (None, None) => config.default_registry()?,
-            (None, Some(_)) => {
-                // If --index is set, then do not look at registry.default.
-                None
-            }
+            (None, None) => config.default_registry()?.map(RegistryOrIndex::Registry),
+            (None, Some(i)) => Some(RegistryOrIndex::Index(i.into_url()?)),
             (Some(r), None) => {
                 validate_package_name(r, "registry name", "")?;
-                Some(r.to_string())
+                Some(RegistryOrIndex::Registry(r.to_string()))
             }
             (Some(_), Some(_)) => {
-                bail!("both `--index` and `--registry` should not be set at the same time")
+                // Should be guarded by clap
+                unreachable!("both `--index` and `--registry` should not be set at the same time")
             }
         };
         Ok(result)
     }
 
-    fn index(&self) -> CargoResult<Option<String>> {
-        let index = self._value_of("index").map(|s| s.to_string());
-        Ok(index)
+    fn registry(&self, config: &Config) -> CargoResult<Option<String>> {
+        match self._value_of("registry").map(|s| s.to_string()) {
+            None => config.default_registry(),
+            Some(registry) => {
+                validate_package_name(&registry, "registry name", "")?;
+                Ok(Some(registry))
+            }
+        }
     }
 
     fn check_optional_opts(
@@ -777,6 +835,8 @@ pub trait ArgMatchesExt {
 
     fn flag(&self, name: &str) -> bool;
 
+    fn maybe_flag(&self, name: &str) -> bool;
+
     fn _value_of(&self, name: &str) -> Option<&str>;
 
     fn _values_of(&self, name: &str) -> Vec<String>;
@@ -795,6 +855,17 @@ impl<'a> ArgMatchesExt for ArgMatches {
         ignore_unknown(self.try_get_one::<bool>(name))
             .copied()
             .unwrap_or(false)
+    }
+
+    // This works around before an upstream fix in clap for `UnknownArgumentValueParser` accepting
+    // generics arguments. `flag()` cannot be used with `--keep-going` at this moment due to
+    // <https://github.com/clap-rs/clap/issues/5081>.
+    fn maybe_flag(&self, name: &str) -> bool {
+        self.try_get_one::<bool>(name)
+            .ok()
+            .flatten()
+            .copied()
+            .unwrap_or_default()
     }
 
     fn _value_of(&self, name: &str) -> Option<&str> {

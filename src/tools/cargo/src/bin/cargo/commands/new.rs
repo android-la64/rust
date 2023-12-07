@@ -7,9 +7,11 @@ pub fn cli() -> Command {
         .about("Create a new cargo package at <path>")
         .arg(Arg::new("path").action(ArgAction::Set).required(true))
         .arg_new_opts()
-        .arg(opt("registry", "Registry to use").value_name("REGISTRY"))
+        .arg_registry("Registry to use")
         .arg_quiet()
-        .after_help("Run `cargo help new` for more detailed information.\n")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help new</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {

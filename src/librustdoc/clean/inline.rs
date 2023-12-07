@@ -20,7 +20,8 @@ use rustc_span::symbol::{kw, sym, Symbol};
 use crate::clean::{
     self, clean_fn_decl_from_did_and_sig, clean_generics, clean_impl_item, clean_middle_assoc_item,
     clean_middle_field, clean_middle_ty, clean_trait_ref_with_bindings, clean_ty,
-    clean_ty_generics, clean_variant_def, utils, Attributes, AttributesExt, ImplKind, ItemId, Type,
+    clean_ty_alias_inner_type, clean_ty_generics, clean_variant_def, utils, Attributes,
+    AttributesExt, ImplKind, ItemId, Type,
 };
 use crate::core::DocContext;
 use crate::formats::item_type::ItemType;
@@ -79,10 +80,10 @@ pub(crate) fn try_inline(
             build_impls(cx, did, attrs_without_docs, &mut ret);
             clean::UnionItem(build_union(cx, did))
         }
-        Res::Def(DefKind::TyAlias { .. }, did) => {
-            record_extern_fqn(cx, did, ItemType::Typedef);
+        Res::Def(DefKind::TyAlias, did) => {
+            record_extern_fqn(cx, did, ItemType::TypeAlias);
             build_impls(cx, did, attrs_without_docs, &mut ret);
-            clean::TypedefItem(build_type_alias(cx, did))
+            clean::TypeAliasItem(build_type_alias(cx, did))
         }
         Res::Def(DefKind::Enum, did) => {
             record_extern_fqn(cx, did, ItemType::Enum);
@@ -287,18 +288,16 @@ fn build_union(cx: &mut DocContext<'_>, did: DefId) -> clean::Union {
     clean::Union { generics, fields }
 }
 
-fn build_type_alias(cx: &mut DocContext<'_>, did: DefId) -> Box<clean::Typedef> {
+fn build_type_alias(cx: &mut DocContext<'_>, did: DefId) -> Box<clean::TypeAlias> {
     let predicates = cx.tcx.explicit_predicates_of(did);
-    let type_ = clean_middle_ty(
-        ty::Binder::dummy(cx.tcx.type_of(did).instantiate_identity()),
-        cx,
-        Some(did),
-        None,
-    );
+    let ty = cx.tcx.type_of(did).instantiate_identity();
+    let type_ = clean_middle_ty(ty::Binder::dummy(ty), cx, Some(did), None);
+    let inner_type = clean_ty_alias_inner_type(ty, cx);
 
-    Box::new(clean::Typedef {
+    Box::new(clean::TypeAlias {
         type_,
         generics: clean_ty_generics(cx, cx.tcx.generics_of(did), predicates),
+        inner_type,
         item_type: None,
     })
 }

@@ -11,12 +11,12 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.65"
 name = "gix-negotiate"
-version = "0.2.1"
+version = "0.8.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 description = "A crate of the gitoxide project implementing negotiation algorithms"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
 
 [lib]
@@ -27,16 +27,19 @@ doctest = false
 version = "2"
 
 [dependencies.gix-commitgraph]
-version = "^0.16.0"
+version = "^0.21.0"
+
+[dependencies.gix-date]
+version = "^0.8.0"
 
 [dependencies.gix-hash]
-version = "^0.11.2"
+version = "^0.13.0"
 
 [dependencies.gix-object]
-version = "^0.30.0"
+version = "^0.37.0"
 
-[dependencies.gix-revision]
-version = "^0.15.2"
+[dependencies.gix-revwalk]
+version = "^0.8.0"
 
 [dependencies.smallvec]
 version = "1.10.0"

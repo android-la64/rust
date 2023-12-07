@@ -5,26 +5,7 @@ use rustc_errors::AddToDiagnostic;
 use rustc_macros::{Diagnostic, Subdiagnostic};
 use rustc_span::{symbol::Ident, Span, Symbol};
 
-use crate::ast_validation::ForbiddenLetReason;
 use crate::fluent_generated as fluent;
-
-#[derive(Diagnostic)]
-#[diag(ast_passes_forbidden_let)]
-#[note]
-pub struct ForbiddenLet {
-    #[primary_span]
-    pub span: Span,
-    #[subdiagnostic]
-    pub(crate) reason: ForbiddenLetReason,
-}
-
-#[derive(Diagnostic)]
-#[diag(ast_passes_forbidden_let_stable)]
-#[note]
-pub struct ForbiddenLetStable {
-    #[primary_span]
-    pub span: Span,
-}
 
 #[derive(Diagnostic)]
 #[diag(ast_passes_keyword_lifetime)]
@@ -726,4 +707,31 @@ pub struct NegativeBoundUnsupported {
 pub struct ConstraintOnNegativeBound {
     #[primary_span]
     pub span: Span,
+}
+
+#[derive(Diagnostic)]
+#[diag(ast_passes_invalid_unnamed_field_ty)]
+pub struct InvalidUnnamedFieldTy {
+    #[primary_span]
+    pub span: Span,
+    #[label]
+    pub ty_span: Span,
+}
+
+#[derive(Diagnostic)]
+#[diag(ast_passes_invalid_unnamed_field)]
+pub struct InvalidUnnamedField {
+    #[primary_span]
+    pub span: Span,
+    #[label]
+    pub ident_span: Span,
+}
+
+#[derive(Diagnostic)]
+#[diag(ast_passes_anon_struct_or_union_not_allowed)]
+pub struct AnonStructOrUnionNotAllowed {
+    #[primary_span]
+    #[label]
+    pub span: Span,
+    pub struct_or_union: &'static str,
 }

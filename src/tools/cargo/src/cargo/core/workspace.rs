@@ -23,6 +23,7 @@ use crate::util::edit_distance;
 use crate::util::errors::{CargoResult, ManifestError};
 use crate::util::interning::InternedString;
 use crate::util::toml::{read_manifest, InheritableFields, TomlDependency, TomlProfiles};
+use crate::util::RustVersion;
 use crate::util::{config::ConfigRelativePath, Config, Filesystem, IntoUrl};
 use cargo_util::paths;
 use cargo_util::paths::normalize_path;
@@ -509,7 +510,7 @@ impl<'cfg> Workspace<'cfg> {
         self.members
             .iter()
             .filter_map(move |path| match packages.get(path) {
-                &MaybePackage::Package(ref p) => Some(p),
+                MaybePackage::Package(p) => Some(p),
                 _ => None,
             })
     }
@@ -540,7 +541,7 @@ impl<'cfg> Workspace<'cfg> {
         self.default_members
             .iter()
             .filter_map(move |path| match packages.get(path) {
-                &MaybePackage::Package(ref p) => Some(p),
+                MaybePackage::Package(p) => Some(p),
                 _ => None,
             })
     }
@@ -593,6 +594,12 @@ impl<'cfg> Workspace<'cfg> {
     pub fn set_ignore_lock(&mut self, ignore_lock: bool) -> &mut Workspace<'cfg> {
         self.ignore_lock = ignore_lock;
         self
+    }
+
+    /// Get the lowest-common denominator `package.rust-version` within the workspace, if specified
+    /// anywhere
+    pub fn rust_version(&self) -> Option<&RustVersion> {
+        self.members().filter_map(|pkg| pkg.rust_version()).min()
     }
 
     pub fn custom_metadata(&self) -> Option<&toml::Value> {
@@ -656,18 +663,15 @@ impl<'cfg> Workspace<'cfg> {
     /// will transitively follow all `path` dependencies looking for members of
     /// the workspace.
     fn find_members(&mut self) -> CargoResult<()> {
-        let workspace_config = match self.load_workspace_config()? {
-            Some(workspace_config) => workspace_config,
-            None => {
-                debug!("find_members - only me as a member");
-                self.members.push(self.current_manifest.clone());
-                self.default_members.push(self.current_manifest.clone());
-                if let Ok(pkg) = self.current() {
-                    let id = pkg.package_id();
-                    self.member_ids.insert(id);
-                }
-                return Ok(());
+        let Some(workspace_config) = self.load_workspace_config()? else {
+            debug!("find_members - only me as a member");
+            self.members.push(self.current_manifest.clone());
+            self.default_members.push(self.current_manifest.clone());
+            if let Ok(pkg) = self.current() {
+                let id = pkg.package_id();
+                self.member_ids.insert(id);
             }
+            return Ok(());
         };
 
         // self.root_manifest must be Some to have retrieved workspace_config
@@ -1021,11 +1025,18 @@ impl<'cfg> Workspace<'cfg> {
                         .max()
                     {
                         let resolver = edition.default_resolve_behavior().to_manifest();
-                        self.config.shell().warn(format_args!("some crates are on edition {edition} which defaults to `resolver = \"{resolver}\"`, but virtual workspaces default to `resolver = \"1\"`"))?;
+                        self.config.shell().warn(format_args!(
+                            "virtual workspace defaulting to `resolver = \"1\"` despite one or more workspace members being on edition {edition} which implies `resolver = \"{resolver}\"`"
+                        ))?;
                         self.config.shell().note(
                             "to keep the current resolver, specify `workspace.resolver = \"1\"` in the workspace root's manifest",
                         )?;
-                        self.config.shell().note(format_args!("to use the edition {edition} resolver, specify `workspace.resolver = \"{resolver}\"` in the workspace root's manifest"))?;
+                        self.config.shell().note(format_args!(
+                            "to use the edition {edition} resolver, specify `workspace.resolver = \"{resolver}\"` in the workspace root's manifest"
+                        ))?;
+                        self.config.shell().note(
+                            "for more details see https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions",
+                        )?;
                     }
                 }
             }
@@ -1035,7 +1046,7 @@ impl<'cfg> Workspace<'cfg> {
 
     pub fn load(&self, manifest_path: &Path) -> CargoResult<Package> {
         match self.packages.maybe_get(manifest_path) {
-            Some(&MaybePackage::Package(ref p)) => return Ok(p.clone()),
+            Some(MaybePackage::Package(p)) => return Ok(p.clone()),
             Some(&MaybePackage::Virtual(_)) => bail!("cannot load workspace root"),
             None => {}
         }
@@ -1679,9 +1690,8 @@ impl WorkspaceRootConfig {
     }
 
     fn expand_member_path(path: &Path) -> CargoResult<Vec<PathBuf>> {
-        let path = match path.to_str() {
-            Some(p) => p,
-            None => return Ok(Vec::new()),
+        let Some(path) = path.to_str() else {
+            return Ok(Vec::new());
         };
         let res = glob(path).with_context(|| format!("could not parse pattern `{}`", &path))?;
         let res = res

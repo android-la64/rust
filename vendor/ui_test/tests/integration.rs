@@ -1,32 +1,16 @@
 use std::path::Path;
 
-use colored::Colorize;
 use ui_test::color_eyre::Result;
 use ui_test::*;
 
 fn main() -> Result<()> {
-    run("integrations", Mode::Pass)?;
-    run("integrations", Mode::Panic)?;
-
-    eprintln!("integration tests done");
-
-    Ok(())
-}
-
-fn run(name: &str, mode: Mode) -> Result<()> {
-    eprintln!("\n{} `{name}` tests in mode {mode}", "Running".green());
     let path = Path::new(file!()).parent().unwrap();
-    let root_dir = path.join(name);
-    let bless = std::env::args().all(|arg| arg != "--check");
+    let root_dir = path.join("integrations");
     let mut config = Config {
-        trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
-        mode,
         ..Config::cargo(root_dir.clone())
     };
-
-    if bless {
-        config.output_conflict_handling = OutputConflictHandling::Bless;
-    }
+    let args = Args::test()?;
+    config.with_args(&args, true);
 
     config.program.args = vec![
         "test".into(),
@@ -37,47 +21,73 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         "1".into(),
         "--no-fail-fast".into(),
     ];
+    config
+        .program
+        .envs
+        .push(("RUST_TEST_THREADS".into(), Some("1".into())));
 
     config
         .program
         .envs
-        .push(("BLESS".into(), bless.then(|| String::new().into())));
+        .push(("BLESS".into(), (!args.check).then(|| String::new().into())));
 
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
-    config.stderr_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
-    config.stderr_filter(
-        "( *process didn't exit successfully: `[^-]+)-[0-9a-f]+",
-        "$1-HASH",
+    config.stdout_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
+    config.filter("\\.exe", b"");
+    config.filter(
+        "( *process didn't exit successfully: `.*)-[0-9a-f]+`",
+        "$1-HASH`",
     );
     // Windows io::Error uses "exit code".
-    config.stderr_filter("exit code", "exit status");
+    config.filter("exit code", "exit status");
+    config.filter(
+        "The system cannot find the file specified.",
+        "No such file or directory",
+    );
+    config.filter("RUSTC_BOOTSTRAP=\"1\" ", "");
     // The order of the `/deps` directory flag is flaky
-    config.stderr_filter("/deps", "");
-    config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
-    config.stderr_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
+    config.stdout_filter("/deps", "");
+    config.path_filter(std::path::Path::new(path), "$DIR");
+    config.stdout_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
     // Windows backslashes are sometimes escaped.
     // Insert the replacement filter at the start to make sure the filter for single backslashes
     // runs afterwards.
     config
-        .stderr_filters
-        .insert(0, (Match::Exact(b"\\\\".iter().copied().collect()), b"\\"));
-    config.stderr_filter("\\.exe", b"");
-    config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
-    config.stderr_filter("   [0-9]: .*", "");
-    config.stderr_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
-    config.stderr_filter("/target/[^/]+/tests", "/target/$$TMP/tests");
+        .stdout_filters
+        .insert(0, (Match::Exact(b"\\\\".to_vec()), b"\\"));
+    config.stdout_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
+    // We don't want to normalize lines starting with `+`, those are diffs of the inner ui_test
+    // and normalizing these here doesn't make the "actual output differed from expected" go
+    // away, it just makes it impossible to diagnose.
+    config.filter(" +[0-9]+: .*\n", "");
+    config.filter("                +at \\.?/.*\n", "");
+    config.filter(" running on .*", "");
+    config.stdout_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
+    config.stdout_filter("/target/.tmp[^/ \"]+", "/target/$$TMP");
     // Normalize proc macro filenames on windows to their linux repr
-    config.stderr_filter("/([^/\\.]+)\\.dll", "/lib$1.so");
+    config.stdout_filter("/([^/\\.]+)\\.dll", "/lib$1.so");
     // Normalize proc macro filenames on mac to their linux repr
-    config.stderr_filter("/([^/\\.]+)\\.dylib", "/$1.so");
-    config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
-    config.stderr_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
-    config.stderr_filter("program not found", "No such file or directory");
-    config.stderr_filter(" \\(os error [0-9]+\\)", "");
+    config.stdout_filter("/([^/\\.]+)\\.dylib", "/$1.so");
+    config.stdout_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
+    config.filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
+    config.filter("program not found", "No such file or directory");
+    config.filter(" \\(os error [0-9]+\\)", "");
+    config.filter("note: rustc 1\\..*", "");
+
+    let text = ui_test::status_emitter::Text::from(args.format);
 
     run_tests_generic(
-        config,
-        |path| {
+        vec![
+            Config {
+                mode: Mode::Pass,
+                ..config.clone()
+            },
+            Config {
+                mode: Mode::Panic,
+                ..config
+            },
+        ],
+        |path, config| {
             let fail = path
                 .parent()
                 .unwrap()
@@ -92,20 +102,21 @@ fn run(name: &str, mode: Mode) -> Result<()> {
             }
             path.ends_with("Cargo.toml")
                 && path.parent().unwrap().parent().unwrap() == root_dir
-                && match mode {
+                && match config.mode {
                     Mode::Pass => !fail,
                     // This is weird, but `cargo test` returns 101 instead of 1 when
                     // multiple [[test]]s exist. If there's only one test, it returns
                     // 1 on failure.
                     Mode::Panic => fail,
-                    Mode::Fix | Mode::Run { .. } | Mode::Yolo | Mode::Fail { .. } => unreachable!(),
+                    Mode::Run { .. } | Mode::Yolo { .. } | Mode::Fail { .. } => unreachable!(),
                 }
+                && default_any_file_filter(path, config)
         },
-        |_, _| None,
+        |_, _, _| {},
         (
-            ui_test::status_emitter::Text,
+            text,
             ui_test::status_emitter::Gha::<true> {
-                name: format!("{mode:?}"),
+                name: "integration tests".into(),
             },
         ),
     )

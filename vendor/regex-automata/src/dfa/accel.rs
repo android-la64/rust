@@ -49,12 +49,14 @@
 //
 //     accels.get((id - min_accel_id) / dfa_stride)
 
-use core::convert::{TryFrom, TryInto};
-
-#[cfg(feature = "alloc")]
+#[cfg(feature = "dfa-build")]
 use alloc::{vec, vec::Vec};
 
-use crate::util::bytes::{self, DeserializeError, Endian, SerializeError};
+use crate::util::{
+    int::Pointer,
+    memchr,
+    wire::{self, DeserializeError, Endian, SerializeError},
+};
 
 /// The base type used to represent a collection of accelerators.
 ///
@@ -87,7 +89,7 @@ const ACCEL_CAP: usize = 8;
 /// Search for between 1 and 3 needle bytes in the given haystack, starting the
 /// search at the given position. If `needles` has a length other than 1-3,
 /// then this panics.
-#[inline(always)]
+#[cfg_attr(feature = "perf-inline", inline(always))]
 pub(crate) fn find_fwd(
     needles: &[u8],
     haystack: &[u8],
@@ -107,7 +109,7 @@ pub(crate) fn find_fwd(
 /// Search for between 1 and 3 needle bytes in the given haystack in reverse,
 /// starting the search at the given position. If `needles` has a length other
 /// than 1-3, then this panics.
-#[inline(always)]
+#[cfg_attr(feature = "perf-inline", inline(always))]
 pub(crate) fn find_rev(
     needles: &[u8],
     haystack: &[u8],
@@ -138,7 +140,7 @@ pub(crate) struct Accels<A> {
     accels: A,
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(feature = "dfa-build")]
 impl Accels<Vec<AccelTy>> {
     /// Create an empty sequence of accelerators for a DFA.
     pub fn empty() -> Accels<Vec<AccelTy>> {
@@ -180,48 +182,48 @@ impl<'a> Accels<&'a [AccelTy]> {
     ///
     /// Callers may check the validity of every accelerator with the `validate`
     /// method.
-    pub unsafe fn from_bytes_unchecked(
+    pub fn from_bytes_unchecked(
         mut slice: &'a [u8],
     ) -> Result<(Accels<&'a [AccelTy]>, usize), DeserializeError> {
-        let slice_start = slice.as_ptr() as usize;
+        let slice_start = slice.as_ptr().as_usize();
 
-        let (count, _) =
-            bytes::try_read_u32_as_usize(slice, "accelerators count")?;
-        // The accelerator count is part of the accel_tys slice that
+        let (accel_len, _) =
+            wire::try_read_u32_as_usize(slice, "accelerators length")?;
+        // The accelerator length is part of the accel_tys slice that
         // we deserialize. This is perhaps a bit idiosyncratic. It would
-        // probably be better to split out the count into a real field.
+        // probably be better to split out the length into a real field.
 
-        let accel_tys_count = bytes::add(
-            bytes::mul(count, 2, "total number of accelerator accel_tys")?,
+        let accel_tys_len = wire::add(
+            wire::mul(accel_len, 2, "total number of accelerator accel_tys")?,
             1,
             "total number of accel_tys",
         )?;
-        let accel_tys_len = bytes::mul(
+        let accel_tys_bytes_len = wire::mul(
             ACCEL_TY_SIZE,
-            accel_tys_count,
+            accel_tys_len,
             "total number of bytes in accelerators",
         )?;
-        bytes::check_slice_len(slice, accel_tys_len, "accelerators")?;
-        bytes::check_alignment::<AccelTy>(slice)?;
-        let accel_tys = &slice[..accel_tys_len];
-        slice = &slice[accel_tys_len..];
+        wire::check_slice_len(slice, accel_tys_bytes_len, "accelerators")?;
+        wire::check_alignment::<AccelTy>(slice)?;
+        let accel_tys = &slice[..accel_tys_bytes_len];
+        slice = &slice[accel_tys_bytes_len..];
         // SAFETY: We've checked the length and alignment above, and since
-        // slice is just bytes, we can safely cast to a slice of &[AccelTy].
-        #[allow(unused_unsafe)]
+        // slice is just bytes and AccelTy is just a u32, we can safely cast to
+        // a slice of &[AccelTy].
         let accels = unsafe {
             core::slice::from_raw_parts(
-                accel_tys.as_ptr() as *const AccelTy,
-                accel_tys_count,
+                accel_tys.as_ptr().cast::<AccelTy>(),
+                accel_tys_len,
             )
         };
-        Ok((Accels { accels }, slice.as_ptr() as usize - slice_start))
+        Ok((Accels { accels }, slice.as_ptr().as_usize() - slice_start))
     }
 }
 
 impl<A: AsRef<[AccelTy]>> Accels<A> {
     /// Return an owned version of the accelerators.
     #[cfg(feature = "alloc")]
-    pub fn to_owned(&self) -> Accels<Vec<AccelTy>> {
+    pub fn to_owned(&self) -> Accels<alloc::vec::Vec<AccelTy>> {
         Accels { accels: self.accels.as_ref().to_vec() }
     }
 
@@ -237,7 +239,7 @@ impl<A: AsRef<[AccelTy]>> Accels<A> {
         // and u8 always has a smaller alignment.
         unsafe {
             core::slice::from_raw_parts(
-                accels.as_ptr() as *const u8,
+                accels.as_ptr().cast::<u8>(),
                 accels.len() * ACCEL_TY_SIZE,
             )
         }
@@ -261,14 +263,14 @@ impl<A: AsRef<[AccelTy]>> Accels<A> {
     /// states are stored contiguously in the DFA and have an ordering implied
     /// by their respective state IDs. The state's index in that sequence
     /// corresponds to the index of its corresponding accelerator.
-    #[inline(always)]
+    #[cfg_attr(feature = "perf-inline", inline(always))]
     pub fn needles(&self, i: usize) -> &[u8] {
         if i >= self.len() {
             panic!("invalid accelerator index {}", i);
         }
         let bytes = self.as_bytes();
         let offset = ACCEL_TY_SIZE + i * ACCEL_CAP;
-        let len = bytes[offset] as usize;
+        let len = usize::from(bytes[offset]);
         &bytes[offset + 1..offset + 1 + len]
     }
 
@@ -398,7 +400,7 @@ pub(crate) struct Accel {
 
 impl Accel {
     /// Returns an empty accel, where no bytes are accelerated.
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "dfa-build")]
     pub fn new() -> Accel {
         Accel { bytes: [0; ACCEL_CAP] }
     }
@@ -420,7 +422,7 @@ impl Accel {
     ///
     /// If the given bytes are invalid, then this returns an error.
     fn from_bytes(bytes: [u8; 4]) -> Result<Accel, DeserializeError> {
-        if bytes[0] as usize >= ACCEL_LEN {
+        if usize::from(bytes[0]) >= ACCEL_LEN {
             return Err(DeserializeError::generic(
                 "accelerator bytes cannot have length more than 3",
             ));
@@ -438,18 +440,25 @@ impl Accel {
     }
 
     /// Attempts to add the given byte to this accelerator. If the accelerator
-    /// is already full then this returns false. Otherwise, returns true.
+    /// is already full or thinks the byte is a poor accelerator, then this
+    /// returns false. Otherwise, returns true.
     ///
     /// If the given byte is already in this accelerator, then it panics.
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "dfa-build")]
     pub fn add(&mut self, byte: u8) -> bool {
         if self.len() >= 3 {
+            return false;
+        }
+        // As a special case, we totally reject trying to accelerate a state
+        // with an ASCII space. In most cases, it occurs very frequently, and
+        // tends to result in worse overall performance.
+        if byte == b' ' {
             return false;
         }
         assert!(
             !self.contains(byte),
             "accelerator already contains {:?}",
-            crate::util::DebugByte(byte)
+            crate::util::escape::DebugByte(byte)
         );
         self.bytes[self.len() + 1] = byte;
         self.bytes[0] += 1;
@@ -458,11 +467,11 @@ impl Accel {
 
     /// Return the number of bytes in this accelerator.
     pub fn len(&self) -> usize {
-        self.bytes[0] as usize
+        usize::from(self.bytes[0])
     }
 
     /// Returns true if and only if there are no bytes in this accelerator.
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "dfa-build")]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -476,13 +485,13 @@ impl Accel {
 
     /// Returns true if and only if this accelerator will accelerate the given
     /// byte.
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "dfa-build")]
     fn contains(&self, byte: u8) -> bool {
         self.needles().iter().position(|&b| b == byte).is_some()
     }
 
     /// Returns the accelerator bytes as an array of AccelTys.
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "dfa-build")]
     fn as_accel_tys(&self) -> [AccelTy; 2] {
         assert_eq!(ACCEL_CAP, 8);
         // These unwraps are OK since ACCEL_CAP is set to 8.
@@ -499,7 +508,7 @@ impl core::fmt::Debug for Accel {
         write!(f, "Accel(")?;
         let mut set = f.debug_set();
         for &b in self.needles() {
-            set.entry(&crate::util::DebugByte(b));
+            set.entry(&crate::util::escape::DebugByte(b));
         }
         set.finish()?;
         write!(f, ")")

@@ -518,9 +518,8 @@ impl Features {
     ) -> CargoResult<()> {
         let nightly_features_allowed = self.nightly_features_allowed;
         let is_local = self.is_local;
-        let (slot, feature) = match self.status(feature_name) {
-            Some(p) => p,
-            None => bail!("unknown cargo feature `{}`", feature_name),
+        let Some((slot, feature)) = self.status(feature_name) else {
+            bail!("unknown cargo feature `{}`", feature_name)
         };
 
         if *slot {
@@ -531,15 +530,9 @@ impl Features {
         }
 
         let see_docs = || {
-            let url_channel = match channel().as_str() {
-                "dev" | "nightly" => "nightly/",
-                "beta" => "beta/",
-                _ => "",
-            };
             format!(
-                "See https://doc.rust-lang.org/{}cargo/{} for more information \
-                about using this feature.",
-                url_channel, feature.docs
+                "See {} for more information about using this feature.",
+                cargo_docs_link(feature.docs)
             )
         };
 
@@ -718,6 +711,7 @@ unstable_cli_options!(
     // All other unstable features.
     // Please keep this list lexicographically ordered.
     advanced_env: bool = (HIDDEN),
+    asymmetric_token: bool = ("Allows authenticating with asymmetric tokens"),
     avoid_dev_deps: bool = ("Avoid installing dev-dependencies if possible"),
     binary_dep_depinfo: bool = ("Track changes to dependency artifacts"),
     bindeps: bool = ("Allow Cargo packages to depend on bin, cdylib, and staticlib crates, and use the artifacts built by those crates"),
@@ -728,7 +722,6 @@ unstable_cli_options!(
     check_cfg: Option<(/*features:*/ bool, /*well_known_names:*/ bool, /*well_known_values:*/ bool, /*output:*/ bool)> = ("Specify scope of compile-time checking of `cfg` names/values"),
     codegen_backend: bool = ("Enable the `codegen-backend` option in profiles in .cargo/config.toml file"),
     config_include: bool = ("Enable the `include` key in config files"),
-    credential_process: bool = ("Add a config setting to fetch registry authentication tokens by calling an external process"),
     direct_minimal_versions: bool = ("Resolve minimal dependency versions instead of maximum (direct dependencies only)"),
     doctest_xcompile: bool = ("Compile and run doctests for non-host target using runner config"),
     dual_proc_macros: bool = ("Build proc-macros for both the host and the target"),
@@ -744,7 +737,6 @@ unstable_cli_options!(
     panic_abort_tests: bool = ("Enable support to run tests with -Cpanic=abort"),
     profile_rustflags: bool = ("Enable the `rustflags` option in profiles in .cargo/config.toml file"),
     publish_timeout: bool = ("Enable the `publish.timeout` key in .cargo/config.toml file"),
-    registry_auth: bool = ("Authentication for alternative registries, and generate registry authentication tokens using asymmetric cryptography"),
     rustdoc_map: bool = ("Allow passing external documentation mappings to rustdoc"),
     rustdoc_scrape_examples: bool = ("Allows Rustdoc to scrape code examples from reverse-dependencies"),
     script: bool = ("Enable support for single-file, `.rs` packages"),
@@ -818,13 +810,18 @@ const STABILIZED_TERMINAL_WIDTH: &str =
 
 const STABILISED_SPARSE_REGISTRY: &str = "The sparse protocol is now the default for crates.io";
 
+const STABILIZED_CREDENTIAL_PROCESS: &str =
+    "Authentication with a credential provider is always available.";
+
+const STABILIZED_REGISTRY_AUTH: &str =
+    "Authenticated registries are available if a credential provider is configured.";
+
 fn deserialize_build_std<'de, D>(deserializer: D) -> Result<Option<Vec<String>>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
-    let crates = match <Option<Vec<String>>>::deserialize(deserializer)? {
-        Some(list) => list,
-        None => return Ok(None),
+    let Some(crates) = <Option<Vec<String>>>::deserialize(deserializer)? else {
+        return Ok(None);
     };
     let v = crates.join(",");
     Ok(Some(
@@ -839,9 +836,8 @@ where
     D: serde::Deserializer<'de>,
 {
     use serde::de::Error;
-    let crates = match <Option<Vec<String>>>::deserialize(deserializer)? {
-        Some(list) => list,
-        None => return Ok(None),
+    let Some(crates) = <Option<Vec<String>>>::deserialize(deserializer)? else {
+        return Ok(None);
     };
 
     parse_check_cfg(crates.into_iter()).map_err(D::Error::custom)
@@ -1083,10 +1079,13 @@ impl CliUnstable {
             "sparse-registry" => stabilized_warn(k, "1.68", STABILISED_SPARSE_REGISTRY),
             "terminal-width" => stabilized_warn(k, "1.68", STABILIZED_TERMINAL_WIDTH),
             "doctest-in-workspace" => stabilized_warn(k, "1.72", STABILIZED_DOCTEST_IN_WORKSPACE),
+            "credential-process" => stabilized_warn(k, "1.74", STABILIZED_CREDENTIAL_PROCESS),
+            "registry-auth" => stabilized_warn(k, "1.74", STABILIZED_REGISTRY_AUTH),
 
             // Unstable features
             // Sorted alphabetically:
             "advanced-env" => self.advanced_env = parse_empty(k, v)?,
+            "asymmetric-token" => self.asymmetric_token = parse_empty(k, v)?,
             "avoid-dev-deps" => self.avoid_dev_deps = parse_empty(k, v)?,
             "binary-dep-depinfo" => self.binary_dep_depinfo = parse_empty(k, v)?,
             "bindeps" => self.bindeps = parse_empty(k, v)?,
@@ -1099,7 +1098,6 @@ impl CliUnstable {
             }
             "codegen-backend" => self.codegen_backend = parse_empty(k, v)?,
             "config-include" => self.config_include = parse_empty(k, v)?,
-            "credential-process" => self.credential_process = parse_empty(k, v)?,
             "direct-minimal-versions" => self.direct_minimal_versions = parse_empty(k, v)?,
             "doctest-xcompile" => self.doctest_xcompile = parse_empty(k, v)?,
             "dual-proc-macros" => self.dual_proc_macros = parse_empty(k, v)?,
@@ -1120,7 +1118,6 @@ impl CliUnstable {
             "panic-abort-tests" => self.panic_abort_tests = parse_empty(k, v)?,
             "profile-rustflags" => self.profile_rustflags = parse_empty(k, v)?,
             "publish-timeout" => self.publish_timeout = parse_empty(k, v)?,
-            "registry-auth" => self.registry_auth = parse_empty(k, v)?,
             "rustdoc-map" => self.rustdoc_map = parse_empty(k, v)?,
             "rustdoc-scrape-examples" => self.rustdoc_scrape_examples = parse_empty(k, v)?,
             "separate-nightlies" => self.separate_nightlies = parse_empty(k, v)?,
@@ -1206,7 +1203,7 @@ pub fn channel() -> String {
     if let Ok(override_channel) = env::var("__CARGO_TEST_CHANNEL_OVERRIDE_DO_NOT_USE_THIS") {
         return override_channel;
     }
-    // ALLOWED: the process of rustc boostrapping reads this through
+    // ALLOWED: the process of rustc bootstrapping reads this through
     // `std::env`. We should make the behavior consistent. Also, we
     // don't advertise this for bypassing nightly.
     #[allow(clippy::disallowed_methods)]
@@ -1227,4 +1224,15 @@ pub fn channel() -> String {
 #[allow(clippy::disallowed_methods)]
 fn cargo_use_gitoxide_instead_of_git2() -> bool {
     std::env::var_os("__CARGO_USE_GITOXIDE_INSTEAD_OF_GIT2").map_or(false, |value| value == "1")
+}
+
+/// Generate a link to Cargo documentation for the current release channel
+/// `path` is the URL component after `https://doc.rust-lang.org/{channel}/cargo/`
+pub fn cargo_docs_link(path: &str) -> String {
+    let url_channel = match channel().as_str() {
+        "dev" | "nightly" => "nightly/",
+        "beta" => "beta/",
+        _ => "",
+    };
+    format!("https://doc.rust-lang.org/{url_channel}cargo/{path}")
 }

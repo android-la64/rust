@@ -27,14 +27,14 @@ impl Search {
         let mut group = Self::default();
         group.add_patterns_buffer(
             b"[attr]binary -diff -merge -text",
-            "[builtin]",
+            "[builtin]".into(),
             None,
             collection,
             true, /* allow macros */
         );
 
         for path in files.into_iter() {
-            group.add_patterns_file(path, true, None, buf, collection, true /* allow macros */)?;
+            group.add_patterns_file(path.into(), true, None, buf, collection, true /* allow macros */)?;
         }
         Ok(group)
     }
@@ -49,7 +49,7 @@ impl Search {
     /// Returns `true` if the file was added, or `false` if it didn't exist.
     pub fn add_patterns_file(
         &mut self,
-        source: impl Into<PathBuf>,
+        source: PathBuf,
         follow_symlinks: bool,
         root: Option<&Path>,
         buf: &mut Vec<u8>,
@@ -75,7 +75,7 @@ impl Search {
     pub fn add_patterns_buffer(
         &mut self,
         bytes: &[u8],
-        source: impl Into<PathBuf>,
+        source: PathBuf,
         root: Option<&Path>,
         collection: &mut MetadataCollection,
         allow_macros: bool,
@@ -99,17 +99,17 @@ impl Search {
 impl Search {
     /// Match `relative_path`, a path relative to the repository, while respective `case`-sensitivity and write them to `out`
     /// Return `true` if at least one pattern matched.
-    pub fn pattern_matching_relative_path<'a, 'b>(
-        &'a self,
-        relative_path: impl Into<&'b BStr>,
+    pub fn pattern_matching_relative_path(
+        &self,
+        relative_path: &BStr,
         case: gix_glob::pattern::Case,
+        is_dir: Option<bool>,
         out: &mut Outcome,
     ) -> bool {
-        let relative_path = relative_path.into();
         let basename_pos = relative_path.rfind(b"/").map(|p| p + 1);
         let mut has_match = false;
         self.patterns.iter().rev().any(|pl| {
-            has_match |= pattern_matching_relative_path(pl, relative_path, basename_pos, case, out);
+            has_match |= pattern_matching_relative_path(pl, relative_path, basename_pos, case, is_dir, out);
             out.is_done()
         });
         has_match
@@ -124,7 +124,7 @@ impl Search {
 impl Pattern for Attributes {
     type Value = Value;
 
-    fn bytes_to_patterns(bytes: &[u8], source: &std::path::Path) -> Vec<pattern::Mapping<Self::Value>> {
+    fn bytes_to_patterns(bytes: &[u8], _source: &std::path::Path) -> Vec<pattern::Mapping<Self::Value>> {
         fn into_owned_assignments<'a>(
             attrs: impl Iterator<Item = Result<crate::AssignmentRef<'a>, crate::name::Error>>,
         ) -> Option<Assignments> {
@@ -138,8 +138,8 @@ impl Pattern for Attributes {
                 .collect::<Result<Assignments, _>>();
             match res {
                 Ok(res) => Some(res),
-                Err(err) => {
-                    log::warn!("{}", err);
+                Err(_err) => {
+                    gix_trace::warn!("{}", _err);
                     None
                 }
             }
@@ -148,8 +148,8 @@ impl Pattern for Attributes {
         crate::parse(bytes)
             .filter_map(|res| match res {
                 Ok(pattern) => Some(pattern),
-                Err(err) => {
-                    log::warn!("{}: {}", source.display(), err);
+                Err(_err) => {
+                    gix_trace::warn!("{}: {}", _source.display(), _err);
                     None
                 }
             })
@@ -180,7 +180,9 @@ impl Pattern for Attributes {
             })
             .collect()
     }
+}
 
+impl Attributes {
     fn may_use_glob_pattern(pattern: &gix_glob::Pattern) -> bool {
         pattern.mode != macro_mode()
     }
@@ -201,6 +203,7 @@ fn pattern_matching_relative_path(
     relative_path: &BStr,
     basename_pos: Option<usize>,
     case: gix_glob::pattern::Case,
+    is_dir: Option<bool>,
     out: &mut Outcome,
 ) -> bool {
     let (relative_path, basename_start_pos) =
@@ -227,7 +230,13 @@ fn pattern_matching_relative_path(
             Value::Assignments(attrs) => attrs,
         };
         if out.has_unspecified_attributes(attrs.iter().map(|attr| attr.id))
-            && pattern.matches_repo_relative_path(relative_path, basename_start_pos, None, case)
+            && pattern.matches_repo_relative_path(
+                relative_path,
+                basename_start_pos,
+                is_dir,
+                case,
+                gix_glob::wildmatch::Mode::NO_MATCH_SLASH_LITERAL,
+            )
         {
             let all_filled = out.fill_attributes(attrs.iter(), pattern, list.source.as_ref(), *sequence_number);
             if all_filled {

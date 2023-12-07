@@ -17,9 +17,9 @@ use libc::{c_char, c_double, c_int, c_long, c_short, c_uint, c_void, size_t, tim
 #[cfg(unix)]
 pub use libc::fd_set;
 #[cfg(windows)]
-use winapi::shared::ws2def::SOCKADDR;
+pub use windows_sys::Win32::Networking::WinSock::FD_SET as fd_set;
 #[cfg(windows)]
-pub use winapi::um::winsock2::fd_set;
+use windows_sys::Win32::Networking::WinSock::SOCKADDR;
 
 #[cfg(target_env = "msvc")]
 #[doc(hidden)]
@@ -660,7 +660,7 @@ pub const CURL_HTTP_VERSION_2TLS: c_int = 4;
 /// Please use HTTP 2 without HTTP/1.1 Upgrade
 /// (Added in CURL 7.49.0)
 pub const CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE: c_int = 5;
-/// Makes use of explicit HTTP/3 without fallback.
+/// Use HTTP/3, fallback to HTTP/2 or HTTP/1 if needed.
 /// (Added in CURL 7.66.0)
 pub const CURL_HTTP_VERSION_3: c_int = 30;
 

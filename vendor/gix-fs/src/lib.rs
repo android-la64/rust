@@ -2,6 +2,8 @@
 #![deny(rust_2018_idioms, missing_docs)]
 #![forbid(unsafe_code)]
 
+use std::path::PathBuf;
+
 /// Common knowledge about the worktree that is needed across most interactions with the work tree
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone, Copy)]
@@ -25,9 +27,6 @@ pub struct Capabilities {
 mod capabilities;
 
 mod snapshot;
-
-use std::path::PathBuf;
-
 pub use snapshot::{FileSnapshot, SharedFileSnapshot, SharedFileSnapshotMut};
 
 ///
@@ -49,6 +48,19 @@ pub struct Stack {
     valid_components: usize,
     /// If set, we assume the `current` element is a directory to affect calls to `(push|pop)_directory()`.
     current_is_directory: bool,
+}
+
+#[cfg(unix)]
+/// Returns whether a a file has the executable permission set.
+pub fn is_executable(metadata: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    (metadata.mode() & 0o100) != 0
+}
+
+#[cfg(not(unix))]
+/// Returns whether a a file has the executable permission set.
+pub fn is_executable(_metadata: &std::fs::Metadata) -> bool {
+    false
 }
 
 ///

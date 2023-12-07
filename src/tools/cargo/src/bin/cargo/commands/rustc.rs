@@ -44,7 +44,7 @@ pub fn cli() -> Command {
             "Build all targets",
         )
         .arg_features()
-        .arg_jobs()
+        .arg_parallel()
         .arg_release("Build artifacts in release mode, with optimizations")
         .arg_profile("Build artifacts with the specified profile")
         .arg_target_triple("Target triple which compiles will be for")
@@ -52,7 +52,9 @@ pub fn cli() -> Command {
         .arg_unit_graph()
         .arg_timings()
         .arg_manifest_path()
-        .after_help("Run `cargo help rustc` for more detailed information.\n")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help rustc</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {

@@ -15,6 +15,7 @@ use crate::{
         delegate::{handle_errors_and_replacements, peel, Replacements},
         Delegate, Error,
     },
+    Object,
 };
 
 impl<'repo> delegate::Navigate for Delegate<'repo> {
@@ -62,10 +63,9 @@ impl<'repo> delegate::Navigate for Delegate<'repo> {
                         .all()
                         .expect("cannot fail without sorting")
                         .skip(num)
-                        .filter_map(Result::ok)
-                        .next()
+                        .find_map(Result::ok)
                     {
-                        Some(id) => replacements.push((*obj, id.detach())),
+                        Some(commit) => replacements.push((*obj, commit.id)),
                         None => errors.push((
                             *obj,
                             Error::AncestorOutOfRange {
@@ -123,9 +123,9 @@ impl<'repo> delegate::Navigate for Delegate<'repo> {
                     if path.is_empty() {
                         return Ok(tree_id);
                     }
-                    let tree = repo.find_object(tree_id)?.into_tree();
+                    let mut tree = repo.find_object(tree_id)?.into_tree();
                     let entry =
-                        tree.lookup_entry_by_path(gix_path::from_bstr(path))?
+                        tree.peel_to_entry_by_path(gix_path::from_bstr(path))?
                             .ok_or_else(|| Error::PathNotFound {
                                 path: path.into(),
                                 object: obj.attach(repo).shorten_or_id(),
@@ -142,7 +142,7 @@ impl<'repo> delegate::Navigate for Delegate<'repo> {
             }
             PeelTo::RecursiveTagObject => {
                 for oid in objs.iter() {
-                    match oid.attach(repo).object().and_then(|obj| obj.peel_tags_to_end()) {
+                    match oid.attach(repo).object().and_then(Object::peel_tags_to_end) {
                         Ok(obj) => replacements.push((*oid, obj.id)),
                         Err(err) => errors.push((*oid, err.into())),
                     }
@@ -157,9 +157,9 @@ impl<'repo> delegate::Navigate for Delegate<'repo> {
         self.unset_disambiguate_call();
         self.follow_refs_to_objects_if_needed()?;
 
-        #[cfg(not(feature = "regex"))]
+        #[cfg(not(feature = "revparse-regex"))]
         let matches = |message: &BStr| -> bool { message.contains_str(regex) ^ negated };
-        #[cfg(feature = "regex")]
+        #[cfg(feature = "revparse-regex")]
         let matches = match regex::bytes::Regex::new(regex.to_str_lossy().as_ref()) {
             Ok(compiled) => {
                 let needs_regex = regex::escape(compiled.as_str()) != regex;
@@ -193,8 +193,8 @@ impl<'repo> delegate::Navigate for Delegate<'repo> {
                             let mut matched = false;
                             let mut count = 0;
                             let commits = iter.map(|res| {
-                                res.map_err(Error::from).and_then(|commit_id| {
-                                    commit_id.object().map_err(Error::from).map(|obj| obj.into_commit())
+                                res.map_err(Error::from).and_then(|commit| {
+                                    commit.id().object().map_err(Error::from).map(Object::into_commit)
                                 })
                             });
                             for commit in commits {
@@ -250,8 +250,8 @@ impl<'repo> delegate::Navigate for Delegate<'repo> {
                                 let mut matched = false;
                                 let mut count = 0;
                                 let commits = iter.map(|res| {
-                                    res.map_err(Error::from).and_then(|commit_id| {
-                                        commit_id.object().map_err(Error::from).map(|obj| obj.into_commit())
+                                    res.map_err(Error::from).and_then(|commit| {
+                                        commit.id().object().map_err(Error::from).map(Object::into_commit)
                                     })
                                 });
                                 for commit in commits {

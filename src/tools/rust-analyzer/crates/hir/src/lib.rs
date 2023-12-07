@@ -63,12 +63,13 @@ use hir_ty::{
     all_super_traits, autoderef,
     consteval::{try_const_usize, unknown_const_as_generic, ConstEvalError, ConstExt},
     diagnostics::BodyValidationDiagnostic,
+    known_const_to_ast,
     layout::{Layout as TyLayout, RustcEnumVariantIdx, TagEncoding},
     method_resolution::{self, TyFingerprint},
     mir::{self, interpret_mir},
     primitive::UintTy,
     traits::FnTrait,
-    AliasTy, CallableDefId, CallableSig, Canonical, CanonicalVarKinds, Cast, ClosureId,
+    AliasTy, CallableDefId, CallableSig, Canonical, CanonicalVarKinds, Cast, ClosureId, GenericArg,
     GenericArgData, Interner, ParamKind, QuantifiedWhereClause, Scalar, Substitution,
     TraitEnvironment, TraitRefExt, Ty, TyBuilder, TyDefId, TyExt, TyKind, ValueTyDefId,
     WhereClause,
@@ -87,13 +88,14 @@ use triomphe::Arc;
 use crate::db::{DefDatabase, HirDatabase};
 
 pub use crate::{
-    attrs::{HasAttrs, Namespace},
+    attrs::{resolve_doc_path_on, HasAttrs},
     diagnostics::{
         AnyDiagnostic, BreakOutsideOfLoop, CaseType, ExpectedFunction, InactiveCode,
         IncoherentImpl, IncorrectCase, InvalidDeriveTarget, MacroDefError, MacroError,
-        MacroExpansionParseError, MalformedDerive, MismatchedArgCount, MissingFields,
-        MissingMatchArms, MissingUnsafe, MovedOutOfRef, NeedMut, NoSuchField, PrivateAssocItem,
-        PrivateField, ReplaceFilterMapNextWithFindMap, TypeMismatch, TypedHole, UndeclaredLabel,
+        MacroExpansionParseError, MalformedDerive, MismatchedArgCount,
+        MismatchedTupleStructPatArgCount, MissingFields, MissingMatchArms, MissingUnsafe,
+        MovedOutOfRef, NeedMut, NoSuchField, PrivateAssocItem, PrivateField,
+        ReplaceFilterMapNextWithFindMap, TypeMismatch, TypedHole, UndeclaredLabel,
         UnimplementedBuiltinMacro, UnreachableLabel, UnresolvedExternCrate, UnresolvedField,
         UnresolvedImport, UnresolvedMacroCall, UnresolvedMethodCall, UnresolvedModule,
         UnresolvedProcMacro, UnusedMut,
@@ -114,13 +116,14 @@ pub use crate::{
 pub use {
     cfg::{CfgAtom, CfgExpr, CfgOptions},
     hir_def::{
-        attr::{builtin::AttributeTemplate, Attrs, AttrsWithOwner, Documentation},
+        attr::{builtin::AttributeTemplate, AttrSourceMap, Attrs, AttrsWithOwner},
         data::adt::StructKind,
         find_path::PrefixKind,
         import_map,
         lang_item::LangItem,
         nameres::{DefMap, ModuleSource},
         path::{ModPath, PathKind},
+        per_ns::Namespace,
         type_ref::{Mutability, TypeRef},
         visibility::Visibility,
         // FIXME: This is here since some queries take it as input that are used
@@ -128,7 +131,7 @@ pub use {
         {AdtId, ModuleDefId},
     },
     hir_expand::{
-        attrs::Attr,
+        attrs::{Attr, AttrId},
         name::{known, Name},
         ExpandResult, HirFileId, InFile, MacroFile, Origin,
     },
@@ -561,8 +564,8 @@ impl Module {
             emit_def_diagnostic(db, acc, diag);
         }
 
-        for decl in self.declarations(db) {
-            match decl {
+        for def in self.declarations(db) {
+            match def {
                 ModuleDef::Module(m) => {
                     // Only add diagnostics from inline modules
                     if def_map[m.id.local_id].origin.is_inline() {
@@ -573,7 +576,7 @@ impl Module {
                     for diag in db.trait_data_with_diagnostics(t.id).1.iter() {
                         emit_def_diagnostic(db, acc, diag);
                     }
-                    acc.extend(decl.diagnostics(db))
+                    acc.extend(def.diagnostics(db))
                 }
                 ModuleDef::Adt(adt) => {
                     match adt {
@@ -597,10 +600,10 @@ impl Module {
                             }
                         }
                     }
-                    acc.extend(decl.diagnostics(db))
+                    acc.extend(def.diagnostics(db))
                 }
                 ModuleDef::Macro(m) => emit_macro_def_diagnostics(db, acc, m),
-                _ => acc.extend(decl.diagnostics(db)),
+                _ => acc.extend(def.diagnostics(db)),
             }
         }
         self.legacy_macros(db).into_iter().for_each(|m| emit_macro_def_diagnostics(db, acc, m));
@@ -719,20 +722,18 @@ fn emit_def_diagnostic_(
 ) {
     match diag {
         DefDiagnosticKind::UnresolvedModule { ast: declaration, candidates } => {
-            let decl = declaration.to_node(db.upcast());
+            let decl = declaration.to_ptr(db.upcast());
             acc.push(
                 UnresolvedModule {
-                    decl: InFile::new(declaration.file_id, AstPtr::new(&decl)),
+                    decl: InFile::new(declaration.file_id, decl),
                     candidates: candidates.clone(),
                 }
                 .into(),
             )
         }
         DefDiagnosticKind::UnresolvedExternCrate { ast } => {
-            let item = ast.to_node(db.upcast());
-            acc.push(
-                UnresolvedExternCrate { decl: InFile::new(ast.file_id, AstPtr::new(&item)) }.into(),
-            );
+            let item = ast.to_ptr(db.upcast());
+            acc.push(UnresolvedExternCrate { decl: InFile::new(ast.file_id, item) }.into());
         }
 
         DefDiagnosticKind::UnresolvedImport { id, index } => {
@@ -747,14 +748,10 @@ fn emit_def_diagnostic_(
         }
 
         DefDiagnosticKind::UnconfiguredCode { ast, cfg, opts } => {
-            let item = ast.to_node(db.upcast());
+            let item = ast.to_ptr(db.upcast());
             acc.push(
-                InactiveCode {
-                    node: ast.with_value(SyntaxNodePtr::new(&item).into()),
-                    cfg: cfg.clone(),
-                    opts: opts.clone(),
-                }
-                .into(),
+                InactiveCode { node: ast.with_value(item), cfg: cfg.clone(), opts: opts.clone() }
+                    .into(),
             );
         }
         DefDiagnosticKind::UnresolvedProcMacro { ast, krate } => {
@@ -1273,7 +1270,7 @@ impl Adt {
             .fill(|x| {
                 let r = it.next().unwrap_or_else(|| TyKind::Error.intern(Interner));
                 match x {
-                    ParamKind::Type => GenericArgData::Ty(r).intern(Interner),
+                    ParamKind::Type => r.cast(Interner),
                     ParamKind::Const(ty) => unknown_const_as_generic(ty.clone()),
                 }
             })
@@ -1450,6 +1447,7 @@ impl DefWithBody {
     }
 
     pub fn diagnostics(self, db: &dyn HirDatabase, acc: &mut Vec<AnyDiagnostic>) {
+        db.unwind_if_cancelled();
         let krate = self.module(db).id.krate();
 
         let (body, source_map) = db.body_with_source_map(self.into());
@@ -1505,11 +1503,19 @@ impl DefWithBody {
         let infer = db.infer(self.into());
         let source_map = Lazy::new(|| db.body_with_source_map(self.into()).1);
         let expr_syntax = |expr| source_map.expr_syntax(expr).expect("unexpected synthetic");
+        let pat_syntax = |pat| source_map.pat_syntax(pat).expect("unexpected synthetic");
         for d in &infer.diagnostics {
             match d {
-                &hir_ty::InferenceDiagnostic::NoSuchField { expr } => {
-                    let field = source_map.field_syntax(expr);
-                    acc.push(NoSuchField { field }.into())
+                &hir_ty::InferenceDiagnostic::NoSuchField { field: expr, private } => {
+                    let expr_or_pat = match expr {
+                        ExprOrPatId::ExprId(expr) => {
+                            source_map.field_syntax(expr).map(Either::Left)
+                        }
+                        ExprOrPatId::PatId(pat) => {
+                            source_map.pat_field_syntax(pat).map(Either::Right)
+                        }
+                    };
+                    acc.push(NoSuchField { field: expr_or_pat, private }.into())
                 }
                 &hir_ty::InferenceDiagnostic::MismatchedArgCount { call_expr, expected, found } => {
                     acc.push(
@@ -1525,10 +1531,7 @@ impl DefWithBody {
                 &hir_ty::InferenceDiagnostic::PrivateAssocItem { id, item } => {
                     let expr_or_pat = match id {
                         ExprOrPatId::ExprId(expr) => expr_syntax(expr).map(Either::Left),
-                        ExprOrPatId::PatId(pat) => source_map
-                            .pat_syntax(pat)
-                            .expect("unexpected synthetic")
-                            .map(Either::Right),
+                        ExprOrPatId::PatId(pat) => pat_syntax(pat).map(Either::Right),
                     };
                     let item = item.into();
                     acc.push(PrivateAssocItem { expr_or_pat, item }.into())
@@ -1598,6 +1601,23 @@ impl DefWithBody {
                             expected: Type::new(db, DefWithBodyId::from(self), expected.clone()),
                         }
                         .into(),
+                    )
+                }
+                &hir_ty::InferenceDiagnostic::MismatchedTupleStructPatArgCount {
+                    pat,
+                    expected,
+                    found,
+                } => {
+                    let expr_or_pat = match pat {
+                        ExprOrPatId::ExprId(expr) => expr_syntax(expr).map(Either::Left),
+                        ExprOrPatId::PatId(pat) => source_map
+                            .pat_syntax(pat)
+                            .expect("unexpected synthetic")
+                            .map(|it| it.unwrap_left())
+                            .map(Either::Right),
+                    };
+                    acc.push(
+                        MismatchedTupleStructPatArgCount { expr_or_pat, expected, found }.into(),
                     )
                 }
             }
@@ -2094,14 +2114,6 @@ impl SelfParam {
                 _ => Access::Owned,
             })
             .unwrap_or(Access::Owned)
-    }
-
-    pub fn display(self, db: &dyn HirDatabase) -> &'static str {
-        match self.access(db) {
-            Access::Shared => "&self",
-            Access::Exclusive => "&mut self",
-            Access::Owned => "self",
-        }
     }
 
     pub fn source(&self, db: &dyn HirDatabase) -> Option<InFile<ast::SelfParam>> {
@@ -3142,12 +3154,8 @@ impl TypeParam {
     }
 
     pub fn default(self, db: &dyn HirDatabase) -> Option<Type> {
-        let params = db.generic_defaults(self.id.parent());
-        let local_idx = hir_ty::param_idx(db, self.id.into())?;
+        let ty = generic_arg_from_param(db, self.id.into())?;
         let resolver = self.id.parent().resolver(db.upcast());
-        let ty = params.get(local_idx)?.clone();
-        let subst = TyBuilder::placeholder_subst(db, self.id.parent());
-        let ty = ty.substitute(Interner, &subst);
         match ty.data(Interner) {
             GenericArgData::Ty(it) => {
                 Some(Type::new_with_resolver_inner(db, &resolver, it.clone()))
@@ -3209,6 +3217,19 @@ impl ConstParam {
     pub fn ty(self, db: &dyn HirDatabase) -> Type {
         Type::new(db, self.id.parent(), db.const_param_ty(self.id))
     }
+
+    pub fn default(self, db: &dyn HirDatabase) -> Option<ast::ConstArg> {
+        let arg = generic_arg_from_param(db, self.id.into())?;
+        known_const_to_ast(arg.constant(Interner)?, db)
+    }
+}
+
+fn generic_arg_from_param(db: &dyn HirDatabase, id: TypeOrConstParamId) -> Option<GenericArg> {
+    let params = db.generic_defaults(id.parent);
+    let local_idx = hir_ty::param_idx(db, id)?;
+    let ty = params.get(local_idx)?.clone();
+    let subst = TyBuilder::placeholder_subst(db, id.parent);
+    Some(ty.substitute(Interner, &subst))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -3716,7 +3737,7 @@ impl Type {
             .fill(|x| {
                 let r = it.next().unwrap();
                 match x {
-                    ParamKind::Type => GenericArgData::Ty(r).intern(Interner),
+                    ParamKind::Type => r.cast(Interner),
                     ParamKind::Const(ty) => {
                         // FIXME: this code is not covered in tests.
                         unknown_const_as_generic(ty.clone())
@@ -3749,9 +3770,7 @@ impl Type {
             .fill(|it| {
                 // FIXME: this code is not covered in tests.
                 match it {
-                    ParamKind::Type => {
-                        GenericArgData::Ty(args.next().unwrap().ty.clone()).intern(Interner)
-                    }
+                    ParamKind::Type => args.next().unwrap().ty.clone().cast(Interner),
                     ParamKind::Const(ty) => unknown_const_as_generic(ty.clone()),
                 }
             })
@@ -4414,14 +4433,13 @@ impl Callable {
             Other => CallableKind::Other,
         }
     }
-    pub fn receiver_param(&self, db: &dyn HirDatabase) -> Option<(ast::SelfParam, Type)> {
+    pub fn receiver_param(&self, db: &dyn HirDatabase) -> Option<(SelfParam, Type)> {
         let func = match self.callee {
             Callee::Def(CallableDefId::FunctionId(it)) if self.is_bound_method => it,
             _ => return None,
         };
-        let src = func.lookup(db.upcast()).source(db.upcast());
-        let param_list = src.value.param_list()?;
-        Some((param_list.self_param()?, self.ty.derived(self.sig.params()[0].clone())))
+        let func = Function { id: func };
+        Some((func.self_param(db)?, self.ty.derived(self.sig.params()[0].clone())))
     }
     pub fn n_params(&self) -> usize {
         self.sig.params().len() - if self.is_bound_method { 1 } else { 0 }
@@ -4843,4 +4861,11 @@ pub enum ItemContainer {
     Module(Module),
     ExternBlock(),
     Crate(CrateId),
+}
+
+/// Subset of `ide_db::Definition` that doc links can resolve to.
+pub enum DocLinkDef {
+    ModuleDef(ModuleDef),
+    Field(Field),
+    SelfType(Trait),
 }

@@ -3478,27 +3478,138 @@ link-arm = vst4lane._EXTpi8r_
 const-arm = LANE
 generate *mut f32:float32x2x4_t:void, *mut f32:float32x4x4_t:void
 
+/// Dot product vector form with unsigned and signed integers
+name = vusdot
+out-suffix
+a = 1000, -4200, -1000, 2000
+b = 100, 205, 110, 195, 120, 185, 130, 175, 140, 165, 150, 155, 160, 145, 170, 135
+c = 0, 1, 2, 3, -1, -2, -3, -4, 4, 5, 6, 7, -5, -6, -7, -8
+aarch64 = usdot
+arm = vusdot
+target = i8mm
+
+//  1000 + (100, 205, 110, 195) . ( 0,  1,  2,  3)
+// -4200 + (120, 185, 130, 175) . (-1, -2, -3, -4)
+//  ...
+validate 2010, -5780, 2370, -1940
+
+link-arm = usdot._EXT2_._EXT4_:int32x2_t:uint8x8_t:int8x8_t:int32x2_t
+link-aarch64 = usdot._EXT2_._EXT4_:int32x2_t:uint8x8_t:int8x8_t:int32x2_t
+generate int32x2_t:uint8x8_t:int8x8_t:int32x2_t
+
+link-arm = usdot._EXT2_._EXT4_:int32x4_t:uint8x16_t:int8x16_t:int32x4_t
+link-aarch64 = usdot._EXT2_._EXT4_:int32x4_t:uint8x16_t:int8x16_t:int32x4_t
+generate int32x4_t:uint8x16_t:int8x16_t:int32x4_t
+
+/// Dot product index form with unsigned and signed integers
+name = vusdot
+out-lane-suffixes
+constn = LANE
+aarch64 = usdot
+arm = vusdot
+target = i8mm
+multi_fn = static_assert_imm-in2_dot-LANE
+multi_fn = transmute, c:merge4_t2, c
+multi_fn = simd_shuffle!, c:out_signed, c, c, {dup-out_len-LANE as u32}
+multi_fn = vusdot-out-noext, a, b, {transmute, c}
+a = 1000, -4200, -1000, 2000
+b = 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250
+c = 4, 3, 2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11
+
+//  1000 + (100, 110, 120, 130) . (4, 3, 2, 1)
+// -4200 + (140, 150, 160, 170) . (4, 3, 2, 1)
+//  ...
+n = 0
+validate 2100, -2700, 900, 4300
+
+//  1000 + (100, 110, 120, 130) . (0, -1, -2, -3)
+// -4200 + (140, 150, 160, 170) . (0, -1, -2, -3)
+//  ...
+n = 1
+validate 260, -5180, -2220, 540
+
+generate int32x2_t:uint8x8_t:int8x8_t:int32x2_t
+generate int32x4_t:uint8x16_t:int8x8_t:int32x4_t
+
+/// Dot product index form with unsigned and signed integers
+name = vusdot
+out-lane-suffixes
+constn = LANE
+// Only AArch64 has the laneq forms.
+aarch64 = usdot
+target = i8mm
+multi_fn = static_assert_imm-in2_dot-LANE
+multi_fn = transmute, c:merge4_t2, c
+multi_fn = simd_shuffle!, c:out_signed, c, c, {dup-out_len-LANE as u32}
+multi_fn = vusdot-out-noext, a, b, {transmute, c}
+a = 1000, -4200, -1000, 2000
+b = 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250
+c = 4, 3, 2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11
+
+//  1000 + (100, 110, 120, 130) . (-4, -5, -6, -7)
+// -4200 + (140, 150, 160, 170) . (-4, -5, -6, -7)
+//  ...
+n = 3
+validate -3420, -10140, -8460, -6980
+
+generate int32x2_t:uint8x8_t:int8x16_t:int32x2_t
+generate int32x4_t:uint8x16_t:int8x16_t:int32x4_t
+
 /// Dot product index form with signed and unsigned integers
 name = vsudot
 out-lane-suffixes
 constn = LANE
-multi_fn = static_assert_imm-in2_dot-LANE
-multi_fn = simd_shuffle!, c:unsigned, c, c, {base-4-LANE}
-multi_fn = vsudot-outlane-_, a, b, c
-a = 1, 2, 1, 2
-b = 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8
-c = 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8
-n = 0
-validate 31, 72, 31, 72
-target = dotprod
-
 aarch64 = sudot
-link-aarch64 = usdot._EXT2_._EXT4_:int32x2_t:int8x8_t:uint8x8_t:int32x2_t
-// LLVM ERROR: Cannot select: intrinsic %llvm.aarch64.neon.usdot
-//generate int32x2_t:int8x8_t:uint8x8_t:int32x2_t, int32x2_t:int8x8_t:uint8x16_t:int32x2_t
-link-aarch64 = usdot._EXT2_._EXT4_:int32x4_t:int8x16_t:uint8x16_t:int32x4_t
-// LLVM ERROR: Cannot select: intrinsic %llvm.aarch64.neon.usdot
-//generate int32x4_t:int8x16_t:uint8x8_t:int32x4_t, int32x4_t:int8x16_t:uint8x16_t:int32x4_t
+arm = vsudot
+target = i8mm
+
+multi_fn = static_assert_imm-in2_dot-LANE
+multi_fn = transmute, c:merge4_t2, c
+multi_fn = simd_shuffle!, c:out_unsigned, c, c, {dup-out_len-LANE as u32}
+multi_fn = vusdot-out-noext, a, {transmute, c}, b
+a = -2000, 4200, -1000, 2000
+b = 4, 3, 2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11
+c = 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250
+
+// -2000 + (4,  3,  2,  1) . (100, 110, 120, 130)
+//  4200 + (0, -1, -2, -3) . (100, 110, 120, 130)
+//  ...
+n = 0
+validate -900, 3460, -3580, -2420
+
+// -2000 + (4,  3,  2,  1) . (140, 150, 160, 170)
+//  4200 + (0, -1, -2, -3) . (140, 150, 160, 170)
+//  ...
+n = 1
+validate -500, 3220, -4460, -3940
+
+generate int32x2_t:int8x8_t:uint8x8_t:int32x2_t
+generate int32x4_t:int8x16_t:uint8x8_t:int32x4_t
+
+/// Dot product index form with signed and unsigned integers
+name = vsudot
+out-lane-suffixes
+constn = LANE
+// Only AArch64 has the laneq forms.
+aarch64 = sudot
+target = i8mm
+
+multi_fn = static_assert_imm-in2_dot-LANE
+multi_fn = transmute, c:merge4_t2, c
+multi_fn = simd_shuffle!, c:out_unsigned, c, c, {dup-out_len-LANE as u32}
+multi_fn = vusdot-out-noext, a, {transmute, c}, b
+a = -2000, 4200, -1000, 2000
+b = 4, 3, 2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11
+c = 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250
+
+// -2000 + (4,  3,  2,  1) . (220, 230, 240, 250)
+//  4200 + (0, -1, -2, -3) . (220, 230, 240, 250)
+//  ...
+n = 3
+validate 300, 2740, -6220, -6980
+
+generate int32x2_t:int8x8_t:uint8x16_t:int32x2_t
+generate int32x4_t:int8x16_t:uint8x16_t:int32x4_t
 
 /// Multiply
 name = vmul
@@ -4612,7 +4723,7 @@ aarch64 = fcmla
 generate float32x2_t, float32x2_t:float32x2_t:float32x4_t:float32x2_t
 generate float32x4_t:float32x4_t:float32x2_t:float32x4_t, float32x4_t
 
-/// Dot product arithmetic
+/// Dot product arithmetic (vector)
 name = vdot
 out-suffix
 a = 1, 2, 1, 2
@@ -4621,35 +4732,65 @@ c = 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8
 validate 31, 176, 31, 176
 target = dotprod
 
+arm = vsdot
 aarch64 = sdot
+link-arm = sdot._EXT_._EXT3_
 link-aarch64 = sdot._EXT_._EXT3_
 generate int32x2_t:int8x8_t:int8x8_t:int32x2_t, int32x4_t:int8x16_t:int8x16_t:int32x4_t
 
+arm = vudot
 aarch64 = udot
+link-arm = udot._EXT_._EXT3_
 link-aarch64 = udot._EXT_._EXT3_
 generate uint32x2_t:uint8x8_t:uint8x8_t:uint32x2_t, uint32x4_t:uint8x16_t:uint8x16_t:uint32x4_t
 
-/// Dot product arithmetic
+/// Dot product arithmetic (indexed)
 name = vdot
 out-lane-suffixes
 constn = LANE
 multi_fn = static_assert_imm-in2_dot-LANE
-multi_fn = simd_shuffle!, c:in_t, c, c, {base-4-LANE}
-multi_fn = vdot-out-noext, a, b, c
+multi_fn = transmute, c:merge4_t2, c
+multi_fn = simd_shuffle!, c:out_t, c, c, {dup-out_len-LANE as u32}
+multi_fn = vdot-out-noext, a, b, {transmute, c}
 a = 1, 2, 1, 2
-b = 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8
+b = -1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8
 c = 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8
 n = 0
-validate 31, 72, 31, 72
+validate 29, 72, 31, 72
 target = dotprod
 
+// Only AArch64 has the laneq forms.
 aarch64 = sdot
-generate int32x2_t:int8x8_t:int8x8_t:int32x2_t, int32x2_t:int8x8_t:int8x16_t:int32x2_t
-generate int32x4_t:int8x16_t:int8x8_t:int32x4_t, int32x4_t:int8x16_t:int8x16_t:int32x4_t
+generate int32x2_t:int8x8_t:int8x16_t:int32x2_t
+generate int32x4_t:int8x16_t:int8x16_t:int32x4_t
 
+arm = vsdot
+generate int32x2_t:int8x8_t:int8x8_t:int32x2_t
+generate int32x4_t:int8x16_t:int8x8_t:int32x4_t
+
+/// Dot product arithmetic (indexed)
+name = vdot
+out-lane-suffixes
+constn = LANE
+multi_fn = static_assert_imm-in2_dot-LANE
+multi_fn = transmute, c:merge4_t2, c
+multi_fn = simd_shuffle!, c:out_t, c, c, {dup-out_len-LANE as u32}
+multi_fn = vdot-out-noext, a, b, {transmute, c}
+a = 1, 2, 1, 2
+b = 255, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8
+c = 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8
+n = 0
+validate 285, 72, 31, 72
+target = dotprod
+
+// Only AArch64 has the laneq forms.
 aarch64 = udot
-generate uint32x2_t:uint8x8_t:uint8x8_t:uint32x2_t, uint32x2_t:uint8x8_t:uint8x16_t:uint32x2_t
-generate uint32x4_t:uint8x16_t:uint8x8_t:uint32x4_t, uint32x4_t:uint8x16_t:uint8x16_t:uint32x4_t
+generate uint32x2_t:uint8x8_t:uint8x16_t:uint32x2_t
+generate uint32x4_t:uint8x16_t:uint8x16_t:uint32x4_t
+
+arm = vudot
+generate uint32x2_t:uint8x8_t:uint8x8_t:uint32x2_t
+generate uint32x4_t:uint8x16_t:uint8x8_t:uint32x4_t
 
 /// Maximum (vector)
 name = vmax
@@ -6511,7 +6652,7 @@ name = vrshr
 n-suffix
 constn = N
 multi_fn = static_assert-N-1-bits
-multi_fn = vrshl-self-noext, a, {vdup-nself-noext, (-N) as _}
+multi_fn = vrshl-self-noext, a, {vdup-nself-noext, -N as _}
 a = 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64
 n = 2
 validate 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
@@ -6538,7 +6679,7 @@ name = vrshr
 n-suffix
 constn = N
 multi_fn = static_assert-N-1-bits
-multi_fn = vrshl-self-noext, a, {vdup-nsigned-noext, (-N) as _}
+multi_fn = vrshl-self-noext, a, {vdup-nsigned-noext, -N as _}
 a = 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64
 n = 2
 validate 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
@@ -6650,10 +6791,10 @@ b = 4
 n = 2
 validate 2
 
-aarch64 = srsra
+aarch64 = srshr
 generate i64
 
-/// Ungisned rounding shift right and accumulate.
+/// Unsigned rounding shift right and accumulate.
 name = vrsra
 n-suffix
 constn = N
@@ -6665,7 +6806,7 @@ b = 4
 n = 2
 validate 2
 
-aarch64 = ursra
+aarch64 = urshr
 generate u64
 
 /// Rounding subtract returning high narrow
@@ -7071,43 +7212,169 @@ generate uint64x2_t
 
 /// Floating-point round to 32-bit integer, using current rounding mode
 name = vrnd32x
-a = 1.1, 1.9, -1.7, -2.3
-validate 1.0, 2.0, -2.0, -2.0
 target = frintts
+
+// For validation, the rounding mode should be the default: round-to-nearest (ties-to-even).
+a = -1.5, 2.9, 1.5, -2.5
+validate -2.0, 3.0, 2.0, -2.0
 
 aarch64 = frint32x
 link-aarch64 = frint32x._EXT_
 generate float32x2_t, float32x4_t
 
+// The float64x1_t form uses a different LLVM link and isn't supported by Clang
+// (and so has no intrinsic-test), so perform extra validation to make sure
+// that it matches the float64x2_t form.
+
+a = 1.5, -2.5
+validate 2.0, -2.0
+// - The biggest f64 that rounds to i32::MAX.
+// - The smallest positive f64 that rounds out of range.
+a = 2147483647.499999762, 2147483647.5
+validate 2147483647.0, -2147483648.0
+// - The smallest f64 that rounds to i32::MIN + 1.
+// - The largest negative f64 that rounds out of range.
+a = -2147483647.499999762, -2147483648.500000477
+validate -2147483647.0, -2147483648.0
+generate float64x2_t
+
+// Odd-numbered tests for float64x1_t coverage.
+a = 2.9
+validate 3.0
+a = -2.5
+validate -2.0
+a = 2147483647.5
+validate -2147483648.0
+a = -2147483648.500000477
+validate -2147483648.0
+
+multi_fn = transmute, {self-out-_, {simd_extract, a, 0}}
+link-aarch64 = llvm.aarch64.frint32x.f64:f64:::f64
+generate float64x1_t
+
 /// Floating-point round to 32-bit integer toward zero
 name = vrnd32z
-a = 1.1, 1.9, -1.7, -2.3
-validate 1.0, 1.0, -1.0, -2.0
 target = frintts
+
+a = -1.5, 2.9, 1.5, -2.5
+validate -1.0, 2.0, 1.0, -2.0
 
 aarch64 = frint32z
 link-aarch64 = frint32z._EXT_
 generate float32x2_t, float32x4_t
 
+// The float64x1_t form uses a different LLVM link and isn't supported by Clang
+// (and so has no intrinsic-test), so perform extra validation to make sure
+// that it matches the float64x2_t form.
+
+a = 1.5, -2.5
+validate 1.0, -2.0
+// - The biggest f64 that rounds to i32::MAX.
+// - The smallest positive f64 that rounds out of range.
+a = 2147483647.999999762, 2147483648.0
+validate 2147483647.0, -2147483648.0
+// - The smallest f64 that rounds to i32::MIN + 1.
+// - The largest negative f64 that rounds out of range.
+a = -2147483647.999999762, -2147483649.0
+validate -2147483647.0, -2147483648.0
+generate float64x2_t
+
+// Odd-numbered tests for float64x1_t coverage.
+a = 2.9
+validate 2.0
+a = -2.5
+validate -2.0
+a = 2147483648.0
+validate -2147483648.0
+a = -2147483649.0
+validate -2147483648.0
+
+multi_fn = transmute, {self-out-_, {simd_extract, a, 0}}
+link-aarch64 = llvm.aarch64.frint32z.f64:f64:::f64
+generate float64x1_t
+
 /// Floating-point round to 64-bit integer, using current rounding mode
 name = vrnd64x
-a = 1.1, 1.9, -1.7, -2.3
-validate 1.0, 2.0, -2.0, -2.0
 target = frintts
+
+// For validation, the rounding mode should be the default: round-to-nearest (ties-to-even).
+a = -1.5, 2.9, 1.5, -2.5
+validate -2.0, 3.0, 2.0, -2.0
 
 aarch64 = frint64x
 link-aarch64 = frint64x._EXT_
 generate float32x2_t, float32x4_t
 
+// The float64x1_t form uses a different LLVM link and isn't supported by Clang
+// (and so has no intrinsic-test), so perform extra validation to make sure
+// that it matches the float64x2_t form.
+
+a = 1.5, -2.5
+validate 2.0, -2.0
+// - The biggest f64 representable as an i64 (0x7ffffffffffffc00).
+// - The smallest positive f64 that is out of range (2^63).
+a = 9223372036854774784.0, 9223372036854775808.0
+validate 9223372036854774784.0, -9223372036854775808.0
+// - The smallest f64 representable as an i64 (i64::MIN).
+// - The biggest negative f64 that is out of range.
+a = -9223372036854775808.0, -9223372036854777856.0
+validate -9223372036854775808.0, -9223372036854775808.0
+generate float64x2_t
+
+// Odd-numbered tests for float64x1_t coverage.
+a = 2.9
+validate 3.0
+a = -2.5
+validate -2.0
+a = 9223372036854775808.0
+validate -9223372036854775808.0
+a = -9223372036854777856.0
+validate -9223372036854775808.0
+
+multi_fn = transmute, {self-out-_, {simd_extract, a, 0}}
+link-aarch64 = llvm.aarch64.frint64x.f64:f64:::f64
+generate float64x1_t
+
 /// Floating-point round to 64-bit integer toward zero
 name = vrnd64z
-a = 1.1, 1.9, -1.7, -2.3
-validate 1.0, 1.0, -1.0, -2.0
 target = frintts
+
+a = -1.5, 2.9, 1.5, -2.5
+validate -1.0, 2.0, 1.0, -2.0
 
 aarch64 = frint64z
 link-aarch64 = frint64z._EXT_
 generate float32x2_t, float32x4_t
+
+// The float64x1_t form uses a different LLVM link and isn't supported by Clang
+// (and so has no intrinsic-test), so perform extra validation to make sure
+// that it matches the float64x2_t form.
+
+a = 1.5, -2.5
+validate 1.0, -2.0
+// - The biggest f64 representable as an i64 (0x7ffffffffffffc00).
+// - The smallest positive f64 that is out of range (2^63).
+a = 9223372036854774784.0, 9223372036854775808.0
+validate 9223372036854774784.0, -9223372036854775808.0
+// - The smallest f64 representable as an i64 (i64::MIN).
+// - The biggest negative f64 that is out of range.
+a = -9223372036854775808.0, -9223372036854777856.0
+validate -9223372036854775808.0, -9223372036854775808.0
+generate float64x2_t
+
+// Odd-numbered tests for float64x1_t coverage.
+a = 2.9
+validate 2.0
+a = -2.5
+validate -2.0
+a = 9223372036854775808.0
+validate -9223372036854775808.0
+a = -9223372036854777856.0
+validate -9223372036854775808.0
+
+multi_fn = transmute, {self-out-_, {simd_extract, a, 0}}
+link-aarch64 = llvm.aarch64.frint64z.f64:f64:::f64
+generate float64x1_t
 
 /// Transpose elements
 name = vtrn
@@ -7209,7 +7476,7 @@ generate uint8x8_t:uint8x8_t:uint8x8x2_t, uint16x4_t:uint16x4_t:uint16x4x2_t
 generate poly8x8_t:poly8x8_t:poly8x8x2_t, poly16x4_t:poly16x4_t:poly16x4x2_t
 arm = vtrn
 generate int32x2_t:int32x2_t:int32x2x2_t, uint32x2_t:uint32x2_t:uint32x2x2_t
-aarch64 = ext
+aarch64 = zip
 arm = vorr
 generate int8x16_t:int8x16_t:int8x16x2_t, int16x8_t:int16x8_t:int16x8x2_t, int32x4_t:int32x4_t:int32x4x2_t
 generate uint8x16_t:uint8x16_t:uint8x16x2_t, uint16x8_t:uint16x8_t:uint16x8x2_t, uint32x4_t:uint32x4_t:uint32x4x2_t
@@ -7227,7 +7494,7 @@ validate 1., 5., 2., 6., 3., 7., 4., 8.
 aarch64 = zip
 arm = vtrn
 generate float32x2_t:float32x2_t:float32x2x2_t
-aarch64 = ext
+aarch64 = zip
 arm = vorr
 generate float32x4_t:float32x4_t:float32x4x2_t
 

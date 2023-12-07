@@ -29,6 +29,7 @@ use std::thread;
 
 bitflags::bitflags! {
   #[repr(C)]
+  #[derive(Debug)]
   struct StreamFlags: u32 {
     const NONE = fs::kFSEventStreamEventFlagNone;
     const MUST_SCAN_SUBDIRS = fs::kFSEventStreamEventFlagMustScanSubDirs;
@@ -531,6 +532,8 @@ unsafe fn callback_impl(
         if !handle_event {
             continue;
         }
+
+        log::trace!("FSEvent: path = `{}`, flag = {:?}", path.display(), flag);
 
         for ev in translate_flags(flag, true).into_iter() {
             // TODO: precise

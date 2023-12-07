@@ -8,7 +8,34 @@
   ignorePaths: [
     "**/tests/**",
   ],
+  customManagers: [
+    {
+      customType: 'regex',
+      fileMatch: [
+        '^Cargo.toml$',
+      ],
+      matchStrings: [
+        'rust-version.*?(?<currentValue>\\d+\\.\\d+(\\.\\d+)?)',
+      ],
+      depNameTemplate: 'latest-msrv',
+      packageNameTemplate: 'rust-lang/rust',
+      datasourceTemplate: 'github-releases',
+    },
+  ],
   packageRules: [
+    {
+      commitMessageTopic: 'Latest MSRV',
+      matchManagers: [
+        'regex',
+      ],
+      matchPackageNames: [
+        'latest-msrv',
+      ],
+      "extractVersion": "^(?<version>\\d+\\.\\d+)",  // Drop the patch version
+      schedule: [
+        '* * * * *',
+      ],
+    },
     // Goals:
     // - Rollup safe upgrades to reduce CI runner load
     // - Have lockfile and manifest in-sync (implicit rules)

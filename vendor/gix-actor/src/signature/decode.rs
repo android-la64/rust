@@ -1,90 +1,74 @@
 pub(crate) mod function {
     use bstr::ByteSlice;
     use btoi::btoi;
-    use nom::{
-        branch::alt,
-        bytes::complete::{tag, take, take_until, take_while_m_n},
-        character::is_digit,
-        error::{context, ContextError, ParseError},
-        sequence::{terminated, tuple},
-        IResult,
+    use gix_date::{time::Sign, OffsetInSeconds, SecondsSinceUnixEpoch, Time};
+    use winnow::{
+        combinator::{alt, separated_pair, terminated},
+        error::{AddContext, ParserError, StrContext},
+        prelude::*,
+        stream::AsChar,
+        token::{take, take_until0, take_while},
     };
 
-    use crate::{IdentityRef, Sign, SignatureRef, Time};
+    use crate::{IdentityRef, SignatureRef};
 
     const SPACE: &[u8] = b" ";
 
     /// Parse a signature from the bytes input `i` using `nom`.
-    pub fn decode<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
-        i: &'a [u8],
-    ) -> IResult<&'a [u8], SignatureRef<'a>, E> {
-        let (i, (identity, _, time, tzsign, hours, minutes)) = context(
-            "<name> <<email>> <timestamp> <+|-><HHMM>",
-            tuple((
-                identity,
-                tag(b" "),
-                context("<timestamp>", |i| {
-                    terminated(take_until(SPACE), take(1usize))(i).and_then(|(i, v)| {
-                        btoi::<u32>(v)
-                            .map(|v| (i, v))
-                            .map_err(|_| nom::Err::Error(E::from_error_kind(i, nom::error::ErrorKind::MapRes)))
-                    })
+    pub fn decode<'a, E: ParserError<&'a [u8]> + AddContext<&'a [u8], StrContext>>(
+        i: &mut &'a [u8],
+    ) -> PResult<SignatureRef<'a>, E> {
+        separated_pair(
+            identity,
+            b" ",
+            (
+                terminated(take_until0(SPACE), take(1usize))
+                    .verify_map(|v| btoi::<SecondsSinceUnixEpoch>(v).ok())
+                    .context(StrContext::Expected("<timestamp>".into())),
+                alt((
+                    take_while(1.., b'-').map(|_| Sign::Minus),
+                    take_while(1.., b'+').map(|_| Sign::Plus),
+                ))
+                .context(StrContext::Expected("+|-".into())),
+                take_while(2, AsChar::is_dec_digit)
+                    .verify_map(|v| btoi::<OffsetInSeconds>(v).ok())
+                    .context(StrContext::Expected("HH".into())),
+                take_while(1..=2, AsChar::is_dec_digit)
+                    .verify_map(|v| btoi::<OffsetInSeconds>(v).ok())
+                    .context(StrContext::Expected("MM".into())),
+            )
+                .map(|(time, sign, hours, minutes)| {
+                    let offset = (hours * 3600 + minutes * 60) * if sign == Sign::Minus { -1 } else { 1 };
+                    Time {
+                        seconds: time,
+                        offset,
+                        sign,
+                    }
                 }),
-                context("+|-", alt((tag(b"-"), tag(b"+")))),
-                context("HH", |i| {
-                    take_while_m_n(2usize, 2, is_digit)(i).and_then(|(i, v)| {
-                        btoi::<i32>(v)
-                            .map(|v| (i, v))
-                            .map_err(|_| nom::Err::Error(E::from_error_kind(i, nom::error::ErrorKind::MapRes)))
-                    })
-                }),
-                context("MM", |i| {
-                    take_while_m_n(2usize, 2, is_digit)(i).and_then(|(i, v)| {
-                        btoi::<i32>(v)
-                            .map(|v| (i, v))
-                            .map_err(|_| nom::Err::Error(E::from_error_kind(i, nom::error::ErrorKind::MapRes)))
-                    })
-                }),
-            )),
-        )(i)?;
-
-        debug_assert!(tzsign[0] == b'-' || tzsign[0] == b'+', "parser assure it's +|- only");
-        let sign = if tzsign[0] == b'-' { Sign::Minus } else { Sign::Plus }; //
-        let offset = (hours * 3600 + minutes * 60) * if sign == Sign::Minus { -1 } else { 1 };
-
-        Ok((
-            i,
-            SignatureRef {
-                name: identity.name,
-                email: identity.email,
-                time: Time {
-                    seconds_since_unix_epoch: time,
-                    offset_in_seconds: offset,
-                    sign,
-                },
-            },
-        ))
+        )
+        .context(StrContext::Expected("<name> <<email>> <timestamp> <+|-><HHMM>".into()))
+        .map(|(identity, time)| SignatureRef {
+            name: identity.name,
+            email: identity.email,
+            time,
+        })
+        .parse_next(i)
     }
 
     /// Parse an identity from the bytes input `i` (like `name <email>`) using `nom`.
-    pub fn identity<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
-        i: &'a [u8],
-    ) -> IResult<&'a [u8], IdentityRef<'a>, E> {
-        let (i, (name, email)) = context(
-            "<name> <<email>>",
-            tuple((
-                context("<name>", terminated(take_until(&b" <"[..]), take(2usize))),
-                context("<email>", terminated(take_until(&b">"[..]), take(1usize))),
-            )),
-        )(i)?;
-
-        Ok((
-            i,
-            IdentityRef {
+    pub fn identity<'a, E: ParserError<&'a [u8]> + AddContext<&'a [u8], StrContext>>(
+        i: &mut &'a [u8],
+    ) -> PResult<IdentityRef<'a>, E> {
+        (
+            terminated(take_until0(&b" <"[..]), take(2usize)).context(StrContext::Expected("<name>".into())),
+            terminated(take_until0(&b">"[..]), take(1usize)).context(StrContext::Expected("<email>".into())),
+        )
+            .map(|(name, email): (&[u8], &[u8])| IdentityRef {
                 name: name.as_bstr(),
                 email: email.as_bstr(),
-            },
-        ))
+            })
+            .context(StrContext::Expected("<name> <<email>>".into()))
+            .parse_next(i)
     }
 }
 pub use function::identity;
@@ -93,37 +77,37 @@ pub use function::identity;
 mod tests {
     mod parse_signature {
         use bstr::ByteSlice;
+        use gix_date::{time::Sign, OffsetInSeconds, SecondsSinceUnixEpoch};
         use gix_testtools::to_bstr_err;
-        use nom::IResult;
+        use winnow::prelude::*;
 
-        use crate::{signature, Sign, SignatureRef, Time};
+        use crate::{signature, SignatureRef, Time};
 
-        fn decode(i: &[u8]) -> IResult<&[u8], SignatureRef<'_>, nom::error::VerboseError<&[u8]>> {
-            signature::decode(i)
+        fn decode<'i>(
+            i: &mut &'i [u8],
+        ) -> PResult<SignatureRef<'i>, winnow::error::TreeError<&'i [u8], winnow::error::StrContext>> {
+            signature::decode.parse_next(i)
         }
 
         fn signature(
             name: &'static str,
             email: &'static str,
-            time: u32,
+            seconds: SecondsSinceUnixEpoch,
             sign: Sign,
-            offset: i32,
+            offset: OffsetInSeconds,
         ) -> SignatureRef<'static> {
             SignatureRef {
                 name: name.as_bytes().as_bstr(),
                 email: email.as_bytes().as_bstr(),
-                time: Time {
-                    seconds_since_unix_epoch: time,
-                    offset_in_seconds: offset,
-                    sign,
-                },
+                time: Time { seconds, offset, sign },
             }
         }
 
         #[test]
         fn tz_minus() {
             assert_eq!(
-                decode(b"Sebastian Thiel <byronimo@gmail.com> 1528473343 -0230")
+                decode
+                    .parse_peek(b"Sebastian Thiel <byronimo@gmail.com> 1528473343 -0230")
                     .expect("parse to work")
                     .1,
                 signature("Sebastian Thiel", "byronimo@gmail.com", 1528473343, Sign::Minus, -9000)
@@ -133,7 +117,8 @@ mod tests {
         #[test]
         fn tz_plus() {
             assert_eq!(
-                decode(b"Sebastian Thiel <byronimo@gmail.com> 1528473343 +0230")
+                decode
+                    .parse_peek(b"Sebastian Thiel <byronimo@gmail.com> 1528473343 +0230")
                     .expect("parse to work")
                     .1,
                 signature("Sebastian Thiel", "byronimo@gmail.com", 1528473343, Sign::Plus, 9000)
@@ -143,7 +128,8 @@ mod tests {
         #[test]
         fn negative_offset_0000() {
             assert_eq!(
-                decode(b"Sebastian Thiel <byronimo@gmail.com> 1528473343 -0000")
+                decode
+                    .parse_peek(b"Sebastian Thiel <byronimo@gmail.com> 1528473343 -0000")
                     .expect("parse to work")
                     .1,
                 signature("Sebastian Thiel", "byronimo@gmail.com", 1528473343, Sign::Minus, 0)
@@ -151,9 +137,20 @@ mod tests {
         }
 
         #[test]
+        fn negative_offset_double_dash() {
+            assert_eq!(
+                decode
+                    .parse_peek(b"name <name@example.com> 1288373970 --700")
+                    .expect("parse to work")
+                    .1,
+                signature("name", "name@example.com", 1288373970, Sign::Minus, -252000)
+            );
+        }
+
+        #[test]
         fn empty_name_and_email() {
             assert_eq!(
-                decode(b" <> 12345 -1215").expect("parse to work").1,
+                decode.parse_peek(b" <> 12345 -1215").expect("parse to work").1,
                 signature("", "", 12345, Sign::Minus, -44100)
             );
         }
@@ -161,22 +158,22 @@ mod tests {
         #[test]
         fn invalid_signature() {
             assert_eq!(
-                        decode(b"hello < 12345 -1215")
+                        decode.parse_peek(b"hello < 12345 -1215")
                             .map_err(to_bstr_err)
                             .expect_err("parse fails as > is missing")
                             .to_string(),
-                        "Parse error:\nTakeUntil at:  12345 -1215\nin section '<email>', at:  12345 -1215\nin section '<name> <<email>>', at: hello < 12345 -1215\nin section '<name> <<email>> <timestamp> <+|-><HHMM>', at: hello < 12345 -1215\n"
+                        "in slice at ' 12345 -1215'\n  0: expected `<email>` at ' 12345 -1215'\n  1: expected `<name> <<email>>` at ' 12345 -1215'\n  2: expected `<name> <<email>> <timestamp> <+|-><HHMM>` at ' 12345 -1215'\n"
                     );
         }
 
         #[test]
         fn invalid_time() {
             assert_eq!(
-                        decode(b"hello <> abc -1215")
+                        decode.parse_peek(b"hello <> abc -1215")
                             .map_err(to_bstr_err)
                             .expect_err("parse fails as > is missing")
                             .to_string(),
-                        "Parse error:\nMapRes at: -1215\nin section '<timestamp>', at: abc -1215\nin section '<name> <<email>> <timestamp> <+|-><HHMM>', at: hello <> abc -1215\n"
+                        "in predicate verification at 'abc -1215'\n  0: expected `<timestamp>` at 'abc -1215'\n  1: expected `<name> <<email>> <timestamp> <+|-><HHMM>` at 'abc -1215'\n"
                     );
         }
     }

@@ -35,8 +35,8 @@ fn run() -> crate::Result {
                     .iter()
                     .filter_map(|name| {
                         refs.try_find(*name).expect("one tag per commit").map(|mut r| {
-                            r.peel_to_id_in_place(&refs, |id, buf| {
-                                store.try_find(id, buf).map(|d| d.map(|d| (d.kind, d.data)))
+                            r.peel_to_id_in_place(&refs, &mut |id, buf| {
+                                store.try_find(&id, buf).map(|d| d.map(|d| (d.kind, d.data)))
                             })
                             .expect("works");
                             r.target.into_id()
@@ -44,9 +44,9 @@ fn run() -> crate::Result {
                     })
                     .collect()
             };
-            let message = |id| {
+            let message = |id: gix_hash::ObjectId| {
                 store
-                    .find_commit(id, obj_buf.borrow_mut().as_mut())
+                    .find_commit(&id, obj_buf.borrow_mut().as_mut())
                     .expect("present")
                     .message
                     .trim()
@@ -59,11 +59,11 @@ fn run() -> crate::Result {
                 let cache = use_cache
                     .then(|| gix_commitgraph::at(store.store_ref().path().join("info")).ok())
                     .flatten();
-                let mut graph = gix_revision::Graph::new(
+                let mut graph = gix_revwalk::Graph::new(
                     |id, buf| {
                         store
                             .try_find(id, buf)
-                            .map(|r| r.and_then(|d| d.try_into_commit_iter()))
+                            .map(|r| r.and_then(gix_object::Data::try_into_commit_iter))
                     },
                     cache,
                 );
@@ -80,7 +80,7 @@ fn run() -> crate::Result {
                 // }
                 for tip in lookup_names(&["HEAD"]).into_iter().chain(
                     refs.iter()?
-                        .prefixed("refs/heads")?
+                        .prefixed("refs/heads".as_ref())?
                         .filter_map(Result::ok)
                         .map(|r| r.target.into_id()),
                 ) {

@@ -99,7 +99,11 @@ fn make_shim<'tcx>(tcx: TyCtxt<'tcx>, instance: ty::InstanceDef<'tcx>) -> Body<'
     };
     debug!("make_shim({:?}) = untransformed {:?}", instance, result);
 
-    pm::run_passes(
+    // We don't validate MIR here because the shims may generate code that's
+    // only valid in a reveal-all param-env. However, since we do initial
+    // validation with the MirBuilt phase, which uses a user-facing param-env.
+    // This causes validation errors when TAITs are involved.
+    pm::run_passes_no_validate(
         tcx,
         &mut result,
         &[
@@ -493,10 +497,10 @@ impl<'tcx> CloneShimBuilder<'tcx> {
 
         // `func == Clone::clone(&ty) -> ty`
         let func_ty = Ty::new_fn_def(tcx, self.def_id, [ty]);
-        let func = Operand::Constant(Box::new(Constant {
+        let func = Operand::Constant(Box::new(ConstOperand {
             span: self.span,
             user_ty: None,
-            literal: ConstantKind::zero_sized(func_ty),
+            const_: Const::zero_sized(func_ty),
         }));
 
         let ref_loc = self.make_place(
@@ -566,10 +570,10 @@ impl<'tcx> CloneShimBuilder<'tcx> {
                 TerminatorKind::Drop {
                     place: dest_field,
                     target: unwind,
-                    unwind: UnwindAction::Terminate,
+                    unwind: UnwindAction::Terminate(UnwindTerminateReason::InCleanup),
                     replace: false,
                 },
-                true,
+                /* is_cleanup */ true,
             );
             unwind = next_unwind;
         }
@@ -583,7 +587,7 @@ impl<'tcx> CloneShimBuilder<'tcx> {
         I: IntoIterator<Item = Ty<'tcx>>,
     {
         self.block(vec![], TerminatorKind::Goto { target: self.block_index_offset(3) }, false);
-        let unwind = self.block(vec![], TerminatorKind::Resume, true);
+        let unwind = self.block(vec![], TerminatorKind::UnwindResume, true);
         let target = self.block(vec![], TerminatorKind::Return, false);
 
         let _final_cleanup_block = self.clone_fields(dest, src, target, unwind, tys);
@@ -597,7 +601,7 @@ impl<'tcx> CloneShimBuilder<'tcx> {
         args: GeneratorArgs<'tcx>,
     ) {
         self.block(vec![], TerminatorKind::Goto { target: self.block_index_offset(3) }, false);
-        let unwind = self.block(vec![], TerminatorKind::Resume, true);
+        let unwind = self.block(vec![], TerminatorKind::UnwindResume, true);
         // This will get overwritten with a switch once we know the target blocks
         let switch = self.block(vec![], TerminatorKind::Unreachable, false);
         let unwind = self.clone_fields(dest, src, switch, unwind, args.upvar_tys());
@@ -760,10 +764,10 @@ fn build_call_shim<'tcx>(
         CallKind::Direct(def_id) => {
             let ty = tcx.type_of(def_id).instantiate_identity();
             (
-                Operand::Constant(Box::new(Constant {
+                Operand::Constant(Box::new(ConstOperand {
                     span,
                     user_ty: None,
-                    literal: ConstantKind::zero_sized(ty),
+                    const_: Const::zero_sized(ty),
                 })),
                 rcvr.into_iter().collect::<Vec<_>>(),
             )
@@ -847,14 +851,14 @@ fn build_call_shim<'tcx>(
             TerminatorKind::Drop {
                 place: rcvr_place(),
                 target: BasicBlock::new(4),
-                unwind: UnwindAction::Terminate,
+                unwind: UnwindAction::Terminate(UnwindTerminateReason::InCleanup),
                 replace: false,
             },
-            true,
+            /* is_cleanup */ true,
         );
 
         // BB #4 - resume
-        block(&mut blocks, vec![], TerminatorKind::Resume, true);
+        block(&mut blocks, vec![], TerminatorKind::UnwindResume, true);
     }
 
     let mut body =

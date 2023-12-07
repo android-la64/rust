@@ -137,7 +137,7 @@ pub struct Config {
     pub json_output: bool,
     pub test_compare_mode: bool,
     pub color: Color,
-    pub patch_binaries_for_nix: bool,
+    pub patch_binaries_for_nix: Option<bool>,
     pub stage0_metadata: Stage0Metadata,
 
     pub stdout_is_tty: bool,
@@ -322,31 +322,21 @@ pub struct RustfmtMetadata {
     pub version: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum RustfmtState {
     SystemToolchain(PathBuf),
     Downloaded(PathBuf),
     Unavailable,
+    #[default]
     LazyEvaluated,
 }
 
-impl Default for RustfmtState {
-    fn default() -> Self {
-        RustfmtState::LazyEvaluated
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum LlvmLibunwind {
+    #[default]
     No,
     InTree,
     System,
-}
-
-impl Default for LlvmLibunwind {
-    fn default() -> Self {
-        Self::No
-    }
 }
 
 impl FromStr for LlvmLibunwind {
@@ -362,17 +352,12 @@ impl FromStr for LlvmLibunwind {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SplitDebuginfo {
     Packed,
     Unpacked,
+    #[default]
     Off,
-}
-
-impl Default for SplitDebuginfo {
-    fn default() -> Self {
-        SplitDebuginfo::Off
-    }
 }
 
 impl std::str::FromStr for SplitDebuginfo {
@@ -547,11 +532,7 @@ pub struct Target {
 impl Target {
     pub fn from_triple(triple: &str) -> Self {
         let mut target: Self = Default::default();
-        if triple.contains("-none")
-            || triple.contains("nvptx")
-            || triple.contains("switch")
-            || triple.contains("-uefi")
-        {
+        if triple.contains("-none") || triple.contains("nvptx") || triple.contains("switch") {
             target.no_std = true;
         }
         target
@@ -1276,7 +1257,8 @@ impl Config {
         }
 
         config.initial_rustc = if let Some(rustc) = build.rustc {
-            config.check_build_rustc_version(&rustc);
+            // FIXME(#115065): re-enable this check
+            // config.check_build_rustc_version(&rustc);
             PathBuf::from(rustc)
         } else {
             config.download_beta_toolchain();
@@ -1338,7 +1320,7 @@ impl Config {
         set(&mut config.local_rebuild, build.local_rebuild);
         set(&mut config.print_step_timings, build.print_step_timings);
         set(&mut config.print_step_rusage, build.print_step_rusage);
-        set(&mut config.patch_binaries_for_nix, build.patch_binaries_for_nix);
+        config.patch_binaries_for_nix = build.patch_binaries_for_nix;
 
         config.verbose = cmp::max(config.verbose, flags.verbose as usize);
 
@@ -1528,7 +1510,7 @@ impl Config {
             let asserts = llvm_assertions.unwrap_or(false);
             config.llvm_from_ci = match llvm.download_ci_llvm {
                 Some(StringOrBool::String(s)) => {
-                    assert!(s == "if-available", "unknown option `{s}` for download-ci-llvm");
+                    assert_eq!(s, "if-available", "unknown option `{s}` for download-ci-llvm");
                     crate::llvm::is_ci_llvm_available(&config, asserts)
                 }
                 Some(StringOrBool::Bool(b)) => b,

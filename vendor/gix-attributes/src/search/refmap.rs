@@ -8,6 +8,7 @@ use std::{
 };
 
 pub(crate) type RefMapKey = u64;
+#[derive(Clone)]
 pub(crate) struct RefMap<T>(BTreeMap<RefMapKey, T>);
 
 impl<T> Default for RefMap<T> {
@@ -20,6 +21,9 @@ impl<T> RefMap<T>
 where
     T: Hash + Clone,
 {
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
     pub(crate) fn insert(&mut self, value: &T) -> RefMapKey {
         let mut s = DefaultHasher::new();
         value.hash(&mut s);

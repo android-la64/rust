@@ -1,5 +1,5 @@
 /*!
-A module for building and searching with lazy determinstic finite automata
+A module for building and searching with lazy deterministic finite automata
 (DFAs).
 
 Like other modules in this crate, lazy DFAs support a rich regex syntax with
@@ -26,64 +26,38 @@ This example shows how to compile a regex using the default configuration
 and then use it to find matches in a byte string:
 
 ```
-use regex_automata::{hybrid::regex::Regex, MultiMatch};
+use regex_automata::{hybrid::regex::Regex, Match};
 
 let re = Regex::new(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")?;
 let mut cache = re.create_cache();
 
-let text = b"2018-12-24 2016-10-08";
-let matches: Vec<MultiMatch> =
-    re.find_leftmost_iter(&mut cache, text).collect();
+let haystack = "2018-12-24 2016-10-08";
+let matches: Vec<Match> = re.find_iter(&mut cache, haystack).collect();
 assert_eq!(matches, vec![
-    MultiMatch::must(0, 0, 10),
-    MultiMatch::must(0, 11, 21),
+    Match::must(0, 0..10),
+    Match::must(0, 11..21),
 ]);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-# Example: searching with regex sets
+# Example: searching with multiple regexes
 
 The lazy DFAs in this module all fully support searching with multiple regexes
 simultaneously. You can use this support with standard leftmost-first style
 searching to find non-overlapping matches:
 
 ```
-use regex_automata::{hybrid::regex::Regex, MultiMatch};
+# if cfg!(miri) { return Ok(()); } // miri takes too long
+use regex_automata::{hybrid::regex::Regex, Match};
 
 let re = Regex::new_many(&[r"\w+", r"\S+"])?;
 let mut cache = re.create_cache();
 
-let text = b"@foo bar";
-let matches: Vec<MultiMatch> =
-    re.find_leftmost_iter(&mut cache, text).collect();
+let haystack = "@foo bar";
+let matches: Vec<Match> = re.find_iter(&mut cache, haystack).collect();
 assert_eq!(matches, vec![
-    MultiMatch::must(1, 0, 4),
-    MultiMatch::must(0, 5, 8),
-]);
-# Ok::<(), Box<dyn std::error::Error>>(())
-```
-
-Or use overlapping style searches to find all possible occurrences:
-
-```
-use regex_automata::{hybrid::{dfa, regex::Regex}, MatchKind, MultiMatch};
-
-// N.B. For overlapping searches, we need the underlying lazy DFA to report all
-// possible matches.
-let re = Regex::builder()
-    .dfa(dfa::Config::new().match_kind(MatchKind::All))
-    .build_many(&[r"\w{3}", r"\S{3}"])?;
-let mut cache = re.create_cache();
-
-let text = b"@foo bar";
-let matches: Vec<MultiMatch> =
-    re.find_overlapping_iter(&mut cache, text).collect();
-assert_eq!(matches, vec![
-    MultiMatch::must(1, 0, 3),
-    MultiMatch::must(0, 1, 4),
-    MultiMatch::must(1, 1, 4),
-    MultiMatch::must(0, 5, 8),
-    MultiMatch::must(1, 5, 8),
+    Match::must(1, 0..4),
+    Match::must(0, 5..8),
 ]);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
@@ -122,8 +96,9 @@ created for each byte seen, which would make searching quite a bit slower.
 A fully compiled DFA never has to worry about searches being slower once
 it's built. (Aside from, say, the transition table being so large that it
 is subject to harsh CPU cache effects.) However, of course, building a full
-DFA can be quite time consuming and memory hungry. Particularly when it's
-so easy to build large DFAs when Unicode mode is enabled.
+DFA can be quite time consuming and memory hungry. Particularly when large
+Unicode character classes are used, which tend to translate into very large
+DFAs.
 
 A lazy DFA strikes a nice balance _in practice_, particularly in the
 presence of Unicode mode, by only building what is needed. It avoids the
@@ -142,7 +117,8 @@ There are two things that are not supported by the lazy DFAs in this module:
 * Capturing groups. The DFAs (and [`Regex`](regex::Regex)es built on top
 of them) can only find the offsets of an entire match, but cannot resolve
 the offsets of each capturing group. This is because DFAs do not have the
-expressive power necessary.
+expressive power necessary. Note that it is okay to build a lazy DFA from an
+NFA that contains capture groups. The capture groups will simply be ignored.
 * Unicode word boundaries. These present particularly difficult challenges for
 DFA construction and would result in an explosion in the number of states.
 One can enable [`dfa::Config::unicode_word_boundary`] though, which provides
@@ -154,22 +130,11 @@ There are no plans to lift either of these limitations.
 
 Note that these restrictions are identical to the restrictions on fully
 compiled DFAs.
-
-# Support for `alloc`-only
-
-This crate comes with `alloc` and `std` features that are enabled by default.
-One can disable the `std` feature and still use the full API of a lazy DFA.
-(You should use `std` when possible, since it permits providing implementations
-of the `std::error::Error` trait, and does enable some minor internal
-optimizations.)
-
-This module does require at least the `alloc` feature though. It is not
-available in any capacity without `alloc`.
 */
 
 pub use self::{
     error::{BuildError, CacheError},
-    id::{LazyStateID, OverlappingState},
+    id::LazyStateID,
 };
 
 pub mod dfa;

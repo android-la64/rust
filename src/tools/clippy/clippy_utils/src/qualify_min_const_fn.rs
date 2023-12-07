@@ -272,6 +272,7 @@ fn check_place<'tcx>(tcx: TyCtxt<'tcx>, place: Place<'tcx>, span: Span, body: &B
             | ProjectionElem::Downcast(..)
             | ProjectionElem::Subslice { .. }
             | ProjectionElem::Deref
+            | ProjectionElem::Subtype(_)
             | ProjectionElem::Index(_) => {},
         }
     }
@@ -291,8 +292,8 @@ fn check_terminator<'tcx>(
         | TerminatorKind::FalseUnwind { .. }
         | TerminatorKind::Goto { .. }
         | TerminatorKind::Return
-        | TerminatorKind::Resume
-        | TerminatorKind::Terminate
+        | TerminatorKind::UnwindResume
+        | TerminatorKind::UnwindTerminate(_)
         | TerminatorKind::Unreachable => Ok(()),
         TerminatorKind::Drop { place, .. } => {
             if !is_ty_const_destruct(tcx, place.ty(&body.local_decls, tcx).ty, body) {

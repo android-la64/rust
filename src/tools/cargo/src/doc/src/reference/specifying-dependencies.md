@@ -1,4 +1,4 @@
-## Specifying Dependencies
+# Specifying Dependencies
 
 Your crates can depend on other libraries from [crates.io] or other
 registries, `git` repositories, or subdirectories on your local file system.
@@ -8,7 +8,7 @@ locally. You can have different dependencies for different platforms, and
 dependencies that are only used during development. Let's take a look at how
 to do each of these.
 
-### Specifying dependencies from crates.io
+## Specifying dependencies from crates.io
 
 Cargo is configured to look for dependencies on [crates.io] by default. Only
 the name and a version string are required in this case. In [the cargo
@@ -23,7 +23,7 @@ The string `"0.1.12"` is a version requirement. Although it looks like a
 specific *version* of the `time` crate, it actually specifies a *range* of
 versions and allows [SemVer] compatible updates. An update is allowed if the new
 version number does not modify the left-most non-zero number in the major, minor,
-patch grouping. In this case, if we ran `cargo update -p time`, cargo should
+patch grouping. In this case, if we ran `cargo update time`, cargo should
 update us to version `0.1.13` if it is the latest `0.1.z` release, but would not
 update us to `0.2.0`. If instead we had specified the version string as `1.0`,
 cargo should update to `1.1` if it is the latest `1.y` release, but not `2.0`.
@@ -53,10 +53,21 @@ and `x > 0`.
 It is possible to further tweak the logic for selecting compatible versions
 using special operators, though it shouldn't be necessary most of the time.
 
+## Version requirement syntax
+
 ### Caret requirements
 
-**Caret requirements** are an alternative syntax for the default strategy,
-`^1.2.3` is exactly equivalent to `1.2.3`.
+**Caret requirements** are the default version requirement strategy. 
+This version strategy allows [SemVer] compatible updates.
+They are specified as version requirements with a leading caret (`^`).
+
+`^1.2.3` is an example of a caret requirement.
+
+Leaving off the caret is a simplified equivalent syntax to using caret requirements.
+While caret requirements are the default, it is recommended to use the
+simplified syntax when possible.
+
+`log = "^1.2.3"` is exactly equivalent to `log = "1.2.3"`.
 
 ### Tilde requirements
 
@@ -102,7 +113,7 @@ Here are some examples of comparison requirements:
 = 1.2.3
 ```
 
-### Multiple requirements
+### Multiple version requirements
 
 As shown in the examples above, multiple version requirements can be
 separated with a comma, e.g., `>= 1.2, < 1.5`.
@@ -144,7 +155,7 @@ separated with a comma, e.g., `>= 1.2, < 1.5`.
 [#6584]: https://github.com/rust-lang/cargo/issues/6584
 [#10599]: https://github.com/rust-lang/cargo/issues/10599
 
-### Specifying dependencies from other registries
+## Specifying dependencies from other registries
 
 To specify a dependency from a registry other than [crates.io], first the
 registry must be configured in a `.cargo/config.toml` file. See the [registries
@@ -157,11 +168,11 @@ some-crate = { version = "1.0", registry = "my-registry" }
 ```
 
 > **Note**: [crates.io] does not allow packages to be published with
-> dependencies on other registries.
+> dependencies on code published outside of [crates.io].
 
 [registries documentation]: registries.md
 
-### Specifying dependencies from `git` repositories
+## Specifying dependencies from `git` repositories
 
 To depend on a library located in a `git` repository, the minimum information
 you need to specify is the location of the repository with the `git` key:
@@ -177,8 +188,8 @@ Cargo will fetch the `git` repository at this location then look for a
 of a workspace and setting `git` to the repository containing the workspace).
 
 Since we haven’t specified any other information, Cargo assumes that
-we intend to use the latest commit on the default branch branch 
-to build our package, which may not necessarily be the main branch.
+we intend to use the latest commit on the default branch to build
+our package, which may not necessarily be the main branch.
 You can combine the `git` key with the `rev`, `tag`, or `branch` keys to
 specify something else. Here's an example of specifying that you want to use
 the latest commit on a branch named `next`:
@@ -202,13 +213,24 @@ once the lock is in place. However, they can be pulled down manually with
 
 See [Git Authentication] for help with git authentication for private repos.
 
-> **Note**: [crates.io] does not allow packages to be published with `git`
-> dependencies (`git` [dev-dependencies] are ignored). See the [Multiple
-> locations](#multiple-locations) section for a fallback alternative.
+> **Note**: Neither the `git` key nor the `path` key changes the meaning of the
+> `version` key: the `version` key always implies that the package is available
+> in a registry. `version`, `git`, and `path` keys are considered [separate
+> locations](#multiple-locations) for resolving the dependency.
+>
+> When the dependency is retrieved from `git`, the `version` key will _not_
+> affect which commit is used, but the version information in the dependency's
+> `Cargo.toml` file will still be validated against the `version` requirement.
+
+> **Note**: [crates.io] does not allow packages to be published with
+> dependencies on code published outside of [crates.io] itself
+> ([dev-dependencies] are ignored). See the [Multiple
+> locations](#multiple-locations) section for a fallback alternative for `git`
+> and `path` dependencies.
 
 [Git Authentication]: ../appendix/git-authentication.md
 
-### Specifying path dependencies
+## Specifying path dependencies
 
 Over time, our `hello_world` package from [the guide](../guide/index.md) has
 grown significantly in size! It’s gotten to the point that we probably want to
@@ -245,11 +267,18 @@ and specify its version in the dependencies line as well:
 hello_utils = { path = "hello_utils", version = "0.1.0" }
 ```
 
-> **Note**: [crates.io] does not allow packages to be published with `path`
-> dependencies (`path` [dev-dependencies] are ignored). See the [Multiple
-> locations](#multiple-locations) section for a fallback alternative.
+> **Note**: Neither the `git` key nor the `path` key changes the meaning of the
+> `version` key: the `version` key always implies that the package is available
+> in a registry. `version`, `git`, and `path` keys are considered [separate
+> locations](#multiple-locations) for resolving the dependency.
 
-### Multiple locations
+> **Note**: [crates.io] does not allow packages to be published with
+> dependencies on code published outside of [crates.io] itself
+> ([dev-dependencies] are ignored). See the [Multiple
+> locations](#multiple-locations) section for a fallback alternative for `git`
+> and `path` dependencies.
+
+## Multiple locations
 
 It is possible to specify both a registry version and a `git` or `path`
 location. The `git` or `path` dependency will be used locally (in which case
@@ -278,7 +307,7 @@ is published. This is similar to specifying an
 [override](overriding-dependencies.md), but only applies to this one
 dependency declaration.
 
-### Platform specific dependencies
+## Platform specific dependencies
 
 Platform-specific dependencies take the same format, but are listed under a
 `target` section. Normally Rust-like [`#[cfg]`
@@ -337,7 +366,7 @@ winhttp = "0.4.0"
 openssl = "1.0.1"
 ```
 
-#### Custom target specifications
+### Custom target specifications
 
 If you’re using a custom target specification (such as `--target
 foo/bar.json`), use the base filename without the `.json` extension:
@@ -353,7 +382,7 @@ native = { path = "native/i686" }
 
 > **Note**: Custom target specifications are not usable on the stable channel.
 
-### Development dependencies
+## Development dependencies
 
 You can add a `[dev-dependencies]` section to your `Cargo.toml` whose format
 is equivalent to `[dependencies]`:
@@ -385,7 +414,7 @@ mio = "0.0.1"
 > packagers) may want to run tests within a crate, so providing a `version` if
 > possible can still be beneficial.
 
-### Build dependencies
+## Build dependencies
 
 You can depend on other Cargo-based crates for use in your build scripts.
 Dependencies are declared through the `build-dependencies` section of the
@@ -417,7 +446,7 @@ itself and its build script are built separately, so their
 dependencies need not coincide. Cargo is kept simpler and cleaner by
 using independent dependencies for independent purposes.
 
-### Choosing features
+## Choosing features
 
 If a package you depend on offers conditional features, you can
 specify which to use:
@@ -433,7 +462,7 @@ features = ["secure-password", "civet"]
 More information about features can be found in the [features
 chapter](features.md#dependency-features).
 
-### Renaming dependencies in `Cargo.toml`
+## Renaming dependencies in `Cargo.toml`
 
 When writing a `[dependencies]` section in `Cargo.toml` the key you write for a
 dependency typically matches up to the name of the crate you import from in the
@@ -492,7 +521,7 @@ following to the above manifest:
 log-debug = ['bar/log-debug'] # using 'foo/log-debug' would be an error!
 ```
 
-### Inheriting a dependency from a workspace
+## Inheriting a dependency from a workspace
 
 Dependencies can be inherited from a workspace by specifying the
 dependency in the workspace's [`[workspace.dependencies]`][workspace.dependencies] table.

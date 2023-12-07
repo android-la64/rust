@@ -15,6 +15,7 @@
 
 use crate::{
     core_arch::{simd::*, simd_llvm::*},
+    mem,
     mem::transmute,
 };
 
@@ -318,6 +319,12 @@ extern "C" {
     fn vupkhsh(a: vector_signed_short) -> vector_signed_int;
     #[link_name = "llvm.ppc.altivec.vupklsh"]
     fn vupklsh(a: vector_signed_short) -> vector_signed_int;
+
+    #[link_name = "llvm.ppc.altivec.mfvscr"]
+    fn mfvscr() -> vector_unsigned_short;
+
+    #[link_name = "llvm.ppc.altivec.vlogefp"]
+    fn vlogefp(a: vector_float) -> vector_float;
 }
 
 macro_rules! s_t_l {
@@ -527,6 +534,60 @@ mod sealed {
     impl_vec_lde! { vec_lde_i32 lvewx i32 }
 
     impl_vec_lde! { vec_lde_f32 lvewx f32 }
+
+    pub trait VectorXl {
+        type Result;
+        unsafe fn vec_xl(self, a: isize) -> Self::Result;
+    }
+
+    macro_rules! impl_vec_xl {
+        ($fun:ident $notpwr9:ident / $pwr9:ident $ty:ident) => {
+            #[inline]
+            #[target_feature(enable = "altivec")]
+            #[cfg_attr(
+                all(test, not(target_feature = "power9-altivec")),
+                assert_instr($notpwr9)
+            )]
+            #[cfg_attr(all(test, target_feature = "power9-altivec"), assert_instr($pwr9))]
+            pub unsafe fn $fun(a: isize, b: *const $ty) -> t_t_l!($ty) {
+                let addr = (b as *const u8).offset(a);
+
+                // Workaround ptr::copy_nonoverlapping not being inlined
+                extern "rust-intrinsic" {
+                    #[rustc_const_stable(feature = "const_intrinsic_copy", since = "1.63.0")]
+                    #[rustc_nounwind]
+                    pub fn copy_nonoverlapping<T>(src: *const T, dst: *mut T, count: usize);
+                }
+
+                let mut r = mem::MaybeUninit::uninit();
+
+                copy_nonoverlapping(
+                    addr,
+                    r.as_mut_ptr() as *mut u8,
+                    mem::size_of::<t_t_l!($ty)>(),
+                );
+
+                r.assume_init()
+            }
+
+            impl VectorXl for *const $ty {
+                type Result = t_t_l!($ty);
+                #[inline]
+                #[target_feature(enable = "altivec")]
+                unsafe fn vec_xl(self, a: isize) -> Self::Result {
+                    $fun(a, self)
+                }
+            }
+        };
+    }
+
+    impl_vec_xl! { vec_xl_i8 lxvd2x / lxv i8 }
+    impl_vec_xl! { vec_xl_u8 lxvd2x / lxv u8 }
+    impl_vec_xl! { vec_xl_i16 lxvd2x / lxv i16 }
+    impl_vec_xl! { vec_xl_u16 lxvd2x / lxv u16 }
+    impl_vec_xl! { vec_xl_i32 lxvd2x / lxv i32 }
+    impl_vec_xl! { vec_xl_u32 lxvd2x / lxv u32 }
+    impl_vec_xl! { vec_xl_f32 lxvd2x / lxv f32 }
 
     test_impl! { vec_floor(a: vector_float) -> vector_float [ vfloor, vrfim / xvrspim ] }
 
@@ -2501,6 +2562,24 @@ where
     p.vec_lde(off)
 }
 
+/// VSX Unaligned Load
+#[inline]
+#[target_feature(enable = "altivec")]
+pub unsafe fn vec_xl<T>(off: isize, p: T) -> <T as sealed::VectorXl>::Result
+where
+    T: sealed::VectorXl,
+{
+    p.vec_xl(off)
+}
+
+/// Vector Base-2 Logarithm Estimate
+#[inline]
+#[target_feature(enable = "altivec")]
+#[cfg_attr(test, assert_instr(vlogefp))]
+pub unsafe fn vec_loge(a: vector_float) -> vector_float {
+    vlogefp(a)
+}
+
 /// Vector floor.
 #[inline]
 #[target_feature(enable = "altivec")]
@@ -2566,7 +2645,7 @@ pub unsafe fn vec_cmpb(a: vector_float, b: vector_float) -> vector_signed_int {
     sealed::vec_vcmpbfp(a, b)
 }
 
-/// Vector cmpb.
+/// Vector ceil.
 #[inline]
 #[target_feature(enable = "altivec")]
 pub unsafe fn vec_ceil(a: vector_float) -> vector_float {
@@ -2735,6 +2814,14 @@ where
     T: sealed::VectorMax<U>,
 {
     a.vec_max(b)
+}
+
+/// Move From Vector Status and Control Register.
+#[inline]
+#[target_feature(enable = "altivec")]
+#[cfg_attr(test, assert_instr(mfvscr))]
+pub unsafe fn vec_mfvscr() -> vector_unsigned_short {
+    mfvscr()
 }
 
 /// Vector add.
@@ -3277,6 +3364,24 @@ mod tests {
                 v,
                 u8x16::new(16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31)
             );
+        }
+    }
+
+    #[simd_test(enable = "altivec")]
+    unsafe fn test_vec_xl() {
+        let pat = [
+            u8x16::new(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+            u8x16::new(
+                16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+            ),
+        ];
+
+        for off in 0..16 {
+            let val: u8x16 = transmute(vec_xl(0, (pat.as_ptr() as *const u8).offset(off)));
+            for i in 0..16 {
+                let v = val.extract(i);
+                assert_eq!(off as usize + i, v as usize);
+            }
         }
     }
 

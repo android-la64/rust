@@ -1,14 +1,15 @@
 use bstr::ByteSlice;
+use winnow::{error::StrContext, prelude::*};
 
 use crate::{signature::decode, Identity, IdentityRef};
 
 impl<'a> IdentityRef<'a> {
     /// Deserialize an identity from the given `data`.
-    pub fn from_bytes<E>(data: &'a [u8]) -> Result<Self, nom::Err<E>>
+    pub fn from_bytes<E>(mut data: &'a [u8]) -> Result<Self, winnow::error::ErrMode<E>>
     where
-        E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+        E: winnow::error::ParserError<&'a [u8]> + winnow::error::AddContext<&'a [u8], StrContext>,
     {
-        decode::identity(data).map(|(_, t)| t)
+        decode::identity.parse_next(&mut data)
     }
 
     /// Create an owned instance from this shared one.
@@ -34,14 +35,14 @@ mod write {
     /// Output
     impl Identity {
         /// Serialize this instance to `out` in the git serialization format for signatures (but without timestamp).
-        pub fn write_to(&self, out: impl std::io::Write) -> std::io::Result<()> {
+        pub fn write_to(&self, out: &mut dyn std::io::Write) -> std::io::Result<()> {
             self.to_ref().write_to(out)
         }
     }
 
     impl<'a> IdentityRef<'a> {
         /// Serialize this instance to `out` in the git serialization format for signatures (but without timestamp).
-        pub fn write_to(&self, mut out: impl std::io::Write) -> std::io::Result<()> {
+        pub fn write_to(&self, out: &mut dyn std::io::Write) -> std::io::Result<()> {
             out.write_all(validated_token(self.name)?)?;
             out.write_all(b" ")?;
             out.write_all(b"<")?;

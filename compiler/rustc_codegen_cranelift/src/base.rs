@@ -250,7 +250,10 @@ pub(crate) fn verify_func(
 }
 
 fn codegen_fn_body(fx: &mut FunctionCx<'_, '_, '_>, start_block: Block) {
-    if !crate::constant::check_constants(fx) {
+    if let Err(err) =
+        fx.mir.post_mono_checks(fx.tcx, ty::ParamEnv::reveal_all(), |c| Ok(fx.monomorphize(c)))
+    {
+        err.emit_err(fx.tcx);
         fx.bcx.append_block_params_for_function_params(fx.block_map[START_BLOCK]);
         fx.bcx.switch_to_block(fx.block_map[START_BLOCK]);
         // compilation should have been aborted
@@ -474,10 +477,10 @@ fn codegen_fn_body(fx: &mut FunctionCx<'_, '_, '_>, start_block: Block) {
                     *destination,
                 );
             }
-            TerminatorKind::Terminate => {
-                codegen_panic_cannot_unwind(fx, source_info);
+            TerminatorKind::UnwindTerminate(reason) => {
+                codegen_unwind_terminate(fx, source_info, *reason);
             }
-            TerminatorKind::Resume => {
+            TerminatorKind::UnwindResume => {
                 // FIXME implement unwinding
                 fx.bcx.ins().trap(TrapCode::UnreachableCodeReached);
             }
@@ -723,11 +726,8 @@ fn codegen_stmt<'tcx>(
                 }
                 Rvalue::Repeat(ref operand, times) => {
                     let operand = codegen_operand(fx, operand);
-                    let times = fx
-                        .monomorphize(times)
-                        .eval(fx.tcx, ParamEnv::reveal_all())
-                        .try_to_bits(fx.tcx.data_layout.pointer_size)
-                        .unwrap();
+                    let times =
+                        fx.monomorphize(times).eval_target_usize(fx.tcx, ParamEnv::reveal_all());
                     if operand.layout().size.bytes() == 0 {
                         // Do nothing for ZST's
                     } else if fx.clif_type(operand.layout().ty) == Some(types::I8) {
@@ -875,7 +875,8 @@ pub(crate) fn codegen_place<'tcx>(
             PlaceElem::Deref => {
                 cplace = cplace.place_deref(fx);
             }
-            PlaceElem::OpaqueCast(ty) => cplace = cplace.place_opaque_cast(fx, ty),
+            PlaceElem::OpaqueCast(ty) => bug!("encountered OpaqueCast({ty}) in codegen"),
+            PlaceElem::Subtype(ty) => cplace = cplace.place_transmute_type(fx, fx.monomorphize(ty)),
             PlaceElem::Field(field, _ty) => {
                 cplace = cplace.place_field(fx, field);
             }
@@ -971,13 +972,14 @@ pub(crate) fn codegen_panic_nounwind<'tcx>(
     codegen_panic_inner(fx, rustc_hir::LangItem::PanicNounwind, &args, source_info.span);
 }
 
-pub(crate) fn codegen_panic_cannot_unwind<'tcx>(
+pub(crate) fn codegen_unwind_terminate<'tcx>(
     fx: &mut FunctionCx<'_, '_, 'tcx>,
     source_info: mir::SourceInfo,
+    reason: UnwindTerminateReason,
 ) {
     let args = [];
 
-    codegen_panic_inner(fx, rustc_hir::LangItem::PanicCannotUnwind, &args, source_info.span);
+    codegen_panic_inner(fx, reason.lang_item(), &args, source_info.span);
 }
 
 fn codegen_panic_inner<'tcx>(

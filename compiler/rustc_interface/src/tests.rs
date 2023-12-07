@@ -68,6 +68,7 @@ fn mk_session(handler: &mut EarlyErrorHandler, matches: getopts::Matches) -> (Se
         None,
         "",
         None,
+        Default::default(),
     );
     (sess, cfg)
 }
@@ -683,7 +684,6 @@ fn test_unstable_options_tracking_hash() {
     untracked!(dep_tasks, true);
     untracked!(dont_buffer_diagnostics, true);
     untracked!(dump_dep_graph, true);
-    untracked!(dump_drop_tracking_cfg, Some("cfg.dot".to_string()));
     untracked!(dump_mir, Some(String::from("abc")));
     untracked!(dump_mir_dataflow, true);
     untracked!(dump_mir_dir, String::from("abc"));
@@ -703,7 +703,7 @@ fn test_unstable_options_tracking_hash() {
     untracked!(keep_hygiene_data, true);
     untracked!(link_native_libraries, false);
     untracked!(llvm_time_trace, true);
-    untracked!(ls, true);
+    untracked!(ls, vec!["all".to_owned()]);
     untracked!(macro_backtrace, true);
     untracked!(meta_stats, true);
     untracked!(mir_include_spans, true);
@@ -772,7 +772,6 @@ fn test_unstable_options_tracking_hash() {
     tracked!(debug_info_for_profiling, true);
     tracked!(debug_macros, true);
     tracked!(dep_info_omit_d_target, true);
-    tracked!(drop_tracking, true);
     tracked!(dual_proc_macros, true);
     tracked!(dwarf_version, Some(5));
     tracked!(emit_thin_lto, false);
@@ -807,6 +806,7 @@ fn test_unstable_options_tracking_hash() {
     tracked!(no_jump_tables, true);
     tracked!(no_link, true);
     tracked!(no_profiler_runtime, true);
+    tracked!(no_trait_vptr, true);
     tracked!(no_unique_section_names, true);
     tracked!(oom, OomStrategy::Panic);
     tracked!(osx_rpath_install_name, true);

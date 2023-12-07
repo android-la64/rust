@@ -1,8 +1,5 @@
 # cargo-test(1)
 
-
-
-
 ## NAME
 
 cargo-test --- Execute unit and integration tests of a package
@@ -523,6 +520,14 @@ produced during execution of this command</p>
 
 
 </dl>
+
+While `cargo test` involves compilation, it does not provide a `--keep-going`
+flag. Use `--no-fail-fast` to run as many tests as possible without stopping at
+the first failure. To "compile" as many tests as possible, use `--tests` to
+build test binaries separately. For example:
+
+    cargo build --tests --keep-going
+    cargo test --tests --no-fail-fast
 
 ## ENVIRONMENT
 

@@ -257,6 +257,7 @@ impl super::Store {
             refresh: RefreshMode::default(),
             ignore_replacements: false,
             token: Some(token),
+            inflate: RefCell::new(Default::default()),
             snapshot: RefCell::new(self.collect_snapshot()),
             max_recursion_depth: Self::INITIAL_MAX_RECURSION_DEPTH,
             packed_object_count: Default::default(),
@@ -273,6 +274,7 @@ impl super::Store {
             refresh: Default::default(),
             ignore_replacements: false,
             token: Some(token),
+            inflate: RefCell::new(Default::default()),
             snapshot: RefCell::new(self.collect_snapshot()),
             max_recursion_depth: Self::INITIAL_MAX_RECURSION_DEPTH,
             packed_object_count: Default::default(),
@@ -344,8 +346,8 @@ impl TryFrom<&super::Store> for super::Store {
 
     fn try_from(s: &super::Store) -> Result<Self, Self::Error> {
         super::Store::at_opts(
-            s.path(),
-            s.replacements(),
+            s.path().into(),
+            &mut s.replacements(),
             crate::store::init::Options {
                 slots: crate::store::init::Slots::Given(s.files.len().try_into().expect("BUG: too many slots")),
                 object_hash: Default::default(),
@@ -391,6 +393,7 @@ where
                 }
                 .into()
             },
+            inflate: RefCell::new(Default::default()),
             snapshot: RefCell::new(self.store.collect_snapshot()),
             max_recursion_depth: self.max_recursion_depth,
             packed_object_count: Default::default(),

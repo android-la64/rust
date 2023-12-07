@@ -42,11 +42,11 @@ impl<'event> File<'event> {
     ///         a = 10k
     ///         c = false
     /// "#;
-    /// let gix_config = gix_config::File::try_from(config)?;
+    /// let git_config = gix_config::File::try_from(config)?;
     /// // You can either use the turbofish to determine the type...
-    /// let a_value = gix_config.value::<Integer>("core", None, "a")?;
+    /// let a_value = git_config.value::<Integer>("core", None, "a")?;
     /// // ... or explicitly declare the type to avoid the turbofish
-    /// let c_value: Boolean = gix_config.value("core", None, "c")?;
+    /// let c_value: Boolean = git_config.value("core", None, "c")?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn value<'a, T: TryFrom<Cow<'a, BStr>>>(
@@ -96,9 +96,9 @@ impl<'event> File<'event> {
     ///         a
     ///         a = false
     /// "#;
-    /// let gix_config = gix_config::File::try_from(config).unwrap();
+    /// let git_config = gix_config::File::try_from(config).unwrap();
     /// // You can either use the turbofish to determine the type...
-    /// let a_value = gix_config.values::<Boolean>("core", None, "a")?;
+    /// let a_value = git_config.values::<Boolean>("core", None, "a")?;
     /// assert_eq!(
     ///     a_value,
     ///     vec![
@@ -108,7 +108,7 @@ impl<'event> File<'event> {
     ///     ]
     /// );
     /// // ... or explicitly declare the type to avoid the turbofish
-    /// let c_value: Vec<Boolean> = gix_config.values("core", None, "c").unwrap();
+    /// let c_value: Vec<Boolean> = git_config.values("core", None, "c").unwrap();
     /// assert_eq!(c_value, vec![Boolean(false)]);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
@@ -131,7 +131,7 @@ impl<'event> File<'event> {
     /// Returns the last found immutable section with a given `name` and optional `subsection_name`.
     pub fn section(
         &self,
-        name: impl AsRef<str>,
+        name: &str,
         subsection_name: Option<&BStr>,
     ) -> Result<&file::Section<'event>, lookup::existing::Error> {
         self.section_filter(name, subsection_name, &mut |_| true)?
@@ -140,10 +140,7 @@ impl<'event> File<'event> {
 
     /// Returns the last found immutable section with a given `key`, identifying the name and subsection name like `core`
     /// or `remote.origin`.
-    pub fn section_by_key<'a>(
-        &self,
-        key: impl Into<&'a BStr>,
-    ) -> Result<&file::Section<'event>, lookup::existing::Error> {
+    pub fn section_by_key(&self, key: &BStr) -> Result<&file::Section<'event>, lookup::existing::Error> {
         let key = crate::parse::section::unvalidated::Key::parse(key).ok_or(lookup::existing::Error::KeyMissing)?;
         self.section(key.section_name, key.subsection_name)
     }
@@ -154,7 +151,7 @@ impl<'event> File<'event> {
     /// is returned.
     pub fn section_filter<'a>(
         &'a self,
-        name: impl AsRef<str>,
+        name: &str,
         subsection_name: Option<&BStr>,
         filter: &mut MetadataFilter,
     ) -> Result<Option<&'a file::Section<'event>>, lookup::existing::Error> {
@@ -171,9 +168,9 @@ impl<'event> File<'event> {
     }
 
     /// Like [`section_filter()`][File::section_filter()], but identifies the section with `key` like `core` or `remote.origin`.
-    pub fn section_filter_by_key<'a, 'b>(
+    pub fn section_filter_by_key<'a>(
         &'a self,
-        key: impl Into<&'b BStr>,
+        key: &BStr,
         filter: &mut MetadataFilter,
     ) -> Result<Option<&'a file::Section<'event>>, lookup::existing::Error> {
         let key = crate::parse::section::unvalidated::Key::parse(key).ok_or(lookup::existing::Error::KeyMissing)?;
@@ -210,8 +207,8 @@ impl<'event> File<'event> {
     ///     [core "apple"]
     ///         e = f
     /// "#;
-    /// let gix_config = gix_config::File::try_from(config)?;
-    /// assert_eq!(gix_config.sections_by_name("core").map_or(0, |s|s.count()), 3);
+    /// let git_config = gix_config::File::try_from(config)?;
+    /// assert_eq!(git_config.sections_by_name("core").map_or(0, |s|s.count()), 3);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     #[must_use]

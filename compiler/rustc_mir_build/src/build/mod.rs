@@ -15,7 +15,6 @@ use rustc_index::{Idx, IndexSlice, IndexVec};
 use rustc_infer::infer::{InferCtxt, TyCtxtInferExt};
 use rustc_middle::hir::place::PlaceBase as HirPlaceBase;
 use rustc_middle::middle::region;
-use rustc_middle::mir::interpret::ConstValue;
 use rustc_middle::mir::interpret::Scalar;
 use rustc_middle::mir::*;
 use rustc_middle::thir::{
@@ -56,7 +55,8 @@ pub(crate) fn closure_saved_names_of_captured_variables<'tcx>(
 /// Construct the MIR for a given `DefId`.
 fn mir_build(tcx: TyCtxt<'_>, def: LocalDefId) -> Body<'_> {
     // Ensure unsafeck and abstract const building is ran before we steal the THIR.
-    tcx.ensure_with_value().thir_check_unsafety(def);
+    tcx.ensure_with_value()
+        .thir_check_unsafety(tcx.typeck_root_def_id(def.to_def_id()).expect_local());
     tcx.ensure_with_value().thir_abstract_const(def);
     if let Err(e) = tcx.check_match(def) {
         return construct_error(tcx, def, e);
@@ -633,7 +633,7 @@ fn construct_error(tcx: TyCtxt<'_>, def: LocalDefId, err: ErrorGuaranteed) -> Bo
                 _ => bug!("expected closure or generator, found {ty:?}"),
             }
         }
-        hir::BodyOwnerKind::Const => 0,
+        hir::BodyOwnerKind::Const { .. } => 0,
         hir::BodyOwnerKind::Static(_) => 0,
     };
     let mut cfg = CFG { basic_blocks: IndexVec::new() };
@@ -700,7 +700,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         // Constants always need overflow checks.
         check_overflow |= matches!(
             tcx.hir().body_owner_kind(def),
-            hir::BodyOwnerKind::Const | hir::BodyOwnerKind::Static(_)
+            hir::BodyOwnerKind::Const { .. } | hir::BodyOwnerKind::Static(_)
         );
 
         let lint_level = LintLevel::Explicit(hir_id);
@@ -822,6 +822,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                     name,
                     source_info: SourceInfo::outermost(captured_place.var_ident.span),
                     value: VarDebugInfoContents::Place(use_place),
+                    composite: None,
                     argument_index: None,
                 });
 
@@ -851,6 +852,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                     name,
                     source_info,
                     value: VarDebugInfoContents::Place(arg_local.into()),
+                    composite: None,
                     argument_index: Some(argument_index as u16 + 1),
                 });
             }

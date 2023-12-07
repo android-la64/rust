@@ -194,8 +194,8 @@ fn simple_publish_with_asymmetric() {
         .file("src/main.rs", "fn main() {}")
         .build();
 
-    p.cargo("publish --no-verify -Zcredential-process --registry dummy-registry")
-        .masquerade_as_nightly_cargo(&["credential-process"])
+    p.cargo("publish --no-verify -Zasymmetric-token --registry dummy-registry")
+        .masquerade_as_nightly_cargo(&["asymmetric-token"])
         .with_stderr(
             "\
 [UPDATING] `dummy-registry` index
@@ -919,6 +919,48 @@ You may press ctrl-c [..]
             ".cargo_vcs_info.json",
         ],
     );
+}
+
+#[cargo_test]
+fn publish_failed_with_index_and_only_allowed_registry() {
+    let registry = RegistryBuilder::new()
+        .http_api()
+        .http_index()
+        .alternative()
+        .build();
+
+    let p = project().build();
+
+    let _ = repo(&paths::root().join("foo"))
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+                license = "MIT"
+                description = "foo"
+                documentation = "foo"
+                homepage = "foo"
+                repository = "foo"
+                publish = ["alternative"]
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .build();
+
+    p.cargo("publish")
+        .arg("--index")
+        .arg(registry.index_url().as_str())
+        .with_status(101)
+        .with_stderr(
+            "\
+[NOTE] Found `alternative` as only allowed registry. Publishing to it automatically.
+[ERROR] command-line argument --index requires --token to be specified
+",
+        )
+        .run();
 }
 
 #[cargo_test]
@@ -1923,6 +1965,7 @@ Caused by:
   headers:
   <tab>HTTP/1.1 400
   <tab>Content-Length: 7
+  <tab>Connection: close
   <tab>
   body:
   go away

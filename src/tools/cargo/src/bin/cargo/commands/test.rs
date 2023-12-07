@@ -48,8 +48,8 @@ pub fn cli() -> Command {
             "Test all targets (does not include doctests)",
         )
         .arg_features()
-        .arg_jobs_without_keep_going()
-        .arg(flag("keep-going", "Use `--no-fail-fast` instead").hide(true)) // See rust-lang/cargo#11702
+        .arg_jobs()
+        .arg_unsupported_keep_going()
         .arg_release("Build artifacts in release mode, with optimizations")
         .arg_profile("Build artifacts with the specified profile")
         .arg_target_triple("Build for the target triple")
@@ -57,24 +57,14 @@ pub fn cli() -> Command {
         .arg_unit_graph()
         .arg_timings()
         .arg_manifest_path()
-        .after_help(
-            "Run `cargo help test` for more detailed information.\n\
-             Run `cargo test -- --help` for test binary options.\n",
-        )
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help test</>` for more detailed information.\n\
+             Run `<cyan,bold>cargo test -- --help</>` for test binary options.\n",
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
     let ws = args.workspace(config)?;
-
-    if args.keep_going() {
-        return Err(anyhow::format_err!(
-            "\
-unexpected argument `--keep-going` found
-
-  tip: to run as many tests as possible without failing fast, use `--no-fail-fast`"
-        )
-        .into());
-    }
 
     let mut compile_opts = args.compile_options(
         config,

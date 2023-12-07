@@ -1,16 +1,10 @@
 use std::error::Error;
 
 use regex_automata::{
-    hybrid::{
-        dfa::{self, DFA},
-        regex::Regex,
-        OverlappingState,
-    },
+    hybrid::dfa::{OverlappingState, DFA},
     nfa::thompson,
-    HalfMatch, MatchError, MatchKind, MultiMatch,
+    HalfMatch, Input, MatchError,
 };
-
-use crate::util::{BunkPrefilter, SubstringPrefilter};
 
 // Tests that too many cache resets cause the lazy DFA to quit.
 //
@@ -18,8 +12,18 @@ use crate::util::{BunkPrefilter, SubstringPrefilter};
 // implementation details of cache sizes. It's not a great test because of
 // that, but it does check some interesting properties around how positions are
 // reported when a search "gives up."
+//
+// NOTE: If you change something in lazy DFA implementation that causes this
+// test to fail by reporting different "gave up" positions, then it's generally
+// okay to update the positions in the test below as long as you're sure your
+// changes are correct. Namely, it is expected that if there are changes in the
+// cache size (or changes in how big things are inside the cache), then its
+// utilization may change slightly and thus impact where a search gives up.
+// Precisely where a search gives up is not an API guarantee, so changing the
+// offsets here is OK.
 #[test]
 #[cfg(target_pointer_width = "64")]
+#[cfg(not(miri))]
 fn too_many_cache_resets_cause_quit() -> Result<(), Box<dyn Error>> {
     // This is a carefully chosen regex. The idea is to pick one that requires
     // some decent number of states (hence the bounded repetition). But we
@@ -27,9 +31,16 @@ fn too_many_cache_resets_cause_quit() -> Result<(), Box<dyn Error>> {
     // non-ASCII letter so that we can check that no new states are created
     // once the cache is full. Namely, if we fill up the cache on a haystack
     // of 'a's, then in order to match one 'β', a new state will need to be
-    // created since a 'β' is encoded with multiple bytes. Since there's no
-    // room for this state, the search should quit at the very first position.
-    let pattern = r"[aβ]{100}";
+    // created since a 'β' is encoded with multiple bytes.
+    //
+    // So we proceed by "filling" up the cache by searching a haystack of just
+    // 'a's. The cache won't have enough room to add enough states to find the
+    // match (because of the bounded repetition), which should result in it
+    // giving up before it finds a match.
+    //
+    // Since there's now no more room to create states, we search a haystack
+    // of 'β' and confirm that it gives up immediately.
+    let pattern = r"[aβ]{99}";
     let dfa = DFA::builder()
         .configure(
             // Configure it so that we have the minimum cache capacity
@@ -39,38 +50,53 @@ fn too_many_cache_resets_cause_quit() -> Result<(), Box<dyn Error>> {
                 .cache_capacity(0)
                 .minimum_cache_clear_count(Some(0)),
         )
+        .thompson(thompson::NFA::config())
         .build(pattern)?;
     let mut cache = dfa.create_cache();
 
     let haystack = "a".repeat(101).into_bytes();
-    let err = MatchError::GaveUp { offset: 25 };
-    assert_eq!(dfa.find_earliest_fwd(&mut cache, &haystack), Err(err.clone()));
-    assert_eq!(dfa.find_leftmost_fwd(&mut cache, &haystack), Err(err.clone()));
+    let err = MatchError::gave_up(25);
+    // Notice that we make the same amount of progress in each search! That's
+    // because the cache is reused and already has states to handle the first
+    // N bytes.
     assert_eq!(
-        dfa.find_overlapping_fwd(
+        Err(err.clone()),
+        dfa.try_search_fwd(&mut cache, &Input::new(&haystack))
+    );
+    assert_eq!(
+        Err(err.clone()),
+        dfa.try_search_overlapping_fwd(
             &mut cache,
-            &haystack,
+            &Input::new(&haystack),
             &mut OverlappingState::start()
         ),
-        Err(err.clone())
     );
 
     let haystack = "β".repeat(101).into_bytes();
-    let err = MatchError::GaveUp { offset: 0 };
-    assert_eq!(dfa.find_earliest_fwd(&mut cache, &haystack), Err(err));
+    let err = MatchError::gave_up(2);
+    assert_eq!(
+        Err(err),
+        dfa.try_search_fwd(&mut cache, &Input::new(&haystack))
+    );
     // no need to test that other find routines quit, since we did that above
 
     // OK, if we reset the cache, then we should be able to create more states
     // and make more progress with searching for betas.
     cache.reset(&dfa);
-    let err = MatchError::GaveUp { offset: 26 };
-    assert_eq!(dfa.find_earliest_fwd(&mut cache, &haystack), Err(err));
+    let err = MatchError::gave_up(27);
+    assert_eq!(
+        Err(err),
+        dfa.try_search_fwd(&mut cache, &Input::new(&haystack))
+    );
 
     // ... switching back to ASCII still makes progress since it just needs to
     // set transitions on existing states!
     let haystack = "a".repeat(101).into_bytes();
-    let err = MatchError::GaveUp { offset: 13 };
-    assert_eq!(dfa.find_earliest_fwd(&mut cache, &haystack), Err(err));
+    let err = MatchError::gave_up(13);
+    assert_eq!(
+        Err(err),
+        dfa.try_search_fwd(&mut cache, &Input::new(&haystack))
+    );
 
     Ok(())
 }
@@ -84,20 +110,16 @@ fn quit_fwd() -> Result<(), Box<dyn Error>> {
     let mut cache = dfa.create_cache();
 
     assert_eq!(
-        dfa.find_earliest_fwd(&mut cache, b"abcxyz"),
-        Err(MatchError::Quit { byte: b'x', offset: 3 })
+        dfa.try_search_fwd(&mut cache, &Input::new("abcxyz")),
+        Err(MatchError::quit(b'x', 3)),
     );
     assert_eq!(
-        dfa.find_leftmost_fwd(&mut cache, b"abcxyz"),
-        Err(MatchError::Quit { byte: b'x', offset: 3 })
-    );
-    assert_eq!(
-        dfa.find_overlapping_fwd(
+        dfa.try_search_overlapping_fwd(
             &mut cache,
-            b"abcxyz",
+            &Input::new(b"abcxyz"),
             &mut OverlappingState::start()
         ),
-        Err(MatchError::Quit { byte: b'x', offset: 3 })
+        Err(MatchError::quit(b'x', 3)),
     );
 
     Ok(())
@@ -113,12 +135,8 @@ fn quit_rev() -> Result<(), Box<dyn Error>> {
     let mut cache = dfa.create_cache();
 
     assert_eq!(
-        dfa.find_earliest_rev(&mut cache, b"abcxyz"),
-        Err(MatchError::Quit { byte: b'x', offset: 3 })
-    );
-    assert_eq!(
-        dfa.find_leftmost_rev(&mut cache, b"abcxyz"),
-        Err(MatchError::Quit { byte: b'x', offset: 3 })
+        dfa.try_search_rev(&mut cache, &Input::new("abcxyz")),
+        Err(MatchError::quit(b'x', 3)),
     );
 
     Ok(())
@@ -145,51 +163,9 @@ fn unicode_word_implicitly_works() -> Result<(), Box<dyn Error>> {
     let dfa = DFA::builder().configure(config).build(r"\b")?;
     let mut cache = dfa.create_cache();
     let expected = HalfMatch::must(0, 1);
-    assert_eq!(dfa.find_leftmost_fwd(&mut cache, b" a"), Ok(Some(expected)));
-    Ok(())
-}
-
-// Tests that we can provide a prefilter to a Regex, and the search reports
-// correct results.
-#[test]
-fn prefilter_works() -> Result<(), Box<dyn Error>> {
-    let mut re = Regex::new(r"a[0-9]+").unwrap();
-    re.set_prefilter(Some(Box::new(SubstringPrefilter::new("a"))));
-    let mut cache = re.create_cache();
-
-    let text = b"foo abc foo a1a2a3 foo a123 bar aa456";
-    let matches: Vec<(usize, usize)> = re
-        .find_leftmost_iter(&mut cache, text)
-        .map(|m| (m.start(), m.end()))
-        .collect();
     assert_eq!(
-        matches,
-        vec![(12, 14), (14, 16), (16, 18), (23, 27), (33, 37),]
+        Ok(Some(expected)),
+        dfa.try_search_fwd(&mut cache, &Input::new(" a")),
     );
-    Ok(())
-}
-
-// This test confirms that a prefilter is active by using a prefilter that
-// reports false negatives.
-#[test]
-fn prefilter_is_active() -> Result<(), Box<dyn Error>> {
-    let text = b"za123";
-    let mut re = Regex::new(r"a[0-9]+").unwrap();
-    let mut cache = re.create_cache();
-
-    re.set_prefilter(Some(Box::new(SubstringPrefilter::new("a"))));
-    assert_eq!(
-        re.find_leftmost(&mut cache, b"za123"),
-        Some(MultiMatch::must(0, 1, 5))
-    );
-    assert_eq!(
-        re.find_leftmost(&mut cache, b"a123"),
-        Some(MultiMatch::must(0, 0, 4))
-    );
-    re.set_prefilter(Some(Box::new(BunkPrefilter::new())));
-    assert_eq!(re.find_leftmost(&mut cache, b"za123"), None);
-    // This checks that the prefilter is used when first starting the search,
-    // instead of waiting until at least one transition has occurred.
-    assert_eq!(re.find_leftmost(&mut cache, b"a123"), None);
     Ok(())
 }

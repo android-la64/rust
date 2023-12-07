@@ -12,7 +12,9 @@ use std::fmt::Write;
 use super::commands;
 use super::list_commands;
 use crate::command_prelude::*;
+use crate::util::is_rustup;
 use cargo::core::features::HIDDEN;
+use cargo::util::style;
 
 pub fn main(config: &mut LazyConfig) -> CliResult {
     let args = cli().try_get_matches()?;
@@ -312,7 +314,7 @@ For more information, see issue #10049 <https://github.com/rust-lang/cargo/issue
                     } else {
                         config.shell().warn(format_args!(
                             "\
-user-defined alias `{cmd}` has the appearance of a manfiest-command
+user-defined alias `{cmd}` has the appearance of a manifest-command
 This was previously accepted but will be phased out when `-Zscript` is stabilized.
 For more information, see issue #12207 <https://github.com/rust-lang/cargo/issues/12207>."
                         ))?;
@@ -447,7 +449,7 @@ impl Exec {
                 if !config.cli_unstable().script && ext_path.is_some() {
                     config.shell().warn(format_args!(
                         "\
-external subcommand `{cmd}` has the appearance of a manfiest-command
+external subcommand `{cmd}` has the appearance of a manifest-command
 This was previously accepted but will be phased out when `-Zscript` is stabilized.
 For more information, see issue #12207 <https://github.com/rust-lang/cargo/issues/12207>.",
                     ))?;
@@ -511,15 +513,23 @@ impl GlobalArgs {
 }
 
 pub fn cli() -> Command {
-    // ALLOWED: `RUSTUP_HOME` should only be read from process env, otherwise
-    // other tools may point to executables from incompatible distributions.
-    #[allow(clippy::disallowed_methods)]
-    let is_rustup = std::env::var_os("RUSTUP_HOME").is_some();
-    let usage = if is_rustup {
-        "cargo [+toolchain] [OPTIONS] [COMMAND]\n       cargo [+toolchain] [OPTIONS] -Zscript <MANIFEST_RS> [ARGS]..."
+    let usage = if is_rustup() {
+        color_print::cstr!("<cyan,bold>cargo</> <cyan>[+toolchain] [OPTIONS] [COMMAND]</>\n       <cyan,bold>cargo</> <cyan>[+toolchain] [OPTIONS]</> <cyan,bold>-Zscript</> <cyan><<MANIFEST_RS>> [ARGS]...</>")
     } else {
-        "cargo [OPTIONS] [COMMAND]\n       cargo [OPTIONS] -Zscript <MANIFEST_RS> [ARGS]..."
+        color_print::cstr!("<cyan,bold>cargo</> <cyan>[OPTIONS] [COMMAND]</>\n       <cyan,bold>cargo</> <cyan>[OPTIONS]</> <cyan,bold>-Zscript</> <cyan><<MANIFEST_RS>> [ARGS]...</>")
     };
+
+    let styles = {
+        clap::builder::styling::Styles::styled()
+            .header(style::HEADER)
+            .usage(style::USAGE)
+            .literal(style::LITERAL)
+            .placeholder(style::PLACEHOLDER)
+            .error(style::ERROR)
+            .valid(style::VALID)
+            .invalid(style::INVALID)
+    };
+
     Command::new("cargo")
         // Subcommands all count their args' display order independently (from 0),
         // which makes their args interspersed with global args. This puts global args last.
@@ -527,44 +537,49 @@ pub fn cli() -> Command {
         // We also want these to come before auto-generated `--help`
         .next_display_order(800)
         .allow_external_subcommands(true)
-        // Doesn't mix well with our list of common cargo commands.  See clap-rs/clap#3108 for
-        // opening clap up to allow us to style our help template
-        .disable_colored_help(true)
+        .styles(styles)
         // Provide a custom help subcommand for calling into man pages
         .disable_help_subcommand(true)
         .override_usage(usage)
-        .help_template(
+        .help_template(color_print::cstr!(
             "\
 Rust's package manager
 
-Usage: {usage}
+<green,bold>Usage:</> {usage}
 
-Options:
+<green,bold>Options:</>
 {options}
 
-Some common cargo commands are (see all commands with --list):
-    build, b    Compile the current package
-    check, c    Analyze the current package and report errors, but don't build object files
-    clean       Remove the target directory
-    doc, d      Build this package's and its dependencies' documentation
-    new         Create a new cargo package
-    init        Create a new cargo package in an existing directory
-    add         Add dependencies to a manifest file
-    remove      Remove dependencies from a manifest file
-    run, r      Run a binary or example of the local package
-    test, t     Run the tests
-    bench       Run the benchmarks
-    update      Update dependencies listed in Cargo.lock
-    search      Search registry for crates
-    publish     Package and upload this package to the registry
-    install     Install a Rust binary. Default location is $HOME/.cargo/bin
-    uninstall   Uninstall a Rust binary
+<green,bold>Commands:</>
+    <cyan,bold>build</>, <cyan,bold>b</>    Compile the current package
+    <cyan,bold>check</>, <cyan,bold>c</>    Analyze the current package and report errors, but don't build object files
+    <cyan,bold>clean</>       Remove the target directory
+    <cyan,bold>doc</>, <cyan,bold>d</>      Build this package's and its dependencies' documentation
+    <cyan,bold>new</>         Create a new cargo package
+    <cyan,bold>init</>        Create a new cargo package in an existing directory
+    <cyan,bold>add</>         Add dependencies to a manifest file
+    <cyan,bold>remove</>      Remove dependencies from a manifest file
+    <cyan,bold>run</>, <cyan,bold>r</>      Run a binary or example of the local package
+    <cyan,bold>test</>, <cyan,bold>t</>     Run the tests
+    <cyan,bold>bench</>       Run the benchmarks
+    <cyan,bold>update</>      Update dependencies listed in Cargo.lock
+    <cyan,bold>search</>      Search registry for crates
+    <cyan,bold>publish</>     Package and upload this package to the registry
+    <cyan,bold>install</>     Install a Rust binary. Default location is $HOME/.cargo/bin
+    <cyan,bold>uninstall</>   Uninstall a Rust binary
+    <cyan>...</>         See all commands with <cyan,bold>--list</>
 
-See 'cargo help <command>' for more information on a specific command.\n",
-        )
+See '<cyan,bold>cargo help</> <cyan><<command>></>' for more information on a specific command.\n",
+        ))
         .arg(flag("version", "Print version info and exit").short('V'))
         .arg(flag("list", "List installed commands"))
-        .arg(opt("explain", "Run `rustc --explain CODE`").value_name("CODE"))
+        .arg(
+            opt(
+                "explain",
+                "Provide a detailed explanation of a rustc error message",
+            )
+            .value_name("CODE"),
+        )
         .arg(
             opt(
                 "verbose",

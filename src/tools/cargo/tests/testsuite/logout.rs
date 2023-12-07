@@ -83,8 +83,7 @@ fn default_registry_configured() {
     check_token(Some("dummy-token"), Some("dummy-registry"));
     check_token(Some("crates-io-token"), None);
 
-    cargo_process("logout -Zunstable-options")
-        .masquerade_as_nightly_cargo(&["cargo-logout"])
+    cargo_process("logout")
         .with_stderr(
             "\
 [LOGOUT] token for `dummy-registry` has been removed from local storage
@@ -97,8 +96,24 @@ fn default_registry_configured() {
     check_token(None, Some("dummy-registry"));
     check_token(Some("crates-io-token"), None);
 
-    cargo_process("logout -Zunstable-options")
-        .masquerade_as_nightly_cargo(&["cargo-logout"])
+    cargo_process("logout")
         .with_stderr("[LOGOUT] not currently logged in to `dummy-registry`")
+        .run();
+}
+
+#[cargo_test]
+fn logout_asymmetric() {
+    let _registry = registry::RegistryBuilder::new()
+        .token(cargo_test_support::registry::Token::rfc_key())
+        .build();
+
+    cargo_process("logout --registry crates-io -Zasymmetric-token")
+        .masquerade_as_nightly_cargo(&["asymmetric-token"])
+        .with_stderr("[LOGOUT] secret-key for `crates-io` has been removed from local storage")
+        .run();
+
+    cargo_process("logout --registry crates-io -Zasymmetric-token")
+        .masquerade_as_nightly_cargo(&["asymmetric-token"])
+        .with_stderr("[LOGOUT] not currently logged in to `crates-io`")
         .run();
 }

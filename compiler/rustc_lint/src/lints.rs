@@ -2,6 +2,7 @@
 #![allow(rustc::diagnostic_outside_of_impl)]
 use std::num::NonZeroU32;
 
+use crate::errors::RequestedLevel;
 use crate::fluent_generated as fluent;
 use rustc_errors::{
     AddToDiagnostic, Applicability, DecorateLint, DiagnosticMessage, DiagnosticStyledString,
@@ -634,6 +635,8 @@ pub enum PtrNullChecksDiag<'a> {
         #[label]
         label: Span,
     },
+    #[diag(lint_ptr_null_checks_fn_ret)]
+    FnRet { fn_name: Ident },
 }
 
 // for_loops_over_fallibles.rs
@@ -764,11 +767,13 @@ pub enum InvalidFromUtf8Diag {
 #[derive(LintDiagnostic)]
 pub enum InvalidReferenceCastingDiag {
     #[diag(lint_invalid_reference_casting_borrow_as_mut)]
+    #[note(lint_invalid_reference_casting_note_book)]
     BorrowAsMut {
         #[label]
         orig_cast: Option<Span>,
     },
     #[diag(lint_invalid_reference_casting_assign_to_ref)]
+    #[note(lint_invalid_reference_casting_note_book)]
     AssignToRef {
         #[label]
         orig_cast: Option<Span>,
@@ -1010,21 +1015,60 @@ pub struct DeprecatedLintName<'a> {
     pub replace: &'a str,
 }
 
-// FIXME: Non-translatable msg
 #[derive(LintDiagnostic)]
-#[diag(lint_renamed_or_removed_lint)]
-pub struct RenamedOrRemovedLint<'a> {
-    pub msg: &'a str,
+#[diag(lint_deprecated_lint_name)]
+#[help]
+pub struct DeprecatedLintNameFromCommandLine<'a> {
+    pub name: String,
+    pub replace: &'a str,
     #[subdiagnostic]
-    pub suggestion: Option<RenamedOrRemovedLintSuggestion<'a>>,
+    pub requested_level: RequestedLevel<'a>,
+}
+
+#[derive(LintDiagnostic)]
+#[diag(lint_renamed_lint)]
+pub struct RenamedLint<'a> {
+    pub name: &'a str,
+    #[subdiagnostic]
+    pub suggestion: RenamedLintSuggestion<'a>,
 }
 
 #[derive(Subdiagnostic)]
-#[suggestion(lint_suggestion, code = "{replace}", applicability = "machine-applicable")]
-pub struct RenamedOrRemovedLintSuggestion<'a> {
-    #[primary_span]
-    pub suggestion: Span,
-    pub replace: &'a str,
+pub enum RenamedLintSuggestion<'a> {
+    #[suggestion(lint_suggestion, code = "{replace}", applicability = "machine-applicable")]
+    WithSpan {
+        #[primary_span]
+        suggestion: Span,
+        replace: &'a str,
+    },
+    #[help(lint_help)]
+    WithoutSpan { replace: &'a str },
+}
+
+#[derive(LintDiagnostic)]
+#[diag(lint_renamed_lint)]
+pub struct RenamedLintFromCommandLine<'a> {
+    pub name: &'a str,
+    #[subdiagnostic]
+    pub suggestion: RenamedLintSuggestion<'a>,
+    #[subdiagnostic]
+    pub requested_level: RequestedLevel<'a>,
+}
+
+#[derive(LintDiagnostic)]
+#[diag(lint_removed_lint)]
+pub struct RemovedLint<'a> {
+    pub name: &'a str,
+    pub reason: &'a str,
+}
+
+#[derive(LintDiagnostic)]
+#[diag(lint_removed_lint)]
+pub struct RemovedLintFromCommandLine<'a> {
+    pub name: &'a str,
+    pub reason: &'a str,
+    #[subdiagnostic]
+    pub requested_level: RequestedLevel<'a>,
 }
 
 #[derive(LintDiagnostic)]
@@ -1036,11 +1080,25 @@ pub struct UnknownLint {
 }
 
 #[derive(Subdiagnostic)]
-#[suggestion(lint_suggestion, code = "{replace}", applicability = "maybe-incorrect")]
-pub struct UnknownLintSuggestion {
-    #[primary_span]
-    pub suggestion: Span,
-    pub replace: Symbol,
+pub enum UnknownLintSuggestion {
+    #[suggestion(lint_suggestion, code = "{replace}", applicability = "maybe-incorrect")]
+    WithSpan {
+        #[primary_span]
+        suggestion: Span,
+        replace: Symbol,
+    },
+    #[help(lint_help)]
+    WithoutSpan { replace: Symbol },
+}
+
+#[derive(LintDiagnostic)]
+#[diag(lint_unknown_lint, code = "E0602")]
+pub struct UnknownLintFromCommandLine<'a> {
+    pub name: String,
+    #[subdiagnostic]
+    pub suggestion: Option<UnknownLintSuggestion>,
+    #[subdiagnostic]
+    pub requested_level: RequestedLevel<'a>,
 }
 
 #[derive(LintDiagnostic)]

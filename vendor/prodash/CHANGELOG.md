@@ -5,6 +5,217 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 26.2.2 (2023-09-09)
+
+This release relaxes trait-bounds of `Count`, `Progress` and `NestedProgress` to allow `?Sized` as well.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 4 commits contributed to the release.
+ - 2 days passed between releases.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Prepare next release ([`414506d`](https://github.com/byron/prodash/commit/414506df859584d17eb8ec755534040b813fa953))
+    - Merge pull request #24 from NobodyXu/fix/dyn ([`c905d5c`](https://github.com/byron/prodash/commit/c905d5cb8d62368bb4891cc732ce613d09d6498b))
+    - Relax bound of `Progress`, `Count` impl for `DynNestedProgressToNestedProgress` ([`967ea46`](https://github.com/byron/prodash/commit/967ea46b71c2bb44f7cd75524d101c4bfd2df0bf))
+    - Fix use of `DynNestedProgress` as trait object ([`7eb69ac`](https://github.com/byron/prodash/commit/7eb69ac3f4946c72a0598b3021153045f3e9626b))
+</details>
+
+## 26.2.1 (2023-09-06)
+
+### Bug Fixes
+
+ - <csr-id-53ea2b81292a5062816bb12af0ab4f7931d5d2fa/> Add missing forwardings for various methods.
+   Not having these could lead to incorrect thoughput display.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release prodash v26.2.1 ([`f37161f`](https://github.com/byron/prodash/commit/f37161f49f65991fd97ad855cf23a4f0ace3c9bb))
+    - Add missing forwardings for various methods. ([`53ea2b8`](https://github.com/byron/prodash/commit/53ea2b81292a5062816bb12af0ab4f7931d5d2fa))
+</details>
+
+## 26.2.0 (2023-09-05)
+
+### New Features
+
+ - <csr-id-b3cae191413653feef62808b60b7eea52145e55e/> add `BoxedProgress` type that implements `Progress`.
+   This makes working with boxed progress even more flexible.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release prodash v26.2.0 ([`8f26902`](https://github.com/byron/prodash/commit/8f2690254576e32624abbfc4b5e18283e7e542f7))
+    - Add `BoxedProgress` type that implements `Progress`. ([`b3cae19`](https://github.com/byron/prodash/commit/b3cae191413653feef62808b60b7eea52145e55e))
+</details>
+
+## 26.1.0 (2023-09-04)
+
+### New Features
+
+ - <csr-id-0705a734b401d44657be59e83e4cbf58cb4484a8/> add `progress::AtomicStep` to allow referring to it.
+   Previously, only `StepShared` was available, which implies an `Arc`.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release prodash v26.1.0 ([`05bc923`](https://github.com/byron/prodash/commit/05bc92395aeeaf498ab46e479decf1ae71382835))
+    - Add `progress::AtomicStep` to allow referring to it. ([`0705a73`](https://github.com/byron/prodash/commit/0705a734b401d44657be59e83e4cbf58cb4484a8))
+</details>
+
+## 26.0.0 (2023-09-04)
+
+This release is all about making `dyn` possible both for nested progress, as well as for 'simple' one (previously known as `RawProgress`).
+Switching to this release naturally makes it possible for users of `Progress` to also use `dyn Progress`, as this trait is now object safe (formerly `RawProgress`).
+If there are compile errors, the code now needs `NestedProgress`, instead of `Progress`, and possibly the import of the `Count` trait.
+Finally, it's recommended to review all usages of `Progress` as they can possibly be replaced with `Count` which provides the guarantee that only counting happens,
+and no change of the progress information itself.
+
+### New Features (BREAKING)
+
+ - <csr-id-6aba6e34f3e39bba5e609a0bc780c758cb43c821/> split `Progress` into various super-traits to allow most of them to be dyn-safe.
+   `Progress` is now `NestedProgress`, `RawProgress` is now `Progress`, and there is
+   a new `Count` trait for solely counting things.
+ - <csr-id-6c60835ae49487a220b1817bc6cea3ebc8bf1aff/> `Progress::counter()` is now mandatory.
+   This should simplify downstream code and we just accept that we are dealing
+   with a threaded world.
+   This also comes with performance improvements as increments are now 250% faster.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 9 commits contributed to the release.
+ - 13 days passed between releases.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release prodash v26.0.0 ([`6b94f28`](https://github.com/byron/prodash/commit/6b94f28102b3133e4c1cba3765b55108c528b534))
+    - Merge branch 'simplify' ([`5e21df7`](https://github.com/byron/prodash/commit/5e21df796d4c8ddefd71ee1a35df3b591c6d5e58))
+    - `Progress::counter()` is now mandatory. ([`6c60835`](https://github.com/byron/prodash/commit/6c60835ae49487a220b1817bc6cea3ebc8bf1aff))
+    - Prepare release ([`e1e282a`](https://github.com/byron/prodash/commit/e1e282aa37fc753884407339196809f2b0b72d2d))
+    - Fixup nested dyn-traits ([`5e76abf`](https://github.com/byron/prodash/commit/5e76abfbf8dc18afddea68873c50cce677450a54))
+    - Merge branch 'feat/dyn-progress' into simplify ([`c1590e4`](https://github.com/byron/prodash/commit/c1590e4650a9ffcf96a216f6a9fe82a1cf7cc10e))
+    - Split `Progress` into various super-traits to allow most of them to be dyn-safe. ([`6aba6e3`](https://github.com/byron/prodash/commit/6aba6e34f3e39bba5e609a0bc780c758cb43c821))
+    - Add benchmarks for dyn-traits ([`9d03124`](https://github.com/byron/prodash/commit/9d03124667935314a9d4c8e52886b994967f2671))
+    - Refactor ([`54094b6`](https://github.com/byron/prodash/commit/54094b63289446f0582c6b49a666b5d993625dff))
+</details>
+
+## 25.0.2 (2023-08-22)
+
+<csr-id-05741765491984487beea7326eff9863b669ab51/>
+
+### Chore
+
+ - <csr-id-05741765491984487beea7326eff9863b669ab51/> Adjusting changelogs prior to release of prodash v25.0.2
+
+### New Features
+
+ - <csr-id-24d0b2aaa58978990fea90c2f3b387e238acf966/> Add new trait `DynProgress` & type `BoxedDynProgress`
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 4 commits contributed to the release over the course of 2 calendar days.
+ - 37 days passed between releases.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release prodash v25.0.2 ([`abcc61b`](https://github.com/byron/prodash/commit/abcc61b456e75d4f700f3c476849d7c36c3ece15))
+    - Adjusting changelogs prior to release of prodash v25.0.2 ([`0574176`](https://github.com/byron/prodash/commit/05741765491984487beea7326eff9863b669ab51))
+    - Remove `atty` in favor of `is-terminal` ([`2bfe9ad`](https://github.com/byron/prodash/commit/2bfe9adca357cf48d7310036684eeb85efa5ef46))
+    - Add new trait `DynProgress` & type `BoxedDynProgress` ([`24d0b2a`](https://github.com/byron/prodash/commit/24d0b2aaa58978990fea90c2f3b387e238acf966))
+</details>
+
+## 25.0.1 (2023-07-16)
+
+### Bug Fixes
+
+ - <csr-id-17dd8f64563dd96ca454494e24a7f229716f6b1f/> `log` progress now supports a shared counter, just like the tree-item implementation
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 4 commits contributed to the release.
+ - 60 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release prodash v25.0.1 ([`3ad8226`](https://github.com/byron/prodash/commit/3ad8226fd7825669d843a9c1bde001de1b702049))
+    - Merge branch 'log-fixes' ([`a38d22c`](https://github.com/byron/prodash/commit/a38d22cf10068ce4275d65eb3e74652c2977b7e2))
+    - Upgrade criterion to the latest version, it compiles more quickly. ([`78272c0`](https://github.com/byron/prodash/commit/78272c0f2a243b9e07165813a0eacc6ade623b90))
+    - `log` progress now supports a shared counter, just like the tree-item implementation ([`17dd8f6`](https://github.com/byron/prodash/commit/17dd8f64563dd96ca454494e24a7f229716f6b1f))
+</details>
+
 ## 25.0.0 (2023-05-16)
 
 ### New Features
@@ -26,7 +237,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 2 commits contributed to the release.
+ - 3 commits contributed to the release.
  - 5 days passed between releases.
  - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -38,6 +249,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release prodash v25.0.0 ([`02fcb9b`](https://github.com/byron/prodash/commit/02fcb9bd40ff9c03a46ce68926995a9614328ae0))
     - Make messaging functions thread-safe by taking shared borrow and requring `Sync`. ([`84d96c7`](https://github.com/byron/prodash/commit/84d96c7b6ab07462d6c20147958d5aa1a58a688e))
     - Introduce the object-safe `RawProgress` trait. ([`8941f4b`](https://github.com/byron/prodash/commit/8941f4b5b9c0d00dfd7b82c756b128982f163a06))
 </details>

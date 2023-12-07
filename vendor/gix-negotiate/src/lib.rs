@@ -46,7 +46,7 @@ bitflags::bitflags! {
 /// Additional data to store with each commit when used by any of our algorithms.
 ///
 /// It's shared among those who use the [`Negotiator`] trait, and all implementations of it.
-#[derive(Default, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Metadata {
     /// Used by `skipping`.
     /// Only used if commit is not COMMON
@@ -58,7 +58,10 @@ pub struct Metadata {
 }
 
 /// The graph our callers use to store traversal information, for (re-)use in the negotiation implementation.
-pub type Graph<'find> = gix_revision::Graph<'find, gix_revision::graph::Commit<Metadata>>;
+pub type Graph<'find> = gix_revwalk::Graph<'find, gix_revwalk::graph::Commit<Metadata>>;
+
+/// A map associating an object id with its commit-metadata.
+pub type IdMap = gix_revwalk::graph::IdMap<gix_revwalk::graph::Commit<Metadata>>;
 
 /// The way the negotiation is performed.
 #[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
@@ -85,8 +88,8 @@ impl std::fmt::Display for Algorithm {
 
 /// Calculate how many `HAVE` lines we may send in one round, with variation depending on whether the `transport_is_stateless` or not.
 /// `window_size` is the previous (or initial) value of the window size.
-pub fn window_size(transport_is_stateless: bool, window_size: impl Into<Option<usize>>) -> usize {
-    let current_size = match window_size.into() {
+pub fn window_size(transport_is_stateless: bool, window_size: Option<usize>) -> usize {
+    let current_size = match window_size {
         None => return 16,
         Some(cs) => cs,
     };
@@ -141,4 +144,4 @@ pub trait Negotiator {
 }
 
 /// An error that happened during any of the methods on a [`Negotiator`].
-pub type Error = gix_revision::graph::lookup::commit::Error;
+pub type Error = gix_revwalk::graph::lookup::commit::Error;

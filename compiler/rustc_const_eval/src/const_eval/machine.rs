@@ -3,7 +3,7 @@ use rustc_hir::{LangItem, CRATE_HIR_ID};
 use rustc_middle::mir;
 use rustc_middle::mir::interpret::PointerArithmetic;
 use rustc_middle::ty::layout::{FnAbiOf, TyAndLayout};
-use rustc_middle::ty::{self, Ty, TyCtxt};
+use rustc_middle::ty::{self, TyCtxt};
 use rustc_session::lint::builtin::INVALID_ALIGNMENT;
 use std::borrow::Borrow;
 use std::hash::Hash;
@@ -464,6 +464,13 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for CompileTimeInterpreter<'mir,
         Ok(Some((ecx.load_mir(instance.def, None)?, orig_instance)))
     }
 
+    fn panic_nounwind(ecx: &mut InterpCx<'mir, 'tcx, Self>, msg: &str) -> InterpResult<'tcx> {
+        let msg = Symbol::intern(msg);
+        let span = ecx.find_closest_untracked_caller_location();
+        let (file, line, col) = ecx.location_triple_for_span(span);
+        Err(ConstEvalErrKind::Panic { msg, file, line, col }.into())
+    }
+
     fn call_intrinsic(
         ecx: &mut InterpCx<'mir, 'tcx, Self>,
         instance: ty::Instance<'tcx>,
@@ -584,16 +591,12 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for CompileTimeInterpreter<'mir,
         Err(ConstEvalErrKind::AssertFailure(err).into())
     }
 
-    fn abort(_ecx: &mut InterpCx<'mir, 'tcx, Self>, msg: String) -> InterpResult<'tcx, !> {
-        Err(ConstEvalErrKind::Abort(msg).into())
-    }
-
     fn binary_ptr_op(
         _ecx: &InterpCx<'mir, 'tcx, Self>,
         _bin_op: mir::BinOp,
         _left: &ImmTy<'tcx>,
         _right: &ImmTy<'tcx>,
-    ) -> InterpResult<'tcx, (Scalar, bool, Ty<'tcx>)> {
+    ) -> InterpResult<'tcx, (ImmTy<'tcx>, bool)> {
         throw_unsup_format!("pointer arithmetic or comparison is not supported at compile-time");
     }
 

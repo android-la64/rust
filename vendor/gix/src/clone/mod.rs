@@ -68,20 +68,37 @@ impl PrepareFetch {
         url: Url,
         path: impl AsRef<std::path::Path>,
         kind: crate::create::Kind,
-        mut create_opts: crate::create::Options,
+        create_opts: crate::create::Options,
         open_opts: crate::open::Options,
     ) -> Result<Self, Error>
     where
         Url: TryInto<gix_url::Url, Error = E>,
         gix_url::parse::Error: From<E>,
     {
-        let mut url = url.try_into().map_err(gix_url::parse::Error::from)?;
-        url.canonicalize().map_err(|err| Error::CanonicalizeUrl {
-            url: url.clone(),
-            source: err,
-        })?;
+        Self::new_inner(
+            url.try_into().map_err(gix_url::parse::Error::from)?,
+            path.as_ref(),
+            kind,
+            create_opts,
+            open_opts,
+        )
+    }
+
+    #[allow(clippy::result_large_err)]
+    fn new_inner(
+        mut url: gix_url::Url,
+        path: &std::path::Path,
+        kind: crate::create::Kind,
+        mut create_opts: crate::create::Options,
+        open_opts: crate::open::Options,
+    ) -> Result<Self, Error> {
         create_opts.destination_must_be_empty = true;
         let mut repo = crate::ThreadSafeRepository::init_opts(path, kind, create_opts, open_opts)?.to_thread_local();
+        url.canonicalize(repo.options.current_dir_or_empty())
+            .map_err(|err| Error::CanonicalizeUrl {
+                url: url.clone(),
+                source: err,
+            })?;
         if repo.committer().is_none() {
             let mut config = gix_config::File::new(gix_config::file::Metadata::api());
             config
@@ -121,6 +138,7 @@ impl PrepareFetch {
 /// A utility to collect configuration on how to perform a checkout into a working tree, and when dropped without checking out successfully
 /// the fetched repository will be dropped.
 #[must_use]
+#[cfg(feature = "worktree-mutation")]
 pub struct PrepareCheckout {
     /// A freshly initialized repository which is owned by us, or `None` if it was handed to the user
     pub(self) repo: Option<crate::Repository>,
@@ -164,4 +182,5 @@ mod access_feat {
 pub mod fetch;
 
 ///
+#[cfg(feature = "worktree-mutation")]
 pub mod checkout;

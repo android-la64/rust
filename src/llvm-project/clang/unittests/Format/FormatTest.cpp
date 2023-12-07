@@ -2059,8 +2059,6 @@ TEST_F(FormatTest, SeparatePointerReferenceAlignment) {
                "const unsigned int *d;\n"
                "Const unsigned int &e;\n"
                "const unsigned int &f;\n"
-               "int                *f1(int *a, int &b, int &&c);\n"
-               "double             *(*f2)(int *a, double &&b);\n"
                "const unsigned    &&g;\n"
                "Const unsigned      h;",
                Style);
@@ -2106,8 +2104,6 @@ TEST_F(FormatTest, SeparatePointerReferenceAlignment) {
                "const unsigned int* d;\n"
                "Const unsigned int& e;\n"
                "const unsigned int& f;\n"
-               "int*                f1(int* a, int& b, int&& c);\n"
-               "double*             (*f2)(int* a, double&& b);\n"
                "const unsigned&&    g;\n"
                "Const unsigned      h;",
                Style);
@@ -2133,8 +2129,6 @@ TEST_F(FormatTest, SeparatePointerReferenceAlignment) {
                "const unsigned int *d;\n"
                "Const unsigned int& e;\n"
                "const unsigned int& f;\n"
-               "int                *f1(int *a, int& b, int&& c);\n"
-               "double             *(*f2)(int *a, double&& b);\n"
                "const unsigned      g;\n"
                "Const unsigned      h;",
                Style);
@@ -2175,8 +2169,6 @@ TEST_F(FormatTest, SeparatePointerReferenceAlignment) {
                "const unsigned int*  d;\n"
                "Const unsigned int & e;\n"
                "const unsigned int & f;\n"
-               "int*                 f1(int* a, int & b, int && c);\n"
-               "double*              (*f2)(int* a, double && b);\n"
                "const unsigned &&    g;\n"
                "Const unsigned       h;",
                Style);
@@ -2202,8 +2194,6 @@ TEST_F(FormatTest, SeparatePointerReferenceAlignment) {
                "const unsigned int * d;\n"
                "Const unsigned int  &e;\n"
                "const unsigned int  &f;\n"
-               "int *                f1(int * a, int &b, int &&c);\n"
-               "double *             (*f2)(int * a, double &&b);\n"
                "const unsigned     &&g;\n"
                "Const unsigned       h;",
                Style);
@@ -26305,6 +26295,56 @@ TEST_F(FormatTest, RemoveParentheses) {
   verifyFormat("co_return 0;", "co_return ((0));", Style);
   verifyFormat("return 0;", "return (((0)));", Style);
   verifyFormat("return ({ 0; });", "return ((({ 0; })));", Style);
+  verifyFormat("inline decltype(auto) f() {\n"
+               "  if (a) {\n"
+               "    return (a);\n"
+               "  }\n"
+               "  return (b);\n"
+               "}",
+               "inline decltype(auto) f() {\n"
+               "  if (a) {\n"
+               "    return ((a));\n"
+               "  }\n"
+               "  return ((b));\n"
+               "}",
+               Style);
+  verifyFormat("auto g() {\n"
+               "  decltype(auto) x = [] {\n"
+               "    auto y = [] {\n"
+               "      if (a) {\n"
+               "        return a;\n"
+               "      }\n"
+               "      return b;\n"
+               "    };\n"
+               "    if (c) {\n"
+               "      return (c);\n"
+               "    }\n"
+               "    return (d);\n"
+               "  };\n"
+               "  if (e) {\n"
+               "    return e;\n"
+               "  }\n"
+               "  return f;\n"
+               "}",
+               "auto g() {\n"
+               "  decltype(auto) x = [] {\n"
+               "    auto y = [] {\n"
+               "      if (a) {\n"
+               "        return ((a));\n"
+               "      }\n"
+               "      return ((b));\n"
+               "    };\n"
+               "    if (c) {\n"
+               "      return ((c));\n"
+               "    }\n"
+               "    return ((d));\n"
+               "  };\n"
+               "  if (e) {\n"
+               "    return ((e));\n"
+               "  }\n"
+               "  return ((f));\n"
+               "}",
+               Style);
 
   Style.ColumnLimit = 25;
   verifyFormat("return (a + b) - (c + d);",

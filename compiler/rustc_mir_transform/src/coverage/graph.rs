@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use rustc_data_structures::graph::dominators::{self, Dominators};
 use rustc_data_structures::graph::{self, GraphSuccessors, WithNumNodes, WithStartNode};
 use rustc_index::bit_set::BitSet;
@@ -7,8 +6,6 @@ use rustc_middle::mir::{self, BasicBlock, BasicBlockData, Terminator, Terminator
 
 use std::cmp::Ordering;
 use std::ops::{Index, IndexMut};
-
-const ID_SEPARATOR: &str = ",";
 
 /// A coverage-specific simplification of the MIR control flow graph (CFG). The `CoverageGraph`s
 /// nodes are `BasicCoverageBlock`s, which encompass one or more MIR `BasicBlock`s.
@@ -116,7 +113,7 @@ impl CoverageGraph {
 
             match term.kind {
                 TerminatorKind::Return { .. }
-                | TerminatorKind::Terminate
+                | TerminatorKind::UnwindTerminate(_)
                 | TerminatorKind::Yield { .. }
                 | TerminatorKind::SwitchInt { .. } => {
                     // The `bb` has more than one _outgoing_ edge, or exits the function. Save the
@@ -146,7 +143,7 @@ impl CoverageGraph {
                 // is as intended. (See Issue #78544 for a possible future option to support
                 // coverage in test programs that panic.)
                 TerminatorKind::Goto { .. }
-                | TerminatorKind::Resume
+                | TerminatorKind::UnwindResume
                 | TerminatorKind::Unreachable
                 | TerminatorKind::Drop { .. }
                 | TerminatorKind::Call { .. }
@@ -199,12 +196,8 @@ impl CoverageGraph {
     }
 
     #[inline(always)]
-    pub fn rank_partial_cmp(
-        &self,
-        a: BasicCoverageBlock,
-        b: BasicCoverageBlock,
-    ) -> Option<Ordering> {
-        self.dominators.as_ref().unwrap().rank_partial_cmp(a, b)
+    pub fn cmp_in_dominator_order(&self, a: BasicCoverageBlock, b: BasicCoverageBlock) -> Ordering {
+        self.dominators.as_ref().unwrap().cmp_in_dominator_order(a, b)
     }
 }
 
@@ -327,10 +320,6 @@ impl BasicCoverageBlockData {
     #[inline(always)]
     pub fn terminator<'a, 'tcx>(&self, mir_body: &'a mir::Body<'tcx>) -> &'a Terminator<'tcx> {
         &mir_body[self.last_bb()].terminator()
-    }
-
-    pub fn id(&self) -> String {
-        format!("@{}", self.basic_blocks.iter().map(|bb| bb.index().to_string()).join(ID_SEPARATOR))
     }
 }
 

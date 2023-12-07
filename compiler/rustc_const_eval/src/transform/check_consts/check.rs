@@ -167,7 +167,7 @@ impl<'mir, 'tcx> Qualifs<'mir, 'tcx> {
                 false
             }
 
-            hir::ConstContext::Const | hir::ConstContext::Static(_) => {
+            hir::ConstContext::Const { .. } | hir::ConstContext::Static(_) => {
                 let mut cursor = FlowSensitiveAnalysis::new(CustomEq, ccx)
                     .into_engine(ccx.tcx, &ccx.body)
                     .iterate_to_fixpoint()
@@ -415,8 +415,8 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                         BorrowKind::Shared => {
                             PlaceContext::NonMutatingUse(NonMutatingUseContext::SharedBorrow)
                         }
-                        BorrowKind::Shallow => {
-                            PlaceContext::NonMutatingUse(NonMutatingUseContext::ShallowBorrow)
+                        BorrowKind::Fake => {
+                            PlaceContext::NonMutatingUse(NonMutatingUseContext::FakeBorrow)
                         }
                         BorrowKind::Mut { .. } => {
                             PlaceContext::MutatingUse(MutatingUseContext::Borrow)
@@ -491,7 +491,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                 self.check_mut_borrow(place.local, hir::BorrowKind::Raw)
             }
 
-            Rvalue::Ref(_, BorrowKind::Shared | BorrowKind::Shallow, place)
+            Rvalue::Ref(_, BorrowKind::Shared | BorrowKind::Fake, place)
             | Rvalue::AddressOf(Mutability::Not, place) => {
                 let borrowed_place_has_mut_interior = qualifs::in_place::<HasMutInterior, _>(
                     &self.ccx,
@@ -664,6 +664,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
             | ProjectionElem::Downcast(..)
             | ProjectionElem::OpaqueCast(..)
             | ProjectionElem::Subslice { .. }
+            | ProjectionElem::Subtype(..)
             | ProjectionElem::Field(..)
             | ProjectionElem::Index(_) => {}
         }
@@ -1037,7 +1038,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                 self.check_op(ops::Generator(hir::GeneratorKind::Gen))
             }
 
-            TerminatorKind::Terminate => {
+            TerminatorKind::UnwindTerminate(_) => {
                 // Cleanup blocks are skipped for const checking (see `visit_basic_block_data`).
                 span_bug!(self.span, "`Terminate` terminator outside of cleanup block")
             }
@@ -1046,7 +1047,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
             | TerminatorKind::FalseEdge { .. }
             | TerminatorKind::FalseUnwind { .. }
             | TerminatorKind::Goto { .. }
-            | TerminatorKind::Resume
+            | TerminatorKind::UnwindResume
             | TerminatorKind::Return
             | TerminatorKind::SwitchInt { .. }
             | TerminatorKind::Unreachable => {}

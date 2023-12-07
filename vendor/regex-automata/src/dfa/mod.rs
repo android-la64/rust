@@ -1,5 +1,5 @@
 /*!
-A module for building and searching with determinstic finite automata (DFAs).
+A module for building and searching with deterministic finite automata (DFAs).
 
 Like other modules in this crate, DFAs support a rich regex syntax with Unicode
 features. DFAs also have extensive options for configuring the best space vs
@@ -26,20 +26,25 @@ DFAs implement. (A `regex::Regex` is generic over this trait.)
 [`dense::DFA::to_bytes_little_endian`]) and cheap deserialization (e.g.,
 [`dense::DFA::from_bytes`]).
 
+There is also a [`onepass`] module that provides a [one-pass
+DFA](onepass::DFA). The unique advantage of this DFA is that, for the class
+of regexes it can be built with, it supports reporting the spans of matching
+capturing groups. It is the only DFA in this crate capable of such a thing.
+
 # Example: basic regex searching
 
 This example shows how to compile a regex using the default configuration
 and then use it to find matches in a byte string:
 
 ```
-use regex_automata::{MultiMatch, dfa::regex::Regex};
+use regex_automata::{Match, dfa::regex::Regex};
 
 let re = Regex::new(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")?;
 let text = b"2018-12-24 2016-10-08";
-let matches: Vec<MultiMatch> = re.find_leftmost_iter(text).collect();
+let matches: Vec<Match> = re.find_iter(text).collect();
 assert_eq!(matches, vec![
-    MultiMatch::must(0, 0, 10),
-    MultiMatch::must(0, 11, 21),
+    Match::must(0, 0..10),
+    Match::must(0, 11..21),
 ]);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
@@ -51,36 +56,15 @@ simultaneously. You can use this support with standard leftmost-first style
 searching to find non-overlapping matches:
 
 ```
-use regex_automata::{MultiMatch, dfa::regex::Regex};
+# if cfg!(miri) { return Ok(()); } // miri takes too long
+use regex_automata::{Match, dfa::regex::Regex};
 
 let re = Regex::new_many(&[r"\w+", r"\S+"])?;
 let text = b"@foo bar";
-let matches: Vec<MultiMatch> = re.find_leftmost_iter(text).collect();
+let matches: Vec<Match> = re.find_iter(text).collect();
 assert_eq!(matches, vec![
-    MultiMatch::must(1, 0, 4),
-    MultiMatch::must(0, 5, 8),
-]);
-# Ok::<(), Box<dyn std::error::Error>>(())
-```
-
-Or use overlapping style searches to find all possible occurrences:
-
-```
-use regex_automata::{MatchKind, MultiMatch, dfa::{dense, regex::Regex}};
-
-// N.B. For overlapping searches, we need the underlying DFA to report all
-// possible matches.
-let re = Regex::builder()
-    .dense(dense::Config::new().match_kind(MatchKind::All))
-    .build_many(&[r"\w{3}", r"\S{3}"])?;
-let text = b"@foo bar";
-let matches: Vec<MultiMatch> = re.find_overlapping_iter(text).collect();
-assert_eq!(matches, vec![
-    MultiMatch::must(1, 0, 3),
-    MultiMatch::must(0, 1, 4),
-    MultiMatch::must(1, 1, 4),
-    MultiMatch::must(0, 5, 8),
-    MultiMatch::must(1, 5, 8),
+    Match::must(1, 0..4),
+    Match::must(0, 5..8),
 ]);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
@@ -96,14 +80,14 @@ Using sparse DFAs is as easy as using `Regex::new_sparse` instead of
 `Regex::new`:
 
 ```
-use regex_automata::{MultiMatch, dfa::regex::Regex};
+use regex_automata::{Match, dfa::regex::Regex};
 
 let re = Regex::new_sparse(r"[0-9]{4}-[0-9]{2}-[0-9]{2}").unwrap();
 let text = b"2018-12-24 2016-10-08";
-let matches: Vec<MultiMatch> = re.find_leftmost_iter(text).collect();
+let matches: Vec<Match> = re.find_iter(text).collect();
 assert_eq!(matches, vec![
-    MultiMatch::must(0, 0, 10),
-    MultiMatch::must(0, 11, 21),
+    Match::must(0, 0..10),
+    Match::must(0, 11..21),
 ]);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
@@ -112,7 +96,7 @@ If you already have dense DFAs for some reason, they can be converted to sparse
 DFAs and used to build a new `Regex`. For example:
 
 ```
-use regex_automata::{MultiMatch, dfa::regex::Regex};
+use regex_automata::{Match, dfa::regex::Regex};
 
 let dense_re = Regex::new(r"[0-9]{4}-[0-9]{2}-[0-9]{2}").unwrap();
 let sparse_re = Regex::builder().build_from_dfas(
@@ -120,10 +104,10 @@ let sparse_re = Regex::builder().build_from_dfas(
     dense_re.reverse().to_sparse()?,
 );
 let text = b"2018-12-24 2016-10-08";
-let matches: Vec<MultiMatch> = sparse_re.find_leftmost_iter(text).collect();
+let matches: Vec<Match> = sparse_re.find_iter(text).collect();
 assert_eq!(matches, vec![
-    MultiMatch::must(0, 0, 10),
-    MultiMatch::must(0, 11, 21),
+    Match::must(0, 0..10),
+    Match::must(0, 11..21),
 ]);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
@@ -136,7 +120,7 @@ bit contrived, this same technique can be used in your program to
 deserialize a DFA at start up time or by memory mapping a file.
 
 ```
-use regex_automata::{MultiMatch, dfa::{dense, regex::Regex}};
+use regex_automata::{Match, dfa::{dense, regex::Regex}};
 
 let re1 = Regex::new(r"[0-9]{4}-[0-9]{2}-[0-9]{2}").unwrap();
 // serialize both the forward and reverse DFAs, see note below
@@ -150,10 +134,10 @@ let re2 = Regex::builder().build_from_dfas(fwd, rev);
 
 // we can use it like normal
 let text = b"2018-12-24 2016-10-08";
-let matches: Vec<MultiMatch> = re2.find_leftmost_iter(text).collect();
+let matches: Vec<Match> = re2.find_iter(text).collect();
 assert_eq!(matches, vec![
-    MultiMatch::must(0, 0, 10),
-    MultiMatch::must(0, 11, 21),
+    Match::must(0, 0..10),
+    Match::must(0, 11..21),
 ]);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
@@ -183,7 +167,7 @@ valid DFA.
 The same process can be achieved with sparse DFAs as well:
 
 ```
-use regex_automata::{MultiMatch, dfa::{sparse, regex::Regex}};
+use regex_automata::{Match, dfa::{sparse, regex::Regex}};
 
 let re1 = Regex::new(r"[0-9]{4}-[0-9]{2}-[0-9]{2}").unwrap();
 // serialize both
@@ -197,17 +181,17 @@ let re2 = Regex::builder().build_from_dfas(fwd, rev);
 
 // we can use it like normal
 let text = b"2018-12-24 2016-10-08";
-let matches: Vec<MultiMatch> = re2.find_leftmost_iter(text).collect();
+let matches: Vec<Match> = re2.find_iter(text).collect();
 assert_eq!(matches, vec![
-    MultiMatch::must(0, 0, 10),
-    MultiMatch::must(0, 11, 21),
+    Match::must(0, 0..10),
+    Match::must(0, 11..21),
 ]);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
 Note that unlike dense DFAs, sparse DFAs have no alignment requirements.
 Conversely, dense DFAs must be be aligned to the same alignment as a
-[`StateID`](crate::util::id::StateID).
+[`StateID`](crate::util::primitives::StateID).
 
 # Support for `no_std` and `alloc`-only
 
@@ -232,8 +216,8 @@ you would any regex.
 Deserialization can happen anywhere. For example, with bytes embedded into a
 binary or with a file memory mapped at runtime.
 
-TODO: Include link to `regex-cli` here pointing out how to generate Rust code
-for deserializing DFAs.
+The `regex-cli` command (found in the same repository as this crate) can be
+used to serialize DFAs to files and generate Rust code to read them.
 
 # Syntax
 
@@ -283,7 +267,7 @@ the regexes in this module are almost universally slow to compile, especially
 when they contain large Unicode character classes. For example, on my system,
 compiling `\w{50}` takes about 1 second and almost 15MB of memory! (Compiling
 a sparse regex takes about the same time but only uses about 1.2MB of
-memory.) Conversly, compiling the same regex without Unicode support, e.g.,
+memory.) Conversely, compiling the same regex without Unicode support, e.g.,
 `(?-u)\w{50}`, takes under 1 millisecond and about 15KB of memory. For this
 reason, you should only use Unicode character classes if you absolutely need
 them! (They are enabled by default though.)
@@ -299,10 +283,10 @@ optimizations means that searches may run much slower than what you're
 accustomed to, although, it does provide more predictable and consistent
 performance.
 * There is no `&str` API like in the regex crate. In this module, all APIs
-operate on `&[u8]`. By default, match indices are guaranteed to fall on UTF-8
-boundaries, unless any of [`SyntaxConfig::utf8`](crate::SyntaxConfig::utf8),
-[`nfa::thompson::Config::utf8`](crate::nfa::thompson::Config::utf8) or
-[`regex::Config::utf8`] are disabled.
+operate on `&[u8]`. By default, match indices are
+guaranteed to fall on UTF-8 boundaries, unless either of
+[`syntax::Config::utf8`](crate::util::syntax::Config::utf8) or
+[`thompson::Config::utf8`](crate::nfa::thompson::Config::utf8) are disabled.
 
 With some of the downsides out of the way, here are some positive differences:
 
@@ -334,9 +318,11 @@ via [`dense::Config::minimize`], but it can increase compilation times
 dramatically.
 */
 
-pub use crate::dfa::automaton::{Automaton, OverlappingState};
-#[cfg(feature = "alloc")]
-pub use crate::dfa::error::Error;
+#[cfg(feature = "dfa-search")]
+pub use crate::dfa::{
+    automaton::{Automaton, OverlappingState},
+    start::StartKind,
+};
 
 /// This is an alias for a state ID of zero. It has special significance
 /// because it always corresponds to the first state in a DFA, and the first
@@ -344,20 +330,31 @@ pub use crate::dfa::error::Error;
 /// of its transitions set to itself. Moreover, the dead state is used as a
 /// sentinel for various things. e.g., In search, reaching a dead state means
 /// that the search must stop.
-const DEAD: crate::util::id::StateID = crate::util::id::StateID::ZERO;
+const DEAD: crate::util::primitives::StateID =
+    crate::util::primitives::StateID::ZERO;
 
-mod accel;
-mod automaton;
+#[cfg(feature = "dfa-search")]
 pub mod dense;
-#[cfg(feature = "alloc")]
-mod determinize;
-#[cfg(feature = "alloc")]
-pub(crate) mod error;
-#[cfg(feature = "alloc")]
-mod minimize;
+#[cfg(feature = "dfa-onepass")]
+pub mod onepass;
+#[cfg(feature = "dfa-search")]
 pub mod regex;
-mod search;
+#[cfg(feature = "dfa-search")]
 pub mod sparse;
+
+#[cfg(feature = "dfa-search")]
+pub(crate) mod accel;
+#[cfg(feature = "dfa-search")]
+mod automaton;
+#[cfg(feature = "dfa-build")]
+mod determinize;
+#[cfg(feature = "dfa-build")]
+mod minimize;
+#[cfg(any(feature = "dfa-build", feature = "dfa-onepass"))]
+mod remapper;
+#[cfg(feature = "dfa-search")]
+mod search;
+#[cfg(feature = "dfa-search")]
 mod special;
-#[cfg(feature = "transducer")]
-mod transducer;
+#[cfg(feature = "dfa-search")]
+mod start;

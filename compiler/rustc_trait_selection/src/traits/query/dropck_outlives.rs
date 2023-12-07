@@ -36,7 +36,6 @@ pub fn trivial_dropck_outlives<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
         | ty::FnPtr(_)
         | ty::Char
         | ty::GeneratorWitness(..)
-        | ty::GeneratorWitnessMIR(..)
         | ty::RawPtr(_)
         | ty::Ref(..)
         | ty::Str
@@ -134,7 +133,7 @@ pub fn compute_dropck_outlives_inner<'tcx>(
             result.overflows.len(),
             ty_stack.len()
         );
-        dtorck_constraint_for_ty_inner(tcx, DUMMY_SP, for_ty, depth, ty, &mut constraints)?;
+        dtorck_constraint_for_ty_inner(tcx, param_env, DUMMY_SP, depth, ty, &mut constraints)?;
 
         // "outlives" represent types/regions that may be touched
         // by a destructor.
@@ -186,16 +185,15 @@ pub fn compute_dropck_outlives_inner<'tcx>(
 
 /// Returns a set of constraints that needs to be satisfied in
 /// order for `ty` to be valid for destruction.
+#[instrument(level = "debug", skip(tcx, param_env, span, constraints))]
 pub fn dtorck_constraint_for_ty_inner<'tcx>(
     tcx: TyCtxt<'tcx>,
+    param_env: ty::ParamEnv<'tcx>,
     span: Span,
-    for_ty: Ty<'tcx>,
     depth: usize,
     ty: Ty<'tcx>,
     constraints: &mut DropckConstraint<'tcx>,
 ) -> Result<(), NoSolution> {
-    debug!("dtorck_constraint_for_ty_inner({:?}, {:?}, {:?}, {:?})", span, for_ty, depth, ty);
-
     if !tcx.recursion_limit().value_within_limit(depth) {
         constraints.overflows.push(ty);
         return Ok(());
@@ -218,21 +216,20 @@ pub fn dtorck_constraint_for_ty_inner<'tcx>(
         | ty::Ref(..)
         | ty::FnDef(..)
         | ty::FnPtr(_)
-        | ty::GeneratorWitness(..)
-        | ty::GeneratorWitnessMIR(..) => {
+        | ty::GeneratorWitness(..) => {
             // these types never have a destructor
         }
 
         ty::Array(ety, _) | ty::Slice(ety) => {
             // single-element containers, behave like their element
             rustc_data_structures::stack::ensure_sufficient_stack(|| {
-                dtorck_constraint_for_ty_inner(tcx, span, for_ty, depth + 1, *ety, constraints)
+                dtorck_constraint_for_ty_inner(tcx, param_env, span, depth + 1, *ety, constraints)
             })?;
         }
 
         ty::Tuple(tys) => rustc_data_structures::stack::ensure_sufficient_stack(|| {
             for ty in tys.iter() {
-                dtorck_constraint_for_ty_inner(tcx, span, for_ty, depth + 1, ty, constraints)?;
+                dtorck_constraint_for_ty_inner(tcx, param_env, span, depth + 1, ty, constraints)?;
             }
             Ok::<_, NoSolution>(())
         })?,
@@ -251,7 +248,14 @@ pub fn dtorck_constraint_for_ty_inner<'tcx>(
 
             rustc_data_structures::stack::ensure_sufficient_stack(|| {
                 for ty in args.as_closure().upvar_tys() {
-                    dtorck_constraint_for_ty_inner(tcx, span, for_ty, depth + 1, ty, constraints)?;
+                    dtorck_constraint_for_ty_inner(
+                        tcx,
+                        param_env,
+                        span,
+                        depth + 1,
+                        ty,
+                        constraints,
+                    )?;
                 }
                 Ok::<_, NoSolution>(())
             })?
@@ -280,8 +284,8 @@ pub fn dtorck_constraint_for_ty_inner<'tcx>(
             // only take place through references with lifetimes
             // derived from lifetimes attached to the upvars and resume
             // argument, and we *do* incorporate those here.
-
-            if !args.as_generator().is_valid() {
+            let args = args.as_generator();
+            if !args.is_valid() {
                 // By the time this code runs, all type variables ought to
                 // be fully resolved.
                 tcx.sess.delay_span_bug(
@@ -291,10 +295,13 @@ pub fn dtorck_constraint_for_ty_inner<'tcx>(
                 return Err(NoSolution);
             }
 
-            constraints
-                .outlives
-                .extend(args.as_generator().upvar_tys().iter().map(ty::GenericArg::from));
-            constraints.outlives.push(args.as_generator().resume_ty().into());
+            // While we conservatively assume that all coroutines require drop
+            // to avoid query cycles during MIR building, we can check the actual
+            // witness during borrowck to avoid unnecessary liveness constraints.
+            if args.witness().needs_drop(tcx, tcx.erase_regions(param_env)) {
+                constraints.outlives.extend(args.upvar_tys().iter().map(ty::GenericArg::from));
+                constraints.outlives.push(args.resume_ty().into());
+            }
         }
 
         ty::Adt(def, args) => {

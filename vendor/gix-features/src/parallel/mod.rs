@@ -35,11 +35,13 @@
 #[cfg(feature = "parallel")]
 mod in_parallel;
 #[cfg(feature = "parallel")]
-pub use in_parallel::{build_thread, in_parallel, in_parallel_with_slice, join, threads, Scope};
+pub use in_parallel::{
+    build_thread, in_parallel, in_parallel_with_finalize, in_parallel_with_slice, join, threads, Scope,
+};
 
 mod serial;
 #[cfg(not(feature = "parallel"))]
-pub use serial::{build_thread, in_parallel, in_parallel_with_slice, join, threads, Scope};
+pub use serial::{build_thread, in_parallel, in_parallel_with_finalize, in_parallel_with_slice, join, threads, Scope};
 
 mod in_order;
 pub use in_order::{InOrderIter, SequenceId};
@@ -79,7 +81,7 @@ pub fn optimize_chunk_size_and_thread_limit(
     available_threads: Option<usize>,
 ) -> (usize, Option<usize>, usize) {
     let available_threads =
-        available_threads.unwrap_or_else(|| std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1));
+        available_threads.unwrap_or_else(|| std::thread::available_parallelism().map_or(1, Into::into));
     let available_threads = thread_limit.map_or(available_threads, |l| if l == 0 { available_threads } else { l });
 
     let (lower, upper) = (50, 1000);
@@ -121,7 +123,7 @@ pub fn num_threads(_thread_limit: Option<usize>) -> usize {
 /// Only available with the `parallel` feature toggle set.
 #[cfg(feature = "parallel")]
 pub fn num_threads(thread_limit: Option<usize>) -> usize {
-    let logical_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
+    let logical_cores = std::thread::available_parallelism().map_or(1, Into::into);
     thread_limit.map_or(logical_cores, |l| if l == 0 { logical_cores } else { l })
 }
 
@@ -133,7 +135,7 @@ pub fn in_parallel_if<I, S, O, R>(
     condition: impl FnOnce() -> bool,
     input: impl Iterator<Item = I> + Send,
     thread_limit: Option<usize>,
-    new_thread_state: impl Fn(usize) -> S + Send + Clone,
+    new_thread_state: impl FnOnce(usize) -> S + Send + Clone,
     consume: impl FnMut(I, &mut S) -> O + Send + Clone,
     reducer: R,
 ) -> Result<<R as Reduce>::Output, <R as Reduce>::Error>
@@ -159,7 +161,7 @@ pub fn in_parallel_if<I, S, O, R>(
     _condition: impl FnOnce() -> bool,
     input: impl Iterator<Item = I>,
     thread_limit: Option<usize>,
-    new_thread_state: impl Fn(usize) -> S,
+    new_thread_state: impl FnOnce(usize) -> S,
     consume: impl FnMut(I, &mut S) -> O,
     reducer: R,
 ) -> Result<<R as Reduce>::Output, <R as Reduce>::Error>

@@ -7,6 +7,7 @@ use std::{
 
 use gix_config::parse::section;
 use gix_discover::DOT_GIT_DIR;
+use gix_macros::momo;
 
 /// The error used in [`into()`].
 #[derive(Debug, thiserror::Error)]
@@ -35,21 +36,20 @@ pub enum Kind {
     Bare,
 }
 
-const TPL_INFO_EXCLUDE: &[u8] = include_bytes!("assets/baseline-init/info/exclude");
-const TPL_HOOKS_APPLYPATCH_MSG: &[u8] = include_bytes!("assets/baseline-init/hooks/applypatch-msg.sample");
-const TPL_HOOKS_COMMIT_MSG: &[u8] = include_bytes!("assets/baseline-init/hooks/commit-msg.sample");
-const TPL_HOOKS_FSMONITOR_WATCHMAN: &[u8] = include_bytes!("assets/baseline-init/hooks/fsmonitor-watchman.sample");
-const TPL_HOOKS_POST_UPDATE: &[u8] = include_bytes!("assets/baseline-init/hooks/post-update.sample");
-const TPL_HOOKS_PRE_APPLYPATCH: &[u8] = include_bytes!("assets/baseline-init/hooks/pre-applypatch.sample");
-const TPL_HOOKS_PRE_COMMIT: &[u8] = include_bytes!("assets/baseline-init/hooks/pre-commit.sample");
-const TPL_HOOKS_PRE_MERGE_COMMIT: &[u8] = include_bytes!("assets/baseline-init/hooks/pre-merge-commit.sample");
-const TPL_HOOKS_PRE_PUSH: &[u8] = include_bytes!("assets/baseline-init/hooks/pre-push.sample");
-const TPL_HOOKS_PRE_REBASE: &[u8] = include_bytes!("assets/baseline-init/hooks/pre-rebase.sample");
-const TPL_HOOKS_PRE_RECEIVE: &[u8] = include_bytes!("assets/baseline-init/hooks/pre-receive.sample");
-const TPL_HOOKS_PREPARE_COMMIT_MSG: &[u8] = include_bytes!("assets/baseline-init/hooks/prepare-commit-msg.sample");
-const TPL_HOOKS_UPDATE: &[u8] = include_bytes!("assets/baseline-init/hooks/update.sample");
-const TPL_DESCRIPTION: &[u8] = include_bytes!("assets/baseline-init/description");
-const TPL_HEAD: &[u8] = include_bytes!("assets/baseline-init/HEAD");
+const TPL_INFO_EXCLUDE: &[u8] = include_bytes!("assets/init/info/exclude");
+const TPL_HOOKS_APPLYPATCH_MSG: &[u8] = include_bytes!("assets/init/hooks/applypatch-msg.sample");
+const TPL_HOOKS_COMMIT_MSG: &[u8] = include_bytes!("assets/init/hooks/commit-msg.sample");
+const TPL_HOOKS_FSMONITOR_WATCHMAN: &[u8] = include_bytes!("assets/init/hooks/fsmonitor-watchman.sample");
+const TPL_HOOKS_POST_UPDATE: &[u8] = include_bytes!("assets/init/hooks/post-update.sample");
+const TPL_HOOKS_PRE_APPLYPATCH: &[u8] = include_bytes!("assets/init/hooks/pre-applypatch.sample");
+const TPL_HOOKS_PRE_COMMIT: &[u8] = include_bytes!("assets/init/hooks/pre-commit.sample");
+const TPL_HOOKS_PRE_MERGE_COMMIT: &[u8] = include_bytes!("assets/init/hooks/pre-merge-commit.sample");
+const TPL_HOOKS_PRE_PUSH: &[u8] = include_bytes!("assets/init/hooks/pre-push.sample");
+const TPL_HOOKS_PRE_REBASE: &[u8] = include_bytes!("assets/init/hooks/pre-rebase.sample");
+const TPL_HOOKS_PREPARE_COMMIT_MSG: &[u8] = include_bytes!("assets/init/hooks/prepare-commit-msg.sample");
+const TPL_HOOKS_DOCS_URL: &[u8] = include_bytes!("assets/init/hooks/docs.url");
+const TPL_DESCRIPTION: &[u8] = include_bytes!("assets/init/description");
+const TPL_HEAD: &[u8] = include_bytes!("assets/init/HEAD");
 
 struct PathCursor<'a>(&'a mut PathBuf);
 
@@ -115,7 +115,7 @@ pub struct Options {
     ///
     /// By default repos with worktree can be initialized into a non-empty repository as long as there is no `.git` directory.
     pub destination_must_be_empty: bool,
-    /// If set, use these filesystem capabilities to populate the respective gix-config fields.
+    /// If set, use these filesystem capabilities to populate the respective git-config fields.
     /// If `None`, the directory will be probed.
     pub fs_capabilities: Option<gix_fs::Capabilities>,
 }
@@ -125,6 +125,7 @@ pub struct Options {
 /// Note that this is a simple template-based initialization routine which should be accompanied with additional corrections
 /// to respect git configuration, which is accomplished by [its callers][crate::ThreadSafeRepository::init_opts()]
 /// that return a [Repository][crate::Repository].
+#[momo]
 pub fn into(
     directory: impl Into<PathBuf>,
     kind: Kind,
@@ -172,9 +173,8 @@ pub fn into(
     {
         let mut cursor = NewDir(&mut dot_git).at("hooks")?;
         for (tpl, filename) in &[
-            (TPL_HOOKS_UPDATE, "update.sample"),
+            (TPL_HOOKS_DOCS_URL, "docs.url"),
             (TPL_HOOKS_PREPARE_COMMIT_MSG, "prepare-commit-msg.sample"),
-            (TPL_HOOKS_PRE_RECEIVE, "pre-receive.sample"),
             (TPL_HOOKS_PRE_REBASE, "pre-rebase.sample"),
             (TPL_HOOKS_PRE_PUSH, "pre-push.sample"),
             (TPL_HOOKS_PRE_COMMIT, "pre-commit.sample"),
@@ -234,7 +234,7 @@ pub fn into(
         } else {
             gix_discover::repository::Kind::WorkTree { linked_git_dir: None }
         },
-        std::env::current_dir()?,
+        &std::env::current_dir()?,
     )
     .expect("by now the `dot_git` dir is valid as we have accessed it"))
 }

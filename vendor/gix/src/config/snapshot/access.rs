@@ -2,9 +2,11 @@
 use std::borrow::Cow;
 
 use gix_features::threading::OwnShared;
+use gix_macros::momo;
 
+use crate::bstr::ByteSlice;
 use crate::{
-    bstr::BStr,
+    bstr::{BStr, BString},
     config::{CommitAutoRollback, Snapshot, SnapshotMut},
 };
 
@@ -25,6 +27,7 @@ impl<'repo> Snapshot<'repo> {
     }
 
     /// Like [`boolean()`][Self::boolean()], but it will report an error if the value couldn't be interpreted as boolean.
+    #[momo]
     pub fn try_boolean<'a>(&self, key: impl Into<&'a BStr>) -> Option<Result<bool, gix_config::value::Error>> {
         self.repo.config.resolved.boolean_by_key(key)
     }
@@ -40,6 +43,7 @@ impl<'repo> Snapshot<'repo> {
     }
 
     /// Like [`integer()`][Self::integer()], but it will report an error if the value couldn't be interpreted as boolean.
+    #[momo]
     pub fn try_integer<'a>(&self, key: impl Into<&'a BStr>) -> Option<Result<i64, gix_config::value::Error>> {
         self.repo.config.resolved.integer_by_key(key)
     }
@@ -47,6 +51,7 @@ impl<'repo> Snapshot<'repo> {
     /// Return the string at `key`, or `None` if there is no such value.
     ///
     /// Note that this method takes the most recent value at `key` even if it is from a file with reduced trust.
+    #[momo]
     pub fn string<'a>(&self, key: impl Into<&'a BStr>) -> Option<Cow<'_, BStr>> {
         self.repo.config.resolved.string_by_key(key)
     }
@@ -54,11 +59,12 @@ impl<'repo> Snapshot<'repo> {
     /// Return the trusted and fully interpolated path at `key`, or `None` if there is no such value
     /// or if no value was found in a trusted file.
     /// An error occurs if the path could not be interpolated to its final value.
+    #[momo]
     pub fn trusted_path<'a>(
         &self,
         key: impl Into<&'a BStr>,
     ) -> Option<Result<Cow<'_, std::path::Path>, gix_config::path::interpolate::Error>> {
-        let key = gix_config::parse::key(key)?;
+        let key = gix_config::parse::key(key.into())?;
         self.repo
             .config
             .trusted_file_path(key.section_name, key.subsection_name, key.value_name)
@@ -97,6 +103,50 @@ impl<'repo> SnapshotMut<'repo> {
     pub fn commit(mut self) -> Result<&'repo mut crate::Repository, crate::config::Error> {
         let repo = self.repo.take().expect("always present here");
         self.commit_inner(repo)
+    }
+
+    /// Set the value at `key` to `new_value`, possibly creating the section if it doesn't exist yet, or overriding the most recent existing
+    /// value, which will be returned.
+    #[momo]
+    pub fn set_value<'b>(
+        &mut self,
+        key: &'static dyn crate::config::tree::Key,
+        new_value: impl Into<&'b BStr>,
+    ) -> Result<Option<BString>, crate::config::set_value::Error> {
+        if let Some(crate::config::tree::SubSectionRequirement::Parameter(_)) = key.subsection_requirement() {
+            return Err(crate::config::set_value::Error::SubSectionRequired);
+        }
+        let value = new_value.into();
+        key.validate(value)?;
+        let current = self
+            .config
+            .set_raw_value(key.section().name(), None, key.name(), value)?;
+        Ok(current.map(std::borrow::Cow::into_owned))
+    }
+
+    /// Set the value at `key` to `new_value` in the given `subsection`, possibly creating the section and sub-section if it doesn't exist yet,
+    /// or overriding the most recent existing value, which will be returned.
+    #[momo]
+    pub fn set_subsection_value<'a, 'b>(
+        &mut self,
+        key: &'static dyn crate::config::tree::Key,
+        subsection: impl Into<&'a BStr>,
+        new_value: impl Into<&'b BStr>,
+    ) -> Result<Option<BString>, crate::config::set_value::Error> {
+        if let Some(crate::config::tree::SubSectionRequirement::Never) = key.subsection_requirement() {
+            return Err(crate::config::set_value::Error::SubSectionForbidden);
+        }
+        let value = new_value.into();
+        key.validate(value)?;
+
+        let name = key
+            .full_name(Some(subsection.into()))
+            .expect("we know it needs a subsection");
+        let key = gix_config::parse::key((**name).as_bstr()).expect("statically known keys can always be parsed");
+        let current =
+            self.config
+                .set_raw_value(key.section_name, key.subsection_name, key.value_name.to_owned(), value)?;
+        Ok(current.map(std::borrow::Cow::into_owned))
     }
 
     pub(crate) fn commit_inner(

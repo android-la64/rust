@@ -30,7 +30,7 @@ pub fn cli() -> Command {
             "Name of the example target to run",
         )
         .arg_features()
-        .arg_jobs()
+        .arg_parallel()
         .arg_release("Build artifacts in release mode, with optimizations")
         .arg_profile("Build artifacts with the specified profile")
         .arg_target_triple("Build for the target triple")
@@ -38,7 +38,9 @@ pub fn cli() -> Command {
         .arg_manifest_path()
         .arg_unit_graph()
         .arg_timings()
-        .after_help("Run `cargo help run` for more detailed information.\n")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help run</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {

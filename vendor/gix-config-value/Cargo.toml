@@ -11,12 +11,12 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.65"
 name = "gix-config-value"
-version = "0.12.1"
+version = "0.14.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
-description = "A crate of the gitoxide project providing gix-config value parsing"
-license = "MIT/Apache-2.0"
+description = "A crate of the gitoxide project providing git-config value parsing"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
 
 [package.metadata.docs.rs]
@@ -35,13 +35,15 @@ version = "2"
 
 [dependencies.bstr]
 version = "1.0.1"
+features = ["std"]
+default-features = false
 
 [dependencies.document-features]
 version = "0.2.0"
 optional = true
 
 [dependencies.gix-path]
-version = "^0.8.1"
+version = "^0.10.0"
 
 [dependencies.serde]
 version = "1.0.114"

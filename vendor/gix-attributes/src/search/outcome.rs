@@ -1,6 +1,6 @@
 use bstr::{BString, ByteSlice};
+use byteyarn::Yarn;
 use gix_glob::Pattern;
-use kstring::{KString, KStringRef};
 
 use crate::{
     search::{
@@ -28,6 +28,10 @@ impl Outcome {
             }) {
                 self.matches_by_id[order].macro_attributes = macro_attributes.clone()
             }
+
+            for (name, id) in self.selected.iter_mut().filter(|(_, id)| id.is_none()) {
+                *id = collection.name_to_meta.get(name.as_str()).map(|meta| meta.id)
+            }
         }
         self.reset();
     }
@@ -40,16 +44,23 @@ impl Outcome {
     pub fn initialize_with_selection<'a>(
         &mut self,
         collection: &MetadataCollection,
-        attribute_names: impl IntoIterator<Item = impl Into<KStringRef<'a>>>,
+        attribute_names: impl IntoIterator<Item = impl Into<&'a str>>,
+    ) {
+        self.initialize_with_selection_inner(collection, &mut attribute_names.into_iter().map(Into::into))
+    }
+
+    fn initialize_with_selection_inner(
+        &mut self,
+        collection: &MetadataCollection,
+        attribute_names: &mut dyn Iterator<Item = &str>,
     ) {
         self.initialize(collection);
 
         self.selected.clear();
-        self.selected.extend(attribute_names.into_iter().map(|name| {
-            let name = name.into();
+        self.selected.extend(attribute_names.map(|name| {
             (
-                name.to_owned(),
-                collection.name_to_meta.get(name.as_str()).map(|meta| meta.id),
+                Yarn::inlined(name).unwrap_or_else(|| name.to_string().into_boxed_str().into()),
+                collection.name_to_meta.get(name).map(|meta| meta.id),
             )
         }));
         self.reset_remaining();
@@ -68,6 +79,26 @@ impl Outcome {
         } else {
             self.selected.iter().filter(|(_name, id)| id.is_some()).count()
         });
+    }
+
+    /// A performance optimization which allows results from this instance to be efficiently copied over to `dest`.
+    /// For this to work, `collection` must be the one used to initialize our state, and `dest` should not have been initialized
+    /// with any meaningful collection initially, i.e. be empty the first time this method is called.
+    ///
+    /// Note that it's safe to call it multiple times, so that it can be called after this instance was used to store a search result.
+    pub fn copy_into(&self, collection: &MetadataCollection, dest: &mut Self) {
+        dest.initialize(collection);
+        dest.matches_by_id = self.matches_by_id.clone();
+        if dest.patterns.len() != self.patterns.len() {
+            dest.patterns = self.patterns.clone();
+        }
+        if dest.assignments.len() != self.assignments.len() {
+            dest.assignments = self.assignments.clone();
+        }
+        if dest.source_paths.len() != self.source_paths.len() {
+            dest.source_paths = self.source_paths.clone();
+        }
+        dest.remaining = self.remaining;
     }
 }
 
@@ -219,6 +250,29 @@ impl Outcome {
     }
 }
 
+impl std::fmt::Debug for Outcome {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        struct AsDisplay<'a>(&'a dyn std::fmt::Display);
+        impl std::fmt::Debug for AsDisplay<'_> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.0.fmt(f)
+            }
+        }
+
+        let mut dbg = f.debug_tuple("Outcome");
+        if self.selected.is_empty() {
+            for match_ in self.iter() {
+                dbg.field(&AsDisplay(&match_.assignment));
+            }
+        } else {
+            for match_ in self.iter_selected() {
+                dbg.field(&AsDisplay(&match_.assignment));
+            }
+        }
+        dbg.finish()
+    }
+}
+
 /// Mutation
 impl MetadataCollection {
     /// Assign order ids to each attribute either in macros (along with macros themselves) or attributes of patterns, and store
@@ -261,7 +315,7 @@ impl MetadataCollection {
             None => {
                 let order = AttributeId(self.name_to_meta.len());
                 self.name_to_meta.insert(
-                    KString::from_ref(name),
+                    Yarn::inlined(name).unwrap_or_else(|| name.to_string().into_boxed_str().into()),
                     Metadata {
                         id: order,
                         macro_attributes: Default::default(),
@@ -281,7 +335,10 @@ impl MetadataCollection {
             Some(meta) => meta.id,
             None => {
                 let order = AttributeId(self.name_to_meta.len());
-                self.name_to_meta.insert(KString::from_ref(name), order.into());
+                self.name_to_meta.insert(
+                    Yarn::inlined(name).unwrap_or_else(|| name.to_string().into_boxed_str().into()),
+                    order.into(),
+                );
                 order
             }
         }
@@ -357,7 +414,7 @@ impl MatchLocation {
         crate::search::MatchLocation {
             source: self
                 .source
-                .and_then(|source| out.source_paths.resolve(source).map(|p| p.as_path())),
+                .and_then(|source| out.source_paths.resolve(source).map(AsRef::as_ref)),
             sequence_number: self.sequence_number,
         }
     }

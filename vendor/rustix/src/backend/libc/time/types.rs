@@ -25,11 +25,12 @@ pub type Itimerspec = c::itimerspec;
 /// [`timerfd_settime`]: crate::time::timerfd_settime
 #[cfg(any(linux_kernel, target_os = "fuchsia"))]
 #[cfg(fix_y2038)]
-#[allow(missing_docs)]
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct Itimerspec {
+    /// The interval of an interval timer.
     pub it_interval: Timespec,
+    /// Time remaining in the current interval.
     pub it_value: Timespec,
 }
 
@@ -86,6 +87,9 @@ bitflags! {
 
         /// `TFD_CLOEXEC`
         const CLOEXEC = bitcast!(c::TFD_CLOEXEC);
+
+        /// <https://docs.rs/bitflags/latest/bitflags/#externally-defined-flags>
+        const _ = !0;
     }
 }
 
@@ -103,6 +107,9 @@ bitflags! {
         /// `TFD_TIMER_CANCEL_ON_SET`
         #[cfg(linux_kernel)]
         const CANCEL_ON_SET = bitcast!(c::TFD_TIMER_CANCEL_ON_SET);
+
+        /// <https://docs.rs/bitflags/latest/bitflags/#externally-defined-flags>
+        const _ = !0;
     }
 }
 
@@ -116,10 +123,10 @@ bitflags! {
 pub enum TimerfdClockId {
     /// `CLOCK_REALTIME`—A clock that tells the “real” time.
     ///
-    /// This is a clock that tells the amount of time elapsed since the
-    /// Unix epoch, 1970-01-01T00:00:00Z. The clock is externally settable, so
-    /// it is not monotonic. Successive reads may see decreasing times, so it
-    /// isn't reliable for measuring durations.
+    /// This is a clock that tells the amount of time elapsed since the Unix
+    /// epoch, 1970-01-01T00:00:00Z. The clock is externally settable, so it is
+    /// not monotonic. Successive reads may see decreasing times, so it isn't
+    /// reliable for measuring durations.
     Realtime = bitcast!(c::CLOCK_REALTIME),
 
     /// `CLOCK_MONOTONIC`—A clock that tells an abstract time.

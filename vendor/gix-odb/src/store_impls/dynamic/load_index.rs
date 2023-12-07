@@ -206,7 +206,7 @@ impl super::Store {
         self.num_disk_state_consolidation.fetch_add(1, Ordering::Relaxed);
 
         let db_paths: Vec<_> = std::iter::once(objects_directory.to_owned())
-            .chain(crate::alternate::resolve(objects_directory, &self.current_dir)?)
+            .chain(crate::alternate::resolve(objects_directory.clone(), &self.current_dir)?)
             .collect();
 
         // turn db paths into loose object databases. Reuse what's there, but only if it is in the right order.
@@ -470,8 +470,7 @@ impl super::Store {
                 })
                 .transpose()?;
             if let Some((multi_index, mtime, flen)) = multi_index_info {
-                let index_names_in_multi_index: Vec<_> =
-                    multi_index.index_names().iter().map(|p| p.as_path()).collect();
+                let index_names_in_multi_index: Vec<_> = multi_index.index_names().iter().map(AsRef::as_ref).collect();
                 let mut indices_not_in_multi_index: Vec<(Either, _, _)> = indices
                     .into_iter()
                     .filter_map(|(path, a, b)| {
@@ -494,6 +493,11 @@ impl super::Store {
         // Unlike libgit2, do not sort by modification date, but by size and put the biggest indices first. That way
         // the chance to hit an object should be higher. We leave it to the handle to sort by LRU.
         // Git itself doesn't change the order which may safe time, but we want it to be stable which also helps some tests.
+        // NOTE: this will work well for well-packed repos or those using geometric repacking, but force us to open a lot
+        //       of files when dealing with new objects, as there is no notion of recency here as would be with unmaintained
+        //       repositories. Different algorithms should be provided, like newest packs first, and possibly a mix of both
+        //       with big packs first, then sorting by recency for smaller packs.
+        //       We also want to implement `fetch.unpackLimit` to alleviate this issue a little.
         indices_by_modification_time.sort_by(|l, r| l.2.cmp(&r.2).reverse());
         Ok(indices_by_modification_time)
     }

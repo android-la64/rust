@@ -12,6 +12,7 @@ use std::os;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::str;
+use std::sync::OnceLock;
 use std::time::{self, Duration};
 
 use anyhow::{bail, Result};
@@ -569,6 +570,7 @@ pub struct Execs {
     expect_stdout_contains_n: Vec<(String, usize)>,
     expect_stdout_not_contains: Vec<String>,
     expect_stderr_not_contains: Vec<String>,
+    expect_stdout_unordered: Vec<String>,
     expect_stderr_unordered: Vec<String>,
     expect_stderr_with_without: Vec<(Vec<String>, Vec<String>)>,
     expect_json: Option<String>,
@@ -667,6 +669,15 @@ impl Execs {
     /// your fix/feature to make it pass.
     pub fn with_stderr_does_not_contain<S: ToString>(&mut self, expected: S) -> &mut Self {
         self.expect_stderr_not_contains.push(expected.to_string());
+        self
+    }
+
+    /// Verifies that all of the stdout output is equal to the given lines,
+    /// ignoring the order of the lines.
+    ///
+    /// See [`Execs::with_stderr_unordered`] for more details.
+    pub fn with_stdout_unordered<S: ToString>(&mut self, expected: S) -> &mut Self {
+        self.expect_stdout_unordered.push(expected.to_string());
         self
     }
 
@@ -838,7 +849,7 @@ impl Execs {
     /// Enables nightly features for testing
     ///
     /// The list of reasons should be why nightly cargo is needed. If it is
-    /// becuase of an unstable feature put the name of the feature as the reason,
+    /// because of an unstable feature put the name of the feature as the reason,
     /// e.g. `&["print-im-a-teapot"]`
     pub fn masquerade_as_nightly_cargo(&mut self, reasons: &[&str]) -> &mut Self {
         if let Some(ref mut p) = self.process_builder {
@@ -931,6 +942,7 @@ impl Execs {
             && self.expect_stdout_contains_n.is_empty()
             && self.expect_stdout_not_contains.is_empty()
             && self.expect_stderr_not_contains.is_empty()
+            && self.expect_stdout_unordered.is_empty()
             && self.expect_stderr_unordered.is_empty()
             && self.expect_stderr_with_without.is_empty()
             && self.expect_json.is_none()
@@ -1035,6 +1047,9 @@ impl Execs {
         for expect in self.expect_stderr_not_contains.iter() {
             compare::match_does_not_contain(expect, stderr, cwd)?;
         }
+        for expect in self.expect_stdout_unordered.iter() {
+            compare::match_unordered(expect, stdout, cwd)?;
+        }
         for expect in self.expect_stderr_unordered.iter() {
             compare::match_unordered(expect, stderr, cwd)?;
         }
@@ -1074,6 +1089,7 @@ pub fn execs() -> Execs {
         expect_stdout_contains_n: Vec::new(),
         expect_stdout_not_contains: Vec::new(),
         expect_stderr_not_contains: Vec::new(),
+        expect_stdout_unordered: Vec::new(),
         expect_stderr_unordered: Vec::new(),
         expect_stderr_with_without: Vec::new(),
         expect_json: None,
@@ -1157,13 +1173,14 @@ impl RustcInfo {
     }
 }
 
-lazy_static::lazy_static! {
-    static ref RUSTC_INFO: RustcInfo = RustcInfo::new();
+fn rustc_info() -> &'static RustcInfo {
+    static RUSTC_INFO: OnceLock<RustcInfo> = OnceLock::new();
+    RUSTC_INFO.get_or_init(RustcInfo::new)
 }
 
 /// The rustc host such as `x86_64-unknown-linux-gnu`.
 pub fn rustc_host() -> &'static str {
-    &RUSTC_INFO.host
+    &rustc_info().host
 }
 
 /// The host triple suitable for use in a cargo environment variable (uppercased).
@@ -1172,7 +1189,7 @@ pub fn rustc_host_env() -> String {
 }
 
 pub fn is_nightly() -> bool {
-    let vv = &RUSTC_INFO.verbose_version;
+    let vv = &rustc_info().verbose_version;
     // CARGO_TEST_DISABLE_NIGHTLY is set in rust-lang/rust's CI so that all
     // nightly-only tests are disabled there. Otherwise, it could make it
     // difficult to land changes which would need to be made simultaneously in
@@ -1194,7 +1211,7 @@ fn _process(t: &OsStr) -> ProcessBuilder {
 /// Enable nightly features for testing
 pub trait ChannelChanger {
     /// The list of reasons should be why nightly cargo is needed. If it is
-    /// becuase of an unstable feature put the name of the feature as the reason,
+    /// because of an unstable feature put the name of the feature as the reason,
     /// e.g. `&["print-im-a-teapot"]`.
     fn masquerade_as_nightly_cargo(self, _reasons: &[&str]) -> Self;
 }
@@ -1225,28 +1242,27 @@ pub trait TestEnv: Sized {
         if env::var_os("RUSTUP_TOOLCHAIN").is_some() {
             // Override the PATH to avoid executing the rustup wrapper thousands
             // of times. This makes the testsuite run substantially faster.
-            lazy_static::lazy_static! {
-                static ref RUSTC_DIR: PathBuf = {
-                    match ProcessBuilder::new("rustup")
-                        .args(&["which", "rustc"])
-                        .exec_with_output()
-                    {
-                        Ok(output) => {
-                            let s = str::from_utf8(&output.stdout).expect("utf8").trim();
-                            let mut p = PathBuf::from(s);
-                            p.pop();
-                            p
-                        }
-                        Err(e) => {
-                            panic!("RUSTUP_TOOLCHAIN was set, but could not run rustup: {}", e);
-                        }
+            static RUSTC_DIR: OnceLock<PathBuf> = OnceLock::new();
+            let rustc_dir = RUSTC_DIR.get_or_init(|| {
+                match ProcessBuilder::new("rustup")
+                    .args(&["which", "rustc"])
+                    .exec_with_output()
+                {
+                    Ok(output) => {
+                        let s = str::from_utf8(&output.stdout).expect("utf8").trim();
+                        let mut p = PathBuf::from(s);
+                        p.pop();
+                        p
                     }
-                };
-            }
+                    Err(e) => {
+                        panic!("RUSTUP_TOOLCHAIN was set, but could not run rustup: {}", e);
+                    }
+                }
+            });
             let path = env::var_os("PATH").unwrap_or_default();
             let paths = env::split_paths(&path);
             let new_path =
-                env::join_paths(std::iter::once(RUSTC_DIR.clone()).chain(paths)).unwrap();
+                env::join_paths(std::iter::once(rustc_dir.clone()).chain(paths)).unwrap();
             self = self.env("PATH", new_path);
         }
 
@@ -1408,11 +1424,14 @@ pub fn is_coarse_mtime() -> bool {
 /// Architectures that do not have a modern processor, hardware emulation, etc.
 /// This provides a way for those setups to increase the cut off for all the time based test.
 pub fn slow_cpu_multiplier(main: u64) -> Duration {
-    lazy_static::lazy_static! {
-        static ref SLOW_CPU_MULTIPLIER: u64 =
-            env::var("CARGO_TEST_SLOW_CPU_MULTIPLIER").ok().and_then(|m| m.parse().ok()).unwrap_or(1);
-    }
-    Duration::from_secs(*SLOW_CPU_MULTIPLIER * main)
+    static SLOW_CPU_MULTIPLIER: OnceLock<u64> = OnceLock::new();
+    let slow_cpu_multiplier = SLOW_CPU_MULTIPLIER.get_or_init(|| {
+        env::var("CARGO_TEST_SLOW_CPU_MULTIPLIER")
+            .ok()
+            .and_then(|m| m.parse().ok())
+            .unwrap_or(1)
+    });
+    Duration::from_secs(slow_cpu_multiplier * main)
 }
 
 #[cfg(windows)]

@@ -9,10 +9,10 @@ use std::{
 use crate::{
     messages::MessageLevel,
     progress::{Id, Step, StepShared},
-    Progress, Unit,
+    Count, NestedProgress, Progress, Unit,
 };
 
-/// A [`Progress`] implementation which displays progress as it happens without the use of a renderer.
+/// A [`NestedProgress`] implementation which displays progress as it happens without the use of a renderer.
 ///
 /// Note that this incurs considerable performance cost as each progress calls ends up getting the system time
 /// to see if progress information should actually be emitted.
@@ -21,7 +21,7 @@ pub struct Log {
     id: Id,
     max: Option<usize>,
     unit: Option<Unit>,
-    step: usize,
+    step: StepShared,
     current_level: usize,
     max_level: usize,
     trigger: Arc<AtomicBool>,
@@ -50,43 +50,19 @@ impl Log {
             current_level: 0,
             max_level: max_level.unwrap_or(usize::MAX),
             max: None,
-            step: 0,
+            step: Default::default(),
             unit: None,
             trigger,
         }
     }
 }
 
-impl Progress for Log {
-    type SubProgress = Log;
-
-    fn add_child(&mut self, name: impl Into<String>) -> Self::SubProgress {
-        self.add_child_with_id(name, crate::progress::UNKNOWN)
-    }
-
-    fn add_child_with_id(&mut self, name: impl Into<String>, id: Id) -> Self::SubProgress {
-        Log {
-            name: format!("{}{}{}", self.name, SEP, Into::<String>::into(name)),
-            id,
-            current_level: self.current_level + 1,
-            max_level: self.max_level,
-            step: 0,
-            max: None,
-            unit: None,
-            trigger: Arc::clone(&self.trigger),
-        }
-    }
-
-    fn init(&mut self, max: Option<usize>, unit: Option<Unit>) {
-        self.max = max;
-        self.unit = unit;
-    }
-
-    fn set(&mut self, step: usize) {
-        self.step = step;
+impl Log {
+    fn maybe_log(&self) {
         if self.current_level > self.max_level {
             return;
         }
+        let step = self.step();
         if self.trigger.swap(false, Ordering::Relaxed) {
             match (self.max, &self.unit) {
                 (max, Some(unit)) => log::info!("{} → {}", self.name, unit.display(step, max, None)),
@@ -95,12 +71,38 @@ impl Progress for Log {
             }
         }
     }
+}
 
+impl Count for Log {
+    fn set(&self, step: Step) {
+        self.step.store(step, Ordering::SeqCst);
+        self.maybe_log()
+    }
+
+    fn step(&self) -> usize {
+        self.step.load(Ordering::Relaxed)
+    }
+
+    fn inc_by(&self, step: Step) {
+        self.step.fetch_add(step, Ordering::Relaxed);
+        self.maybe_log()
+    }
+
+    fn counter(&self) -> StepShared {
+        self.step.clone()
+    }
+}
+
+impl Progress for Log {
+    fn init(&mut self, max: Option<Step>, unit: Option<Unit>) {
+        self.max = max;
+        self.unit = unit;
+    }
     fn unit(&self) -> Option<Unit> {
         self.unit.clone()
     }
 
-    fn max(&self) -> Option<usize> {
+    fn max(&self) -> Option<Step> {
         self.max
     }
 
@@ -110,16 +112,7 @@ impl Progress for Log {
         prev
     }
 
-    fn step(&self) -> usize {
-        self.step
-    }
-
-    fn inc_by(&mut self, step: usize) {
-        self.set(self.step + step)
-    }
-
-    fn set_name(&mut self, name: impl Into<String>) {
-        let name = name.into();
+    fn set_name(&mut self, name: String) {
         self.name = self
             .name
             .split("::")
@@ -136,16 +129,32 @@ impl Progress for Log {
         self.id
     }
 
-    fn message(&self, level: MessageLevel, message: impl Into<String>) {
-        let message: String = message.into();
+    fn message(&self, level: MessageLevel, message: String) {
         match level {
             MessageLevel::Info => log::info!("ℹ{} → {}", self.name, message),
             MessageLevel::Failure => log::error!("𐄂{} → {}", self.name, message),
             MessageLevel::Success => log::info!("✓{} → {}", self.name, message),
         }
     }
+}
 
-    fn counter(&self) -> Option<StepShared> {
-        None
+impl NestedProgress for Log {
+    type SubProgress = Log;
+
+    fn add_child(&mut self, name: impl Into<String>) -> Self::SubProgress {
+        self.add_child_with_id(name, crate::progress::UNKNOWN)
+    }
+
+    fn add_child_with_id(&mut self, name: impl Into<String>, id: Id) -> Self::SubProgress {
+        Log {
+            name: format!("{}{}{}", self.name, SEP, Into::<String>::into(name)),
+            id,
+            current_level: self.current_level + 1,
+            max_level: self.max_level,
+            step: Default::default(),
+            max: None,
+            unit: None,
+            trigger: Arc::clone(&self.trigger),
+        }
     }
 }

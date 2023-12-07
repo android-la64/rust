@@ -4,6 +4,7 @@ pub mod time;
 use crate::time::FormatTime;
 use format::{Buffers, ColorLevel, Config, FmtEvent, SpanMode};
 
+use is_terminal::IsTerminal;
 use nu_ansi_term::{Color, Style};
 use std::{
     fmt::{self, Write as _},
@@ -65,7 +66,7 @@ impl Default for HierarchicalLayer {
 
 impl HierarchicalLayer<fn() -> io::Stderr> {
     pub fn new(indent_amount: usize) -> Self {
-        let ansi = atty::is(atty::Stream::Stderr);
+        let ansi = io::stderr().is_terminal();
         let config = Config {
             ansi,
             indent_amount,
@@ -364,11 +365,21 @@ where
         };
         if let Some(start) = start {
             let elapsed = start.elapsed();
+            let millis = elapsed.as_millis();
+            let secs = elapsed.as_secs();
+            let (n, unit) = if millis < 1000 {
+                (millis as _, "ms")
+            } else if secs < 60 {
+                (secs, "s ")
+            } else {
+                (secs / 60, "m ")
+            };
+            let n = format!("{n:>3}");
             write!(
                 &mut event_buf,
                 "{timestamp}{unit} ",
-                timestamp = self.styled(Style::new().dimmed(), elapsed.as_millis().to_string()),
-                unit = self.styled(Style::new().dimmed(), "ms"),
+                timestamp = self.styled(Style::new().dimmed(), n),
+                unit = self.styled(Style::new().dimmed(), unit),
             )
             .expect("Unable to write to buffer");
         }

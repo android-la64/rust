@@ -1,6 +1,23 @@
-use alloc::{boxed::Box, vec, vec::Vec};
+/*!
+This module defines a sparse set data structure. Its most interesting
+properties are:
 
-use crate::util::id::StateID;
+* They preserve insertion order.
+* Set membership testing is done in constant time.
+* Set insertion is done in constant time.
+* Clearing the set is done in constant time.
+
+The cost for doing this is that the capacity of the set needs to be known up
+front, and the elements in the set are limited to state identifiers.
+
+These sets are principally used when traversing an NFA state graph. This
+happens at search time, for example, in the PikeVM. It also happens during DFA
+determinization.
+*/
+
+use alloc::{vec, vec::Vec};
+
+use crate::util::primitives::StateID;
 
 /// A pairse of sparse sets.
 ///
@@ -79,7 +96,12 @@ pub(crate) struct SparseSet {
     /// Sparse maps ids to their location in dense.
     ///
     /// A state ID is in the set if and only if
-    /// sparse[id] < dense.len() && id == dense[sparse[id]].
+    /// sparse[id] < len && id == dense[sparse[id]].
+    ///
+    /// Note that these are indices into 'dense'. It's a little weird to use
+    /// StateID here, but we know our length can never exceed the bounds of
+    /// StateID (enforced by 'resize') and StateID will be at most 4 bytes
+    /// where as a usize is likely double that in most cases.
     sparse: Vec<StateID>,
 }
 
@@ -146,9 +168,9 @@ impl SparseSet {
     ///
     /// This is marked as inline(always) since the compiler won't inline it
     /// otherwise, and it's a fairly hot piece of code in DFA determinization.
-    #[inline(always)]
-    pub(crate) fn insert(&mut self, value: StateID) -> bool {
-        if self.contains(value) {
+    #[cfg_attr(feature = "perf-inline", inline(always))]
+    pub(crate) fn insert(&mut self, id: StateID) -> bool {
+        if self.contains(id) {
             return false;
         }
 
@@ -158,30 +180,22 @@ impl SparseSet {
             "{:?} exceeds capacity of {:?} when inserting {:?}",
             i,
             self.capacity(),
-            value,
+            id,
         );
         // OK since i < self.capacity() and self.capacity() is guaranteed to
         // be <= StateID::LIMIT.
-        let id = StateID::new_unchecked(i);
-        self.dense[id] = value;
-        self.sparse[value] = id;
+        let index = StateID::new_unchecked(i);
+        self.dense[index] = id;
+        self.sparse[id] = index;
         self.len += 1;
         true
     }
 
     /// Returns true if and only if this set contains the given value.
     #[inline]
-    pub(crate) fn contains(&self, value: StateID) -> bool {
-        let i = self.sparse[value];
-        i.as_usize() < self.len() && self.dense[i] == value
-    }
-
-    /// Returns the ith inserted element from this set.
-    ///
-    /// Panics when i >= self.len().
-    #[inline]
-    pub(crate) fn get(&self, i: usize) -> StateID {
-        self.dense[i]
+    pub(crate) fn contains(&self, id: StateID) -> bool {
+        let index = self.sparse[id];
+        index.as_usize() < self.len() && self.dense[index] == id
     }
 
     /// Clear this set such that it has no members.
@@ -190,16 +204,21 @@ impl SparseSet {
         self.len = 0;
     }
 
+    #[inline]
+    pub(crate) fn iter(&self) -> SparseSetIter<'_> {
+        SparseSetIter(self.dense[..self.len()].iter())
+    }
+
     /// Returns the heap memory usage, in bytes, used by this sparse set.
     #[inline]
     pub(crate) fn memory_usage(&self) -> usize {
-        2 * self.dense.len() * StateID::SIZE
+        self.dense.len() * StateID::SIZE + self.sparse.len() * StateID::SIZE
     }
 }
 
 impl core::fmt::Debug for SparseSet {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let elements: Vec<StateID> = self.into_iter().collect();
+        let elements: Vec<StateID> = self.iter().collect();
         f.debug_tuple("SparseSet").field(&elements).finish()
     }
 }
@@ -210,20 +229,11 @@ impl core::fmt::Debug for SparseSet {
 #[derive(Debug)]
 pub(crate) struct SparseSetIter<'a>(core::slice::Iter<'a, StateID>);
 
-impl<'a> IntoIterator for &'a SparseSet {
-    type Item = StateID;
-    type IntoIter = SparseSetIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        SparseSetIter(self.dense[..self.len()].iter())
-    }
-}
-
 impl<'a> Iterator for SparseSetIter<'a> {
     type Item = StateID;
 
-    #[inline(always)]
+    #[cfg_attr(feature = "perf-inline", inline(always))]
     fn next(&mut self) -> Option<StateID> {
-        self.0.next().map(|value| *value)
+        self.0.next().map(|&id| id)
     }
 }

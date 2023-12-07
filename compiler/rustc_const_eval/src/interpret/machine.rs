@@ -9,7 +9,7 @@ use std::hash::Hash;
 use rustc_ast::{InlineAsmOptions, InlineAsmTemplatePiece};
 use rustc_middle::mir;
 use rustc_middle::ty::layout::TyAndLayout;
-use rustc_middle::ty::{self, Ty, TyCtxt};
+use rustc_middle::ty::{self, TyCtxt};
 use rustc_span::def_id::DefId;
 use rustc_target::abi::{Align, Size};
 use rustc_target::spec::abi::Abi as CallAbi;
@@ -18,7 +18,7 @@ use crate::const_eval::CheckAlignment;
 
 use super::{
     AllocBytes, AllocId, AllocRange, Allocation, ConstAllocation, FnArg, Frame, ImmTy, InterpCx,
-    InterpResult, MemoryKind, OpTy, Operand, PlaceTy, Pointer, Provenance, Scalar,
+    InterpResult, MPlaceTy, MemoryKind, OpTy, PlaceTy, Pointer, Provenance,
 };
 
 /// Data returned by Machine::stack_pop,
@@ -130,6 +130,9 @@ pub trait Machine<'mir, 'tcx: 'mir>: Sized {
     /// Should the machine panic on allocation failures?
     const PANIC_ON_ALLOC_FAIL: bool;
 
+    /// Should post-monomorphization checks be run when a stack frame is pushed?
+    const POST_MONO_CHECKS: bool = true;
+
     /// Whether memory accesses should be alignment-checked.
     fn enforce_alignment(ecx: &InterpCx<'mir, 'tcx, Self>) -> CheckAlignment;
 
@@ -218,10 +221,14 @@ pub trait Machine<'mir, 'tcx: 'mir>: Sized {
         unwind: mir::UnwindAction,
     ) -> InterpResult<'tcx>;
 
-    /// Called to abort evaluation.
-    fn abort(_ecx: &mut InterpCx<'mir, 'tcx, Self>, _msg: String) -> InterpResult<'tcx, !> {
-        throw_unsup_format!("aborting execution is not supported")
-    }
+    /// Called to trigger a non-unwinding panic.
+    fn panic_nounwind(_ecx: &mut InterpCx<'mir, 'tcx, Self>, msg: &str) -> InterpResult<'tcx>;
+
+    /// Called when unwinding reached a state where execution should be terminated.
+    fn unwind_terminate(
+        ecx: &mut InterpCx<'mir, 'tcx, Self>,
+        reason: mir::UnwindTerminateReason,
+    ) -> InterpResult<'tcx>;
 
     /// Called for all binary operations where the LHS has pointer type.
     ///
@@ -231,24 +238,24 @@ pub trait Machine<'mir, 'tcx: 'mir>: Sized {
         bin_op: mir::BinOp,
         left: &ImmTy<'tcx, Self::Provenance>,
         right: &ImmTy<'tcx, Self::Provenance>,
-    ) -> InterpResult<'tcx, (Scalar<Self::Provenance>, bool, Ty<'tcx>)>;
+    ) -> InterpResult<'tcx, (ImmTy<'tcx, Self::Provenance>, bool)>;
 
-    /// Called to write the specified `local` from the `frame`.
+    /// Called before writing the specified `local` of the `frame`.
     /// Since writing a ZST is not actually accessing memory or locals, this is never invoked
     /// for ZST reads.
     ///
     /// Due to borrow checker trouble, we indicate the `frame` as an index rather than an `&mut
     /// Frame`.
-    #[inline]
-    fn access_local_mut<'a>(
-        ecx: &'a mut InterpCx<'mir, 'tcx, Self>,
-        frame: usize,
-        local: mir::Local,
-    ) -> InterpResult<'tcx, &'a mut Operand<Self::Provenance>>
+    #[inline(always)]
+    fn before_access_local_mut<'a>(
+        _ecx: &'a mut InterpCx<'mir, 'tcx, Self>,
+        _frame: usize,
+        _local: mir::Local,
+    ) -> InterpResult<'tcx>
     where
         'tcx: 'mir,
     {
-        ecx.stack_mut()[frame].locals[local].access_mut()
+        Ok(())
     }
 
     /// Called before a basic block terminator is executed.
@@ -461,6 +468,7 @@ pub trait Machine<'mir, 'tcx: 'mir>: Sized {
 
     /// Called immediately after a stack frame got popped, but before jumping back to the caller.
     /// The `locals` have already been destroyed!
+    #[inline(always)]
     fn after_stack_pop(
         _ecx: &mut InterpCx<'mir, 'tcx, Self>,
         _frame: Frame<'mir, 'tcx, Self::Provenance, Self::FrameExtra>,
@@ -469,6 +477,18 @@ pub trait Machine<'mir, 'tcx: 'mir>: Sized {
         // By default, we do not support unwinding from panics
         assert!(!unwinding);
         Ok(StackPopJump::Normal)
+    }
+
+    /// Called immediately after actual memory was allocated for a local
+    /// but before the local's stack frame is updated to point to that memory.
+    #[inline(always)]
+    fn after_local_allocated(
+        _ecx: &mut InterpCx<'mir, 'tcx, Self>,
+        _frame: usize,
+        _local: mir::Local,
+        _mplace: &MPlaceTy<'tcx, Self::Provenance>,
+    ) -> InterpResult<'tcx> {
+        Ok(())
     }
 }
 
@@ -500,6 +520,14 @@ pub macro compile_time_machine(<$mir: lifetime, $tcx: lifetime>) {
     }
 
     #[inline(always)]
+    fn unwind_terminate(
+        _ecx: &mut InterpCx<$mir, $tcx, Self>,
+        _reason: mir::UnwindTerminateReason,
+    ) -> InterpResult<$tcx> {
+        unreachable!("unwinding cannot happen during compile-time evaluation")
+    }
+
+    #[inline(always)]
     fn call_extra_fn(
         _ecx: &mut InterpCx<$mir, $tcx, Self>,
         fn_val: !,
@@ -527,7 +555,7 @@ pub macro compile_time_machine(<$mir: lifetime, $tcx: lifetime>) {
         def_id: DefId,
     ) -> InterpResult<$tcx, Pointer> {
         // Use the `AllocId` associated with the `DefId`. Any actual *access* will fail.
-        Ok(Pointer::new(ecx.tcx.create_static_alloc(def_id), Size::ZERO))
+        Ok(Pointer::new(ecx.tcx.reserve_and_set_static_alloc(def_id), Size::ZERO))
     }
 
     #[inline(always)]

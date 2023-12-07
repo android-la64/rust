@@ -114,7 +114,7 @@ x--expand-yaml-anchors--remove:
         run: git config --global core.autocrlf false
 
       - name: checkout the source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
@@ -428,6 +428,17 @@ jobs:
             <<: *job-linux-8c
 
           - name: wasm32
+            env:
+              # Running emscripten tests currently requires that we are
+              # building a nightly toolchain. Otherwise, we cannot pass
+              # -Zunstable-options to libtest. Normally we workaround this by
+              # setting RUSTC_BOOTSTRAP in the environment, but that doesn't
+              # work for emscripten as environment variables are not threaded
+              # into the compiled code.
+              #
+              # For more details see:
+              # https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html#environment-variables
+              RUST_CI_OVERRIDE_RELEASE_CHANNEL: nightly
             <<: *job-linux-8c
 
           - name: x86_64-gnu
@@ -484,7 +495,7 @@ jobs:
               SCRIPT: ./x.py dist bootstrap --include-default-paths --host=x86_64-apple-darwin --target=x86_64-apple-darwin
               RUST_CONFIGURE_ARGS: --enable-full-tools --enable-sanitizers --enable-profiler --set rust.jemalloc --set llvm.ninja=false --set rust.lto=thin
               RUSTC_RETRY_LINKER_ON_SEGFAULT: 1
-              MACOSX_DEPLOYMENT_TARGET: 10.7
+              MACOSX_DEPLOYMENT_TARGET: 10.12
               SELECT_XCODE: /Applications/Xcode_13.4.1.app
               NO_LLVM_ASSERTIONS: 1
               NO_DEBUG_ASSERTIONS: 1
@@ -497,19 +508,7 @@ jobs:
               SCRIPT: ./x.py dist bootstrap --include-default-paths --host='' --target=aarch64-apple-ios,x86_64-apple-ios,aarch64-apple-ios-sim
               RUST_CONFIGURE_ARGS: --enable-sanitizers --enable-profiler --set rust.jemalloc --set llvm.ninja=false
               RUSTC_RETRY_LINKER_ON_SEGFAULT: 1
-              MACOSX_DEPLOYMENT_TARGET: 10.7
-              SELECT_XCODE: /Applications/Xcode_13.4.1.app
-              NO_LLVM_ASSERTIONS: 1
-              NO_DEBUG_ASSERTIONS: 1
-              NO_OVERFLOW_CHECKS: 1
-            <<: *job-macos-xl
-
-          - name: dist-x86_64-apple-alt
-            env:
-              SCRIPT: ./x.py dist bootstrap --include-default-paths
-              RUST_CONFIGURE_ARGS: --enable-extended --enable-profiler --set rust.jemalloc --set llvm.ninja=false
-              RUSTC_RETRY_LINKER_ON_SEGFAULT: 1
-              MACOSX_DEPLOYMENT_TARGET: 10.7
+              MACOSX_DEPLOYMENT_TARGET: 10.12
               SELECT_XCODE: /Applications/Xcode_13.4.1.app
               NO_LLVM_ASSERTIONS: 1
               NO_DEBUG_ASSERTIONS: 1
@@ -521,8 +520,8 @@ jobs:
               SCRIPT: ./x.py --stage 2 test --skip tests/ui --skip tests/rustdoc --skip tests/run-make-fulldeps
               RUST_CONFIGURE_ARGS: --build=x86_64-apple-darwin --enable-sanitizers --enable-profiler --set rust.jemalloc --set llvm.ninja=false
               RUSTC_RETRY_LINKER_ON_SEGFAULT: 1
-              MACOSX_DEPLOYMENT_TARGET: 10.8
-              MACOSX_STD_DEPLOYMENT_TARGET: 10.7
+              MACOSX_DEPLOYMENT_TARGET: 10.12
+              MACOSX_STD_DEPLOYMENT_TARGET: 10.12
               NO_LLVM_ASSERTIONS: 1
               NO_DEBUG_ASSERTIONS: 1
               NO_OVERFLOW_CHECKS: 1
@@ -636,7 +635,7 @@ jobs:
                 --target=x86_64-pc-windows-msvc
                 --enable-full-tools
                 --enable-profiler
-              SCRIPT: python x.py build --set rust.debug=true opt-dist && PGO_HOST=x86_64-pc-windows-msvc ./build/x86_64-pc-windows-msvc/stage0-tools-bin/opt-dist python x.py dist bootstrap --include-default-paths
+              SCRIPT: python x.py build --set rust.debug=true opt-dist && PGO_HOST=x86_64-pc-windows-msvc ./build/x86_64-pc-windows-msvc/stage0-tools-bin/opt-dist windows-ci -- python x.py dist bootstrap --include-default-paths
               DIST_REQUIRE_ALL_TOOLS: 1
             <<: *job-windows-8c
 
@@ -719,7 +718,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'rust-lang-ci/rust'
     steps:
       - name: checkout the source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.63"
 name = "ui_test"
-version = "0.11.7"
+version = "0.21.2"
 description = "A test framework for testing rustc diagnostics output"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -26,6 +26,13 @@ doctest = false
 [[test]]
 name = "integration"
 harness = false
+
+[dependencies.annotate-snippets]
+version = "0.9.1"
+features = ["color"]
+
+[dependencies.anyhow]
+version = "1.0.6"
 
 [dependencies.bstr]
 version = "1.0.1"
@@ -44,21 +51,28 @@ default-features = false
 [dependencies.colored]
 version = "2"
 
+[dependencies.comma]
+version = "1.0.0"
+
 [dependencies.crossbeam-channel]
 version = "0.5.6"
 
-[dependencies.diff]
-version = "0.1.13"
+[dependencies.indicatif]
+version = "0.17.6"
 
 [dependencies.lazy_static]
 version = "1.4.0"
 
+[dependencies.levenshtein]
+version = "1.0.5"
+
+[dependencies.prettydiff]
+version = "0.6.4"
+default_features = false
+
 [dependencies.regex]
 version = "1.5.5"
-features = [
-    "perf",
-    "std",
-]
+features = ["unicode-gencat"]
 default-features = false
 
 [dependencies.rustc_version]

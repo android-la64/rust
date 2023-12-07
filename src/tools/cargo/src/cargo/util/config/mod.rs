@@ -70,6 +70,8 @@ use crate::core::compiler::rustdoc::RustdocExternMap;
 use crate::core::shell::Verbosity;
 use crate::core::{features, CliUnstable, Shell, SourceId, Workspace, WorkspaceRootConfig};
 use crate::ops::RegistryCredentialConfig;
+use crate::sources::CRATES_IO_INDEX;
+use crate::sources::CRATES_IO_REGISTRY;
 use crate::util::errors::CargoResult;
 use crate::util::network::http::configure_http_handle;
 use crate::util::network::http::http_handle;
@@ -84,6 +86,7 @@ use curl::easy::Easy;
 use lazycell::LazyCell;
 use serde::de::IntoDeserializer as _;
 use serde::Deserialize;
+use serde_untagged::UntaggedEnumVisitor;
 use time::OffsetDateTime;
 use toml_edit::Item;
 use url::Url;
@@ -621,9 +624,8 @@ impl Config {
             )));
         }
         let mut parts = key.parts().enumerate();
-        let mut val = match vals.get(parts.next().unwrap().1) {
-            Some(val) => val,
-            None => return Ok(None),
+        let Some(mut val) = vals.get(parts.next().unwrap().1) else {
+            return Ok(None);
         };
         for (i, part) in parts {
             match val {
@@ -905,12 +907,9 @@ impl Config {
         key: &ConfigKey,
         output: &mut Vec<(String, Definition)>,
     ) -> CargoResult<()> {
-        let env_val = match self.env.get_str(key.as_env_key()) {
-            Some(v) => v,
-            None => {
-                self.check_environment_key_case_mismatch(key);
-                return Ok(());
-            }
+        let Some(env_val) = self.env.get_str(key.as_env_key()) else {
+            self.check_environment_key_case_mismatch(key);
+            return Ok(());
         };
 
         let def = Definition::Environment(key.as_env_key().to_string());
@@ -938,6 +937,7 @@ impl Config {
                     .map(|s| (s.to_string(), def.clone())),
             );
         }
+        output.sort_by(|a, b| a.1.cmp(&b.1));
         Ok(())
     }
 
@@ -1259,9 +1259,8 @@ impl Config {
             };
             (path.to_string(), abs_path, def.clone())
         };
-        let table = match cv {
-            CV::Table(table, _def) => table,
-            _ => unreachable!(),
+        let CV::Table(table, _def) = cv else {
+            unreachable!()
         };
         let owned;
         let include = if remove {
@@ -1300,9 +1299,8 @@ impl Config {
     /// Parses the CLI config args and returns them as a table.
     pub(crate) fn cli_args_as_table(&self) -> CargoResult<ConfigValue> {
         let mut loaded_args = CV::Table(HashMap::new(), Definition::Cli(None));
-        let cli_args = match &self.cli_config {
-            Some(cli_args) => cli_args,
-            None => return Ok(loaded_args),
+        let Some(cli_args) = &self.cli_config else {
+            return Ok(loaded_args);
         };
         let mut seen = HashSet::new();
         for arg in cli_args {
@@ -1448,9 +1446,8 @@ impl Config {
 
     /// Add config arguments passed on the command line.
     fn merge_cli_args(&mut self) -> CargoResult<()> {
-        let loaded_map = match self.cli_args_as_table()? {
-            CV::Table(table, _def) => table,
-            _ => unreachable!(),
+        let CV::Table(loaded_map, _def) = self.cli_args_as_table()? else {
+            unreachable!()
         };
         let values = self.values_mut()?;
         for (key, value) in loaded_map.into_iter() {
@@ -1551,7 +1548,10 @@ impl Config {
                 )
             })
         } else {
-            bail!("no index found for registry: `{}`", registry);
+            bail!(
+                "registry index was not found in any configuration: `{}`",
+                registry
+            );
         }
     }
 
@@ -1594,17 +1594,15 @@ impl Config {
         }
 
         let home_path = self.home_path.clone().into_path_unlocked();
-        let credentials = match self.get_file_path(&home_path, "credentials", true)? {
-            Some(credentials) => credentials,
-            None => return Ok(()),
+        let Some(credentials) = self.get_file_path(&home_path, "credentials", true)? else {
+            return Ok(());
         };
 
         let mut value = self.load_file(&credentials)?;
         // Backwards compatibility for old `.cargo/credentials` layout.
         {
-            let (value_map, def) = match value {
-                CV::Table(ref mut value, ref def) => (value, def),
-                _ => unreachable!(),
+            let CV::Table(ref mut value_map, ref def) = value else {
+                unreachable!();
             };
 
             if let Some(token) = value_map.remove("token") {
@@ -1838,11 +1836,17 @@ impl Config {
         target::load_target_triple(self, target)
     }
 
-    pub fn crates_io_source_id<F>(&self, f: F) -> CargoResult<SourceId>
-    where
-        F: FnMut() -> CargoResult<SourceId>,
-    {
-        Ok(*(self.crates_io_source_id.try_borrow_with(f)?))
+    /// Returns the cached [`SourceId`] corresponding to the main repository.
+    ///
+    /// This is the main cargo registry by default, but it can be overridden in
+    /// a `.cargo/config.toml`.
+    pub fn crates_io_source_id(&self) -> CargoResult<SourceId> {
+        let source_id = self.crates_io_source_id.try_borrow_with(|| {
+            self.check_registry_index_not_set()?;
+            let url = CRATES_IO_INDEX.into_url().unwrap();
+            SourceId::for_alt_registry(&url, CRATES_IO_REGISTRY)
+        })?;
+        Ok(*source_id)
     }
 
     pub fn creation_time(&self) -> Instant {
@@ -2106,8 +2110,8 @@ impl ConfigValue {
 
     /// Merge the given value into self.
     ///
-    /// If `force` is true, primitive (non-container) types will override existing values.
-    /// If false, the original will be kept and the new value ignored.
+    /// If `force` is true, primitive (non-container) types will override existing values
+    /// of equal priority. For arrays, incoming values of equal priority will be placed later.
     ///
     /// Container types (tables and arrays) are merged with existing values.
     ///
@@ -2115,7 +2119,13 @@ impl ConfigValue {
     fn merge(&mut self, from: ConfigValue, force: bool) -> CargoResult<()> {
         match (self, from) {
             (&mut CV::List(ref mut old, _), CV::List(ref mut new, _)) => {
-                old.extend(mem::take(new).into_iter());
+                if force {
+                    old.append(new);
+                } else {
+                    new.append(old);
+                    mem::swap(new, old);
+                }
+                old.sort_by(|a, b| a.1.cmp(&b.1));
             }
             (&mut CV::Table(ref mut old, _), CV::Table(ref mut new, _)) => {
                 for (key, value) in mem::take(new) {
@@ -2446,11 +2456,22 @@ impl CargoFutureIncompatConfig {
 /// ssl-version.min = "tlsv1.2"
 /// ssl-version.max = "tlsv1.3"
 /// ```
-#[derive(Clone, Debug, Deserialize, PartialEq)]
-#[serde(untagged)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SslVersionConfig {
     Single(String),
     Range(SslVersionConfigRange),
+}
+
+impl<'de> Deserialize<'de> for SslVersionConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        UntaggedEnumVisitor::new()
+            .string(|single| Ok(SslVersionConfig::Single(single.to_owned())))
+            .map(|map| map.deserialize().map(SslVersionConfig::Range))
+            .deserialize(deserializer)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -2486,11 +2507,22 @@ pub struct CargoSshConfig {
 /// [build]
 /// jobs = "default" # Currently only support "default".
 /// ```
-#[derive(Debug, Deserialize, Clone)]
-#[serde(untagged)]
+#[derive(Debug, Clone)]
 pub enum JobsConfig {
     Integer(i32),
     String(String),
+}
+
+impl<'de> Deserialize<'de> for JobsConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        UntaggedEnumVisitor::new()
+            .i32(|int| Ok(JobsConfig::Integer(int)))
+            .string(|string| Ok(JobsConfig::String(string.to_owned())))
+            .deserialize(deserializer)
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -2527,11 +2559,22 @@ pub struct BuildTargetConfig {
     inner: Value<BuildTargetConfigInner>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug)]
 enum BuildTargetConfigInner {
     One(String),
     Many(Vec<String>),
+}
+
+impl<'de> Deserialize<'de> for BuildTargetConfigInner {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        UntaggedEnumVisitor::new()
+            .string(|one| Ok(BuildTargetConfigInner::One(one.to_owned())))
+            .seq(|many| many.deserialize().map(BuildTargetConfigInner::Many))
+            .deserialize(deserializer)
+    }
 }
 
 impl BuildTargetConfig {
@@ -2645,17 +2688,42 @@ where
     deserializer.deserialize_option(ProgressVisitor)
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug)]
 enum EnvConfigValueInner {
     Simple(String),
     WithOptions {
         value: String,
-        #[serde(default)]
         force: bool,
-        #[serde(default)]
         relative: bool,
     },
+}
+
+impl<'de> Deserialize<'de> for EnvConfigValueInner {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct WithOptions {
+            value: String,
+            #[serde(default)]
+            force: bool,
+            #[serde(default)]
+            relative: bool,
+        }
+
+        UntaggedEnumVisitor::new()
+            .string(|simple| Ok(EnvConfigValueInner::Simple(simple.to_owned())))
+            .map(|map| {
+                let with_options: WithOptions = map.deserialize()?;
+                Ok(EnvConfigValueInner::WithOptions {
+                    value: with_options.value,
+                    force: with_options.force,
+                    relative: with_options.relative,
+                })
+            })
+            .deserialize(deserializer)
+    }
 }
 
 #[derive(Debug, Deserialize)]

@@ -13,6 +13,7 @@ use crate::{
         Cache,
     },
     open,
+    repository::init::setup_objects,
 };
 
 /// Initialization
@@ -71,7 +72,7 @@ impl Cache {
 
         let config = {
             let git_prefix = &git_prefix;
-            let metas = [
+            let mut metas = [
                 gix_config::source::Kind::GitInstallation,
                 gix_config::source::Kind::System,
                 gix_config::source::Kind::Global,
@@ -99,7 +100,7 @@ impl Cache {
 
             let err_on_nonexisting_paths = false;
             let mut globals = gix_config::File::from_paths_metadata_buf(
-                metas,
+                &mut metas,
                 &mut buf,
                 err_on_nonexisting_paths,
                 gix_config::file::init::Options {
@@ -150,6 +151,7 @@ impl Cache {
             true,
             lenient_config,
         )?;
+        #[cfg(feature = "revision")]
         let object_kind_hint = util::disambiguate_hint(&config, lenient_config)?;
         let (static_pack_cache_limit_bytes, pack_cache_bytes, object_cache_bytes) =
             util::parse_object_caches(&config, lenient_config, filter_config_section)?;
@@ -158,6 +160,7 @@ impl Cache {
             resolved: config.into(),
             use_multi_pack_index,
             object_hash,
+            #[cfg(feature = "revision")]
             object_kind_hint,
             static_pack_cache_limit_bytes,
             pack_cache_bytes,
@@ -173,9 +176,11 @@ impl Cache {
             user_agent: Default::default(),
             personas: Default::default(),
             url_rewrite: Default::default(),
+            #[cfg(feature = "blob-diff")]
             diff_renames: Default::default(),
             #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
             url_scheme: Default::default(),
+            #[cfg(feature = "blob-diff")]
             diff_algorithm: Default::default(),
         })
     }
@@ -210,19 +215,26 @@ impl Cache {
             false,
             self.lenient_config,
         )?;
-        let object_kind_hint = util::disambiguate_hint(config, self.lenient_config)?;
+
+        #[cfg(feature = "revision")]
+        {
+            let object_kind_hint = util::disambiguate_hint(config, self.lenient_config)?;
+            self.object_kind_hint = object_kind_hint;
+        }
         let reflog = util::query_refupdates(config, self.lenient_config)?;
 
         self.hex_len = hex_len;
         self.ignore_case = ignore_case;
-        self.object_kind_hint = object_kind_hint;
         self.reflog = reflog;
 
         self.user_agent = Default::default();
         self.personas = Default::default();
         self.url_rewrite = Default::default();
-        self.diff_renames = Default::default();
-        self.diff_algorithm = Default::default();
+        #[cfg(feature = "blob-diff")]
+        {
+            self.diff_renames = Default::default();
+            self.diff_algorithm = Default::default();
+        }
         (
             self.static_pack_cache_limit_bytes,
             self.pack_cache_bytes,
@@ -268,8 +280,19 @@ impl crate::Repository {
         &mut self,
         config: crate::Config,
     ) -> Result<(), Error> {
+        let (a, b, c) = (
+            self.config.static_pack_cache_limit_bytes,
+            self.config.pack_cache_bytes,
+            self.config.object_cache_bytes,
+        );
         self.config.reread_values_and_clear_caches_replacing_config(config)?;
         self.apply_changed_values();
+        if a != self.config.static_pack_cache_limit_bytes
+            || b != self.config.pack_cache_bytes
+            || c != self.config.object_cache_bytes
+        {
+            setup_objects(&mut self.objects, &self.config);
+        }
         Ok(())
     }
 
@@ -444,6 +467,29 @@ fn apply_environment_overrides(
                 let key = &gitoxide::Ssh::COMMAND_WITHOUT_SHELL_FALLBACK;
                 (env(key), key.name)
             }],
+        ),
+        (
+            "gitoxide",
+            Some(Cow::Borrowed("pathspec".into())),
+            git_prefix,
+            &[
+                {
+                    let key = &gitoxide::Pathspec::LITERAL;
+                    (env(key), key.name)
+                },
+                {
+                    let key = &gitoxide::Pathspec::GLOB;
+                    (env(key), key.name)
+                },
+                {
+                    let key = &gitoxide::Pathspec::NOGLOB;
+                    (env(key), key.name)
+                },
+                {
+                    let key = &gitoxide::Pathspec::ICASE;
+                    (env(key), key.name)
+                },
+            ],
         ),
         (
             "ssh",

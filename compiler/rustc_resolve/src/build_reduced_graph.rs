@@ -247,8 +247,6 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                 })
             }
             ast::VisibilityKind::Restricted { ref path, id, .. } => {
-                // Make `PRIVATE_IN_PUBLIC` lint a hard error.
-                self.r.has_pub_restricted = true;
                 // For visibilities we are not ready to provide correct implementation of "uniform
                 // paths" right now, so on 2018 edition we only allow module-relative paths for now.
                 // On 2015 edition visibilities are resolved as crate-relative by default,
@@ -700,10 +698,7 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
 
             // These items live in the type namespace.
             ItemKind::TyAlias(..) => {
-                let res = Res::Def(
-                    DefKind::TyAlias { lazy: self.r.tcx.features().lazy_type_alias },
-                    def_id,
-                );
+                let res = Res::Def(DefKind::TyAlias, def_id);
                 self.r.define(parent, ident, TypeNS, (res, vis, sp, expansion));
             }
 
@@ -870,10 +865,7 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
         let imported_binding = self.r.import(binding, import);
         if parent == self.r.graph_root {
             if let Some(entry) = self.r.extern_prelude.get(&ident.normalize_to_macros_2_0()) {
-                if expansion != LocalExpnId::ROOT
-                    && orig_name.is_some()
-                    && entry.extern_crate_item.is_none()
-                {
+                if expansion != LocalExpnId::ROOT && orig_name.is_some() && !entry.is_import() {
                     let msg = "macro-expanded `extern crate` items cannot \
                                        shadow names passed with `--extern`";
                     self.r.tcx.sess.span_err(item.span, msg);
@@ -884,10 +876,14 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                     return;
                 }
             }
-            let entry = self.r.extern_prelude.entry(ident.normalize_to_macros_2_0()).or_insert(
-                ExternPreludeEntry { extern_crate_item: None, introduced_by_item: true },
-            );
-            entry.extern_crate_item = Some(imported_binding);
+            let entry = self
+                .r
+                .extern_prelude
+                .entry(ident.normalize_to_macros_2_0())
+                .or_insert(ExternPreludeEntry { binding: None, introduced_by_item: true });
+            // Binding from `extern crate` item in source code can replace
+            // a binding from `--extern` on command line here.
+            entry.binding = Some(imported_binding);
             if orig_name.is_some() {
                 entry.introduced_by_item = true;
             }
@@ -951,7 +947,7 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                 DefKind::Struct
                 | DefKind::Union
                 | DefKind::Variant
-                | DefKind::TyAlias { .. }
+                | DefKind::TyAlias
                 | DefKind::ForeignTy
                 | DefKind::OpaqueTy
                 | DefKind::TraitAlias
@@ -1240,7 +1236,7 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                     use_span_with_attributes: span,
                     use_span: span,
                     root_span: span,
-                    span: span,
+                    span,
                     module_path: Vec::new(),
                     vis: Cell::new(Some(vis)),
                     used: Cell::new(true),

@@ -170,6 +170,7 @@ impl<'a, 'tcx> DropElaborator<'a, 'tcx> for Elaborator<'a, '_, 'tcx> {
         self.ctxt.param_env()
     }
 
+    #[instrument(level = "debug", skip(self), ret)]
     fn drop_style(&self, path: Self::Path, mode: DropFlagMode) -> DropStyle {
         let ((maybe_live, maybe_dead), multipart) = match mode {
             DropFlagMode::Shallow => (self.ctxt.init_data.maybe_live_dead(path), false),
@@ -362,8 +363,13 @@ impl<'b, 'tcx> ElaborateDropsCtxt<'b, 'tcx> {
                                     UnwindAction::Unreachable => {
                                         Unwind::To(self.patch.unreachable_cleanup_block())
                                     }
-                                    UnwindAction::Terminate => {
-                                        Unwind::To(self.patch.terminate_block())
+                                    UnwindAction::Terminate(reason) => {
+                                        debug_assert_ne!(
+                                            reason,
+                                            UnwindTerminateReason::InCleanup,
+                                            "we are not in a cleanup block, InCleanup reason should be impossible"
+                                        );
+                                        Unwind::To(self.patch.terminate_block(reason))
                                     }
                                 }
                             };
@@ -397,10 +403,10 @@ impl<'b, 'tcx> ElaborateDropsCtxt<'b, 'tcx> {
     }
 
     fn constant_bool(&self, span: Span, val: bool) -> Rvalue<'tcx> {
-        Rvalue::Use(Operand::Constant(Box::new(Constant {
+        Rvalue::Use(Operand::Constant(Box::new(ConstOperand {
             span,
             user_ty: None,
-            literal: ConstantKind::from_bool(self.tcx, val),
+            const_: Const::from_bool(self.tcx, val),
         })))
     }
 
@@ -470,7 +476,7 @@ impl<'b, 'tcx> ElaborateDropsCtxt<'b, 'tcx> {
                             // drop elaboration should handle that by itself
                             continue;
                         }
-                        TerminatorKind::Resume => {
+                        TerminatorKind::UnwindResume => {
                             // It is possible for `Resume` to be patched
                             // (in particular it can be patched to be replaced with
                             // a Goto; see `MirPatch::new`).
@@ -496,7 +502,8 @@ impl<'b, 'tcx> ElaborateDropsCtxt<'b, 'tcx> {
             if let TerminatorKind::Call {
                 destination,
                 target: Some(_),
-                unwind: UnwindAction::Continue | UnwindAction::Unreachable | UnwindAction::Terminate,
+                unwind:
+                    UnwindAction::Continue | UnwindAction::Unreachable | UnwindAction::Terminate(_),
                 ..
             } = data.terminator().kind
             {

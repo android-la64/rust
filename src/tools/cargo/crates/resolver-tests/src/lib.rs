@@ -7,15 +7,17 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt;
 use std::fmt::Write;
 use std::rc::Rc;
+use std::sync::OnceLock;
 use std::task::Poll;
 use std::time::Instant;
 
 use cargo::core::dependency::DepKind;
 use cargo::core::resolver::{self, ResolveOpts, VersionPreferences};
-use cargo::core::source::{GitReference, QueryKind, SourceId};
 use cargo::core::Resolve;
 use cargo::core::{Dependency, PackageId, Registry, Summary};
-use cargo::util::{CargoResult, Config, Graph, IntoUrl};
+use cargo::core::{GitReference, SourceId};
+use cargo::sources::source::QueryKind;
+use cargo::util::{CargoResult, Config, Graph, IntoUrl, RustVersion};
 
 use proptest::collection::{btree_map, vec};
 use proptest::prelude::*;
@@ -161,8 +163,8 @@ pub fn resolve_with_config_raw(
             if std::thread::panicking() && self.list.len() != self.used.len() {
                 // we found a case that causes a panic and did not use all of the input.
                 // lets print the part of the input that was used for minimization.
-                println!(
-                    "{:?}",
+                eprintln!(
+                    "Part used befor drop: {:?}",
                     PrettyPrintRegistry(
                         self.list
                             .iter()
@@ -183,11 +185,12 @@ pub fn resolve_with_config_raw(
         deps,
         &BTreeMap::new(),
         None::<&String>,
-        None::<&String>,
+        None::<RustVersion>,
     )
     .unwrap();
     let opts = ResolveOpts::everything();
     let start = Instant::now();
+    let max_rust_version = None;
     let resolve = resolver::resolve(
         &[(summary, opts)],
         &[],
@@ -195,6 +198,7 @@ pub fn resolve_with_config_raw(
         &VersionPreferences::default(),
         Some(config),
         true,
+        max_rust_version,
     );
 
     // The largest test in our suite takes less then 30 sec.
@@ -561,11 +565,11 @@ macro_rules! pkg {
 }
 
 fn registry_loc() -> SourceId {
-    lazy_static::lazy_static! {
-        static ref EXAMPLE_DOT_COM: SourceId =
-            SourceId::for_registry(&"https://example.com".into_url().unwrap()).unwrap();
-    }
-    *EXAMPLE_DOT_COM
+    static EXAMPLE_DOT_COM: OnceLock<SourceId> = OnceLock::new();
+    let example_dot = EXAMPLE_DOT_COM.get_or_init(|| {
+        SourceId::for_registry(&"https://example.com".into_url().unwrap()).unwrap()
+    });
+    *example_dot
 }
 
 pub fn pkg<T: ToPkgId>(name: T) -> Summary {
@@ -584,7 +588,7 @@ pub fn pkg_dep<T: ToPkgId>(name: T, dep: Vec<Dependency>) -> Summary {
         dep,
         &BTreeMap::new(),
         link,
-        None::<&String>,
+        None::<RustVersion>,
     )
     .unwrap()
 }
@@ -612,7 +616,7 @@ pub fn pkg_loc(name: &str, loc: &str) -> Summary {
         Vec::new(),
         &BTreeMap::new(),
         link,
-        None::<&String>,
+        None::<RustVersion>,
     )
     .unwrap()
 }
@@ -626,7 +630,7 @@ pub fn remove_dep(sum: &Summary, ind: usize) -> Summary {
         deps,
         &BTreeMap::new(),
         sum.links().map(|a| a.as_str()),
-        None::<&String>,
+        None::<RustVersion>,
     )
     .unwrap()
 }

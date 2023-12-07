@@ -3,7 +3,7 @@
 //! This is in a dedicated file so that changes to this file can be reviewed more carefully.
 //! The intention is that this file only contains datatype declarations, no code.
 
-use super::{BasicBlock, Constant, Local, SwitchTargets, UserTypeProjection};
+use super::{BasicBlock, Const, Local, UserTypeProjection};
 
 use crate::mir::coverage::{CodeRegion, CoverageKind};
 use crate::traits::Reveal;
@@ -24,6 +24,7 @@ use rustc_span::def_id::LocalDefId;
 use rustc_span::symbol::Symbol;
 use rustc_span::Span;
 use rustc_target::asm::InlineAsmRegOrRegClass;
+use smallvec::SmallVec;
 
 /// Represents the "flavors" of MIR.
 ///
@@ -122,7 +123,7 @@ pub enum AnalysisPhase {
     /// * [`TerminatorKind::FalseEdge`]
     /// * [`StatementKind::FakeRead`]
     /// * [`StatementKind::AscribeUserType`]
-    /// * [`Rvalue::Ref`] with `BorrowKind::Shallow`
+    /// * [`Rvalue::Ref`] with `BorrowKind::Fake`
     ///
     /// Furthermore, `Deref` projections must be the first projection within any place (if they
     /// appear at all)
@@ -138,6 +139,7 @@ pub enum RuntimePhase {
     /// * [`TerminatorKind::Yield`]
     /// * [`TerminatorKind::GeneratorDrop`]
     /// * [`Rvalue::Aggregate`] for any `AggregateKind` except `Array`
+    /// * [`PlaceElem::OpaqueCast`]
     ///
     /// And the following variants are allowed:
     /// * [`StatementKind::Retag`]
@@ -180,7 +182,7 @@ pub enum BorrowKind {
     /// should not prevent `if let None = x { ... }`, for example, because the
     /// mutating `(*x as Some).0` can't affect the discriminant of `x`.
     /// We can also report errors with this kind of borrow differently.
-    Shallow,
+    Fake,
 
     /// Data is mutable and not aliasable.
     Mut { kind: MutBorrowKind },
@@ -380,6 +382,28 @@ pub enum StatementKind<'tcx> {
     Nop,
 }
 
+impl StatementKind<'_> {
+    /// Returns a simple string representation of a `StatementKind` variant, independent of any
+    /// values it might hold (e.g. `StatementKind::Assign` always returns `"Assign"`).
+    pub const fn name(&self) -> &'static str {
+        match self {
+            StatementKind::Assign(..) => "Assign",
+            StatementKind::FakeRead(..) => "FakeRead",
+            StatementKind::SetDiscriminant { .. } => "SetDiscriminant",
+            StatementKind::Deinit(..) => "Deinit",
+            StatementKind::StorageLive(..) => "StorageLive",
+            StatementKind::StorageDead(..) => "StorageDead",
+            StatementKind::Retag(..) => "Retag",
+            StatementKind::PlaceMention(..) => "PlaceMention",
+            StatementKind::AscribeUserType(..) => "AscribeUserType",
+            StatementKind::Coverage(..) => "Coverage",
+            StatementKind::Intrinsic(..) => "Intrinsic",
+            StatementKind::ConstEvalCounter => "ConstEvalCounter",
+            StatementKind::Nop => "Nop",
+        }
+    }
+}
+
 #[derive(
     Clone,
     TyEncodable,
@@ -414,17 +438,6 @@ pub enum NonDivergingIntrinsic<'tcx> {
     /// **Needs clarification**: Is this typed or not, ie is there a typed load and store involved?
     /// I vaguely remember Ralf saying somewhere that he thought it should not be.
     CopyNonOverlapping(CopyNonOverlapping<'tcx>),
-}
-
-impl std::fmt::Display for NonDivergingIntrinsic<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Assume(op) => write!(f, "assume({op:?})"),
-            Self::CopyNonOverlapping(CopyNonOverlapping { src, dst, count }) => {
-                write!(f, "copy_nonoverlapping(dst = {dst:?}, src = {src:?}, count = {count:?})")
-            }
-        }
-    }
 }
 
 /// Describes what kind of retag is to be performed.
@@ -593,13 +606,13 @@ pub enum TerminatorKind<'tcx> {
     ///
     /// Only permitted in cleanup blocks. `Resume` is not permitted with `-C unwind=abort` after
     /// deaggregation runs.
-    Resume,
+    UnwindResume,
 
     /// Indicates that the landing pad is finished and that the process should terminate.
     ///
     /// Used to prevent unwinding for foreign items or with `-C unwind=abort`. Only permitted in
     /// cleanup blocks.
-    Terminate,
+    UnwindTerminate(UnwindTerminateReason),
 
     /// Returns from the function.
     ///
@@ -790,8 +803,8 @@ impl TerminatorKind<'_> {
         match self {
             TerminatorKind::Goto { .. } => "Goto",
             TerminatorKind::SwitchInt { .. } => "SwitchInt",
-            TerminatorKind::Resume => "Resume",
-            TerminatorKind::Terminate => "Terminate",
+            TerminatorKind::UnwindResume => "UnwindResume",
+            TerminatorKind::UnwindTerminate(_) => "UnwindTerminate",
             TerminatorKind::Return => "Return",
             TerminatorKind::Unreachable => "Unreachable",
             TerminatorKind::Drop { .. } => "Drop",
@@ -804,6 +817,27 @@ impl TerminatorKind<'_> {
             TerminatorKind::InlineAsm { .. } => "InlineAsm",
         }
     }
+}
+
+#[derive(Debug, Clone, TyEncodable, TyDecodable, Hash, HashStable, PartialEq)]
+pub struct SwitchTargets {
+    /// Possible values. The locations to branch to in each case
+    /// are found in the corresponding indices from the `targets` vector.
+    pub(super) values: SmallVec<[u128; 1]>,
+
+    /// Possible branch sites. The last element of this vector is used
+    /// for the otherwise branch, so targets.len() == values.len() + 1
+    /// should hold.
+    //
+    // This invariant is quite non-obvious and also could be improved.
+    // One way to make this invariant is to have something like this instead:
+    //
+    // branches: Vec<(ConstInt, BasicBlock)>,
+    // otherwise: Option<BasicBlock> // exhaustive if None
+    //
+    // However we’ve decided to keep this as-is until we figure a case
+    // where some other approach seems to be strictly better than other.
+    pub(super) targets: SmallVec<[BasicBlock; 2]>,
 }
 
 /// Action to be taken when a stack unwind happens.
@@ -820,9 +854,20 @@ pub enum UnwindAction {
     /// Terminates the execution if unwind happens.
     ///
     /// Depending on the platform and situation this may cause a non-unwindable panic or abort.
-    Terminate,
+    Terminate(UnwindTerminateReason),
     /// Cleanups to be done.
     Cleanup(BasicBlock),
+}
+
+/// The reason we are terminating the process during unwinding.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, TyEncodable, TyDecodable, Hash, HashStable)]
+#[derive(TypeFoldable, TypeVisitable)]
+pub enum UnwindTerminateReason {
+    /// Unwinding is just not possible given the ABI of this function.
+    Abi,
+    /// We were already cleaning up for an ongoing unwind, and a *second*, *nested* unwind was
+    /// triggered by the drop glue.
+    InCleanup,
 }
 
 /// Information about an assertion failure.
@@ -858,10 +903,10 @@ pub enum InlineAsmOperand<'tcx> {
         out_place: Option<Place<'tcx>>,
     },
     Const {
-        value: Box<Constant<'tcx>>,
+        value: Box<ConstOperand<'tcx>>,
     },
     SymFn {
-        value: Box<Constant<'tcx>>,
+        value: Box<ConstOperand<'tcx>>,
     },
     SymStatic {
         def_id: DefId,
@@ -1030,6 +1075,18 @@ pub enum ProjectionElem<V, T> {
     /// Like an explicit cast from an opaque type to a concrete type, but without
     /// requiring an intermediate variable.
     OpaqueCast(T),
+
+    /// A `Subtype(T)` projection is applied to any `StatementKind::Assign` where
+    /// type of lvalue doesn't match the type of rvalue, the primary goal is making subtyping
+    /// explicit during optimizations and codegen.
+    ///
+    /// This projection doesn't impact the runtime behavior of the program except for potentially changing
+    /// some type metadata of the interpreter or codegen backend.
+    ///
+    /// This goal is achieved with mir_transform pass `Subtyper`, which runs right after
+    /// borrowchecker, as we only care about subtyping that can affect trait selection and
+    /// `TypeId`.
+    Subtype(T),
 }
 
 /// Alias for projections as they appear in places, where the base is a place
@@ -1081,7 +1138,22 @@ pub enum Operand<'tcx> {
     Move(Place<'tcx>),
 
     /// Constants are already semantically values, and remain unchanged.
-    Constant(Box<Constant<'tcx>>),
+    Constant(Box<ConstOperand<'tcx>>),
+}
+
+#[derive(Clone, Copy, PartialEq, TyEncodable, TyDecodable, Hash, HashStable)]
+#[derive(TypeFoldable, TypeVisitable)]
+pub struct ConstOperand<'tcx> {
+    pub span: Span,
+
+    /// Optional user-given type: for something like
+    /// `collect::<Vec<_>>`, this would be present and would
+    /// indicate that `Vec<_>` was explicitly specified.
+    ///
+    /// Needed for NLL to impose user-given type constraints.
+    pub user_ty: Option<UserTypeAnnotationIndex>,
+
+    pub const_: Const<'tcx>,
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1274,7 +1346,7 @@ pub enum AggregateKind<'tcx> {
     Generator(DefId, GenericArgsRef<'tcx>, hir::Movability),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, TyEncodable, TyDecodable, Hash, HashStable)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, TyEncodable, TyDecodable, Hash, HashStable)]
 pub enum NullOp<'tcx> {
     /// Returns the size of a value of that type
     SizeOf,

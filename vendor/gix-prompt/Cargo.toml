@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.65"
 name = "gix-prompt"
-version = "0.5.1"
+version = "0.7.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -23,17 +23,17 @@ include = [
 ]
 description = "A crate of the gitoxide project for handling prompts in the terminal"
 readme = "README.md"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
 
 [lib]
 doctest = false
 
 [dependencies.gix-command]
-version = "^0.2.5"
+version = "^0.2.9"
 
 [dependencies.gix-config-value]
-version = "^0.12.1"
+version = "^0.14.0"
 
 [dependencies.parking_lot]
 version = "0.12.1"
@@ -49,5 +49,5 @@ version = "2.0.0"
 default-features = false
 
 [target."cfg(unix)".dependencies.rustix]
-version = "0.37.13"
+version = "0.38.4"
 features = ["termios"]

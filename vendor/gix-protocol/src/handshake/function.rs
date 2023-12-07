@@ -24,12 +24,12 @@ where
 {
     let (server_protocol_version, refs, capabilities) = {
         progress.init(None, progress::steps());
-        progress.set_name("handshake");
+        progress.set_name("handshake".into());
         progress.step();
 
         let extra_parameters: Vec<_> = extra_parameters
             .iter()
-            .map(|(k, v)| (k.as_str(), v.as_ref().map(|s| s.as_str())))
+            .map(|(k, v)| (k.as_str(), v.as_deref()))
             .collect();
         let supported_versions: Vec<_> = transport.supported_protocol_versions().into();
 
@@ -43,13 +43,13 @@ where
             Err(client::Error::Io(ref err)) if err.kind() == std::io::ErrorKind::PermissionDenied => {
                 drop(result); // needed to workaround this: https://github.com/rust-lang/rust/issues/76149
                 let url = transport.to_url().into_owned();
-                progress.set_name("authentication");
+                progress.set_name("authentication".into());
                 let credentials::protocol::Outcome { identity, next } =
                     authenticate(credentials::helper::Action::get_for_url(url.clone()))?
                         .ok_or(Error::EmptyCredentials)?;
                 transport.set_identity(identity)?;
                 progress.step();
-                progress.set_name("handshake (authenticated)");
+                progress.set_name("handshake (authenticated)".into());
                 match transport.handshake(service, &extra_parameters).await {
                     Ok(v) => {
                         authenticate(next.store())?;

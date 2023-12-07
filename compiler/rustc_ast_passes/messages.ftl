@@ -1,3 +1,7 @@
+ast_passes_anon_struct_or_union_not_allowed =
+    anonymous {$struct_or_union}s are not allowed outside of unnamed struct or union fields
+    .label = anonymous {$struct_or_union} declared here
+
 ast_passes_assoc_const_without_body =
     associated constant in `impl` without body
     .suggestion = provide a definition for the constant
@@ -113,16 +117,6 @@ ast_passes_forbidden_default =
     `default` is only allowed on items in trait impls
     .label = `default` because of this
 
-ast_passes_forbidden_let =
-    `let` expressions are not supported here
-    .note = only supported directly in conditions of `if` and `while` expressions
-    .not_supported_or = `||` operators are not supported in let chain expressions
-    .not_supported_parentheses = `let`s wrapped in parentheses are not supported in a context with let chains
-
-ast_passes_forbidden_let_stable =
-    expected expression, found statement (`let`)
-    .note = variable declaration using `let` is a statement
-
 ast_passes_forbidden_lifetime_bound =
     lifetime bounds cannot be used in this context
 
@@ -161,6 +155,14 @@ ast_passes_inherent_cannot_be = inherent impls cannot be {$annotation}
 
 ast_passes_invalid_label =
     invalid label name `{$name}`
+
+ast_passes_invalid_unnamed_field =
+    unnamed fields are not allowed outside of structs or unions
+    .label = unnamed field declared here
+
+ast_passes_invalid_unnamed_field_ty =
+    unnamed fields can only have struct or union types
+    .label = not a struct or union
 
 ast_passes_item_underscore = `{$kind}` items in this context need a name
     .label = `_` is not a valid name for this `{$kind}` item

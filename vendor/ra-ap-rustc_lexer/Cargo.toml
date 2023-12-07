@@ -12,11 +12,11 @@
 [package]
 edition = "2021"
 name = "ra-ap-rustc_lexer"
-version = "0.1.0"
+version = "0.10.0"
 description = """
 
 Automatically published version of the package `rustc_lexer`
-in the rust-lang/rust repository from commit 77c836e1ae582661924d3b6ec4d57a2de120f59f
+in the rust-lang/rust repository from commit d5573d708d548f07070f4052509cdd137a035e7f
 
 The publishing script for this crate lives at:
 https://github.com/rust-analyzer/rustc-auto-publish
@@ -26,8 +26,10 @@ repository = "https://github.com/rust-lang/rust"
 
 [lib]
 
-[dependencies.unic-emoji-char]
-version = "0.9.0"
+[dependencies.unicode-properties]
+version = "0.1.0"
+features = ["emoji"]
+default-features = false
 
 [dependencies.unicode-xid]
 version = "0.2.0"

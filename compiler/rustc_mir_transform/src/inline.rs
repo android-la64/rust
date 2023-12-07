@@ -193,7 +193,7 @@ impl<'tcx> Inliner<'tcx> {
             return Err("optimization fuel exhausted");
         }
 
-        let Ok(callee_body) = callsite.callee.try_subst_mir_and_normalize_erasing_regions(
+        let Ok(callee_body) = callsite.callee.try_instantiate_mir_and_normalize_erasing_regions(
             self.tcx,
             self.param_env,
             ty::EarlyBinder::bind(callee_body.clone()),
@@ -218,7 +218,13 @@ impl<'tcx> Inliner<'tcx> {
         // Normally, this shouldn't be required, but trait normalization failure can create a
         // validation ICE.
         let output_type = callee_body.return_ty();
-        if !util::is_subtype(self.tcx, self.param_env, output_type, destination_ty) {
+        if !util::relate_types(
+            self.tcx,
+            self.param_env,
+            ty::Variance::Covariant,
+            output_type,
+            destination_ty,
+        ) {
             trace!(?output_type, ?destination_ty);
             return Err("failed to normalize return type");
         }
@@ -248,7 +254,13 @@ impl<'tcx> Inliner<'tcx> {
                 self_arg_ty.into_iter().chain(arg_tuple_tys).zip(callee_body.args_iter())
             {
                 let input_type = callee_body.local_decls[input].ty;
-                if !util::is_subtype(self.tcx, self.param_env, input_type, arg_ty) {
+                if !util::relate_types(
+                    self.tcx,
+                    self.param_env,
+                    ty::Variance::Covariant,
+                    input_type,
+                    arg_ty,
+                ) {
                     trace!(?arg_ty, ?input_type);
                     return Err("failed to normalize tuple argument type");
                 }
@@ -257,7 +269,13 @@ impl<'tcx> Inliner<'tcx> {
             for (arg, input) in args.iter().zip(callee_body.args_iter()) {
                 let input_type = callee_body.local_decls[input].ty;
                 let arg_ty = arg.ty(&caller_body.local_decls, self.tcx);
-                if !util::is_subtype(self.tcx, self.param_env, input_type, arg_ty) {
+                if !util::relate_types(
+                    self.tcx,
+                    self.param_env,
+                    ty::Variance::Covariant,
+                    input_type,
+                    arg_ty,
+                ) {
                     trace!(?arg_ty, ?input_type);
                     return Err("failed to normalize argument type");
                 }
@@ -388,14 +406,16 @@ impl<'tcx> Inliner<'tcx> {
             return Err("never inline hint");
         }
 
-        // Only inline local functions if they would be eligible for cross-crate
-        // inlining. This is to ensure that the final crate doesn't have MIR that
-        // reference unexported symbols
-        if callsite.callee.def_id().is_local() {
-            let is_generic = callsite.callee.args.non_erasable_generics().next().is_some();
-            if !is_generic && !callee_attrs.requests_inline() {
-                return Err("not exported");
-            }
+        // Reachability pass defines which functions are eligible for inlining. Generally inlining
+        // other functions is incorrect because they could reference symbols that aren't exported.
+        let is_generic = callsite
+            .callee
+            .args
+            .non_erasable_generics(self.tcx, callsite.callee.def_id())
+            .next()
+            .is_some();
+        if !is_generic && !callee_attrs.requests_inline() {
+            return Err("not exported");
         }
 
         if callsite.fn_sig.c_variadic() {
@@ -479,9 +499,10 @@ impl<'tcx> Inliner<'tcx> {
                 work_list.push(target);
 
                 // If the place doesn't actually need dropping, treat it like a regular goto.
-                let ty = callsite
-                    .callee
-                    .subst_mir(self.tcx, ty::EarlyBinder::bind(&place.ty(callee_body, tcx).ty));
+                let ty = callsite.callee.instantiate_mir(
+                    self.tcx,
+                    ty::EarlyBinder::bind(&place.ty(callee_body, tcx).ty),
+                );
                 if ty.needs_drop(tcx, self.param_env) && let UnwindAction::Cleanup(unwind) = unwind {
                     work_list.push(unwind);
                 }
@@ -648,13 +669,13 @@ impl<'tcx> Inliner<'tcx> {
                 // Copy only unevaluated constants from the callee_body into the caller_body.
                 // Although we are only pushing `ConstKind::Unevaluated` consts to
                 // `required_consts`, here we may not only have `ConstKind::Unevaluated`
-                // because we are calling `subst_and_normalize_erasing_regions`.
+                // because we are calling `instantiate_and_normalize_erasing_regions`.
                 caller_body.required_consts.extend(
-                    callee_body.required_consts.iter().copied().filter(|&ct| match ct.literal {
-                        ConstantKind::Ty(_) => {
+                    callee_body.required_consts.iter().copied().filter(|&ct| match ct.const_ {
+                        Const::Ty(_) => {
                             bug!("should never encounter ty::UnevaluatedConst in `required_consts`")
                         }
-                        ConstantKind::Val(..) | ConstantKind::Unevaluated(..) => true,
+                        Const::Val(..) | Const::Unevaluated(..) => true,
                     }),
                 );
             }
@@ -809,9 +830,10 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
         match terminator.kind {
             TerminatorKind::Drop { ref place, unwind, .. } => {
                 // If the place doesn't actually need dropping, treat it like a regular goto.
-                let ty = self
-                    .instance
-                    .subst_mir(tcx, ty::EarlyBinder::bind(&place.ty(self.callee_body, tcx).ty));
+                let ty = self.instance.instantiate_mir(
+                    tcx,
+                    ty::EarlyBinder::bind(&place.ty(self.callee_body, tcx).ty),
+                );
                 if ty.needs_drop(tcx, self.param_env) {
                     self.cost += CALL_PENALTY;
                     if let UnwindAction::Cleanup(_) = unwind {
@@ -822,7 +844,8 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
                 }
             }
             TerminatorKind::Call { func: Operand::Constant(ref f), unwind, .. } => {
-                let fn_ty = self.instance.subst_mir(tcx, ty::EarlyBinder::bind(&f.literal.ty()));
+                let fn_ty =
+                    self.instance.instantiate_mir(tcx, ty::EarlyBinder::bind(&f.const_.ty()));
                 self.cost += if let ty::FnDef(def_id, _) = *fn_ty.kind() && tcx.is_intrinsic(def_id) {
                     // Don't give intrinsics the extra penalty for calls
                     INSTR_COST
@@ -839,7 +862,7 @@ impl<'tcx> Visitor<'tcx> for CostChecker<'_, 'tcx> {
                     self.cost += LANDINGPAD_PENALTY;
                 }
             }
-            TerminatorKind::Resume => self.cost += RESUME_PENALTY,
+            TerminatorKind::UnwindResume => self.cost += RESUME_PENALTY,
             TerminatorKind::InlineAsm { unwind, .. } => {
                 self.cost += INSTR_COST;
                 if let UnwindAction::Cleanup(_) = unwind {
@@ -906,12 +929,12 @@ impl Integrator<'_, '_> {
                 UnwindAction::Cleanup(_) | UnwindAction::Continue => {
                     bug!("cleanup on cleanup block");
                 }
-                UnwindAction::Unreachable | UnwindAction::Terminate => return unwind,
+                UnwindAction::Unreachable | UnwindAction::Terminate(_) => return unwind,
             }
         }
 
         match unwind {
-            UnwindAction::Unreachable | UnwindAction::Terminate => unwind,
+            UnwindAction::Unreachable | UnwindAction::Terminate(_) => unwind,
             UnwindAction::Cleanup(target) => UnwindAction::Cleanup(self.map_block(target)),
             // Add an unwind edge to the original call's cleanup block
             UnwindAction::Continue => self.cleanup_block,
@@ -1017,15 +1040,15 @@ impl<'tcx> MutVisitor<'tcx> for Integrator<'_, 'tcx> {
                     TerminatorKind::Unreachable
                 }
             }
-            TerminatorKind::Resume => {
+            TerminatorKind::UnwindResume => {
                 terminator.kind = match self.cleanup_block {
                     UnwindAction::Cleanup(tgt) => TerminatorKind::Goto { target: tgt },
-                    UnwindAction::Continue => TerminatorKind::Resume,
+                    UnwindAction::Continue => TerminatorKind::UnwindResume,
                     UnwindAction::Unreachable => TerminatorKind::Unreachable,
-                    UnwindAction::Terminate => TerminatorKind::Terminate,
+                    UnwindAction::Terminate(reason) => TerminatorKind::UnwindTerminate(reason),
                 };
             }
-            TerminatorKind::Terminate => {}
+            TerminatorKind::UnwindTerminate(_) => {}
             TerminatorKind::Unreachable => {}
             TerminatorKind::FalseEdge { ref mut real_target, ref mut imaginary_target } => {
                 *real_target = self.map_block(*real_target);

@@ -1,8 +1,8 @@
 use crate::{
     dfa::DEAD,
     util::{
-        bytes::{self, DeserializeError, Endian, SerializeError},
-        id::StateID,
+        primitives::StateID,
+        wire::{self, DeserializeError, Endian, SerializeError},
     },
 };
 
@@ -21,7 +21,7 @@ macro_rules! err {
 //   has run. The dead state always has an ID of 0. i.e., It is always the
 //   first state in a DFA.
 // * quit - A state that is entered whenever a byte is seen that should cause
-//   a DFA to give up and stop searching. This results in a MatchError::Quit
+//   a DFA to give up and stop searching. This results in a MatchError::quit
 //   error being returned at search time. The default configuration for a DFA
 //   has no quit bytes, which means this state is unreachable by default,
 //   although it is always present for reasons of implementation simplicity.
@@ -101,7 +101,7 @@ macro_rules! err {
 //             # A quit state means we give up. If he DFA has no quit state,
 //             # then special.quit_id == 0 == dead, which is handled by the
 //             # conditional above.
-//             return Err(MatchError::Quit { byte, offset: offset - 1 })
+//             return Err(MatchError::quit { byte, offset: offset - 1 })
 //         if special.min_match <= current_state <= special.max_match:
 //             last_match = Some(offset)
 //             if special.min_accel <= current_state <= special.max_accel:
@@ -157,34 +157,34 @@ macro_rules! err {
 //     |----------------------------|------------------------
 //              special                   non-special*
 #[derive(Clone, Copy, Debug)]
-pub struct Special {
+pub(crate) struct Special {
     /// The identifier of the last special state in a DFA. A state is special
     /// if and only if its identifier is less than or equal to `max`.
-    pub max: StateID,
+    pub(crate) max: StateID,
     /// The identifier of the quit state in a DFA. (There is no analogous field
     /// for the dead state since the dead state's ID is always zero, regardless
     /// of state ID size.)
-    pub quit_id: StateID,
+    pub(crate) quit_id: StateID,
     /// The identifier of the first match state.
-    pub min_match: StateID,
+    pub(crate) min_match: StateID,
     /// The identifier of the last match state.
-    pub max_match: StateID,
+    pub(crate) max_match: StateID,
     /// The identifier of the first accelerated state.
-    pub min_accel: StateID,
+    pub(crate) min_accel: StateID,
     /// The identifier of the last accelerated state.
-    pub max_accel: StateID,
+    pub(crate) max_accel: StateID,
     /// The identifier of the first start state.
-    pub min_start: StateID,
+    pub(crate) min_start: StateID,
     /// The identifier of the last start state.
-    pub max_start: StateID,
+    pub(crate) max_start: StateID,
 }
 
 impl Special {
     /// Creates a new set of special ranges for a DFA. All ranges are initially
     /// set to only contain the dead state. This is interpreted as an empty
     /// range.
-    #[cfg(feature = "alloc")]
-    pub fn new() -> Special {
+    #[cfg(feature = "dfa-build")]
+    pub(crate) fn new() -> Special {
         Special {
             max: DEAD,
             quit_id: DEAD,
@@ -198,8 +198,8 @@ impl Special {
     }
 
     /// Remaps all of the special state identifiers using the function given.
-    #[cfg(feature = "alloc")]
-    pub fn remap(&self, map: impl Fn(StateID) -> StateID) -> Special {
+    #[cfg(feature = "dfa-build")]
+    pub(crate) fn remap(&self, map: impl Fn(StateID) -> StateID) -> Special {
         Special {
             max: map(self.max),
             quit_id: map(self.quit_id),
@@ -220,14 +220,14 @@ impl Special {
     ///
     /// Upon success, this returns the number of bytes read in addition to the
     /// special state IDs themselves.
-    pub fn from_bytes(
+    pub(crate) fn from_bytes(
         mut slice: &[u8],
     ) -> Result<(Special, usize), DeserializeError> {
-        bytes::check_slice_len(slice, 8 * StateID::SIZE, "special states")?;
+        wire::check_slice_len(slice, 8 * StateID::SIZE, "special states")?;
 
         let mut nread = 0;
         let mut read_id = |what| -> Result<StateID, DeserializeError> {
-            let (id, nr) = bytes::try_read_state_id(slice, what)?;
+            let (id, nr) = wire::try_read_state_id(slice, what)?;
             nread += nr;
             slice = &slice[StateID::SIZE..];
             Ok(id)
@@ -259,7 +259,7 @@ impl Special {
 
     /// Validate that the information describing special states satisfies
     /// all known invariants.
-    pub fn validate(&self) -> Result<(), DeserializeError> {
+    pub(crate) fn validate(&self) -> Result<(), DeserializeError> {
         // Check that both ends of the range are DEAD or neither are.
         if self.min_match == DEAD && self.max_match != DEAD {
             err!("min_match is DEAD, but max_match is not");
@@ -329,18 +329,18 @@ impl Special {
     }
 
     /// Validate that the special state information is compatible with the
-    /// given state count.
-    pub fn validate_state_count(
+    /// given state len.
+    pub(crate) fn validate_state_len(
         &self,
-        count: usize,
+        len: usize,
         stride2: usize,
     ) -> Result<(), DeserializeError> {
         // We assume that 'validate' has already passed, so we know that 'max'
-        // is truly the max. So all we need to check is that the max state
-        // ID is less than the state ID count. The max legal value here is
-        // count-1, which occurs when there are no non-special states.
-        if (self.max.as_usize() >> stride2) >= count {
-            err!("max should not be greater than or equal to state count");
+        // is truly the max. So all we need to check is that the max state ID
+        // is less than the state ID len. The max legal value here is len-1,
+        // which occurs when there are no non-special states.
+        if (self.max.as_usize() >> stride2) >= len {
+            err!("max should not be greater than or equal to state length");
         }
         Ok(())
     }
@@ -350,11 +350,11 @@ impl Special {
     /// this will return an error. The number of bytes written is returned
     /// on success. The number of bytes written is guaranteed to be a multiple
     /// of 8.
-    pub fn write_to<E: Endian>(
+    pub(crate) fn write_to<E: Endian>(
         &self,
         dst: &mut [u8],
     ) -> Result<usize, SerializeError> {
-        use crate::util::bytes::write_state_id as write;
+        use crate::util::wire::write_state_id as write;
 
         if dst.len() < self.write_to_len() {
             return Err(SerializeError::buffer_too_small("special state ids"));
@@ -384,14 +384,14 @@ impl Special {
     }
 
     /// Returns the total number of bytes written by `write_to`.
-    pub fn write_to_len(&self) -> usize {
+    pub(crate) fn write_to_len(&self) -> usize {
         8 * StateID::SIZE
     }
 
     /// Sets the maximum special state ID based on the current values. This
     /// should be used once all possible state IDs are set.
-    #[cfg(feature = "alloc")]
-    pub fn set_max(&mut self) {
+    #[cfg(feature = "dfa-build")]
+    pub(crate) fn set_max(&mut self) {
         use core::cmp::max;
         self.max = max(
             self.quit_id,
@@ -399,45 +399,62 @@ impl Special {
         );
     }
 
+    /// Sets the maximum special state ID such that starting states are not
+    /// considered "special." This also marks the min/max starting states as
+    /// DEAD such that 'is_start_state' always returns false, even if the state
+    /// is actually a starting state.
+    ///
+    /// This is useful when there is no prefilter set. It will avoid
+    /// ping-ponging between the hot path in the DFA search code and the start
+    /// state handling code, which is typically only useful for executing a
+    /// prefilter.
+    #[cfg(feature = "dfa-build")]
+    pub(crate) fn set_no_special_start_states(&mut self) {
+        use core::cmp::max;
+        self.max = max(self.quit_id, max(self.max_match, self.max_accel));
+        self.min_start = DEAD;
+        self.max_start = DEAD;
+    }
+
     /// Returns true if and only if the given state ID is a special state.
     #[inline]
-    pub fn is_special_state(&self, id: StateID) -> bool {
+    pub(crate) fn is_special_state(&self, id: StateID) -> bool {
         id <= self.max
     }
 
     /// Returns true if and only if the given state ID is a dead state.
     #[inline]
-    pub fn is_dead_state(&self, id: StateID) -> bool {
+    pub(crate) fn is_dead_state(&self, id: StateID) -> bool {
         id == DEAD
     }
 
     /// Returns true if and only if the given state ID is a quit state.
     #[inline]
-    pub fn is_quit_state(&self, id: StateID) -> bool {
+    pub(crate) fn is_quit_state(&self, id: StateID) -> bool {
         !self.is_dead_state(id) && self.quit_id == id
     }
 
     /// Returns true if and only if the given state ID is a match state.
     #[inline]
-    pub fn is_match_state(&self, id: StateID) -> bool {
+    pub(crate) fn is_match_state(&self, id: StateID) -> bool {
         !self.is_dead_state(id) && self.min_match <= id && id <= self.max_match
     }
 
     /// Returns true if and only if the given state ID is an accel state.
     #[inline]
-    pub fn is_accel_state(&self, id: StateID) -> bool {
+    pub(crate) fn is_accel_state(&self, id: StateID) -> bool {
         !self.is_dead_state(id) && self.min_accel <= id && id <= self.max_accel
     }
 
     /// Returns true if and only if the given state ID is a start state.
     #[inline]
-    pub fn is_start_state(&self, id: StateID) -> bool {
+    pub(crate) fn is_start_state(&self, id: StateID) -> bool {
         !self.is_dead_state(id) && self.min_start <= id && id <= self.max_start
     }
 
     /// Returns the total number of match states for a dense table based DFA.
     #[inline]
-    pub fn match_len(&self, stride: usize) -> usize {
+    pub(crate) fn match_len(&self, stride: usize) -> usize {
         if self.matches() {
             (self.max_match.as_usize() - self.min_match.as_usize() + stride)
                 / stride
@@ -448,13 +465,13 @@ impl Special {
 
     /// Returns true if and only if there is at least one match state.
     #[inline]
-    pub fn matches(&self) -> bool {
+    pub(crate) fn matches(&self) -> bool {
         self.min_match != DEAD
     }
 
     /// Returns the total number of accel states.
-    #[cfg(feature = "alloc")]
-    pub fn accel_len(&self, stride: usize) -> usize {
+    #[cfg(feature = "dfa-build")]
+    pub(crate) fn accel_len(&self, stride: usize) -> usize {
         if self.accels() {
             (self.max_accel.as_usize() - self.min_accel.as_usize() + stride)
                 / stride
@@ -465,13 +482,13 @@ impl Special {
 
     /// Returns true if and only if there is at least one accel state.
     #[inline]
-    pub fn accels(&self) -> bool {
+    pub(crate) fn accels(&self) -> bool {
         self.min_accel != DEAD
     }
 
     /// Returns true if and only if there is at least one start state.
     #[inline]
-    pub fn starts(&self) -> bool {
+    pub(crate) fn starts(&self) -> bool {
         self.min_start != DEAD
     }
 }

@@ -5,6 +5,357 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.30.0 (2023-09-24)
+
+<csr-id-db0c4017142fd25d26d1c6860972b1ac84b24a6e/>
+
+### Chore
+
+ - <csr-id-db0c4017142fd25d26d1c6860972b1ac84b24a6e/> add more test cases to pin behaviour around string and path handling.
+   This is important to know how to consistently handle empty strings - should they
+   not be present? Or should they be flagged as error?
+   
+   The answer here is that the caller has to deal with it, as we report these values
+   if they are present which only requires an equals sign.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release over the course of 15 calendar days.
+ - 16 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Prepare changelogs prior to release ([`8a60d5b`](https://github.com/Byron/gitoxide/commit/8a60d5b80877c213c3b646d3061e8a33e0e433ec))
+    - Merge branch 'path-config' ([`9c528dc`](https://github.com/Byron/gitoxide/commit/9c528dc8282c8b2f3a023e523dccdd0f7a711e61))
+    - Add more test cases to pin behaviour around string and path handling. ([`db0c401`](https://github.com/Byron/gitoxide/commit/db0c4017142fd25d26d1c6860972b1ac84b24a6e))
+</details>
+
+## 0.29.0 (2023-09-08)
+
+### New Features
+
+ - <csr-id-2b8d09f785f471aa12fc6793f0ea40c1f8d9ea4a/> remove `log` dependency in favor of `gix-trace`
+
+### Bug Fixes (BREAKING)
+
+ - <csr-id-072ee32f693a31161cd6a843da6582d13efbb20b/> use `dyn` trait where possible.
+   This reduces compile time due to avoiding duplication.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 9 commits contributed to the release over the course of 17 calendar days.
+ - 17 days passed between releases.
+ - 2 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Thanks Clippy
+
+<csr-read-only-do-not-edit/>
+
+[Clippy](https://github.com/rust-lang/rust-clippy) helped 1 time to make code idiomatic. 
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-date v0.8.0, gix-hash v0.13.0, gix-features v0.34.0, gix-actor v0.26.0, gix-object v0.36.0, gix-path v0.10.0, gix-glob v0.12.0, gix-attributes v0.18.0, gix-packetline-blocking v0.16.6, gix-filter v0.4.0, gix-fs v0.6.0, gix-commitgraph v0.20.0, gix-hashtable v0.4.0, gix-revwalk v0.7.0, gix-traverse v0.32.0, gix-worktree-stream v0.4.0, gix-archive v0.4.0, gix-config-value v0.14.0, gix-tempfile v9.0.0, gix-lock v9.0.0, gix-ref v0.36.0, gix-sec v0.10.0, gix-config v0.29.0, gix-prompt v0.7.0, gix-url v0.23.0, gix-credentials v0.19.0, gix-diff v0.35.0, gix-discover v0.24.0, gix-ignore v0.7.0, gix-index v0.24.0, gix-macros v0.1.0, gix-mailmap v0.18.0, gix-negotiate v0.7.0, gix-pack v0.42.0, gix-odb v0.52.0, gix-pathspec v0.2.0, gix-packetline v0.16.6, gix-transport v0.36.0, gix-protocol v0.39.0, gix-revision v0.21.0, gix-refspec v0.17.0, gix-submodule v0.3.0, gix-worktree v0.25.0, gix-worktree-state v0.2.0, gix v0.53.0, safety bump 39 crates ([`8bd0456`](https://github.com/Byron/gitoxide/commit/8bd045676bb2cdc02624ab93e73ff8518064ca38))
+    - Prepare changelogs for release ([`375db06`](https://github.com/Byron/gitoxide/commit/375db06a8442378c3f7a922fae38e2a6694d9d04))
+    - Merge branch 'optimizations' ([`6135a5e`](https://github.com/Byron/gitoxide/commit/6135a5ea8709646f01da62939a59dd3a9750e007))
+    - Optimize internal `gix` usage for faster compile time ([`9d33e2f`](https://github.com/Byron/gitoxide/commit/9d33e2f5c6a1c370654ef0db90b29c0a023dcf3d))
+    - Remove `log` dependency in favor of `gix-trace` ([`2b8d09f`](https://github.com/Byron/gitoxide/commit/2b8d09f785f471aa12fc6793f0ea40c1f8d9ea4a))
+    - Merge branch `dyn`ification ([`f658fcc`](https://github.com/Byron/gitoxide/commit/f658fcc52dc2200ae34ca53dc10be97fb9012057))
+    - Use `dyn` trait where possible. ([`072ee32`](https://github.com/Byron/gitoxide/commit/072ee32f693a31161cd6a843da6582d13efbb20b))
+    - Thanks clippy ([`5044c3b`](https://github.com/Byron/gitoxide/commit/5044c3b87456cf58ebfbbd00f23c9ba671cb290c))
+    - Merge branch 'gix-submodule' ([`363ee77`](https://github.com/Byron/gitoxide/commit/363ee77400805f473c9ad66eadad9214e7ab66f4))
+</details>
+
+## 0.28.0 (2023-08-22)
+
+<csr-id-ef54aab9e5521add4154ee8d902d62612a9d8d4a/>
+
+### Chore
+
+ - <csr-id-ef54aab9e5521add4154ee8d902d62612a9d8d4a/> switch `nom` to `winnow` in remaining uses in `gix-object`, `gix-ref`, and `gix-actor` for ~20% more performance.
+   It's likely that over time, these parsers will get even faster due to improvements to `winnow`.
+   Thanks, Ed Page, for single-handedly performing this transition.
+
+### Bug Fixes
+
+ - <csr-id-c51c8daee1ab54130ae3ed83ce67d08f01c4881a/> fix incorrect s/git-config/gix-config/
+   3a861c8f049f6502d3bcbdac752659aa1aeda46a just blindly replaced any
+   occurence of "git-config" or "git_config" with "gix-config"/"gix_config".
+   
+   There is no such thing as a gix-config file.
+   gix-config is a git-config file parser.
+ - <csr-id-66dadf807f41aa9e828639c52a7d220bf4f3df72/> regression that could cause non-linear parsing behaviour.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 17 commits contributed to the release over the course of 4 calendar days.
+ - 15 days passed between releases.
+ - 3 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-date v0.7.3, gix-hash v0.12.0, gix-features v0.33.0, gix-actor v0.25.0, gix-object v0.35.0, gix-path v0.9.0, gix-glob v0.11.0, gix-quote v0.4.7, gix-attributes v0.17.0, gix-command v0.2.9, gix-packetline-blocking v0.16.5, gix-filter v0.3.0, gix-fs v0.5.0, gix-commitgraph v0.19.0, gix-hashtable v0.3.0, gix-revwalk v0.6.0, gix-traverse v0.31.0, gix-worktree-stream v0.3.0, gix-archive v0.3.0, gix-config-value v0.13.0, gix-tempfile v8.0.0, gix-lock v8.0.0, gix-ref v0.35.0, gix-sec v0.9.0, gix-config v0.28.0, gix-prompt v0.6.0, gix-url v0.22.0, gix-credentials v0.18.0, gix-diff v0.34.0, gix-discover v0.23.0, gix-ignore v0.6.0, gix-bitmap v0.2.7, gix-index v0.22.0, gix-mailmap v0.17.0, gix-negotiate v0.6.0, gix-pack v0.41.0, gix-odb v0.51.0, gix-pathspec v0.1.0, gix-packetline v0.16.5, gix-transport v0.35.0, gix-protocol v0.38.0, gix-revision v0.20.0, gix-refspec v0.16.0, gix-submodule v0.2.0, gix-worktree v0.24.0, gix-worktree-state v0.1.0, gix v0.52.0, gitoxide-core v0.31.0, gitoxide v0.29.0, safety bump 41 crates ([`30b2761`](https://github.com/Byron/gitoxide/commit/30b27615047692d3ced1b2d9c2ac15a80f79fbee))
+    - Update changelogs prior to release ([`f23ea88`](https://github.com/Byron/gitoxide/commit/f23ea8828f2d9ba7559973daca388c9591bcc5fc))
+    - Merge branch 'gix-submodule' ([`8f3f358`](https://github.com/Byron/gitoxide/commit/8f3f358800f1fe77d7ba7ebd396a90b692d3c0c1))
+    - More cleanup of test crates ([`73c685a`](https://github.com/Byron/gitoxide/commit/73c685a67debcfa26a940f37bbca69cb3a4af57e))
+    - Just fmt ([`0d258f4`](https://github.com/Byron/gitoxide/commit/0d258f40afcd848509e2b0c7c264e9f346ed1726))
+    - Switch `nom` to `winnow` in remaining uses in `gix-object`, `gix-ref`, and `gix-actor` for ~20% more performance. ([`ef54aab`](https://github.com/Byron/gitoxide/commit/ef54aab9e5521add4154ee8d902d62612a9d8d4a))
+    - Upgrade `winnow` to latest patch release ([`8c41848`](https://github.com/Byron/gitoxide/commit/8c4184817e4e4364c34badc8ff0a71c6ae952efd))
+    - Merge pull request #988 from not-my-profile/fix-gix-config-sub ([`7735047`](https://github.com/Byron/gitoxide/commit/7735047198bd7cc5059ca338f5c2147dd273f711))
+    - Fix incorrect s/git-config/gix-config/ ([`c51c8da`](https://github.com/Byron/gitoxide/commit/c51c8daee1ab54130ae3ed83ce67d08f01c4881a))
+    - Regression that could cause non-linear parsing behaviour. ([`66dadf8`](https://github.com/Byron/gitoxide/commit/66dadf807f41aa9e828639c52a7d220bf4f3df72))
+    - Further clarify the expectation after changing is_err() assertion to is_ok() ([`a743c5d`](https://github.com/Byron/gitoxide/commit/a743c5d9828d8d3cf621b0f89d5b61083cf8ff04))
+    - Propogate value errors to user ([`0f9af3f`](https://github.com/Byron/gitoxide/commit/0f9af3fc904315fae61cfc2900a3f456ec81ffc2))
+    - Improve config performance on degenerate cases ([`5366f79`](https://github.com/Byron/gitoxide/commit/5366f79ff67bcef506d25c3ac0f4b53c8d822e82))
+    - Improve inner loop of config value parsing ([`e208362`](https://github.com/Byron/gitoxide/commit/e20836267101a3142e79ce89e5666f006503596f))
+    - Upgrade to Winnow 0.5 ([`3f8c91f`](https://github.com/Byron/gitoxide/commit/3f8c91fa463fbb53d54b2bf359e0dee7387afa00))
+    - Switch gix to winnow 0.3 ([`ee75de1`](https://github.com/Byron/gitoxide/commit/ee75de1e6035305fc23bdef2522ae5081272ac82))
+    - Add fuzz-issue for reproduction ([`510192e`](https://github.com/Byron/gitoxide/commit/510192e0e5750bdfe461d701b3e124c03f22b7d9))
+</details>
+
+## 0.27.0 (2023-08-07)
+
+### Bug Fixes (BREAKING)
+
+ - <csr-id-d091c78aa863180ea304cd4e0b60a2193a82a546/> `File::push_section()` is now infallible.
+   Previously it used a `Result` even though it couldn't fail anywhere.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 6 commits contributed to the release over the course of 3 calendar days.
+ - 4 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-glob v0.10.2, gix-date v0.7.2, gix-validate v0.8.0, gix-object v0.34.0, gix-ref v0.34.0, gix-config v0.27.0, gix-commitgraph v0.18.2, gix-revwalk v0.5.0, gix-revision v0.19.0, gix-refspec v0.15.0, gix-submodule v0.1.0, safety bump 18 crates ([`4604f83`](https://github.com/Byron/gitoxide/commit/4604f83ef238dc07c85aaeae097399b67f3cfd0c))
+    - Prepare changelogs prior to release of `gix-submodule` ([`f3c4311`](https://github.com/Byron/gitoxide/commit/f3c43110e8d5f16cf87e50821044d8b3edbae235))
+    - Merge branch 'submodules' ([`b629f8a`](https://github.com/Byron/gitoxide/commit/b629f8a774931d58c0a9b124fa75f85807c6c5d1))
+    - `File::push_section()` is now infallible. ([`d091c78`](https://github.com/Byron/gitoxide/commit/d091c78aa863180ea304cd4e0b60a2193a82a546))
+    - Merge branch 'dev-on-linux' ([`6b4a303`](https://github.com/Byron/gitoxide/commit/6b4a30330fe49fc97daa73f55bf56580cc0597aa))
+    - Fix various tests to run properly on linux ([`ef8ccd9`](https://github.com/Byron/gitoxide/commit/ef8ccd9d16143d37155d063747c69cade80f162d))
+</details>
+
+## 0.26.2 (2023-08-02)
+
+The parsing switches from `nom` to `winnow`, which eases maintenance and improves performances.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 28 commits contributed to the release over the course of 7 calendar days.
+ - 10 days passed between releases.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-actor v0.24.2, gix-object v0.33.2, gix-ref v0.33.3, gix-config v0.26.2, gix-prompt v0.5.5, gix-odb v0.50.2, gix-transport v0.34.2, gix-protocol v0.37.0, gix-worktree v0.23.1, gix v0.51.0, safety bump 3 crates ([`231ac1c`](https://github.com/Byron/gitoxide/commit/231ac1c6ad5ca9a84dbeb0dee14bfbf2fef1ae1e))
+    - Prepare additional changelogs ([`db63815`](https://github.com/Byron/gitoxide/commit/db6381522395a0de047118e81df5cd3cbeb862b9))
+    - Prepare changelogs ([`e4d2890`](https://github.com/Byron/gitoxide/commit/e4d2890a85bf60e9cdb4016dddfab3c4dccbe75e))
+    - Merge branch 'config' ([`daf3389`](https://github.com/Byron/gitoxide/commit/daf338989e7d75d41efb1345ed95ee2a13c97007))
+    - Minor refactor ([`224121b`](https://github.com/Byron/gitoxide/commit/224121b036a48c18ad859600ea9315d55150c0dd))
+    - Make clippy happy ([`1a1e2f5`](https://github.com/Byron/gitoxide/commit/1a1e2f5efa7719908bb612e0534379e522b740bb))
+    - Pull newline counting out of inner loop ([`beac408`](https://github.com/Byron/gitoxide/commit/beac4083447e836d139bd4d092596fbc636a40a2))
+    - Remove value_impl's explicit start index tracking ([`63552ee`](https://github.com/Byron/gitoxide/commit/63552eea5377f5bd4672f1783dd7b36886698e62))
+    - Remove value_impl's explicit end index tracking ([`8db009c`](https://github.com/Byron/gitoxide/commit/8db009ca9a19bebccaeacb5f992d05d89893b57b))
+    - Upgrade to winnow 0.5 ([`fe997c8`](https://github.com/Byron/gitoxide/commit/fe997c8a32b0a1dc3ad3613fe8dd48a987c3a5bf))
+    - Remove error creation shorthand ([`8581d25`](https://github.com/Byron/gitoxide/commit/8581d25dc9208bb7e32104c0320a5334572d7404))
+    - Simplify value_impl escape parsing ([`9e6ba0f`](https://github.com/Byron/gitoxide/commit/9e6ba0f6f7064f7ee28ef4f3fab492e5294e54a6))
+    - Clarify value_impl index handling ([`b790948`](https://github.com/Byron/gitoxide/commit/b790948da0499ee776e23ca359d08347b97cabab))
+    - Flatten value_impl ([`5fc1096`](https://github.com/Byron/gitoxide/commit/5fc109633b7c9736323084beaa0e97ce5ef1e08b))
+    - Normalize parser lifetimes ([`083efbc`](https://github.com/Byron/gitoxide/commit/083efbc0b37b45401663074964e3f911400a065e))
+    - Simplify section ([`5f2b68e`](https://github.com/Byron/gitoxide/commit/5f2b68ec6743cbca3472d2935e5445e897fa5218))
+    - Simplify section_header ([`0fe3854`](https://github.com/Byron/gitoxide/commit/0fe385484da0d999115cc760fd4b0353e5a31ff6))
+    - Simplify sub_section parsing ([`d2e06c8`](https://github.com/Byron/gitoxide/commit/d2e06c878c2b7270a936ac225aa93e207355e86c))
+    - Simplify simpler parsers ([`edb4e04`](https://github.com/Byron/gitoxide/commit/edb4e048ba973b2c0a4410d62cc3e5723ec64597))
+    - Simplify error creation ([`bdcd379`](https://github.com/Byron/gitoxide/commit/bdcd379da821cd232cf8844d104d06901d8da450))
+    - Prepare for winnow 0.5 upgrade ([`42ae766`](https://github.com/Byron/gitoxide/commit/42ae76691eab6b5ca77354a3358e0f95b8694d34))
+    - Move off deprecated parsers ([`b0287a8`](https://github.com/Byron/gitoxide/commit/b0287a8ba8a5024350dd48e37f6fc626003382cb))
+    - Upgrade to winnow 0.4 ([`a639994`](https://github.com/Byron/gitoxide/commit/a6399948f37d5c39f15340f26acb08bb36ae247f))
+    - Prepare for winnow 0.4 upgrade ([`cfc642a`](https://github.com/Byron/gitoxide/commit/cfc642a0d1ddee4c1f38758af269bc43496ffbf1))
+    - Move off of remaining deprecated parsers ([`18bee03`](https://github.com/Byron/gitoxide/commit/18bee03bf3a1ad4c0800ece97414553e3a6a50cb))
+    - Switch to Parser inherent parsers ([`6ac1b37`](https://github.com/Byron/gitoxide/commit/6ac1b377a0d0c1b0ddabc13f3dbe5db3716a4234))
+    - Switch to type-native winnow parsers ([`5b3ae94`](https://github.com/Byron/gitoxide/commit/5b3ae94503151d33e1bae60dd82fc32bad7154b0))
+    - Switch gix-config to winnow 0.3 ([`3d9ae21`](https://github.com/Byron/gitoxide/commit/3d9ae21f97e50129576473a2682a10b793b356de))
+</details>
+
+## 0.26.1 (2023-07-22)
+
+A maintenance release without user-facing changes.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 2 commits contributed to the release.
+ - 3 days passed between releases.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-config v0.26.1, gix v0.50.0 ([`d34a4ea`](https://github.com/Byron/gitoxide/commit/d34a4ea27cd83b916c84cf15e1c05da35576db5e))
+    - Fix gix-config dependency versions ([`dbeb68d`](https://github.com/Byron/gitoxide/commit/dbeb68da2348bf555cc959fc60d255da9f50eda5))
+</details>
+
+## 0.26.0 (2023-07-19)
+
+A maintenance release without user-facing changes.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 4 commits contributed to the release over the course of 4 calendar days.
+ - 19 days passed between releases.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Thanks Clippy
+
+<csr-read-only-do-not-edit/>
+
+[Clippy](https://github.com/rust-lang/rust-clippy) helped 1 time to make code idiomatic. 
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-features v0.32.0, gix-actor v0.24.0, gix-glob v0.10.0, gix-attributes v0.15.0, gix-commitgraph v0.18.0, gix-config-value v0.12.4, gix-fs v0.4.0, gix-object v0.33.0, gix-ref v0.33.0, gix-config v0.26.0, gix-command v0.2.7, gix-url v0.21.0, gix-credentials v0.17.0, gix-diff v0.33.0, gix-discover v0.22.0, gix-filter v0.1.0, gix-ignore v0.5.0, gix-revwalk v0.4.0, gix-traverse v0.30.0, gix-index v0.21.0, gix-mailmap v0.16.0, gix-negotiate v0.5.0, gix-pack v0.40.0, gix-odb v0.50.0, gix-transport v0.34.0, gix-protocol v0.36.0, gix-revision v0.18.0, gix-refspec v0.14.0, gix-worktree v0.22.0, gix v0.49.0 ([`68ae3ff`](https://github.com/Byron/gitoxide/commit/68ae3ff9d642ec56f088a6a682a073dc16f4e8ca))
+    - Adjust package versions (by cargo-smart-release) ([`c70e54f`](https://github.com/Byron/gitoxide/commit/c70e54f163c312c87753a506eeaad462e8579bfb))
+    - Prepare changelogs prior to release ([`e4dded0`](https://github.com/Byron/gitoxide/commit/e4dded05138562f9737a7dcfb60570c55769486d))
+    - Thanks clippy ([`3ef32af`](https://github.com/Byron/gitoxide/commit/3ef32af9bf477cbc60d24da8bb3f15d20976e9e0))
+</details>
+
+## 0.25.1 (2023-06-29)
+
+A maintenance release without user-facing changes.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-glob v0.9.1, gix-attributes v0.14.1, gix-config-value v0.12.3, gix-ref v0.32.1, gix-sec v0.8.3, gix-config v0.25.1, gix-url v0.20.1, gix-credentials v0.16.1, gix-discover v0.21.1, gix-ignore v0.4.1, gix-pack v0.39.1, gix-odb v0.49.1, gix-worktree v0.21.1, gix v0.48.0 ([`69c6a36`](https://github.com/Byron/gitoxide/commit/69c6a36ba14cbef129deebda9fd8870005fefa17))
+    - Prepare changelogs prior to release ([`c143cf4`](https://github.com/Byron/gitoxide/commit/c143cf48ee1885467e3e9262a3f8823a1247bfe0))
+    - Align usage of `gix-path` across all crates ([`73c1292`](https://github.com/Byron/gitoxide/commit/73c1292be393986c4a1adde1400abf551e850da0))
+</details>
+
+## 0.25.0 (2023-06-29)
+
+A maintenance release without user-facing changes.
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 3 commits contributed to the release over the course of 6 calendar days.
+ - 6 days passed between releases.
+ - 0 commits were understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-date v0.7.0, gix-trace v0.1.2, gix-actor v0.23.0, gix-commitgraph v0.17.1, gix-utils v0.1.4, gix-object v0.32.0, gix-ref v0.32.0, gix-config v0.25.0, gix-diff v0.32.0, gix-discover v0.21.0, gix-hashtable v0.2.3, gix-revwalk v0.3.0, gix-traverse v0.29.0, gix-index v0.20.0, gix-mailmap v0.15.0, gix-negotiate v0.4.0, gix-pack v0.39.0, gix-odb v0.49.0, gix-protocol v0.35.0, gix-revision v0.17.0, gix-refspec v0.13.0, gix-worktree v0.21.0, gix v0.48.0, safety bump 20 crates ([`27e8c18`](https://github.com/Byron/gitoxide/commit/27e8c18db5a9a21843381c116a8ed6d9f681b3f8))
+    - Prepare changelogs prior to release ([`00f96fb`](https://github.com/Byron/gitoxide/commit/00f96fb3110a8f81a1bd0d74c757c15b8773c6f6))
+    - Upgrade criterion ([`285ce12`](https://github.com/Byron/gitoxide/commit/285ce12c5564db3917923791729641383789fe89))
+</details>
+
+## 0.24.0 (2023-06-22)
+
+<csr-id-bcad5c22049d56a25ef69d6c7a3344e78f9a1d4d/>
+
+### Chore
+
+ - <csr-id-bcad5c22049d56a25ef69d6c7a3344e78f9a1d4d/> Add `clippy::redundant-closure-for-method-calls` lint
+
+### Commit Statistics
+
+<csr-read-only-do-not-edit/>
+
+ - 6 commits contributed to the release over the course of 10 calendar days.
+ - 15 days passed between releases.
+ - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
+ - 0 issues like '(#ID)' were seen in commit messages
+
+### Commit Details
+
+<csr-read-only-do-not-edit/>
+
+<details><summary>view details</summary>
+
+ * **Uncategorized**
+    - Release gix-date v0.6.0, gix-hash v0.11.3, gix-trace v0.1.1, gix-features v0.31.0, gix-actor v0.22.0, gix-path v0.8.2, gix-glob v0.9.0, gix-quote v0.4.5, gix-attributes v0.14.0, gix-chunk v0.4.3, gix-commitgraph v0.17.0, gix-config-value v0.12.2, gix-fs v0.3.0, gix-tempfile v7.0.0, gix-utils v0.1.3, gix-lock v7.0.0, gix-validate v0.7.6, gix-object v0.31.0, gix-ref v0.31.0, gix-sec v0.8.2, gix-config v0.24.0, gix-command v0.2.6, gix-prompt v0.5.2, gix-url v0.20.0, gix-credentials v0.16.0, gix-diff v0.31.0, gix-discover v0.20.0, gix-hashtable v0.2.2, gix-ignore v0.4.0, gix-bitmap v0.2.5, gix-revwalk v0.2.0, gix-traverse v0.28.0, gix-index v0.19.0, gix-mailmap v0.14.0, gix-negotiate v0.3.0, gix-pack v0.38.0, gix-odb v0.48.0, gix-packetline v0.16.3, gix-transport v0.33.0, gix-protocol v0.34.0, gix-revision v0.16.0, gix-refspec v0.12.0, gix-worktree v0.20.0, gix v0.47.0, gitoxide-core v0.29.0, gitoxide v0.27.0, safety bump 30 crates ([`ea9f942`](https://github.com/Byron/gitoxide/commit/ea9f9424e777f10da0e33bb9ffbbefd01c4c5a74))
+    - Prepare changelogs prior to release ([`18b0a37`](https://github.com/Byron/gitoxide/commit/18b0a371941aa2d4d62512437d5daa351ba99ffd))
+    - Merge branch 'corpus' ([`aa16c8c`](https://github.com/Byron/gitoxide/commit/aa16c8ce91452a3e3063cf1cf0240b6014c4743f))
+    - Change MSRV to 1.65 ([`4f635fc`](https://github.com/Byron/gitoxide/commit/4f635fc4429350bae2582d25de86429969d28f30))
+    - Merge branch 'help-874-redundant-closures' ([`fe59956`](https://github.com/Byron/gitoxide/commit/fe59956ad667303a923d7cfd9ffd72283df41d78))
+    - Add `clippy::redundant-closure-for-method-calls` lint ([`bcad5c2`](https://github.com/Byron/gitoxide/commit/bcad5c22049d56a25ef69d6c7a3344e78f9a1d4d))
+</details>
+
 ## 0.23.0 (2023-06-06)
 
 <csr-id-dbc6cbb4363c2532f81b0bd6e351c4577bb9e9a3/>
@@ -17,7 +368,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <csr-read-only-do-not-edit/>
 
- - 9 commits contributed to the release over the course of 38 calendar days.
+ - 10 commits contributed to the release over the course of 38 calendar days.
  - 40 days passed between releases.
  - 1 commit was understood as [conventional](https://www.conventionalcommits.org).
  - 0 issues like '(#ID)' were seen in commit messages
@@ -29,6 +380,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details><summary>view details</summary>
 
  * **Uncategorized**
+    - Release gix-date v0.5.1, gix-hash v0.11.2, gix-features v0.30.0, gix-actor v0.21.0, gix-path v0.8.1, gix-glob v0.8.0, gix-quote v0.4.4, gix-attributes v0.13.0, gix-chunk v0.4.2, gix-commitgraph v0.16.0, gix-config-value v0.12.1, gix-fs v0.2.0, gix-tempfile v6.0.0, gix-utils v0.1.2, gix-lock v6.0.0, gix-validate v0.7.5, gix-object v0.30.0, gix-ref v0.30.0, gix-sec v0.8.1, gix-config v0.23.0, gix-command v0.2.5, gix-prompt v0.5.1, gix-url v0.19.0, gix-credentials v0.15.0, gix-diff v0.30.0, gix-discover v0.19.0, gix-hashtable v0.2.1, gix-ignore v0.3.0, gix-bitmap v0.2.4, gix-traverse v0.26.0, gix-index v0.17.0, gix-mailmap v0.13.0, gix-revision v0.15.0, gix-negotiate v0.2.0, gix-pack v0.36.0, gix-odb v0.46.0, gix-packetline v0.16.2, gix-transport v0.32.0, gix-protocol v0.33.0, gix-refspec v0.11.0, gix-worktree v0.18.0, gix v0.45.0, safety bump 29 crates ([`9a9fa96`](https://github.com/Byron/gitoxide/commit/9a9fa96fa8a722bddc5c3b2270b0edf8f6615141))
     - Prepare changelogs prior to release ([`8f15cec`](https://github.com/Byron/gitoxide/commit/8f15cec1ec7d5a9d56bb158f155011ef2bb3539b))
     - Merge branch 'fix-docs' ([`420553a`](https://github.com/Byron/gitoxide/commit/420553a10d780e0b2dc466cac120989298a5f187))
     - Cleaning up documentation ([`2578e57`](https://github.com/Byron/gitoxide/commit/2578e576bfa365d194a23a1fb0bf09be230873de))
@@ -2360,7 +2712,7 @@ This is a maintenance release without functional changes.
  - _None._
 
 <csr-unknown>
-lenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopen<csr-unknown/>
+lenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopenlenfrom_envopen<csr-unknown/>
 <csr-unknown/>
 
 ## v0.1.1 (2021-05-09)

@@ -50,6 +50,9 @@ pub fn cli() -> clap::Command {
         ])
         .arg_package("Package to remove from")
         .arg_manifest_path()
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help remove</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
@@ -216,7 +219,6 @@ fn gc_workspace(workspace: &Workspace<'_>) -> CargoResult<()> {
     //
     // Example tables:
     // - profile.dev.package.foo
-    // - profile.release.package."*"
     // - profile.release.package."foo:2.1.0"
     if let Some(toml_edit::Item::Table(profile_section_table)) = manifest.get_mut("profile") {
         profile_section_table.set_implicit(true);
@@ -231,8 +233,14 @@ fn gc_workspace(workspace: &Workspace<'_>) -> CargoResult<()> {
                     package_table.set_implicit(true);
 
                     for (key, item) in package_table.iter_mut() {
+                        let key = key.get();
+                        // Skip globs. Can't do anything with them.
+                        // For example, profile.release.package."*".
+                        if crate::util::restricted_names::is_glob_pattern(key) {
+                            continue;
+                        }
                         if !spec_has_match(
-                            &PackageIdSpec::parse(key.get())?,
+                            &PackageIdSpec::parse(key)?,
                             &dependencies,
                             workspace.config(),
                         )? {
@@ -280,7 +288,7 @@ fn spec_has_match(
         }
 
         let version_matches = match (spec.version(), dep.version()) {
-            (Some(v), Some(vq)) => semver::VersionReq::parse(vq)?.matches(v),
+            (Some(v), Some(vq)) => semver::VersionReq::parse(vq)?.matches(&v),
             (Some(_), None) => false,
             (None, None | Some(_)) => true,
         };

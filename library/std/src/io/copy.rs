@@ -1,6 +1,5 @@
-use super::{BorrowedBuf, BufReader, BufWriter, ErrorKind, Read, Result, Write, DEFAULT_BUF_SIZE};
+use super::{BorrowedBuf, BufReader, BufWriter, Read, Result, Write, DEFAULT_BUF_SIZE};
 use crate::alloc::Allocator;
-use crate::cmp;
 use crate::collections::VecDeque;
 use crate::io::IoSlice;
 use crate::mem::MaybeUninit;
@@ -30,6 +29,7 @@ mod tests;
 ///
 /// [`read`]: Read::read
 /// [`write`]: Write::write
+/// [`ErrorKind::Interrupted`]: crate::io::ErrorKind::Interrupted
 ///
 /// # Examples
 ///
@@ -163,7 +163,7 @@ where
             // from adding I: Read
             match self.read(&mut []) {
                 Ok(_) => {}
-                Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) if e.is_interrupted() => continue,
                 Err(e) => return Err(e),
             }
             let buf = self.buffer();
@@ -243,7 +243,7 @@ impl<I: Write + ?Sized> BufferedWriterSpec for BufWriter<I> {
                         // Read again if the buffer still has enough capacity, as BufWriter itself would do
                         // This will occur if the reader returns short reads
                     }
-                    Err(ref e) if e.kind() == ErrorKind::Interrupted => {}
+                    Err(ref e) if e.is_interrupted() => {}
                     Err(e) => return Err(e),
                 }
             } else {
@@ -251,47 +251,6 @@ impl<I: Write + ?Sized> BufferedWriterSpec for BufWriter<I> {
                 init = 0;
             }
         }
-    }
-}
-
-impl<A: Allocator> BufferedWriterSpec for Vec<u8, A> {
-    fn buffer_size(&self) -> usize {
-        cmp::max(DEFAULT_BUF_SIZE, self.capacity() - self.len())
-    }
-
-    fn copy_from<R: Read + ?Sized>(&mut self, reader: &mut R) -> Result<u64> {
-        let mut bytes = 0;
-
-        // avoid allocating before we have determined that there's anything to read
-        if self.capacity() == 0 {
-            bytes = stack_buffer_copy(&mut reader.take(DEFAULT_BUF_SIZE as u64), self)?;
-            if bytes == 0 {
-                return Ok(0);
-            }
-        }
-
-        loop {
-            self.reserve(DEFAULT_BUF_SIZE);
-            let mut buf: BorrowedBuf<'_> = self.spare_capacity_mut().into();
-            match reader.read_buf(buf.unfilled()) {
-                Ok(()) => {}
-                Err(e) if e.kind() == ErrorKind::Interrupted => continue,
-                Err(e) => return Err(e),
-            };
-
-            let read = buf.filled().len();
-            if read == 0 {
-                break;
-            }
-
-            // SAFETY: BorrowedBuf guarantees all of its filled bytes are init
-            // and the number of read bytes can't exceed the spare capacity since
-            // that's what the buffer is borrowing from.
-            unsafe { self.set_len(self.len() + read) };
-            bytes += read as u64;
-        }
-
-        Ok(bytes)
     }
 }
 
@@ -307,7 +266,7 @@ fn stack_buffer_copy<R: Read + ?Sized, W: Write + ?Sized>(
     loop {
         match reader.read_buf(buf.unfilled()) {
             Ok(()) => {}
-            Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+            Err(e) if e.is_interrupted() => continue,
             Err(e) => return Err(e),
         };
 

@@ -8,21 +8,32 @@ use self::Month::*;
 use crate::error;
 
 /// Months of the year.
-#[allow(clippy::missing_docs_in_private_items)] // variants
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Month {
+    #[allow(missing_docs)]
     January = 1,
+    #[allow(missing_docs)]
     February = 2,
+    #[allow(missing_docs)]
     March = 3,
+    #[allow(missing_docs)]
     April = 4,
+    #[allow(missing_docs)]
     May = 5,
+    #[allow(missing_docs)]
     June = 6,
+    #[allow(missing_docs)]
     July = 7,
+    #[allow(missing_docs)]
     August = 8,
+    #[allow(missing_docs)]
     September = 9,
+    #[allow(missing_docs)]
     October = 10,
+    #[allow(missing_docs)]
     November = 11,
+    #[allow(missing_docs)]
     December = 12,
 }
 
@@ -95,6 +106,60 @@ impl Month {
             October => November,
             November => December,
             December => January,
+        }
+    }
+
+    /// Get n-th next month.
+    ///
+    /// ```rust
+    /// # use time::Month;
+    /// assert_eq!(Month::January.nth_next(4), Month::May);
+    /// assert_eq!(Month::July.nth_next(9), Month::April);
+    /// ```
+    pub const fn nth_next(self, n: u8) -> Self {
+        match (self as u8 - 1 + n % 12) % 12 {
+            0 => January,
+            1 => February,
+            2 => March,
+            3 => April,
+            4 => May,
+            5 => June,
+            6 => July,
+            7 => August,
+            8 => September,
+            9 => October,
+            10 => November,
+            val => {
+                debug_assert!(val == 11);
+                December
+            }
+        }
+    }
+
+    /// Get n-th previous month.
+    ///
+    /// ```rust
+    /// # use time::Month;
+    /// assert_eq!(Month::January.nth_prev(4), Month::September);
+    /// assert_eq!(Month::July.nth_prev(9), Month::October);
+    /// ```
+    pub const fn nth_prev(self, n: u8) -> Self {
+        match self as i8 - 1 - (n % 12) as i8 {
+            1 | -11 => February,
+            2 | -10 => March,
+            3 | -9 => April,
+            4 | -8 => May,
+            5 | -7 => June,
+            6 | -6 => July,
+            7 | -5 => August,
+            8 | -4 => September,
+            9 | -3 => October,
+            10 | -2 => November,
+            11 | -1 => December,
+            val => {
+                debug_assert!(val == 0);
+                January
+            }
         }
     }
 }

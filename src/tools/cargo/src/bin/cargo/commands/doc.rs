@@ -32,7 +32,7 @@ pub fn cli() -> Command {
             "Document only the specified example",
             "Document all examples",
         )
-        .arg_jobs()
+        .arg_parallel()
         .arg_release("Build artifacts in release mode, with optimizations")
         .arg_profile("Build artifacts with the specified profile")
         .arg_target_triple("Build for the target triple")
@@ -40,7 +40,9 @@ pub fn cli() -> Command {
         .arg_unit_graph()
         .arg_timings()
         .arg_manifest_path()
-        .after_help("Run `cargo help doc` for more detailed information.\n")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help doc</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {

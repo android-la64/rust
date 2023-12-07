@@ -25,11 +25,9 @@
 //!
 #![warn(missing_docs)]
 
-extern crate atty;
+extern crate is_terminal;
 #[macro_use]
 extern crate lazy_static;
-#[cfg(windows)]
-extern crate winapi;
 
 #[cfg(test)]
 extern crate rspec;
@@ -37,6 +35,11 @@ extern crate rspec;
 mod color;
 pub mod control;
 mod style;
+
+pub use self::customcolors::CustomColor;
+
+/// Custom colors support.
+pub mod customcolors;
 
 pub use color::*;
 
@@ -174,6 +177,16 @@ pub trait Colorize {
     {
         self.color(Color::TrueColor { r, g, b })
     }
+    fn custom_color(self, color: CustomColor) -> ColoredString
+    where
+        Self: Sized,
+    {
+        self.color(Color::TrueColor {
+            r: color.r,
+            g: color.g,
+            b: color.b,
+        })
+    }
     fn color<S: Into<Color>>(self, color: S) -> ColoredString;
     // Background Colors
     fn on_black(self) -> ColoredString
@@ -290,6 +303,16 @@ pub trait Colorize {
     {
         self.on_color(Color::TrueColor { r, g, b })
     }
+    fn on_custom_color(self, color: CustomColor) -> ColoredString
+    where
+        Self: Sized,
+    {
+        self.on_color(Color::TrueColor {
+            r: color.r,
+            g: color.g,
+            b: color.b,
+        })
+    }
     fn on_color<S: Into<Color>>(self, color: S) -> ColoredString;
     // Styles
     fn clear(self) -> ColoredString;
@@ -299,10 +322,8 @@ pub trait Colorize {
     fn italic(self) -> ColoredString;
     fn underline(self) -> ColoredString;
     fn blink(self) -> ColoredString;
-    /// Historical name of `Colorize::reversed`. May be removed in a future version. Please use
-    /// `Colorize::reversed` instead
+    #[deprecated(since = "1.5.2", note = "Users should use reversed instead")]
     fn reverse(self) -> ColoredString;
-    /// This should be preferred to `Colorize::reverse`.
     fn reversed(self) -> ColoredString;
     fn hidden(self) -> ColoredString;
     fn strikethrough(self) -> ColoredString;

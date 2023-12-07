@@ -3,7 +3,6 @@ use super::Error;
 use crate::{
     config,
     config::tree::{gitoxide, Core},
-    revision::spec::parse::ObjectKindHint,
 };
 
 pub(crate) fn interpolate_context<'a>(
@@ -51,7 +50,7 @@ pub(crate) fn query_refupdates(
 ) -> Result<Option<gix_ref::store::WriteReflog>, Error> {
     let key = "core.logAllRefUpdates";
     Core::LOG_ALL_REF_UPDATES
-        .try_into_ref_updates(config.boolean_by_key(key), || config.string_by_key(key))
+        .try_into_ref_updates(config.boolean_by_key(key))
         .with_leniency(lenient_config)
         .map_err(Into::into)
 }
@@ -74,7 +73,7 @@ pub(crate) fn parse_object_caches(
     mut filter_config_section: fn(&gix_config::file::Metadata) -> bool,
 ) -> Result<(Option<usize>, Option<usize>, usize), Error> {
     let static_pack_cache_limit = config
-        .integer_filter_by_key("core.deltaBaseCacheLimit", &mut filter_config_section)
+        .integer_filter_by_key("gitoxide.core.deltaBaseCacheLimit", &mut filter_config_section)
         .map(|res| gitoxide::Core::DEFAULT_PACK_CACHE_MEMORY_LIMIT.try_into_usize(res))
         .transpose()
         .with_leniency(lenient)?;
@@ -103,10 +102,11 @@ pub(crate) fn parse_core_abbrev(
         .flatten())
 }
 
+#[cfg(feature = "revision")]
 pub(crate) fn disambiguate_hint(
     config: &gix_config::File<'static>,
     lenient_config: bool,
-) -> Result<Option<ObjectKindHint>, config::key::GenericErrorWithValue> {
+) -> Result<Option<crate::revision::spec::parse::ObjectKindHint>, config::key::GenericErrorWithValue> {
     match config.string_by_key("core.disambiguate") {
         None => Ok(None),
         Some(value) => Core::DISAMBIGUATE
@@ -120,8 +120,16 @@ pub trait ApplyLeniency {
     fn with_leniency(self, is_lenient: bool) -> Self;
 }
 
+pub trait IgnoreEmptyPath {
+    fn ignore_empty(self) -> Self;
+}
+
 pub trait ApplyLeniencyDefault {
     fn with_lenient_default(self, is_lenient: bool) -> Self;
+}
+
+pub trait ApplyLeniencyDefaultValue<T> {
+    fn with_lenient_default_value(self, is_lenient: bool, default: T) -> Self;
 }
 
 impl<T, E> ApplyLeniency for Result<Option<T>, E> {
@@ -129,6 +137,16 @@ impl<T, E> ApplyLeniency for Result<Option<T>, E> {
         match self {
             Ok(v) => Ok(v),
             Err(_) if is_lenient => Ok(None),
+            Err(err) => Err(err),
+        }
+    }
+}
+
+impl IgnoreEmptyPath for Result<Option<std::borrow::Cow<'_, std::path::Path>>, gix_config::path::interpolate::Error> {
+    fn ignore_empty(self) -> Self {
+        match self {
+            Ok(maybe_path) => Ok(maybe_path),
+            Err(gix_config::path::interpolate::Error::Missing { .. }) => Ok(None),
             Err(err) => Err(err),
         }
     }
@@ -142,6 +160,16 @@ where
         match self {
             Ok(v) => Ok(v),
             Err(_) if is_lenient => Ok(T::default()),
+            Err(err) => Err(err),
+        }
+    }
+}
+
+impl<T, E> ApplyLeniencyDefaultValue<T> for Result<T, E> {
+    fn with_lenient_default_value(self, is_lenient: bool, default: T) -> Self {
+        match self {
+            Ok(v) => Ok(v),
+            Err(_) if is_lenient => Ok(default),
             Err(err) => Err(err),
         }
     }

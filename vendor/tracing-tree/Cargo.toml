@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "tracing-tree"
-version = "0.2.3"
+version = "0.2.4"
 authors = [
     "David Barsky <me@davidbarsky.com>",
     "Nathan Whitaker",
@@ -26,8 +26,8 @@ repository = "https://github.com/davidbarsky/tracing-tree"
 name = "ui"
 harness = false
 
-[dependencies.atty]
-version = "0.2"
+[dependencies.is-terminal]
+version = "0.4.7"
 
 [dependencies.nu-ansi-term]
 version = "0.46.0"
@@ -56,17 +56,14 @@ features = [
 ]
 default-features = false
 
-[dev-dependencies.assert_cmd]
-version = "1"
-
-[dev-dependencies.glob]
-version = "0.3"
-
 [dev-dependencies.log]
 version = "0.4"
 
 [dev-dependencies.tracing]
 version = "0.1"
+
+[dev-dependencies.ui_test]
+version = "0.7"
 
 [features]
 default = ["tracing-log"]

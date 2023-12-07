@@ -59,7 +59,7 @@ pub struct RemoteRegistry<'cfg> {
     /// A Git [tree object] to help this registry find crate metadata from the
     /// underlying Git repository.
     ///
-    /// This is stored here to prevent Git from repeatly creating a tree object
+    /// This is stored here to prevent Git from repeatedly creating a tree object
     /// during each call into `load()`.
     ///
     /// [tree object]: https://git-scm.com/book/en/v2/Git-Internals-Git-Objects#_tree_objects
@@ -70,7 +70,7 @@ pub struct RemoteRegistry<'cfg> {
     head: Cell<Option<git2::Oid>>,
     /// This stores sha value of the current HEAD commit for convenience.
     current_sha: Cell<Option<InternedString>>,
-    /// Whether this registry needs to update package informations.
+    /// Whether this registry needs to update package information.
     ///
     /// See [`RemoteRegistry::mark_updated`] on how to make sure a registry
     /// index is updated only once per session.
@@ -269,9 +269,8 @@ impl<'cfg> RegistryData for RemoteRegistry<'cfg> {
             }
 
             let object = entry.to_object(repo)?;
-            let blob = match object.as_blob() {
-                Some(blob) => blob,
-                None => anyhow::bail!("path `{}` is not a blob in the git repo", path.display()),
+            let Some(blob) = object.as_blob() else {
+                anyhow::bail!("path `{}` is not a blob in the git repo", path.display())
             };
 
             Ok(LoadResponse::Data {
@@ -307,10 +306,7 @@ impl<'cfg> RegistryData for RemoteRegistry<'cfg> {
         match ready!(self.load(Path::new(""), Path::new(RegistryConfig::NAME), None)?) {
             LoadResponse::Data { raw_data, .. } => {
                 trace!("config loaded");
-                let mut cfg: RegistryConfig = serde_json::from_slice(&raw_data)?;
-                if !self.config.cli_unstable().registry_auth {
-                    cfg.auth_required = false;
-                }
+                let cfg: RegistryConfig = serde_json::from_slice(&raw_data)?;
                 Poll::Ready(Ok(Some(cfg)))
             }
             _ => Poll::Ready(Ok(None)),

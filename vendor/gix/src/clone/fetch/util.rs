@@ -51,7 +51,7 @@ fn write_to_local_config(config: &gix_config::File<'static>, mode: WriteMode) ->
         .append(matches!(mode, WriteMode::Append))
         .open(config.meta().path.as_deref().expect("local config with path set"))?;
     local_config.write_all(config.detect_newline_style())?;
-    config.write_to_filter(&mut local_config, |s| s.meta().source == gix_config::Source::Local)
+    config.write_to_filter(&mut local_config, &mut |s| s.meta().source == gix_config::Source::Local)
 }
 
 pub fn append_config_to_repo_config(repo: &mut Repository, config: gix_config::File<'static>) {
@@ -76,6 +76,7 @@ pub fn update_head(
             gix_protocol::handshake::Ref::Symbolic {
                 full_ref_name,
                 target,
+                tag: _,
                 object,
             } if full_ref_name == "HEAD" => (Some(object.as_ref()), Some(target)),
             gix_protocol::handshake::Ref::Direct { full_ref_name, object } if full_ref_name == "HEAD" => {
@@ -106,12 +107,7 @@ pub fn update_head(
             repo.refs
                 .transaction()
                 .packed_refs(gix_ref::file::transaction::PackedRefs::DeletionsAndNonSymbolicUpdates(
-                    Box::new(|oid, buf| {
-                        repo.objects
-                            .try_find(oid, buf)
-                            .map(|obj| obj.map(|obj| obj.kind))
-                            .map_err(|err| Box::new(err) as Box<dyn std::error::Error + Send + Sync + 'static>)
-                    }),
+                    Box::new(|oid, buf| repo.objects.try_find(&oid, buf).map(|obj| obj.map(|obj| obj.kind))),
                 ))
                 .prepare(
                     {
@@ -202,7 +198,7 @@ fn setup_branch_config(
     let remote = repo
         .find_remote(remote_name)
         .expect("remote was just created and must be visible in config");
-    let group = gix_refspec::MatchGroup::from_fetch_specs(remote.fetch_specs.iter().map(|s| s.to_ref()));
+    let group = gix_refspec::MatchGroup::from_fetch_specs(remote.fetch_specs.iter().map(gix_refspec::RefSpec::to_ref));
     let null = gix_hash::ObjectId::null(repo.object_hash());
     let res = group.match_remotes(
         Some(gix_refspec::match_group::Item {

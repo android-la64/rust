@@ -394,7 +394,8 @@ Improvements to Clang's diagnostics
   (`#62353: <https://github.com/llvm/llvm-project/issues/62353>`_,
   fallout from the non-POD packing ABI fix in LLVM 15).
 - Clang constexpr evaluator now prints subobject's name instead of its type in notes
-  when a constexpr variable has uninitialized subobjects after its constructor call.
+  when a constexpr variable has uninitialized member subobjects or base class subobjects
+  after its constructor call.
   (`#58601 <https://github.com/llvm/llvm-project/issues/58601>`_)
 - Clang's `-Wshadow` warning now warns about shadowings by static local variables
   (`#62850: <https://github.com/llvm/llvm-project/issues/62850>`_).
@@ -475,10 +476,8 @@ Improvements to Clang's diagnostics
 - ``-Wformat`` cast fix-its will now suggest ``static_cast`` instead of C-style casts
   for C++ code.
 - ``-Wformat`` will no longer suggest a no-op fix-it for fixing scoped enum format
-  warnings. Instead, it will suggest casting the enum object to the type specified
-  in the format string.
-- Clang contexpr evaluator now displays notes as well as an error when a constructor
-  of a base class is not called in the constructor of its derived class.
+  warnings. Instead, it will suggest casting the enum object based on its
+  underlying type.
 
 Bug Fixes in This Version
 -------------------------
@@ -719,6 +718,14 @@ Bug Fixes in This Version
   virtual member functions even if the target required a greater function
   alignment and/or did not have function pointers which point to function entry
   points (i.e., uses function descriptor objects instead).
+- Fixes a ``clang-17`` regression where ``LLVM_UNREACHABLE_OPTIMIZE=OFF``
+  cannot be used with ``Release`` mode builds. (`#68237 <https://github.com/llvm/llvm-project/issues/68237>`_).
+- Fix crash from constexpr evaluator evaluating uninitialized arrays as rvalue.
+  Fixes (`#67317 <https://github.com/llvm/llvm-project/issues/67317>`_)
+- No longer use C++ ``thread_local`` semantics in C23 when using
+  ``thread_local`` instead of ``_Thread_local``.
+  Fixes (`#70068 <https://github.com/llvm/llvm-project/issues/70068>`_) and
+  (`#69167 <https://github.com/llvm/llvm-project/issues/69167>`_)
 
 Bug Fixes to Compiler Builtins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

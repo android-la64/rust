@@ -306,6 +306,7 @@ bootstrap_tool!(
     GenerateWindowsSys, "src/tools/generate-windows-sys", "generate-windows-sys";
     RustdocGUITest, "src/tools/rustdoc-gui-test", "rustdoc-gui-test", is_unstable_tool = true, allow_features = "test";
     OptimizedDist, "src/tools/opt-dist", "opt-dist";
+    CoverageDump, "src/tools/coverage-dump", "coverage-dump";
 );
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Ord, PartialOrd)]
@@ -601,7 +602,7 @@ pub struct RustAnalyzer {
 }
 
 impl RustAnalyzer {
-    pub const ALLOW_FEATURES: &str =
+    pub const ALLOW_FEATURES: &'static str =
         "proc_macro_internals,proc_macro_diagnostic,proc_macro_span,proc_macro_span_shrink";
 }
 

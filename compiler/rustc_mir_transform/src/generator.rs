@@ -583,6 +583,14 @@ struct LivenessInfo {
     storage_liveness: IndexVec<BasicBlock, Option<BitSet<Local>>>,
 }
 
+/// Computes which locals have to be stored in the state-machine for the
+/// given coroutine.
+///
+/// The basic idea is as follows:
+/// - a local is live until we encounter a `StorageDead` statement. In
+///   case none exist, the local is considered to be always live.
+/// - a local has to be stored if it is either directly used after the
+///   the suspend point, or if it is live and has been previously borrowed.
 fn locals_live_across_suspend_points<'tcx>(
     tcx: TyCtxt<'tcx>,
     body: &Body<'tcx>,
@@ -814,7 +822,7 @@ impl<'mir, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'mir, 'tcx, R>
 
     fn visit_statement_before_primary_effect(
         &mut self,
-        _results: &R,
+        _results: &mut R,
         state: &Self::FlowState,
         _statement: &'mir Statement<'tcx>,
         loc: Location,
@@ -824,7 +832,7 @@ impl<'mir, 'tcx, R> rustc_mir_dataflow::ResultsVisitor<'mir, 'tcx, R>
 
     fn visit_terminator_before_primary_effect(
         &mut self,
-        _results: &R,
+        _results: &mut R,
         state: &Self::FlowState,
         _terminator: &'mir Terminator<'tcx>,
         loc: Location,
@@ -853,60 +861,7 @@ impl StorageConflictVisitor<'_, '_, '_> {
     }
 }
 
-/// Validates the typeck view of the generator against the actual set of types saved between
-/// yield points.
-fn sanitize_witness<'tcx>(
-    tcx: TyCtxt<'tcx>,
-    body: &Body<'tcx>,
-    witness: Ty<'tcx>,
-    upvars: &'tcx ty::List<Ty<'tcx>>,
-    layout: &GeneratorLayout<'tcx>,
-) {
-    let did = body.source.def_id();
-    let param_env = tcx.param_env(did);
-
-    let allowed_upvars = tcx.normalize_erasing_regions(param_env, upvars);
-    let allowed = match witness.kind() {
-        &ty::GeneratorWitness(interior_tys) => {
-            tcx.normalize_erasing_late_bound_regions(param_env, interior_tys)
-        }
-        _ => {
-            tcx.sess.delay_span_bug(
-                body.span,
-                format!("unexpected generator witness type {:?}", witness.kind()),
-            );
-            return;
-        }
-    };
-
-    let mut mismatches = Vec::new();
-    for fty in &layout.field_tys {
-        if fty.ignore_for_traits {
-            continue;
-        }
-        let decl_ty = tcx.normalize_erasing_regions(param_env, fty.ty);
-
-        // Sanity check that typeck knows about the type of locals which are
-        // live across a suspension point
-        if !allowed.contains(&decl_ty) && !allowed_upvars.contains(&decl_ty) {
-            mismatches.push(decl_ty);
-        }
-    }
-
-    if !mismatches.is_empty() {
-        span_bug!(
-            body.span,
-            "Broken MIR: generator contains type {:?} in MIR, \
-                       but typeck only knows about {} and {:?}",
-            mismatches,
-            allowed,
-            allowed_upvars
-        );
-    }
-}
-
 fn compute_layout<'tcx>(
-    tcx: TyCtxt<'tcx>,
     liveness: LivenessInfo,
     body: &Body<'tcx>,
 ) -> (
@@ -932,27 +887,20 @@ fn compute_layout<'tcx>(
         let decl = &body.local_decls[local];
         debug!(?decl);
 
-        let ignore_for_traits = if tcx.sess.opts.unstable_opts.drop_tracking_mir {
-            // Do not `assert_crate_local` here, as post-borrowck cleanup may have already cleared
-            // the information. This is alright, since `ignore_for_traits` is only relevant when
-            // this code runs on pre-cleanup MIR, and `ignore_for_traits = false` is the safer
-            // default.
-            match decl.local_info {
-                // Do not include raw pointers created from accessing `static` items, as those could
-                // well be re-created by another access to the same static.
-                ClearCrossCrate::Set(box LocalInfo::StaticRef { is_thread_local, .. }) => {
-                    !is_thread_local
-                }
-                // Fake borrows are only read by fake reads, so do not have any reality in
-                // post-analysis MIR.
-                ClearCrossCrate::Set(box LocalInfo::FakeBorrow) => true,
-                _ => false,
+        // Do not `assert_crate_local` here, as post-borrowck cleanup may have already cleared
+        // the information. This is alright, since `ignore_for_traits` is only relevant when
+        // this code runs on pre-cleanup MIR, and `ignore_for_traits = false` is the safer
+        // default.
+        let ignore_for_traits = match decl.local_info {
+            // Do not include raw pointers created from accessing `static` items, as those could
+            // well be re-created by another access to the same static.
+            ClearCrossCrate::Set(box LocalInfo::StaticRef { is_thread_local, .. }) => {
+                !is_thread_local
             }
-        } else {
-            // FIXME(#105084) HIR-based drop tracking does not account for all the temporaries that
-            // MIR building may introduce. This leads to wrongly ignored types, but this is
-            // necessary for internal consistency and to avoid ICEs.
-            decl.internal
+            // Fake borrows are only read by fake reads, so do not have any reality in
+            // post-analysis MIR.
+            ClearCrossCrate::Set(box LocalInfo::FakeBorrow) => true,
+            _ => false,
         };
         let decl =
             GeneratorSavedTy { ty: decl.ty, source_info: decl.source_info, ignore_for_traits };
@@ -1091,7 +1039,7 @@ fn elaborate_generator_drops<'tcx>(tcx: TyCtxt<'tcx>, body: &mut Body<'tcx>) {
                 UnwindAction::Cleanup(tgt) => tgt,
                 UnwindAction::Continue => elaborator.patch.resume_block(),
                 UnwindAction::Unreachable => elaborator.patch.unreachable_cleanup_block(),
-                UnwindAction::Terminate => elaborator.patch.terminate_block(),
+                UnwindAction::Terminate(reason) => elaborator.patch.terminate_block(reason),
             })
         };
         elaborate_drop(
@@ -1189,10 +1137,10 @@ fn insert_panic_block<'tcx>(
 ) -> BasicBlock {
     let assert_block = BasicBlock::new(body.basic_blocks.len());
     let term = TerminatorKind::Assert {
-        cond: Operand::Constant(Box::new(Constant {
+        cond: Operand::Constant(Box::new(ConstOperand {
             span: body.span,
             user_ty: None,
-            literal: ConstantKind::from_bool(tcx, false),
+            const_: Const::from_bool(tcx, false),
         })),
         expected: true,
         msg: Box::new(message),
@@ -1239,7 +1187,7 @@ fn can_unwind<'tcx>(tcx: TyCtxt<'tcx>, body: &Body<'tcx>) -> bool {
             // These never unwind.
             TerminatorKind::Goto { .. }
             | TerminatorKind::SwitchInt { .. }
-            | TerminatorKind::Terminate
+            | TerminatorKind::UnwindTerminate(_)
             | TerminatorKind::Return
             | TerminatorKind::Unreachable
             | TerminatorKind::GeneratorDrop
@@ -1248,7 +1196,7 @@ fn can_unwind<'tcx>(tcx: TyCtxt<'tcx>, body: &Body<'tcx>) -> bool {
 
             // Resume will *continue* unwinding, but if there's no other unwinding terminator it
             // will never be reached.
-            TerminatorKind::Resume => {}
+            TerminatorKind::UnwindResume => {}
 
             TerminatorKind::Yield { .. } => {
                 unreachable!("`can_unwind` called before generator transform")
@@ -1279,14 +1227,14 @@ fn create_generator_resume_function<'tcx>(
         let source_info = SourceInfo::outermost(body.span);
         let poison_block = body.basic_blocks_mut().push(BasicBlockData {
             statements: vec![transform.set_discr(VariantIdx::new(POISONED), source_info)],
-            terminator: Some(Terminator { source_info, kind: TerminatorKind::Resume }),
+            terminator: Some(Terminator { source_info, kind: TerminatorKind::UnwindResume }),
             is_cleanup: true,
         });
 
         for (idx, block) in body.basic_blocks_mut().iter_enumerated_mut() {
             let source_info = block.terminator().source_info;
 
-            if let TerminatorKind::Resume = block.terminator().kind {
+            if let TerminatorKind::UnwindResume = block.terminator().kind {
                 // An existing `Resume` terminator is redirected to jump to our dedicated
                 // "poisoning block" above.
                 if idx != poison_block {
@@ -1445,8 +1393,6 @@ pub(crate) fn mir_generator_witnesses<'tcx>(
     tcx: TyCtxt<'tcx>,
     def_id: LocalDefId,
 ) -> Option<GeneratorLayout<'tcx>> {
-    assert!(tcx.sess.opts.unstable_opts.drop_tracking_mir);
-
     let (body, _) = tcx.mir_promoted(def_id);
     let body = body.borrow();
     let body = &*body;
@@ -1454,22 +1400,21 @@ pub(crate) fn mir_generator_witnesses<'tcx>(
     // The first argument is the generator type passed by value
     let gen_ty = body.local_decls[ty::CAPTURE_STRUCT_LOCAL].ty;
 
-    // Get the interior types and args which typeck computed
     let movable = match *gen_ty.kind() {
         ty::Generator(_, _, movability) => movability == hir::Movability::Movable,
         ty::Error(_) => return None,
         _ => span_bug!(body.span, "unexpected generator type {}", gen_ty),
     };
 
-    // When first entering the generator, move the resume argument into its new local.
-    let always_live_locals = always_storage_live_locals(&body);
+    // The witness simply contains all locals live across suspend points.
 
+    let always_live_locals = always_storage_live_locals(&body);
     let liveness_info = locals_live_across_suspend_points(tcx, body, &always_live_locals, movable);
 
     // Extract locals which are live across suspension point into `layout`
     // `remap` gives a mapping from local indices onto generator struct indices
     // `storage_liveness` tells us which locals have live storage at suspension points
-    let (_, generator_layout, _) = compute_layout(tcx, liveness_info, body);
+    let (_, generator_layout, _) = compute_layout(liveness_info, body);
 
     check_suspend_tys(tcx, &generator_layout, &body);
 
@@ -1489,15 +1434,10 @@ impl<'tcx> MirPass<'tcx> for StateTransform {
         let gen_ty = body.local_decls.raw[1].ty;
 
         // Get the discriminant type and args which typeck computed
-        let (discr_ty, upvars, interior, movable) = match *gen_ty.kind() {
+        let (discr_ty, movable) = match *gen_ty.kind() {
             ty::Generator(_, args, movability) => {
                 let args = args.as_generator();
-                (
-                    args.discr_ty(tcx),
-                    args.upvar_tys(),
-                    args.witness(),
-                    movability == hir::Movability::Movable,
-                )
+                (args.discr_ty(tcx), movability == hir::Movability::Movable)
             }
             _ => {
                 tcx.sess.delay_span_bug(body.span, format!("unexpected generator type {gen_ty}"));
@@ -1574,13 +1514,7 @@ impl<'tcx> MirPass<'tcx> for StateTransform {
         // Extract locals which are live across suspension point into `layout`
         // `remap` gives a mapping from local indices onto generator struct indices
         // `storage_liveness` tells us which locals have live storage at suspension points
-        let (remap, layout, storage_liveness) = compute_layout(tcx, liveness_info, body);
-
-        if tcx.sess.opts.unstable_opts.validate_mir
-            && !tcx.sess.opts.unstable_opts.drop_tracking_mir
-        {
-            sanitize_witness(tcx, body, interior, upvars, &layout);
-        }
+        let (remap, layout, storage_liveness) = compute_layout(liveness_info, body);
 
         let can_return = can_return(tcx, body, tcx.param_env(body.source.def_id()));
 
@@ -1758,8 +1692,8 @@ impl<'tcx> Visitor<'tcx> for EnsureGeneratorFieldAssignmentsNeverAlias<'_> {
             TerminatorKind::Call { .. }
             | TerminatorKind::Goto { .. }
             | TerminatorKind::SwitchInt { .. }
-            | TerminatorKind::Resume
-            | TerminatorKind::Terminate
+            | TerminatorKind::UnwindResume
+            | TerminatorKind::UnwindTerminate(_)
             | TerminatorKind::Return
             | TerminatorKind::Unreachable
             | TerminatorKind::Drop { .. }
@@ -1954,11 +1888,12 @@ fn check_must_not_suspend_def(
             hir_id,
             data.source_span,
             errors::MustNotSupend {
+                tcx,
                 yield_sp: data.yield_span,
                 reason,
                 src_sp: data.source_span,
                 pre: data.descr_pre,
-                def_path: tcx.def_path_str(def_id),
+                def_id,
                 post: data.descr_post,
             },
         );

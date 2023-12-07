@@ -6,6 +6,7 @@
 #![feature(array_methods)]
 #![feature(assert_matches)]
 #![feature(box_patterns)]
+#![feature(if_let_guard)]
 #![feature(impl_trait_in_assoc_type)]
 #![feature(iter_intersperse)]
 #![feature(lazy_cell)]
@@ -430,8 +431,8 @@ fn opts() -> Vec<RustcOptGroup> {
             o.optopt(
                 "",
                 "resource-suffix",
-                "suffix to add to CSS and JavaScript files, e.g., \"light.css\" will become \
-                 \"light-suffix.css\"",
+                "suffix to add to CSS and JavaScript files, e.g., \"search-index.js\" will \
+                 become \"search-index-suffix.js\"",
                 "PATH",
             )
         }),
@@ -501,13 +502,6 @@ fn opts() -> Vec<RustcOptGroup> {
                 "Path string to force loading static files from in output pages. \
                  If not set, uses combinations of '../' to reach the documentation root.",
                 "PATH",
-            )
-        }),
-        unstable("disable-per-crate-search", |o| {
-            o.optflagmulti(
-                "",
-                "disable-per-crate-search",
-                "disables generating the crate selector on the search box",
             )
         }),
         unstable("persist-doctests", |o| {
@@ -655,6 +649,9 @@ fn opts() -> Vec<RustcOptGroup> {
                 for more information",
                 "[rust]",
             )
+        }),
+        unstable("html-no-source", |o| {
+            o.optflag("", "html-no-source", "Disable HTML source code pages generation")
         }),
     ]
 }

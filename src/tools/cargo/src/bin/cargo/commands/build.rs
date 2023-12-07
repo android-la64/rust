@@ -30,8 +30,9 @@ pub fn cli() -> Command {
         )
         .arg_features()
         .arg_release("Build artifacts in release mode, with optimizations")
+        .arg_redundant_default_mode("debug", "build", "release")
         .arg_profile("Build artifacts with the specified profile")
-        .arg_jobs()
+        .arg_parallel()
         .arg_target_triple("Build for the target triple")
         .arg_target_dir()
         .arg(
@@ -46,7 +47,9 @@ pub fn cli() -> Command {
         .arg_unit_graph()
         .arg_timings()
         .arg_manifest_path()
-        .after_help("Run `cargo help build` for more detailed information.\n")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help build</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {

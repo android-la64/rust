@@ -24,7 +24,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(rustc::untranslatable_diagnostic)]
 #![deny(rustc::diagnostic_outside_of_impl)]
-#![cfg_attr(not(bootstrap), allow(internal_features))]
+#![allow(internal_features)]
 #![allow(clippy::mut_from_ref)] // Arena allocators are one of the places where this pattern is fine.
 
 use smallvec::SmallVec;
@@ -37,9 +37,10 @@ use std::ptr::{self, NonNull};
 use std::slice;
 use std::{cmp, intrinsics};
 
+/// This calls the passed function while ensuring it won't be inlined into the caller.
 #[inline(never)]
 #[cold]
-fn cold_path<F: FnOnce() -> R, R>(f: F) -> R {
+fn outline<F: FnOnce() -> R, R>(f: F) -> R {
     f()
 }
 
@@ -600,7 +601,7 @@ impl DroplessArena {
                 unsafe { self.write_from_iter(iter, len, mem) }
             }
             (_, _) => {
-                cold_path(move || -> &mut [T] {
+                outline(move || -> &mut [T] {
                     let mut vec: SmallVec<[_; 8]> = iter.collect();
                     if vec.is_empty() {
                         return &mut [];

@@ -63,7 +63,7 @@
 #![feature(macro_metavar_expr)]
 #![recursion_limit = "512"]
 #![allow(rustc::potential_query_instability)]
-#![cfg_attr(not(bootstrap), allow(internal_features))]
+#![allow(internal_features)]
 
 #[macro_use]
 extern crate bitflags;
@@ -89,6 +89,7 @@ mod macros;
 pub mod arena;
 pub mod error;
 pub mod hir;
+pub mod hooks;
 pub mod infer;
 pub mod lint;
 pub mod metadata;

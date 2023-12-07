@@ -12,9 +12,10 @@
 //!
 //! Typical usage will look like this:
 //!
-//! ```rust
+#![cfg_attr(bootstrap, doc = "```rust,ignore")]
+#![cfg_attr(not(bootstrap), doc = "```rust")]
 //! #![feature(core_intrinsics, custom_mir)]
-#![cfg_attr(not(bootstrap), doc = "#![allow(internal_features)]")]
+//! #![allow(internal_features)]
 //!
 //! use core::intrinsics::mir::*;
 //!
@@ -62,9 +63,10 @@
 //!
 //! # Examples
 //!
-//! ```rust
+#![cfg_attr(bootstrap, doc = "```rust,ignore")]
+#![cfg_attr(not(bootstrap), doc = "```rust")]
 //! #![feature(core_intrinsics, custom_mir)]
-#![cfg_attr(not(bootstrap), doc = "#![allow(internal_features)]")]
+//! #![allow(internal_features)]
 //!
 //! use core::intrinsics::mir::*;
 //!
@@ -317,8 +319,9 @@ define!(
     ///
     /// # Examples
     ///
-    /// ```rust
-    #[cfg_attr(not(bootstrap), doc = "#![allow(internal_features)]")]
+    #[cfg_attr(bootstrap, doc = "```rust,ignore")]
+    #[cfg_attr(not(bootstrap), doc = "```rust")]
+    /// #![allow(internal_features)]
     /// #![feature(custom_mir, core_intrinsics)]
     ///
     /// use core::intrinsics::mir::*;
@@ -361,6 +364,11 @@ define!(
     #[doc(hidden)]
     fn __internal_make_place<T>(place: T) -> *mut T
 );
+define!(
+    "mir_debuginfo",
+    #[doc(hidden)]
+    fn __debuginfo<T>(name: &'static str, s: T)
+);
 
 /// Macro for generating custom MIR.
 ///
@@ -371,6 +379,7 @@ pub macro mir {
     (
         $(type RET = $ret_ty:ty ;)?
         $(let $local_decl:ident $(: $local_decl_ty:ty)? ;)*
+        $(debug $dbg_name:ident => $dbg_data:expr ;)*
 
         {
             $($entry:tt)*
@@ -394,26 +403,32 @@ pub macro mir {
             $(
                 let $local_decl $(: $local_decl_ty)? ;
             )*
-
             ::core::intrinsics::mir::__internal_extract_let!($($entry)*);
             $(
                 ::core::intrinsics::mir::__internal_extract_let!($($block)*);
             )*
 
             {
-                // Finally, the contents of the basic blocks
-                ::core::intrinsics::mir::__internal_remove_let!({
-                    {}
-                    { $($entry)* }
-                });
+                // Now debuginfo
                 $(
-                    ::core::intrinsics::mir::__internal_remove_let!({
-                        {}
-                        { $($block)* }
-                    });
+                    __debuginfo(stringify!($dbg_name), $dbg_data);
                 )*
 
-                RET
+                {
+                    // Finally, the contents of the basic blocks
+                    ::core::intrinsics::mir::__internal_remove_let!({
+                        {}
+                        { $($entry)* }
+                    });
+                    $(
+                        ::core::intrinsics::mir::__internal_remove_let!({
+                            {}
+                            { $($block)* }
+                        });
+                    )*
+
+                    RET
+                }
             }
         }
     }}

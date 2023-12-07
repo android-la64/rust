@@ -252,6 +252,52 @@ impl Command {
         self
     }
 
+    /// Allows one to mutate all [`Arg`]s after they've been added to a [`Command`].
+    ///
+    /// This does not affect the built-in `--help` or `--version` arguments.
+    ///
+    /// # Examples
+    ///
+    #[cfg_attr(feature = "string", doc = "```")]
+    #[cfg_attr(not(feature = "string"), doc = "```ignore")]
+    /// # use clap_builder as clap;
+    /// # use clap::{Command, Arg, ArgAction};
+    ///
+    /// let mut cmd = Command::new("foo")
+    ///     .arg(Arg::new("bar")
+    ///         .long("bar")
+    ///         .action(ArgAction::SetTrue))
+    ///     .arg(Arg::new("baz")
+    ///         .long("baz")
+    ///         .action(ArgAction::SetTrue))
+    ///     .mut_args(|a| {
+    ///         if let Some(l) = a.get_long().map(|l| format!("prefix-{l}")) {
+    ///             a.long(l)
+    ///         } else {
+    ///             a
+    ///         }
+    ///     });
+    ///
+    /// let res = cmd.try_get_matches_from_mut(vec!["foo", "--bar"]);
+    ///
+    /// // Since we changed `bar`'s long to "prefix-bar" this should err as there
+    /// // is no `--bar` anymore, only `--prefix-bar`.
+    ///
+    /// assert!(res.is_err());
+    ///
+    /// let res = cmd.try_get_matches_from_mut(vec!["foo", "--prefix-bar"]);
+    /// assert!(res.is_ok());
+    /// ```
+    #[must_use]
+    #[cfg_attr(debug_assertions, track_caller)]
+    pub fn mut_args<F>(mut self, f: F) -> Self
+    where
+        F: FnMut(Arg) -> Arg,
+    {
+        self.args.mut_args(f);
+        self
+    }
+
     /// Allows one to mutate a [`Command`] after it's been added as a subcommand.
     ///
     /// This can be useful for modifying auto-generated arguments of nested subcommands with
@@ -507,7 +553,7 @@ impl Command {
     ///
     /// # Panics
     ///
-    /// If contradictory arguments or settings exist.
+    /// If contradictory arguments or settings exist (debug builds).
     ///
     /// # Examples
     ///
@@ -531,7 +577,7 @@ impl Command {
     ///
     /// # Panics
     ///
-    /// If contradictory arguments or settings exist.
+    /// If contradictory arguments or settings exist (debug builds).
     ///
     /// # Examples
     ///
@@ -559,7 +605,7 @@ impl Command {
     ///
     /// # Panics
     ///
-    /// If contradictory arguments or settings exist.
+    /// If contradictory arguments or settings exist (debug builds).
     ///
     /// # Examples
     ///
@@ -592,7 +638,7 @@ impl Command {
     ///
     /// # Panics
     ///
-    /// If contradictory arguments or settings exist.
+    /// If contradictory arguments or settings exist (debug builds).
     ///
     /// # Examples
     ///
@@ -631,7 +677,7 @@ impl Command {
     ///
     /// # Panics
     ///
-    /// If contradictory arguments or settings exist.
+    /// If contradictory arguments or settings exist (debug builds).
     ///
     /// # Examples
     ///
@@ -677,7 +723,7 @@ impl Command {
     ///
     /// # Panics
     ///
-    /// If contradictory arguments or settings exist.
+    /// If contradictory arguments or settings exist (debug builds).
     ///
     /// # Examples
     ///
@@ -1124,7 +1170,6 @@ impl Command {
     #[cfg(feature = "color")]
     #[inline]
     #[must_use]
-    #[cfg(feature = "unstable-styles")]
     pub fn styles(mut self, styles: Styles) -> Self {
         self.app_ext.set(styles);
         self
@@ -1369,6 +1414,7 @@ impl Command {
     ///
     /// # Panics
     ///
+    /// On debug builds:
     /// ```rust,no_run
     /// # use clap_builder as clap;
     /// # use clap::{Command, Arg};

@@ -44,7 +44,18 @@ pub enum Case {
 impl Pattern {
     /// Parse the given `text` as pattern, or return `None` if `text` was empty.
     pub fn from_bytes(text: &[u8]) -> Option<Self> {
-        crate::parse::pattern(text).map(|(text, mode, first_wildcard_pos)| Pattern {
+        crate::parse::pattern(text, true).map(|(text, mode, first_wildcard_pos)| Pattern {
+            text: text.into(),
+            mode,
+            first_wildcard_pos,
+        })
+    }
+
+    /// Parse the given `text` as pattern without supporting leading `!` or `\\!` , or return `None` if `text` was empty.
+    ///
+    /// This assures that `text` remains entirely unaltered, but removes built-in support for negation as well.
+    pub fn from_bytes_without_negation(text: &[u8]) -> Option<Self> {
+        crate::parse::pattern(text, false).map(|(text, mode, first_wildcard_pos)| Pattern {
             text: text.into(),
             mode,
             first_wildcard_pos,
@@ -65,30 +76,36 @@ impl Pattern {
     /// We may take various shortcuts which is when `basename_start_pos` and `is_dir` come into play.
     /// `basename_start_pos` is the index at which the `path`'s basename starts.
     ///
-    /// Lastly, `case` folding can be configured as well.
-    pub fn matches_repo_relative_path<'a>(
+    /// `case` folding can be configured as well.
+    /// `mode` is used to control how [`crate::wildmatch()`] should operate.
+    pub fn matches_repo_relative_path(
         &self,
-        path: impl Into<&'a BStr>,
+        path: &BStr,
         basename_start_pos: Option<usize>,
         is_dir: Option<bool>,
         case: Case,
+        mode: wildmatch::Mode,
     ) -> bool {
         let is_dir = is_dir.unwrap_or(false);
         if !is_dir && self.mode.contains(pattern::Mode::MUST_BE_DIR) {
             return false;
         }
 
-        let flags = wildmatch::Mode::NO_MATCH_SLASH_LITERAL
+        let flags = mode
             | match case {
                 Case::Fold => wildmatch::Mode::IGNORE_CASE,
                 Case::Sensitive => wildmatch::Mode::empty(),
             };
-        let path = path.into();
-        debug_assert_eq!(
-            basename_start_pos,
-            path.rfind_byte(b'/').map(|p| p + 1),
-            "BUG: invalid cached basename_start_pos provided"
-        );
+        #[cfg(debug_assertions)]
+        {
+            if basename_start_pos.is_some() {
+                debug_assert_eq!(
+                    basename_start_pos,
+                    path.rfind_byte(b'/').map(|p| p + 1),
+                    "BUG: invalid cached basename_start_pos provided"
+                );
+            }
+        }
         debug_assert!(!path.starts_with(b"/"), "input path must be relative");
 
         if self.mode.contains(pattern::Mode::NO_SUB_DIR) && !self.mode.contains(pattern::Mode::ABSOLUTE) {
@@ -106,11 +123,13 @@ impl Pattern {
     ///
     /// Note that this method uses some shortcuts to accelerate simple patterns, but falls back to
     /// [wildmatch()][crate::wildmatch()] if these fail.
-    pub fn matches<'a>(&self, value: impl Into<&'a BStr>, mode: wildmatch::Mode) -> bool {
-        let value = value.into();
+    pub fn matches(&self, value: &BStr, mode: wildmatch::Mode) -> bool {
         match self.first_wildcard_pos {
             // "*literal" case, overrides starts-with
-            Some(pos) if self.mode.contains(pattern::Mode::ENDS_WITH) && !value.contains(&b'/') => {
+            Some(pos)
+                if self.mode.contains(pattern::Mode::ENDS_WITH)
+                    && (!mode.contains(wildmatch::Mode::NO_MATCH_SLASH_LITERAL) || !value.contains(&b'/')) =>
+            {
                 let text = &self.text[pos + 1..];
                 if mode.contains(wildmatch::Mode::IGNORE_CASE) {
                     value

@@ -22,9 +22,21 @@ pub use parse::function::parse;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Time {
     /// time in seconds since epoch.
-    pub seconds_since_unix_epoch: u32,
+    pub seconds: SecondsSinceUnixEpoch,
     /// time offset in seconds, may be negative to match the `sign` field.
-    pub offset_in_seconds: i32,
+    pub offset: OffsetInSeconds,
     /// the sign of `offset`, used to encode `-0000` which would otherwise loose sign information.
     pub sign: time::Sign,
 }
+
+/// The amount of seconds since unix epoch.
+///
+/// Note that negative dates represent times before the unix epoch.
+///
+/// ### Deviation
+///
+/// `git` only supports dates *from* the UNIX epoch, whereas we chose to be more flexible at the expense of stopping time
+/// a few million years before the heat-death of the universe.
+pub type SecondsSinceUnixEpoch = i64;
+/// time offset in seconds.
+pub type OffsetInSeconds = i32;

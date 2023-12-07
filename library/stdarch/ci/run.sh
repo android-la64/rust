@@ -47,6 +47,7 @@ case ${TARGET} in
     # Some of our test dependencies use the deprecated `gcc` crates which
     # doesn't detect RISC-V compilers automatically, so do it manually here.
     riscv64*)
+        export RUSTFLAGS="${RUSTFLAGS} -Ctarget-feature=+zk,+zbb,+zbc"
         export TARGET_CC="riscv64-linux-gnu-gcc"
         ;;
 esac
@@ -76,6 +77,11 @@ cargo_test() {
         # qemu has an erratic behavior on those tests
         powerpc64*)
             cmd="$cmd --skip test_vec_lde_u16 --skip test_vec_lde_u32 --skip test_vec_expte"
+            ;;
+        # Miscompilation: https://github.com/rust-lang/rust/issues/112460
+        arm*)
+            cmd="$cmd --skip vld2q_dup_f32"
+            ;;
     esac
 
     if [ "$SKIP_TESTS" != "" ]; then

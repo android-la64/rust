@@ -8,7 +8,6 @@
 #![feature(yeet_expr)]
 #![feature(nonzero_ops)]
 #![feature(round_ties_even)]
-#![feature(os_str_bytes)]
 #![feature(lint_reasons)]
 #![feature(trait_upcasting)]
 // Configure clippy and other lints
@@ -32,6 +31,7 @@
     clippy::needless_return,
     clippy::bool_to_int_with_if,
     clippy::box_default,
+    clippy::needless_question_mark,
     // We are not implementing queries here so it's fine
     rustc::potential_query_instability
 )]

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::{
     file::{init, Metadata},
     path, source, File, Source,
@@ -30,7 +32,7 @@ impl File<'static> {
                 let path = source
                     .storage_location(&mut gix_path::env::var)
                     .and_then(|p| p.is_file().then_some(p))
-                    .map(|p| p.into_owned());
+                    .map(Cow::into_owned);
 
                 Metadata {
                     path,
@@ -53,9 +55,9 @@ impl File<'static> {
     /// A typical use of this is to [`append`][File::append()] this configuration to another one with lower
     /// precedence to obtain overrides.
     ///
-    /// See [`gix-config`'s documentation] for more information on the environment variables in question.
+    /// See [`git-config`'s documentation] for more information on the environment variables in question.
     ///
-    /// [`gix-config`'s documentation]: https://git-scm.com/docs/gix-config#Documentation/gix-config.txt-GITCONFIGCOUNT
+    /// [`git-config`'s documentation]: https://git-scm.com/docs/git-config#Documentation/git-config.txt-GITCONFIGCOUNT
     pub fn from_environment_overrides() -> Result<File<'static>, init::from_env::Error> {
         let home = gix_path::env::home_dir();
         let options = init::Options {
@@ -80,16 +82,16 @@ impl File<'static> {
     ///
     /// Includes will be resolved within limits as some information like the git installation directory is missing to interpolate
     /// paths with as well as git repository information like the branch name.
-    pub fn from_git_dir(dir: impl Into<std::path::PathBuf>) -> Result<File<'static>, from_git_dir::Error> {
+    pub fn from_git_dir(dir: std::path::PathBuf) -> Result<File<'static>, from_git_dir::Error> {
         let (mut local, git_dir) = {
             let source = Source::Local;
-            let mut path = dir.into();
+            let mut path = dir;
             path.push(
                 source
                     .storage_location(&mut gix_path::env::var)
                     .expect("location available for local"),
             );
-            let local = Self::from_path_no_includes(&path, source)?;
+            let local = Self::from_path_no_includes(path.clone(), source)?;
             path.pop();
             (local, path)
         };

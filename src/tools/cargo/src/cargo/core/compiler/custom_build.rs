@@ -240,7 +240,7 @@ fn emit_build_output(
 ///
 /// The construction includes:
 ///
-/// * Set environment varibles for the build script run.
+/// * Set environment variables for the build script run.
 /// * Create the output dir (`OUT_DIR`) for the build script output.
 /// * Determine if the build script needs a re-run.
 /// * Run the build script and store its output.
@@ -281,7 +281,7 @@ fn build_work(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Job> {
         .env("NUM_JOBS", &bcx.jobs().to_string())
         .env("TARGET", bcx.target_data.short_name(&unit.kind))
         .env("DEBUG", debug.to_string())
-        .env("OPT_LEVEL", &unit.profile.opt_level.to_string())
+        .env("OPT_LEVEL", &unit.profile.opt_level)
         .env(
             "PROFILE",
             match unit.profile.root {
@@ -299,11 +299,8 @@ fn build_work(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Job> {
         cmd.env(&var, value);
     }
 
-    if let Some(linker) = &bcx.target_data.target_config(unit.kind).linker {
-        cmd.env(
-            "RUSTC_LINKER",
-            linker.val.clone().resolve_program(bcx.config),
-        );
+    if let Some(linker) = &cx.compilation.target_linker(unit.kind) {
+        cmd.env("RUSTC_LINKER", linker);
     }
 
     if let Some(links) = unit.pkg.manifest().links() {
@@ -446,7 +443,7 @@ fn build_work(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Job> {
                     ))
                 })?;
                 let data = &script_output.metadata;
-                for &(ref key, ref value) in data.iter() {
+                for (key, value) in data.iter() {
                     cmd.env(
                         &format!("DEP_{}_{}", super::envify(&name), super::envify(key)),
                         value,
@@ -684,32 +681,24 @@ impl BuildOutput {
                 Ok(line) => line.trim(),
                 Err(..) => continue,
             };
-            let mut iter = line.splitn(2, ':');
-            if iter.next() != Some("cargo") {
-                // skip this line since it doesn't start with "cargo:"
-                continue;
-            }
-            let data = match iter.next() {
-                Some(val) => {
+            let data = match line.split_once(':') {
+                Some(("cargo", val)) => {
                     if val.starts_with(":") {
                         // Line started with `cargo::`.
-                        bail!("unsupported output in {}: `{}`\n\
+                        bail!("unsupported output in {whence}: `{line}`\n\
                             Found a `cargo::key=value` build directive which is reserved for future use.\n\
                             Either change the directive to `cargo:key=value` syntax (note the single `:`) or upgrade your version of Rust.\n\
                             See https://doc.rust-lang.org/cargo/reference/build-scripts.html#outputs-of-the-build-script \
-                            for more information about build script outputs.", whence, line);
+                            for more information about build script outputs.");
                     }
                     val
                 }
-                None => continue,
+                _ => continue,
             };
 
             // getting the `key=value` part of the line
-            let mut iter = data.splitn(2, '=');
-            let key = iter.next();
-            let value = iter.next();
-            let (key, value) = match (key, value) {
-                (Some(a), Some(b)) => (a, b.trim_end()),
+            let (key, value) = match data.split_once('=') {
+                Some((a,b)) => (a, b.trim_end()),
                 // Line started with `cargo:` but didn't match `key=value`.
                 _ => bail!("invalid output in {}: `{}`\n\
                     Expected a line with `cargo:key=value` with an `=` character, \
@@ -768,9 +757,7 @@ impl BuildOutput {
                     check_and_add_target!("bin", Target::is_bin, LinkArgTarget::Bin);
                 }
                 "rustc-link-arg-bin" => {
-                    let mut parts = value.splitn(2, '=');
-                    let bin_name = parts.next().unwrap().to_string();
-                    let arg = parts.next().ok_or_else(|| {
+                    let (bin_name, arg) = value.split_once('=').ok_or_else(|| {
                         anyhow::format_err!(
                             "invalid instruction `cargo:{}={}` from {}\n\
                                 The instruction should have the form cargo:{}=BIN=ARG",
@@ -793,7 +780,10 @@ impl BuildOutput {
                             bin_name
                         );
                     }
-                    linker_args.push((LinkArgTarget::SingleBin(bin_name), arg.to_string()));
+                    linker_args.push((
+                        LinkArgTarget::SingleBin(bin_name.to_owned()),
+                        arg.to_string(),
+                    ));
                 }
                 "rustc-link-arg-tests" => {
                     check_and_add_target!("test", Target::is_test, LinkArgTarget::Test);
@@ -837,7 +827,7 @@ impl BuildOutput {
                                 None => return false,
                                 Some(n) => n,
                             };
-                            // ALLOWED: the process of rustc boostrapping reads this through
+                            // ALLOWED: the process of rustc bootstrapping reads this through
                             // `std::env`. We should make the behavior consistent. Also, we
                             // don't advertise this for bypassing nightly.
                             #[allow(clippy::disallowed_methods)]
@@ -939,12 +929,9 @@ impl BuildOutput {
     ///
     /// [`cargo:rustc-env`]: https://doc.rust-lang.org/nightly/cargo/reference/build-scripts.html#rustc-env
     pub fn parse_rustc_env(value: &str, whence: &str) -> CargoResult<(String, String)> {
-        let mut iter = value.splitn(2, '=');
-        let name = iter.next();
-        let val = iter.next();
-        match (name, val) {
-            (Some(n), Some(v)) => Ok((n.to_owned(), v.to_owned())),
-            _ => bail!("Variable rustc-env has no value in {}: {}", whence, value),
+        match value.split_once('=') {
+            Some((n, v)) => Ok((n.to_owned(), v.to_owned())),
+            _ => bail!("Variable rustc-env has no value in {whence}: {value}"),
         }
     }
 }

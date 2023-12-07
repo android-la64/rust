@@ -10,11 +10,11 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "windows-metadata"
-version = "0.49.0"
+version = "0.51.1"
 authors = ["Microsoft"]
-description = "Windows metadata reader and writer"
+description = "Windows metadata reader"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/microsoft/windows-rs"
 

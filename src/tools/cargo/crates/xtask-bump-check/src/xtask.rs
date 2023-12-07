@@ -18,10 +18,10 @@ use std::task;
 use cargo::core::dependency::Dependency;
 use cargo::core::registry::PackageRegistry;
 use cargo::core::Package;
-use cargo::core::QueryKind;
 use cargo::core::Registry;
 use cargo::core::SourceId;
 use cargo::core::Workspace;
+use cargo::sources::source::QueryKind;
 use cargo::util::command_prelude::*;
 use cargo::util::ToSemver;
 use cargo::CargoResult;
@@ -105,7 +105,7 @@ fn config_configure(config: &mut Config, args: &ArgMatches) -> CliResult {
 /// Main entry of `xtask-bump-check`.
 ///
 /// Assumption: version number are incremental. We never have point release for old versions.
-fn bump_check(args: &clap::ArgMatches, config: &mut cargo::util::Config) -> CargoResult<()> {
+fn bump_check(args: &clap::ArgMatches, config: &cargo::util::Config) -> CargoResult<()> {
     let ws = args.workspace(config)?;
     let repo = git2::Repository::open(ws.root())?;
     let base_commit = get_base_commit(config, args, &repo)?;
@@ -161,7 +161,7 @@ fn bump_check(args: &clap::ArgMatches, config: &mut cargo::util::Config) -> Carg
     ];
 
     // Even when we test against baseline-rev, we still need to make sure a
-    // change doesn't violate SemVer rules aginst crates.io releases. The
+    // change doesn't violate SemVer rules against crates.io releases. The
     // possibility of this happening is nearly zero but no harm to check twice.
     let mut cmd = ProcessBuilder::new("cargo");
     cmd.arg("semver-checks")
@@ -184,7 +184,7 @@ fn bump_check(args: &clap::ArgMatches, config: &mut cargo::util::Config) -> Carg
 
     status("no version bump needed for member crates.")?;
 
-    return Ok(());
+    Ok(())
 }
 
 /// Returns the commit of upstream `master` branch if `base-rev` is missing.
@@ -256,7 +256,7 @@ fn get_referenced_commit<'a>(
     repo: &'a git2::Repository,
     base: &git2::Commit<'a>,
 ) -> CargoResult<Option<git2::Commit<'a>>> {
-    let [beta, stable] = beta_and_stable_branch(&repo)?;
+    let [beta, stable] = beta_and_stable_branch(repo)?;
     let rev_id = base.id();
     let stable_commit = stable.get().peel_to_commit()?;
     let beta_commit = beta.get().peel_to_commit()?;
@@ -397,7 +397,7 @@ fn check_crates_io<'a>(
     Ok(())
 }
 
-/// Checkouts a temporary workspace to do further version comparsions.
+/// Checkouts a temporary workspace to do further version comparisons.
 fn checkout_ws<'cfg, 'a>(
     ws: &Workspace<'cfg>,
     repo: &'a git2::Repository,

@@ -11,17 +11,18 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.65"
 name = "gix-odb"
-version = "0.46.0"
+version = "0.53.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
     "CHANGELOG.md",
 ]
+autotests = false
 description = "Implements various git object databases"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
 
 [package.metadata.docs.rs]
@@ -37,16 +38,6 @@ rustdoc-args = [
 [lib]
 doctest = false
 
-[[test]]
-name = "multi-threaded"
-path = "tests/odb-multi-threaded.rs"
-required-features = ["internal-testing-gix-features-parallel"]
-
-[[test]]
-name = "single-threaded"
-path = "tests/odb-single-threaded.rs"
-required-features = []
-
 [dependencies.arc-swap]
 version = "1.5.0"
 
@@ -54,8 +45,11 @@ version = "1.5.0"
 version = "0.2.0"
 optional = true
 
+[dependencies.gix-date]
+version = "^0.8.0"
+
 [dependencies.gix-features]
-version = "^0.30.0"
+version = "^0.35.0"
 features = [
     "rustsha1",
     "walkdir",
@@ -64,19 +58,20 @@ features = [
 ]
 
 [dependencies.gix-hash]
-version = "^0.11.2"
+version = "^0.13.0"
 
 [dependencies.gix-object]
-version = "^0.30.0"
+version = "^0.37.0"
 
 [dependencies.gix-pack]
-version = "^0.36.0"
+version = "^0.43.0"
+default-features = false
 
 [dependencies.gix-path]
-version = "^0.8.1"
+version = "^0.10.0"
 
 [dependencies.gix-quote]
-version = "^0.4.4"
+version = "^0.4.7"
 
 [dependencies.parking_lot]
 version = "0.12.0"
@@ -93,20 +88,7 @@ version = "3.1.0"
 [dependencies.thiserror]
 version = "1.0.26"
 
-[dev-dependencies.crossbeam-channel]
-version = "0.5.6"
-
-[dev-dependencies.filetime]
-version = "0.2.15"
-
-[dev-dependencies.maplit]
-version = "1.0.2"
-
-[dev-dependencies.pretty_assertions]
-version = "1.0.0"
-
 [features]
-internal-testing-gix-features-parallel = ["gix-features/parallel"]
 serde = [
     "dep:serde",
     "gix-hash/serde",

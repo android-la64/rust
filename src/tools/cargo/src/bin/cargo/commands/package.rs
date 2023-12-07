@@ -33,9 +33,11 @@ pub fn cli() -> Command {
         .arg_features()
         .arg_target_triple("Build for the target triple")
         .arg_target_dir()
-        .arg_jobs()
+        .arg_parallel()
         .arg_manifest_path()
-        .after_help("Run `cargo help package` for more detailed information.\n")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help package</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
@@ -58,7 +60,7 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
             check_metadata: !args.flag("no-metadata"),
             allow_dirty: args.flag("allow-dirty"),
             to_package: specs,
-            targets: args.targets(),
+            targets: args.targets()?,
             jobs: args.jobs()?,
             keep_going: args.keep_going(),
             cli_features: args.cli_features()?,

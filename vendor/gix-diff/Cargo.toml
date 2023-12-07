@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.65"
 name = "gix-diff"
-version = "0.30.1"
+version = "0.36.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -22,11 +22,23 @@ include = [
 ]
 autotests = false
 description = "Calculate differences between various git objects"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
+
+[package.metadata.docs.rs]
+all-features = true
+features = ["document-features"]
+rustdoc-args = [
+    "--cfg",
+    "docsrs",
+]
 
 [lib]
 doctest = false
+
+[dependencies.document-features]
+version = "0.2.0"
+optional = true
 
 [dependencies.getrandom]
 version = "0.2.8"
@@ -35,13 +47,14 @@ optional = true
 default-features = false
 
 [dependencies.gix-hash]
-version = "^0.11.2"
+version = "^0.13.0"
 
 [dependencies.gix-object]
-version = "^0.30.0"
+version = "^0.37.0"
 
 [dependencies.imara-diff]
 version = "0.1.3"
+optional = true
 
 [dependencies.serde]
 version = "1.0.114"
@@ -53,6 +66,8 @@ default-features = false
 version = "1.0.32"
 
 [features]
+blob = ["dep:imara-diff"]
+default = ["blob"]
 serde = [
     "dep:serde",
     "gix-hash/serde",

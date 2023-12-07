@@ -96,7 +96,9 @@ pub fn cli() -> Command {
             Pass `all` to include all targets.",
         )
         .arg_manifest_path()
-        .after_help("Run `cargo help tree` for more detailed information.\n")
+        .after_help(color_print::cstr!(
+            "Run `<cyan,bold>cargo help tree</>` for more detailed information.\n"
+        ))
 }
 
 pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
@@ -136,7 +138,7 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
             .warn("the --all-targets flag has been changed to --target=all")?;
         vec!["all".to_string()]
     } else {
-        args._values_of("target")
+        args.targets()?
     };
     let target = tree::Target::from_cli(targets);
 

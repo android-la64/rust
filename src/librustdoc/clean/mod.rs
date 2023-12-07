@@ -24,6 +24,7 @@ use rustc_infer::infer::region_constraints::{Constraint, RegionConstraintData};
 use rustc_middle::metadata::Reexport;
 use rustc_middle::middle::resolve_bound_vars as rbv;
 use rustc_middle::ty::fold::TypeFolder;
+use rustc_middle::ty::GenericArgsRef;
 use rustc_middle::ty::TypeVisitableExt;
 use rustc_middle::ty::{self, AdtKind, EarlyBinder, Ty, TyCtxt};
 use rustc_middle::{bug, span_bug};
@@ -541,7 +542,7 @@ fn clean_generic_param_def<'tcx>(
                 },
             )
         }
-        ty::GenericParamDefKind::Const { has_default } => (
+        ty::GenericParamDefKind::Const { has_default, is_host_effect } => (
             def.name,
             GenericParamDefKind::Const {
                 ty: Box::new(clean_middle_ty(
@@ -561,6 +562,7 @@ fn clean_generic_param_def<'tcx>(
                     )),
                     false => None,
                 },
+                is_host_effect,
             },
         ),
     };
@@ -617,6 +619,7 @@ fn clean_generic_param<'tcx>(
                 ty: Box::new(clean_ty(ty, cx)),
                 default: default
                     .map(|ct| Box::new(ty::Const::from_anon_const(cx.tcx, ct.def_id).to_string())),
+                is_host_effect: cx.tcx.has_attr(param.def_id, sym::rustc_host),
             },
         ),
     };
@@ -792,6 +795,7 @@ fn clean_ty_generics<'tcx>(
                 }
                 Some(clean_generic_param_def(param, cx))
             }
+            ty::GenericParamDefKind::Const { is_host_effect: true, .. } => None,
             ty::GenericParamDefKind::Const { .. } => Some(clean_generic_param_def(param, cx)),
         })
         .collect::<ThinVec<GenericParamDef>>();
@@ -955,6 +959,43 @@ fn clean_ty_generics<'tcx>(
     }
 }
 
+fn clean_ty_alias_inner_type<'tcx>(
+    ty: Ty<'tcx>,
+    cx: &mut DocContext<'tcx>,
+) -> Option<TypeAliasInnerType> {
+    let ty::Adt(adt_def, args) = ty.kind() else {
+        return None;
+    };
+
+    Some(if adt_def.is_enum() {
+        let variants: rustc_index::IndexVec<_, _> = adt_def
+            .variants()
+            .iter()
+            .map(|variant| clean_variant_def_with_args(variant, args, cx))
+            .collect();
+
+        TypeAliasInnerType::Enum {
+            variants,
+            is_non_exhaustive: adt_def.is_variant_list_non_exhaustive(),
+        }
+    } else {
+        let variant = adt_def
+            .variants()
+            .iter()
+            .next()
+            .unwrap_or_else(|| bug!("a struct or union should always have one variant def"));
+
+        let fields: Vec<_> =
+            clean_variant_def_with_args(variant, args, cx).kind.inner_items().cloned().collect();
+
+        if adt_def.is_struct() {
+            TypeAliasInnerType::Struct { ctor_kind: variant.ctor_kind(), fields }
+        } else {
+            TypeAliasInnerType::Union { fields }
+        }
+    })
+}
+
 fn clean_proc_macro<'tcx>(
     item: &hir::Item<'tcx>,
     name: &mut Symbol,
@@ -1069,10 +1110,7 @@ fn clean_function<'tcx>(
                 clean_args_from_types_and_names(cx, sig.decl.inputs, names)
             }
         };
-        let mut decl = clean_fn_decl_with_args(cx, sig.decl, args);
-        if sig.header.is_async() {
-            decl.output = decl.sugared_async_return_type();
-        }
+        let decl = clean_fn_decl_with_args(cx, sig.decl, Some(&sig.header), args);
         (generics, decl)
     });
     Box::new(Function { decl, generics })
@@ -1123,12 +1161,16 @@ fn clean_args_from_types_and_body_id<'tcx>(
 fn clean_fn_decl_with_args<'tcx>(
     cx: &mut DocContext<'tcx>,
     decl: &hir::FnDecl<'tcx>,
+    header: Option<&hir::FnHeader>,
     args: Arguments,
 ) -> FnDecl {
-    let output = match decl.output {
+    let mut output = match decl.output {
         hir::FnRetTy::Return(typ) => clean_ty(typ, cx),
         hir::FnRetTy::DefaultReturn(..) => Type::Tuple(Vec::new()),
     };
+    if let Some(header) = header && header.is_async() {
+        output = output.sugared_async_return_type();
+    }
     FnDecl { inputs: args, output, c_variadic: decl.c_variadic }
 }
 
@@ -1141,7 +1183,17 @@ fn clean_fn_decl_from_did_and_sig<'tcx>(
 
     // We assume all empty tuples are default return type. This theoretically can discard `-> ()`,
     // but shouldn't change any code meaning.
-    let output = clean_middle_ty(sig.output(), cx, None, None);
+    let mut output = clean_middle_ty(sig.output(), cx, None, None);
+
+    // If the return type isn't an `impl Trait`, we can safely assume that this
+    // function isn't async without needing to execute the query `asyncness` at
+    // all which gives us a noticeable performance boost.
+    if let Some(did) = did
+        && let Type::ImplTrait(_) = output
+        && cx.tcx.asyncness(did).is_async()
+    {
+        output = output.sugared_async_return_type();
+    }
 
     FnDecl {
         output,
@@ -1219,9 +1271,10 @@ fn clean_trait_item<'tcx>(trait_item: &hir::TraitItem<'tcx>, cx: &mut DocContext
                     None,
                 );
                 AssocTypeItem(
-                    Box::new(Typedef {
+                    Box::new(TypeAlias {
                         type_: clean_ty(default, cx),
                         generics,
+                        inner_type: None,
                         item_type: Some(item_type),
                     }),
                     bounds,
@@ -1264,7 +1317,12 @@ pub(crate) fn clean_impl_item<'tcx>(
                     None,
                 );
                 AssocTypeItem(
-                    Box::new(Typedef { type_, generics, item_type: Some(item_type) }),
+                    Box::new(TypeAlias {
+                        type_,
+                        generics,
+                        inner_type: None,
+                        item_type: Some(item_type),
+                    }),
                     Vec::new(),
                 )
             }
@@ -1461,7 +1519,7 @@ pub(crate) fn clean_middle_assoc_item<'tcx>(
 
                 if tcx.defaultness(assoc_item.def_id).has_value() {
                     AssocTypeItem(
-                        Box::new(Typedef {
+                        Box::new(TypeAlias {
                             type_: clean_middle_ty(
                                 ty::Binder::dummy(
                                     tcx.type_of(assoc_item.def_id).instantiate_identity(),
@@ -1471,6 +1529,7 @@ pub(crate) fn clean_middle_assoc_item<'tcx>(
                                 None,
                             ),
                             generics,
+                            inner_type: None,
                             item_type: None,
                         }),
                         bounds,
@@ -1480,7 +1539,7 @@ pub(crate) fn clean_middle_assoc_item<'tcx>(
                 }
             } else {
                 AssocTypeItem(
-                    Box::new(Typedef {
+                    Box::new(TypeAlias {
                         type_: clean_middle_ty(
                             ty::Binder::dummy(
                                 tcx.type_of(assoc_item.def_id).instantiate_identity(),
@@ -1490,6 +1549,7 @@ pub(crate) fn clean_middle_assoc_item<'tcx>(
                             None,
                         ),
                         generics,
+                        inner_type: None,
                         item_type: None,
                     }),
                     // Associated types inside trait or inherent impls are not allowed to have
@@ -1706,7 +1766,7 @@ fn maybe_expand_private_type_alias<'tcx>(
     cx: &mut DocContext<'tcx>,
     path: &hir::Path<'tcx>,
 ) -> Option<Type> {
-    let Res::Def(DefKind::TyAlias { .. }, def_id) = path.res else { return None };
+    let Res::Def(DefKind::TyAlias, def_id) = path.res else { return None };
     // Substitute private type aliases
     let def_id = def_id.as_local()?;
     let alias = if !cx.cache.effective_visibilities.is_exported(cx.tcx, def_id.to_def_id())
@@ -1817,7 +1877,7 @@ pub(crate) fn clean_ty<'tcx>(ty: &hir::Ty<'tcx>, cx: &mut DocContext<'tcx>) -> T
                     // does nothing for `ConstKind::Param`.
                     let ct = ty::Const::from_anon_const(cx.tcx, anon_const.def_id);
                     let param_env = cx.tcx.param_env(anon_const.def_id);
-                    print_const(cx, ct.eval(cx.tcx, param_env))
+                    print_const(cx, ct.normalize(cx.tcx, param_env))
                 }
             };
 
@@ -1975,7 +2035,7 @@ impl<'tcx> ContainerTy<'tcx> {
                 let (DefKind::Struct
                 | DefKind::Union
                 | DefKind::Enum
-                | DefKind::TyAlias { .. }
+                | DefKind::TyAlias
                 | DefKind::Trait) = tcx.def_kind(container)
                 else {
                     return ObjectLifetimeDefault::Empty;
@@ -2036,7 +2096,7 @@ pub(crate) fn clean_middle_ty<'tcx>(
         ty::Str => Primitive(PrimitiveType::Str),
         ty::Slice(ty) => Slice(Box::new(clean_middle_ty(bound_ty.rebind(ty), cx, None, None))),
         ty::Array(ty, mut n) => {
-            n = n.eval(cx.tcx, ty::ParamEnv::reveal_all());
+            n = n.normalize(cx.tcx, ty::ParamEnv::reveal_all());
             let n = print_const(cx, n);
             Array(Box::new(clean_middle_ty(bound_ty.rebind(ty), cx, None, None)), n.into())
         }
@@ -2241,7 +2301,6 @@ pub(crate) fn clean_middle_ty<'tcx>(
         ty::Bound(..) => panic!("Bound"),
         ty::Placeholder(..) => panic!("Placeholder"),
         ty::GeneratorWitness(..) => panic!("GeneratorWitness"),
-        ty::GeneratorWitnessMIR(..) => panic!("GeneratorWitnessMIR"),
         ty::Infer(..) => panic!("Infer"),
         ty::Error(_) => rustc_errors::FatalError.raise(),
     }
@@ -2363,6 +2422,83 @@ pub(crate) fn clean_variant_def<'tcx>(variant: &ty::VariantDef, cx: &mut DocCont
     )
 }
 
+pub(crate) fn clean_variant_def_with_args<'tcx>(
+    variant: &ty::VariantDef,
+    args: &GenericArgsRef<'tcx>,
+    cx: &mut DocContext<'tcx>,
+) -> Item {
+    let discriminant = match variant.discr {
+        ty::VariantDiscr::Explicit(def_id) => Some(Discriminant { expr: None, value: def_id }),
+        ty::VariantDiscr::Relative(_) => None,
+    };
+
+    use rustc_middle::traits::ObligationCause;
+    use rustc_trait_selection::infer::TyCtxtInferExt;
+    use rustc_trait_selection::traits::query::normalize::QueryNormalizeExt;
+
+    let infcx = cx.tcx.infer_ctxt().build();
+    let kind = match variant.ctor_kind() {
+        Some(CtorKind::Const) => VariantKind::CLike,
+        Some(CtorKind::Fn) => VariantKind::Tuple(
+            variant
+                .fields
+                .iter()
+                .map(|field| {
+                    let ty = cx.tcx.type_of(field.did).instantiate(cx.tcx, args);
+
+                    // normalize the type to only show concrete types
+                    // note: we do not use try_normalize_erasing_regions since we
+                    // do care about showing the regions
+                    let ty = infcx
+                        .at(&ObligationCause::dummy(), cx.param_env)
+                        .query_normalize(ty)
+                        .map(|normalized| normalized.value)
+                        .unwrap_or(ty);
+
+                    clean_field_with_def_id(
+                        field.did,
+                        field.name,
+                        clean_middle_ty(ty::Binder::dummy(ty), cx, Some(field.did), None),
+                        cx,
+                    )
+                })
+                .collect(),
+        ),
+        None => VariantKind::Struct(VariantStruct {
+            fields: variant
+                .fields
+                .iter()
+                .map(|field| {
+                    let ty = cx.tcx.type_of(field.did).instantiate(cx.tcx, args);
+
+                    // normalize the type to only show concrete types
+                    // note: we do not use try_normalize_erasing_regions since we
+                    // do care about showing the regions
+                    let ty = infcx
+                        .at(&ObligationCause::dummy(), cx.param_env)
+                        .query_normalize(ty)
+                        .map(|normalized| normalized.value)
+                        .unwrap_or(ty);
+
+                    clean_field_with_def_id(
+                        field.did,
+                        field.name,
+                        clean_middle_ty(ty::Binder::dummy(ty), cx, Some(field.did), None),
+                        cx,
+                    )
+                })
+                .collect(),
+        }),
+    };
+
+    Item::from_def_id_and_parts(
+        variant.def_id,
+        Some(variant.name),
+        VariantItem(Variant { kind, discriminant }),
+        cx,
+    )
+}
+
 fn clean_variant_data<'tcx>(
     variant: &hir::VariantData<'tcx>,
     disr_expr: &Option<hir::AnonConst>,
@@ -2406,14 +2542,22 @@ fn clean_generic_args<'tcx>(
         let args = generic_args
             .args
             .iter()
-            .map(|arg| match arg {
-                hir::GenericArg::Lifetime(lt) if !lt.is_anonymous() => {
-                    GenericArg::Lifetime(clean_lifetime(*lt, cx))
-                }
-                hir::GenericArg::Lifetime(_) => GenericArg::Lifetime(Lifetime::elided()),
-                hir::GenericArg::Type(ty) => GenericArg::Type(clean_ty(ty, cx)),
-                hir::GenericArg::Const(ct) => GenericArg::Const(Box::new(clean_const(ct, cx))),
-                hir::GenericArg::Infer(_inf) => GenericArg::Infer,
+            .filter_map(|arg| {
+                Some(match arg {
+                    hir::GenericArg::Lifetime(lt) if !lt.is_anonymous() => {
+                        GenericArg::Lifetime(clean_lifetime(*lt, cx))
+                    }
+                    hir::GenericArg::Lifetime(_) => GenericArg::Lifetime(Lifetime::elided()),
+                    hir::GenericArg::Type(ty) => GenericArg::Type(clean_ty(ty, cx)),
+                    // FIXME(effects): This will still emit `<true>` for non-const impls of const traits
+                    hir::GenericArg::Const(ct)
+                        if cx.tcx.has_attr(ct.value.def_id, sym::rustc_host) =>
+                    {
+                        return None;
+                    }
+                    hir::GenericArg::Const(ct) => GenericArg::Const(Box::new(clean_const(ct, cx))),
+                    hir::GenericArg::Infer(_inf) => GenericArg::Infer,
+                })
             })
             .collect::<Vec<_>>()
             .into();
@@ -2443,7 +2587,7 @@ fn clean_bare_fn_ty<'tcx>(
             .map(|x| clean_generic_param(cx, None, x))
             .collect();
         let args = clean_args_from_types_and_names(cx, bare_fn.decl.inputs, bare_fn.param_names);
-        let decl = clean_fn_decl_with_args(cx, bare_fn.decl, args);
+        let decl = clean_fn_decl_with_args(cx, bare_fn.decl, None, args);
         (generic_params, decl)
     });
     BareFunctionDecl { unsafety: bare_fn.unsafety, abi: bare_fn.abi, decl, generic_params }
@@ -2617,7 +2761,7 @@ fn clean_maybe_renamed_item<'tcx>(
             ItemKind::TyAlias(hir_ty, generics) => {
                 *cx.current_type_aliases.entry(def_id).or_insert(0) += 1;
                 let rustdoc_ty = clean_ty(hir_ty, cx);
-                let ty = clean_middle_ty(
+                let type_ = clean_middle_ty(
                     ty::Binder::dummy(hir_ty_to_ty(cx.tcx, hir_ty)),
                     cx,
                     None,
@@ -2630,7 +2774,16 @@ fn clean_maybe_renamed_item<'tcx>(
                         cx.current_type_aliases.remove(&def_id);
                     }
                 }
-                TypedefItem(Box::new(Typedef { type_: rustdoc_ty, generics, item_type: Some(ty) }))
+
+                let ty = cx.tcx.type_of(def_id).instantiate_identity();
+                let inner_type = clean_ty_alias_inner_type(ty, cx);
+
+                TypeAliasItem(Box::new(TypeAlias {
+                    generics,
+                    inner_type,
+                    type_: rustdoc_ty,
+                    item_type: Some(type_),
+                }))
             }
             ItemKind::Enum(ref def, generics) => EnumItem(Enum {
                 variants: def.variants.iter().map(|v| clean_variant(v, cx)).collect(),
@@ -2722,7 +2875,7 @@ fn clean_impl<'tcx>(
     let for_ = clean_ty(impl_.self_ty, cx);
     let type_alias =
         for_.def_id(&cx.cache).and_then(|alias_def_id: DefId| match tcx.def_kind(alias_def_id) {
-            DefKind::TyAlias { .. } => Some(clean_middle_ty(
+            DefKind::TyAlias => Some(clean_middle_ty(
                 ty::Binder::dummy(tcx.type_of(def_id).instantiate_identity()),
                 cx,
                 Some(def_id.to_def_id()),
@@ -2945,7 +3098,7 @@ fn clean_maybe_renamed_foreign_item<'tcx>(
                     // NOTE: generics must be cleaned before args
                     let generics = clean_generics(generics, cx);
                     let args = clean_args_from_types_and_names(cx, decl.inputs, names);
-                    let decl = clean_fn_decl_with_args(cx, decl, args);
+                    let decl = clean_fn_decl_with_args(cx, decl, None, args);
                     (generics, decl)
                 });
                 ForeignFunctionItem(Box::new(Function { decl, generics }))

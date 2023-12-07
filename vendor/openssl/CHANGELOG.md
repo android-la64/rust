@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [v0.10.57] - 2023-08-27
+
+### Added
+* Added `X509VerifyParam::set_email`
+* `Cipher::chacha20_poly1305` is now available on LibreSSL
+* Added `CipherCtx::copy`
+
+### Changed
+* Updated `bitflags` dependecy to the 2.x series
+
+## [v0.10.56] - 2023-08-06
+
+## Added
+
+* Added `BigNumRef::mod_sqrt`.
+* Added `PkeyCtxRef::set_signature_md` and `PkeyCtxRef::set_rsa_pss_saltlen`.
+* Added `PkeyCtxRef::verify_recover_init` and `PkeyCtxRef::verify_recover`.
+* Added `BigNumRef::is_even` and `BigNumRef::is_odd`.
+* Added `EcPointRef::to_hex_str` and `EcPoint::from_hex_str`.
+* Added support for AES key wrap and wrap pad.
+
 ## [v0.10.55] - 2023-06-20
 
 ### Fixed
@@ -776,7 +797,9 @@
 
 Look at the [release tags] for information about older releases.
 
-[Unreleased]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.55...master
+[Unreleased]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.57...master
+[v0.10.57]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.56...openssl-v0.10.57
+[v0.10.56]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.55...openssl-v0.10.56
 [v0.10.55]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.54...openssl-v0.10.55
 [v0.10.54]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.53...openssl-v0.10.54
 [v0.10.53]: https://github.com/sfackler/rust-openssl/compare/openssl-v0.10.52...openssl-v0.10.53

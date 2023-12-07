@@ -13,7 +13,7 @@ use rustc_index::IndexSlice;
 use rustc_infer::infer::LateBoundRegionConversionTime;
 use rustc_middle::mir::tcx::PlaceTy;
 use rustc_middle::mir::{
-    AggregateKind, CallSource, Constant, FakeReadCause, Local, LocalInfo, LocalKind, Location,
+    AggregateKind, CallSource, ConstOperand, FakeReadCause, Local, LocalInfo, LocalKind, Location,
     Operand, Place, PlaceRef, ProjectionElem, Rvalue, Statement, StatementKind, Terminator,
     TerminatorKind,
 };
@@ -101,12 +101,12 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         let terminator = self.body[location.block].terminator();
         debug!("add_moved_or_invoked_closure_note: terminator={:?}", terminator);
         if let TerminatorKind::Call {
-            func: Operand::Constant(box Constant { literal, .. }),
+            func: Operand::Constant(box ConstOperand { const_, .. }),
             args,
             ..
         } = &terminator.kind
         {
-            if let ty::FnDef(id, _) = *literal.ty().kind() {
+            if let ty::FnDef(id, _) = *const_.ty().kind() {
                 debug!("add_moved_or_invoked_closure_note: id={:?}", id);
                 if Some(self.infcx.tcx.parent(id)) == self.infcx.tcx.lang_items().fn_once_trait() {
                     let closure = match args.first() {
@@ -242,6 +242,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 ProjectionElem::Downcast(..) if opt.including_downcast => return None,
                 ProjectionElem::Downcast(..) => (),
                 ProjectionElem::OpaqueCast(..) => (),
+                ProjectionElem::Subtype(..) => (),
                 ProjectionElem::Field(field, _ty) => {
                     // FIXME(project-rfc_2229#36): print capture precisely here.
                     if let Some(field) = self.is_upvar_field_projection(PlaceRef {
@@ -322,7 +323,9 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     PlaceRef { local, projection: proj_base }.ty(self.body, self.infcx.tcx)
                 }
                 ProjectionElem::Downcast(..) => place.ty(self.body, self.infcx.tcx),
-                ProjectionElem::OpaqueCast(ty) => PlaceTy::from_ty(*ty),
+                ProjectionElem::Subtype(ty) | ProjectionElem::OpaqueCast(ty) => {
+                    PlaceTy::from_ty(*ty)
+                }
                 ProjectionElem::Field(_, field_type) => PlaceTy::from_ty(*field_type),
             },
         };
@@ -628,7 +631,7 @@ impl UseSpans<'_> {
                 err.subdiagnostic(match kind {
                     Some(kd) => match kd {
                         rustc_middle::mir::BorrowKind::Shared
-                        | rustc_middle::mir::BorrowKind::Shallow => {
+                        | rustc_middle::mir::BorrowKind::Fake => {
                             CaptureVarKind::Immut { kind_span: capture_kind_span }
                         }
 

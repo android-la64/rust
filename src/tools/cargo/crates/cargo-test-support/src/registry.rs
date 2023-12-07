@@ -549,7 +549,9 @@ pub struct Dependency {
     name: String,
     vers: String,
     kind: String,
-    artifact: Option<(String, Option<String>)>,
+    artifact: Option<String>,
+    bindep_target: Option<String>,
+    lib: bool,
     target: Option<String>,
     features: Vec<String>,
     registry: Option<String>,
@@ -779,6 +781,7 @@ impl HttpServer {
             let buf = buf.get_mut();
             write!(buf, "HTTP/1.1 {}\r\n", response.code).unwrap();
             write!(buf, "Content-Length: {}\r\n", response.body.len()).unwrap();
+            write!(buf, "Connection: close\r\n").unwrap();
             for header in response.headers {
                 write!(buf, "{}\r\n", header).unwrap();
             }
@@ -788,7 +791,7 @@ impl HttpServer {
         }
     }
 
-    fn check_authorized(&self, req: &Request, mutation: Option<Mutation>) -> bool {
+    fn check_authorized(&self, req: &Request, mutation: Option<Mutation<'_>>) -> bool {
         let (private_key, private_key_subject) = if mutation.is_some() || self.auth_required {
             match &self.token {
                 Token::Plaintext(token) => return Some(token) == req.authorization.as_ref(),
@@ -830,7 +833,8 @@ impl HttpServer {
             url: &'a str,
             kip: &'a str,
         }
-        let footer: Footer = t!(serde_json::from_slice(untrusted_token.untrusted_footer()).ok());
+        let footer: Footer<'_> =
+            t!(serde_json::from_slice(untrusted_token.untrusted_footer()).ok());
         if footer.kip != paserk_pub_key_id {
             return false;
         }
@@ -844,7 +848,6 @@ impl HttpServer {
         if footer.url != "https://github.com/rust-lang/crates.io-index"
             && footer.url != &format!("sparse+http://{}/index/", self.addr.to_string())
         {
-            dbg!(footer.url);
             return false;
         }
 
@@ -860,20 +863,18 @@ impl HttpServer {
             _challenge: Option<&'a str>, // todo: PASETO with challenges
             v: Option<u8>,
         }
-        let message: Message = t!(serde_json::from_str(trusted_token.payload()).ok());
+        let message: Message<'_> = t!(serde_json::from_str(trusted_token.payload()).ok());
         let token_time = t!(OffsetDateTime::parse(message.iat, &Rfc3339).ok());
         let now = OffsetDateTime::now_utc();
         if (now - token_time) > Duration::MINUTE {
             return false;
         }
         if private_key_subject.as_deref() != message.sub {
-            dbg!(message.sub);
             return false;
         }
         // - If the claim v is set, that it has the value of 1.
         if let Some(v) = message.v {
             if v != 1 {
-                dbg!(message.v);
                 return false;
             }
         }
@@ -883,22 +884,18 @@ impl HttpServer {
         if let Some(mutation) = mutation {
             //  - That the operation matches the mutation field and is one of publish, yank, or unyank.
             if message.mutation != Some(mutation.mutation) {
-                dbg!(message.mutation);
                 return false;
             }
             //  - That the package, and version match the request.
             if message.name != mutation.name {
-                dbg!(message.name);
                 return false;
             }
             if message.vers != mutation.vers {
-                dbg!(message.vers);
                 return false;
             }
             //  - If the mutation is publish, that the version has not already been published, and that the hash matches the request.
             if mutation.mutation == "publish" {
                 if message.cksum != mutation.cksum {
-                    dbg!(message.cksum);
                     return false;
                 }
             }
@@ -1409,13 +1406,20 @@ impl Package {
                     (true, Some("alternative")) => None,
                     _ => panic!("registry_dep currently only supports `alternative`"),
                 };
+                let artifact = if let Some(artifact) = &dep.artifact {
+                    serde_json::json!([artifact])
+                } else {
+                    serde_json::json!(null)
+                };
                 serde_json::json!({
                     "name": dep.name,
                     "req": dep.vers,
                     "features": dep.features,
                     "default_features": true,
                     "target": dep.target,
-                    "artifact": dep.artifact,
+                    "artifact": artifact,
+                    "bindep_target": dep.bindep_target,
+                    "lib": dep.lib,
                     "optional": dep.optional,
                     "kind": dep.kind,
                     "registry": registry_url,
@@ -1536,11 +1540,14 @@ impl Package {
             "#,
                 target, kind, dep.name, dep.vers
             ));
-            if let Some((artifact, target)) = &dep.artifact {
+            if let Some(artifact) = &dep.artifact {
                 manifest.push_str(&format!("artifact = \"{}\"\n", artifact));
-                if let Some(target) = &target {
-                    manifest.push_str(&format!("target = \"{}\"\n", target))
-                }
+            }
+            if let Some(target) = &dep.bindep_target {
+                manifest.push_str(&format!("target = \"{}\"\n", target));
+            }
+            if dep.lib {
+                manifest.push_str("lib = true\n");
             }
             if let Some(registry) = &dep.registry {
                 assert_eq!(registry, "alternative");
@@ -1617,6 +1624,8 @@ impl Dependency {
             vers: vers.to_string(),
             kind: "normal".to_string(),
             artifact: None,
+            bindep_target: None,
+            lib: false,
             target: None,
             features: Vec::new(),
             package: None,
@@ -1646,7 +1655,8 @@ impl Dependency {
     /// Change the artifact to be of the given kind, like "bin", or "staticlib",
     /// along with a specific target triple if provided.
     pub fn artifact(&mut self, kind: &str, target: Option<String>) -> &mut Self {
-        self.artifact = Some((kind.to_string(), target));
+        self.artifact = Some(kind.to_string());
+        self.bindep_target = target;
         self
     }
 

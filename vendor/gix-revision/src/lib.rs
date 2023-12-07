@@ -9,11 +9,12 @@
 #![deny(missing_docs, rust_2018_idioms, unsafe_code)]
 
 ///
+#[cfg(feature = "describe")]
 pub mod describe;
+#[cfg(feature = "describe")]
 pub use describe::function::describe;
 
 ///
 pub mod spec;
-pub use spec::types::Spec;
-
 pub use gix_revwalk::{graph, Graph, PriorityQueue};
+pub use spec::types::Spec;

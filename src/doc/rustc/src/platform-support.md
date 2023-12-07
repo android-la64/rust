@@ -36,7 +36,7 @@ target | notes
 `i686-pc-windows-gnu` | 32-bit MinGW (Windows 7+) [^windows-support]
 `i686-pc-windows-msvc` | 32-bit MSVC (Windows 7+) [^windows-support]
 `i686-unknown-linux-gnu` | 32-bit Linux (kernel 3.2+, glibc 2.17+)
-`x86_64-apple-darwin` | 64-bit macOS (10.7+, Lion+)
+`x86_64-apple-darwin` | 64-bit macOS (10.12+, Sierra+)
 `x86_64-pc-windows-gnu` | 64-bit MinGW (Windows 7+) [^windows-support]
 `x86_64-pc-windows-msvc` | 64-bit MSVC (Windows 7+) [^windows-support]
 `x86_64-unknown-linux-gnu` | 64-bit Linux (kernel 3.2+, glibc 2.17+)
@@ -63,8 +63,9 @@ Tools](#tier-1-with-host-tools).
 ## Tier 2 with Host Tools
 
 Tier 2 targets can be thought of as "guaranteed to build". The Rust project
-builds official binary releases for each tier 2 target, and automated builds
-ensure that each tier 2 target builds after each change. Automated tests are
+builds official binary releases of the standard library (or, in some cases,
+only the `core` library) for each tier 2 target, and automated builds
+ensure that each tier 2 target can be used as build target after each change. Automated tests are
 not always run so it's not guaranteed to produce a working build, but tier 2
 targets often work to quite a good degree and patches are always welcome!
 
@@ -103,11 +104,12 @@ target | notes
 `x86_64-unknown-linux-musl` | 64-bit Linux with MUSL
 [`x86_64-unknown-netbsd`](platform-support/netbsd.md) | NetBSD/amd64
 
-## Tier 2
+## Tier 2 without Host Tools
 
 Tier 2 targets can be thought of as "guaranteed to build". The Rust project
-builds official binary releases for each tier 2 target, and automated builds
-ensure that each tier 2 target builds after each change. Automated tests are
+builds official binary releases of the standard library (or, in some cases,
+only the `core` library) for each tier 2 target, and automated builds
+ensure that each tier 2 target can be used as build target after each change. Automated tests are
 not always run so it's not guaranteed to produce a working build, but tier 2
 targets often work to quite a good degree and patches are always welcome! For
 the full requirements, see [Tier 2 target
@@ -155,6 +157,8 @@ target | std | notes
 `i686-unknown-freebsd` | ✓ | 32-bit FreeBSD
 `i686-unknown-linux-musl` | ✓ | 32-bit Linux with MUSL
 [`i686-unknown-uefi`](platform-support/unknown-uefi.md) | * | 32-bit UEFI
+[`loongarch64-unknown-none`](platform-support/loongarch-none.md) | * |  | LoongArch64 Bare-metal (LP64D ABI)
+[`loongarch64-unknown-none-softfloat`](platform-support/loongarch-none.md) | * |  | LoongArch64 Bare-metal (LP64S ABI)
 `mips-unknown-linux-musl` | ✓ | MIPS Linux with MUSL
 `mips64-unknown-linux-muslabi64` | ✓ | MIPS64 Linux, n64 ABI, MUSL
 `mips64el-unknown-linux-muslabi64` | ✓ | MIPS64 (LE) Linux, n64 ABI, MUSL
@@ -176,11 +180,10 @@ target | std | notes
 `thumbv8m.base-none-eabi` | * | Bare ARMv8-M Baseline
 `thumbv8m.main-none-eabi` | * | Bare ARMv8-M Mainline
 `thumbv8m.main-none-eabihf` | * | Bare ARMv8-M Mainline, hardfloat
-[`sparc-unknown-none-elf`](./platform-support/sparc-unknown-none-elf.md) | * | Bare 32-bit SPARC V7+
 `wasm32-unknown-emscripten` | ✓ | WebAssembly via Emscripten
 `wasm32-unknown-unknown` | ✓ | WebAssembly
 `wasm32-wasi` | ✓ | WebAssembly with WASI
-[`wasm32-wasi-preview1-threads`](platform-support/wasm32-wasi-preview1-threads.md) | ✓ | WebAssembly with WASI Preview 1 and threads
+[`wasm32-wasi-preview1-threads`](platform-support/wasm32-wasi-preview1-threads.md) | ✓ |  | WebAssembly with WASI Preview 1 and threads
 `x86_64-apple-ios` | ✓ | 64-bit x86 iOS
 [`x86_64-fortanix-unknown-sgx`](platform-support/x86_64-fortanix-unknown-sgx.md) | ✓ | [Fortanix ABI] for 64-bit Intel SGX
 `x86_64-fuchsia` | ✓ | Alias for `x86_64-unknown-fuchsia`
@@ -244,7 +247,6 @@ target | std | host | notes
 `armv6-unknown-freebsd` | ✓ | ✓ | ARMv6 FreeBSD
 [`armv6-unknown-netbsd-eabihf`](platform-support/netbsd.md) | ✓ | ✓ | ARMv6 NetBSD w/hard-float
 [`armv6k-nintendo-3ds`](platform-support/armv6k-nintendo-3ds.md) | ? |  | ARMv6K Nintendo 3DS, Horizon (Requires devkitARM toolchain)
-`armv7-apple-ios` | ✓ |  | ARMv7-A Cortex-A8 iOS
 [`armv7-sony-vita-newlibeabihf`](platform-support/armv7-sony-vita-newlibeabihf.md) | ? |  | ARMv7-A Cortex-A9 Sony PlayStation Vita (requires VITASDK toolchain)
 [`armv7-unknown-linux-ohos`](platform-support/openharmony.md) | ✓ |  | ARMv7-A OpenHarmony |
 [`armv7-unknown-linux-uclibceabi`](platform-support/armv7-unknown-linux-uclibceabi.md) | ✓ | ✓ | ARMv7-A Linux with uClibc, softfloat
@@ -264,16 +266,16 @@ target | std | host | notes
 `hexagon-unknown-linux-musl` | ? |  |
 `i386-apple-ios` | ✓ |  | 32-bit x86 iOS
 [`i586-pc-nto-qnx700`](platform-support/nto-qnx.md) | * |  | 32-bit x86 QNX Neutrino 7.0 RTOS |
-`i686-apple-darwin` | ✓ | ✓ | 32-bit macOS (10.7+, Lion+)
+`i686-apple-darwin` | ✓ | ✓ | 32-bit macOS (10.12+, Sierra+)
 `i686-pc-windows-msvc` | * |  | 32-bit Windows XP support
+[`i686-pc-windows-gnullvm`](platform-support/pc-windows-gnullvm.md) | ✓ | ✓ |
 `i686-unknown-haiku` | ✓ | ✓ | 32-bit Haiku
+[`i686-unknown-hurd-gnu`](platform-support/hurd.md) | ✓ | ✓ | 32-bit GNU/Hurd
 [`i686-unknown-netbsd`](platform-support/netbsd.md) | ✓ | ✓ | NetBSD/i386 with SSE2
 [`i686-unknown-openbsd`](platform-support/openbsd.md) | ✓ | ✓ | 32-bit OpenBSD
 `i686-uwp-windows-gnu` | ? |  |
 `i686-uwp-windows-msvc` | ? |  |
 `i686-wrs-vxworks` | ? |  |
-[`loongarch64-unknown-none`](platform-support/loongarch-none.md) | * | LoongArch64 Bare-metal (LP64D ABI)
-[`loongarch64-unknown-none-softfloat`](platform-support/loongarch-none.md) | * | LoongArch64 Bare-metal (LP64S ABI)
 [`m68k-unknown-linux-gnu`](platform-support/m68k-unknown-linux-gnu.md) | ? |  | Motorola 680x0 Linux
 `mips-unknown-linux-uclibc` | ✓ |  | MIPS Linux with uClibc
 [`mips64-openwrt-linux-musl`](platform-support/mips64-openwrt-linux-musl.md) | ? |  | MIPS64 for OpenWrt Linux MUSL
@@ -315,6 +317,7 @@ target | std | host | notes
 [`riscv64-linux-android`](platform-support/android.md) |   |   | RISC-V 64-bit Android
 `s390x-unknown-linux-musl` |  |  | S390x Linux (kernel 3.2, MUSL)
 `sparc-unknown-linux-gnu` | ✓ |  | 32-bit SPARC Linux
+[`sparc-unknown-none-elf`](./platform-support/sparc-unknown-none-elf.md) | * |  | Bare 32-bit SPARC V7+
 [`sparc64-unknown-netbsd`](platform-support/netbsd.md) | ✓ | ✓ | NetBSD/sparc64
 [`sparc64-unknown-openbsd`](platform-support/openbsd.md) | ✓ | ✓ | OpenBSD/sparc64
 `thumbv4t-none-eabi` | * |  | Thumb-mode Bare ARMv4T

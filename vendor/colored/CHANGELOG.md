@@ -1,3 +1,18 @@
+# Unreleased
+
+# 2.0.4
+- Switch from `winapi` to `windows-sys`.
+
+# 2.0.3
+- Document crate MSRV of `1.63`.
+
+# 2.0.2
+- Fix typo in `src/control.rs`.
+- Replace `atty` dependency with `is-terminal`.
+
+# 2.0.1 (July 3, 2023)
+- Add edition for future compatibility.
+- Implement custom colors that can be stored in a variable.
 
 # 2.0.0 (July 14, 2020)
 - Add support for true colours.

@@ -698,6 +698,7 @@ where
 #[inline(always)]
 #[must_use]
 #[unstable(feature = "ptr_from_ref", issue = "106116")]
+#[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
 #[rustc_diagnostic_item = "ptr_from_ref"]
 pub const fn from_ref<T: ?Sized>(r: &T) -> *const T {
     r
@@ -710,7 +711,7 @@ pub const fn from_ref<T: ?Sized>(r: &T) -> *const T {
 #[inline(always)]
 #[must_use]
 #[unstable(feature = "ptr_from_ref", issue = "106116")]
-#[rustc_diagnostic_item = "ptr_from_mut"]
+#[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
 pub const fn from_mut<T: ?Sized>(r: &mut T) -> *mut T {
     r
 }
@@ -795,7 +796,9 @@ pub const fn slice_from_raw_parts_mut<T>(data: *mut T, len: usize) -> *mut [T] {
 ///
 /// Behavior is undefined if any of the following conditions are violated:
 ///
-/// * Both `x` and `y` must be [valid] for both reads and writes.
+/// * Both `x` and `y` must be [valid] for both reads and writes. They must remain valid even when the
+///   other pointer is written. (This means if the memory ranges overlap, the two pointers must not
+///   be subject to aliasing restrictions relative to each other.)
 ///
 /// * Both `x` and `y` must be properly aligned.
 ///
@@ -1357,6 +1360,7 @@ pub const unsafe fn read_unaligned<T>(src: *const T) -> T {
 #[inline]
 #[stable(feature = "rust1", since = "1.0.0")]
 #[rustc_const_unstable(feature = "const_ptr_write", issue = "86302")]
+#[rustc_diagnostic_item = "ptr_write"]
 #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
 pub const unsafe fn write<T>(dst: *mut T, src: T) {
     // Semantically, it would be fine for this to be implemented as a
@@ -1459,6 +1463,7 @@ pub const unsafe fn write<T>(dst: *mut T, src: T) {
 #[inline]
 #[stable(feature = "ptr_unaligned", since = "1.17.0")]
 #[rustc_const_unstable(feature = "const_ptr_write", issue = "86302")]
+#[rustc_diagnostic_item = "ptr_write_unaligned"]
 #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
 pub const unsafe fn write_unaligned<T>(dst: *mut T, src: T) {
     // SAFETY: the caller must guarantee that `dst` is valid for writes.
@@ -1607,6 +1612,7 @@ pub unsafe fn read_volatile<T>(src: *const T) -> T {
 /// ```
 #[inline]
 #[stable(feature = "volatile", since = "1.9.0")]
+#[rustc_diagnostic_item = "ptr_write_volatile"]
 #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
 pub unsafe fn write_volatile<T>(dst: *mut T, src: T) {
     // SAFETY: the caller must uphold the safety contract for `volatile_store`.

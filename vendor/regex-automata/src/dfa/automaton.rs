@@ -1,9 +1,12 @@
+#[cfg(feature = "alloc")]
+use crate::util::search::PatternSet;
 use crate::{
     dfa::search,
     util::{
-        id::{PatternID, StateID},
-        matchtypes::{HalfMatch, MatchError},
-        prefilter,
+        empty,
+        prefilter::Prefilter,
+        primitives::{PatternID, StateID},
+        search::{Anchored, HalfMatch, Input, MatchError},
     },
 };
 
@@ -27,8 +30,8 @@ use crate::{
 /// * A DFA can search for multiple patterns simultaneously. This
 /// means extra information is returned when a match occurs. Namely,
 /// a match is not just an offset, but an offset plus a pattern ID.
-/// [`Automaton::pattern_count`] returns the number of patterns compiled into
-/// the DFA, [`Automaton::match_count`] returns the total number of patterns
+/// [`Automaton::pattern_len`] returns the number of patterns compiled into
+/// the DFA, [`Automaton::match_len`] returns the total number of patterns
 /// that match in a particular state and [`Automaton::match_pattern`] permits
 /// iterating over the patterns that match in a particular state.
 /// * A DFA can have multiple start states, and the choice of which start
@@ -76,12 +79,10 @@ use crate::{
 ///     the state can be queried via the [`Automaton::accelerator`] method.
 ///
 /// There are a number of provided methods on this trait that implement
-/// efficient searching (for forwards and backwards) with a DFA using all of
-/// the above features of this trait. In particular, given the complexity of
-/// all these features, implementing a search routine in this trait is not
-/// straight forward. If you need to do this for specialized reasons, then
-/// it's recommended to look at the source of this crate. It is intentionally
-/// well commented to help with this. With that said, it is possible to
+/// efficient searching (for forwards and backwards) with a DFA using
+/// all of the above features of this trait. In particular, given the
+/// complexity of all these features, implementing a search routine in
+/// this trait can be a little subtle. With that said, it is possible to
 /// somewhat simplify the search routine. For example, handling accelerated
 /// states is strictly optional, since it is always correct to assume that
 /// `Automaton::is_accel_state` returns false. However, one complex part of
@@ -90,13 +91,19 @@ use crate::{
 ///
 /// # Safety
 ///
-/// This trait is unsafe to implement because DFA searching may rely on the
-/// correctness of the implementation for memory safety. For example, DFA
-/// searching may use explicit bounds check elision, which will in turn rely
-/// on the correctness of every function that returns a state ID.
+/// This trait is not safe to implement so that code may rely on the
+/// correctness of implementations of this trait to avoid undefined behavior.
+/// The primary correctness guarantees are:
 ///
-/// When implementing this trait, one must uphold the documented correctness
-/// guarantees. Otherwise, undefined behavior may occur.
+/// * `Automaton::start_state` always returns a valid state ID or an error or
+/// panics.
+/// * `Automaton::next_state`, when given a valid state ID, always returns
+/// a valid state ID for all values of `anchored` and `byte`, or otherwise
+/// panics.
+///
+/// In general, the rest of the methods on `Automaton` need to uphold their
+/// contracts as well. For example, `Automaton::is_dead` should only returns
+/// true if the given state ID is actually a dead state.
 pub unsafe trait Automaton {
     /// Transitions from the current state to the next state, given the next
     /// byte of input.
@@ -118,16 +125,14 @@ pub unsafe trait Automaton {
     /// by using the `next_state` method.
     ///
     /// ```
-    /// use regex_automata::dfa::{Automaton, dense};
+    /// use regex_automata::{dfa::{Automaton, dense}, Input};
     ///
     /// let dfa = dense::DFA::new(r"[a-z]+r")?;
     /// let haystack = "bar".as_bytes();
     ///
     /// // The start state is determined by inspecting the position and the
     /// // initial bytes of the haystack.
-    /// let mut state = dfa.start_state_forward(
-    ///     None, haystack, 0, haystack.len(),
-    /// );
+    /// let mut state = dfa.start_state_forward(&Input::new(haystack))?;
     /// // Walk all the bytes in the haystack.
     /// for &b in haystack {
     ///     state = dfa.next_state(state, b);
@@ -195,16 +200,17 @@ pub unsafe trait Automaton {
     /// and then finishing the search with the final EOI transition.
     ///
     /// ```
-    /// use regex_automata::dfa::{Automaton, dense};
+    /// use regex_automata::{dfa::{Automaton, dense}, Input};
     ///
     /// let dfa = dense::DFA::new(r"[a-z]+r")?;
     /// let haystack = "bar".as_bytes();
     ///
     /// // The start state is determined by inspecting the position and the
     /// // initial bytes of the haystack.
-    /// let mut state = dfa.start_state_forward(
-    ///     None, haystack, 0, haystack.len(),
-    /// );
+    /// //
+    /// // The unwrap is OK because we aren't requesting a start state for a
+    /// // specific pattern.
+    /// let mut state = dfa.start_state_forward(&Input::new(haystack))?;
     /// // Walk all the bytes in the haystack.
     /// for &b in haystack {
     ///     state = dfa.next_state(state, b);
@@ -220,78 +226,118 @@ pub unsafe trait Automaton {
     /// ```
     fn next_eoi_state(&self, current: StateID) -> StateID;
 
-    /// Return the ID of the start state for this DFA when executing a forward
-    /// search.
+    /// Return the ID of the start state for this lazy DFA when executing a
+    /// forward search.
     ///
     /// Unlike typical DFA implementations, the start state for DFAs in this
     /// crate is dependent on a few different factors:
     ///
-    /// * The pattern ID, if present. When the underlying DFA has been compiled
-    /// with multiple patterns _and_ the DFA has been configured to compile
-    /// an anchored start state for each pattern, then a pattern ID may be
-    /// specified to execute an anchored search for that specific pattern.
-    /// If `pattern_id` is invalid or if the DFA doesn't have start states
-    /// compiled for each pattern, then implementations must panic. DFAs in
-    /// this crate can be configured to compile start states for each pattern
-    /// via
-    /// [`dense::Config::starts_for_each_pattern`](crate::dfa::dense::Config::starts_for_each_pattern).
-    /// * When `start > 0`, the byte at index `start - 1` may influence the
-    /// start state if the regex uses `^` or `\b`.
-    /// * Similarly, when `start == 0`, it may influence the start state when
-    /// the regex uses `^` or `\A`.
-    /// * Currently, `end` is unused.
+    /// * The [`Anchored`] mode of the search. Unanchored, anchored and
+    /// anchored searches for a specific [`PatternID`] all use different start
+    /// states.
+    /// * The position at which the search begins, via [`Input::start`]. This
+    /// and the byte immediately preceding the start of the search (if one
+    /// exists) influence which look-behind assertions are true at the start
+    /// of the search. This in turn influences which start state is selected.
     /// * Whether the search is a forward or reverse search. This routine can
     /// only be used for forward searches.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Implementations must panic if `start..end` is not a valid sub-slice of
-    /// `bytes`. Implementations must also panic if `pattern_id` is non-None
-    /// and does not refer to a valid pattern, or if the DFA was not compiled
-    /// with anchored start states for each pattern.
+    /// This may return a [`MatchError`] if the search needs to give up
+    /// when determining the start state (for example, if it sees a "quit"
+    /// byte). This can also return an error if the given `Input` contains an
+    /// unsupported [`Anchored`] configuration.
     fn start_state_forward(
         &self,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> StateID;
+        input: &Input<'_>,
+    ) -> Result<StateID, MatchError>;
 
-    /// Return the ID of the start state for this DFA when executing a reverse
-    /// search.
+    /// Return the ID of the start state for this lazy DFA when executing a
+    /// reverse search.
     ///
     /// Unlike typical DFA implementations, the start state for DFAs in this
     /// crate is dependent on a few different factors:
     ///
-    /// * The pattern ID, if present. When the underlying DFA has been compiled
-    /// with multiple patterns _and_ the DFA has been configured to compile an
-    /// anchored start state for each pattern, then a pattern ID may be
-    /// specified to execute an anchored search for that specific pattern. If
-    /// `pattern_id` is invalid or if the DFA doesn't have start states compiled
-    /// for each pattern, then implementations must panic. DFAs in this crate
-    /// can be configured to compile start states for each pattern via
-    /// [`dense::Config::starts_for_each_pattern`](crate::dfa::dense::Config::starts_for_each_pattern).
-    /// * When `end < bytes.len()`, the byte at index `end` may influence the
-    /// start state if the regex uses `$` or `\b`.
-    /// * Similarly, when `end == bytes.len()`, it may influence the start
-    /// state when the regex uses `$` or `\z`.
-    /// * Currently, `start` is unused.
+    /// * The [`Anchored`] mode of the search. Unanchored, anchored and
+    /// anchored searches for a specific [`PatternID`] all use different start
+    /// states.
+    /// * The position at which the search begins, via [`Input::start`]. This
+    /// and the byte immediately preceding the start of the search (if one
+    /// exists) influence which look-behind assertions are true at the start
+    /// of the search. This in turn influences which start state is selected.
     /// * Whether the search is a forward or reverse search. This routine can
     /// only be used for reverse searches.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Implementations must panic if `start..end` is not a valid sub-slice of
-    /// `bytes`. Implementations must also panic if `pattern_id` is non-None
-    /// and does not refer to a valid pattern, or if the DFA was not compiled
-    /// with anchored start states for each pattern.
+    /// This may return a [`MatchError`] if the search needs to give up
+    /// when determining the start state (for example, if it sees a "quit"
+    /// byte). This can also return an error if the given `Input` contains an
+    /// unsupported [`Anchored`] configuration.
     fn start_state_reverse(
         &self,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> StateID;
+        input: &Input<'_>,
+    ) -> Result<StateID, MatchError>;
+
+    /// If this DFA has a universal starting state for the given anchor mode
+    /// and the DFA supports universal starting states, then this returns that
+    /// state's identifier.
+    ///
+    /// A DFA is said to have a universal starting state when the starting
+    /// state is invariant with respect to the haystack. Usually, the starting
+    /// state is chosen depending on the bytes immediately surrounding the
+    /// starting position of a search. However, the starting state only differs
+    /// when one or more of the patterns in the DFA have look-around assertions
+    /// in its prefix.
+    ///
+    /// Stated differently, if none of the patterns in a DFA have look-around
+    /// assertions in their prefix, then the DFA has a universal starting state
+    /// and _may_ be returned by this method.
+    ///
+    /// It is always correct for implementations to return `None`, and indeed,
+    /// this is what the default implementation does. When this returns `None`,
+    /// callers must use either `start_state_forward` or `start_state_reverse`
+    /// to get the starting state.
+    ///
+    /// # Use case
+    ///
+    /// There are a few reasons why one might want to use this:
+    ///
+    /// * If you know your regex patterns have no look-around assertions in
+    /// their prefix, then calling this routine is likely cheaper and perhaps
+    /// more semantically meaningful.
+    /// * When implementing prefilter support in a DFA regex implementation,
+    /// it is necessary to re-compute the start state after a candidate
+    /// is returned from the prefilter. However, this is only needed when
+    /// there isn't a universal start state. When one exists, one can avoid
+    /// re-computing the start state.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use regex_automata::{
+    ///     dfa::{Automaton, dense::DFA},
+    ///     Anchored,
+    /// };
+    ///
+    /// // There are no look-around assertions in the prefixes of any of the
+    /// // patterns, so we get a universal start state.
+    /// let dfa = DFA::new_many(&["[0-9]+", "[a-z]+$", "[A-Z]+"])?;
+    /// assert!(dfa.universal_start_state(Anchored::No).is_some());
+    /// assert!(dfa.universal_start_state(Anchored::Yes).is_some());
+    ///
+    /// // One of the patterns has a look-around assertion in its prefix,
+    /// // so this means there is no longer a universal start state.
+    /// let dfa = DFA::new_many(&["[0-9]+", "^[a-z]+$", "[A-Z]+"])?;
+    /// assert!(!dfa.universal_start_state(Anchored::No).is_some());
+    /// assert!(!dfa.universal_start_state(Anchored::Yes).is_some());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    #[inline]
+    fn universal_start_state(&self, _mode: Anchored) -> Option<StateID> {
+        None
+    }
 
     /// Returns true if and only if the given identifier corresponds to a
     /// "special" state. A special state is one or more of the following:
@@ -322,10 +368,10 @@ pub unsafe trait Automaton {
     /// ```
     /// use regex_automata::{
     ///     dfa::{Automaton, dense},
-    ///     HalfMatch, MatchError, PatternID,
+    ///     HalfMatch, MatchError, Input,
     /// };
     ///
-    /// fn find_leftmost_first<A: Automaton>(
+    /// fn find<A: Automaton>(
     ///     dfa: &A,
     ///     haystack: &[u8],
     /// ) -> Result<Option<HalfMatch>, MatchError> {
@@ -333,9 +379,7 @@ pub unsafe trait Automaton {
     ///     // initial bytes of the haystack. Note that start states can never
     ///     // be match states (since DFAs in this crate delay matches by 1
     ///     // byte), so we don't need to check if the start state is a match.
-    ///     let mut state = dfa.start_state_forward(
-    ///         None, haystack, 0, haystack.len(),
-    ///     );
+    ///     let mut state = dfa.start_state_forward(&Input::new(haystack))?;
     ///     let mut last_match = None;
     ///     // Walk all the bytes in the haystack. We can quit early if we see
     ///     // a dead or a quit state. The former means the automaton will
@@ -358,7 +402,7 @@ pub unsafe trait Automaton {
     ///                 if last_match.is_some() {
     ///                     return Ok(last_match);
     ///                 }
-    ///                 return Err(MatchError::Quit { byte: b, offset: i });
+    ///                 return Err(MatchError::quit(b, i));
     ///             }
     ///             // Implementors may also want to check for start or accel
     ///             // states and handle them differently for performance
@@ -383,7 +427,7 @@ pub unsafe trait Automaton {
     /// // early. Greediness is built into the automaton.
     /// let dfa = dense::DFA::new(r"[a-z]+")?;
     /// let haystack = "123 foobar 4567".as_bytes();
-    /// let mat = find_leftmost_first(&dfa, haystack)?.unwrap();
+    /// let mat = find(&dfa, haystack)?.unwrap();
     /// assert_eq!(mat.pattern().as_usize(), 0);
     /// assert_eq!(mat.offset(), 10);
     ///
@@ -393,7 +437,7 @@ pub unsafe trait Automaton {
     /// // found until the final byte in the haystack.
     /// let dfa = dense::DFA::new(r"[0-9]{4}")?;
     /// let haystack = "123 foobar 4567".as_bytes();
-    /// let mat = find_leftmost_first(&dfa, haystack)?.unwrap();
+    /// let mat = find(&dfa, haystack)?.unwrap();
     /// assert_eq!(mat.pattern().as_usize(), 0);
     /// assert_eq!(mat.offset(), 15);
     ///
@@ -402,13 +446,13 @@ pub unsafe trait Automaton {
     /// // the appropriate pattern ID for us.
     /// let dfa = dense::DFA::new_many(&[r"[a-z]+", r"[0-9]+"])?;
     /// let haystack = "123 foobar 4567".as_bytes();
-    /// let mat = find_leftmost_first(&dfa, haystack)?.unwrap();
+    /// let mat = find(&dfa, haystack)?.unwrap();
     /// assert_eq!(mat.pattern().as_usize(), 1);
     /// assert_eq!(mat.offset(), 3);
-    /// let mat = find_leftmost_first(&dfa, &haystack[3..])?.unwrap();
+    /// let mat = find(&dfa, &haystack[3..])?.unwrap();
     /// assert_eq!(mat.pattern().as_usize(), 0);
     /// assert_eq!(mat.offset(), 7);
-    /// let mat = find_leftmost_first(&dfa, &haystack[10..])?.unwrap();
+    /// let mat = find(&dfa, &haystack[10..])?.unwrap();
     /// assert_eq!(mat.pattern().as_usize(), 1);
     /// assert_eq!(mat.offset(), 5);
     ///
@@ -458,13 +502,6 @@ pub unsafe trait Automaton {
     /// since state identifiers are pre-multiplied by the state machine's
     /// alphabet stride, and the alphabet stride varies between DFAs.)
     ///
-    /// By default, state machines created by this crate will never enter a
-    /// quit state. Since entering a quit state is the only way for a DFA
-    /// in this crate to fail at search time, it follows that the default
-    /// configuration can never produce a match error. Nevertheless, handling
-    /// quit states is necessary to correctly support all configurations in
-    /// this crate.
-    ///
     /// The typical way in which a quit state can occur is when heuristic
     /// support for Unicode word boundaries is enabled via the
     /// [`dense::Config::unicode_word_boundary`](crate::dfa::dense::Config::unicode_word_boundary)
@@ -474,9 +511,8 @@ pub unsafe trait Automaton {
     /// purpose of the quit state is to provide a way to execute a fast DFA
     /// in common cases while delegating to slower routines when the DFA quits.
     ///
-    /// The default search implementations provided by this crate will return
-    /// a [`MatchError::Quit`](crate::MatchError::Quit) error when a quit state
-    /// is entered.
+    /// The default search implementations provided by this crate will return a
+    /// [`MatchError::quit`] error when a quit state is entered.
     ///
     /// # Example
     ///
@@ -513,8 +549,10 @@ pub unsafe trait Automaton {
     /// method correctly.
     fn is_match_state(&self, id: StateID) -> bool;
 
-    /// Returns true if and only if the given identifier corresponds to a
-    /// start state. A start state is a state in which a DFA begins a search.
+    /// Returns true only if the given identifier corresponds to a start
+    /// state
+    ///
+    /// A start state is a state in which a DFA begins a search.
     /// All searches begin in a start state. Moreover, since all matches are
     /// delayed by one byte, a start state can never be a match state.
     ///
@@ -531,25 +569,38 @@ pub unsafe trait Automaton {
     /// begin with that prefix, then skipping ahead to occurrences of that
     /// prefix may be much faster than executing the DFA.
     ///
+    /// As mentioned in the documentation for
+    /// [`is_special_state`](Automaton::is_special_state) implementations
+    /// _may_ always return false, even if the given identifier is a start
+    /// state. This is because knowing whether a state is a start state or not
+    /// is not necessary for correctness and is only treated as a potential
+    /// performance optimization. (For example, the implementations of this
+    /// trait in this crate will only return true when the given identifier
+    /// corresponds to a start state and when [specialization of start
+    /// states](crate::dfa::dense::Config::specialize_start_states) was enabled
+    /// during DFA construction. If start state specialization is disabled
+    /// (which is the default), then this method will always return false.)
+    ///
     /// # Example
     ///
     /// This example shows how to implement your own search routine that does
     /// a prefix search whenever the search enters a start state.
     ///
-    /// Note that you do not need to implement your own search routine to
-    /// make use of prefilters like this. The search routines provided
-    /// by this crate already implement prefilter support via the
-    /// [`Prefilter`](crate::util::prefilter::Prefilter) trait. The various
-    /// `find_*_at` routines on this trait support the `Prefilter` trait
-    /// through [`Scanner`](crate::util::prefilter::Scanner)s. This example is
-    /// meant to show how you might deal with prefilters in a simplified case
-    /// if you are implementing your own search routine.
+    /// Note that you do not need to implement your own search routine
+    /// to make use of prefilters like this. The search routines
+    /// provided by this crate already implement prefilter support via
+    /// the [`Prefilter`](crate::util::prefilter::Prefilter) trait.
+    /// A prefilter can be added to your search configuration with
+    /// [`dense::Config::prefilter`](crate::dfa::dense::Config::prefilter) for
+    /// dense and sparse DFAs in this crate.
+    ///
+    /// This example is meant to show how you might deal with prefilters in a
+    /// simplified case if you are implementing your own search routine.
     ///
     /// ```
     /// use regex_automata::{
-    ///     MatchError, PatternID,
     ///     dfa::{Automaton, dense},
-    ///     HalfMatch,
+    ///     HalfMatch, MatchError, Input,
     /// };
     ///
     /// fn find_byte(slice: &[u8], at: usize, byte: u8) -> Option<usize> {
@@ -558,7 +609,7 @@ pub unsafe trait Automaton {
     ///     slice[at..].iter().position(|&b| b == byte).map(|i| at + i)
     /// }
     ///
-    /// fn find_leftmost_first<A: Automaton>(
+    /// fn find<A: Automaton>(
     ///     dfa: &A,
     ///     haystack: &[u8],
     ///     prefix_byte: Option<u8>,
@@ -566,9 +617,7 @@ pub unsafe trait Automaton {
     ///     // See the Automaton::is_special_state example for similar code
     ///     // with more comments.
     ///
-    ///     let mut state = dfa.start_state_forward(
-    ///         None, haystack, 0, haystack.len(),
-    ///     );
+    ///     let mut state = dfa.start_state_forward(&Input::new(haystack))?;
     ///     let mut last_match = None;
     ///     let mut pos = 0;
     ///     while pos < haystack.len() {
@@ -590,9 +639,7 @@ pub unsafe trait Automaton {
     ///                 if last_match.is_some() {
     ///                     return Ok(last_match);
     ///                 }
-    ///                 return Err(MatchError::Quit {
-    ///                     byte: b, offset: pos - 1,
-    ///                 });
+    ///                 return Err(MatchError::quit(b, pos - 1));
     ///             } else if dfa.is_start_state(state) {
     ///                 // If we're in a start state and know all matches begin
     ///                 // with a particular byte, then we can quickly skip to
@@ -620,22 +667,27 @@ pub unsafe trait Automaton {
     /// }
     ///
     /// // In this example, it's obvious that all occurrences of our pattern
-    /// // begin with 'Z', so we pass in 'Z'.
-    /// let dfa = dense::DFA::new(r"Z[a-z]+")?;
+    /// // begin with 'Z', so we pass in 'Z'. Note also that we need to
+    /// // enable start state specialization, or else it won't be possible to
+    /// // detect start states during a search. ('is_start_state' would always
+    /// // return false.)
+    /// let dfa = dense::DFA::builder()
+    ///     .configure(dense::DFA::config().specialize_start_states(true))
+    ///     .build(r"Z[a-z]+")?;
     /// let haystack = "123 foobar Zbaz quux".as_bytes();
-    /// let mat = find_leftmost_first(&dfa, haystack, Some(b'Z'))?.unwrap();
+    /// let mat = find(&dfa, haystack, Some(b'Z'))?.unwrap();
     /// assert_eq!(mat.pattern().as_usize(), 0);
     /// assert_eq!(mat.offset(), 15);
     ///
     /// // But note that we don't need to pass in a prefix byte. If we don't,
     /// // then the search routine does no acceleration.
-    /// let mat = find_leftmost_first(&dfa, haystack, None)?.unwrap();
+    /// let mat = find(&dfa, haystack, None)?.unwrap();
     /// assert_eq!(mat.pattern().as_usize(), 0);
     /// assert_eq!(mat.offset(), 15);
     ///
     /// // However, if we pass an incorrect byte, then the prefix search will
     /// // result in incorrect results.
-    /// assert_eq!(find_leftmost_first(&dfa, haystack, Some(b'X'))?, None);
+    /// assert_eq!(find(&dfa, haystack, Some(b'X'))?, None);
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
@@ -695,13 +747,13 @@ pub unsafe trait Automaton {
     ///
     /// # Example
     ///
-    /// This example shows the pattern count for a DFA that never matches:
+    /// This example shows the pattern length for a DFA that never matches:
     ///
     /// ```
     /// use regex_automata::dfa::{Automaton, dense::DFA};
     ///
     /// let dfa: DFA<Vec<u32>> = DFA::never_match()?;
-    /// assert_eq!(dfa.pattern_count(), 0);
+    /// assert_eq!(dfa.pattern_len(), 0);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     ///
@@ -711,7 +763,7 @@ pub unsafe trait Automaton {
     /// use regex_automata::dfa::{Automaton, dense::DFA};
     ///
     /// let dfa: DFA<Vec<u32>> = DFA::always_match()?;
-    /// assert_eq!(dfa.pattern_count(), 1);
+    /// assert_eq!(dfa.pattern_len(), 1);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     ///
@@ -721,10 +773,10 @@ pub unsafe trait Automaton {
     /// use regex_automata::dfa::{Automaton, dense::DFA};
     ///
     /// let dfa = DFA::new_many(&["[0-9]+", "[a-z]+", "[A-Z]+"])?;
-    /// assert_eq!(dfa.pattern_count(), 3);
+    /// assert_eq!(dfa.pattern_len(), 3);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    fn pattern_count(&self) -> usize;
+    fn pattern_len(&self) -> usize;
 
     /// Returns the total number of patterns that match in this state.
     ///
@@ -734,8 +786,8 @@ pub unsafe trait Automaton {
     /// If the DFA was compiled with one pattern, then this must necessarily
     /// always return `1` for all match states.
     ///
-    /// Implementations must guarantee that [`Automaton::match_pattern`] can
-    /// be called with indices up to (but not including) the count returned by
+    /// Implementations must guarantee that [`Automaton::match_pattern`] can be
+    /// called with indices up to (but not including) the length returned by
     /// this routine without panicking.
     ///
     /// # Panics
@@ -750,12 +802,13 @@ pub unsafe trait Automaton {
     /// patterns have matched in a particular state, but also how to access
     /// which specific patterns have matched.
     ///
-    /// Notice that we must use [`MatchKind::All`](crate::MatchKind::All)
+    /// Notice that we must use
+    /// [`MatchKind::All`](crate::MatchKind::All)
     /// when building the DFA. If we used
     /// [`MatchKind::LeftmostFirst`](crate::MatchKind::LeftmostFirst)
-    /// instead, then the DFA would not be constructed in a way that supports
-    /// overlapping matches. (It would only report a single pattern that
-    /// matches at any particular point in time.)
+    /// instead, then the DFA would not be constructed in a way that
+    /// supports overlapping matches. (It would only report a single pattern
+    /// that matches at any particular point in time.)
     ///
     /// Another thing to take note of is the patterns used and the order in
     /// which the pattern IDs are reported. In the example below, pattern `3`
@@ -766,23 +819,19 @@ pub unsafe trait Automaton {
     /// other.
     ///
     /// ```
-    /// use regex_automata::{
-    ///     dfa::{Automaton, dense},
-    ///     MatchKind,
-    /// };
+    /// # if cfg!(miri) { return Ok(()); } // miri takes too long
+    /// use regex_automata::{dfa::{Automaton, dense}, Input, MatchKind};
     ///
     /// let dfa = dense::Builder::new()
     ///     .configure(dense::Config::new().match_kind(MatchKind::All))
     ///     .build_many(&[
-    ///         r"\w+", r"[a-z]+", r"[A-Z]+", r"\S+",
+    ///         r"[[:word:]]+", r"[a-z]+", r"[A-Z]+", r"[[:^space:]]+",
     ///     ])?;
     /// let haystack = "@bar".as_bytes();
     ///
     /// // The start state is determined by inspecting the position and the
     /// // initial bytes of the haystack.
-    /// let mut state = dfa.start_state_forward(
-    ///     None, haystack, 0, haystack.len(),
-    /// );
+    /// let mut state = dfa.start_state_forward(&Input::new(haystack))?;
     /// // Walk all the bytes in the haystack.
     /// for &b in haystack {
     ///     state = dfa.next_state(state, b);
@@ -790,8 +839,8 @@ pub unsafe trait Automaton {
     /// state = dfa.next_eoi_state(state);
     ///
     /// assert!(dfa.is_match_state(state));
-    /// assert_eq!(dfa.match_count(state), 3);
-    /// // The following calls are guaranteed to not panic since `match_count`
+    /// assert_eq!(dfa.match_len(state), 3);
+    /// // The following calls are guaranteed to not panic since `match_len`
     /// // returned `3` above.
     /// assert_eq!(dfa.match_pattern(state, 0).as_usize(), 3);
     /// assert_eq!(dfa.match_pattern(state, 1).as_usize(), 0);
@@ -799,19 +848,19 @@ pub unsafe trait Automaton {
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    fn match_count(&self, id: StateID) -> usize;
+    fn match_len(&self, id: StateID) -> usize;
 
     /// Returns the pattern ID corresponding to the given match index in the
     /// given state.
     ///
-    /// See [`Automaton::match_count`] for an example of how to use this
+    /// See [`Automaton::match_len`] for an example of how to use this
     /// method correctly. Note that if you know your DFA is compiled with a
     /// single pattern, then this routine is never necessary since it will
     /// always return a pattern ID of `0` for an index of `0` when `id`
     /// corresponds to a match state.
     ///
     /// Typically, this routine is used when implementing an overlapping
-    /// search, as the example for `Automaton::match_count` does.
+    /// search, as the example for `Automaton::match_len` does.
     ///
     /// # Panics
     ///
@@ -822,12 +871,182 @@ pub unsafe trait Automaton {
     /// `PatternID`.
     fn match_pattern(&self, id: StateID, index: usize) -> PatternID;
 
+    /// Returns true if and only if this automaton can match the empty string.
+    /// When it returns false, all possible matches are guaranteed to have a
+    /// non-zero length.
+    ///
+    /// This is useful as cheap way to know whether code needs to handle the
+    /// case of a zero length match. This is particularly important when UTF-8
+    /// modes are enabled, as when UTF-8 mode is enabled, empty matches that
+    /// split a codepoint must never be reported. This extra handling can
+    /// sometimes be costly, and since regexes matching an empty string are
+    /// somewhat rare, it can be beneficial to treat such regexes specially.
+    ///
+    /// # Example
+    ///
+    /// This example shows a few different DFAs and whether they match the
+    /// empty string or not. Notice the empty string isn't merely a matter
+    /// of a string of length literally `0`, but rather, whether a match can
+    /// occur between specific pairs of bytes.
+    ///
+    /// ```
+    /// use regex_automata::{dfa::{dense::DFA, Automaton}, util::syntax};
+    ///
+    /// // The empty regex matches the empty string.
+    /// let dfa = DFA::new("")?;
+    /// assert!(dfa.has_empty(), "empty matches empty");
+    /// // The '+' repetition operator requires at least one match, and so
+    /// // does not match the empty string.
+    /// let dfa = DFA::new("a+")?;
+    /// assert!(!dfa.has_empty(), "+ does not match empty");
+    /// // But the '*' repetition operator does.
+    /// let dfa = DFA::new("a*")?;
+    /// assert!(dfa.has_empty(), "* does match empty");
+    /// // And wrapping '+' in an operator that can match an empty string also
+    /// // causes it to match the empty string too.
+    /// let dfa = DFA::new("(a+)*")?;
+    /// assert!(dfa.has_empty(), "+ inside of * matches empty");
+    ///
+    /// // If a regex is just made of a look-around assertion, even if the
+    /// // assertion requires some kind of non-empty string around it (such as
+    /// // \b), then it is still treated as if it matches the empty string.
+    /// // Namely, if a match occurs of just a look-around assertion, then the
+    /// // match returned is empty.
+    /// let dfa = DFA::builder()
+    ///     .configure(DFA::config().unicode_word_boundary(true))
+    ///     .syntax(syntax::Config::new().utf8(false))
+    ///     .build(r"^$\A\z\b\B(?-u:\b\B)")?;
+    /// assert!(dfa.has_empty(), "assertions match empty");
+    /// // Even when an assertion is wrapped in a '+', it still matches the
+    /// // empty string.
+    /// let dfa = DFA::new(r"^+")?;
+    /// assert!(dfa.has_empty(), "+ of an assertion matches empty");
+    ///
+    /// // An alternation with even one branch that can match the empty string
+    /// // is also said to match the empty string overall.
+    /// let dfa = DFA::new("foo|(bar)?|quux")?;
+    /// assert!(dfa.has_empty(), "alternations can match empty");
+    ///
+    /// // An NFA that matches nothing does not match the empty string.
+    /// let dfa = DFA::new("[a&&b]")?;
+    /// assert!(!dfa.has_empty(), "never matching means not matching empty");
+    /// // But if it's wrapped in something that doesn't require a match at
+    /// // all, then it can match the empty string!
+    /// let dfa = DFA::new("[a&&b]*")?;
+    /// assert!(dfa.has_empty(), "* on never-match still matches empty");
+    /// // Since a '+' requires a match, using it on something that can never
+    /// // match will itself produce a regex that can never match anything,
+    /// // and thus does not match the empty string.
+    /// let dfa = DFA::new("[a&&b]+")?;
+    /// assert!(!dfa.has_empty(), "+ on never-match still matches nothing");
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    fn has_empty(&self) -> bool;
+
+    /// Whether UTF-8 mode is enabled for this DFA or not.
+    ///
+    /// When UTF-8 mode is enabled, all matches reported by a DFA are
+    /// guaranteed to correspond to spans of valid UTF-8. This includes
+    /// zero-width matches. For example, the DFA must guarantee that the empty
+    /// regex will not match at the positions between code units in the UTF-8
+    /// encoding of a single codepoint.
+    ///
+    /// See [`thompson::Config::utf8`](crate::nfa::thompson::Config::utf8) for
+    /// more information.
+    ///
+    /// # Example
+    ///
+    /// This example shows how UTF-8 mode can impact the match spans that may
+    /// be reported in certain cases.
+    ///
+    /// ```
+    /// use regex_automata::{
+    ///     dfa::{dense::DFA, Automaton},
+    ///     nfa::thompson,
+    ///     HalfMatch, Input,
+    /// };
+    ///
+    /// // UTF-8 mode is enabled by default.
+    /// let re = DFA::new("")?;
+    /// assert!(re.is_utf8());
+    /// let mut input = Input::new("☃");
+    /// let got = re.try_search_fwd(&input)?;
+    /// assert_eq!(Some(HalfMatch::must(0, 0)), got);
+    ///
+    /// // Even though an empty regex matches at 1..1, our next match is
+    /// // 3..3 because 1..1 and 2..2 split the snowman codepoint (which is
+    /// // three bytes long).
+    /// input.set_start(1);
+    /// let got = re.try_search_fwd(&input)?;
+    /// assert_eq!(Some(HalfMatch::must(0, 3)), got);
+    ///
+    /// // But if we disable UTF-8, then we'll get matches at 1..1 and 2..2:
+    /// let re = DFA::builder()
+    ///     .thompson(thompson::Config::new().utf8(false))
+    ///     .build("")?;
+    /// assert!(!re.is_utf8());
+    /// let got = re.try_search_fwd(&input)?;
+    /// assert_eq!(Some(HalfMatch::must(0, 1)), got);
+    ///
+    /// input.set_start(2);
+    /// let got = re.try_search_fwd(&input)?;
+    /// assert_eq!(Some(HalfMatch::must(0, 2)), got);
+    ///
+    /// input.set_start(3);
+    /// let got = re.try_search_fwd(&input)?;
+    /// assert_eq!(Some(HalfMatch::must(0, 3)), got);
+    ///
+    /// input.set_start(4);
+    /// let got = re.try_search_fwd(&input)?;
+    /// assert_eq!(None, got);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    fn is_utf8(&self) -> bool;
+
+    /// Returns true if and only if this DFA is limited to returning matches
+    /// whose start position is `0`.
+    ///
+    /// Note that if you're using DFAs provided by
+    /// this crate, then this is _orthogonal_ to
+    /// [`Config::start_kind`](crate::dfa::dense::Config::start_kind).
+    ///
+    /// This is useful in some cases because if a DFA is limited to producing
+    /// matches that start at offset `0`, then a reverse search is never
+    /// required for finding the start of a match.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use regex_automata::dfa::{dense::DFA, Automaton};
+    ///
+    /// // The empty regex matches anywhere
+    /// let dfa = DFA::new("")?;
+    /// assert!(!dfa.is_always_start_anchored(), "empty matches anywhere");
+    /// // 'a' matches anywhere.
+    /// let dfa = DFA::new("a")?;
+    /// assert!(!dfa.is_always_start_anchored(), "'a' matches anywhere");
+    /// // '^' only matches at offset 0!
+    /// let dfa = DFA::new("^a")?;
+    /// assert!(dfa.is_always_start_anchored(), "'^a' matches only at 0");
+    /// // But '(?m:^)' matches at 0 but at other offsets too.
+    /// let dfa = DFA::new("(?m:^)a")?;
+    /// assert!(!dfa.is_always_start_anchored(), "'(?m:^)a' matches anywhere");
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    fn is_always_start_anchored(&self) -> bool;
+
     /// Return a slice of bytes to accelerate for the given state, if possible.
     ///
     /// If the given state has no accelerator, then an empty slice must be
-    /// returned. If `Automaton::is_accel_state` returns true for the given
-    /// ID, then this routine _must_ return a non-empty slice, but it is not
-    /// required to do so.
+    /// returned. If `Automaton::is_accel_state` returns true for the given ID,
+    /// then this routine _must_ return a non-empty slice. But note that it is
+    /// not required for an implementation of this trait to ever return `true`
+    /// for `is_accel_state`, even if the state _could_ be accelerated. That
+    /// is, acceleration is an optional optimization. But the return values of
+    /// `is_accel_state` and `accelerator` must be in sync.
     ///
     /// If the given ID is not a valid state ID for this automaton, then
     /// implementations may panic or produce incorrect results.
@@ -844,22 +1063,19 @@ pub unsafe trait Automaton {
     ///
     /// ```
     /// use regex_automata::{
-    ///     nfa::thompson,
     ///     dfa::{Automaton, dense},
-    ///     util::id::StateID,
-    ///     SyntaxConfig,
+    ///     util::{primitives::StateID, syntax},
     /// };
     ///
     /// let dfa = dense::Builder::new()
     ///     // We disable Unicode everywhere and permit the regex to match
-    ///     // invalid UTF-8. e.g., `[^abc]` matches `\xFF`, which is not valid
-    ///     // UTF-8.
-    ///     .syntax(SyntaxConfig::new().unicode(false).utf8(false))
-    ///     // This makes the implicit `(?s:.)*?` prefix added to the regex
-    ///     // match through arbitrary bytes instead of being UTF-8 aware. This
-    ///     // isn't necessary to get acceleration to work in this case, but
-    ///     // it does make the DFA substantially simpler.
-    ///     .thompson(thompson::Config::new().utf8(false))
+    ///     // invalid UTF-8. e.g., [^abc] matches \xFF, which is not valid
+    ///     // UTF-8. If we left Unicode enabled, [^abc] would match any UTF-8
+    ///     // encoding of any Unicode scalar value except for 'a', 'b' or 'c'.
+    ///     // That translates to a much more complicated DFA, and also
+    ///     // inhibits the 'accelerator' optimization that we are trying to
+    ///     // demonstrate in this example.
+    ///     .syntax(syntax::Config::new().unicode(false).utf8(false))
     ///     .build("[^abc]+a")?;
     ///
     /// // Here we just pluck out the state that we know is accelerated.
@@ -875,154 +1091,58 @@ pub unsafe trait Automaton {
     /// assert_eq!(accelerator, &[b'a', b'b', b'c']);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
+    #[inline]
     fn accelerator(&self, _id: StateID) -> &[u8] {
         &[]
     }
 
-    /// Executes a forward search and returns the end position of the first
-    /// match that is found as early as possible. If no match exists, then
-    /// `None` is returned.
+    /// Returns the prefilter associated with a DFA, if one exists.
     ///
-    /// This routine stops scanning input as soon as the search observes a
-    /// match state. This is useful for implementing boolean `is_match`-like
-    /// routines, where as little work is done as possible.
+    /// The default implementation of this trait always returns `None`. And
+    /// indeed, it is always correct to return `None`.
     ///
-    /// See [`Automaton::find_earliest_fwd_at`] for additional functionality,
-    /// such as providing a prefilter, a specific pattern to match and the
-    /// bounds of the search within the haystack. This routine is meant as
-    /// a convenience for common cases where the additional functionality is
-    /// not needed.
+    /// For DFAs in this crate, a prefilter can be attached to a DFA via
+    /// [`dense::Config::prefilter`](crate::dfa::dense::Config::prefilter).
     ///
-    /// # Errors
-    ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
-    ///
-    /// When a search cannot complete, callers cannot know whether a match
-    /// exists or not.
-    ///
-    /// # Example
-    ///
-    /// This example shows how to use this method with a
-    /// [`dense::DFA`](crate::dfa::dense::DFA). In particular, it demonstrates
-    /// how the position returned might differ from what one might expect when
-    /// executing a traditional leftmost search.
-    ///
-    /// ```
-    /// use regex_automata::{
-    ///     dfa::{Automaton, dense},
-    ///     HalfMatch,
-    /// };
-    ///
-    /// let dfa = dense::DFA::new("foo[0-9]+")?;
-    /// // Normally, the end of the leftmost first match here would be 8,
-    /// // corresponding to the end of the input. But the "earliest" semantics
-    /// // this routine cause it to stop as soon as a match is known, which
-    /// // occurs once 'foo[0-9]' has matched.
-    /// let expected = HalfMatch::must(0, 4);
-    /// assert_eq!(Some(expected), dfa.find_earliest_fwd(b"foo12345")?);
-    ///
-    /// let dfa = dense::DFA::new("abc|a")?;
-    /// // Normally, the end of the leftmost first match here would be 3,
-    /// // but the shortest match semantics detect a match earlier.
-    /// let expected = HalfMatch::must(0, 1);
-    /// assert_eq!(Some(expected), dfa.find_earliest_fwd(b"abc")?);
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
+    /// Do note that prefilters are not serialized by DFAs in this crate.
+    /// So if you deserialize a DFA that had a prefilter attached to it
+    /// at serialization time, then it will not have a prefilter after
+    /// deserialization.
     #[inline]
-    fn find_earliest_fwd(
-        &self,
-        bytes: &[u8],
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        self.find_earliest_fwd_at(None, None, bytes, 0, bytes.len())
-    }
-
-    /// Executes a reverse search and returns the start position of the first
-    /// match that is found as early as possible. If no match exists, then
-    /// `None` is returned.
-    ///
-    /// This routine stops scanning input as soon as the search observes a
-    /// match state.
-    ///
-    /// Note that while it is not technically necessary to build a reverse
-    /// automaton to use a reverse search, it is likely that you'll want to do
-    /// so. Namely, the typical use of a reverse search is to find the starting
-    /// location of a match once its end is discovered from a forward search. A
-    /// reverse DFA automaton can be built by configuring the intermediate NFA
-    /// to be reversed via
-    /// [`nfa::thompson::Config::reverse`](crate::nfa::thompson::Config::reverse).
-    ///
-    /// # Errors
-    ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
-    ///
-    /// When a search cannot complete, callers cannot know whether a match
-    /// exists or not.
-    ///
-    /// # Example
-    ///
-    /// This example shows how to use this method with a
-    /// [`dense::DFA`](crate::dfa::dense::DFA). In particular, it demonstrates
-    /// how the position returned might differ from what one might expect when
-    /// executing a traditional leftmost reverse search.
-    ///
-    /// ```
-    /// use regex_automata::{
-    ///     nfa::thompson,
-    ///     dfa::{Automaton, dense},
-    ///     HalfMatch,
-    /// };
-    ///
-    /// let dfa = dense::Builder::new()
-    ///     .thompson(thompson::Config::new().reverse(true))
-    ///     .build("[a-z]+[0-9]+")?;
-    /// // Normally, the end of the leftmost first match here would be 0,
-    /// // corresponding to the beginning of the input. But the "earliest"
-    /// // semantics of this routine cause it to stop as soon as a match is
-    /// // known, which occurs once '[a-z][0-9]+' has matched.
-    /// let expected = HalfMatch::must(0, 2);
-    /// assert_eq!(Some(expected), dfa.find_earliest_rev(b"foo12345")?);
-    ///
-    /// let dfa = dense::Builder::new()
-    ///     .thompson(thompson::Config::new().reverse(true))
-    ///     .build("abc|c")?;
-    /// // Normally, the end of the leftmost first match here would be 0,
-    /// // but the shortest match semantics detect a match earlier.
-    /// let expected = HalfMatch::must(0, 2);
-    /// assert_eq!(Some(expected), dfa.find_earliest_rev(b"abc")?);
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    #[inline]
-    fn find_earliest_rev(
-        &self,
-        bytes: &[u8],
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        self.find_earliest_rev_at(None, bytes, 0, bytes.len())
+    fn get_prefilter(&self) -> Option<&Prefilter> {
+        None
     }
 
     /// Executes a forward search and returns the end position of the leftmost
     /// match that is found. If no match exists, then `None` is returned.
     ///
+    /// In particular, this method continues searching even after it enters
+    /// a match state. The search only terminates once it has reached the
+    /// end of the input or when it has entered a dead or quit state. Upon
+    /// termination, the position of the last byte seen while still in a match
+    /// state is returned.
+    ///
     /// # Errors
     ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
+    /// This routine errors if the search could not complete. This can occur
+    /// in a number of circumstances:
     ///
-    /// When a search cannot complete, callers cannot know whether a match
+    /// * The configuration of the DFA may permit it to "quit" the search.
+    /// For example, setting quit bytes or enabling heuristic support for
+    /// Unicode word boundaries. The default configuration does not enable any
+    /// option that could result in the DFA quitting.
+    /// * When the provided `Input` configuration is not supported. For
+    /// example, by providing an unsupported anchor mode.
+    ///
+    /// When a search returns an error, callers cannot know whether a match
     /// exists or not.
     ///
     /// # Notes for implementors
     ///
     /// Implementors of this trait are not required to implement any particular
     /// match semantics (such as leftmost-first), which are instead manifest in
-    /// the DFA's transitions.
+    /// the DFA's transitions. But this search routine should behave as a
+    /// general "leftmost" search.
     ///
     /// In particular, this method must continue searching even after it enters
     /// a match state. The search should only terminate once it has reached
@@ -1036,47 +1156,124 @@ pub unsafe trait Automaton {
     /// # Example
     ///
     /// This example shows how to use this method with a
-    /// [`dense::DFA`](crate::dfa::dense::DFA). By default, a dense DFA uses
-    /// "leftmost first" match semantics.
-    ///
-    /// Leftmost first match semantics corresponds to the match with the
-    /// smallest starting offset, but where the end offset is determined by
-    /// preferring earlier branches in the original regular expression. For
-    /// example, `Sam|Samwise` will match `Sam` in `Samwise`, but `Samwise|Sam`
-    /// will match `Samwise` in `Samwise`.
-    ///
-    /// Generally speaking, the "leftmost first" match is how most backtracking
-    /// regular expressions tend to work. This is in contrast to POSIX-style
-    /// regular expressions that yield "leftmost longest" matches. Namely,
-    /// both `Sam|Samwise` and `Samwise|Sam` match `Samwise` when using
-    /// leftmost longest semantics. (This crate does not currently support
-    /// leftmost longest semantics.)
+    /// [`dense::DFA`](crate::dfa::dense::DFA).
     ///
     /// ```
-    /// use regex_automata::{
-    ///     dfa::{Automaton, dense},
-    ///     HalfMatch,
-    /// };
+    /// use regex_automata::{dfa::{Automaton, dense}, HalfMatch, Input};
     ///
     /// let dfa = dense::DFA::new("foo[0-9]+")?;
-    /// let expected = HalfMatch::must(0, 8);
-    /// assert_eq!(Some(expected), dfa.find_leftmost_fwd(b"foo12345")?);
+    /// let expected = Some(HalfMatch::must(0, 8));
+    /// assert_eq!(expected, dfa.try_search_fwd(&Input::new(b"foo12345"))?);
     ///
     /// // Even though a match is found after reading the first byte (`a`),
     /// // the leftmost first match semantics demand that we find the earliest
     /// // match that prefers earlier parts of the pattern over latter parts.
     /// let dfa = dense::DFA::new("abc|a")?;
-    /// let expected = HalfMatch::must(0, 3);
-    /// assert_eq!(Some(expected), dfa.find_leftmost_fwd(b"abc")?);
+    /// let expected = Some(HalfMatch::must(0, 3));
+    /// assert_eq!(expected, dfa.try_search_fwd(&Input::new(b"abc"))?);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Example: specific pattern search
+    ///
+    /// This example shows how to build a multi-DFA that permits searching for
+    /// specific patterns.
+    ///
+    /// ```
+    /// # if cfg!(miri) { return Ok(()); } // miri takes too long
+    /// use regex_automata::{
+    ///     dfa::{Automaton, dense},
+    ///     Anchored, HalfMatch, PatternID, Input,
+    /// };
+    ///
+    /// let dfa = dense::Builder::new()
+    ///     .configure(dense::Config::new().starts_for_each_pattern(true))
+    ///     .build_many(&["[a-z0-9]{6}", "[a-z][a-z0-9]{5}"])?;
+    /// let haystack = "foo123".as_bytes();
+    ///
+    /// // Since we are using the default leftmost-first match and both
+    /// // patterns match at the same starting position, only the first pattern
+    /// // will be returned in this case when doing a search for any of the
+    /// // patterns.
+    /// let expected = Some(HalfMatch::must(0, 6));
+    /// let got = dfa.try_search_fwd(&Input::new(haystack))?;
+    /// assert_eq!(expected, got);
+    ///
+    /// // But if we want to check whether some other pattern matches, then we
+    /// // can provide its pattern ID.
+    /// let input = Input::new(haystack)
+    ///     .anchored(Anchored::Pattern(PatternID::must(1)));
+    /// let expected = Some(HalfMatch::must(1, 6));
+    /// let got = dfa.try_search_fwd(&input)?;
+    /// assert_eq!(expected, got);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Example: specifying the bounds of a search
+    ///
+    /// This example shows how providing the bounds of a search can produce
+    /// different results than simply sub-slicing the haystack.
+    ///
+    /// ```
+    /// use regex_automata::{dfa::{Automaton, dense}, HalfMatch, Input};
+    ///
+    /// // N.B. We disable Unicode here so that we use a simple ASCII word
+    /// // boundary. Alternatively, we could enable heuristic support for
+    /// // Unicode word boundaries.
+    /// let dfa = dense::DFA::new(r"(?-u)\b[0-9]{3}\b")?;
+    /// let haystack = "foo123bar".as_bytes();
+    ///
+    /// // Since we sub-slice the haystack, the search doesn't know about the
+    /// // larger context and assumes that `123` is surrounded by word
+    /// // boundaries. And of course, the match position is reported relative
+    /// // to the sub-slice as well, which means we get `3` instead of `6`.
+    /// let input = Input::new(&haystack[3..6]);
+    /// let expected = Some(HalfMatch::must(0, 3));
+    /// let got = dfa.try_search_fwd(&input)?;
+    /// assert_eq!(expected, got);
+    ///
+    /// // But if we provide the bounds of the search within the context of the
+    /// // entire haystack, then the search can take the surrounding context
+    /// // into account. (And if we did find a match, it would be reported
+    /// // as a valid offset into `haystack` instead of its sub-slice.)
+    /// let input = Input::new(haystack).range(3..6);
+    /// let expected = None;
+    /// let got = dfa.try_search_fwd(&input)?;
+    /// assert_eq!(expected, got);
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     #[inline]
-    fn find_leftmost_fwd(
+    fn try_search_fwd(
         &self,
-        bytes: &[u8],
+        input: &Input<'_>,
     ) -> Result<Option<HalfMatch>, MatchError> {
-        self.find_leftmost_fwd_at(None, None, bytes, 0, bytes.len())
+        let utf8empty = self.has_empty() && self.is_utf8();
+        let hm = match search::find_fwd(&self, input)? {
+            None => return Ok(None),
+            Some(hm) if !utf8empty => return Ok(Some(hm)),
+            Some(hm) => hm,
+        };
+        // We get to this point when we know our DFA can match the empty string
+        // AND when UTF-8 mode is enabled. In this case, we skip any matches
+        // whose offset splits a codepoint. Such a match is necessarily a
+        // zero-width match, because UTF-8 mode requires the underlying NFA
+        // to be built such that all non-empty matches span valid UTF-8.
+        // Therefore, any match that ends in the middle of a codepoint cannot
+        // be part of a span of valid UTF-8 and thus must be an empty match.
+        // In such cases, we skip it, so as not to report matches that split a
+        // codepoint.
+        //
+        // Note that this is not a checked assumption. Callers *can* provide an
+        // NFA with UTF-8 mode enabled but produces non-empty matches that span
+        // invalid UTF-8. But doing so is documented to result in unspecified
+        // behavior.
+        empty::skip_splits_fwd(input, hm, hm.offset(), |input| {
+            let got = search::find_fwd(&self, input)?;
+            Ok(got.map(|hm| (hm, hm.offset())))
+        })
     }
 
     /// Executes a reverse search and returns the start of the position of the
@@ -1085,52 +1282,42 @@ pub unsafe trait Automaton {
     ///
     /// # Errors
     ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
+    /// This routine errors if the search could not complete. This can occur
+    /// in a number of circumstances:
     ///
-    /// When a search cannot complete, callers cannot know whether a match
+    /// * The configuration of the DFA may permit it to "quit" the search.
+    /// For example, setting quit bytes or enabling heuristic support for
+    /// Unicode word boundaries. The default configuration does not enable any
+    /// option that could result in the DFA quitting.
+    /// * When the provided `Input` configuration is not supported. For
+    /// example, by providing an unsupported anchor mode.
+    ///
+    /// When a search returns an error, callers cannot know whether a match
     /// exists or not.
-    ///
-    /// # Notes for implementors
-    ///
-    /// Implementors of this trait are not required to implement any particular
-    /// match semantics (such as leftmost-first), which are instead manifest in
-    /// the DFA's transitions.
-    ///
-    /// In particular, this method must continue searching even after it enters
-    /// a match state. The search should only terminate once it has reached
-    /// the end of the input or when it has entered a dead or quit state. Upon
-    /// termination, the position of the last byte seen while still in a match
-    /// state is returned.
-    ///
-    /// Since this trait provides an implementation for this method by default,
-    /// it's unlikely that one will need to implement this.
     ///
     /// # Example
     ///
     /// This example shows how to use this method with a
-    /// [`dense::DFA`](crate::dfa::dense::DFA). In particular, this routine
-    /// is principally useful when used in conjunction with the
+    /// [`dense::DFA`](crate::dfa::dense::DFA). In particular, this
+    /// routine is principally useful when used in conjunction with the
     /// [`nfa::thompson::Config::reverse`](crate::nfa::thompson::Config::reverse)
-    /// configuration. In general, it's unlikely to be correct to use both
-    /// `find_leftmost_fwd` and `find_leftmost_rev` with the same DFA since any
-    /// particular DFA will only support searching in one direction with
+    /// configuration. In general, it's unlikely to be correct to use
+    /// both `try_search_fwd` and `try_search_rev` with the same DFA since
+    /// any particular DFA will only support searching in one direction with
     /// respect to the pattern.
     ///
     /// ```
     /// use regex_automata::{
     ///     nfa::thompson,
     ///     dfa::{Automaton, dense},
-    ///     HalfMatch,
+    ///     HalfMatch, Input,
     /// };
     ///
     /// let dfa = dense::Builder::new()
     ///     .thompson(thompson::Config::new().reverse(true))
     ///     .build("foo[0-9]+")?;
-    /// let expected = HalfMatch::must(0, 0);
-    /// assert_eq!(Some(expected), dfa.find_leftmost_rev(b"foo12345")?);
+    /// let expected = Some(HalfMatch::must(0, 0));
+    /// assert_eq!(expected, dfa.try_search_rev(&Input::new(b"foo12345"))?);
     ///
     /// // Even though a match is found after reading the last byte (`c`),
     /// // the leftmost first match semantics demand that we find the earliest
@@ -1138,21 +1325,134 @@ pub unsafe trait Automaton {
     /// let dfa = dense::Builder::new()
     ///     .thompson(thompson::Config::new().reverse(true))
     ///     .build("abc|c")?;
-    /// let expected = HalfMatch::must(0, 0);
-    /// assert_eq!(Some(expected), dfa.find_leftmost_rev(b"abc")?);
+    /// let expected = Some(HalfMatch::must(0, 0));
+    /// assert_eq!(expected, dfa.try_search_rev(&Input::new(b"abc"))?);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Example: UTF-8 mode
+    ///
+    /// This examples demonstrates that UTF-8 mode applies to reverse
+    /// DFAs. When UTF-8 mode is enabled in the underlying NFA, then all
+    /// matches reported must correspond to valid UTF-8 spans. This includes
+    /// prohibiting zero-width matches that split a codepoint.
+    ///
+    /// UTF-8 mode is enabled by default. Notice below how the only zero-width
+    /// matches reported are those at UTF-8 boundaries:
+    ///
+    /// ```
+    /// use regex_automata::{
+    ///     dfa::{dense::DFA, Automaton},
+    ///     nfa::thompson,
+    ///     HalfMatch, Input, MatchKind,
+    /// };
+    ///
+    /// let dfa = DFA::builder()
+    ///     .thompson(thompson::Config::new().reverse(true))
+    ///     .build(r"")?;
+    ///
+    /// // Run the reverse DFA to collect all matches.
+    /// let mut input = Input::new("☃");
+    /// let mut matches = vec![];
+    /// loop {
+    ///     match dfa.try_search_rev(&input)? {
+    ///         None => break,
+    ///         Some(hm) => {
+    ///             matches.push(hm);
+    ///             if hm.offset() == 0 || input.end() == 0 {
+    ///                 break;
+    ///             } else if hm.offset() < input.end() {
+    ///                 input.set_end(hm.offset());
+    ///             } else {
+    ///                 // This is only necessary to handle zero-width
+    ///                 // matches, which of course occur in this example.
+    ///                 // Without this, the search would never advance
+    ///                 // backwards beyond the initial match.
+    ///                 input.set_end(input.end() - 1);
+    ///             }
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// // No matches split a codepoint.
+    /// let expected = vec![
+    ///     HalfMatch::must(0, 3),
+    ///     HalfMatch::must(0, 0),
+    /// ];
+    /// assert_eq!(expected, matches);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// Now let's look at the same example, but with UTF-8 mode on the
+    /// original NFA disabled (which results in disabling UTF-8 mode on the
+    /// DFA):
+    ///
+    /// ```
+    /// use regex_automata::{
+    ///     dfa::{dense::DFA, Automaton},
+    ///     nfa::thompson,
+    ///     HalfMatch, Input, MatchKind,
+    /// };
+    ///
+    /// let dfa = DFA::builder()
+    ///     .thompson(thompson::Config::new().reverse(true).utf8(false))
+    ///     .build(r"")?;
+    ///
+    /// // Run the reverse DFA to collect all matches.
+    /// let mut input = Input::new("☃");
+    /// let mut matches = vec![];
+    /// loop {
+    ///     match dfa.try_search_rev(&input)? {
+    ///         None => break,
+    ///         Some(hm) => {
+    ///             matches.push(hm);
+    ///             if hm.offset() == 0 || input.end() == 0 {
+    ///                 break;
+    ///             } else if hm.offset() < input.end() {
+    ///                 input.set_end(hm.offset());
+    ///             } else {
+    ///                 // This is only necessary to handle zero-width
+    ///                 // matches, which of course occur in this example.
+    ///                 // Without this, the search would never advance
+    ///                 // backwards beyond the initial match.
+    ///                 input.set_end(input.end() - 1);
+    ///             }
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// // No matches split a codepoint.
+    /// let expected = vec![
+    ///     HalfMatch::must(0, 3),
+    ///     HalfMatch::must(0, 2),
+    ///     HalfMatch::must(0, 1),
+    ///     HalfMatch::must(0, 0),
+    /// ];
+    /// assert_eq!(expected, matches);
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     #[inline]
-    fn find_leftmost_rev(
+    fn try_search_rev(
         &self,
-        bytes: &[u8],
+        input: &Input<'_>,
     ) -> Result<Option<HalfMatch>, MatchError> {
-        self.find_leftmost_rev_at(None, bytes, 0, bytes.len())
+        let utf8empty = self.has_empty() && self.is_utf8();
+        let hm = match search::find_rev(self, input)? {
+            None => return Ok(None),
+            Some(hm) if !utf8empty => return Ok(Some(hm)),
+            Some(hm) => hm,
+        };
+        empty::skip_splits_rev(input, hm, hm.offset(), |input| {
+            let got = search::find_rev(self, input)?;
+            Ok(got.map(|hm| (hm, hm.offset())))
+        })
     }
 
-    /// Executes an overlapping forward search and returns the end position of
-    /// matches as they are found. If no match exists, then `None` is returned.
+    /// Executes an overlapping forward search. Matches, if one exists, can be
+    /// obtained via the [`OverlappingState::get_match`] method.
     ///
     /// This routine is principally only useful when searching for multiple
     /// patterns on inputs where multiple patterns may match the same regions
@@ -1160,14 +1460,30 @@ pub unsafe trait Automaton {
     /// state from prior calls so that the implementation knows where the last
     /// match occurred.
     ///
+    /// When using this routine to implement an iterator of overlapping
+    /// matches, the `start` of the search should always be set to the end
+    /// of the last match. If more patterns match at the previous location,
+    /// then they will be immediately returned. (This is tracked by the given
+    /// overlapping state.) Otherwise, the search continues at the starting
+    /// position given.
+    ///
+    /// If for some reason you want the search to forget about its previous
+    /// state and restart the search at a particular position, then setting the
+    /// state to [`OverlappingState::start`] will accomplish that.
+    ///
     /// # Errors
     ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
+    /// This routine errors if the search could not complete. This can occur
+    /// in a number of circumstances:
     ///
-    /// When a search cannot complete, callers cannot know whether a match
+    /// * The configuration of the DFA may permit it to "quit" the search.
+    /// For example, setting quit bytes or enabling heuristic support for
+    /// Unicode word boundaries. The default configuration does not enable any
+    /// option that could result in the DFA quitting.
+    /// * When the provided `Input` configuration is not supported. For
+    /// example, by providing an unsupported anchor mode.
+    ///
+    /// When a search returns an error, callers cannot know whether a match
     /// exists or not.
     ///
     /// # Example
@@ -1187,21 +1503,21 @@ pub unsafe trait Automaton {
     /// to find totally new matches (potentially of other patterns).
     ///
     /// ```
+    /// # if cfg!(miri) { return Ok(()); } // miri takes too long
     /// use regex_automata::{
     ///     dfa::{Automaton, OverlappingState, dense},
-    ///     HalfMatch,
-    ///     MatchKind,
+    ///     HalfMatch, Input, MatchKind,
     /// };
     ///
     /// let dfa = dense::Builder::new()
     ///     .configure(dense::Config::new().match_kind(MatchKind::All))
-    ///     .build_many(&[r"\w+$", r"\S+$"])?;
-    /// let haystack = "@foo".as_bytes();
+    ///     .build_many(&[r"[[:word:]]+$", r"[[:^space:]]+$"])?;
+    /// let haystack = "@foo";
     /// let mut state = OverlappingState::start();
     ///
     /// let expected = Some(HalfMatch::must(1, 4));
-    /// let got = dfa.find_overlapping_fwd(haystack, &mut state)?;
-    /// assert_eq!(expected, got);
+    /// dfa.try_search_overlapping_fwd(&Input::new(haystack), &mut state)?;
+    /// assert_eq!(expected, state.get_match());
     ///
     /// // The first pattern also matches at the same position, so re-running
     /// // the search will yield another match. Notice also that the first
@@ -1209,356 +1525,41 @@ pub unsafe trait Automaton {
     /// // pattern begins its match before the first, is therefore an earlier
     /// // match and is thus reported first.
     /// let expected = Some(HalfMatch::must(0, 4));
-    /// let got = dfa.find_overlapping_fwd(haystack, &mut state)?;
-    /// assert_eq!(expected, got);
+    /// dfa.try_search_overlapping_fwd(&Input::new(haystack), &mut state)?;
+    /// assert_eq!(expected, state.get_match());
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     #[inline]
-    fn find_overlapping_fwd(
+    fn try_search_overlapping_fwd(
         &self,
-        bytes: &[u8],
+        input: &Input<'_>,
         state: &mut OverlappingState,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        self.find_overlapping_fwd_at(None, None, bytes, 0, bytes.len(), state)
+    ) -> Result<(), MatchError> {
+        let utf8empty = self.has_empty() && self.is_utf8();
+        search::find_overlapping_fwd(self, input, state)?;
+        match state.get_match() {
+            None => Ok(()),
+            Some(_) if !utf8empty => Ok(()),
+            Some(_) => skip_empty_utf8_splits_overlapping(
+                input,
+                state,
+                |input, state| {
+                    search::find_overlapping_fwd(self, input, state)
+                },
+            ),
+        }
     }
 
-    /// Executes a forward search and returns the end position of the first
-    /// match that is found as early as possible. If no match exists, then
-    /// `None` is returned.
-    ///
-    /// This routine stops scanning input as soon as the search observes a
-    /// match state. This is useful for implementing boolean `is_match`-like
-    /// routines, where as little work is done as possible.
-    ///
-    /// This is like [`Automaton::find_earliest_fwd`], except it provides some
-    /// additional control over how the search is executed:
-    ///
-    /// * `pre` is a prefilter scanner that, when given, is used whenever the
-    /// DFA enters its starting state. This is meant to speed up searches where
-    /// one or a small number of literal prefixes are known.
-    /// * `pattern_id` specifies a specific pattern in the DFA to run an
-    /// anchored search for. If not given, then a search for any pattern is
-    /// performed. For DFAs built by this crate,
-    /// [`dense::Config::starts_for_each_pattern`](crate::dfa::dense::Config::starts_for_each_pattern)
-    /// must be enabled to use this functionality.
-    /// * `start` and `end` permit searching a specific region of the haystack
-    /// `bytes`. This is useful when implementing an iterator over matches
-    /// within the same haystack, which cannot be done correctly by simply
-    /// providing a subslice of `bytes`. (Because the existence of look-around
-    /// operations such as `\b`, `^` and `$` need to take the surrounding
-    /// context into account. This cannot be done if the haystack doesn't
-    /// contain it.)
-    ///
-    /// The examples below demonstrate each of these additional parameters.
-    ///
-    /// # Errors
-    ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
-    ///
-    /// When a search cannot complete, callers cannot know whether a match
-    /// exists or not.
-    ///
-    /// # Panics
-    ///
-    /// This routine must panic if a `pattern_id` is given and the underlying
-    /// DFA does not support specific pattern searches.
-    ///
-    /// It must also panic if the given haystack range is not valid.
-    ///
-    /// # Example: prefilter
-    ///
-    /// This example shows how to provide a prefilter for a pattern where all
-    /// matches start with a `z` byte.
-    ///
-    /// ```
-    /// use regex_automata::{
-    ///     dfa::{Automaton, dense},
-    ///     util::prefilter::{Candidate, Prefilter, Scanner, State},
-    ///     HalfMatch,
-    /// };
-    ///
-    /// #[derive(Debug)]
-    /// pub struct ZPrefilter;
-    ///
-    /// impl Prefilter for ZPrefilter {
-    ///     fn next_candidate(
-    ///         &self,
-    ///         _: &mut State,
-    ///         haystack: &[u8],
-    ///         at: usize,
-    ///     ) -> Candidate {
-    ///         // Try changing b'z' to b'q' and observe this test fail since
-    ///         // the prefilter will skip right over the match.
-    ///         match haystack.iter().position(|&b| b == b'z') {
-    ///             None => Candidate::None,
-    ///             Some(i) => Candidate::PossibleStartOfMatch(at + i),
-    ///         }
-    ///     }
-    ///
-    ///     fn heap_bytes(&self) -> usize {
-    ///         0
-    ///     }
-    /// }
-    ///
-    /// let dfa = dense::DFA::new("z[0-9]{3}")?;
-    /// let haystack = "foobar z123 q123".as_bytes();
-    /// // A scanner executes a prefilter while tracking some state that helps
-    /// // determine whether a prefilter is still "effective" or not.
-    /// let mut scanner = Scanner::new(&ZPrefilter);
-    ///
-    /// let expected = Some(HalfMatch::must(0, 11));
-    /// let got = dfa.find_earliest_fwd_at(
-    ///     Some(&mut scanner),
-    ///     None,
-    ///     haystack,
-    ///     0,
-    ///     haystack.len(),
-    /// )?;
-    /// assert_eq!(expected, got);
-    ///
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    ///
-    /// # Example: specific pattern search
-    ///
-    /// This example shows how to build a multi-DFA that permits searching for
-    /// specific patterns.
-    ///
-    /// ```
-    /// use regex_automata::{
-    ///     dfa::{Automaton, dense},
-    ///     HalfMatch,
-    ///     PatternID,
-    /// };
-    ///
-    /// let dfa = dense::Builder::new()
-    ///     .configure(dense::Config::new().starts_for_each_pattern(true))
-    ///     .build_many(&["[a-z0-9]{6}", "[a-z][a-z0-9]{5}"])?;
-    /// let haystack = "foo123".as_bytes();
-    ///
-    /// // Since we are using the default leftmost-first match and both
-    /// // patterns match at the same starting position, only the first pattern
-    /// // will be returned in this case when doing a search for any of the
-    /// // patterns.
-    /// let expected = Some(HalfMatch::must(0, 6));
-    /// let got = dfa.find_earliest_fwd_at(
-    ///     None,
-    ///     None,
-    ///     haystack,
-    ///     0,
-    ///     haystack.len(),
-    /// )?;
-    /// assert_eq!(expected, got);
-    ///
-    /// // But if we want to check whether some other pattern matches, then we
-    /// // can provide its pattern ID.
-    /// let expected = Some(HalfMatch::must(1, 6));
-    /// let got = dfa.find_earliest_fwd_at(
-    ///     None,
-    ///     Some(PatternID::must(1)),
-    ///     haystack,
-    ///     0,
-    ///     haystack.len(),
-    /// )?;
-    /// assert_eq!(expected, got);
-    ///
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    ///
-    /// # Example: specifying the bounds of a search
-    ///
-    /// This example shows how providing the bounds of a search can produce
-    /// different results than simply sub-slicing the haystack.
-    ///
-    /// ```
-    /// use regex_automata::{
-    ///     dfa::{Automaton, dense},
-    ///     HalfMatch,
-    /// };
-    ///
-    /// // N.B. We disable Unicode here so that we use a simple ASCII word
-    /// // boundary. Alternatively, we could enable heuristic support for
-    /// // Unicode word boundaries.
-    /// let dfa = dense::DFA::new(r"(?-u)\b[0-9]{3}\b")?;
-    /// let haystack = "foo123bar".as_bytes();
-    ///
-    /// // Since we sub-slice the haystack, the search doesn't know about the
-    /// // larger context and assumes that `123` is surrounded by word
-    /// // boundaries. And of course, the match position is reported relative
-    /// // to the sub-slice as well, which means we get `3` instead of `6`.
-    /// let expected = Some(HalfMatch::must(0, 3));
-    /// let got = dfa.find_earliest_fwd_at(
-    ///     None,
-    ///     None,
-    ///     &haystack[3..6],
-    ///     0,
-    ///     haystack[3..6].len(),
-    /// )?;
-    /// assert_eq!(expected, got);
-    ///
-    /// // But if we provide the bounds of the search within the context of the
-    /// // entire haystack, then the search can take the surrounding context
-    /// // into account. (And if we did find a match, it would be reported
-    /// // as a valid offset into `haystack` instead of its sub-slice.)
-    /// let expected = None;
-    /// let got = dfa.find_earliest_fwd_at(
-    ///     None,
-    ///     None,
-    ///     haystack,
-    ///     3,
-    ///     6,
-    /// )?;
-    /// assert_eq!(expected, got);
-    ///
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    #[inline]
-    fn find_earliest_fwd_at(
-        &self,
-        pre: Option<&mut prefilter::Scanner>,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        search::find_earliest_fwd(pre, self, pattern_id, bytes, start, end)
-    }
-
-    /// Executes a reverse search and returns the start position of the first
-    /// match that is found as early as possible. If no match exists, then
-    /// `None` is returned.
-    ///
-    /// This routine stops scanning input as soon as the search observes a
-    /// match state.
-    ///
-    /// This is like [`Automaton::find_earliest_rev`], except it provides some
-    /// additional control over how the search is executed. See the
-    /// documentation of [`Automaton::find_earliest_fwd_at`] for more details
-    /// on the additional parameters along with examples of their usage.
-    ///
-    /// # Errors
-    ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
-    ///
-    /// When a search cannot complete, callers cannot know whether a match
-    /// exists or not.
-    ///
-    /// # Panics
-    ///
-    /// This routine must panic if a `pattern_id` is given and the underlying
-    /// DFA does not support specific pattern searches.
-    ///
-    /// It must also panic if the given haystack range is not valid.
-    #[inline]
-    fn find_earliest_rev_at(
-        &self,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        search::find_earliest_rev(self, pattern_id, bytes, start, end)
-    }
-
-    /// Executes a forward search and returns the end position of the leftmost
-    /// match that is found. If no match exists, then `None` is returned.
-    ///
-    /// This is like [`Automaton::find_leftmost_fwd`], except it provides some
-    /// additional control over how the search is executed. See the
-    /// documentation of [`Automaton::find_earliest_fwd_at`] for more details
-    /// on the additional parameters along with examples of their usage.
-    ///
-    /// # Errors
-    ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
-    ///
-    /// When a search cannot complete, callers cannot know whether a match
-    /// exists or not.
-    ///
-    /// # Panics
-    ///
-    /// This routine must panic if a `pattern_id` is given and the underlying
-    /// DFA does not support specific pattern searches.
-    ///
-    /// It must also panic if the given haystack range is not valid.
-    #[inline]
-    fn find_leftmost_fwd_at(
-        &self,
-        pre: Option<&mut prefilter::Scanner>,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        search::find_leftmost_fwd(pre, self, pattern_id, bytes, start, end)
-    }
-
-    /// Executes a reverse search and returns the start of the position of the
-    /// leftmost match that is found. If no match exists, then `None` is
-    /// returned.
-    ///
-    /// This is like [`Automaton::find_leftmost_rev`], except it provides some
-    /// additional control over how the search is executed. See the
-    /// documentation of [`Automaton::find_earliest_fwd_at`] for more details
-    /// on the additional parameters along with examples of their usage.
-    ///
-    /// # Errors
-    ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
-    ///
-    /// When a search cannot complete, callers cannot know whether a match
-    /// exists or not.
-    ///
-    /// # Panics
-    ///
-    /// This routine must panic if a `pattern_id` is given and the underlying
-    /// DFA does not support specific pattern searches.
-    ///
-    /// It must also panic if the given haystack range is not valid.
-    #[inline]
-    fn find_leftmost_rev_at(
-        &self,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        search::find_leftmost_rev(self, pattern_id, bytes, start, end)
-    }
-
-    /// Executes an overlapping forward search and returns the end position of
-    /// matches as they are found. If no match exists, then `None` is returned.
-    ///
-    /// This routine is principally only useful when searching for multiple
-    /// patterns on inputs where multiple patterns may match the same regions
-    /// of text. In particular, callers must preserve the automaton's search
-    /// state from prior calls so that the implementation knows where the last
-    /// match occurred.
-    ///
-    /// This is like [`Automaton::find_overlapping_fwd`], except it provides
-    /// some additional control over how the search is executed. See the
-    /// documentation of [`Automaton::find_earliest_fwd_at`] for more details
-    /// on the additional parameters along with examples of their usage.
+    /// Executes a reverse overlapping forward search. Matches, if one exists,
+    /// can be obtained via the [`OverlappingState::get_match`] method.
     ///
     /// When using this routine to implement an iterator of overlapping
-    /// matches, the `start` of the search should always be set to the end
-    /// of the last match. If more patterns match at the previous location,
-    /// then they will be immediately returned. (This is tracked by the given
-    /// overlapping state.) Otherwise, the search continues at the starting
-    /// position given.
+    /// matches, the `start` of the search should remain invariant throughout
+    /// iteration. The `OverlappingState` given to the search will keep track
+    /// of the current position of the search. (This is because multiple
+    /// matches may be reported at the same position, so only the search
+    /// implementation itself knows when to advance the position.)
     ///
     /// If for some reason you want the search to forget about its previous
     /// state and restart the search at a particular position, then setting the
@@ -1566,37 +1567,218 @@ pub unsafe trait Automaton {
     ///
     /// # Errors
     ///
-    /// This routine only errors if the search could not complete. For
-    /// DFAs generated by this crate, this only occurs in a non-default
-    /// configuration where quit bytes are used or Unicode word boundaries are
-    /// heuristically enabled.
+    /// This routine errors if the search could not complete. This can occur
+    /// in a number of circumstances:
     ///
-    /// When a search cannot complete, callers cannot know whether a match
+    /// * The configuration of the DFA may permit it to "quit" the search.
+    /// For example, setting quit bytes or enabling heuristic support for
+    /// Unicode word boundaries. The default configuration does not enable any
+    /// option that could result in the DFA quitting.
+    /// * When the provided `Input` configuration is not supported. For
+    /// example, by providing an unsupported anchor mode.
+    ///
+    /// When a search returns an error, callers cannot know whether a match
     /// exists or not.
     ///
-    /// # Panics
+    /// # Example: UTF-8 mode
     ///
-    /// This routine must panic if a `pattern_id` is given and the underlying
-    /// DFA does not support specific pattern searches.
+    /// This examples demonstrates that UTF-8 mode applies to reverse
+    /// DFAs. When UTF-8 mode is enabled in the underlying NFA, then all
+    /// matches reported must correspond to valid UTF-8 spans. This includes
+    /// prohibiting zero-width matches that split a codepoint.
     ///
-    /// It must also panic if the given haystack range is not valid.
+    /// UTF-8 mode is enabled by default. Notice below how the only zero-width
+    /// matches reported are those at UTF-8 boundaries:
+    ///
+    /// ```
+    /// use regex_automata::{
+    ///     dfa::{dense::DFA, Automaton, OverlappingState},
+    ///     nfa::thompson,
+    ///     HalfMatch, Input, MatchKind,
+    /// };
+    ///
+    /// let dfa = DFA::builder()
+    ///     .configure(DFA::config().match_kind(MatchKind::All))
+    ///     .thompson(thompson::Config::new().reverse(true))
+    ///     .build_many(&[r"", r"☃"])?;
+    ///
+    /// // Run the reverse DFA to collect all matches.
+    /// let input = Input::new("☃");
+    /// let mut state = OverlappingState::start();
+    /// let mut matches = vec![];
+    /// loop {
+    ///     dfa.try_search_overlapping_rev(&input, &mut state)?;
+    ///     match state.get_match() {
+    ///         None => break,
+    ///         Some(hm) => matches.push(hm),
+    ///     }
+    /// }
+    ///
+    /// // No matches split a codepoint.
+    /// let expected = vec![
+    ///     HalfMatch::must(0, 3),
+    ///     HalfMatch::must(1, 0),
+    ///     HalfMatch::must(0, 0),
+    /// ];
+    /// assert_eq!(expected, matches);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// Now let's look at the same example, but with UTF-8 mode on the
+    /// original NFA disabled (which results in disabling UTF-8 mode on the
+    /// DFA):
+    ///
+    /// ```
+    /// use regex_automata::{
+    ///     dfa::{dense::DFA, Automaton, OverlappingState},
+    ///     nfa::thompson,
+    ///     HalfMatch, Input, MatchKind,
+    /// };
+    ///
+    /// let dfa = DFA::builder()
+    ///     .configure(DFA::config().match_kind(MatchKind::All))
+    ///     .thompson(thompson::Config::new().reverse(true).utf8(false))
+    ///     .build_many(&[r"", r"☃"])?;
+    ///
+    /// // Run the reverse DFA to collect all matches.
+    /// let input = Input::new("☃");
+    /// let mut state = OverlappingState::start();
+    /// let mut matches = vec![];
+    /// loop {
+    ///     dfa.try_search_overlapping_rev(&input, &mut state)?;
+    ///     match state.get_match() {
+    ///         None => break,
+    ///         Some(hm) => matches.push(hm),
+    ///     }
+    /// }
+    ///
+    /// // Now *all* positions match, even within a codepoint,
+    /// // because we lifted the requirement that matches
+    /// // correspond to valid UTF-8 spans.
+    /// let expected = vec![
+    ///     HalfMatch::must(0, 3),
+    ///     HalfMatch::must(0, 2),
+    ///     HalfMatch::must(0, 1),
+    ///     HalfMatch::must(1, 0),
+    ///     HalfMatch::must(0, 0),
+    /// ];
+    /// assert_eq!(expected, matches);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     #[inline]
-    fn find_overlapping_fwd_at(
+    fn try_search_overlapping_rev(
         &self,
-        pre: Option<&mut prefilter::Scanner>,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
+        input: &Input<'_>,
         state: &mut OverlappingState,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        search::find_overlapping_fwd(
-            pre, self, pattern_id, bytes, start, end, state,
-        )
+    ) -> Result<(), MatchError> {
+        let utf8empty = self.has_empty() && self.is_utf8();
+        search::find_overlapping_rev(self, input, state)?;
+        match state.get_match() {
+            None => Ok(()),
+            Some(_) if !utf8empty => Ok(()),
+            Some(_) => skip_empty_utf8_splits_overlapping(
+                input,
+                state,
+                |input, state| {
+                    search::find_overlapping_rev(self, input, state)
+                },
+            ),
+        }
+    }
+
+    /// Writes the set of patterns that match anywhere in the given search
+    /// configuration to `patset`. If multiple patterns match at the same
+    /// position and the underlying DFA supports overlapping matches, then all
+    /// matching patterns are written to the given set.
+    ///
+    /// Unless all of the patterns in this DFA are anchored, then generally
+    /// speaking, this will visit every byte in the haystack.
+    ///
+    /// This search routine *does not* clear the pattern set. This gives some
+    /// flexibility to the caller (e.g., running multiple searches with the
+    /// same pattern set), but does make the API bug-prone if you're reusing
+    /// the same pattern set for multiple searches but intended them to be
+    /// independent.
+    ///
+    /// If a pattern ID matched but the given `PatternSet` does not have
+    /// sufficient capacity to store it, then it is not inserted and silently
+    /// dropped.
+    ///
+    /// # Errors
+    ///
+    /// This routine errors if the search could not complete. This can occur
+    /// in a number of circumstances:
+    ///
+    /// * The configuration of the DFA may permit it to "quit" the search.
+    /// For example, setting quit bytes or enabling heuristic support for
+    /// Unicode word boundaries. The default configuration does not enable any
+    /// option that could result in the DFA quitting.
+    /// * When the provided `Input` configuration is not supported. For
+    /// example, by providing an unsupported anchor mode.
+    ///
+    /// When a search returns an error, callers cannot know whether a match
+    /// exists or not.
+    ///
+    /// # Example
+    ///
+    /// This example shows how to find all matching patterns in a haystack,
+    /// even when some patterns match at the same position as other patterns.
+    ///
+    /// ```
+    /// # if cfg!(miri) { return Ok(()); } // miri takes too long
+    /// use regex_automata::{
+    ///     dfa::{Automaton, dense::DFA},
+    ///     Input, MatchKind, PatternSet,
+    /// };
+    ///
+    /// let patterns = &[
+    ///     r"[[:word:]]+",
+    ///     r"[0-9]+",
+    ///     r"[[:alpha:]]+",
+    ///     r"foo",
+    ///     r"bar",
+    ///     r"barfoo",
+    ///     r"foobar",
+    /// ];
+    /// let dfa = DFA::builder()
+    ///     .configure(DFA::config().match_kind(MatchKind::All))
+    ///     .build_many(patterns)?;
+    ///
+    /// let input = Input::new("foobar");
+    /// let mut patset = PatternSet::new(dfa.pattern_len());
+    /// dfa.try_which_overlapping_matches(&input, &mut patset)?;
+    /// let expected = vec![0, 2, 3, 4, 6];
+    /// let got: Vec<usize> = patset.iter().map(|p| p.as_usize()).collect();
+    /// assert_eq!(expected, got);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn try_which_overlapping_matches(
+        &self,
+        input: &Input<'_>,
+        patset: &mut PatternSet,
+    ) -> Result<(), MatchError> {
+        let mut state = OverlappingState::start();
+        while let Some(m) = {
+            self.try_search_overlapping_fwd(input, &mut state)?;
+            state.get_match()
+        } {
+            let _ = patset.insert(m.pattern());
+            // There's nothing left to find, so we can stop. Or the caller
+            // asked us to.
+            if patset.is_full() || input.get_earliest() {
+                break;
+            }
+        }
+        Ok(())
     }
 }
 
-unsafe impl<'a, T: Automaton> Automaton for &'a T {
+unsafe impl<'a, A: Automaton + ?Sized> Automaton for &'a A {
     #[inline]
     fn next_state(&self, current: StateID, input: u8) -> StateID {
         (**self).next_state(current, input)
@@ -1619,23 +1801,22 @@ unsafe impl<'a, T: Automaton> Automaton for &'a T {
     #[inline]
     fn start_state_forward(
         &self,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> StateID {
-        (**self).start_state_forward(pattern_id, bytes, start, end)
+        input: &Input<'_>,
+    ) -> Result<StateID, MatchError> {
+        (**self).start_state_forward(input)
     }
 
     #[inline]
     fn start_state_reverse(
         &self,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> StateID {
-        (**self).start_state_reverse(pattern_id, bytes, start, end)
+        input: &Input<'_>,
+    ) -> Result<StateID, MatchError> {
+        (**self).start_state_reverse(input)
+    }
+
+    #[inline]
+    fn universal_start_state(&self, mode: Anchored) -> Option<StateID> {
+        (**self).universal_start_state(mode)
     }
 
     #[inline]
@@ -1669,13 +1850,13 @@ unsafe impl<'a, T: Automaton> Automaton for &'a T {
     }
 
     #[inline]
-    fn pattern_count(&self) -> usize {
-        (**self).pattern_count()
+    fn pattern_len(&self) -> usize {
+        (**self).pattern_len()
     }
 
     #[inline]
-    fn match_count(&self, id: StateID) -> usize {
-        (**self).match_count(id)
+    fn match_len(&self, id: StateID) -> usize {
+        (**self).match_len(id)
     }
 
     #[inline]
@@ -1684,109 +1865,72 @@ unsafe impl<'a, T: Automaton> Automaton for &'a T {
     }
 
     #[inline]
+    fn has_empty(&self) -> bool {
+        (**self).has_empty()
+    }
+
+    #[inline]
+    fn is_utf8(&self) -> bool {
+        (**self).is_utf8()
+    }
+
+    #[inline]
+    fn is_always_start_anchored(&self) -> bool {
+        (**self).is_always_start_anchored()
+    }
+
+    #[inline]
     fn accelerator(&self, id: StateID) -> &[u8] {
         (**self).accelerator(id)
     }
 
     #[inline]
-    fn find_earliest_fwd(
-        &self,
-        bytes: &[u8],
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self).find_earliest_fwd(bytes)
+    fn get_prefilter(&self) -> Option<&Prefilter> {
+        (**self).get_prefilter()
     }
 
     #[inline]
-    fn find_earliest_rev(
+    fn try_search_fwd(
         &self,
-        bytes: &[u8],
+        input: &Input<'_>,
     ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self).find_earliest_rev(bytes)
+        (**self).try_search_fwd(input)
     }
 
     #[inline]
-    fn find_leftmost_fwd(
+    fn try_search_rev(
         &self,
-        bytes: &[u8],
+        input: &Input<'_>,
     ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self).find_leftmost_fwd(bytes)
+        (**self).try_search_rev(input)
     }
 
     #[inline]
-    fn find_leftmost_rev(
+    fn try_search_overlapping_fwd(
         &self,
-        bytes: &[u8],
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self).find_leftmost_rev(bytes)
-    }
-
-    #[inline]
-    fn find_overlapping_fwd(
-        &self,
-        bytes: &[u8],
+        input: &Input<'_>,
         state: &mut OverlappingState,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self).find_overlapping_fwd(bytes, state)
+    ) -> Result<(), MatchError> {
+        (**self).try_search_overlapping_fwd(input, state)
     }
 
     #[inline]
-    fn find_earliest_fwd_at(
+    fn try_search_overlapping_rev(
         &self,
-        pre: Option<&mut prefilter::Scanner>,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self).find_earliest_fwd_at(pre, pattern_id, bytes, start, end)
-    }
-
-    #[inline]
-    fn find_earliest_rev_at(
-        &self,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self).find_earliest_rev_at(pattern_id, bytes, start, end)
-    }
-
-    #[inline]
-    fn find_leftmost_fwd_at(
-        &self,
-        pre: Option<&mut prefilter::Scanner>,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self).find_leftmost_fwd_at(pre, pattern_id, bytes, start, end)
-    }
-
-    #[inline]
-    fn find_leftmost_rev_at(
-        &self,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self).find_leftmost_rev_at(pattern_id, bytes, start, end)
-    }
-
-    #[inline]
-    fn find_overlapping_fwd_at(
-        &self,
-        pre: Option<&mut prefilter::Scanner>,
-        pattern_id: Option<PatternID>,
-        bytes: &[u8],
-        start: usize,
-        end: usize,
+        input: &Input<'_>,
         state: &mut OverlappingState,
-    ) -> Result<Option<HalfMatch>, MatchError> {
-        (**self)
-            .find_overlapping_fwd_at(pre, pattern_id, bytes, start, end, state)
+    ) -> Result<(), MatchError> {
+        (**self).try_search_overlapping_rev(input, state)
+    }
+
+    #[cfg(feature = "alloc")]
+    #[inline]
+    fn try_which_overlapping_matches(
+        &self,
+        input: &Input<'_>,
+        patset: &mut PatternSet,
+    ) -> Result<(), MatchError> {
+        (**self).try_which_overlapping_matches(input, patset)
     }
 }
 
@@ -1799,15 +1943,21 @@ unsafe impl<'a, T: Automaton> Automaton for &'a T {
 /// the search at the next position. Additionally, it also tracks which state
 /// the last search call terminated in.
 ///
-/// This type provides no introspection capabilities. The only thing a caller
-/// can do is construct it and pass it around to permit search routines to use
-/// it to track state.
+/// This type provides little introspection capabilities. The only thing a
+/// caller can do is construct it and pass it around to permit search routines
+/// to use it to track state, and also ask whether a match has been found.
 ///
 /// Callers should always provide a fresh state constructed via
 /// [`OverlappingState::start`] when starting a new search. Reusing state from
 /// a previous search may result in incorrect results.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OverlappingState {
+    /// The match reported by the most recent overlapping search to use this
+    /// state.
+    ///
+    /// If a search does not find any matches, then it is expected to clear
+    /// this value.
+    pub(crate) mat: Option<HalfMatch>,
     /// The state ID of the state at which the search was in when the call
     /// terminated. When this is a match state, `last_match` must be set to a
     /// non-None value.
@@ -1816,50 +1966,96 @@ pub struct OverlappingState {
     /// automaton. We cannot use the actual ID, since any one automaton may
     /// have many start states, and which one is in use depends on several
     /// search-time factors.
-    id: Option<StateID>,
-    /// Information associated with a match when `id` corresponds to a match
-    /// state.
-    last_match: Option<StateMatch>,
-}
-
-/// Internal state about the last match that occurred. This records both the
-/// offset of the match and the match index.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct StateMatch {
-    /// The index into the matching patterns for the current match state.
-    pub(crate) match_index: usize,
-    /// The offset in the haystack at which the match occurred. This is used
-    /// when reporting multiple matches at the same offset. That is, when
-    /// an overlapping search runs, the first thing it checks is whether it's
-    /// already in a match state, and if so, whether there are more patterns
-    /// to report as matches in that state. If so, it increments `match_index`
-    /// and returns the pattern and this offset. Once `match_index` exceeds the
-    /// number of matching patterns in the current state, the search continues.
-    pub(crate) offset: usize,
+    pub(crate) id: Option<StateID>,
+    /// The position of the search.
+    ///
+    /// When `id` is None (i.e., we are starting a search), this is set to
+    /// the beginning of the search as given by the caller regardless of its
+    /// current value. Subsequent calls to an overlapping search pick up at
+    /// this offset.
+    pub(crate) at: usize,
+    /// The index into the matching patterns of the next match to report if the
+    /// current state is a match state. Note that this may be 1 greater than
+    /// the total number of matches to report for the current match state. (In
+    /// which case, no more matches should be reported at the current position
+    /// and the search should advance to the next position.)
+    pub(crate) next_match_index: Option<usize>,
+    /// This is set to true when a reverse overlapping search has entered its
+    /// EOI transitions.
+    ///
+    /// This isn't used in a forward search because it knows to stop once the
+    /// position exceeds the end of the search range. In a reverse search,
+    /// since we use unsigned offsets, we don't "know" once we've gone past
+    /// `0`. So the only way to detect it is with this extra flag. The reverse
+    /// overlapping search knows to terminate specifically after it has
+    /// reported all matches after following the EOI transition.
+    pub(crate) rev_eoi: bool,
 }
 
 impl OverlappingState {
     /// Create a new overlapping state that begins at the start state of any
     /// automaton.
     pub fn start() -> OverlappingState {
-        OverlappingState { id: None, last_match: None }
+        OverlappingState {
+            mat: None,
+            id: None,
+            at: 0,
+            next_match_index: None,
+            rev_eoi: false,
+        }
     }
 
-    pub(crate) fn id(&self) -> Option<StateID> {
-        self.id
+    /// Return the match result of the most recent search to execute with this
+    /// state.
+    ///
+    /// A searches will clear this result automatically, such that if no
+    /// match is found, this will correctly report `None`.
+    pub fn get_match(&self) -> Option<HalfMatch> {
+        self.mat
     }
+}
 
-    pub(crate) fn set_id(&mut self, id: StateID) {
-        self.id = Some(id);
-    }
+/// Runs the given overlapping `search` function (forwards or backwards) until
+/// a match is found whose offset does not split a codepoint.
+///
+/// This is *not* always correct to call. It should only be called when the DFA
+/// has UTF-8 mode enabled *and* it can produce zero-width matches. Calling
+/// this when both of those things aren't true might result in legitimate
+/// matches getting skipped.
+#[cold]
+#[inline(never)]
+fn skip_empty_utf8_splits_overlapping<F>(
+    input: &Input<'_>,
+    state: &mut OverlappingState,
+    mut search: F,
+) -> Result<(), MatchError>
+where
+    F: FnMut(&Input<'_>, &mut OverlappingState) -> Result<(), MatchError>,
+{
+    // Note that this routine works for forwards and reverse searches
+    // even though there's no code here to handle those cases. That's
+    // because overlapping searches drive themselves to completion via
+    // `OverlappingState`. So all we have to do is push it until no matches are
+    // found.
 
-    pub(crate) fn last_match(&mut self) -> Option<&mut StateMatch> {
-        self.last_match.as_mut()
+    let mut hm = match state.get_match() {
+        None => return Ok(()),
+        Some(hm) => hm,
+    };
+    if input.get_anchored().is_anchored() {
+        if !input.is_char_boundary(hm.offset()) {
+            state.mat = None;
+        }
+        return Ok(());
     }
-
-    pub(crate) fn set_last_match(&mut self, last_match: StateMatch) {
-        self.last_match = Some(last_match);
+    while !input.is_char_boundary(hm.offset()) {
+        search(input, state)?;
+        hm = match state.get_match() {
+            None => return Ok(()),
+            Some(hm) => hm,
+        };
     }
+    Ok(())
 }
 
 /// Write a prefix "state" indicator for fmt::Debug impls.
@@ -1900,4 +2096,25 @@ pub(crate) fn fmt_state_indicator<A: Automaton>(
         write!(f, "  ")?;
     }
     Ok(())
+}
+
+#[cfg(all(test, feature = "syntax", feature = "dfa-build"))]
+mod tests {
+    // A basic test ensuring that our Automaton trait is object safe. (This is
+    // the main reason why we don't define the search routines as generic over
+    // Into<Input>.)
+    #[test]
+    fn object_safe() {
+        use crate::{
+            dfa::{dense, Automaton},
+            HalfMatch, Input,
+        };
+
+        let dfa = dense::DFA::new("abc").unwrap();
+        let dfa: &dyn Automaton = &dfa;
+        assert_eq!(
+            Ok(Some(HalfMatch::must(0, 6))),
+            dfa.try_search_fwd(&Input::new(b"xyzabcxyz")),
+        );
+    }
 }

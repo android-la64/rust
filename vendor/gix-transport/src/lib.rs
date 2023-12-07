@@ -21,7 +21,6 @@ pub use gix_packetline as packetline;
 /// The version of the way client and server communicate.
 #[derive(Default, PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[allow(missing_docs)]
 pub enum Protocol {
     /// Version 0 is like V1, but doesn't show capabilities at all, at least when hosted without `git-daemon`.
     V0 = 0,
@@ -86,10 +85,7 @@ pub use traits::IsSpuriousError;
 pub mod client;
 
 #[doc(inline)]
-#[cfg(any(
-    feature = "blocking-client",
-    all(feature = "async-client", any(feature = "async-std"))
-))]
+#[cfg(any(feature = "blocking-client", all(feature = "async-client", feature = "async-std")))]
 pub use client::connect;
 
 #[cfg(all(feature = "async-client", feature = "blocking-client"))]

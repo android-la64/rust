@@ -31,6 +31,7 @@ fn main() {
             Message {
                 message:"Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             }
         ]
     ];
@@ -42,13 +43,11 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
-        [Error::PatternNotFound {
-            definition_line: 5, ..
-        }, Error::ErrorsWithoutPattern {
-            path: Some((_, 5)), ..
-        }] => {}
+        [Error::PatternNotFound { pattern, .. }, Error::ErrorsWithoutPattern { path, .. }]
+            if path.as_ref().is_some_and(|p| p.line().get() == 5) && pattern.line().get() == 5 => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -69,6 +68,7 @@ fn main() {
                 Message {
                     message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                     level: Level::Error,
+                    line_col: None,
                 }
             ]
         ];
@@ -81,7 +81,8 @@ fn main() {
             &config,
             "",
             &comments,
-        );
+        )
+        .unwrap();
         match &errors[..] {
             [] => {}
             _ => panic!("{:#?}", errors),
@@ -94,6 +95,7 @@ fn main() {
                 Message {
                     message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                     level: Level::Error,
+                    line_col: None,
                 }
             ]
         ];
@@ -106,13 +108,12 @@ fn main() {
             &config,
             "",
             &comments,
-        );
+        )
+        .unwrap();
         match &errors[..] {
-            [Error::PatternNotFound {
-                definition_line: 5, ..
-            }, Error::ErrorsWithoutPattern {
-                path: Some((_, 4)), ..
-            }] => {}
+            [Error::PatternNotFound { pattern, .. }, Error::ErrorsWithoutPattern { path, .. }]
+                if path.as_ref().is_some_and(|p| p.line().get() == 4)
+                    && pattern.line().get() == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -125,6 +126,7 @@ fn main() {
                 Message {
                     message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                     level: Level::Note,
+                    line_col: None,
                 }
             ]
         ];
@@ -137,12 +139,11 @@ fn main() {
             &config,
             "",
             &comments,
-        );
+        )
+        .unwrap();
         match &errors[..] {
             // Note no `ErrorsWithoutPattern`, because there are no `//~NOTE` in the test file, so we ignore them
-            [Error::PatternNotFound {
-                definition_line: 5, ..
-            }] => {}
+            [Error::PatternNotFound { pattern, .. }] if pattern.line().get() == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -166,6 +167,7 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             }
         ]
     ];
@@ -178,11 +180,10 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
-        [Error::PatternNotFound {
-            definition_line: 6, ..
-        }] => {}
+        [Error::PatternNotFound { pattern, .. }] if pattern.line().get() == 6 => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -204,10 +205,12 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             },
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             }
         ]
     ];
@@ -220,11 +223,11 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
-        [Error::ErrorsWithoutPattern {
-            path: Some((_, 5)), ..
-        }] => {}
+        [Error::ErrorsWithoutPattern { path, .. }]
+            if path.as_ref().is_some_and(|p| p.line().get() == 5) => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -251,14 +254,17 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             },
             Message {
                 message: "kaboom".to_string(),
                 level: Level::Warn,
+                line_col: None,
             },
             Message {
                 message: "cake".to_string(),
                 level: Level::Warn,
+                line_col: None,
             },
         ],
     ];
@@ -271,19 +277,21 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
-        [Error::ErrorsWithoutPattern {
-            path: Some((_, 5)),
-            msgs,
-            ..
-        }] => match &msgs[..] {
-            [Message {
-                message,
-                level: Level::Warn,
-            }] if message == "kaboom" => {}
-            _ => panic!("{:#?}", msgs),
-        },
+        [Error::ErrorsWithoutPattern { path, msgs, .. }]
+            if path.as_ref().is_some_and(|p| p.line().get() == 5) =>
+        {
+            match &msgs[..] {
+                [Message {
+                    message,
+                    level: Level::Warn,
+                    line_col: _,
+                }] if message == "kaboom" => {}
+                _ => panic!("{:#?}", msgs),
+            }
+        }
         _ => panic!("{:#?}", errors),
     }
 }
@@ -310,14 +318,17 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             },
             Message {
                 message: "kaboom".to_string(),
                 level: Level::Warn,
+                line_col: None,
             },
             Message {
                 message: "cake".to_string(),
                 level: Level::Warn,
+                line_col: None,
             },
         ],
     ];
@@ -330,7 +341,8 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
         [] => {}
         _ => panic!("{:#?}", errors),

@@ -421,7 +421,12 @@ impl<'cmd> Parser<'cmd> {
                 sc_m.start_occurrence_of_external(self.cmd);
 
                 for raw_val in raw_args.remaining(&mut args_cursor) {
-                    let val = ok!(external_parser.parse_ref(self.cmd, None, raw_val));
+                    let val = ok!(external_parser.parse_ref(
+                        self.cmd,
+                        None,
+                        raw_val,
+                        ValueSource::CommandLine
+                    ));
                     let external_id = Id::from_static_ref(Id::EXTERNAL);
                     sc_m.add_val_to(&external_id, val, raw_val.to_os_string());
                 }
@@ -539,19 +544,24 @@ impl<'cmd> Parser<'cmd> {
             if self.cmd.is_infer_subcommands_set() {
                 // For subcommand `test`, we accepts it's prefix: `t`, `te`,
                 // `tes` and `test`.
-                let v = self
-                    .cmd
-                    .all_subcommand_names()
-                    .filter(|s| s.starts_with(arg))
-                    .collect::<Vec<_>>();
+                let mut iter = self.cmd.get_subcommands().filter_map(|s| {
+                    if s.get_name().starts_with(arg) {
+                        return Some(s.get_name());
+                    }
 
-                if v.len() == 1 {
-                    return Some(v[0]);
+                    // Use find here instead of chaining the iterator because we want to accept
+                    // conflicts in aliases.
+                    s.get_all_aliases().find(|s| s.starts_with(arg))
+                });
+
+                if let name @ Some(_) = iter.next() {
+                    if iter.next().is_none() {
+                        return name;
+                    }
                 }
-
-                // If there is any ambiguity, fallback to non-infer subcommand
-                // search.
             }
+            // Don't use an else here because we want inference to support exact matching even if
+            // there are conflicts.
             if let Some(sc) = self.cmd.find_subcommand(arg) {
                 return Some(sc.get_name());
             }
@@ -563,28 +573,29 @@ impl<'cmd> Parser<'cmd> {
     fn possible_long_flag_subcommand(&self, arg: &str) -> Option<&str> {
         debug!("Parser::possible_long_flag_subcommand: arg={arg:?}");
         if self.cmd.is_infer_subcommands_set() {
-            let options = self
-                .cmd
-                .get_subcommands()
-                .fold(Vec::new(), |mut options, sc| {
-                    if let Some(long) = sc.get_long_flag() {
-                        if long.starts_with(arg) {
-                            options.push(long);
-                        }
-                        options.extend(sc.get_all_aliases().filter(|alias| alias.starts_with(arg)))
+            let mut iter = self.cmd.get_subcommands().filter_map(|sc| {
+                sc.get_long_flag().and_then(|long| {
+                    if long.starts_with(arg) {
+                        Some(sc.get_name())
+                    } else {
+                        sc.get_all_long_flag_aliases().find_map(|alias| {
+                            if alias.starts_with(arg) {
+                                Some(sc.get_name())
+                            } else {
+                                None
+                            }
+                        })
                     }
-                    options
-                });
-            if options.len() == 1 {
-                return Some(options[0]);
-            }
+                })
+            });
 
-            for sc in options {
-                if sc == arg {
-                    return Some(sc);
+            if let name @ Some(_) = iter.next() {
+                if iter.next().is_none() {
+                    return name;
                 }
             }
-        } else if let Some(sc_name) = self.cmd.find_long_subcmd(arg) {
+        }
+        if let Some(sc_name) = self.cmd.find_long_subcmd(arg) {
             return Some(sc_name);
         }
         None
@@ -1032,6 +1043,7 @@ impl<'cmd> Parser<'cmd> {
         &self,
         arg: &Arg,
         raw_vals: Vec<OsString>,
+        source: ValueSource,
         matcher: &mut ArgMatcher,
     ) -> ClapResult<()> {
         debug!("Parser::push_arg_values: {raw_vals:?}");
@@ -1044,7 +1056,7 @@ impl<'cmd> Parser<'cmd> {
                 self.cur_idx.get()
             );
             let value_parser = arg.get_value_parser();
-            let val = ok!(value_parser.parse_ref(self.cmd, Some(arg), &raw_val));
+            let val = ok!(value_parser.parse_ref(self.cmd, Some(arg), &raw_val, source));
 
             matcher.add_val_to(arg.get_id(), val, raw_val);
             matcher.add_index_to(arg.get_id(), self.cur_idx.get());
@@ -1153,7 +1165,7 @@ impl<'cmd> Parser<'cmd> {
                     ));
                 }
                 self.start_custom_arg(matcher, arg, source);
-                ok!(self.push_arg_values(arg, raw_vals, matcher));
+                ok!(self.push_arg_values(arg, raw_vals, source, matcher));
                 if cfg!(debug_assertions) && matcher.needs_more_vals(arg) {
                     debug!(
                         "Parser::react not enough values passed in, leaving it to the validator to complain",
@@ -1170,7 +1182,7 @@ impl<'cmd> Parser<'cmd> {
                     debug!("Parser::react: cur_idx:={}", self.cur_idx.get());
                 }
                 self.start_custom_arg(matcher, arg, source);
-                ok!(self.push_arg_values(arg, raw_vals, matcher));
+                ok!(self.push_arg_values(arg, raw_vals, source, matcher));
                 if cfg!(debug_assertions) && matcher.needs_more_vals(arg) {
                     debug!(
                         "Parser::react not enough values passed in, leaving it to the validator to complain",
@@ -1196,7 +1208,7 @@ impl<'cmd> Parser<'cmd> {
                     ));
                 }
                 self.start_custom_arg(matcher, arg, source);
-                ok!(self.push_arg_values(arg, raw_vals, matcher));
+                ok!(self.push_arg_values(arg, raw_vals, source, matcher));
                 Ok(ParseResult::ValuesDone)
             }
             ArgAction::SetFalse => {
@@ -1217,7 +1229,7 @@ impl<'cmd> Parser<'cmd> {
                     ));
                 }
                 self.start_custom_arg(matcher, arg, source);
-                ok!(self.push_arg_values(arg, raw_vals, matcher));
+                ok!(self.push_arg_values(arg, raw_vals, source, matcher));
                 Ok(ParseResult::ValuesDone)
             }
             ArgAction::Count => {
@@ -1233,7 +1245,7 @@ impl<'cmd> Parser<'cmd> {
 
                 matcher.remove(arg.get_id());
                 self.start_custom_arg(matcher, arg, source);
-                ok!(self.push_arg_values(arg, raw_vals, matcher));
+                ok!(self.push_arg_values(arg, raw_vals, source, matcher));
                 Ok(ParseResult::ValuesDone)
             }
             ArgAction::Help => {
@@ -1521,6 +1533,7 @@ impl<'cmd> Parser<'cmd> {
                 self.start_custom_arg(matcher, arg, ValueSource::CommandLine);
             }
         }
+        let did_you_mean = did_you_mean.map(|(arg, cmd)| (format!("--{arg}"), cmd));
 
         let required = self.cmd.required_graph();
         let used: Vec<Id> = matcher

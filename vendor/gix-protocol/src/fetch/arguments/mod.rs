@@ -129,11 +129,11 @@ impl Arguments {
             self.prefixed("deepen ", depth);
         }
     }
-    /// Deepen the commit history to include all commits from now to `seconds_since_unix_epoch`.
-    pub fn deepen_since(&mut self, seconds_since_unix_epoch: usize) {
+    /// Deepen the commit history to include all commits from now to (and including) `seconds` as passed since UNIX epoch.
+    pub fn deepen_since(&mut self, seconds: gix_date::SecondsSinceUnixEpoch) {
         debug_assert!(self.deepen_since, "'deepen-since' feature required");
         if self.deepen_since {
-            self.prefixed("deepen-since ", seconds_since_unix_epoch);
+            self.prefixed("deepen-since ", seconds);
         }
     }
     /// Deepen the commit history in a relative instead of absolute fashion.
@@ -165,20 +165,30 @@ impl Arguments {
     pub fn use_include_tag(&mut self) {
         debug_assert!(self.supports_include_tag, "'include-tag' feature required");
         if self.supports_include_tag {
-            match self.version {
-                gix_transport::Protocol::V0 | gix_transport::Protocol::V1 => {
-                    let features = self
-                        .features_for_first_want
-                        .as_mut()
-                        .expect("call use_include_tag before want()");
-                    features.push("include-tag".into())
-                }
-                gix_transport::Protocol::V2 => {
-                    self.args.push("include-tag".into());
-                }
+            self.add_feature("include-tag");
+        }
+    }
+
+    /// Add the given `feature`, unconditionally.
+    ///
+    /// Note that sending an unknown or unsupported feature may cause the remote to terminate
+    /// the connection. Use this method if you know what you are doing *and* there is no specialized
+    /// method for this, e.g. [`Self::use_include_tag()`].
+    pub fn add_feature(&mut self, feature: &str) {
+        match self.version {
+            gix_transport::Protocol::V0 | gix_transport::Protocol::V1 => {
+                let features = self
+                    .features_for_first_want
+                    .as_mut()
+                    .expect("call add_feature before first want()");
+                features.push(feature.into())
+            }
+            gix_transport::Protocol::V2 => {
+                self.args.push(feature.into());
             }
         }
     }
+
     fn prefixed(&mut self, prefix: &str, value: impl fmt::Display) {
         self.args.push(format!("{prefix}{value}").into());
     }

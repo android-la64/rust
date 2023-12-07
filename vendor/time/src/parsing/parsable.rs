@@ -9,6 +9,7 @@ use crate::format_description::well_known::{Iso8601, Rfc2822, Rfc3339};
 use crate::format_description::FormatItem;
 #[cfg(feature = "alloc")]
 use crate::format_description::OwnedFormatItem;
+use crate::internal_macros::bug;
 use crate::parsing::{Parsed, ParsedItem};
 use crate::{error, Date, DateTime, Month, Time, UtcOffset, Weekday};
 
@@ -52,7 +53,9 @@ mod sealed {
             if self.parse_into(input, &mut parsed)?.is_empty() {
                 Ok(parsed)
             } else {
-                Err(error::Parse::UnexpectedTrailingCharacters)
+                Err(error::Parse::ParseFromDescription(
+                    error::ParseFromDescription::UnexpectedTrailingCharacters,
+                ))
             }
         }
 
@@ -237,7 +240,7 @@ impl sealed::Sealed for Rfc2822 {
         };
 
         // The RFC explicitly allows leap seconds.
-        parsed.set_flag(Parsed::LEAP_SECOND_ALLOWED_FLAG, true);
+        parsed.leap_second_allowed = true;
 
         #[allow(clippy::unnecessary_lazy_evaluations)] // rust-lang/rust-clippy#8522
         let zone_literal = first_match(
@@ -430,7 +433,9 @@ impl sealed::Sealed for Rfc2822 {
         };
 
         if !input.is_empty() {
-            return Err(error::Parse::UnexpectedTrailingCharacters);
+            return Err(error::Parse::ParseFromDescription(
+                error::ParseFromDescription::UnexpectedTrailingCharacters,
+            ));
         }
 
         let mut nanosecond = 0;
@@ -533,7 +538,7 @@ impl sealed::Sealed for Rfc3339 {
         };
 
         // The RFC explicitly allows leap seconds.
-        parsed.set_flag(Parsed::LEAP_SECOND_ALLOWED_FLAG, true);
+        parsed.leap_second_allowed = true;
 
         if let Some(ParsedItem(input, ())) = ascii_char_ignore_case::<b'Z'>(input) {
             parsed
@@ -662,7 +667,9 @@ impl sealed::Sealed for Rfc3339 {
         };
 
         if !input.is_empty() {
-            return Err(error::Parse::UnexpectedTrailingCharacters);
+            return Err(error::Parse::ParseFromDescription(
+                error::ParseFromDescription::UnexpectedTrailingCharacters,
+            ));
         }
 
         // The RFC explicitly permits leap seconds. We don't currently support them, so treat it as

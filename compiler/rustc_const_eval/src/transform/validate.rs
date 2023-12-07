@@ -6,19 +6,17 @@ use rustc_index::IndexVec;
 use rustc_infer::traits::Reveal;
 use rustc_middle::mir::interpret::Scalar;
 use rustc_middle::mir::visit::{NonUseContext, PlaceContext, Visitor};
-use rustc_middle::mir::{
-    traversal, BasicBlock, BinOp, Body, BorrowKind, CastKind, CopyNonOverlapping, Local, Location,
-    MirPass, MirPhase, NonDivergingIntrinsic, NullOp, Operand, Place, PlaceElem, PlaceRef,
-    ProjectionElem, RetagKind, RuntimePhase, Rvalue, SourceScope, Statement, StatementKind,
-    Terminator, TerminatorKind, UnOp, UnwindAction, VarDebugInfo, VarDebugInfoContents,
-    START_BLOCK,
-};
-use rustc_middle::ty::{self, InstanceDef, ParamEnv, Ty, TyCtxt, TypeVisitableExt};
+use rustc_middle::mir::*;
+use rustc_middle::ty::{self, InstanceDef, ParamEnv, Ty, TyCtxt, TypeVisitableExt, Variance};
 use rustc_mir_dataflow::impls::MaybeStorageLive;
 use rustc_mir_dataflow::storage::always_storage_live_locals;
 use rustc_mir_dataflow::{Analysis, ResultsCursor};
 use rustc_target::abi::{Size, FIRST_VARIANT};
 use rustc_target::spec::abi::Abi;
+
+use crate::util::is_within_packed;
+
+use crate::util::relate_types;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum EdgeKind {
@@ -93,6 +91,7 @@ impl<'tcx> MirPass<'tcx> for Validator {
         cfg_checker.visit_body(body);
         cfg_checker.check_cleanup_control_flow();
 
+        // Also run the TypeChecker.
         for (location, msg) in validate_types(tcx, self.mir_phase, param_env, body) {
             cfg_checker.fail(location, msg);
         }
@@ -274,7 +273,16 @@ impl<'a, 'tcx> CfgChecker<'a, 'tcx> {
                     self.fail(location, "`UnwindAction::Continue` in no-unwind function");
                 }
             }
-            UnwindAction::Unreachable | UnwindAction::Terminate => (),
+            UnwindAction::Terminate(UnwindTerminateReason::InCleanup) => {
+                if !is_cleanup {
+                    self.fail(
+                        location,
+                        "`UnwindAction::Terminate(InCleanup)` in a non-cleanup block",
+                    );
+                }
+            }
+            // These are allowed everywhere.
+            UnwindAction::Unreachable | UnwindAction::Terminate(UnwindTerminateReason::Abi) => (),
         }
     }
 }
@@ -418,14 +426,34 @@ impl<'a, 'tcx> Visitor<'tcx> for CfgChecker<'a, 'tcx> {
                 self.check_unwind_edge(location, *unwind);
 
                 // The call destination place and Operand::Move place used as an argument might be
-                // passed by a reference to the callee. Consequently they must be non-overlapping.
-                // Currently this simply checks for duplicate places.
+                // passed by a reference to the callee. Consequently they must be non-overlapping
+                // and cannot be packed. Currently this simply checks for duplicate places.
                 self.place_cache.clear();
                 self.place_cache.insert(destination.as_ref());
+                if is_within_packed(self.tcx, &self.body.local_decls, *destination).is_some() {
+                    // This is bad! The callee will expect the memory to be aligned.
+                    self.fail(
+                        location,
+                        format!(
+                            "encountered packed place in `Call` terminator destination: {:?}",
+                            terminator.kind,
+                        ),
+                    );
+                }
                 let mut has_duplicates = false;
                 for arg in args {
                     if let Operand::Move(place) = arg {
                         has_duplicates |= !self.place_cache.insert(place.as_ref());
+                        if is_within_packed(self.tcx, &self.body.local_decls, *place).is_some() {
+                            // This is bad! The callee will expect the memory to be aligned.
+                            self.fail(
+                                location,
+                                format!(
+                                    "encountered `Move` of a packed place in `Call` terminator: {:?}",
+                                    terminator.kind,
+                                ),
+                            );
+                        }
                     }
                 }
 
@@ -433,7 +461,7 @@ impl<'a, 'tcx> Visitor<'tcx> for CfgChecker<'a, 'tcx> {
                     self.fail(
                         location,
                         format!(
-                            "encountered overlapping memory in `Call` terminator: {:?}",
+                            "encountered overlapping memory in `Move` arguments to `Call` terminator: {:?}",
                             terminator.kind,
                         ),
                     );
@@ -492,19 +520,19 @@ impl<'a, 'tcx> Visitor<'tcx> for CfgChecker<'a, 'tcx> {
                     );
                 }
             }
-            TerminatorKind::Resume => {
+            TerminatorKind::UnwindResume => {
                 let bb = location.block;
                 if !self.body.basic_blocks[bb].is_cleanup {
-                    self.fail(location, "Cannot `Resume` from non-cleanup basic block")
+                    self.fail(location, "Cannot `UnwindResume` from non-cleanup basic block")
                 }
                 if !self.can_unwind {
-                    self.fail(location, "Cannot `Resume` in a function that cannot unwind")
+                    self.fail(location, "Cannot `UnwindResume` in a function that cannot unwind")
                 }
             }
-            TerminatorKind::Terminate => {
+            TerminatorKind::UnwindTerminate(_) => {
                 let bb = location.block;
                 if !self.body.basic_blocks[bb].is_cleanup {
-                    self.fail(location, "Cannot `Terminate` from non-cleanup basic block")
+                    self.fail(location, "Cannot `UnwindTerminate` from non-cleanup basic block")
                 }
             }
             TerminatorKind::Return => {
@@ -532,6 +560,8 @@ impl<'a, 'tcx> Visitor<'tcx> for CfgChecker<'a, 'tcx> {
     }
 }
 
+/// A faster version of the validation pass that only checks those things which may break when
+/// instantiating any generic parameters.
 pub fn validate_types<'tcx>(
     tcx: TyCtxt<'tcx>,
     mir_phase: MirPhase,
@@ -574,7 +604,15 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             return true;
         }
 
-        crate::util::is_subtype(self.tcx, self.param_env, src, dest)
+        // After borrowck subtyping should be fully explicit via
+        // `Subtype` projections.
+        let variance = if self.mir_phase >= MirPhase::Runtime(RuntimePhase::Initial) {
+            Variance::Invariant
+        } else {
+            Variance::Covariant
+        };
+
+        crate::util::relate_types(self.tcx, self.param_env, variance, src, dest)
     }
 }
 
@@ -605,6 +643,14 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
         location: Location,
     ) {
         match elem {
+            ProjectionElem::OpaqueCast(ty)
+                if self.mir_phase >= MirPhase::Runtime(RuntimePhase::Initial) =>
+            {
+                self.fail(
+                    location,
+                    format!("explicit opaque type cast to `{ty}` after `RevealAll`"),
+                )
+            }
             ProjectionElem::Index(index) => {
                 let index_ty = self.body.local_decls[index].ty;
                 if index_ty != self.tcx.types.usize {
@@ -717,43 +763,60 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                     }
                 }
             }
+            ProjectionElem::Subtype(ty) => {
+                if !relate_types(
+                    self.tcx,
+                    self.param_env,
+                    Variance::Covariant,
+                    ty,
+                    place_ref.ty(&self.body.local_decls, self.tcx).ty,
+                ) {
+                    self.fail(
+                        location,
+                        format!(
+                            "Failed subtyping {ty:#?} and {:#?}",
+                            place_ref.ty(&self.body.local_decls, self.tcx).ty
+                        ),
+                    )
+                }
+            }
             _ => {}
         }
         self.super_projection_elem(place_ref, elem, context, location);
     }
 
     fn visit_var_debug_info(&mut self, debuginfo: &VarDebugInfo<'tcx>) {
-        let check_place = |this: &mut Self, place: Place<'_>| {
-            if place.projection.iter().any(|p| !p.can_use_in_debuginfo()) {
-                this.fail(
+        if let Some(box VarDebugInfoFragment { ty, ref projection }) = debuginfo.composite {
+            if ty.is_union() || ty.is_enum() {
+                self.fail(
                     START_BLOCK.start_location(),
-                    format!("illegal place {:?} in debuginfo for {:?}", place, debuginfo.name),
+                    format!("invalid type {ty:?} in debuginfo for {:?}", debuginfo.name),
                 );
             }
-        };
+            if projection.is_empty() {
+                self.fail(
+                    START_BLOCK.start_location(),
+                    format!("invalid empty projection in debuginfo for {:?}", debuginfo.name),
+                );
+            }
+            if projection.iter().any(|p| !matches!(p, PlaceElem::Field(..))) {
+                self.fail(
+                    START_BLOCK.start_location(),
+                    format!(
+                        "illegal projection {:?} in debuginfo for {:?}",
+                        projection, debuginfo.name
+                    ),
+                );
+            }
+        }
         match debuginfo.value {
             VarDebugInfoContents::Const(_) => {}
             VarDebugInfoContents::Place(place) => {
-                check_place(self, place);
-            }
-            VarDebugInfoContents::Composite { ty, ref fragments } => {
-                for f in fragments {
-                    check_place(self, f.contents);
-                    if ty.is_union() || ty.is_enum() {
-                        self.fail(
-                            START_BLOCK.start_location(),
-                            format!("invalid type {ty:?} for composite debuginfo"),
-                        );
-                    }
-                    if f.projection.iter().any(|p| !matches!(p, PlaceElem::Field(..))) {
-                        self.fail(
-                            START_BLOCK.start_location(),
-                            format!(
-                                "illegal projection {:?} in debuginfo for {:?}",
-                                f.projection, debuginfo.name
-                            ),
-                        );
-                    }
+                if place.projection.iter().any(|p| !p.can_use_in_debuginfo()) {
+                    self.fail(
+                        START_BLOCK.start_location(),
+                        format!("illegal place {:?} in debuginfo for {:?}", place, debuginfo.name),
+                    );
                 }
             }
         }
@@ -785,11 +848,11 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
         }
         match rvalue {
             Rvalue::Use(_) | Rvalue::CopyForDeref(_) | Rvalue::Aggregate(..) => {}
-            Rvalue::Ref(_, BorrowKind::Shallow, _) => {
+            Rvalue::Ref(_, BorrowKind::Fake, _) => {
                 if self.mir_phase >= MirPhase::Runtime(RuntimePhase::Initial) {
                     self.fail(
                         location,
-                        "`Assign` statement with a `Shallow` borrow should have been removed in runtime MIR",
+                        "`Assign` statement with a `Fake` borrow should have been removed in runtime MIR",
                     );
                 }
             }
@@ -1052,6 +1115,7 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
                 // LHS and RHS of the assignment must have the same type.
                 let left_ty = dest.ty(&self.body.local_decls, self.tcx).ty;
                 let right_ty = rvalue.ty(&self.body.local_decls, self.tcx);
+
                 if !self.mir_assign_valid_types(right_ty, left_ty) {
                     self.fail(
                         location,
@@ -1232,8 +1296,8 @@ impl<'a, 'tcx> Visitor<'tcx> for TypeChecker<'a, 'tcx> {
             | TerminatorKind::FalseUnwind { .. }
             | TerminatorKind::InlineAsm { .. }
             | TerminatorKind::GeneratorDrop
-            | TerminatorKind::Resume
-            | TerminatorKind::Terminate
+            | TerminatorKind::UnwindResume
+            | TerminatorKind::UnwindTerminate(_)
             | TerminatorKind::Return
             | TerminatorKind::Unreachable => {}
         }

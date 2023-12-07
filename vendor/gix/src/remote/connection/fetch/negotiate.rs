@@ -1,12 +1,13 @@
 use std::borrow::Cow;
 
+use gix_date::SecondsSinceUnixEpoch;
 use gix_negotiate::Flags;
 use gix_odb::HeaderExt;
 use gix_pack::Find;
 
 use crate::remote::{fetch, fetch::Shallow};
 
-type Queue = gix_revision::PriorityQueue<gix_revision::graph::CommitterTimestamp, gix_hash::ObjectId>;
+type Queue = gix_revwalk::PriorityQueue<SecondsSinceUnixEpoch, gix_hash::ObjectId>;
 
 /// The error returned during negotiation.
 #[derive(Debug, thiserror::Error)]
@@ -15,7 +16,7 @@ pub enum Error {
     #[error("We were unable to figure out what objects the server should send after {rounds} round(s)")]
     NegotiationFailed { rounds: usize },
     #[error(transparent)]
-    LookupCommitInGraph(#[from] gix_revision::graph::lookup::commit::Error),
+    LookupCommitInGraph(#[from] gix_revwalk::graph::lookup::commit::Error),
     #[error(transparent)]
     InitRefsIterator(#[from] crate::reference::iter::init::Error),
     #[error(transparent)]
@@ -67,7 +68,9 @@ pub(crate) fn mark_complete_and_common_ref(
     graph: &mut gix_negotiate::Graph<'_>,
     ref_map: &fetch::RefMap,
     shallow: &fetch::Shallow,
+    mapping_is_ignored: impl Fn(&fetch::Mapping) -> bool,
 ) -> Result<Action, Error> {
+    let _span = gix_trace::detail!("mark_complete_and_common_ref", mappings = ref_map.mappings.len());
     if let fetch::Shallow::Deepen(0) = shallow {
         // Avoid deepening (relative) with zero as it seems to upset the server. Git also doesn't actually
         // perform the negotiation for some reason (couldn't find it in code).
@@ -85,9 +88,10 @@ pub(crate) fn mark_complete_and_common_ref(
 
     // Compute the cut-off date by checking which of the refs advertised (and matched in refspecs) by the remote we have,
     // and keep the oldest one.
-    let mut cutoff_date = None::<gix_revision::graph::CommitterTimestamp>;
+    let mut cutoff_date = None::<SecondsSinceUnixEpoch>;
     let mut num_mappings_with_change = 0;
     let mut remote_ref_target_known: Vec<bool> = std::iter::repeat(false).take(ref_map.mappings.len()).collect();
+    let mut remote_ref_included: Vec<bool> = std::iter::repeat(false).take(ref_map.mappings.len()).collect();
 
     for (mapping_idx, mapping) in ref_map.mappings.iter().enumerate() {
         let want_id = mapping.remote.as_id();
@@ -97,9 +101,13 @@ pub(crate) fn mark_complete_and_common_ref(
             r.target().try_id().map(ToOwned::to_owned)
         });
 
-        // Like git, we don't let known unchanged mappings participate in the tree traversal
-        if want_id.zip(have_id).map_or(true, |(want, have)| want != have) {
-            num_mappings_with_change += 1;
+        // Even for ignored mappings we want to know if the `want` is already present locally, so skip nothing else.
+        if !mapping_is_ignored(mapping) {
+            remote_ref_included[mapping_idx] = true;
+            // Like git, we don't let known unchanged mappings participate in the tree traversal
+            if want_id.zip(have_id).map_or(true, |(want, have)| want != have) {
+                num_mappings_with_change += 1;
+            }
         }
 
         if let Some(commit) = want_id
@@ -113,11 +121,15 @@ pub(crate) fn mark_complete_and_common_ref(
         }
     }
 
-    // If any kind of shallowing operation is desired, the server may still create a pack for us.
     if matches!(shallow, Shallow::NoChange) {
         if num_mappings_with_change == 0 {
             return Ok(Action::NoChange);
-        } else if remote_ref_target_known.iter().all(|known| *known) {
+        } else if remote_ref_target_known
+            .iter()
+            .zip(remote_ref_included)
+            .filter_map(|(known, included)| included.then_some(known))
+            .all(|known| *known)
+        {
             return Ok(Action::SkipToRefUpdate);
         }
     }
@@ -137,33 +149,64 @@ pub(crate) fn mark_complete_and_common_ref(
         Cow::Borrowed(&queue)
     };
 
-    // mark all complete advertised refs as common refs.
-    for mapping in ref_map
-        .mappings
-        .iter()
-        .zip(remote_ref_target_known.iter().copied())
-        // We need this filter as the graph wouldn't contain annotated tags.
-        .filter_map(|(mapping, known)| (!known).then_some(mapping))
-    {
-        let want_id = mapping.remote.as_id();
-        if let Some(common_id) = want_id
-            .and_then(|id| graph.get(id).map(|c| (c, id)))
-            .filter(|(c, _)| c.data.flags.contains(Flags::COMPLETE))
-            .map(|(_, id)| id)
+    gix_trace::detail!("mark known_common").into_scope(|| -> Result<_, Error> {
+        // mark all complete advertised refs as common refs.
+        for mapping in ref_map
+            .mappings
+            .iter()
+            .zip(remote_ref_target_known.iter().copied())
+            // We need this filter as the graph wouldn't contain annotated tags.
+            .filter_map(|(mapping, known)| (!known).then_some(mapping))
         {
-            negotiator.known_common(common_id.into(), graph)?;
+            let want_id = mapping.remote.as_id();
+            if let Some(common_id) = want_id
+                .and_then(|id| graph.get(id).map(|c| (c, id)))
+                .filter(|(c, _)| c.data.flags.contains(Flags::COMPLETE))
+                .map(|(_, id)| id)
+            {
+                negotiator.known_common(common_id.into(), graph)?;
+            }
         }
-    }
+        Ok(())
+    })?;
 
     // As negotiators currently may rely on getting `known_common` calls first and tips after, we adhere to that which is the only
     // reason we cached the set of tips.
-    for tip in tips.iter_unordered() {
-        negotiator.add_tip(*tip, graph)?;
-    }
+    gix_trace::detail!("mark tips", num_tips = tips.len()).into_scope(|| -> Result<_, Error> {
+        for tip in tips.iter_unordered() {
+            negotiator.add_tip(*tip, graph)?;
+        }
+        Ok(())
+    })?;
 
     Ok(Action::MustNegotiate {
         remote_ref_target_known,
     })
+}
+
+/// Create a predicate that checks if a refspec mapping should be ignored.
+///
+/// We want to ignore mappings during negotiation if they would be handled implicitly by the server, which is the case
+/// when tags would be sent implicitly due to `Tags::Included`.
+pub(crate) fn make_refmapping_ignore_predicate(
+    fetch_tags: fetch::Tags,
+    ref_map: &fetch::RefMap,
+) -> impl Fn(&fetch::Mapping) -> bool + '_ {
+    // With included tags, we have to keep mappings of tags to handle them later when updating refs, but we don't want to
+    // explicitly `want` them as the server will determine by itself which tags are pointing to a commit it wants to send.
+    // If we would not exclude implicit tag mappings like this, we would get too much of the graph.
+    let tag_refspec_to_ignore = matches!(fetch_tags, crate::remote::fetch::Tags::Included)
+        .then(|| fetch_tags.to_refspec())
+        .flatten();
+    move |mapping| {
+        tag_refspec_to_ignore.map_or(false, |tag_spec| {
+            mapping
+                .spec_index
+                .implicit_index()
+                .and_then(|idx| ref_map.extra_refspecs.get(idx))
+                .map_or(false, |spec| spec.to_ref() == tag_spec)
+        })
+    }
 }
 
 /// Add all `wants` to `arguments`, which is the unpeeled direct target that the advertised remote ref points to.
@@ -173,15 +216,8 @@ pub(crate) fn add_wants(
     ref_map: &fetch::RefMap,
     mapping_known: &[bool],
     shallow: &fetch::Shallow,
-    fetch_tags: fetch::Tags,
+    mapping_is_ignored: impl Fn(&fetch::Mapping) -> bool,
 ) {
-    // With included tags, we have to keep mappings of tags to handle them later when updating refs, but we don't want to
-    // explicitly `want` them as the server will determine by itself which tags are pointing to a commit it wants to send.
-    // If we would not exclude implicit tag mappings like this, we would get too much of the graph.
-    let tag_refspec_to_ignore = matches!(fetch_tags, crate::remote::fetch::Tags::Included)
-        .then(|| fetch_tags.to_refspec())
-        .flatten();
-
     // When using shallow, we can't exclude `wants` as the remote won't send anything then. Thus we have to resend everything
     // we have as want instead to get exactly the same graph, but possibly deepened.
     let is_shallow = !matches!(shallow, fetch::Shallow::NoChange);
@@ -189,17 +225,9 @@ pub(crate) fn add_wants(
         .mappings
         .iter()
         .zip(mapping_known)
-        .filter_map(|(m, known)| (is_shallow || !*known).then_some(m));
+        .filter_map(|(m, known)| (is_shallow || !*known).then_some(m))
+        .filter(|m| !mapping_is_ignored(m));
     for want in wants {
-        // Here we ignore implicit tag mappings if needed.
-        if tag_refspec_to_ignore.map_or(false, |tag_spec| {
-            want.spec_index
-                .implicit_index()
-                .and_then(|idx| ref_map.extra_refspecs.get(idx))
-                .map_or(false, |spec| spec.to_ref() == tag_spec)
-        }) {
-            continue;
-        }
         let id_on_remote = want.remote.as_id();
         if !arguments.can_use_ref_in_want() || matches!(want.remote, fetch::Source::ObjectId(_)) {
             if let Some(id) = id_on_remote {
@@ -228,13 +256,14 @@ pub(crate) fn add_wants(
 fn mark_recent_complete_commits(
     queue: &mut Queue,
     graph: &mut gix_negotiate::Graph<'_>,
-    cutoff: gix_revision::graph::CommitterTimestamp,
+    cutoff: SecondsSinceUnixEpoch,
 ) -> Result<(), Error> {
+    let _span = gix_trace::detail!("mark_recent_complete", queue_len = queue.len());
     while let Some(id) = queue
         .peek()
         .and_then(|(commit_time, id)| (commit_time >= &cutoff).then_some(*id))
     {
-        queue.pop();
+        queue.pop_value();
         let commit = graph.get(&id).expect("definitely set when adding tips or parents");
         for parent_id in commit.parents.clone() {
             let mut was_complete = false;
@@ -258,6 +287,7 @@ fn mark_all_refs_in_repo(
     queue: &mut Queue,
     mark: Flags,
 ) -> Result<(), Error> {
+    let _span = gix_trace::detail!("mark_all_refs");
     for local_ref in repo.references()?.all()?.peeled() {
         let local_ref = local_ref?;
         let id = local_ref.id().detach();
@@ -280,17 +310,14 @@ fn mark_alternate_complete(
     graph: &mut gix_negotiate::Graph<'_>,
     queue: &mut Queue,
 ) -> Result<(), Error> {
-    for alternate_repo in repo
-        .objects
-        .store_ref()
-        .alternate_db_paths()?
-        .into_iter()
-        .filter_map(|path| {
-            path.ancestors()
-                .nth(1)
-                .and_then(|git_dir| crate::open_opts(git_dir, repo.options.clone()).ok())
-        })
-    {
+    let alternates = repo.objects.store_ref().alternate_db_paths()?;
+    let _span = gix_trace::detail!("mark_alternate_refs", num_odb = alternates.len());
+
+    for alternate_repo in alternates.into_iter().filter_map(|path| {
+        path.ancestors()
+            .nth(1)
+            .and_then(|git_dir| crate::open_opts(git_dir, repo.options.clone()).ok())
+    }) {
         mark_all_refs_in_repo(&alternate_repo, graph, queue, Flags::ALTERNATE | Flags::COMPLETE)?;
     }
     Ok(())

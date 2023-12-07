@@ -1,17 +1,20 @@
 ///
 pub mod negotiate {
+    #[cfg(feature = "credentials")]
     pub use gix_negotiate::Algorithm;
 
     #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
     pub use super::super::connection::fetch::negotiate::Error;
     #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
     pub(crate) use super::super::connection::fetch::negotiate::{
-        add_wants, mark_complete_and_common_ref, one_round, Action,
+        add_wants, make_refmapping_ignore_predicate, mark_complete_and_common_ref, one_round, Action,
     };
 }
 
 #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
-pub use super::connection::fetch::{prepare, refs, Error, Outcome, Prepare, ProgressId, RefLogMessage, Status};
+pub use super::connection::fetch::{
+    outcome, prepare, refs, Error, Outcome, Prepare, ProgressId, RefLogMessage, Status,
+};
 
 /// If `Yes`, don't really make changes but do as much as possible to get an idea of what would be done.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -149,6 +152,18 @@ impl Source {
         match self {
             Source::ObjectId(id) => Some(id),
             Source::Ref(r) => r.unpack().1,
+        }
+    }
+
+    /// Return the target that this symbolic ref is pointing to, or `None` if it is no symbolic ref.
+    pub fn as_target(&self) -> Option<&crate::bstr::BStr> {
+        match self {
+            Source::ObjectId(_) => None,
+            Source::Ref(r) => match r {
+                gix_protocol::handshake::Ref::Peeled { .. } | gix_protocol::handshake::Ref::Direct { .. } => None,
+                gix_protocol::handshake::Ref::Symbolic { target, .. }
+                | gix_protocol::handshake::Ref::Unborn { target, .. } => Some(target.as_ref()),
+            },
         }
     }
 

@@ -1,7 +1,7 @@
 //! Tests for the `cargo update` command.
 
 use cargo_test_support::registry::Package;
-use cargo_test_support::{basic_manifest, project};
+use cargo_test_support::{basic_lib_manifest, basic_manifest, git, project};
 
 #[cargo_test]
 fn minor_update_two_places() {
@@ -105,7 +105,7 @@ fn transitive_minor_update() {
     //
     // Also note that this is probably counterintuitive and weird. We may wish
     // to change this one day.
-    p.cargo("update -p serde")
+    p.cargo("update serde")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -155,7 +155,7 @@ fn conservative() {
     Package::new("log", "0.1.1").publish();
     Package::new("serde", "0.1.1").dep("log", "0.1").publish();
 
-    p.cargo("update -p serde")
+    p.cargo("update serde")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -381,7 +381,7 @@ fn update_precise() {
 
     Package::new("serde", "0.2.0").publish();
 
-    p.cargo("update -p serde:0.2.1 --precise 0.2.0")
+    p.cargo("update serde:0.2.1 --precise 0.2.0")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -417,7 +417,7 @@ fn update_precise_do_not_force_update_deps() {
     Package::new("log", "0.1.1").publish();
     Package::new("serde", "0.2.2").dep("log", "0.1").publish();
 
-    p.cargo("update -p serde:0.2.1 --precise 0.2.2")
+    p.cargo("update serde:0.2.1 --precise 0.2.2")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -428,7 +428,7 @@ fn update_precise_do_not_force_update_deps() {
 }
 
 #[cargo_test]
-fn update_aggressive() {
+fn update_recursive() {
     Package::new("log", "0.1.0").publish();
     Package::new("serde", "0.2.1").dep("log", "0.1").publish();
 
@@ -453,7 +453,7 @@ fn update_aggressive() {
     Package::new("log", "0.1.1").publish();
     Package::new("serde", "0.2.2").dep("log", "0.1").publish();
 
-    p.cargo("update -p serde:0.2.1 --aggressive")
+    p.cargo("update serde:0.2.1 --recursive")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -465,7 +465,7 @@ fn update_aggressive() {
 }
 
 #[cargo_test]
-fn update_aggressive_conflicts_with_precise() {
+fn update_aggressive_alias_for_recursive() {
     Package::new("log", "0.1.0").publish();
     Package::new("serde", "0.2.1").dep("log", "0.1").publish();
 
@@ -490,13 +490,50 @@ fn update_aggressive_conflicts_with_precise() {
     Package::new("log", "0.1.1").publish();
     Package::new("serde", "0.2.2").dep("log", "0.1").publish();
 
-    p.cargo("update -p serde:0.2.1 --precise 0.2.2 --aggressive")
+    p.cargo("update serde:0.2.1 --aggressive")
+        .with_stderr(
+            "\
+[UPDATING] `[..]` index
+[UPDATING] log v0.1.0 -> v0.1.1
+[UPDATING] serde v0.2.1 -> v0.2.2
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn update_recursive_conflicts_with_precise() {
+    Package::new("log", "0.1.0").publish();
+    Package::new("serde", "0.2.1").dep("log", "0.1").publish();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "bar"
+                version = "0.0.1"
+                authors = []
+
+                [dependencies]
+                serde = "0.2"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("check").run();
+
+    Package::new("log", "0.1.1").publish();
+    Package::new("serde", "0.2.2").dep("log", "0.1").publish();
+
+    p.cargo("update serde:0.2.1 --precise 0.2.2 --recursive")
         .with_status(1)
         .with_stderr(
             "\
-error: the argument '--precise <PRECISE>' cannot be used with '--aggressive'
+error: the argument '--precise <PRECISE>' cannot be used with '--recursive'
 
-Usage: cargo[EXE] update --package [<SPEC>] --precise <PRECISE>
+Usage: cargo[EXE] update --precise <PRECISE> <SPEC|--package [<SPEC>]>
 
 For more information, try '--help'.
 ",
@@ -528,7 +565,7 @@ fn update_precise_first_run() {
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("update -p serde --precise 0.2.0")
+    p.cargo("update serde --precise 0.2.0")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -682,7 +719,7 @@ fn update_precise_first_run() {
         )
         .run();
 
-    p.cargo("update -p serde --precise 0.2.0")
+    p.cargo("update serde --precise 0.2.0")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -758,7 +795,7 @@ fn dry_run_update() {
     Package::new("log", "0.1.1").publish();
     Package::new("serde", "0.1.1").dep("log", "0.1").publish();
 
-    p.cargo("update -p serde --dry-run")
+    p.cargo("update serde --dry-run")
         .with_stderr(
             "\
 [UPDATING] `[..]` index
@@ -818,7 +855,7 @@ fn precise_with_build_metadata() {
     Package::new("bar", "0.1.1+extra-stuff.1").publish();
     Package::new("bar", "0.1.2+extra-stuff.2").publish();
 
-    p.cargo("update -p bar --precise 0.1")
+    p.cargo("update bar --precise 0.1")
         .with_status(101)
         .with_stderr(
             "\
@@ -830,7 +867,7 @@ Caused by:
         )
         .run();
 
-    p.cargo("update -p bar --precise 0.1.1+does-not-match")
+    p.cargo("update bar --precise 0.1.1+does-not-match")
         .with_status(101)
         .with_stderr(
             "\
@@ -842,7 +879,7 @@ required by package `foo v0.1.0 ([ROOT]/foo)`
         )
         .run();
 
-    p.cargo("update -p bar --precise 0.1.1")
+    p.cargo("update bar --precise 0.1.1")
         .with_stderr(
             "\
 [UPDATING] [..] index
@@ -852,7 +889,7 @@ required by package `foo v0.1.0 ([ROOT]/foo)`
         .run();
 
     Package::new("bar", "0.1.3").publish();
-    p.cargo("update -p bar --precise 0.1.3+foo")
+    p.cargo("update bar --precise 0.1.3+foo")
         .with_status(101)
         .with_stderr(
             "\
@@ -864,12 +901,194 @@ required by package `foo v0.1.0 ([ROOT]/foo)`
         )
         .run();
 
-    p.cargo("update -p bar --precise 0.1.3")
+    p.cargo("update bar --precise 0.1.3")
         .with_stderr(
             "\
 [UPDATING] [..] index
 [UPDATING] bar v0.1.1+extra-stuff.1 -> v0.1.3
 ",
         )
+        .run();
+}
+
+#[cargo_test]
+fn update_only_members_order_one() {
+    let git_project = git::new("rustdns", |project| {
+        project
+            .file("Cargo.toml", &basic_lib_manifest("rustdns"))
+            .file("src/lib.rs", "pub fn bar() {}")
+    });
+
+    let workspace_toml = format!(
+        r#"
+[workspace.package]
+version = "2.29.8"
+edition = "2021"
+publish = false
+
+[workspace]
+members = [
+    "rootcrate",
+    "subcrate",
+]
+resolver = "2"
+
+[workspace.dependencies]
+# Internal crates
+subcrate = {{ version = "*", path = "./subcrate" }}
+
+# External dependencies
+rustdns = {{ version = "0.5.0", default-features = false, git = "{}" }}
+                "#,
+        git_project.url()
+    );
+    let p = project()
+        .file("Cargo.toml", &workspace_toml)
+        .file(
+            "rootcrate/Cargo.toml",
+            r#"
+[package]
+name = "rootcrate"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+subcrate.workspace = true
+"#,
+        )
+        .file("rootcrate/src/main.rs", "fn main() {}")
+        .file(
+            "subcrate/Cargo.toml",
+            r#"
+[package]
+name = "subcrate"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+rustdns.workspace = true
+"#,
+        )
+        .file("subcrate/src/lib.rs", "pub foo() {}")
+        .build();
+
+    // First time around we should compile both foo and bar
+    p.cargo("generate-lockfile")
+        .with_stderr(&format!(
+            "[UPDATING] git repository `{}`\n",
+            git_project.url(),
+        ))
+        .run();
+    // Modify a file manually, shouldn't trigger a recompile
+    git_project.change_file("src/lib.rs", r#"pub fn bar() { println!("hello!"); }"#);
+    // Commit the changes and make sure we don't trigger a recompile because the
+    // lock file says not to change
+    let repo = git2::Repository::open(&git_project.root()).unwrap();
+    git::add(&repo);
+    git::commit(&repo);
+    p.change_file("Cargo.toml", &workspace_toml.replace("2.29.8", "2.29.81"));
+
+    p.cargo("update -p rootcrate")
+        .with_stderr(&format!(
+            "\
+[UPDATING] git repository `{}`
+[UPDATING] rootcrate v2.29.8 ([CWD]/rootcrate) -> v2.29.81
+[UPDATING] rustdns v0.5.0 ([..]) -> [..]
+[UPDATING] subcrate v2.29.8 ([CWD]/subcrate) -> v2.29.81",
+            git_project.url(),
+        ))
+        .run();
+}
+
+#[cargo_test]
+fn update_only_members_order_two() {
+    let git_project = git::new("rustdns", |project| {
+        project
+            .file("Cargo.toml", &basic_lib_manifest("rustdns"))
+            .file("src/lib.rs", "pub fn bar() {}")
+    });
+
+    let workspace_toml = format!(
+        r#"
+[workspace.package]
+version = "2.29.8"
+edition = "2021"
+publish = false
+
+[workspace]
+members = [
+    "crate2",
+    "crate1",
+]
+resolver = "2"
+
+[workspace.dependencies]
+# Internal crates
+crate1 = {{ version = "*", path = "./crate1" }}
+
+# External dependencies
+rustdns = {{ version = "0.5.0", default-features = false, git = "{}" }}
+                "#,
+        git_project.url()
+    );
+    let p = project()
+        .file("Cargo.toml", &workspace_toml)
+        .file(
+            "crate2/Cargo.toml",
+            r#"
+[package]
+name = "crate2"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+crate1.workspace = true
+"#,
+        )
+        .file("crate2/src/main.rs", "fn main() {}")
+        .file(
+            "crate1/Cargo.toml",
+            r#"
+[package]
+name = "crate1"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+rustdns.workspace = true
+"#,
+        )
+        .file("crate1/src/lib.rs", "pub foo() {}")
+        .build();
+
+    // First time around we should compile both foo and bar
+    p.cargo("generate-lockfile")
+        .with_stderr(&format!(
+            "[UPDATING] git repository `{}`\n",
+            git_project.url(),
+        ))
+        .run();
+    // Modify a file manually, shouldn't trigger a recompile
+    git_project.change_file("src/lib.rs", r#"pub fn bar() { println!("hello!"); }"#);
+    // Commit the changes and make sure we don't trigger a recompile because the
+    // lock file says not to change
+    let repo = git2::Repository::open(&git_project.root()).unwrap();
+    git::add(&repo);
+    git::commit(&repo);
+    p.change_file("Cargo.toml", &workspace_toml.replace("2.29.8", "2.29.81"));
+
+    p.cargo("update -p crate2")
+        .with_stderr(&format!(
+            "\
+[UPDATING] git repository `{}`
+[UPDATING] crate1 v2.29.8 ([CWD]/crate1) -> v2.29.81
+[UPDATING] crate2 v2.29.8 ([CWD]/crate2) -> v2.29.81
+[UPDATING] rustdns v0.5.0 ([..]) -> [..]",
+            git_project.url(),
+        ))
         .run();
 }

@@ -13,19 +13,19 @@ use crate::error;
 /// Friday), this type does not implement `PartialOrd` or `Ord`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Weekday {
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[allow(missing_docs)]
     Monday,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[allow(missing_docs)]
     Tuesday,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[allow(missing_docs)]
     Wednesday,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[allow(missing_docs)]
     Thursday,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[allow(missing_docs)]
     Friday,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[allow(missing_docs)]
     Saturday,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[allow(missing_docs)]
     Sunday,
 }
 
@@ -84,6 +84,28 @@ impl Weekday {
             val => {
                 debug_assert!(val == 6);
                 Sunday
+            }
+        }
+    }
+
+    /// Get n-th previous day.
+    ///
+    /// ```rust
+    /// # use time::Weekday;
+    /// assert_eq!(Weekday::Monday.nth_prev(1), Weekday::Sunday);
+    /// assert_eq!(Weekday::Sunday.nth_prev(10), Weekday::Thursday);
+    /// ```
+    pub const fn nth_prev(self, n: u8) -> Self {
+        match self.number_days_from_monday() as i8 - (n % 7) as i8 {
+            1 | -6 => Tuesday,
+            2 | -5 => Wednesday,
+            3 | -4 => Thursday,
+            4 | -3 => Friday,
+            5 | -2 => Saturday,
+            6 | -1 => Sunday,
+            val => {
+                debug_assert!(val == 0);
+                Monday
             }
         }
     }

@@ -216,12 +216,45 @@ export class Config {
             ),
         );
     }
+    get checkOnSave() {
+        return this.get<boolean>("checkOnSave") ?? false;
+    }
+    async toggleCheckOnSave() {
+        const config = this.cfg.inspect<boolean>("checkOnSave") ?? { key: "checkOnSave" };
+        let overrideInLanguage;
+        let target;
+        let value;
+        if (
+            config.workspaceFolderValue !== undefined ||
+            config.workspaceFolderLanguageValue !== undefined
+        ) {
+            target = vscode.ConfigurationTarget.WorkspaceFolder;
+            overrideInLanguage = config.workspaceFolderLanguageValue;
+            value = config.workspaceFolderValue || config.workspaceFolderLanguageValue;
+        } else if (
+            config.workspaceValue !== undefined ||
+            config.workspaceLanguageValue !== undefined
+        ) {
+            target = vscode.ConfigurationTarget.Workspace;
+            overrideInLanguage = config.workspaceLanguageValue;
+            value = config.workspaceValue || config.workspaceLanguageValue;
+        } else if (config.globalValue !== undefined || config.globalLanguageValue !== undefined) {
+            target = vscode.ConfigurationTarget.Global;
+            overrideInLanguage = config.globalLanguageValue;
+            value = config.globalValue || config.globalLanguageValue;
+        } else if (config.defaultValue !== undefined || config.defaultLanguageValue !== undefined) {
+            overrideInLanguage = config.defaultLanguageValue;
+            value = config.defaultValue || config.defaultLanguageValue;
+        }
+        await this.cfg.update("checkOnSave", !(value || false), target || null, overrideInLanguage);
+    }
+
     get traceExtension() {
         return this.get<boolean>("trace.extension");
     }
 
-    get discoverProjectCommand() {
-        return this.get<string[] | undefined>("discoverProjectCommand");
+    get discoverProjectRunner(): string | undefined {
+        return this.get<string | undefined>("discoverProjectRunner");
     }
 
     get problemMatcher(): string[] {

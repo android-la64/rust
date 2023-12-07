@@ -1,7 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::OsStr;
 use std::fmt::{self, Display, Write};
-use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::str::{self, FromStr};
@@ -11,11 +10,10 @@ use cargo_platform::Platform;
 use cargo_util::paths;
 use itertools::Itertools;
 use lazycell::LazyCell;
-use semver::{self, VersionReq};
-use serde::de::IntoDeserializer as _;
-use serde::de::{self, Unexpected};
+use serde::de::{self, IntoDeserializer as _, Unexpected};
 use serde::ser;
 use serde::{Deserialize, Serialize};
+use serde_untagged::UntaggedEnumVisitor;
 use tracing::{debug, trace};
 use url::Url;
 
@@ -31,7 +29,8 @@ use crate::sources::{CRATES_IO_INDEX, CRATES_IO_REGISTRY};
 use crate::util::errors::{CargoResult, ManifestError};
 use crate::util::interning::InternedString;
 use crate::util::{
-    self, config::ConfigRelativePath, validate_package_name, Config, IntoUrl, VersionReqExt,
+    self, config::ConfigRelativePath, validate_package_name, Config, IntoUrl, OptVersionReq,
+    RustVersion,
 };
 
 pub mod embedded;
@@ -99,26 +98,9 @@ fn read_manifest_from_str(
 ) -> CargoResult<(EitherManifest, Vec<PathBuf>)> {
     let package_root = manifest_file.parent().unwrap();
 
-    let toml = {
-        let pretty_filename = manifest_file
-            .strip_prefix(config.cwd())
-            .unwrap_or(manifest_file);
-        parse_document(contents, pretty_filename, config)?
-    };
-
-    // Provide a helpful error message for a common user error.
-    if let Some(package) = toml.get("package").or_else(|| toml.get("project")) {
-        if let Some(feats) = package.get("cargo-features") {
-            bail!(
-                "cargo-features = {} was found in the wrong location: it \
-                 should be set at the top of Cargo.toml before any tables",
-                feats
-            );
-        }
-    }
-
     let mut unused = BTreeSet::new();
-    let manifest: TomlManifest = serde_ignored::deserialize(toml.into_deserializer(), |path| {
+    let deserializer = toml::de::Deserializer::new(contents);
+    let manifest: TomlManifest = serde_ignored::deserialize(deserializer, |path| {
         let mut key = String::new();
         stringify(&mut key, &path);
         unused.insert(key);
@@ -194,8 +176,7 @@ fn read_manifest_from_str(
 
 pub fn parse_document(toml: &str, _file: &Path, _config: &Config) -> CargoResult<toml::Table> {
     // At the moment, no compatibility checks are needed.
-    toml.parse()
-        .map_err(|e| anyhow::Error::from(e).context("could not parse input as TOML"))
+    toml.parse().map_err(Into::into)
 }
 
 /// Warn about paths that have been deprecated and may conflict.
@@ -230,34 +211,14 @@ impl<'de, P: Deserialize<'de> + Clone> de::Deserialize<'de> for TomlDependency<P
     where
         D: de::Deserializer<'de>,
     {
-        struct TomlDependencyVisitor<P>(PhantomData<P>);
-
-        impl<'de, P: Deserialize<'de> + Clone> de::Visitor<'de> for TomlDependencyVisitor<P> {
-            type Value = TomlDependency<P>;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str(
-                    "a version string like \"0.9.8\" or a \
+        UntaggedEnumVisitor::new()
+            .expecting(
+                "a version string like \"0.9.8\" or a \
                      detailed dependency like { version = \"0.9.8\" }",
-                )
-            }
-
-            fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(TomlDependency::Simple(s.to_owned()))
-            }
-
-            fn visit_map<V>(self, map: V) -> Result<Self::Value, V::Error>
-            where
-                V: de::MapAccess<'de>,
-            {
-                let mvd = de::value::MapAccessDeserializer::new(map);
-                DetailedTomlDependency::deserialize(mvd).map(TomlDependency::Detailed)
-            }
-        }
-        deserializer.deserialize_any(TomlDependencyVisitor(PhantomData))
+            )
+            .string(|value| Ok(TomlDependency::Simple(value.to_owned())))
+            .map(|value| value.deserialize().map(TomlDependency::Detailed))
+            .deserialize(deserializer)
     }
 }
 
@@ -377,7 +338,7 @@ pub struct TomlManifest {
     patch: Option<BTreeMap<String, BTreeMap<String, TomlDependency>>>,
     workspace: Option<TomlWorkspace>,
     badges: Option<MaybeWorkspaceBtreeMap>,
-    lints: Option<toml::Value>,
+    lints: Option<MaybeWorkspaceLints>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
@@ -417,39 +378,22 @@ impl<'de> de::Deserialize<'de> for TomlOptLevel {
     where
         D: de::Deserializer<'de>,
     {
-        struct Visitor;
-
-        impl<'de> de::Visitor<'de> for Visitor {
-            type Value = TomlOptLevel;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("an optimization level")
-            }
-
-            fn visit_i64<E>(self, value: i64) -> Result<TomlOptLevel, E>
-            where
-                E: de::Error,
-            {
-                Ok(TomlOptLevel(value.to_string()))
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<TomlOptLevel, E>
-            where
-                E: de::Error,
-            {
+        use serde::de::Error as _;
+        UntaggedEnumVisitor::new()
+            .expecting("an optimization level")
+            .i64(|value| Ok(TomlOptLevel(value.to_string())))
+            .string(|value| {
                 if value == "s" || value == "z" {
                     Ok(TomlOptLevel(value.to_string()))
                 } else {
-                    Err(E::custom(format!(
+                    Err(serde_untagged::de::Error::custom(format!(
                         "must be `0`, `1`, `2`, `3`, `s` or `z`, \
                          but found the string: \"{}\"",
                         value
                     )))
                 }
-            }
-        }
-
-        d.deserialize_any(Visitor)
+            })
+            .deserialize(d)
     }
 }
 
@@ -494,58 +438,48 @@ impl<'de> de::Deserialize<'de> for TomlDebugInfo {
     where
         D: de::Deserializer<'de>,
     {
-        struct Visitor;
-
-        impl<'de> de::Visitor<'de> for Visitor {
-            type Value = TomlDebugInfo;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str(
-                    "a boolean, 0, 1, 2, \"line-tables-only\", or \"line-directives-only\"",
-                )
-            }
-
-            fn visit_i64<E>(self, value: i64) -> Result<TomlDebugInfo, E>
-            where
-                E: de::Error,
-            {
-                let debuginfo = match value {
-                    0 => TomlDebugInfo::None,
-                    1 => TomlDebugInfo::Limited,
-                    2 => TomlDebugInfo::Full,
-                    _ => return Err(de::Error::invalid_value(Unexpected::Signed(value), &self)),
-                };
-                Ok(debuginfo)
-            }
-
-            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(if v {
+        use serde::de::Error as _;
+        let expecting = "a boolean, 0, 1, 2, \"line-tables-only\", or \"line-directives-only\"";
+        UntaggedEnumVisitor::new()
+            .expecting(expecting)
+            .bool(|value| {
+                Ok(if value {
                     TomlDebugInfo::Full
                 } else {
                     TomlDebugInfo::None
                 })
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<TomlDebugInfo, E>
-            where
-                E: de::Error,
-            {
+            })
+            .i64(|value| {
+                let debuginfo = match value {
+                    0 => TomlDebugInfo::None,
+                    1 => TomlDebugInfo::Limited,
+                    2 => TomlDebugInfo::Full,
+                    _ => {
+                        return Err(serde_untagged::de::Error::invalid_value(
+                            Unexpected::Signed(value),
+                            &expecting,
+                        ))
+                    }
+                };
+                Ok(debuginfo)
+            })
+            .string(|value| {
                 let debuginfo = match value {
                     "none" => TomlDebugInfo::None,
                     "limited" => TomlDebugInfo::Limited,
                     "full" => TomlDebugInfo::Full,
                     "line-directives-only" => TomlDebugInfo::LineDirectivesOnly,
                     "line-tables-only" => TomlDebugInfo::LineTablesOnly,
-                    _ => return Err(de::Error::invalid_value(Unexpected::Str(value), &self)),
+                    _ => {
+                        return Err(serde_untagged::de::Error::invalid_value(
+                            Unexpected::Str(value),
+                            &expecting,
+                        ))
+                    }
                 };
                 Ok(debuginfo)
-            }
-        }
-
-        d.deserialize_any(Visitor)
+            })
+            .deserialize(d)
     }
 }
 
@@ -865,8 +799,8 @@ impl TomlProfile {
             self.codegen_units = Some(v);
         }
 
-        if let Some(v) = &profile.debug {
-            self.debug = Some(v.clone());
+        if let Some(v) = profile.debug {
+            self.debug = Some(v);
         }
 
         if let Some(v) = profile.debug_assertions {
@@ -944,32 +878,11 @@ impl<'de> de::Deserialize<'de> for StringOrVec {
     where
         D: de::Deserializer<'de>,
     {
-        struct Visitor;
-
-        impl<'de> de::Visitor<'de> for Visitor {
-            type Value = StringOrVec;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("string or list of strings")
-            }
-
-            fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(StringOrVec(vec![s.to_string()]))
-            }
-
-            fn visit_seq<V>(self, v: V) -> Result<Self::Value, V::Error>
-            where
-                V: de::SeqAccess<'de>,
-            {
-                let seq = de::value::SeqAccessDeserializer::new(v);
-                Vec::deserialize(seq).map(StringOrVec)
-            }
-        }
-
-        deserializer.deserialize_any(Visitor)
+        UntaggedEnumVisitor::new()
+            .expecting("string or list of strings")
+            .string(|value| Ok(StringOrVec(vec![value.to_owned()])))
+            .seq(|value| value.deserialize().map(StringOrVec))
+            .deserialize(deserializer)
     }
 }
 
@@ -979,11 +892,23 @@ impl StringOrVec {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
-#[serde(untagged, expecting = "expected a boolean or a string")]
+#[derive(Clone, Debug, Serialize, Eq, PartialEq)]
+#[serde(untagged)]
 pub enum StringOrBool {
     String(String),
     Bool(bool),
+}
+
+impl<'de> Deserialize<'de> for StringOrBool {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        UntaggedEnumVisitor::new()
+            .bool(|b| Ok(StringOrBool::Bool(b)))
+            .string(|s| Ok(StringOrBool::String(s.to_owned())))
+            .deserialize(deserializer)
+    }
 }
 
 #[derive(PartialEq, Clone, Debug, Serialize)]
@@ -998,32 +923,11 @@ impl<'de> de::Deserialize<'de> for VecStringOrBool {
     where
         D: de::Deserializer<'de>,
     {
-        struct Visitor;
-
-        impl<'de> de::Visitor<'de> for Visitor {
-            type Value = VecStringOrBool;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("a boolean or vector of strings")
-            }
-
-            fn visit_seq<V>(self, v: V) -> Result<Self::Value, V::Error>
-            where
-                V: de::SeqAccess<'de>,
-            {
-                let seq = de::value::SeqAccessDeserializer::new(v);
-                Vec::deserialize(seq).map(VecStringOrBool::VecString)
-            }
-
-            fn visit_bool<E>(self, b: bool) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(VecStringOrBool::Bool(b))
-            }
-        }
-
-        deserializer.deserialize_any(Visitor)
+        UntaggedEnumVisitor::new()
+            .expecting("a boolean or vector of strings")
+            .bool(|value| Ok(VecStringOrBool::Bool(value)))
+            .seq(|value| value.deserialize().map(VecStringOrBool::VecString))
+            .deserialize(deserializer)
     }
 }
 
@@ -1031,35 +935,16 @@ fn version_trim_whitespace<'de, D>(deserializer: D) -> Result<MaybeWorkspaceSemv
 where
     D: de::Deserializer<'de>,
 {
-    struct Visitor;
-
-    impl<'de> de::Visitor<'de> for Visitor {
-        type Value = MaybeWorkspaceSemverVersion;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-            formatter.write_str("SemVer version")
-        }
-
-        fn visit_str<E>(self, string: &str) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            match string.trim().parse().map_err(de::Error::custom) {
+    UntaggedEnumVisitor::new()
+        .expecting("SemVer version")
+        .string(
+            |value| match value.trim().parse().map_err(de::Error::custom) {
                 Ok(parsed) => Ok(MaybeWorkspace::Defined(parsed)),
                 Err(e) => Err(e),
-            }
-        }
-
-        fn visit_map<V>(self, map: V) -> Result<Self::Value, V::Error>
-        where
-            V: de::MapAccess<'de>,
-        {
-            let mvd = de::value::MapAccessDeserializer::new(map);
-            TomlWorkspaceField::deserialize(mvd).map(MaybeWorkspace::Workspace)
-        }
-    }
-
-    deserializer.deserialize_any(Visitor)
+            },
+        )
+        .map(|value| value.deserialize().map(MaybeWorkspace::Workspace))
+        .deserialize(deserializer)
 }
 
 /// This Trait exists to make [`MaybeWorkspace::Workspace`] generic. It makes deserialization of
@@ -1078,7 +963,7 @@ pub trait WorkspaceInherit {
 }
 
 /// An enum that allows for inheriting keys from a workspace in a Cargo.toml.
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Copy, Clone, Debug)]
 #[serde(untagged)]
 pub enum MaybeWorkspace<T, W: WorkspaceInherit> {
     /// The "defined" type, or the type that that is used when not inheriting from a workspace.
@@ -1297,6 +1182,42 @@ impl<'de> de::Deserialize<'de> for MaybeWorkspaceString {
     }
 }
 
+type MaybeWorkspaceRustVersion = MaybeWorkspace<RustVersion, TomlWorkspaceField>;
+impl<'de> de::Deserialize<'de> for MaybeWorkspaceRustVersion {
+    fn deserialize<D>(d: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> de::Visitor<'de> for Visitor {
+            type Value = MaybeWorkspaceRustVersion;
+
+            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+                f.write_str("a semver or workspace")
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                let value = value.parse::<RustVersion>().map_err(|e| E::custom(e))?;
+                Ok(MaybeWorkspaceRustVersion::Defined(value))
+            }
+
+            fn visit_map<V>(self, map: V) -> Result<Self::Value, V::Error>
+            where
+                V: de::MapAccess<'de>,
+            {
+                let mvd = de::value::MapAccessDeserializer::new(map);
+                TomlWorkspaceField::deserialize(mvd).map(MaybeWorkspace::Workspace)
+            }
+        }
+
+        d.deserialize_any(Visitor)
+    }
+}
+
 type MaybeWorkspaceVecString = MaybeWorkspace<Vec<String>, TomlWorkspaceField>;
 impl<'de> de::Deserialize<'de> for MaybeWorkspaceVecString {
     fn deserialize<D>(d: D) -> Result<Self, D::Error>
@@ -1444,30 +1365,7 @@ impl<'de> de::Deserialize<'de> for MaybeWorkspaceBtreeMap {
     }
 }
 
-type MaybeWorkspaceLints = MaybeWorkspace<TomlLints, TomlWorkspaceField>;
-
-impl<'de> de::Deserialize<'de> for MaybeWorkspaceLints {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: de::Deserializer<'de>,
-    {
-        let value = serde_value::Value::deserialize(deserializer)?;
-
-        if let Ok(w) = TomlWorkspaceField::deserialize(
-            serde_value::ValueDeserializer::<D::Error>::new(value.clone()),
-        ) {
-            return if w.workspace() {
-                Ok(MaybeWorkspace::Workspace(w))
-            } else {
-                Err(de::Error::custom("`workspace` cannot be false"))
-            };
-        }
-        TomlLints::deserialize(serde_value::ValueDeserializer::<D::Error>::new(value))
-            .map(MaybeWorkspace::Defined)
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Copy, Clone, Debug)]
 pub struct TomlWorkspaceField {
     #[serde(deserialize_with = "bool_no_false")]
     workspace: bool,
@@ -1502,16 +1400,14 @@ impl WorkspaceInherit for TomlWorkspaceField {
 #[serde(rename_all = "kebab-case")]
 pub struct TomlPackage {
     edition: Option<MaybeWorkspaceString>,
-    rust_version: Option<MaybeWorkspaceString>,
+    rust_version: Option<MaybeWorkspaceRustVersion>,
     name: InternedString,
     #[serde(deserialize_with = "version_trim_whitespace")]
     version: MaybeWorkspaceSemverVersion,
     authors: Option<MaybeWorkspaceVecString>,
     build: Option<StringOrBool>,
     metabuild: Option<StringOrVec>,
-    #[serde(rename = "default-target")]
     default_target: Option<String>,
-    #[serde(rename = "forced-target")]
     forced_target: Option<String>,
     links: Option<String>,
     exclude: Option<MaybeWorkspaceVecString>,
@@ -1537,6 +1433,10 @@ pub struct TomlPackage {
     repository: Option<MaybeWorkspaceString>,
     resolver: Option<String>,
 
+    // Provide a helpful error message for a common user error.
+    #[serde(rename = "cargo-features", skip_serializing)]
+    _invalid_cargo_features: Option<InvalidCargoFeatures>,
+
     // Note that this field must come last due to the way toml serialization
     // works which requires tables to be emitted after all values.
     metadata: Option<toml::Value>,
@@ -1553,7 +1453,7 @@ pub struct TomlWorkspace {
     // Properties that can be inherited by members.
     package: Option<InheritableFields>,
     dependencies: Option<BTreeMap<String, TomlDependency>>,
-    lints: Option<toml::Value>,
+    lints: Option<TomlLints>,
 
     // Note that this field must come last due to the way toml serialization
     // works which requires tables to be emitted after all values.
@@ -1588,7 +1488,7 @@ pub struct InheritableFields {
     exclude: Option<Vec<String>>,
     include: Option<Vec<String>>,
     #[serde(rename = "rust-version")]
-    rust_version: Option<String>,
+    rust_version: Option<RustVersion>,
     // We use skip here since it will never be present when deserializing
     // and we don't want it present when serializing
     #[serde(skip)]
@@ -1628,7 +1528,7 @@ impl InheritableFields {
         ("package.license",       license       -> String),
         ("package.publish",       publish       -> VecStringOrBool),
         ("package.repository",    repository    -> String),
-        ("package.rust-version",  rust_version  -> String),
+        ("package.rust-version",  rust_version  -> RustVersion),
         ("package.version",       version       -> semver::Version),
     }
 
@@ -1857,10 +1757,7 @@ impl TomlManifest {
             deps: Option<&BTreeMap<String, MaybeWorkspaceDependency>>,
             filter: impl Fn(&TomlDependency) -> bool,
         ) -> CargoResult<Option<BTreeMap<String, MaybeWorkspaceDependency>>> {
-            let deps = match deps {
-                Some(deps) => deps,
-                None => return Ok(None),
-            };
+            let Some(deps) = deps else { return Ok(None) };
             let deps = deps
                 .iter()
                 .filter(|(_k, v)| {
@@ -1940,6 +1837,13 @@ impl TomlManifest {
             }
         }
 
+        if !package_root.is_dir() {
+            bail!(
+                "package root '{}' is not a directory",
+                package_root.display()
+            );
+        };
+
         let mut nested_paths = vec![];
         let mut warnings = vec![];
         let mut errors = vec![];
@@ -1979,7 +1883,7 @@ impl TomlManifest {
                 let mut inheritable = toml_config.package.clone().unwrap_or_default();
                 inheritable.update_ws_path(package_root.to_path_buf());
                 inheritable.update_deps(toml_config.dependencies.clone());
-                let lints = parse_unstable_lints(toml_config.lints.clone(), config, &mut warnings)?;
+                let lints = toml_config.lints.clone();
                 let lints = verify_lints(lints)?;
                 inheritable.update_lints(lints);
                 if let Some(ws_deps) = &inheritable.dependencies {
@@ -2065,11 +1969,7 @@ impl TomlManifest {
             let rust_version = rust_version
                 .clone()
                 .resolve("rust_version", || inherit()?.rust_version())?;
-            let req = match semver::VersionReq::parse(&rust_version) {
-                // Exclude semver operators like `^` and pre-release identifiers
-                Ok(req) if rust_version.chars().all(|c| c.is_ascii_digit() || c == '.') => req,
-                _ => bail!("`rust-version` must be a value like \"1.32\""),
-            };
+            let req = rust_version.caret_req();
             if let Some(first_version) = edition.first_version() {
                 let unsupported =
                     semver::Version::new(first_version.major, first_version.minor - 1, 9999);
@@ -2083,7 +1983,7 @@ impl TomlManifest {
                     )
                 }
             }
-            Some(rust_version.clone())
+            Some(rust_version)
         } else {
             None
         };
@@ -2173,9 +2073,8 @@ impl TomlManifest {
             workspace_config: &WorkspaceConfig,
             inherit_cell: &LazyCell<InheritableFields>,
         ) -> CargoResult<Option<BTreeMap<String, MaybeWorkspaceDependency>>> {
-            let dependencies = match new_deps {
-                Some(dependencies) => dependencies,
-                None => return Ok(None),
+            let Some(dependencies) = new_deps else {
+                return Ok(None);
             };
 
             let inheritable = || {
@@ -2245,10 +2144,11 @@ impl TomlManifest {
             &inherit_cell,
         )?;
 
-        let lints =
-            parse_unstable_lints::<MaybeWorkspaceLints>(me.lints.clone(), config, cx.warnings)?
-                .map(|mw| mw.resolve("lints", || inherit()?.lints()))
-                .transpose()?;
+        let lints = me
+            .lints
+            .clone()
+            .map(|mw| mw.resolve(|| inherit()?.lints()))
+            .transpose()?;
         let lints = verify_lints(lints)?;
         let default = TomlLints::default();
         let rustflags = lints_to_rustflags(lints.as_ref().unwrap_or(&default));
@@ -2319,7 +2219,7 @@ impl TomlManifest {
             let mut names_sources = BTreeMap::new();
             for dep in &deps {
                 let name = dep.name_in_toml();
-                let prev = names_sources.insert(name.to_string(), dep.source_id());
+                let prev = names_sources.insert(name, dep.source_id());
                 if prev.is_some() && prev != Some(dep.source_id()) {
                     bail!(
                         "Dependency '{}' has different source paths depending on the build \
@@ -2350,7 +2250,7 @@ impl TomlManifest {
             deps,
             me.features.as_ref().unwrap_or(&empty_features),
             package.links.as_deref(),
-            rust_version.as_deref().map(InternedString::new),
+            rust_version.clone(),
         )?;
 
         let metadata = ManifestMetadata {
@@ -2420,7 +2320,6 @@ impl TomlManifest {
             links: package.links.clone(),
             rust_version: package
                 .rust_version
-                .clone()
                 .map(|mw| mw.resolve("rust-version", || inherit()?.rust_version()))
                 .transpose()?,
         };
@@ -2550,8 +2449,10 @@ impl TomlManifest {
                 .badges
                 .as_ref()
                 .map(|_| MaybeWorkspace::Defined(metadata.badges.clone())),
-            lints: lints
-                .map(|lints| toml::Value::try_from(MaybeWorkspaceLints::Defined(lints)).unwrap()),
+            lints: lints.map(|lints| MaybeWorkspaceLints {
+                workspace: false,
+                lints,
+            }),
         };
         let mut manifest = Manifest::new(
             summary,
@@ -2683,7 +2584,7 @@ impl TomlManifest {
                 let mut inheritable = toml_config.package.clone().unwrap_or_default();
                 inheritable.update_ws_path(root.to_path_buf());
                 inheritable.update_deps(toml_config.dependencies.clone());
-                let lints = parse_unstable_lints(toml_config.lints.clone(), config, &mut warnings)?;
+                let lints = toml_config.lints.clone();
                 let lints = verify_lints(lints)?;
                 inheritable.update_lints(lints);
                 let ws_root_config = WorkspaceRootConfig::new(
@@ -2756,8 +2657,8 @@ impl TomlManifest {
                 replacement.unused_keys(),
                 &mut cx.warnings,
             );
-            dep.set_version_req(VersionReq::exact(version))
-                .lock_version(version);
+            dep.set_version_req(OptVersionReq::exact(&version))
+                .lock_version(&version);
             replace.push((spec, dep));
         }
         Ok(replace)
@@ -2828,55 +2729,6 @@ impl TomlManifest {
     pub fn features(&self) -> Option<&BTreeMap<InternedString, Vec<InternedString>>> {
         self.features.as_ref()
     }
-}
-
-fn parse_unstable_lints<T: Deserialize<'static>>(
-    lints: Option<toml::Value>,
-    config: &Config,
-    warnings: &mut Vec<String>,
-) -> CargoResult<Option<T>> {
-    let Some(lints) = lints else {
-        return Ok(None);
-    };
-
-    if !config.cli_unstable().lints {
-        warn_for_lint_feature(config, warnings);
-        return Ok(None);
-    }
-
-    lints.try_into().map(Some).map_err(|err| err.into())
-}
-
-fn warn_for_lint_feature(config: &Config, warnings: &mut Vec<String>) {
-    use std::fmt::Write as _;
-
-    let key_name = "lints";
-    let feature_name = "lints";
-
-    let mut message = String::new();
-
-    let _ = write!(
-        message,
-        "unused manifest key `{key_name}` (may be supported in a future version)"
-    );
-    if config.nightly_features_allowed {
-        let _ = write!(
-            message,
-            "
-
-consider passing `-Z{feature_name}` to enable this feature."
-        );
-    } else {
-        let _ = write!(
-            message,
-            "
-
-this Cargo does not support nightly features, but if you
-switch to nightly channel you can pass
-`-Z{feature_name}` to enable this feature.",
-        );
-    }
-    warnings.push(message);
 }
 
 fn verify_lints(lints: Option<TomlLints>) -> CargoResult<Option<TomlLints>> {
@@ -3302,7 +3154,7 @@ impl<P: ResolveToPath + Clone> DetailedTomlDependency<P> {
             self.target.as_deref(),
         ) {
             if cx.config.cli_unstable().bindeps {
-                let artifact = Artifact::parse(artifact, is_lib, target)?;
+                let artifact = Artifact::parse(&artifact.0, is_lib, target)?;
                 if dep.kind() != DepKind::Build
                     && artifact.target() == Some(ArtifactTarget::BuildDependencyAssumeTarget)
                 {
@@ -3493,15 +3345,61 @@ impl fmt::Debug for PathValue {
     }
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(expecting = "a lints table")]
+pub struct MaybeWorkspaceLints {
+    #[serde(skip_serializing_if = "is_false")]
+    #[serde(deserialize_with = "bool_no_false", default)]
+    workspace: bool,
+    #[serde(flatten)]
+    lints: TomlLints,
+}
+
+fn is_false(b: &bool) -> bool {
+    !b
+}
+
+impl MaybeWorkspaceLints {
+    fn resolve<'a>(
+        self,
+        get_ws_inheritable: impl FnOnce() -> CargoResult<TomlLints>,
+    ) -> CargoResult<TomlLints> {
+        if self.workspace {
+            if !self.lints.is_empty() {
+                anyhow::bail!("cannot override `workspace.lints` in `lints`, either remove the overrides or `lints.workspace = true` and manually specify the lints");
+            }
+            get_ws_inheritable().with_context(|| {
+                "error inheriting `lints` from workspace root manifest's `workspace.lints`"
+            })
+        } else {
+            Ok(self.lints)
+        }
+    }
+}
+
 pub type TomlLints = BTreeMap<String, TomlToolLints>;
 
 pub type TomlToolLints = BTreeMap<String, TomlLint>;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum TomlLint {
     Level(TomlLintLevel),
     Config(TomlLintConfig),
+}
+
+impl<'de> Deserialize<'de> for TomlLint {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        UntaggedEnumVisitor::new()
+            .string(|string| {
+                TomlLintLevel::deserialize(string.into_deserializer()).map(TomlLint::Level)
+            })
+            .map(|map| map.deserialize().map(TomlLint::Config))
+            .deserialize(deserializer)
+    }
 }
 
 impl TomlLint {
@@ -3545,5 +3443,22 @@ impl TomlLintLevel {
             Self::Warn => "--warn",
             Self::Allow => "--allow",
         }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+#[non_exhaustive]
+struct InvalidCargoFeatures {}
+
+impl<'de> de::Deserialize<'de> for InvalidCargoFeatures {
+    fn deserialize<D>(_d: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        use serde::de::Error as _;
+
+        Err(D::Error::custom(
+            "the field `cargo-features` should be set at the top of Cargo.toml before any tables",
+        ))
     }
 }

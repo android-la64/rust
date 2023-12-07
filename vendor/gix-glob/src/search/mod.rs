@@ -16,9 +16,6 @@ pub trait Pattern: Clone + PartialEq + Eq + std::fmt::Debug + std::hash::Hash + 
 
     /// Parse all patterns in `bytes` line by line, ignoring lines with errors, and collect them.
     fn bytes_to_patterns(bytes: &[u8], source: &Path) -> Vec<pattern::Mapping<Self::Value>>;
-
-    /// Returns true if the given pattern may be used for matching.
-    fn may_use_glob_pattern(pattern: &crate::Pattern) -> bool;
 }
 
 /// Add the given file at `source` if it exists, otherwise do nothing.
@@ -26,17 +23,12 @@ pub trait Pattern: Clone + PartialEq + Eq + std::fmt::Debug + std::hash::Hash + 
 /// Returns `true` if the file was added, or `false` if it didn't exist.
 pub fn add_patterns_file<T: Pattern>(
     patterns: &mut Vec<pattern::List<T>>,
-    source: impl Into<PathBuf>,
+    source: PathBuf,
     follow_symlinks: bool,
     root: Option<&Path>,
     buf: &mut Vec<u8>,
 ) -> std::io::Result<bool> {
     let previous_len = patterns.len();
-    patterns.extend(pattern::List::<T>::from_file(
-        source.into(),
-        root,
-        follow_symlinks,
-        buf,
-    )?);
+    patterns.extend(pattern::List::<T>::from_file(source, root, follow_symlinks, buf)?);
     Ok(patterns.len() != previous_len)
 }

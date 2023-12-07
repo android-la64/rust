@@ -2,8 +2,11 @@ use std::collections::{HashMap, HashSet};
 use std::task::{ready, Poll};
 
 use crate::core::PackageSet;
-use crate::core::{Dependency, PackageId, QueryKind, Source, SourceId, SourceMap, Summary};
+use crate::core::{Dependency, PackageId, SourceId, Summary};
 use crate::sources::config::SourceConfigMap;
+use crate::sources::source::QueryKind;
+use crate::sources::source::Source;
+use crate::sources::source::SourceMap;
 use crate::util::errors::CargoResult;
 use crate::util::interning::InternedString;
 use crate::util::{CanonicalUrl, Config};
@@ -396,7 +399,7 @@ impl<'cfg> PackageRegistry<'cfg> {
         // Note that this is somewhat subtle where the list of `ids` for a
         // canonical URL is extend with possibly two ids per summary. This is done
         // to handle the transition from the v2->v3 lock file format where in
-        // v2 DefeaultBranch was either DefaultBranch or Branch("master") for
+        // v2 DefaultBranch was either DefaultBranch or Branch("master") for
         // git dependencies. In this case if `summary.package_id()` is
         // Branch("master") then alt_package_id will be DefaultBranch. This
         // signifies that there's a patch available for either of those

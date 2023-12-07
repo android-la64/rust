@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.65"
 name = "gix-lock"
-version = "6.0.0"
+version = "10.0.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -23,7 +23,7 @@ include = [
 ]
 description = "A git-style lock-file implementation"
 readme = "README.md"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
 
 [lib]
@@ -31,11 +31,11 @@ test = true
 doctest = false
 
 [dependencies.gix-tempfile]
-version = "^6.0.0"
+version = "^10.0.0"
 default-features = false
 
 [dependencies.gix-utils]
-version = "^0.1.2"
+version = "^0.1.5"
 default-features = false
 
 [dependencies.thiserror]
