@@ -247,20 +247,6 @@ mod c {
             }
         }
 
-        if target_vendor == "apple" {
-            sources.extend(&[
-                ("atomic_flag_clear", "atomic_flag_clear.c"),
-                ("atomic_flag_clear_explicit", "atomic_flag_clear_explicit.c"),
-                ("atomic_flag_test_and_set", "atomic_flag_test_and_set.c"),
-                (
-                    "atomic_flag_test_and_set_explicit",
-                    "atomic_flag_test_and_set_explicit.c",
-                ),
-                ("atomic_signal_fence", "atomic_signal_fence.c"),
-                ("atomic_thread_fence", "atomic_thread_fence.c"),
-            ]);
-        }
-
         if target_env == "msvc" {
             if target_arch == "x86_64" {
                 sources.extend(&[
