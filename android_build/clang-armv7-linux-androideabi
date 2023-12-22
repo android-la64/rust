@@ -1,0 +1,2 @@
+#!/bin/sh
+$CLANG_PATH/bin/clang $* -fuse-ld=lld --target=armv7-linux-androideabi --sysroot=$NDK_PATH/platforms/android-29/arch-arm         -L$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/lib/gcc/arm-linux-androideabi/4.9.x -L$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-androideabi -isystem $NDK_PATH/sysroot/usr/include         -isystem $NDK_PATH/sysroot/usr/include/arm-linux-androideabi

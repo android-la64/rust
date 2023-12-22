@@ -1,0 +1,2 @@
+#!/bin/sh
+$CLANG_PATH/bin/clang $* -fuse-ld=lld --target=i686-unknown-linux-gnu  -I/usr/i686-linux-gnu/include

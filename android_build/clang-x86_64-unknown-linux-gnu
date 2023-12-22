@@ -1,0 +1,2 @@
+#!/bin/sh
+$CLANG_PATH/bin/clang $* -fuse-ld=lld --target=x86_64-unknown-linux-gnu 

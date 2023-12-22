@@ -1,0 +1,9 @@
+#!/bin/sh
+
+$CLANG_PATH/bin/clang $* -fuse-ld=lld \
+  --target=x86_64-linux-android \
+  --sysroot=$NDK_PATH/../platforms/install/platforms/android-29/arch-x86_64 \
+  -L$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/lib/gcc/x86_64-linux-android/4.9.x \
+  -L$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/x86_64-linux-android \
+  -isystem $NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include \
+  -isystem $NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/x86_64-linux-android
