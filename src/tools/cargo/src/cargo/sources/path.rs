@@ -191,12 +191,12 @@ impl<'cfg> PathSource<'cfg> {
         let index = repo
             .index()
             .chain_err(|| format!("failed to open git index at {}", repo.path().display()))?;
-        let repo_root = repo.workdir().ok_or_else(|| {
-            anyhow::format_err!(
-                "did not expect repo at {} to be bare",
-                repo.path().display()
-            )
-        })?;
+
+        let repo_root = match repo.workdir() {
+            Some(workdir) => workdir,
+            _ => return Ok(None)
+        };
+
         let repo_relative_path = match paths::strip_prefix_canonical(root, repo_root) {
             Ok(p) => p,
             Err(e) => {
