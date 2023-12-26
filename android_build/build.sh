@@ -4,6 +4,7 @@ script_path="$0"
 script_dir=$(dirname "$script_path")
 script_dir=$(readlink -f "$script_dir")
 
+# generate config file
 cat > config.toml << EOF
 [llvm]
 ninja = true
@@ -71,5 +72,28 @@ cc="$script_dir/clang-loongarch64-linux-android"
 ar="$script_dir/clang-ar"
 EOF
 
-#./x.py dist --host x86_64-unknown-linux-gnu --target loongarch64-linux-android
-./x.py dist
+# build and dist
+./x.py dist --host x86_64-unknown-linux-gnu --target loongarch64-linux-android
+
+find ./build/dist -name "rust-dev-*" -exec echo Dist binary: {} \;
+
+# dist source for android
+tar_android_src_path=./build/tmp/tarball/rust-src-android/
+tar_android_stdlibs_src_path=$tar_android_src_path/src/stdlibs
+
+tar_library_src_path=$tar_android_stdlibs_src_path/library/
+mkdir -p $tar_library_src_path
+libaray_names=(alloc  backtrace  core  panic_abort  panic_unwind  proc_macro  profiler_builtins  std  stdarch  term  test  unwind)
+for name in "${libaray_names[@]}"; do
+  cp -r  library/$name $tar_library_src_path
+done
+
+tar_vendor_src_path=$tar_android_stdlibs_src_path/vendor/
+mkdir -p $tar_vendor_src_path
+vendor_names=(backtrace  cfg-if  compiler_builtins  getopts  hashbrown  libc  rustc-demangle  unicode-width)
+for name in "${vendor_names[@]}"; do
+  cp -r  vendor/$name $tar_vendor_src_path
+done
+
+tar cfJ build/dist/rust-src-android.tar.xz -C $tar_android_src_path src
+find ./build/dist -name "rust-src-android*" -exec echo Dist source: {} \;
