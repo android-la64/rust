@@ -1,5 +1,27 @@
 #!/bin/bash
 
+export NDK_EXTRA_PATH=$(pwd)/android_build/ndk_r23_extra
+
+if [[ ! -f "./x.py" ]]; then
+  echo "Must run this script in the top-level directory of your Rust project!!!"
+  exit 1
+fi
+
+if [ -z "$CLANG_PATH" ]; then
+  echo "CLANG_PATH not set!!!"
+  exit 1
+fi
+
+if [ -z "$NDK_PATH" ]; then
+  echo "NDK_PATH not set!!!"
+  exit 1
+fi
+
+if [ ! -d "$NDK_EXTRA_PATH" ]; then
+  echo "$NDK_EXTRA_PATH not exist!!!"
+  exit 1
+fi
+
 script_path="$0"
 script_dir=$(dirname "$script_path")
 script_dir=$(readlink -f "$script_dir")
@@ -12,7 +34,7 @@ targets = "AArch64;ARM;X86;RISCV;LoongArch"
 experimental-targets = ""
 use-libcxx = true
 [build]
-target = ["x86_64-unknown-linux-gnu", "loongarch64-linux-android"]
+target = ["x86_64-unknown-linux-gnu","i686-unknown-linux-gnu","aarch64-linux-android","armv7-linux-androideabi","x86_64-linux-android","i686-linux-android","loongarch64-linux-android"]
 verbose = 1
 profiler = true
 docs = false

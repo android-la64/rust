@@ -4,5 +4,6 @@ $CLANG_PATH/bin/clang $* -fuse-ld=lld \
   --sysroot=$NDK_PATH/../platforms/install/platforms/android-29/arch-loongarch64 \
   -L$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/lib/gcc/loongarch64-linux-android/4.9.x \
   -L$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/loongarch64-linux-android \
+  -L$NDK_EXTRA_PATH/lib/gcc/loongarch64-linux-android/4.9.x \
   -isystem $NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include \
   -isystem $NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/loongarch64-linux-android
