@@ -97,7 +97,7 @@ EOF
 # build and dist
 ./x.py dist --host x86_64-unknown-linux-gnu --target loongarch64-linux-android
 
-find ./build/dist -name "ru-1.51.0-dev-*" -exec echo Dist binary: {} \;
+find ./build/dist -name "rust-1.51.0-dev-*" -exec echo Dist binary: {} \;
 
 # dist source for android
 tar_android_src_path=./build/tmp/tarball/rust-src-android/

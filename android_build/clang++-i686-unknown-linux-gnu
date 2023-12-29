@@ -1,2 +1,6 @@
 #!/bin/sh
-$CLANG_PATH/bin/clang++ -I$CLANG_PATH/include/c++/v1 $* -fuse-ld=lld --target=i686-unknown-linux-gnu -I/usr/i686-linux-gnu/include -Wl,-rpath,$CLANG_PATH/lib64 -stdlib=libc++
+$CLANG_PATH/bin/clang++ -I$CLANG_PATH/include/c++/v1 $* -fuse-ld=lld \
+  --target=i686-unknown-linux-gnu -I/usr/i686-linux-gnu/include \
+  -Wl,-rpath,$CLANG_PATH/lib64 \
+  -Wl,-rpath,\$ORIGIN/../../../../clang/host/linux-x86/$(basename $CLANG_PATH)/lib64 \
+  -stdlib=libc++
