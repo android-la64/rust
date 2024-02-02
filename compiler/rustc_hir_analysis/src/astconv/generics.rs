@@ -429,12 +429,22 @@ pub(crate) fn check_generic_arg_count(
         .filter(|param| matches!(param.kind, ty::GenericParamDefKind::Type { synthetic: true, .. }))
         .count();
     let named_type_param_count = param_counts.types - has_self as usize - synth_type_param_count;
+    let synth_const_param_count = gen_params
+        .params
+        .iter()
+        .filter(|param| {
+            matches!(param.kind, ty::GenericParamDefKind::Const { is_host_effect: true, .. })
+        })
+        .count();
+    let named_const_param_count = param_counts.consts - synth_const_param_count;
     let infer_lifetimes =
         (gen_pos != GenericArgPosition::Type || infer_args) && !gen_args.has_lifetime_params();
 
-    if gen_pos != GenericArgPosition::Type && let Some(b) = gen_args.bindings.first() {
-             prohibit_assoc_ty_binding(tcx, b.span, None);
-        }
+    if gen_pos != GenericArgPosition::Type
+        && let Some(b) = gen_args.bindings.first()
+    {
+        prohibit_assoc_ty_binding(tcx, b.span, None);
+    }
 
     let explicit_late_bound =
         prohibit_explicit_late_bound_lifetimes(tcx, gen_params, gen_args, gen_pos);
@@ -571,11 +581,13 @@ pub(crate) fn check_generic_arg_count(
         debug!(?expected_min);
         debug!(arg_counts.lifetimes=?gen_args.num_lifetime_params());
 
+        let provided = gen_args.num_generic_params();
+
         check_types_and_consts(
             expected_min,
-            param_counts.consts + named_type_param_count,
-            param_counts.consts + named_type_param_count + synth_type_param_count,
-            gen_args.num_generic_params(),
+            named_const_param_count + named_type_param_count,
+            named_const_param_count + named_type_param_count + synth_type_param_count,
+            provided,
             param_counts.lifetimes + has_self as usize,
             gen_args.num_lifetime_params(),
         )

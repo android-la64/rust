@@ -12,6 +12,7 @@ pub fn cli() -> Command {
         )
         .arg(
             Arg::new("args")
+                .value_name("ARGS")
                 .help("Arguments for the bench binary")
                 .num_args(0..)
                 .last(true),
@@ -36,9 +37,9 @@ pub fn cli() -> Command {
             "Benchmark only the specified example",
             "Benchmark all examples",
             "Benchmark only the specified test target",
-            "Benchmark all tests",
+            "Benchmark all test targets",
             "Benchmark only the specified bench target",
-            "Benchmark all benches",
+            "Benchmark all bench targets",
             "Benchmark all targets",
         )
         .arg_features()

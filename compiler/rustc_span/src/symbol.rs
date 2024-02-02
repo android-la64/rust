@@ -3,7 +3,7 @@
 //! type, and vice versa.
 
 use rustc_arena::DroplessArena;
-use rustc_data_structures::fx::FxHashMap;
+use rustc_data_structures::fx::FxIndexSet;
 use rustc_data_structures::stable_hasher::{HashStable, StableHasher, ToStableHashKey};
 use rustc_data_structures::sync::Lock;
 use rustc_macros::HashStable_Generic;
@@ -20,8 +20,8 @@ mod tests;
 
 // The proc macro code for this is in `compiler/rustc_macros/src/symbols.rs`.
 symbols! {
-    // After modifying this list adjust `is_special`, `is_used_keyword`/`is_unused_keyword`,
-    // this should be rarely necessary though if the keywords are kept in alphabetic order.
+    // If you modify this list, adjust `is_special` and `is_used_keyword`/`is_unused_keyword`.
+    // But this should rarely be necessary if the keywords are kept in alphabetic order.
     Keywords {
         // Special reserved identifiers used internally for elided lifetimes,
         // unnamed method parameters, crate root module, error recovery etc.
@@ -98,6 +98,7 @@ symbols! {
         Builtin:            "builtin",
         Catch:              "catch",
         Default:            "default",
+        Gen:                "gen",
         MacroRules:         "macro_rules",
         Raw:                "raw",
         Union:              "union",
@@ -129,9 +130,11 @@ symbols! {
         Alignment,
         Any,
         Arc,
+        ArcWeak,
         Argument,
         ArgumentMethods,
         Arguments,
+        ArrayIntoIter,
         AsMut,
         AsRef,
         AssertParamIsClone,
@@ -164,6 +167,7 @@ symbols! {
         Capture,
         Center,
         Clone,
+        Command,
         ConstParamTy,
         Context,
         Continue,
@@ -171,6 +175,7 @@ symbols! {
         Count,
         Cow,
         Debug,
+        DebugStruct,
         Decodable,
         Decoder,
         DecorateLint,
@@ -189,11 +194,16 @@ symbols! {
         Error,
         File,
         FileType,
+        Fn,
+        FnMut,
+        FnOnce,
         FormatSpec,
         Formatter,
         From,
         FromIterator,
         FromResidual,
+        FsOpenOptions,
+        FsPermissions,
         Future,
         FutureOutput,
         FxHashMap,
@@ -207,16 +217,23 @@ symbols! {
         Implied,
         IndexOutput,
         Input,
+        Instant,
         Into,
         IntoDiagnostic,
         IntoFuture,
         IntoIterator,
+        IoLines,
         IoRead,
+        IoSeek,
         IoWrite,
         IpAddr,
         IrTyKind,
         Is,
+        Item,
         ItemContext,
+        IterEmpty,
+        IterOnce,
+        IterPeekable,
         Iterator,
         IteratorItem,
         Layout,
@@ -227,6 +244,7 @@ symbols! {
         Mutex,
         MutexGuard,
         N,
+        NonNull,
         NonZeroI128,
         NonZeroI16,
         NonZeroI32,
@@ -259,15 +277,19 @@ symbols! {
         ProcMacro,
         ProceduralMasqueradeDummyType,
         Range,
+        RangeBounds,
         RangeFrom,
         RangeFull,
         RangeInclusive,
         RangeTo,
         RangeToInclusive,
         Rc,
+        RcWeak,
         Ready,
         Receiver,
         RefCell,
+        RefCellRef,
+        RefCellRefMut,
         Relaxed,
         Release,
         Result,
@@ -284,7 +306,9 @@ symbols! {
         Send,
         SeqCst,
         SliceIndex,
+        SliceIter,
         Some,
+        SpanCtxt,
         String,
         StructuralEq,
         StructuralPartialEq,
@@ -295,6 +319,7 @@ symbols! {
         ToOwned,
         ToString,
         TokenStream,
+        Trait,
         Try,
         TryCaptureGeneric,
         TryCapturePrintable,
@@ -561,6 +586,7 @@ symbols! {
         constant,
         constructor,
         context,
+        convert_identity,
         copy,
         copy_closures,
         copy_nonoverlapping,
@@ -571,6 +597,10 @@ symbols! {
         core_panic_2015_macro,
         core_panic_2021_macro,
         core_panic_macro,
+        coroutine,
+        coroutine_clone,
+        coroutine_state,
+        coroutines,
         cosf32,
         cosf64,
         count,
@@ -616,6 +646,7 @@ symbols! {
         declare_lint_pass,
         decode,
         default_alloc_error_handler,
+        default_fn,
         default_lib_allocator,
         default_method_body_is_const,
         default_type_parameter_fallback,
@@ -628,6 +659,7 @@ symbols! {
         deref,
         deref_method,
         deref_mut,
+        deref_mut_method,
         deref_target,
         derive,
         derive_const,
@@ -687,6 +719,7 @@ symbols! {
         encode,
         end,
         env,
+        env_CFG_RELEASE: env!("CFG_RELEASE"),
         eprint_macro,
         eprintln_macro,
         eq,
@@ -777,22 +810,24 @@ symbols! {
         from_desugaring,
         from_fn,
         from_iter,
+        from_iter_fn,
         from_output,
         from_residual,
         from_size_align_unchecked,
+        from_str_method,
         from_usize,
         from_yeet,
+        fs_create_dir,
         fsub_fast,
         fundamental,
         future,
         future_trait,
         gdb_script_file,
         ge,
+        gen_blocks,
         gen_future,
         gen_kill,
-        generator,
         generator_clone,
-        generator_state,
         generators,
         generic_arg_infer,
         generic_assert,
@@ -862,12 +897,16 @@ symbols! {
         inline_const_pat,
         inout,
         instruction_set,
-        integer_: "integer",
+        integer_: "integer", // underscore to avoid clashing with the function `sym::integer` below
         integral,
         into_future,
         into_iter,
         intra_doc_pointers,
         intrinsics,
+        intrinsics_unaligned_volatile_load,
+        intrinsics_unaligned_volatile_store,
+        io_stderr,
+        io_stdout,
         irrefutable_let_patterns,
         isa_attribute,
         isize,
@@ -879,6 +918,7 @@ symbols! {
         iter,
         iter_mut,
         iter_repeat,
+        iterator,
         iterator_collect_fn,
         kcfi,
         keyword,
@@ -926,6 +966,7 @@ symbols! {
         log_syntax,
         logf32,
         logf64,
+        loongarch_target_feature,
         loop_break_value,
         lt,
         macro_at_most_once_rep,
@@ -962,6 +1003,7 @@ symbols! {
         mem_replace,
         mem_size_of,
         mem_size_of_val,
+        mem_swap,
         mem_uninitialized,
         mem_variant_count,
         mem_zeroed,
@@ -1075,6 +1117,7 @@ symbols! {
         off,
         offset,
         offset_of,
+        offset_of_enum,
         omit_gdb_pretty_printer_section,
         on,
         on_unimplemented,
@@ -1091,6 +1134,7 @@ symbols! {
         options,
         or,
         or_patterns,
+        ord_cmp_method,
         other,
         out,
         overflow_checks,
@@ -1104,7 +1148,6 @@ symbols! {
         panic_abort,
         panic_bounds_check,
         panic_cannot_unwind,
-        panic_display,
         panic_fmt,
         panic_handler,
         panic_impl,
@@ -1172,6 +1215,7 @@ symbols! {
         proc_macro_mod,
         proc_macro_non_items,
         proc_macro_path_invoc,
+        process_exit,
         profiler_builtins,
         profiler_runtime,
         ptr,
@@ -1179,6 +1223,10 @@ symbols! {
         ptr_cast_const,
         ptr_cast_mut,
         ptr_const_is_null,
+        ptr_copy,
+        ptr_copy_nonoverlapping,
+        ptr_drop_in_place,
+        ptr_eq,
         ptr_from_ref,
         ptr_guaranteed_cmp,
         ptr_is_null,
@@ -1187,8 +1235,17 @@ symbols! {
         ptr_null_mut,
         ptr_offset_from,
         ptr_offset_from_unsigned,
+        ptr_read,
+        ptr_read_unaligned,
+        ptr_read_volatile,
+        ptr_replace,
+        ptr_slice_from_raw_parts,
+        ptr_slice_from_raw_parts_mut,
+        ptr_swap,
+        ptr_swap_nonoverlapping,
         ptr_unique,
         ptr_write,
+        ptr_write_bytes,
         ptr_write_unaligned,
         ptr_write_volatile,
         pub_macro_rules,
@@ -1284,6 +1341,7 @@ symbols! {
         rust_cold_cc,
         rust_eh_catch_typeinfo,
         rust_eh_personality,
+        rust_logo,
         rustc,
         rustc_abi,
         rustc_allocator,
@@ -1299,6 +1357,7 @@ symbols! {
         rustc_coherence_is_core,
         rustc_coinductive,
         rustc_confusables,
+        rustc_const_panic_str,
         rustc_const_stable,
         rustc_const_unstable,
         rustc_conversion_suggestion,
@@ -1321,6 +1380,7 @@ symbols! {
         rustc_evaluate_where_clauses,
         rustc_expected_cgu_reuse,
         rustc_has_incoherent_inherent_impls,
+        rustc_hidden_type_of_opaques,
         rustc_host,
         rustc_if_this_changed,
         rustc_inherit_overflow_checks,
@@ -1478,6 +1538,8 @@ symbols! {
         sized,
         skip,
         slice,
+        slice_from_raw_parts,
+        slice_from_raw_parts_mut,
         slice_len_fn,
         slice_patterns,
         slicing_syntax,
@@ -1565,7 +1627,9 @@ symbols! {
         thumb2,
         thumb_mode: "thumb-mode",
         tmm_reg,
+        to_owned_method,
         to_string,
+        to_string_method,
         to_vec,
         todo_macro,
         tool_attributes,
@@ -1588,6 +1652,7 @@ symbols! {
         try_blocks,
         try_capture,
         try_from,
+        try_from_fn,
         try_into,
         try_trait_v2,
         tt,
@@ -1722,6 +1787,7 @@ symbols! {
         xmm_reg,
         yeet_desugar_details,
         yeet_expr,
+        yield_expr,
         ymm_reg,
         zmm_reg,
     }
@@ -2015,42 +2081,32 @@ impl<CTX> ToStableHashKey<CTX> for Symbol {
     }
 }
 
-#[derive(Default)]
 pub(crate) struct Interner(Lock<InternerInner>);
 
 // The `&'static str`s in this type actually point into the arena.
 //
-// The `FxHashMap`+`Vec` pair could be replaced by `FxIndexSet`, but #75278
-// found that to regress performance up to 2% in some cases. This might be
-// revisited after further improvements to `indexmap`.
-//
 // This type is private to prevent accidentally constructing more than one
 // `Interner` on the same thread, which makes it easy to mix up `Symbol`s
 // between `Interner`s.
-#[derive(Default)]
 struct InternerInner {
     arena: DroplessArena,
-    names: FxHashMap<&'static str, Symbol>,
-    strings: Vec<&'static str>,
+    strings: FxIndexSet<&'static str>,
 }
 
 impl Interner {
     fn prefill(init: &[&'static str]) -> Self {
         Interner(Lock::new(InternerInner {
-            strings: init.into(),
-            names: init.iter().copied().zip((0..).map(Symbol::new)).collect(),
-            ..Default::default()
+            arena: Default::default(),
+            strings: init.iter().copied().collect(),
         }))
     }
 
     #[inline]
     fn intern(&self, string: &str) -> Symbol {
         let mut inner = self.0.lock();
-        if let Some(&name) = inner.names.get(string) {
-            return name;
+        if let Some(idx) = inner.strings.get_index_of(string) {
+            return Symbol::new(idx as u32);
         }
-
-        let name = Symbol::new(inner.strings.len() as u32);
 
         // SAFETY: we convert from `&str` to `&[u8]`, clone it into the arena,
         // and immediately convert the clone back to `&[u8]`, all because there
@@ -2061,20 +2117,21 @@ impl Interner {
         // SAFETY: we can extend the arena allocation to `'static` because we
         // only access these while the arena is still alive.
         let string: &'static str = unsafe { &*(string as *const str) };
-        inner.strings.push(string);
 
         // This second hash table lookup can be avoided by using `RawEntryMut`,
         // but this code path isn't hot enough for it to be worth it. See
         // #91445 for details.
-        inner.names.insert(string, name);
-        name
+        let (idx, is_new) = inner.strings.insert_full(string);
+        debug_assert!(is_new); // due to the get_index_of check above
+
+        Symbol::new(idx as u32)
     }
 
     /// Get the symbol as a string.
     ///
     /// [`Symbol::as_str()`] should be used in preference to this function.
     fn get(&self, symbol: Symbol) -> &str {
-        self.0.lock().strings[symbol.0.as_usize()]
+        self.0.lock().strings.get_index(symbol.0.as_usize()).unwrap()
     }
 }
 
@@ -2132,8 +2189,9 @@ impl Symbol {
         self >= kw::Abstract && self <= kw::Yield
     }
 
-    fn is_unused_keyword_conditional(self, edition: impl FnOnce() -> Edition) -> bool {
-        self == kw::Try && edition() >= Edition::Edition2018
+    fn is_unused_keyword_conditional(self, edition: impl Copy + FnOnce() -> Edition) -> bool {
+        self == kw::Try && edition().at_least_rust_2018()
+            || self == kw::Gen && edition().at_least_rust_2024()
     }
 
     pub fn is_reserved(self, edition: impl Copy + FnOnce() -> Edition) -> bool {

@@ -25,8 +25,7 @@
 //! to: `rustc_span::create_default_session_globals_then(|| { test_here(); })`.
 
 use super::counters;
-use super::graph;
-use super::spans;
+use super::graph::{self, BasicCoverageBlock};
 
 use coverage_test_macros::let_bcb;
 
@@ -242,7 +241,7 @@ fn print_coverage_graphviz(
                         "    {:?} [label=\"{:?}: {}\"];\n{}",
                         bcb,
                         bcb,
-                        bcb_data.terminator(mir_body).kind.name(),
+                        mir_body[bcb_data.last_bb()].terminator().kind.name(),
                         basic_coverage_blocks
                             .successors(bcb)
                             .map(|successor| { format!("    {:?} -> {:?};", bcb, successor) })
@@ -629,7 +628,7 @@ fn test_traverse_coverage_with_loops() {
     let basic_coverage_blocks = graph::CoverageGraph::from_mir(&mir_body);
     let mut traversed_in_order = Vec::new();
     let mut traversal = graph::TraverseCoverageGraphWithLoops::new(&basic_coverage_blocks);
-    while let Some(bcb) = traversal.next(&basic_coverage_blocks) {
+    while let Some(bcb) = traversal.next() {
         traversed_in_order.push(bcb);
     }
 
@@ -644,41 +643,18 @@ fn test_traverse_coverage_with_loops() {
     );
 }
 
-fn synthesize_body_span_from_terminators(mir_body: &Body<'_>) -> Span {
-    let mut some_span: Option<Span> = None;
-    for (_, data) in mir_body.basic_blocks.iter_enumerated() {
-        let term_span = data.terminator().source_info.span;
-        if let Some(span) = some_span.as_mut() {
-            *span = span.to(term_span);
-        } else {
-            some_span = Some(term_span)
-        }
-    }
-    some_span.expect("body must have at least one BasicBlock")
-}
-
 #[test]
 fn test_make_bcb_counters() {
     rustc_span::create_default_session_globals_then(|| {
         let mir_body = goto_switchint();
-        let body_span = synthesize_body_span_from_terminators(&mir_body);
-        let mut basic_coverage_blocks = graph::CoverageGraph::from_mir(&mir_body);
-        let mut coverage_spans = Vec::new();
-        for (bcb, data) in basic_coverage_blocks.iter_enumerated() {
-            if let Some(span) = spans::filtered_terminator_span(data.terminator(&mir_body)) {
-                coverage_spans.push(spans::CoverageSpan::for_terminator(
-                    spans::function_source_span(span, body_span),
-                    span,
-                    bcb,
-                    data.last_bb(),
-                ));
-            }
-        }
+        let basic_coverage_blocks = graph::CoverageGraph::from_mir(&mir_body);
+        // Historically this test would use `spans` internals to set up fake
+        // coverage spans for BCBs 1 and 2. Now we skip that step and just tell
+        // BCB counter construction that those BCBs have spans.
+        let bcb_has_coverage_spans = |bcb: BasicCoverageBlock| (1..=2).contains(&bcb.as_usize());
         let mut coverage_counters = counters::CoverageCounters::new(&basic_coverage_blocks);
-        coverage_counters
-            .make_bcb_counters(&mut basic_coverage_blocks, &coverage_spans)
-            .expect("should be Ok");
-        assert_eq!(coverage_counters.intermediate_expressions.len(), 0);
+        coverage_counters.make_bcb_counters(&basic_coverage_blocks, bcb_has_coverage_spans);
+        assert_eq!(coverage_counters.num_expressions(), 0);
 
         let_bcb!(1);
         assert_eq!(

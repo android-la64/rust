@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-pack"
-version = "0.43.0"
+version = "0.44.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -53,12 +53,12 @@ optional = true
 version = "^0.4.4"
 
 [dependencies.gix-diff]
-version = "^0.36.0"
+version = "^0.37.0"
 optional = true
 default-features = false
 
 [dependencies.gix-features]
-version = "^0.35.0"
+version = "^0.36.0"
 features = [
     "crc32",
     "rustsha1",
@@ -67,19 +67,19 @@ features = [
 ]
 
 [dependencies.gix-hash]
-version = "^0.13.0"
+version = "^0.13.1"
 
 [dependencies.gix-hashtable]
 version = "^0.4.0"
 
 [dependencies.gix-object]
-version = "^0.37.0"
+version = "^0.38.0"
 
 [dependencies.gix-path]
 version = "^0.10.0"
 
 [dependencies.gix-traverse]
-version = "^0.33.0"
+version = "^0.34.0"
 optional = true
 
 [dependencies.memmap2]
@@ -127,5 +127,5 @@ streaming-input = []
 wasm = ["gix-diff?/wasm"]
 
 [target."cfg(not(target_arch = \"wasm32\"))".dependencies.gix-tempfile]
-version = "^10.0.0"
+version = "^11.0.0"
 default-features = false

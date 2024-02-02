@@ -16,9 +16,8 @@ use rustc_hir::PredicateOrigin;
 use rustc_index::{Idx, IndexSlice, IndexVec};
 use rustc_middle::ty::{ResolverAstLowering, TyCtxt};
 use rustc_span::edit_distance::find_best_match_for_name;
-use rustc_span::source_map::DesugaringKind;
 use rustc_span::symbol::{kw, sym, Ident};
-use rustc_span::{Span, Symbol};
+use rustc_span::{DesugaringKind, Span, Symbol};
 use rustc_target::spec::abi;
 use smallvec::{smallvec, SmallVec};
 use thin_vec::ThinVec;
@@ -82,7 +81,7 @@ impl<'a, 'hir> ItemLowerer<'a, 'hir> {
             is_in_loop_condition: false,
             is_in_trait_impl: false,
             is_in_dyn_type: false,
-            generator_kind: None,
+            coroutine_kind: None,
             task_context: None,
             current_item: None,
             impl_trait_defs: Vec::new(),
@@ -974,7 +973,7 @@ impl<'hir> LoweringContext<'_, 'hir> {
         value: hir::Expr<'hir>,
     ) -> hir::BodyId {
         let body = hir::Body {
-            generator_kind: self.generator_kind,
+            coroutine_kind: self.coroutine_kind,
             params,
             value: self.arena.alloc(value),
         };
@@ -988,12 +987,12 @@ impl<'hir> LoweringContext<'_, 'hir> {
         &mut self,
         f: impl FnOnce(&mut Self) -> (&'hir [hir::Param<'hir>], hir::Expr<'hir>),
     ) -> hir::BodyId {
-        let prev_gen_kind = self.generator_kind.take();
+        let prev_coroutine_kind = self.coroutine_kind.take();
         let task_context = self.task_context.take();
         let (parameters, result) = f(self);
         let body_id = self.record_body(parameters, result);
         self.task_context = task_context;
-        self.generator_kind = prev_gen_kind;
+        self.coroutine_kind = prev_coroutine_kind;
         body_id
     }
 
@@ -1202,11 +1201,11 @@ impl<'hir> LoweringContext<'_, 'hir> {
             }
 
             let async_expr = this.make_async_expr(
-                CaptureBy::Value,
+                CaptureBy::Value { move_kw: rustc_span::DUMMY_SP },
                 closure_id,
                 None,
                 body.span,
-                hir::AsyncGeneratorKind::Fn,
+                hir::CoroutineSource::Fn,
                 |this| {
                     // Create a block from the user's function body:
                     let user_body = this.lower_block_expr(body);
@@ -1387,10 +1386,12 @@ impl<'hir> LoweringContext<'_, 'hir> {
         // Desugar `~const` bound in generics into an additional `const host: bool` param
         // if the effects feature is enabled. This needs to be done before we lower where
         // clauses since where clauses need to bind to the DefId of the host param
-        let host_param_parts = if let Const::Yes(span) = constness && self.tcx.features().effects {
-            if let Some(param) = generics.params.iter().find(|x| {
-                x.attrs.iter().any(|x| x.has_name(sym::rustc_host))
-            }) {
+        let host_param_parts = if let Const::Yes(span) = constness
+            && self.tcx.features().effects
+        {
+            if let Some(param) =
+                generics.params.iter().find(|x| x.attrs.iter().any(|x| x.has_name(sym::rustc_host)))
+            {
                 // user has manually specified a `rustc_host` param, in this case, we set
                 // the param id so that lowering logic can use that. But we don't create
                 // another host param, so this gives `None`.
@@ -1399,7 +1400,12 @@ impl<'hir> LoweringContext<'_, 'hir> {
             } else {
                 let param_node_id = self.next_node_id();
                 let hir_id = self.next_id();
-                let def_id = self.create_def(self.local_def_id(parent_node_id), param_node_id, DefPathData::TypeNs(sym::host), span);
+                let def_id = self.create_def(
+                    self.local_def_id(parent_node_id),
+                    param_node_id,
+                    DefPathData::TypeNs(sym::host),
+                    span,
+                );
                 self.host_param_id = Some(def_id);
                 Some((span, hir_id, def_id))
             }
@@ -1623,12 +1629,10 @@ impl<'hir> LoweringContext<'_, 'hir> {
                     .lower_generic_params(bound_generic_params, hir::GenericParamSource::Binder),
                 bounded_ty: self
                     .lower_ty(bounded_ty, &ImplTraitContext::Disallowed(ImplTraitPosition::Bound)),
-                bounds: self.arena.alloc_from_iter(bounds.iter().map(|bound| {
-                    self.lower_param_bound(
-                        bound,
-                        &ImplTraitContext::Disallowed(ImplTraitPosition::Bound),
-                    )
-                })),
+                bounds: self.lower_param_bounds(
+                    bounds,
+                    &ImplTraitContext::Disallowed(ImplTraitPosition::Bound),
+                ),
                 span: self.lower_span(*span),
                 origin: PredicateOrigin::WhereClause,
             }),

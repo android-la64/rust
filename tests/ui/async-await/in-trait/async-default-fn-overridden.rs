@@ -1,15 +1,16 @@
 // run-pass
 // edition:2021
 
-#![feature(async_fn_in_trait)]
 
 use std::future::Future;
 
 trait AsyncTrait {
+    #[allow(async_fn_in_trait)]
     async fn default_impl() {
         assert!(false);
     }
 
+    #[allow(async_fn_in_trait)]
     async fn call_default_impl() {
         Self::default_impl().await
     }

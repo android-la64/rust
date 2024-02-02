@@ -34,10 +34,30 @@ pub fn doc(ws: &Workspace<'_>, options: &DocOptions) -> CargoResult<()> {
                 let cfg: Option<PathAndArgs> = ws.config().get("doc.browser")?;
                 cfg.map(|path_args| (path_args.path.resolve_program(ws.config()), path_args.args))
             };
-
             let mut shell = ws.config().shell();
-            shell.status("Opening", path.display())?;
+            let link = shell.err_file_hyperlink(&path);
+            shell.status(
+                "Opening",
+                format!("{}{}{}", link.open(), path.display(), link.close()),
+            )?;
             open_docs(&path, &mut shell, config_browser, ws.config())?;
+        }
+    } else {
+        for name in &compilation.root_crate_names {
+            for kind in &options.compile_opts.build_config.requested_kinds {
+                let path = compilation.root_output[&kind]
+                    .with_file_name("doc")
+                    .join(&name)
+                    .join("index.html");
+                if path.exists() {
+                    let mut shell = ws.config().shell();
+                    let link = shell.err_file_hyperlink(&path);
+                    shell.status(
+                        "Generated",
+                        format!("{}{}{}", link.open(), path.display(), link.close()),
+                    )?;
+                }
+            }
         }
     }
 

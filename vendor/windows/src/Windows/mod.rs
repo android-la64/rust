@@ -1,4 +1,3 @@
-#![allow(non_snake_case, non_upper_case_globals, non_camel_case_types, dead_code, clippy::all)]
 #[cfg(feature = "AI")]
 pub mod AI;
 #[cfg(feature = "ApplicationModel")]
@@ -43,5 +42,3 @@ pub mod Wdk;
 pub mod Web;
 #[cfg(feature = "Win32")]
 pub mod Win32;
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

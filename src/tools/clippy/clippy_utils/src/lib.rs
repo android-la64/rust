@@ -54,7 +54,6 @@ pub mod higher;
 mod hir_utils;
 pub mod macros;
 pub mod mir;
-pub mod msrvs;
 pub mod numeric_literal;
 pub mod paths;
 pub mod ptr;
@@ -80,7 +79,6 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 use if_chain::if_chain;
 use itertools::Itertools;
 use rustc_ast::ast::{self, LitKind, RangeLimits};
-use rustc_ast::Attribute;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_data_structures::unhash::UnhashMap;
 use rustc_hir::def::{DefKind, Res};
@@ -113,7 +111,7 @@ use rustc_span::{sym, Span};
 use rustc_target::abi::Integer;
 use visitors::Visitable;
 
-use crate::consts::{constant, miri_to_const, Constant};
+use crate::consts::{constant, mir_to_const, Constant};
 use crate::higher::Range;
 use crate::ty::{
     adt_and_variant_of_res, can_partially_move_ty, expr_sig, is_copy, is_recursively_primitive_type,
@@ -145,7 +143,7 @@ macro_rules! extract_msrv_attr {
 /// instead.
 ///
 /// Examples:
-/// ```
+/// ```no_run
 /// let abc = 1;
 /// //        ^ output
 /// let def = abc;
@@ -289,7 +287,7 @@ pub fn is_wild(pat: &Pat<'_>) -> bool {
 pub fn is_ty_alias(qpath: &QPath<'_>) -> bool {
     match *qpath {
         QPath::Resolved(_, path) => matches!(path.res, Res::Def(DefKind::TyAlias | DefKind::AssocTy, ..)),
-        QPath::TypeRelative(ty, _) if let TyKind::Path(qpath) = ty.kind => { is_ty_alias(&qpath) },
+        QPath::TypeRelative(ty, _) if let TyKind::Path(qpath) = ty.kind => is_ty_alias(&qpath),
         _ => false,
     }
 }
@@ -700,7 +698,7 @@ pub fn get_trait_def_id(cx: &LateContext<'_>, path: &[&str]) -> Option<DefId> {
 ///
 /// Use this if you want to find the `TraitRef` of the `Add` trait in this example:
 ///
-/// ```rust
+/// ```no_run
 /// struct Point(isize, isize);
 ///
 /// impl std::ops::Add for Point {
@@ -865,8 +863,8 @@ pub fn is_default_equivalent(cx: &LateContext<'_>, e: &Expr<'_>) -> bool {
 }
 
 fn is_default_equivalent_from(cx: &LateContext<'_>, from_func: &Expr<'_>, arg: &Expr<'_>) -> bool {
-    if let ExprKind::Path(QPath::TypeRelative(ty, seg)) = from_func.kind &&
-        seg.ident.name == sym::from
+    if let ExprKind::Path(QPath::TypeRelative(ty, seg)) = from_func.kind
+        && seg.ident.name == sym::from
     {
         match arg.kind {
             ExprKind::Lit(hir::Lit {
@@ -875,12 +873,12 @@ fn is_default_equivalent_from(cx: &LateContext<'_>, from_func: &Expr<'_>, arg: &
             }) => return sym.is_empty() && is_path_lang_item(cx, ty, LangItem::String),
             ExprKind::Array([]) => return is_path_diagnostic_item(cx, ty, sym::Vec),
             ExprKind::Repeat(_, ArrayLen::Body(len)) => {
-                if let ExprKind::Lit(const_lit) = cx.tcx.hir().body(len.body).value.kind &&
-                    let LitKind::Int(v, _) = const_lit.node
+                if let ExprKind::Lit(const_lit) = cx.tcx.hir().body(len.body).value.kind
+                    && let LitKind::Int(v, _) = const_lit.node
                 {
-                        return v == 0 && is_path_diagnostic_item(cx, ty, sym::Vec);
+                    return v == 0 && is_path_diagnostic_item(cx, ty, sym::Vec);
                 }
-            }
+            },
             _ => (),
         }
     }
@@ -896,7 +894,7 @@ fn is_default_equivalent_from(cx: &LateContext<'_>, from_func: &Expr<'_>, arg: &
 ///
 /// For example, given the following function:
 ///
-/// ```
+/// ```no_run
 /// fn f<'a>(iter: &mut impl Iterator<Item = (usize, &'a mut String)>) {
 ///     for item in iter {
 ///         let s = item.1;
@@ -1509,9 +1507,7 @@ pub fn is_range_full(cx: &LateContext<'_>, expr: &Expr<'_>, container_path: Opti
             if let rustc_ty::Adt(_, subst) = ty.kind()
                 && let bnd_ty = subst.type_at(0)
                 && let Some(min_val) = bnd_ty.numeric_min_val(cx.tcx)
-                && let const_val = cx.tcx.valtree_to_const_val((bnd_ty, min_val.to_valtree()))
-                && let min_const_kind = Const::from_value(const_val, bnd_ty)
-                && let Some(min_const) = miri_to_const(cx, min_const_kind)
+                && let Some(min_const) = mir_to_const(cx, Const::from_ty_const(min_val, cx.tcx))
                 && let Some(start_const) = constant(cx, cx.typeck_results(), start)
             {
                 start_const == min_const
@@ -1519,34 +1515,30 @@ pub fn is_range_full(cx: &LateContext<'_>, expr: &Expr<'_>, container_path: Opti
                 false
             }
         });
-        let end_is_none_or_max = end.map_or(true, |end| {
-            match limits {
-                RangeLimits::Closed => {
-                    if let rustc_ty::Adt(_, subst) = ty.kind()
-                        && let bnd_ty = subst.type_at(0)
-                        && let Some(max_val) = bnd_ty.numeric_max_val(cx.tcx)
-                        && let const_val = cx.tcx.valtree_to_const_val((bnd_ty, max_val.to_valtree()))
-                        && let max_const_kind = Const::from_value(const_val, bnd_ty)
-                        && let Some(max_const) = miri_to_const(cx, max_const_kind)
-                        && let Some(end_const) = constant(cx, cx.typeck_results(), end)
-                    {
-                        end_const == max_const
-                    } else {
-                        false
-                    }
-                },
-                RangeLimits::HalfOpen => {
-                    if let Some(container_path) = container_path
-                        && let ExprKind::MethodCall(name, self_arg, [], _) = end.kind
-                        && name.ident.name == sym::len
-                        && let ExprKind::Path(QPath::Resolved(None, path)) = self_arg.kind
-                    {
-                        container_path.res == path.res
-                    } else {
-                        false
-                    }
-                },
-            }
+        let end_is_none_or_max = end.map_or(true, |end| match limits {
+            RangeLimits::Closed => {
+                if let rustc_ty::Adt(_, subst) = ty.kind()
+                    && let bnd_ty = subst.type_at(0)
+                    && let Some(max_val) = bnd_ty.numeric_max_val(cx.tcx)
+                    && let Some(max_const) = mir_to_const(cx, Const::from_ty_const(max_val, cx.tcx))
+                    && let Some(end_const) = constant(cx, cx.typeck_results(), end)
+                {
+                    end_const == max_const
+                } else {
+                    false
+                }
+            },
+            RangeLimits::HalfOpen => {
+                if let Some(container_path) = container_path
+                    && let ExprKind::MethodCall(name, self_arg, [], _) = end.kind
+                    && name.ident.name == sym::len
+                    && let ExprKind::Path(QPath::Resolved(None, path)) = self_arg.kind
+                {
+                    container_path.res == path.res
+                } else {
+                    false
+                }
+            },
         });
         return start_is_none_or_min && end_is_none_or_max;
     }
@@ -1614,7 +1606,7 @@ pub fn is_expn_of(mut span: Span, name: &str) -> Option<Span> {
 /// Returns the pre-expansion span if the span directly comes from an expansion
 /// of the macro `name`.
 /// The difference with [`is_expn_of`] is that in
-/// ```rust
+/// ```no_run
 /// # macro_rules! foo { ($name:tt!$args:tt) => { $name!$args } }
 /// # macro_rules! bar { ($e:expr) => { $e } }
 /// foo!(bar!(42));
@@ -2032,51 +2024,101 @@ pub fn is_must_use_func_call(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
     did.map_or(false, |did| cx.tcx.has_attr(did, sym::must_use))
 }
 
-/// Checks if an expression represents the identity function
-/// Only examines closures and `std::convert::identity`
-pub fn is_expr_identity_function(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
-    /// Checks if a function's body represents the identity function. Looks for bodies of the form:
-    /// * `|x| x`
-    /// * `|x| return x`
-    /// * `|x| { return x }`
-    /// * `|x| { return x; }`
-    fn is_body_identity_function(cx: &LateContext<'_>, func: &Body<'_>) -> bool {
-        let id = if_chain! {
-            if let [param] = func.params;
-            if let PatKind::Binding(_, id, _, _) = param.pat.kind;
-            then {
-                id
-            } else {
-                return false;
-            }
-        };
-
-        let mut expr = func.value;
-        loop {
-            match expr.kind {
-                #[rustfmt::skip]
-                ExprKind::Block(&Block { stmts: [], expr: Some(e), .. }, _, )
-                | ExprKind::Ret(Some(e)) => expr = e,
-                #[rustfmt::skip]
-                ExprKind::Block(&Block { stmts: [stmt], expr: None, .. }, _) => {
-                    if_chain! {
-                        if let StmtKind::Semi(e) | StmtKind::Expr(e) = stmt.kind;
-                        if let ExprKind::Ret(Some(ret_val)) = e.kind;
-                        then {
-                            expr = ret_val;
-                        } else {
-                            return false;
-                        }
-                    }
-                },
-                _ => return path_to_local_id(expr, id) && cx.typeck_results().expr_adjustments(expr).is_empty(),
-            }
+/// Checks if a function's body represents the identity function. Looks for bodies of the form:
+/// * `|x| x`
+/// * `|x| return x`
+/// * `|x| { return x }`
+/// * `|x| { return x; }`
+/// * `|(x, y)| (x, y)`
+///
+/// Consider calling [`is_expr_untyped_identity_function`] or [`is_expr_identity_function`] instead.
+fn is_body_identity_function(cx: &LateContext<'_>, func: &Body<'_>) -> bool {
+    fn check_pat(cx: &LateContext<'_>, pat: &Pat<'_>, expr: &Expr<'_>) -> bool {
+        match (pat.kind, expr.kind) {
+            (PatKind::Binding(_, id, _, _), _) => {
+                path_to_local_id(expr, id) && cx.typeck_results().expr_adjustments(expr).is_empty()
+            },
+            (PatKind::Tuple(pats, dotdot), ExprKind::Tup(tup))
+                if dotdot.as_opt_usize().is_none() && pats.len() == tup.len() =>
+            {
+                pats.iter().zip(tup).all(|(pat, expr)| check_pat(cx, pat, expr))
+            },
+            _ => false,
         }
     }
 
+    let [param] = func.params else {
+        return false;
+    };
+
+    let mut expr = func.value;
+    loop {
+        match expr.kind {
+            ExprKind::Block(
+                &Block {
+                    stmts: [],
+                    expr: Some(e),
+                    ..
+                },
+                _,
+            )
+            | ExprKind::Ret(Some(e)) => expr = e,
+            ExprKind::Block(
+                &Block {
+                    stmts: [stmt],
+                    expr: None,
+                    ..
+                },
+                _,
+            ) => {
+                if_chain! {
+                    if let StmtKind::Semi(e) | StmtKind::Expr(e) = stmt.kind;
+                    if let ExprKind::Ret(Some(ret_val)) = e.kind;
+                    then {
+                        expr = ret_val;
+                    } else {
+                        return false;
+                    }
+                }
+            },
+            _ => return check_pat(cx, param.pat, expr),
+        }
+    }
+}
+
+/// This is the same as [`is_expr_identity_function`], but does not consider closures
+/// with type annotations for its bindings (or similar) as identity functions:
+/// * `|x: u8| x`
+/// * `std::convert::identity::<u8>`
+pub fn is_expr_untyped_identity_function(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
+    match expr.kind {
+        ExprKind::Closure(&Closure { body, fn_decl, .. })
+            if fn_decl.inputs.iter().all(|ty| matches!(ty.kind, TyKind::Infer)) =>
+        {
+            is_body_identity_function(cx, cx.tcx.hir().body(body))
+        },
+        ExprKind::Path(QPath::Resolved(_, path))
+            if path.segments.iter().all(|seg| seg.infer_args)
+                && let Some(did) = path.res.opt_def_id() =>
+        {
+            cx.tcx.is_diagnostic_item(sym::convert_identity, did)
+        },
+        _ => false,
+    }
+}
+
+/// Checks if an expression represents the identity function
+/// Only examines closures and `std::convert::identity`
+///
+/// NOTE: If you want to use this function to find out if a closure is unnecessary, you likely want
+/// to call [`is_expr_untyped_identity_function`] instead, which makes sure that the closure doesn't
+/// have type annotations. This is important because removing a closure with bindings can
+/// remove type information that helped type inference before, which can then lead to compile
+/// errors.
+pub fn is_expr_identity_function(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
     match expr.kind {
         ExprKind::Closure(&Closure { body, .. }) => is_body_identity_function(cx, cx.tcx.hir().body(body)),
-        _ => path_def_id(cx, expr).map_or(false, |id| match_def_path(cx, id, &paths::CONVERT_IDENTITY)),
+        _ => path_def_id(cx, expr).map_or(false, |id| cx.tcx.is_diagnostic_item(sym::convert_identity, id)),
     }
 }
 
@@ -2160,7 +2202,7 @@ pub fn is_no_core_crate(cx: &LateContext<'_>) -> bool {
 
 /// Check if parent of a hir node is a trait implementation block.
 /// For example, `f` in
-/// ```rust
+/// ```no_run
 /// # struct S;
 /// # trait Trait { fn f(); }
 /// impl Trait for S {
@@ -2412,7 +2454,8 @@ fn with_test_item_names(tcx: TyCtxt<'_>, module: LocalModDefId, f: impl Fn(&[Sym
             for id in tcx.hir().module_items(module) {
                 if matches!(tcx.def_kind(id.owner_id), DefKind::Const)
                     && let item = tcx.hir().item(id)
-                    && let ItemKind::Const(ty, _generics, _body) = item.kind {
+                    && let ItemKind::Const(ty, _generics, _body) = item.kind
+                {
                     if let TyKind::Path(QPath::Resolved(_, path)) = ty.kind {
                         // We could also check for the type name `test::TestDescAndFn`
                         if let Res::Def(DefKind::Struct, _) = path.res {
@@ -2456,11 +2499,12 @@ pub fn is_in_test_function(tcx: TyCtxt<'_>, id: hir::HirId) -> bool {
     })
 }
 
-/// Checks if the item containing the given `HirId` has `#[cfg(test)]` attribute applied
+/// Checks if `id` has a `#[cfg(test)]` attribute applied
 ///
-/// Note: Add `//@compile-flags: --test` to UI tests with a `#[cfg(test)]` function
-pub fn is_in_cfg_test(tcx: TyCtxt<'_>, id: hir::HirId) -> bool {
-    fn is_cfg_test(attr: &Attribute) -> bool {
+/// This only checks directly applied attributes, to see if a node is inside a `#[cfg(test)]` parent
+/// use [`is_in_cfg_test`]
+pub fn is_cfg_test(tcx: TyCtxt<'_>, id: hir::HirId) -> bool {
+    tcx.hir().attrs(id).iter().any(|attr| {
         if attr.has_name(sym::cfg)
             && let Some(items) = attr.meta_item_list()
             && let [item] = &*items
@@ -2470,11 +2514,14 @@ pub fn is_in_cfg_test(tcx: TyCtxt<'_>, id: hir::HirId) -> bool {
         } else {
             false
         }
-    }
+    })
+}
+
+/// Checks if any parent node of `HirId` has `#[cfg(test)]` attribute applied
+pub fn is_in_cfg_test(tcx: TyCtxt<'_>, id: hir::HirId) -> bool {
     tcx.hir()
-        .parent_iter(id)
-        .flat_map(|(parent_id, _)| tcx.hir().attrs(parent_id))
-        .any(is_cfg_test)
+        .parent_id_iter(id)
+        .any(|parent_id| is_cfg_test(tcx, parent_id))
 }
 
 /// Checks if the item of any of its parents has `#[cfg(...)]` attribute applied.
@@ -2672,7 +2719,9 @@ pub fn expr_use_ctxt<'tcx>(cx: &LateContext<'tcx>, e: &'tcx Expr<'tcx>) -> Optio
     let ctxt = e.span.ctxt();
     walk_to_expr_usage(cx, e, &mut |parent, child_id| {
         // LocalTableInContext returns the wrong lifetime, so go use `expr_adjustments` instead.
-        if adjustments.is_empty() && let Node::Expr(e) = cx.tcx.hir().get(child_id) {
+        if adjustments.is_empty()
+            && let Node::Expr(e) = cx.tcx.hir().get(child_id)
+        {
             adjustments = cx.typeck_results().expr_adjustments(e);
         }
         match parent {
@@ -2869,13 +2918,13 @@ pub fn pat_and_expr_can_be_question_mark<'a, 'hir>(
     pat: &'a Pat<'hir>,
     else_body: &Expr<'_>,
 ) -> Option<&'a Pat<'hir>> {
-    if let PatKind::TupleStruct(pat_path, [inner_pat], _) = pat.kind &&
-        is_res_lang_ctor(cx, cx.qpath_res(&pat_path, pat.hir_id), OptionSome) &&
-        !is_refutable(cx, inner_pat) &&
-        let else_body = peel_blocks(else_body) &&
-        let ExprKind::Ret(Some(ret_val)) = else_body.kind &&
-        let ExprKind::Path(ret_path) = ret_val.kind &&
-        is_res_lang_ctor(cx, cx.qpath_res(&ret_path, ret_val.hir_id), OptionNone)
+    if let PatKind::TupleStruct(pat_path, [inner_pat], _) = pat.kind
+        && is_res_lang_ctor(cx, cx.qpath_res(&pat_path, pat.hir_id), OptionSome)
+        && !is_refutable(cx, inner_pat)
+        && let else_body = peel_blocks(else_body)
+        && let ExprKind::Ret(Some(ret_val)) = else_body.kind
+        && let ExprKind::Path(ret_path) = ret_val.kind
+        && is_res_lang_ctor(cx, cx.qpath_res(&ret_path, ret_val.hir_id), OptionNone)
     {
         Some(inner_pat)
     } else {
@@ -2912,4 +2961,16 @@ op_utils! {
     BitOr  BitOrAssign
     Shl    ShlAssign
     Shr    ShrAssign
+}
+
+/// Returns `true` if the pattern is a `PatWild`, or is an ident prefixed with `_`
+/// that is not locally used.
+pub fn pat_is_wild<'tcx>(cx: &LateContext<'tcx>, pat: &'tcx PatKind<'_>, body: impl Visitable<'tcx>) -> bool {
+    match *pat {
+        PatKind::Wild => true,
+        PatKind::Binding(_, id, ident, None) if ident.as_str().starts_with('_') => {
+            !visitors::is_local_used(cx, body, id)
+        },
+        _ => false,
+    }
 }

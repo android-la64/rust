@@ -12,7 +12,7 @@ pub fn load_pkg_lockfile(ws: &Workspace<'_>) -> CargoResult<Option<Resolve>> {
         return Ok(None);
     }
 
-    let mut f = lock_root.open_ro("Cargo.lock", ws.config(), "Cargo.lock file")?;
+    let mut f = lock_root.open_ro_shared("Cargo.lock", ws.config(), "Cargo.lock file")?;
 
     let mut s = String::new();
     f.read_to_string(&mut s)
@@ -64,22 +64,21 @@ pub fn write_pkg_lockfile(ws: &Workspace<'_>, resolve: &mut Resolve) -> CargoRes
     // out lock file updates as they're otherwise already updated, and changes
     // which don't touch dependencies won't seemingly spuriously update the lock
     // file.
-    if resolve.version() < ResolveVersion::default() {
-        resolve.set_version(ResolveVersion::default());
+    let default_version = ResolveVersion::default();
+    let current_version = resolve.version();
+    let next_lockfile_bump = ws.config().cli_unstable().next_lockfile_bump;
+
+    if current_version < default_version {
+        resolve.set_version(default_version);
         out = serialize_resolve(resolve, orig.as_deref());
-    } else if resolve.version() > ResolveVersion::default()
-        && !ws.config().cli_unstable().next_lockfile_bump
-    {
+    } else if current_version > ResolveVersion::max_stable() && !next_lockfile_bump {
         // The next version hasn't yet stabilized.
-        anyhow::bail!(
-            "lock file version `{:?}` requires `-Znext-lockfile-bump`",
-            resolve.version()
-        )
+        anyhow::bail!("lock file version `{current_version:?}` requires `-Znext-lockfile-bump`")
     }
 
     // Ok, if that didn't work just write it out
     lock_root
-        .open_rw("Cargo.lock", ws.config(), "Cargo.lock file")
+        .open_rw_exclusive_create("Cargo.lock", ws.config(), "Cargo.lock file")
         .and_then(|mut f| {
             f.file().set_len(0)?;
             f.write_all(out.as_bytes())?;
@@ -100,7 +99,7 @@ fn resolve_to_string_orig(
 ) -> (Option<String>, String, Filesystem) {
     // Load the original lock file if it exists.
     let lock_root = lock_root(ws);
-    let orig = lock_root.open_ro("Cargo.lock", ws.config(), "Cargo.lock file");
+    let orig = lock_root.open_ro_shared("Cargo.lock", ws.config(), "Cargo.lock file");
     let orig = orig.and_then(|mut f| {
         let mut s = String::new();
         f.read_to_string(&mut s)?;

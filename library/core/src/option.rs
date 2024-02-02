@@ -119,15 +119,21 @@
 //! # Representation
 //!
 //! Rust guarantees to optimize the following types `T` such that
-//! [`Option<T>`] has the same size and alignment as `T`:
+//! [`Option<T>`] has the same size and alignment as `T`. In some
+//! of these cases, Rust further guarantees that
+//! `transmute::<_, Option<T>>([0u8; size_of::<T>()])` is sound and
+//! produces `Option::<T>::None`. These cases are identified by the
+//! second column:
 //!
-//! * [`Box<U>`]
-//! * `&U`
-//! * `&mut U`
-//! * `fn`, `extern "C" fn`[^extern_fn]
-//! * [`num::NonZero*`]
-//! * [`ptr::NonNull<U>`]
-//! * `#[repr(transparent)]` struct around one of the types in this list.
+//! | `T`                                                                 | `transmute::<_, Option<T>>([0u8; size_of::<T>()])` sound? |
+//! |---------------------------------------------------------------------|----------------------------------------------------------------------|
+//! | [`Box<U>`]                                                          | when `U: Sized`                                                      |
+//! | `&U`                                                                | when `U: Sized`                                                      |
+//! | `&mut U`                                                            | when `U: Sized`                                                      |
+//! | `fn`, `extern "C" fn`[^extern_fn]                                   | always                                                               |
+//! | [`num::NonZero*`]                                                   | always                                                               |
+//! | [`ptr::NonNull<U>`]                                                 | when `U: Sized`                                                      |
+//! | `#[repr(transparent)]` struct around one of the types in this list. | when it holds for the inner type                                     |
 //!
 //! [^extern_fn]: this remains true for any other ABI: `extern "abi" fn` (_e.g._, `extern "system" fn`)
 //!
@@ -743,8 +749,6 @@ impl<T> Option<T> {
     /// # Examples
     ///
     /// ```rust
-    /// #![feature(option_as_slice)]
-    ///
     /// assert_eq!(
     ///     [Some(1234).as_slice(), None.as_slice()],
     ///     [&[1234][..], &[][..]],
@@ -755,15 +759,13 @@ impl<T> Option<T> {
     /// borrowing) [`[_]::first`](slice::first):
     ///
     /// ```rust
-    /// #![feature(option_as_slice)]
-    ///
     /// for i in [Some(1234_u16), None] {
     ///     assert_eq!(i.as_ref(), i.as_slice().first());
     /// }
     /// ```
     #[inline]
     #[must_use]
-    #[unstable(feature = "option_as_slice", issue = "108545")]
+    #[stable(feature = "option_as_slice", since = "1.75.0")]
     pub fn as_slice(&self) -> &[T] {
         // SAFETY: When the `Option` is `Some`, we're using the actual pointer
         // to the payload, with a length of 1, so this is equivalent to
@@ -794,8 +796,6 @@ impl<T> Option<T> {
     /// # Examples
     ///
     /// ```rust
-    /// #![feature(option_as_slice)]
-    ///
     /// assert_eq!(
     ///     [Some(1234).as_mut_slice(), None.as_mut_slice()],
     ///     [&mut [1234][..], &mut [][..]],
@@ -806,8 +806,6 @@ impl<T> Option<T> {
     /// our original `Option`:
     ///
     /// ```rust
-    /// #![feature(option_as_slice)]
-    ///
     /// let mut x = Some(1234);
     /// x.as_mut_slice()[0] += 1;
     /// assert_eq!(x, Some(1235));
@@ -817,13 +815,11 @@ impl<T> Option<T> {
     /// is [`[_]::first_mut`](slice::first_mut):
     ///
     /// ```rust
-    /// #![feature(option_as_slice)]
-    ///
     /// assert_eq!(Some(123).as_mut_slice().first_mut(), Some(&mut 123))
     /// ```
     #[inline]
     #[must_use]
-    #[unstable(feature = "option_as_slice", issue = "108545")]
+    #[stable(feature = "option_as_slice", since = "1.75.0")]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         // SAFETY: When the `Option` is `Some`, we're using the actual pointer
         // to the payload, with a length of 1, so this is equivalent to
@@ -969,6 +965,7 @@ impl<T> Option<T> {
     /// assert_eq!(None.unwrap_or_else(|| 2 * k), 20);
     /// ```
     #[inline]
+    #[track_caller]
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn unwrap_or_else<F>(self, f: F) -> T
     where
@@ -1485,7 +1482,7 @@ impl<T> Option<T> {
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn or(self, optb: Option<T>) -> Option<T> {
         match self {
-            Some(x) => Some(x),
+            x @ Some(_) => x,
             None => optb,
         }
     }
@@ -1510,7 +1507,7 @@ impl<T> Option<T> {
         F: FnOnce() -> Option<T>,
     {
         match self {
-            Some(x) => Some(x),
+            x @ Some(_) => x,
             None => f(),
         }
     }
@@ -1540,8 +1537,8 @@ impl<T> Option<T> {
     #[stable(feature = "option_xor", since = "1.37.0")]
     pub fn xor(self, optb: Option<T>) -> Option<T> {
         match (self, optb) {
-            (Some(a), None) => Some(a),
-            (None, Some(b)) => Some(b),
+            (a @ Some(_), None) => a,
+            (None, b @ Some(_)) => b,
             _ => None,
         }
     }

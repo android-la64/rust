@@ -33,6 +33,11 @@ case ${TARGET} in
     i686-* | i586-*)
         export RUSTFLAGS="${RUSTFLAGS} -C relocation-model=static -Z plt=yes"
         ;;
+    # Some x86_64 targets enable by default more features beyond SSE2,
+    # which cause some instruction assertion checks to fail.
+    x86_64-*)
+        export RUSTFLAGS="${RUSTFLAGS} -C target-feature=-sse3"
+        ;;
     #Unoptimized build uses fast-isel which breaks with msa
     mips-* | mipsel-*)
 	export RUSTFLAGS="${RUSTFLAGS} -C llvm-args=-fast-isel=false"
@@ -47,7 +52,7 @@ case ${TARGET} in
     # Some of our test dependencies use the deprecated `gcc` crates which
     # doesn't detect RISC-V compilers automatically, so do it manually here.
     riscv64*)
-        export RUSTFLAGS="${RUSTFLAGS} -Ctarget-feature=+zk,+zbb,+zbc"
+        export RUSTFLAGS="${RUSTFLAGS} -Ctarget-feature=+zk,+zks,+zbb,+zbc"
         export TARGET_CC="riscv64-linux-gnu-gcc"
         ;;
 esac

@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-frontend"
-version = "0.98.0"
+version = "0.101.2"
 authors = ["The Cranelift Project Developers"]
 description = "Cranelift IR builder helper"
 documentation = "https://docs.rs/cranelift-frontend"
@@ -22,11 +22,17 @@ license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
 
 [dependencies.cranelift-codegen]
-version = "0.98.0"
+version = "0.101.2"
+features = [
+    "std",
+    "unwind",
+]
+default-features = false
 
 [dependencies.hashbrown]
-version = "0.13.2"
+version = "0.14"
 optional = true
+default-features = false
 
 [dependencies.log]
 version = "0.4.8"

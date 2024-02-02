@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-credentials"
-version = "0.20.0"
+version = "0.21.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 description = "A crate of the gitoxide project to interact with git credentials helpers"
 license = "MIT OR Apache-2.0"
@@ -40,7 +40,7 @@ version = "0.2.1"
 optional = true
 
 [dependencies.gix-command]
-version = "^0.2.9"
+version = "^0.2.10"
 
 [dependencies.gix-config-value]
 version = "^0.14.0"
@@ -55,7 +55,7 @@ version = "^0.7.0"
 version = "^0.10.0"
 
 [dependencies.gix-url]
-version = "^0.24.0"
+version = "^0.25.0"
 
 [dependencies.serde]
 version = "1.0.114"

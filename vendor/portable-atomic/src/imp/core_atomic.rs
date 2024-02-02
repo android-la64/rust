@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Wrap the standard library's atomic types in newtype.
 //
 // This is not a reexport, because we want to backport changes like
@@ -136,9 +138,9 @@ macro_rules! atomic_int {
         #[cfg_attr(not(portable_atomic_no_cfg_target_has_atomic), cfg(target_has_atomic = "ptr"))]
         impl_default_no_fetch_ops!($atomic_type, $int_type);
         #[cfg(not(all(
-            not(any(miri, portable_atomic_sanitize_thread)),
-            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
             any(target_arch = "x86", target_arch = "x86_64"),
+            not(any(miri, portable_atomic_sanitize_thread)),
+            not(portable_atomic_no_asm),
         )))]
         #[cfg_attr(
             portable_atomic_no_cfg_target_has_atomic,
@@ -157,7 +159,12 @@ macro_rules! atomic_int {
             }
             #[inline]
             pub(crate) const fn is_always_lock_free() -> bool {
-                true
+                // ESP-IDF targets' 64-bit atomics are not lock-free.
+                // https://github.com/rust-lang/rust/pull/115577#issuecomment-1732259297
+                cfg!(not(all(
+                    any(target_arch = "riscv32", target_arch = "xtensa"),
+                    target_os = "espidf",
+                ))) | (core::mem::size_of::<$int_type>() < 8)
             }
             #[inline]
             pub(crate) fn get_mut(&mut self) -> &mut $int_type {
@@ -273,9 +280,10 @@ macro_rules! atomic_int {
                                 portable_atomic_target_feature = "v6",
                             )),
                         ),
-                        // TODO: mips32r6, mips64r6?
                         target_arch = "mips",
+                        target_arch = "mips32r6",
                         target_arch = "mips64",
+                        target_arch = "mips64r6",
                         target_arch = "powerpc",
                         target_arch = "powerpc64",
                     ))]
@@ -324,9 +332,10 @@ macro_rules! atomic_int {
                                 portable_atomic_target_feature = "v6",
                             )),
                         ),
-                        // TODO: mips32r6, mips64r6?
                         target_arch = "mips",
+                        target_arch = "mips32r6",
                         target_arch = "mips64",
+                        target_arch = "mips64r6",
                         target_arch = "powerpc",
                         target_arch = "powerpc64",
                     ))]
@@ -365,9 +374,9 @@ macro_rules! atomic_int {
                 self.fetch_xor(NOT_MASK, order)
             }
             #[cfg(not(all(
-                not(any(miri, portable_atomic_sanitize_thread)),
-                any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
                 any(target_arch = "x86", target_arch = "x86_64"),
+                not(any(miri, portable_atomic_sanitize_thread)),
+                not(portable_atomic_no_asm),
             )))]
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
@@ -380,9 +389,9 @@ macro_rules! atomic_int {
                 self.fetch_update_(order, $int_type::wrapping_neg)
             }
             #[cfg(not(all(
-                not(any(miri, portable_atomic_sanitize_thread)),
-                any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
                 any(target_arch = "x86", target_arch = "x86_64"),
+                not(any(miri, portable_atomic_sanitize_thread)),
+                not(portable_atomic_no_asm),
             )))]
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces

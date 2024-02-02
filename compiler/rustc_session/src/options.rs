@@ -4,6 +4,7 @@ use crate::search_paths::SearchPath;
 use crate::utils::NativeLib;
 use crate::{lint, EarlyErrorHandler};
 use rustc_data_structures::profiling::TimePassesFormat;
+use rustc_data_structures::stable_hasher::Hash64;
 use rustc_errors::ColorConfig;
 use rustc_errors::{LanguageIdentifier, TerminalUrl};
 use rustc_target::spec::{CodeModel, LinkerFlavorCli, MergeFunctions, PanicStrategy, SanitizerSet};
@@ -158,6 +159,10 @@ top_level_options!(
         /// directory to store intermediate results.
         incremental: Option<PathBuf> [UNTRACKED],
         assert_incr_state: Option<IncrementalStateAssertion> [UNTRACKED],
+        /// Set by the `Config::hash_untracked_state` callback for custom
+        /// drivers to invalidate the incremental cache
+        #[rustc_lint_opt_deny_field_access("should only be used via `Config::hash_untracked_state`")]
+        untracked_state_hash: Hash64 [TRACKED_NO_CRATE_HASH],
 
         unstable_opts: UnstableOptions [SUBSTRUCT],
         prints: Vec<PrintRequest> [UNTRACKED],
@@ -289,7 +294,7 @@ impl CodegenOptions {
     // JUSTIFICATION: defn of the suggested wrapper fn
     #[allow(rustc::bad_opt_access)]
     pub fn instrument_coverage(&self) -> InstrumentCoverage {
-        self.instrument_coverage.unwrap_or(InstrumentCoverage::Off)
+        self.instrument_coverage
     }
 }
 
@@ -384,7 +389,7 @@ mod desc {
     pub const parse_mir_spanview: &str = "`statement` (default), `terminator`, or `block`";
     pub const parse_dump_mono_stats: &str = "`markdown` (default) or `json`";
     pub const parse_instrument_coverage: &str =
-        "`all` (default), `except-unused-generics`, `except-unused-functions`, or `off`";
+        "`all` (default), `branch`, `except-unused-generics`, `except-unused-functions`, or `off`";
     pub const parse_instrument_xray: &str = "either a boolean (`yes`, `no`, `on`, `off`, etc), or a comma separated list of settings: `always` or `never` (mutually exclusive), `ignore-loops`, `instruction-threshold=N`, `skip-entry`, `skip-exit`";
     pub const parse_unpretty: &str = "`string` or `string=string`";
     pub const parse_treat_err_as_bug: &str = "either no value or a non-negative number";
@@ -412,9 +417,9 @@ mod desc {
         "one of supported split-debuginfo modes (`off`, `packed`, or `unpacked`)";
     pub const parse_split_dwarf_kind: &str =
         "one of supported split dwarf modes (`split` or `single`)";
-    pub const parse_gcc_ld: &str = "one of: no value, `lld`";
     pub const parse_link_self_contained: &str = "one of: `y`, `yes`, `on`, `n`, `no`, `off`, or a list of enabled (`+` prefix) and disabled (`-` prefix) \
         components: `crto`, `libc`, `unwind`, `linker`, `sanitizers`, `mingw`";
+    pub const parse_polonius: &str = "either no value or `legacy` (the default), or `next`";
     pub const parse_stack_protector: &str =
         "one of (`none` (default), `basic`, `strong`, or `all`)";
     pub const parse_branch_protection: &str =
@@ -422,6 +427,9 @@ mod desc {
     pub const parse_proc_macro_execution_strategy: &str =
         "one of supported execution strategies (`same-thread`, or `cross-thread`)";
     pub const parse_dump_solver_proof_tree: &str = "one of: `always`, `on-request`, `on-error`";
+    pub const parse_remap_path_scope: &str = "comma separated list of scopes: `macro`, `diagnostics`, `unsplit-debuginfo`, `split-debuginfo`, `split-debuginfo-path`, `object`, `all`";
+    pub const parse_inlining_threshold: &str =
+        "either a boolean (`yes`, `no`, `on`, `off`, etc), or a non-negative number";
 }
 
 mod parse {
@@ -466,6 +474,21 @@ mod parse {
             }
             Some("n") | Some("no") | Some("off") | Some("false") => {
                 *slot = Some(false);
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Parses whether polonius is enabled, and if so, which version.
+    pub(crate) fn parse_polonius(slot: &mut Polonius, v: Option<&str>) -> bool {
+        match v {
+            Some("legacy") | None => {
+                *slot = Polonius::Legacy;
+                true
+            }
+            Some("next") => {
+                *slot = Polonius::Next;
                 true
             }
             _ => false,
@@ -892,24 +915,25 @@ mod parse {
     }
 
     pub(crate) fn parse_instrument_coverage(
-        slot: &mut Option<InstrumentCoverage>,
+        slot: &mut InstrumentCoverage,
         v: Option<&str>,
     ) -> bool {
         if v.is_some() {
-            let mut bool_arg = None;
-            if parse_opt_bool(&mut bool_arg, v) {
-                *slot = bool_arg.unwrap().then_some(InstrumentCoverage::All);
+            let mut bool_arg = false;
+            if parse_bool(&mut bool_arg, v) {
+                *slot = if bool_arg { InstrumentCoverage::All } else { InstrumentCoverage::Off };
                 return true;
             }
         }
 
         let Some(v) = v else {
-            *slot = Some(InstrumentCoverage::All);
+            *slot = InstrumentCoverage::All;
             return true;
         };
 
-        *slot = Some(match v {
+        *slot = match v {
             "all" => InstrumentCoverage::All,
+            "branch" => InstrumentCoverage::Branch,
             "except-unused-generics" | "except_unused_generics" => {
                 InstrumentCoverage::ExceptUnusedGenerics
             }
@@ -918,7 +942,7 @@ mod parse {
             }
             "off" | "no" | "n" | "false" | "0" => InstrumentCoverage::Off,
             _ => return false,
-        });
+        };
         true
     }
 
@@ -1075,6 +1099,30 @@ mod parse {
         true
     }
 
+    pub(crate) fn parse_remap_path_scope(
+        slot: &mut RemapPathScopeComponents,
+        v: Option<&str>,
+    ) -> bool {
+        if let Some(v) = v {
+            *slot = RemapPathScopeComponents::empty();
+            for s in v.split(',') {
+                *slot |= match s {
+                    "macro" => RemapPathScopeComponents::MACRO,
+                    "diagnostics" => RemapPathScopeComponents::DIAGNOSTICS,
+                    "unsplit-debuginfo" => RemapPathScopeComponents::UNSPLIT_DEBUGINFO,
+                    "split-debuginfo" => RemapPathScopeComponents::SPLIT_DEBUGINFO,
+                    "split-debuginfo-path" => RemapPathScopeComponents::SPLIT_DEBUGINFO_PATH,
+                    "object" => RemapPathScopeComponents::OBJECT,
+                    "all" => RemapPathScopeComponents::all(),
+                    _ => return false,
+                }
+            }
+            true
+        } else {
+            false
+        }
+    }
+
     pub(crate) fn parse_relocation_model(slot: &mut Option<RelocModel>, v: Option<&str>) -> bool {
         match v.and_then(|s| RelocModel::from_str(s).ok()) {
             Some(relocation_model) => *slot = Some(relocation_model),
@@ -1166,7 +1214,7 @@ mod parse {
 
         // 2. Parse a list of enabled and disabled components.
         for comp in s.split(',') {
-            if slot.handle_cli_component(comp).is_err() {
+            if slot.handle_cli_component(comp).is_none() {
                 return false;
             }
         }
@@ -1197,15 +1245,6 @@ mod parse {
     pub(crate) fn parse_split_dwarf_kind(slot: &mut SplitDwarfKind, v: Option<&str>) -> bool {
         match v.and_then(|s| SplitDwarfKind::from_str(s).ok()) {
             Some(e) => *slot = e,
-            _ => return false,
-        }
-        true
-    }
-
-    pub(crate) fn parse_gcc_ld(slot: &mut Option<LdImpl>, v: Option<&str>) -> bool {
-        match v {
-            None => *slot = None,
-            Some("lld") => *slot = Some(LdImpl::Lld),
             _ => return false,
         }
         true
@@ -1273,6 +1312,26 @@ mod parse {
         };
         true
     }
+
+    pub(crate) fn parse_inlining_threshold(slot: &mut InliningThreshold, v: Option<&str>) -> bool {
+        match v {
+            Some("always" | "yes") => {
+                *slot = InliningThreshold::Always;
+            }
+            Some("never") => {
+                *slot = InliningThreshold::Never;
+            }
+            Some(v) => {
+                if let Ok(threshold) = v.parse() {
+                    *slot = InliningThreshold::Sometimes(threshold);
+                } else {
+                    return false;
+                }
+            }
+            None => return false,
+        }
+        true
+    }
 }
 
 options! {
@@ -1315,11 +1374,12 @@ options! {
     inline_threshold: Option<u32> = (None, parse_opt_number, [TRACKED],
         "set the threshold for inlining a function"),
     #[rustc_lint_opt_deny_field_access("use `Session::instrument_coverage` instead of this field")]
-    instrument_coverage: Option<InstrumentCoverage> = (None, parse_instrument_coverage, [TRACKED],
+    instrument_coverage: InstrumentCoverage = (InstrumentCoverage::Off, parse_instrument_coverage, [TRACKED],
         "instrument the generated code to support LLVM source-based code coverage \
         reports (note, the compiler build config must include `profiler = true`); \
         implies `-C symbol-mangling-version=v0`. Optional values are:
         `=all` (implicit value)
+        `=branch`
         `=except-unused-generics`
         `=except-unused-functions`
         `=off` (default)"),
@@ -1441,6 +1501,8 @@ options! {
         "combine CGUs into a single one"),
     crate_attr: Vec<String> = (Vec::new(), parse_string_push, [TRACKED],
         "inject the given attribute in the crate"),
+    cross_crate_inline_threshold: InliningThreshold = (InliningThreshold::Sometimes(100), parse_inlining_threshold, [TRACKED],
+        "threshold to allow cross crate inlining of functions"),
     debug_info_for_profiling: bool = (false, parse_bool, [TRACKED],
         "emit discriminators and other data necessary for AutoFDO"),
     debug_macros: bool = (false, parse_bool, [TRACKED],
@@ -1452,9 +1514,6 @@ options! {
     dep_info_omit_d_target: bool = (false, parse_bool, [TRACKED],
         "in dep-info output, omit targets for tracking dependencies of the dep-info files \
         themselves (default: no)"),
-    dep_tasks: bool = (false, parse_bool, [UNTRACKED],
-        "print tasks that execute and the color their dep node gets (requires debug build) \
-        (default: no)"),
     dont_buffer_diagnostics: bool = (false, parse_bool, [UNTRACKED],
         "emit diagnostics rather than buffering (breaks NLL error downgrading, sorting) \
         (default: no)"),
@@ -1492,8 +1551,6 @@ options! {
     dump_solver_proof_tree: DumpSolverProofTree = (DumpSolverProofTree::Never, parse_dump_solver_proof_tree, [UNTRACKED],
         "dump a proof tree for every goal evaluated by the new trait solver. If the flag is specified without any options after it
         then it defaults to `always`. If the flag is not specified at all it defaults to `on-request`."),
-    dump_solver_proof_tree_use_cache: Option<bool> = (None, parse_opt_bool, [UNTRACKED],
-        "determines whether dumped proof trees use the global cache"),
     dwarf_version: Option<u32> = (None, parse_opt_number, [TRACKED],
         "version of DWARF debug information to emit (default: 2 or 4, depending on platform)"),
     dylib_lto: bool = (false, parse_bool, [UNTRACKED],
@@ -1521,7 +1578,6 @@ options! {
         "whether each function should go in its own section"),
     future_incompat_test: bool = (false, parse_bool, [UNTRACKED],
         "forces all lints to be future incompatible, used for internal testing (default: no)"),
-    gcc_ld: Option<LdImpl> = (None, parse_gcc_ld, [TRACKED], "implementation of ld used by cc"),
     graphviz_dark_mode: bool = (false, parse_bool, [UNTRACKED],
         "use dark-themed colors in graphviz output (default: no)"),
     graphviz_font: String = ("Courier, monospace".to_string(), parse_string, [UNTRACKED],
@@ -1554,15 +1610,6 @@ options! {
         "a default MIR inlining threshold (default: 50)"),
     input_stats: bool = (false, parse_bool, [UNTRACKED],
         "gather statistics about the input (default: no)"),
-    #[rustc_lint_opt_deny_field_access("use `Session::instrument_coverage` instead of this field")]
-    instrument_coverage: Option<InstrumentCoverage> = (None, parse_instrument_coverage, [TRACKED],
-        "instrument the generated code to support LLVM source-based code coverage \
-        reports (note, the compiler build config must include `profiler = true`); \
-        implies `-C symbol-mangling-version=v0`. Optional values are:
-        `=all` (implicit value)
-        `=except-unused-generics`
-        `=except-unused-functions`
-        `=off` (default)"),
     instrument_mcount: bool = (false, parse_bool, [TRACKED],
         "insert function instrument code for mcount-based tracing (default: no)"),
     instrument_xray: Option<InstrumentXRay> = (None, parse_instrument_xray, [TRACKED],
@@ -1610,9 +1657,10 @@ options! {
         "emit Retagging MIR statements, interpreted e.g., by miri; implies -Zmir-opt-level=0 \
         (default: no)"),
     mir_enable_passes: Vec<(String, bool)> = (Vec::new(), parse_list_with_polarity, [TRACKED],
-        "use like `-Zmir-enable-passes=+DestinationPropagation,-InstSimplify`. Forces the specified passes to be \
-        enabled, overriding all other checks. Passes that are not specified are enabled or \
-        disabled by other flags as usual."),
+        "use like `-Zmir-enable-passes=+DestinationPropagation,-InstSimplify`. Forces the \
+        specified passes to be enabled, overriding all other checks. In particular, this will \
+        enable unsound (known-buggy and hence usually disabled) passes without further warning! \
+        Passes that are not specified are enabled or disabled by other flags as usual."),
     mir_include_spans: bool = (false, parse_bool, [UNTRACKED],
         "use line numbers relative to the function in mir pretty printing"),
     mir_keep_place_mention: bool = (false, parse_bool, [TRACKED],
@@ -1669,7 +1717,7 @@ options! {
         "whether to use the PLT when calling into shared libraries;
         only has effect for PIC code on systems with ELF binaries
         (default: PLT is disabled if full relro is enabled on x86_64)"),
-    polonius: bool = (false, parse_bool, [TRACKED],
+    polonius: Polonius = (Polonius::default(), parse_polonius, [TRACKED],
         "enable polonius-based borrow-checker (default: no)"),
     polymorphize: bool = (false, parse_bool, [TRACKED],
           "perform polymorphization analysis"),
@@ -1720,6 +1768,8 @@ options! {
         "choose which RELRO level to use"),
     remap_cwd_prefix: Option<PathBuf> = (None, parse_opt_pathbuf, [TRACKED],
         "remap paths under the current working directory to this path prefix"),
+    remap_path_scope: RemapPathScopeComponents = (RemapPathScopeComponents::all(), parse_remap_path_scope, [TRACKED],
+        "remap path scope (default: all)"),
     remark_dir: Option<PathBuf> = (None, parse_opt_pathbuf, [UNTRACKED],
         "directory into which to write optimization remarks (if not specified, they will be \
 written to standard error output)"),
@@ -1791,11 +1841,6 @@ written to standard error output)"),
         "prefer dynamic linking to static linking for staticlibs (default: no)"),
     strict_init_checks: bool = (false, parse_bool, [TRACKED],
         "control if mem::uninitialized and mem::zeroed panic on more UB"),
-    strip: Strip = (Strip::None, parse_strip, [UNTRACKED],
-        "tell the linker which information to strip (`none` (default), `debuginfo` or `symbols`)"),
-    symbol_mangling_version: Option<SymbolManglingVersion> = (None,
-        parse_symbol_mangling_version, [TRACKED],
-        "which mangling version to use for symbol names ('legacy' (default) or 'v0')"),
     #[rustc_lint_opt_deny_field_access("use `Session::teach` instead of this field")]
     teach: bool = (false, parse_bool, [TRACKED],
         "show extended diagnostic help (default: no)"),
@@ -1869,6 +1914,7 @@ written to standard error output)"),
         `hir` (the HIR), `hir,identified`,
         `hir,typed` (HIR with types for each node),
         `hir-tree` (dump the raw HIR),
+        `thir-tree`, `thir-flat`,
         `mir` (the MIR), or `mir-cfg` (graphviz formatted MIR)"),
     unsound_mir_opts: bool = (false, parse_bool, [TRACKED],
         "enable unsound and buggy MIR optimizations (default: no)"),
@@ -1905,9 +1951,4 @@ written to standard error output)"),
 pub enum WasiExecModel {
     Command,
     Reactor,
-}
-
-#[derive(Clone, Copy, Hash)]
-pub enum LdImpl {
-    Lld,
 }

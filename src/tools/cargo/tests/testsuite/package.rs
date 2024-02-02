@@ -1359,7 +1359,7 @@ Caused by:
   failed to parse the `edition` key
 
 Caused by:
-  supported edition values are `2015`, `2018`, or `2021`, but `chicken` is unknown
+  supported edition values are `2015`, `2018`, `2021`, or `2024`, but `chicken` is unknown
 "
             .to_string(),
         )
@@ -1391,7 +1391,7 @@ Caused by:
   failed to parse the `edition` key
 
 Caused by:
-  this version of Cargo is older than the `2038` edition, and only supports `2015`, `2018`, and `2021` editions.
+  this version of Cargo is older than the `2038` edition, and only supports `2015`, `2018`, `2021`, and `2024` editions.
 "
             .to_string(),
         )
@@ -3091,6 +3091,43 @@ src/main.rs
     validate_crate_contents(
         f,
         "foo-0.0.1.crate",
+        &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
+        &[],
+    );
+}
+
+#[cargo_test]
+fn versionless_package() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                description = "foo"
+            "#,
+        )
+        .file("src/main.rs", r#"fn main() { println!("hello"); }"#)
+        .build();
+
+    p.cargo("package")
+        .with_stderr(
+            "\
+warning: manifest has no license, license-file, documentation, homepage or repository.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info.
+   Packaging foo v0.0.0 ([CWD])
+   Verifying foo v0.0.0 ([CWD])
+   Compiling foo v0.0.0 ([CWD]/target/package/foo-0.0.0)
+    Finished dev [unoptimized + debuginfo] target(s) in [..]s
+    Packaged 4 files, [..]B ([..]B compressed)
+",
+        )
+        .run();
+
+    let f = File::open(&p.root().join("target/package/foo-0.0.0.crate")).unwrap();
+    validate_crate_contents(
+        f,
+        "foo-0.0.0.crate",
         &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
         &[],
     );

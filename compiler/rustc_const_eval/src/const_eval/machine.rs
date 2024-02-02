@@ -1,10 +1,10 @@
 use rustc_hir::def::DefKind;
-use rustc_hir::{LangItem, CRATE_HIR_ID};
+use rustc_hir::LangItem;
 use rustc_middle::mir;
 use rustc_middle::mir::interpret::PointerArithmetic;
 use rustc_middle::ty::layout::{FnAbiOf, TyAndLayout};
 use rustc_middle::ty::{self, TyCtxt};
-use rustc_session::lint::builtin::INVALID_ALIGNMENT;
+use rustc_span::Span;
 use std::borrow::Borrow;
 use std::hash::Hash;
 use std::ops::ControlFlow;
@@ -21,11 +21,11 @@ use rustc_target::abi::{Align, Size};
 use rustc_target::spec::abi::Abi as CallAbi;
 
 use crate::errors::{LongRunning, LongRunningWarn};
+use crate::fluent_generated as fluent;
 use crate::interpret::{
     self, compile_time_machine, AllocId, ConstAllocation, FnArg, FnVal, Frame, ImmTy, InterpCx,
     InterpResult, OpTy, PlaceTy, Pointer, Scalar,
 };
-use crate::{errors, fluent_generated as fluent};
 
 use super::error::*;
 
@@ -65,22 +65,11 @@ pub struct CompileTimeInterpreter<'mir, 'tcx> {
 
 #[derive(Copy, Clone)]
 pub enum CheckAlignment {
-    /// Ignore alignment when following relocations.
+    /// Ignore all alignment requirements.
     /// This is mainly used in interning.
     No,
     /// Hard error when dereferencing a misaligned pointer.
     Error,
-    /// Emit a future incompat lint when dereferencing a misaligned pointer.
-    FutureIncompat,
-}
-
-impl CheckAlignment {
-    pub fn should_check(&self) -> bool {
-        match self {
-            CheckAlignment::No => false,
-            CheckAlignment::Error | CheckAlignment::FutureIncompat => true,
-        }
-    }
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -193,6 +182,24 @@ impl interpret::MayLeak for ! {
 }
 
 impl<'mir, 'tcx: 'mir> CompileTimeEvalContext<'mir, 'tcx> {
+    fn location_triple_for_span(&self, span: Span) -> (Symbol, u32, u32) {
+        let topmost = span.ctxt().outer_expn().expansion_cause().unwrap_or(span);
+        let caller = self.tcx.sess.source_map().lookup_char_pos(topmost.lo());
+
+        use rustc_session::{config::RemapPathScopeComponents, RemapFileNameExt};
+        (
+            Symbol::intern(
+                &caller
+                    .file
+                    .name
+                    .for_scope(&self.tcx.sess, RemapPathScopeComponents::DIAGNOSTICS)
+                    .to_string_lossy(),
+            ),
+            u32::try_from(caller.line).unwrap(),
+            u32::try_from(caller.col_display).unwrap().checked_add(1).unwrap(),
+        )
+    }
+
     /// "Intercept" a function call, because we have something special to do for it.
     /// All `#[rustc_do_not_const_check]` functions should be hooked here.
     /// If this returns `Some` function, which may be `instance` or a different function with
@@ -207,7 +214,7 @@ impl<'mir, 'tcx: 'mir> CompileTimeEvalContext<'mir, 'tcx> {
     ) -> InterpResult<'tcx, Option<ty::Instance<'tcx>>> {
         let def_id = instance.def_id();
 
-        if Some(def_id) == self.tcx.lang_items().panic_display()
+        if self.tcx.has_attr(def_id, sym::rustc_const_panic_str)
             || Some(def_id) == self.tcx.lang_items().begin_panic_fn()
         {
             let args = self.copy_fn_args(args)?;
@@ -358,46 +365,13 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for CompileTimeInterpreter<'mir,
     const PANIC_ON_ALLOC_FAIL: bool = false; // will be raised as a proper error
 
     #[inline(always)]
-    fn enforce_alignment(ecx: &InterpCx<'mir, 'tcx, Self>) -> CheckAlignment {
-        ecx.machine.check_alignment
+    fn enforce_alignment(ecx: &InterpCx<'mir, 'tcx, Self>) -> bool {
+        matches!(ecx.machine.check_alignment, CheckAlignment::Error)
     }
 
     #[inline(always)]
     fn enforce_validity(ecx: &InterpCx<'mir, 'tcx, Self>, layout: TyAndLayout<'tcx>) -> bool {
         ecx.tcx.sess.opts.unstable_opts.extra_const_ub_checks || layout.abi.is_uninhabited()
-    }
-
-    fn alignment_check_failed(
-        ecx: &InterpCx<'mir, 'tcx, Self>,
-        has: Align,
-        required: Align,
-        check: CheckAlignment,
-    ) -> InterpResult<'tcx, ()> {
-        let err = err_ub!(AlignmentCheckFailed { has, required }).into();
-        match check {
-            CheckAlignment::Error => Err(err),
-            CheckAlignment::No => span_bug!(
-                ecx.cur_span(),
-                "`alignment_check_failed` called when no alignment check requested"
-            ),
-            CheckAlignment::FutureIncompat => {
-                let (_, backtrace) = err.into_parts();
-                backtrace.print_backtrace();
-                let (span, frames) = super::get_span_and_frames(&ecx);
-
-                ecx.tcx.emit_spanned_lint(
-                    INVALID_ALIGNMENT,
-                    ecx.stack().iter().find_map(|frame| frame.lint_root()).unwrap_or(CRATE_HIR_ID),
-                    span,
-                    errors::AlignmentCheckFailed {
-                        has: has.bytes(),
-                        required: required.bytes(),
-                        frames,
-                    },
-                );
-                Ok(())
-            }
-        }
     }
 
     fn load_mir(
@@ -579,8 +553,8 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for CompileTimeInterpreter<'mir,
             OverflowNeg(op) => OverflowNeg(eval_to_int(op)?),
             DivisionByZero(op) => DivisionByZero(eval_to_int(op)?),
             RemainderByZero(op) => RemainderByZero(eval_to_int(op)?),
-            ResumedAfterReturn(generator_kind) => ResumedAfterReturn(*generator_kind),
-            ResumedAfterPanic(generator_kind) => ResumedAfterPanic(*generator_kind),
+            ResumedAfterReturn(coroutine_kind) => ResumedAfterReturn(*coroutine_kind),
+            ResumedAfterPanic(coroutine_kind) => ResumedAfterPanic(*coroutine_kind),
             MisalignedPointerDereference { ref required, ref found } => {
                 MisalignedPointerDereference {
                     required: eval_to_int(required)?,

@@ -3,9 +3,8 @@
 use super::ITER_KV_MAP;
 use clippy_utils::diagnostics::{multispan_sugg, span_lint_and_sugg, span_lint_and_then};
 use clippy_utils::source::{snippet, snippet_with_applicability};
-use clippy_utils::sugg;
 use clippy_utils::ty::is_type_diagnostic_item;
-use clippy_utils::visitors::is_local_used;
+use clippy_utils::{pat_is_wild, sugg};
 use rustc_hir::{BindingAnnotation, Body, BorrowKind, ByRef, Expr, ExprKind, Mutability, Pat, PatKind};
 use rustc_lint::{LateContext, LintContext};
 use rustc_middle::ty;
@@ -26,7 +25,7 @@ pub(super) fn check<'tcx>(
     if_chain! {
         if !expr.span.from_expansion();
         if let ExprKind::Closure(c) = m_arg.kind;
-        if let Body {params: [p], value: body_expr, generator_kind: _ } = cx.tcx.hir().body(c.body);
+        if let Body {params: [p], value: body_expr, coroutine_kind: _ } = cx.tcx.hir().body(c.body);
         if let PatKind::Tuple([key_pat, val_pat], _) = p.pat.kind;
 
         let (replacement_kind, annotation, bound_ident) = match (&key_pat.kind, &val_pat.kind) {
@@ -82,15 +81,5 @@ pub(super) fn check<'tcx>(
                 }
             }
         }
-    }
-}
-
-/// Returns `true` if the pattern is a `PatWild`, or is an ident prefixed with `_`
-/// that is not locally used.
-fn pat_is_wild<'tcx>(cx: &LateContext<'tcx>, pat: &'tcx PatKind<'_>, body: &'tcx Expr<'_>) -> bool {
-    match *pat {
-        PatKind::Wild => true,
-        PatKind::Binding(_, id, ident, None) if ident.as_str().starts_with('_') => !is_local_used(cx, body, id),
-        _ => false,
     }
 }

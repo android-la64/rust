@@ -5,10 +5,12 @@ use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_hir as hir;
 use rustc_hir::def::CtorKind;
 use rustc_hir::def_id::DefId;
-use rustc_middle::middle::stability;
+use rustc_index::IndexVec;
+use rustc_middle::query::Key;
 use rustc_middle::ty::{self, TyCtxt};
 use rustc_span::hygiene::MacroKind;
 use rustc_span::symbol::{kw, sym, Symbol};
+use rustc_target::abi::VariantIdx;
 use std::cell::{RefCell, RefMut};
 use std::cmp::Ordering;
 use std::fmt;
@@ -117,8 +119,7 @@ macro_rules! item_template_methods {
         fn render_attributes_in_pre<'b>(&'b self) -> impl fmt::Display + Captures<'a> + 'b + Captures<'cx> {
             display_fn(move |f| {
                 let (item, cx) = self.item_and_mut_cx();
-                let tcx = cx.tcx();
-                let v = render_attributes_in_pre(item, "", tcx);
+                let v = render_attributes_in_pre(item, "", &cx);
                 write!(f, "{v}")
             })
         }
@@ -589,11 +590,7 @@ fn extra_info_tags<'a, 'tcx: 'a>(
 
         // The trailing space after each tag is to space it properly against the rest of the docs.
         if let Some(depr) = &item.deprecation(tcx) {
-            let message = if stability::deprecation_in_effect(depr) {
-                "Deprecated"
-            } else {
-                "Deprecation planned"
-            };
+            let message = if depr.is_in_effect() { "Deprecated" } else { "Deprecation planned" };
             write!(f, "{}", tag_html("deprecated", "", message))?;
         }
 
@@ -656,7 +653,7 @@ fn item_function(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, f: &cle
             w,
             "{attrs}{vis}{constness}{asyncness}{unsafety}{abi}fn \
                 {name}{generics}{decl}{notable_traits}{where_clause}",
-            attrs = render_attributes_in_pre(it, "", tcx),
+            attrs = render_attributes_in_pre(it, "", cx),
             vis = visibility,
             constness = constness,
             asyncness = asyncness,
@@ -691,7 +688,7 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
         write!(
             w,
             "{attrs}{vis}{unsafety}{is_auto}trait {name}{generics}{bounds}",
-            attrs = render_attributes_in_pre(it, "", tcx),
+            attrs = render_attributes_in_pre(it, "", cx),
             vis = visibility_print_with_space(it.visibility(tcx), it.item_id, cx),
             unsafety = t.unsafety(tcx).print_with_space(),
             is_auto = if t.is_auto(tcx) { "auto " } else { "" },
@@ -957,6 +954,21 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
     let cloned_shared = Rc::clone(&cx.shared);
     let cache = &cloned_shared.cache;
     let mut extern_crates = FxHashSet::default();
+
+    if !t.is_object_safe(cx.tcx()) {
+        write_small_section_header(
+            w,
+            "object-safety",
+            "Object Safety",
+            &format!(
+                "<div class=\"object-safety-info\">This trait is <b>not</b> \
+                <a href=\"{base}/reference/items/traits.html#object-safety\">\
+                object safe</a>.</div>",
+                base = crate::clean::utils::DOC_RUST_LANG_ORG_CHANNEL
+            ),
+        );
+    }
+
     if let Some(implementors) = cache.implementors.get(&it.item_id.expect_def_id()) {
         // The DefId is for the first Type found with that name. The bool is
         // if any Types with the same name but different DefId have been found.
@@ -979,7 +991,7 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
             }
         }
 
-        let (local, foreign) =
+        let (local, mut foreign) =
             implementors.iter().partition::<Vec<_>, _>(|i| i.is_on_local_type(cx));
 
         let (mut synthetic, mut concrete): (Vec<&&Impl>, Vec<&&Impl>) =
@@ -987,6 +999,7 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
 
         synthetic.sort_by_cached_key(|i| ImplString::new(i, cx));
         concrete.sort_by_cached_key(|i| ImplString::new(i, cx));
+        foreign.sort_by_cached_key(|i| ImplString::new(i, cx));
 
         if !foreign.is_empty() {
             write_small_section_header(w, "foreign-impls", "Implementations on Foreign Types", "");
@@ -1064,6 +1077,8 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
         }
     }
 
+    // [RUSTDOCIMPL] trait.impl
+    //
     // Include implementors in crates that depend on the current crate.
     //
     // This is complicated by the way rustdoc is invoked, which is basically
@@ -1099,7 +1114,7 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
     // ```
     //
     // Basically, we want `C::Baz` and `A::Foo` to show the same set of
-    // impls, which is easier if they both treat `/implementors/A/trait.Foo.js`
+    // impls, which is easier if they both treat `/trait.impl/A/trait.Foo.js`
     // as the Single Source of Truth.
     //
     // We also want the `impl Baz for Quux` to be written to
@@ -1108,7 +1123,7 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
     // because that'll load faster, and it's better for SEO. And we don't want
     // the same impl to show up twice on the same page.
     //
-    // To make this work, the implementors JS file has a structure kinda
+    // To make this work, the trait.impl/A/trait.Foo.js JS file has a structure kinda
     // like this:
     //
     // ```js
@@ -1125,7 +1140,7 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
     // So C's HTML will have something like this:
     //
     // ```html
-    // <script src="/implementors/A/trait.Foo.js"
+    // <script src="/trait.impl/A/trait.Foo.js"
     //     data-ignore-extern-crates="A,B" async></script>
     // ```
     //
@@ -1135,7 +1150,7 @@ fn item_trait(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &clean:
     // [JSONP]: https://en.wikipedia.org/wiki/JSONP
     let mut js_src_path: UrlPartsBuilder = std::iter::repeat("..")
         .take(cx.current.len())
-        .chain(std::iter::once("implementors"))
+        .chain(std::iter::once("trait.impl"))
         .collect();
     if let Some(did) = it.item_id.as_def_id() &&
         let get_extern = { || cache.external_paths.get(&did).map(|s| &s.0) } &&
@@ -1170,7 +1185,7 @@ fn item_trait_alias(
         write!(
             w,
             "{attrs}trait {name}{generics}{where_b} = {bounds};",
-            attrs = render_attributes_in_pre(it, "", cx.tcx()),
+            attrs = render_attributes_in_pre(it, "", cx),
             name = it.name.unwrap(),
             generics = t.generics.print(cx),
             where_b = print_where_clause(&t.generics, cx, 0, Ending::Newline),
@@ -1198,7 +1213,7 @@ fn item_opaque_ty(
         write!(
             w,
             "{attrs}type {name}{generics}{where_clause} = impl {bounds};",
-            attrs = render_attributes_in_pre(it, "", cx.tcx()),
+            attrs = render_attributes_in_pre(it, "", cx),
             name = it.name.unwrap(),
             generics = t.generics.print(cx),
             where_clause = print_where_clause(&t.generics, cx, 0, Ending::Newline),
@@ -1223,7 +1238,7 @@ fn item_type_alias(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &c
             write!(
                 w,
                 "{attrs}{vis}type {name}{generics}{where_clause} = {type_};",
-                attrs = render_attributes_in_pre(it, "", cx.tcx()),
+                attrs = render_attributes_in_pre(it, "", cx),
                 vis = visibility_print_with_space(it.visibility(cx.tcx()), it.item_id, cx),
                 name = it.name.unwrap(),
                 generics = t.generics.print(cx),
@@ -1247,6 +1262,9 @@ fn item_type_alias(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &c
         match inner_type {
             clean::TypeAliasInnerType::Enum { variants, is_non_exhaustive } => {
                 let variants_iter = || variants.iter().filter(|i| !i.is_stripped());
+                let ty = cx.tcx().type_of(it.def_id().unwrap()).instantiate_identity();
+                let enum_def_id = ty.ty_adt_id().unwrap();
+
                 wrap_item(w, |w| {
                     let variants_len = variants.len();
                     let variants_count = variants_iter().count();
@@ -1257,13 +1275,14 @@ fn item_type_alias(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &c
                         w,
                         cx,
                         Some(&t.generics),
-                        variants_iter(),
+                        &variants,
                         variants_count,
                         has_stripped_entries,
                         *is_non_exhaustive,
+                        enum_def_id,
                     )
                 });
-                item_variants(w, cx, it, variants_iter());
+                item_variants(w, cx, it, &variants, enum_def_id);
             }
             clean::TypeAliasInnerType::Union { fields } => {
                 wrap_item(w, |w| {
@@ -1313,6 +1332,102 @@ fn item_type_alias(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, t: &c
     // we need #14072 to make sense of the generics.
     write!(w, "{}", render_assoc_items(cx, it, def_id, AssocItemRender::All));
     write!(w, "{}", document_type_layout(cx, def_id));
+
+    // [RUSTDOCIMPL] type.impl
+    //
+    // Include type definitions from the alias target type.
+    //
+    // Earlier versions of this code worked by having `render_assoc_items`
+    // include this data directly. That generates *O*`(types*impls)` of HTML
+    // text, and some real crates have a lot of types and impls.
+    //
+    // To create the same UX without generating half a gigabyte of HTML for a
+    // crate that only contains 20 megabytes of actual documentation[^115718],
+    // rustdoc stashes these type-alias-inlined docs in a [JSONP]
+    // "database-lite". The file itself is generated in `write_shared.rs`,
+    // and hooks into functions provided by `main.js`.
+    //
+    // The format of `trait.impl` and `type.impl` JS files are superficially
+    // similar. Each line, except the JSONP wrapper itself, belongs to a crate,
+    // and they are otherwise separate (rustdoc should be idempotent). The
+    // "meat" of the file is HTML strings, so the frontend code is very simple.
+    // Links are relative to the doc root, though, so the frontend needs to fix
+    // that up, and inlined docs can reuse these files.
+    //
+    // However, there are a few differences, caused by the sophisticated
+    // features that type aliases have. Consider this crate graph:
+    //
+    // ```text
+    //  ---------------------------------
+    //  | crate A: struct Foo<T>        |
+    //  |          type Bar = Foo<i32>  |
+    //  |          impl X for Foo<i8>   |
+    //  |          impl Y for Foo<i32>  |
+    //  ---------------------------------
+    //      |
+    //  ----------------------------------
+    //  | crate B: type Baz = A::Foo<i8> |
+    //  |          type Xyy = A::Foo<i8> |
+    //  |          impl Z for Xyy        |
+    //  ----------------------------------
+    // ```
+    //
+    // The type.impl/A/struct.Foo.js JS file has a structure kinda like this:
+    //
+    // ```js
+    // JSONP({
+    // "A": [["impl Y for Foo<i32>", "Y", "A::Bar"]],
+    // "B": [["impl X for Foo<i8>", "X", "B::Baz", "B::Xyy"], ["impl Z for Xyy", "Z", "B::Baz"]],
+    // });
+    // ```
+    //
+    // When the type.impl file is loaded, only the current crate's docs are
+    // actually used. The main reason to bundle them together is that there's
+    // enough duplication in them for DEFLATE to remove the redundancy.
+    //
+    // The contents of a crate are a list of impl blocks, themselves
+    // represented as lists. The first item in the sublist is the HTML block,
+    // the second item is the name of the trait (which goes in the sidebar),
+    // and all others are the names of type aliases that successfully match.
+    //
+    // This way:
+    //
+    // - There's no need to generate these files for types that have no aliases
+    //   in the current crate. If a dependent crate makes a type alias, it'll
+    //   take care of generating its own docs.
+    // - There's no need to reimplement parts of the type checker in
+    //   JavaScript. The Rust backend does the checking, and includes its
+    //   results in the file.
+    // - Docs defined directly on the type alias are dropped directly in the
+    //   HTML by `render_assoc_items`, and are accessible without JavaScript.
+    //   The JSONP file will not list impl items that are known to be part
+    //   of the main HTML file already.
+    //
+    // [JSONP]: https://en.wikipedia.org/wiki/JSONP
+    // [^115718]: https://github.com/rust-lang/rust/issues/115718
+    let cloned_shared = Rc::clone(&cx.shared);
+    let cache = &cloned_shared.cache;
+    if let Some(target_did) = t.type_.def_id(cache) &&
+        let get_extern = { || cache.external_paths.get(&target_did) } &&
+        let Some(&(ref target_fqp, target_type)) = cache.paths.get(&target_did).or_else(get_extern) &&
+        target_type.is_adt() && // primitives cannot be inlined
+        let Some(self_did) = it.item_id.as_def_id() &&
+        let get_local = { || cache.paths.get(&self_did).map(|(p, _)| p) } &&
+        let Some(self_fqp) = cache.exact_paths.get(&self_did).or_else(get_local)
+    {
+        let mut js_src_path: UrlPartsBuilder = std::iter::repeat("..")
+            .take(cx.current.len())
+            .chain(std::iter::once("type.impl"))
+            .collect();
+        js_src_path.extend(target_fqp[..target_fqp.len() - 1].iter().copied());
+        js_src_path.push_fmt(format_args!("{target_type}.{}.js", target_fqp.last().unwrap()));
+        let self_path = self_fqp.iter().map(Symbol::as_str).collect::<Vec<&str>>().join("::");
+        write!(
+            w,
+            "<script src=\"{src}\" data-self-path=\"{self_path}\" async></script>",
+            src = js_src_path.finish(),
+        );
+    }
 }
 
 fn item_union(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, s: &clean::Union) {
@@ -1408,7 +1523,7 @@ fn item_enum(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, e: &clean::
     let tcx = cx.tcx();
     let count_variants = e.variants().count();
     wrap_item(w, |w| {
-        render_attributes_in_code(w, it, tcx);
+        render_attributes_in_code(w, it, cx);
         write!(
             w,
             "{}enum {}{}",
@@ -1416,36 +1531,90 @@ fn item_enum(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, e: &clean::
             it.name.unwrap(),
             e.generics.print(cx),
         );
+
         render_enum_fields(
             w,
             cx,
             Some(&e.generics),
-            e.variants(),
+            &e.variants,
             count_variants,
             e.has_stripped_entries(),
             it.is_non_exhaustive(),
+            it.def_id().unwrap(),
         );
     });
 
     write!(w, "{}", document(cx, it, None, HeadingOffset::H2));
 
     if count_variants != 0 {
-        item_variants(w, cx, it, e.variants());
+        item_variants(w, cx, it, &e.variants, it.def_id().unwrap());
     }
     let def_id = it.item_id.expect_def_id();
     write!(w, "{}", render_assoc_items(cx, it, def_id, AssocItemRender::All));
     write!(w, "{}", document_type_layout(cx, def_id));
 }
 
-fn render_enum_fields<'a>(
+/// It'll return false if any variant is not a C-like variant. Otherwise it'll return true if at
+/// least one of them has an explicit discriminant or if the enum has `#[repr(C)]` or an integer
+/// `repr`.
+fn should_show_enum_discriminant(
+    cx: &Context<'_>,
+    enum_def_id: DefId,
+    variants: &IndexVec<VariantIdx, clean::Item>,
+) -> bool {
+    let mut has_variants_with_value = false;
+    for variant in variants {
+        if let clean::VariantItem(ref var) = *variant.kind &&
+            matches!(var.kind, clean::VariantKind::CLike)
+        {
+            has_variants_with_value |= var.discriminant.is_some();
+        } else {
+            return false;
+        }
+    }
+    if has_variants_with_value {
+        return true;
+    }
+    let repr = cx.tcx().adt_def(enum_def_id).repr();
+    repr.c() || repr.int.is_some()
+}
+
+fn display_c_like_variant(
+    w: &mut Buffer,
+    cx: &mut Context<'_>,
+    item: &clean::Item,
+    variant: &clean::Variant,
+    index: VariantIdx,
+    should_show_enum_discriminant: bool,
+    enum_def_id: DefId,
+) {
+    let name = item.name.unwrap();
+    if let Some(ref value) = variant.discriminant {
+        write!(w, "{} = {}", name.as_str(), value.value(cx.tcx(), true));
+    } else if should_show_enum_discriminant {
+        let adt_def = cx.tcx().adt_def(enum_def_id);
+        let discr = adt_def.discriminant_for_variant(cx.tcx(), index);
+        if discr.ty.is_signed() {
+            write!(w, "{} = {}", name.as_str(), discr.val as i128);
+        } else {
+            write!(w, "{} = {}", name.as_str(), discr.val);
+        }
+    } else {
+        w.write_str(name.as_str());
+    }
+}
+
+fn render_enum_fields(
     mut w: &mut Buffer,
     cx: &mut Context<'_>,
     g: Option<&clean::Generics>,
-    variants: impl Iterator<Item = &'a clean::Item>,
+    variants: &IndexVec<VariantIdx, clean::Item>,
     count_variants: usize,
     has_stripped_entries: bool,
     is_non_exhaustive: bool,
+    enum_def_id: DefId,
 ) {
+    let should_show_enum_discriminant = should_show_enum_discriminant(cx, enum_def_id, variants);
     if !g.is_some_and(|g| print_where_clause_and_check(w, g, cx)) {
         // If there wasn't a `where` clause, we add a whitespace.
         w.write_str(" ");
@@ -1461,15 +1630,24 @@ fn render_enum_fields<'a>(
             toggle_open(&mut w, format_args!("{count_variants} variants"));
         }
         const TAB: &str = "    ";
-        for v in variants {
+        for (index, v) in variants.iter_enumerated() {
+            if v.is_stripped() {
+                continue;
+            }
             w.write_str(TAB);
-            let name = v.name.unwrap();
             match *v.kind {
-                // FIXME(#101337): Show discriminant
                 clean::VariantItem(ref var) => match var.kind {
-                    clean::VariantKind::CLike => w.write_str(name.as_str()),
+                    clean::VariantKind::CLike => display_c_like_variant(
+                        w,
+                        cx,
+                        v,
+                        var,
+                        index,
+                        should_show_enum_discriminant,
+                        enum_def_id,
+                    ),
                     clean::VariantKind::Tuple(ref s) => {
-                        write!(w, "{name}({})", print_tuple_struct_fields(cx, s),);
+                        write!(w, "{}({})", v.name.unwrap(), print_tuple_struct_fields(cx, s));
                     }
                     clean::VariantKind::Struct(ref s) => {
                         render_struct(w, v, None, None, &s.fields, TAB, false, cx);
@@ -1490,11 +1668,12 @@ fn render_enum_fields<'a>(
     }
 }
 
-fn item_variants<'a>(
+fn item_variants(
     w: &mut Buffer,
     cx: &mut Context<'_>,
     it: &clean::Item,
-    variants: impl Iterator<Item = &'a clean::Item>,
+    variants: &IndexVec<VariantIdx, clean::Item>,
+    enum_def_id: DefId,
 ) {
     let tcx = cx.tcx();
     write!(
@@ -1507,7 +1686,11 @@ fn item_variants<'a>(
         document_non_exhaustive_header(it),
         document_non_exhaustive(it)
     );
-    for variant in variants {
+    let should_show_enum_discriminant = should_show_enum_discriminant(cx, enum_def_id, variants);
+    for (index, variant) in variants.iter_enumerated() {
+        if variant.is_stripped() {
+            continue;
+        }
         let id = cx.derive_id(format!("{}.{}", ItemType::Variant, variant.name.unwrap()));
         write!(
             w,
@@ -1522,7 +1705,22 @@ fn item_variants<'a>(
             it.const_stable_since(tcx),
             " rightside",
         );
-        write!(w, "<h3 class=\"code-header\">{name}", name = variant.name.unwrap());
+        w.write_str("<h3 class=\"code-header\">");
+        if let clean::VariantItem(ref var) = *variant.kind &&
+            let clean::VariantKind::CLike = var.kind
+        {
+            display_c_like_variant(
+                w,
+                cx,
+                variant,
+                var,
+                index,
+                should_show_enum_discriminant,
+                enum_def_id,
+            );
+        } else {
+            w.write_str(variant.name.unwrap().as_str());
+        }
 
         let clean::VariantItem(variant_data) = &*variant.kind else { unreachable!() };
 
@@ -1644,7 +1842,7 @@ fn item_primitive(w: &mut impl fmt::Write, cx: &mut Context<'_>, it: &clean::Ite
 fn item_constant(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, c: &clean::Constant) {
     wrap_item(w, |w| {
         let tcx = cx.tcx();
-        render_attributes_in_code(w, it, tcx);
+        render_attributes_in_code(w, it, cx);
 
         write!(
             w,
@@ -1693,7 +1891,7 @@ fn item_constant(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, c: &cle
 
 fn item_struct(w: &mut Buffer, cx: &mut Context<'_>, it: &clean::Item, s: &clean::Struct) {
     wrap_item(w, |w| {
-        render_attributes_in_code(w, it, cx.tcx());
+        render_attributes_in_code(w, it, cx);
         render_struct(w, it, Some(&s.generics), s.ctor_kind, &s.fields, "", true, cx);
     });
 
@@ -1753,7 +1951,7 @@ fn item_fields(
 
 fn item_static(w: &mut impl fmt::Write, cx: &mut Context<'_>, it: &clean::Item, s: &clean::Static) {
     wrap_item(w, |buffer| {
-        render_attributes_in_code(buffer, it, cx.tcx());
+        render_attributes_in_code(buffer, it, cx);
         write!(
             buffer,
             "{vis}static {mutability}{name}: {typ}",
@@ -1771,7 +1969,7 @@ fn item_static(w: &mut impl fmt::Write, cx: &mut Context<'_>, it: &clean::Item, 
 fn item_foreign_type(w: &mut impl fmt::Write, cx: &mut Context<'_>, it: &clean::Item) {
     wrap_item(w, |buffer| {
         buffer.write_str("extern {\n").unwrap();
-        render_attributes_in_code(buffer, it, cx.tcx());
+        render_attributes_in_code(buffer, it, cx);
         write!(
             buffer,
             "    {}type {};\n}}",

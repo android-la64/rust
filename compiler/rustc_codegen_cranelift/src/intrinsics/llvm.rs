@@ -1,9 +1,9 @@
 //! Emulate LLVM intrinsics
 
+use rustc_middle::ty::GenericArgsRef;
+
 use crate::intrinsics::*;
 use crate::prelude::*;
-
-use rustc_middle::ty::GenericArgsRef;
 
 pub(crate) fn codegen_llvm_intrinsic_call<'tcx>(
     fx: &mut FunctionCx<'_, '_, 'tcx>,
@@ -49,6 +49,21 @@ pub(crate) fn codegen_llvm_intrinsic_call<'tcx>(
             simd_for_each_lane(fx, a, ret, &|fx, _lane_ty, _res_lane_ty, lane| {
                 fx.bcx.ins().popcnt(lane)
             });
+        }
+
+        _ if intrinsic.starts_with("llvm.fma.v") => {
+            intrinsic_args!(fx, args => (x,y,z); intrinsic);
+
+            simd_trio_for_each_lane(
+                fx,
+                x,
+                y,
+                z,
+                ret,
+                &|fx, _lane_ty, _res_lane_ty, lane_x, lane_y, lane_z| {
+                    fx.bcx.ins().fma(lane_x, lane_y, lane_z)
+                },
+            );
         }
 
         _ => {

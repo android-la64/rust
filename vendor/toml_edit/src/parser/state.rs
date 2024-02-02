@@ -94,7 +94,7 @@ impl ParseState {
         Ok(())
     }
 
-    pub(crate) fn start_aray_table(
+    pub(crate) fn start_array_table(
         &mut self,
         path: Vec<Key>,
         decor: Decor,
@@ -217,9 +217,9 @@ impl ParseState {
         Ok(())
     }
 
-    pub(crate) fn descend_path<'t, 'k>(
+    pub(crate) fn descend_path<'t>(
         mut table: &'t mut Table,
-        path: &'k [Key],
+        path: &[Key],
         dotted: bool,
     ) -> Result<&'t mut Table, CustomError> {
         for (i, key) in path.iter().enumerate() {
@@ -297,7 +297,7 @@ impl ParseState {
             .take()
             .map(RawString::with_span)
             .unwrap_or_default();
-        self.start_aray_table(
+        self.start_array_table(
             path,
             Decor::new(leading, RawString::with_span(trailing)),
             span,

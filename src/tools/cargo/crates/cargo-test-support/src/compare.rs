@@ -236,6 +236,8 @@ fn substitute_macros(input: &str) -> String {
         ("[SKIPPING]", "    Skipping"),
         ("[WAITING]", "     Waiting"),
         ("[PUBLISHED]", "   Published"),
+        ("[BLOCKING]", "    Blocking"),
+        ("[GENERATED]", "   Generated"),
     ];
     let mut result = input.to_owned();
     for &(pat, subst) in &macros {

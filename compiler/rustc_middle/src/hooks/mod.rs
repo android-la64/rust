@@ -1,3 +1,8 @@
+//! "Hooks" provide a way for `tcx` functionality to be provided by some downstream crate without
+//! everything in rustc having to depend on that crate. This is somewhat similar to queries, but
+//! queries come with a lot of machinery for caching and incremental compilation, whereas hooks are
+//! just plain function pointers without any of the query magic.
+
 use crate::mir;
 use crate::query::TyCtxtAt;
 use crate::ty::{Ty, TyCtxt};
@@ -61,5 +66,8 @@ macro_rules! declare_hooks {
 declare_hooks! {
     /// Tries to destructure an `mir::Const` ADT or array into its variant index
     /// and its field values. This should only be used for pretty printing.
-    hook try_destructure_mir_constant_for_diagnostics(val: mir::ConstValue<'tcx>, ty: Ty<'tcx>) -> Option<mir::DestructuredConstant<'tcx>>;
+    hook try_destructure_mir_constant_for_user_output(val: mir::ConstValue<'tcx>, ty: Ty<'tcx>) -> Option<mir::DestructuredConstant<'tcx>>;
+
+    /// Getting a &core::panic::Location referring to a span.
+    hook const_caller_location(file: rustc_span::Symbol, line: u32, col: u32) -> mir::ConstValue<'tcx>;
 }

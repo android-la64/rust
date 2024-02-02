@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64.0"
+rust-version = "1.70.0"
 name = "clap_complete"
-version = "4.3.1"
+version = "4.4.3"
 include = [
     "build.rs",
     "src/**/*",
@@ -121,12 +121,19 @@ features = [
 ]
 default-features = false
 
+[dev-dependencies.completest]
+version = "0.0.20"
+
 [dev-dependencies.snapbox]
-version = "0.4.11"
-features = ["diff"]
+version = "0.4.13"
+features = [
+    "diff",
+    "path",
+    "examples",
+]
 
 [dev-dependencies.trycmd]
-version = "0.14.16"
+version = "0.14.18"
 features = [
     "color-auto",
     "diff",

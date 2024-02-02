@@ -4,7 +4,7 @@ use rustc_hir::lang_items::LangItem;
 use rustc_middle::mir::*;
 use rustc_middle::query::Providers;
 use rustc_middle::ty::GenericArgs;
-use rustc_middle::ty::{self, EarlyBinder, GeneratorArgs, Ty, TyCtxt};
+use rustc_middle::ty::{self, CoroutineArgs, EarlyBinder, Ty, TyCtxt};
 use rustc_target::abi::{FieldIdx, VariantIdx, FIRST_VARIANT};
 
 use rustc_index::{Idx, IndexVec};
@@ -67,18 +67,20 @@ fn make_shim<'tcx>(tcx: TyCtxt<'tcx>, instance: ty::InstanceDef<'tcx>) -> Body<'
         }
 
         ty::InstanceDef::DropGlue(def_id, ty) => {
-            // FIXME(#91576): Drop shims for generators aren't subject to the MIR passes at the end
+            // FIXME(#91576): Drop shims for coroutines aren't subject to the MIR passes at the end
             // of this function. Is this intentional?
-            if let Some(ty::Generator(gen_def_id, args, _)) = ty.map(Ty::kind) {
-                let body = tcx.optimized_mir(*gen_def_id).generator_drop().unwrap();
+            if let Some(ty::Coroutine(coroutine_def_id, args, _)) = ty.map(Ty::kind) {
+                let body = tcx.optimized_mir(*coroutine_def_id).coroutine_drop().unwrap();
                 let mut body = EarlyBinder::bind(body.clone()).instantiate(tcx, args);
                 debug!("make_shim({:?}) = {:?}", instance, body);
 
-                // Run empty passes to mark phase change and perform validation.
                 pm::run_passes(
                     tcx,
                     &mut body,
-                    &[],
+                    &[
+                        &abort_unwinding_calls::AbortUnwindingCalls,
+                        &add_call_guards::CriticalCallEdges,
+                    ],
                     Some(MirPhase::Runtime(RuntimePhase::Optimized)),
                 );
 
@@ -171,7 +173,7 @@ fn local_decls_for_sig<'tcx>(
 fn build_drop_shim<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId, ty: Option<Ty<'tcx>>) -> Body<'tcx> {
     debug!("build_drop_shim(def_id={:?}, ty={:?})", def_id, ty);
 
-    assert!(!matches!(ty, Some(ty) if ty.is_generator()));
+    assert!(!matches!(ty, Some(ty) if ty.is_coroutine()));
 
     let args = if let Some(ty) = ty {
         tcx.mk_args(&[ty.into()])
@@ -392,8 +394,8 @@ fn build_clone_shim<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId, self_ty: Ty<'tcx>) -
         _ if is_copy => builder.copy_shim(),
         ty::Closure(_, args) => builder.tuple_like_shim(dest, src, args.as_closure().upvar_tys()),
         ty::Tuple(..) => builder.tuple_like_shim(dest, src, self_ty.tuple_fields()),
-        ty::Generator(gen_def_id, args, hir::Movability::Movable) => {
-            builder.generator_shim(dest, src, *gen_def_id, args.as_generator())
+        ty::Coroutine(coroutine_def_id, args, hir::Movability::Movable) => {
+            builder.coroutine_shim(dest, src, *coroutine_def_id, args.as_coroutine())
         }
         _ => bug!("clone shim for `{:?}` which is not `Copy` and is not an aggregate", self_ty),
     };
@@ -593,12 +595,12 @@ impl<'tcx> CloneShimBuilder<'tcx> {
         let _final_cleanup_block = self.clone_fields(dest, src, target, unwind, tys);
     }
 
-    fn generator_shim(
+    fn coroutine_shim(
         &mut self,
         dest: Place<'tcx>,
         src: Place<'tcx>,
-        gen_def_id: DefId,
-        args: GeneratorArgs<'tcx>,
+        coroutine_def_id: DefId,
+        args: CoroutineArgs<'tcx>,
     ) {
         self.block(vec![], TerminatorKind::Goto { target: self.block_index_offset(3) }, false);
         let unwind = self.block(vec![], TerminatorKind::UnwindResume, true);
@@ -607,8 +609,8 @@ impl<'tcx> CloneShimBuilder<'tcx> {
         let unwind = self.clone_fields(dest, src, switch, unwind, args.upvar_tys());
         let target = self.block(vec![], TerminatorKind::Return, false);
         let unreachable = self.block(vec![], TerminatorKind::Unreachable, false);
-        let mut cases = Vec::with_capacity(args.state_tys(gen_def_id, self.tcx).count());
-        for (index, state_tys) in args.state_tys(gen_def_id, self.tcx).enumerate() {
+        let mut cases = Vec::with_capacity(args.state_tys(coroutine_def_id, self.tcx).count());
+        for (index, state_tys) in args.state_tys(coroutine_def_id, self.tcx).enumerate() {
             let variant_index = VariantIdx::new(index);
             let dest = self.tcx.mk_place_downcast_unnamed(dest, variant_index);
             let src = self.tcx.mk_place_downcast_unnamed(src, variant_index);

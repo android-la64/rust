@@ -30,6 +30,9 @@
 //! get confused if the spans from leaf AST nodes occur in multiple places
 //! in the HIR, especially for multiple identifiers.
 
+#![cfg_attr(not(bootstrap), allow(internal_features))]
+#![cfg_attr(not(bootstrap), feature(rustdoc_internals))]
+#![cfg_attr(not(bootstrap), doc(rust_logo))]
 #![feature(box_patterns)]
 #![feature(let_chains)]
 #![feature(never_type)]
@@ -40,7 +43,7 @@
 #[macro_use]
 extern crate tracing;
 
-use crate::errors::{AssocTyParentheses, AssocTyParenthesesSub, MisplacedImplTrait, TraitFnAsync};
+use crate::errors::{AssocTyParentheses, AssocTyParenthesesSub, MisplacedImplTrait};
 
 use rustc_ast::ptr::P;
 use rustc_ast::visit;
@@ -68,9 +71,8 @@ use rustc_middle::{
 };
 use rustc_session::parse::{add_feature_diagnostics, feature_err};
 use rustc_span::hygiene::MacroKind;
-use rustc_span::source_map::DesugaringKind;
 use rustc_span::symbol::{kw, sym, Ident, Symbol};
-use rustc_span::{Span, DUMMY_SP};
+use rustc_span::{DesugaringKind, Span, DUMMY_SP};
 use smallvec::SmallVec;
 use std::collections::hash_map::Entry;
 use thin_vec::ThinVec;
@@ -108,10 +110,10 @@ struct LoweringContext<'a, 'hir> {
     /// Collect items that were created by lowering the current owner.
     children: Vec<(LocalDefId, hir::MaybeOwner<&'hir hir::OwnerInfo<'hir>>)>,
 
-    generator_kind: Option<hir::GeneratorKind>,
+    coroutine_kind: Option<hir::CoroutineKind>,
 
     /// When inside an `async` context, this is the `HirId` of the
-    /// `task_context` local bound to the resume argument of the generator.
+    /// `task_context` local bound to the resume argument of the coroutine.
     task_context: Option<hir::HirId>,
 
     /// Used to get the current `fn`'s def span to point to when using `await`
@@ -271,8 +273,6 @@ enum ImplTraitPosition {
     ClosureReturn,
     PointerReturn,
     FnTraitReturn,
-    TraitReturn,
-    ImplReturn,
     GenericDefault,
     ConstTy,
     StaticTy,
@@ -302,8 +302,6 @@ impl std::fmt::Display for ImplTraitPosition {
             ImplTraitPosition::ClosureReturn => "closure return types",
             ImplTraitPosition::PointerReturn => "`fn` pointer return types",
             ImplTraitPosition::FnTraitReturn => "`Fn` trait return types",
-            ImplTraitPosition::TraitReturn => "trait method return types",
-            ImplTraitPosition::ImplReturn => "`impl` method return types",
             ImplTraitPosition::GenericDefault => "generic parameter defaults",
             ImplTraitPosition::ConstTy => "const types",
             ImplTraitPosition::StaticTy => "static types",
@@ -334,20 +332,9 @@ impl FnDeclKind {
         matches!(self, FnDeclKind::Fn | FnDeclKind::Inherent | FnDeclKind::Impl | FnDeclKind::Trait)
     }
 
-    fn return_impl_trait_allowed(&self, tcx: TyCtxt<'_>) -> bool {
+    fn return_impl_trait_allowed(&self) -> bool {
         match self {
-            FnDeclKind::Fn | FnDeclKind::Inherent => true,
-            FnDeclKind::Impl if tcx.features().return_position_impl_trait_in_trait => true,
-            FnDeclKind::Trait if tcx.features().return_position_impl_trait_in_trait => true,
-            _ => false,
-        }
-    }
-
-    fn async_fn_allowed(&self, tcx: TyCtxt<'_>) -> bool {
-        match self {
-            FnDeclKind::Fn | FnDeclKind::Inherent => true,
-            FnDeclKind::Impl if tcx.features().async_fn_in_trait => true,
-            FnDeclKind::Trait if tcx.features().async_fn_in_trait => true,
+            FnDeclKind::Fn | FnDeclKind::Inherent | FnDeclKind::Impl | FnDeclKind::Trait => true,
             _ => false,
         }
     }
@@ -1229,7 +1216,11 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                                     hir_id: this.lower_node_id(node_id),
                                     body: this.lower_const_body(path_expr.span, Some(&path_expr)),
                                 });
-                                return GenericArg::Const(ConstArg { value: ct, span });
+                                return GenericArg::Const(ConstArg {
+                                    value: ct,
+                                    span,
+                                    is_desugared_from_effects: false,
+                                });
                             }
                         }
                     }
@@ -1240,6 +1231,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             ast::GenericArg::Const(ct) => GenericArg::Const(ConstArg {
                 value: self.lower_anon_const(&ct),
                 span: self.lower_span(ct.value.span),
+                is_desugared_from_effects: false,
             }),
         }
     }
@@ -1271,7 +1263,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                     &PolyTraitRef {
                         bound_generic_params: ThinVec::new(),
                         trait_ref: TraitRef { path: path.clone(), ref_id: t.id },
-                        span: t.span
+                        span: t.span,
                     },
                     itctx,
                     ast::Const::No,
@@ -1749,14 +1741,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     }
 
     fn lower_fn_params_to_names(&mut self, decl: &FnDecl) -> &'hir [Ident] {
-        // Skip the `...` (`CVarArgs`) trailing arguments from the AST,
-        // as they are not explicit in HIR/Ty function signatures.
-        // (instead, the `c_variadic` flag is set to `true`)
-        let mut inputs = &decl.inputs[..];
-        if decl.c_variadic() {
-            inputs = &inputs[..inputs.len() - 1];
-        }
-        self.arena.alloc_from_iter(inputs.iter().map(|param| match param.pat.kind {
+        self.arena.alloc_from_iter(decl.inputs.iter().map(|param| match param.pat.kind {
             PatKind::Ident(_, ident, _) => self.lower_ident(ident),
             _ => Ident::new(kw::Empty, self.lower_span(param.pat.span)),
         }))
@@ -1805,53 +1790,30 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             self.lower_ty_direct(&param.ty, &itctx)
         }));
 
-        let output = if let Some((ret_id, span)) = make_ret_async {
-            if !kind.async_fn_allowed(self.tcx) {
-                match kind {
-                    FnDeclKind::Trait | FnDeclKind::Impl => {
-                        self.tcx
-                            .sess
-                            .create_feature_err(
-                                TraitFnAsync { fn_span, span },
-                                sym::async_fn_in_trait,
-                            )
-                            .emit();
-                    }
-                    _ => {
-                        self.tcx.sess.emit_err(TraitFnAsync { fn_span, span });
-                    }
-                }
-            }
-
+        let output = if let Some((ret_id, _span)) = make_ret_async {
             let fn_def_id = self.local_def_id(fn_node_id);
-            self.lower_async_fn_ret_ty(&decl.output, fn_def_id, ret_id, kind)
+            self.lower_async_fn_ret_ty(&decl.output, fn_def_id, ret_id, kind, fn_span)
         } else {
             match &decl.output {
                 FnRetTy::Ty(ty) => {
-                    let context = if kind.return_impl_trait_allowed(self.tcx) {
+                    let context = if kind.return_impl_trait_allowed() {
                         let fn_def_id = self.local_def_id(fn_node_id);
                         ImplTraitContext::ReturnPositionOpaqueTy {
                             origin: hir::OpaqueTyOrigin::FnReturn(fn_def_id),
                             fn_kind: kind,
                         }
                     } else {
-                        let position = match kind {
-                            FnDeclKind::Fn | FnDeclKind::Inherent => {
-                                unreachable!("fn should allow in-band lifetimes")
+                        ImplTraitContext::Disallowed(match kind {
+                            FnDeclKind::Fn
+                            | FnDeclKind::Inherent
+                            | FnDeclKind::Trait
+                            | FnDeclKind::Impl => {
+                                unreachable!("fn should allow return-position impl trait in traits")
                             }
                             FnDeclKind::ExternFn => ImplTraitPosition::ExternFnReturn,
                             FnDeclKind::Closure => ImplTraitPosition::ClosureReturn,
                             FnDeclKind::Pointer => ImplTraitPosition::PointerReturn,
-                            FnDeclKind::Trait => ImplTraitPosition::TraitReturn,
-                            FnDeclKind::Impl => ImplTraitPosition::ImplReturn,
-                        };
-                        match kind {
-                            FnDeclKind::Trait | FnDeclKind::Impl => ImplTraitContext::FeatureGated(
-                                position,
-                                sym::return_position_impl_trait_in_trait,
-                            ),
-                            _ => ImplTraitContext::Disallowed(position),
-                        }
+                        })
                     };
                     hir::FnRetTy::Return(self.lower_ty(ty, &context))
                 }
@@ -1901,8 +1863,9 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         fn_def_id: LocalDefId,
         opaque_ty_node_id: NodeId,
         fn_kind: FnDeclKind,
+        fn_span: Span,
     ) -> hir::FnRetTy<'hir> {
-        let span = self.lower_span(output.span());
+        let span = self.lower_span(fn_span);
         let opaque_ty_span = self.mark_span_with_reason(DesugaringKind::Async, span, None);
 
         let captured_lifetimes: Vec<_> = self
@@ -1923,18 +1886,9 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                 let future_bound = this.lower_async_fn_output_type_to_future_bound(
                     output,
                     span,
-                    if let FnDeclKind::Trait = fn_kind
-                        && !this.tcx.features().return_position_impl_trait_in_trait
-                    {
-                        ImplTraitContext::FeatureGated(
-                            ImplTraitPosition::TraitReturn,
-                            sym::return_position_impl_trait_in_trait,
-                        )
-                    } else {
-                        ImplTraitContext::ReturnPositionOpaqueTy {
-                            origin: hir::OpaqueTyOrigin::FnReturn(fn_def_id),
-                            fn_kind,
-                        }
+                    ImplTraitContext::ReturnPositionOpaqueTy {
+                        origin: hir::OpaqueTyOrigin::FnReturn(fn_def_id),
+                        fn_kind,
                     },
                 );
                 arena_vec![this; future_bound]
@@ -2568,6 +2522,7 @@ impl<'hir> GenericArgsCtor<'hir> {
         self.args.push(hir::GenericArg::Const(hir::ConstArg {
             value: hir::AnonConst { def_id, hir_id, body },
             span,
+            is_desugared_from_effects: true,
         }))
     }
 

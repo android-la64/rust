@@ -116,7 +116,7 @@ enum Kind {
 /// directive that we found in a lockfile, if present.
 pub struct LockedPatchDependency {
     /// The original `Dependency` directive, except "locked" so it's version
-    /// requirement is `=foo` and its `SourceId` has a "precise" listed.
+    /// requirement is Locked to `foo` and its `SourceId` has a "precise" listed.
     pub dependency: Dependency,
     /// The `PackageId` that was previously found in a lock file which
     /// `dependency` matches.
@@ -161,7 +161,7 @@ impl<'cfg> PackageRegistry<'cfg> {
 
             // If the previous source was not a precise source, then we can be
             // sure that it's already been updated if we've already loaded it.
-            Some((previous, _)) if previous.precise().is_none() => {
+            Some((previous, _)) if !previous.has_precise() => {
                 debug!("load/precise  {}", namespace);
                 return Ok(());
             }
@@ -170,7 +170,7 @@ impl<'cfg> PackageRegistry<'cfg> {
             // then we're done, otherwise we need to need to move forward
             // updating this source.
             Some((previous, _)) => {
-                if previous.precise() == namespace.precise() {
+                if previous.has_same_precise_as(namespace) {
                     debug!("load/match    {}", namespace);
                     return Ok(());
                 }
@@ -471,9 +471,9 @@ impl<'cfg> PackageRegistry<'cfg> {
         //
         // If we have a precise version, then we'll update lazily during the
         // querying phase. Note that precise in this case is only
-        // `Some("locked")` as other `Some` values indicate a `cargo update
+        // `"locked"` as other values indicate a `cargo update
         // --precise` request
-        if source_id.precise() != Some("locked") {
+        if !source_id.has_locked_precise() {
             self.sources.get_mut(source_id).unwrap().invalidate_cache();
         } else {
             debug!("skipping update due to locked registry");

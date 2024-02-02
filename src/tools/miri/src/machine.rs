@@ -12,7 +12,6 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 
 use rustc_ast::ast::Mutability;
-use rustc_const_eval::const_eval::CheckAlignment;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 #[allow(unused)]
 use rustc_data_structures::static_assert_size;
@@ -169,11 +168,29 @@ impl fmt::Display for MiriMemoryKind {
 /// Pointer provenance.
 #[derive(Clone, Copy)]
 pub enum Provenance {
+    /// For pointers with concrete provenance. we exactly know which allocation they are attached to
+    /// and what their borrow tag is.
     Concrete {
         alloc_id: AllocId,
         /// Borrow Tracker tag.
         tag: BorTag,
     },
+    /// Pointers with wildcard provenance are created on int-to-ptr casts. According to the
+    /// specification, we should at that point angelically "guess" a provenance that will make all
+    /// future uses of this pointer work, if at all possible. Of course such a semantics cannot be
+    /// actually implemented in Miri. So instead, we approximate this, erroring on the side of
+    /// accepting too much code rather than rejecting correct code: a pointer with wildcard
+    /// provenance "acts like" any previously exposed pointer. Each time it is used, we check
+    /// whether *some* exposed pointer could have done what we want to do, and if the answer is yes
+    /// then we allow the access. This allows too much code in two ways:
+    /// - The same wildcard pointer can "take the role" of multiple different exposed pointers on
+    ///   subsequenct memory accesses.
+    /// - In the aliasing model, we don't just have to know the borrow tag of the pointer used for
+    ///   the access, we also have to update the aliasing state -- and that update can be very
+    ///   different depending on which borrow tag we pick! Stacked Borrows has support for this by
+    ///   switching to a stack that is only approximately known, i.e. we overapproximate the effect
+    ///   of using *any* exposed pointer for this access, and only keep information about the borrow
+    ///   stack that would be true with all possible choices.
     Wildcard,
 }
 
@@ -707,11 +724,10 @@ impl<'mir, 'tcx> MiriMachine<'mir, 'tcx> {
                 );
             }
             "android" => {
-                // "signal"
+                // "signal" -- just needs a non-zero pointer value (function does not even get called),
+                // but we arrange for this to be callable anyway (it will then do nothing).
                 let layout = this.machine.layouts.const_raw_ptr;
-                let dlsym = Dlsym::from_str("signal".as_bytes(), &this.tcx.sess.target.os)?
-                    .expect("`signal` must be an actual dlsym on android");
-                let ptr = this.fn_ptr(FnVal::Other(dlsym));
+                let ptr = this.fn_ptr(FnVal::Other(DynSym::from_str("signal")));
                 let val = ImmTy::from_scalar(Scalar::from_pointer(ptr, this), layout);
                 Self::alloc_extern_static(this, "signal", val)?;
                 // A couple zero-initialized pointer-sized extern statics.
@@ -867,7 +883,7 @@ impl<'mir, 'tcx> MiriInterpCxExt<'mir, 'tcx> for MiriInterpCx<'mir, 'tcx> {
 /// Machine hook implementations.
 impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
     type MemoryKind = MiriMemoryKind;
-    type ExtraFnVal = Dlsym;
+    type ExtraFnVal = DynSym;
 
     type FrameExtra = FrameExtra<'tcx>;
     type AllocExtra = AllocExtra<'tcx>;
@@ -886,26 +902,13 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
     const PANIC_ON_ALLOC_FAIL: bool = false;
 
     #[inline(always)]
-    fn enforce_alignment(ecx: &MiriInterpCx<'mir, 'tcx>) -> CheckAlignment {
-        if ecx.machine.check_alignment == AlignmentCheck::None {
-            CheckAlignment::No
-        } else {
-            CheckAlignment::Error
-        }
+    fn enforce_alignment(ecx: &MiriInterpCx<'mir, 'tcx>) -> bool {
+        ecx.machine.check_alignment != AlignmentCheck::None
     }
 
     #[inline(always)]
     fn use_addr_for_alignment_check(ecx: &MiriInterpCx<'mir, 'tcx>) -> bool {
         ecx.machine.check_alignment == AlignmentCheck::Int
-    }
-
-    fn alignment_check_failed(
-        _ecx: &InterpCx<'mir, 'tcx, Self>,
-        has: Align,
-        required: Align,
-        _check: CheckAlignment,
-    ) -> InterpResult<'tcx, ()> {
-        throw_ub!(AlignmentCheckFailed { has, required })
     }
 
     #[inline(always)]
@@ -939,15 +942,15 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
     #[inline(always)]
     fn call_extra_fn(
         ecx: &mut MiriInterpCx<'mir, 'tcx>,
-        fn_val: Dlsym,
+        fn_val: DynSym,
         abi: Abi,
         args: &[FnArg<'tcx, Provenance>],
         dest: &PlaceTy<'tcx, Provenance>,
         ret: Option<mir::BasicBlock>,
-        _unwind: mir::UnwindAction,
+        unwind: mir::UnwindAction,
     ) -> InterpResult<'tcx> {
         let args = ecx.copy_fn_args(args)?; // FIXME: Should `InPlace` arguments be reset to uninit?
-        ecx.call_dlsym(fn_val, abi, &args, dest, ret)
+        ecx.emulate_dyn_sym(fn_val, abi, &args, dest, ret, unwind)
     }
 
     #[inline(always)]
@@ -1000,6 +1003,17 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
         right: &ImmTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx, (ImmTy<'tcx, Provenance>, bool)> {
         ecx.binary_ptr_op(bin_op, left, right)
+    }
+
+    #[inline(always)]
+    fn generate_nan<
+        F1: rustc_apfloat::Float + rustc_apfloat::FloatConvert<F2>,
+        F2: rustc_apfloat::Float,
+    >(
+        ecx: &InterpCx<'mir, 'tcx, Self>,
+        inputs: &[F1],
+    ) -> F2 {
+        ecx.generate_nan(inputs)
     }
 
     fn thread_local_static_base_pointer(
@@ -1129,34 +1143,33 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
                 _ => {}
             }
         }
-        let absolute_addr = intptrcast::GlobalStateInner::rel_ptr_to_addr(ecx, ptr)?;
         let tag = if let Some(borrow_tracker) = &ecx.machine.borrow_tracker {
             borrow_tracker.borrow_mut().base_ptr_tag(ptr.provenance, &ecx.machine)
         } else {
             // Value does not matter, SB is disabled
             BorTag::default()
         };
-        Ok(Pointer::new(
-            Provenance::Concrete { alloc_id: ptr.provenance, tag },
-            Size::from_bytes(absolute_addr),
-        ))
+        ecx.ptr_from_rel_ptr(ptr, tag)
     }
 
+    /// Called on `usize as ptr` casts.
     #[inline(always)]
     fn ptr_from_addr_cast(
         ecx: &MiriInterpCx<'mir, 'tcx>,
         addr: u64,
     ) -> InterpResult<'tcx, Pointer<Option<Self::Provenance>>> {
-        intptrcast::GlobalStateInner::ptr_from_addr_cast(ecx, addr)
+        ecx.ptr_from_addr_cast(addr)
     }
 
+    /// Called on `ptr as usize` casts.
+    /// (Actually computing the resulting `usize` doesn't need machine help,
+    /// that's just `Scalar::try_to_int`.)
     fn expose_ptr(
         ecx: &mut InterpCx<'mir, 'tcx, Self>,
         ptr: Pointer<Self::Provenance>,
     ) -> InterpResult<'tcx> {
         match ptr.provenance {
-            Provenance::Concrete { alloc_id, tag } =>
-                intptrcast::GlobalStateInner::expose_ptr(ecx, alloc_id, tag),
+            Provenance::Concrete { alloc_id, tag } => ecx.expose_ptr(alloc_id, tag),
             Provenance::Wildcard => {
                 // No need to do anything for wildcard pointers as
                 // their provenances have already been previously exposed.
@@ -1167,11 +1180,17 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
 
     /// Convert a pointer with provenance into an allocation-offset pair,
     /// or a `None` with an absolute address if that conversion is not possible.
+    ///
+    /// This is called when a pointer is about to be used for memory access,
+    /// an in-bounds check, or anything else that requires knowing which allocation it points to.
+    /// The resulting `AllocId` will just be used for that one step and the forgotten again
+    /// (i.e., we'll never turn the data returned here back into a `Pointer` that might be
+    /// stored in machine state).
     fn ptr_get_alloc(
         ecx: &MiriInterpCx<'mir, 'tcx>,
         ptr: Pointer<Self::Provenance>,
     ) -> Option<(AllocId, Size, Self::ProvenanceExtra)> {
-        let rel = intptrcast::GlobalStateInner::abs_ptr_to_rel(ecx, ptr);
+        let rel = ecx.ptr_get_alloc(ptr);
 
         rel.map(|(alloc_id, size)| {
             let tag = match ptr.provenance {
@@ -1243,6 +1262,7 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
         {
             *deallocated_at = Some(machine.current_span());
         }
+        machine.intptrcast.get_mut().free_alloc_id(alloc_id);
         Ok(())
     }
 
@@ -1275,19 +1295,26 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
         ecx: &mut InterpCx<'mir, 'tcx, Self>,
         place: &PlaceTy<'tcx, Provenance>,
     ) -> InterpResult<'tcx> {
-        // We do need to write `uninit` so that even after the call ends, the former contents of
-        // this place cannot be observed any more.
-        ecx.write_uninit(place)?;
         // If we have a borrow tracker, we also have it set up protection so that all reads *and
         // writes* during this call are insta-UB.
-        if ecx.machine.borrow_tracker.is_some() {
+        let protected_place = if ecx.machine.borrow_tracker.is_some() {
             // Have to do `to_op` first because a `Place::Local` doesn't imply the local doesn't have an address.
             if let Either::Left(place) = ecx.place_to_op(place)?.as_mplace_or_imm() {
-                ecx.protect_place(&place)?;
+                ecx.protect_place(&place)?.into()
             } else {
                 // Locals that don't have their address taken are as protected as they can ever be.
+                place.clone()
             }
-        }
+        } else {
+            // No borrow tracker.
+            place.clone()
+        };
+        // We do need to write `uninit` so that even after the call ends, the former contents of
+        // this place cannot be observed any more. We do the write after retagging so that for
+        // Tree Borrows, this is considered to activate the new tag.
+        // Conveniently this also ensures that the place actually points to suitable memory.
+        ecx.write_uninit(&protected_place)?;
+        // Now we throw away the protected place, ensuring its tag is never used again.
         Ok(())
     }
 
@@ -1382,8 +1409,34 @@ impl<'mir, 'tcx> Machine<'mir, 'tcx> for MiriMachine<'mir, 'tcx> {
     ) -> InterpResult<'tcx> {
         // We want this *before* the return value copy, because the return place itself is protected
         // until we do `end_call` here.
-        if let Some(borrow_tracker) = &ecx.machine.borrow_tracker {
-            borrow_tracker.borrow_mut().end_call(&frame.extra);
+        if let Some(global_borrow_tracker) = &ecx.machine.borrow_tracker {
+            // The body of this loop needs `global_borrow_tracker` immutably
+            // so we can't move this code inside the following `end_call`.
+            for (alloc_id, tag) in &frame
+                .extra
+                .borrow_tracker
+                .as_ref()
+                .expect("we should have borrow tracking data")
+                .protected_tags
+            {
+                // Just because the tag is protected doesn't guarantee that
+                // the allocation still exists (weak protectors allow deallocations)
+                // so we must check that the allocation exists.
+                // If it does exist, then we have the guarantee that the
+                // pointer is readable, and the implicit read access inserted
+                // will never cause UB on the pointer itself.
+                let (_, _, kind) = ecx.get_alloc_info(*alloc_id);
+                if matches!(kind, AllocKind::LiveData) {
+                    let alloc_extra = ecx.get_alloc_extra(*alloc_id).unwrap();
+                    let alloc_borrow_tracker = &alloc_extra.borrow_tracker.as_ref().unwrap();
+                    alloc_borrow_tracker.release_protector(
+                        &ecx.machine,
+                        global_borrow_tracker,
+                        *tag,
+                    )?;
+                }
+            }
+            global_borrow_tracker.borrow_mut().end_call(&frame.extra);
         }
         Ok(())
     }

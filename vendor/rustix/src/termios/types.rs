@@ -289,11 +289,12 @@ bitflags! {
             target_os = "aix",
             target_os = "emscripten",
             target_os = "haiku",
+            target_os = "hurd",
             target_os = "redox",
         )))]
         const IUTF8 = c::IUTF8;
 
-        /// <https://docs.rs/bitflags/latest/bitflags/#externally-defined-flags>
+        /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
         const _ = !0;
     }
 }
@@ -508,7 +509,7 @@ bitflags! {
         )))]
         const VT1 = c::VT1;
 
-        /// <https://docs.rs/bitflags/latest/bitflags/#externally-defined-flags>
+        /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
         const _ = !0;
     }
 }
@@ -566,12 +567,13 @@ bitflags! {
             target_os = "aix",
             target_os = "emscripten",
             target_os = "haiku",
+            target_os = "hurd",
             target_os = "nto",
             target_os = "redox",
         )))]
         const CMSPAR = c::CMSPAR;
 
-        /// <https://docs.rs/bitflags/latest/bitflags/#externally-defined-flags>
+        /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
         const _ = !0;
     }
 }
@@ -637,7 +639,7 @@ bitflags! {
         /// `IEXTEN`
         const IEXTEN = c::IEXTEN;
 
-        /// <https://docs.rs/bitflags/latest/bitflags/#externally-defined-flags>
+        /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
         const _ = !0;
     }
 }
@@ -806,7 +808,18 @@ pub mod speed {
 
     /// Translate from a `c::speed_t` code to an arbitrary integer speed value
     /// `u32`.
-    #[cfg(not(any(linux_kernel, bsd)))]
+    ///
+    /// On BSD platforms, integer speed values are already the same as their
+    /// encoded values, and on Linux platforms, we use `TCGETS2`/`TCSETS2`
+    /// and the `c_ispeed`/`c_ospeed`` fields, except that on Linux on
+    /// PowerPC on QEMU, `TCGETS2`/`TCSETS2` don't set `c_ispeed`/`c_ospeed`.
+    #[cfg(not(any(
+        bsd,
+        all(
+            linux_kernel,
+            not(any(target_arch = "powerpc", target_arch = "powerpc64"))
+        )
+    )))]
     pub(crate) const fn decode(encoded_speed: c::speed_t) -> Option<u32> {
         match encoded_speed {
             c::B0 => Some(0),
@@ -1131,6 +1144,7 @@ impl SpecialCodeIndex {
         solarish,
         target_os = "aix",
         target_os = "haiku",
+        target_os = "hurd",
         target_os = "nto",
     )))]
     pub const VSWTC: Self = Self(c::VSWTC as usize);
@@ -1263,8 +1277,8 @@ fn termios_layouts() {
         check_renamed_struct_renamed_field!(Termios, termios, local_modes, c_lflag);
         check_renamed_struct_renamed_field!(Termios, termios, special_codes, c_cc);
 
-        // On everything except PowerPC, `termios` matches `termios2` except for
-        // the addition of `c_ispeed` and `c_ospeed`.
+        // On everything except PowerPC, `termios` matches `termios2` except
+        // for the addition of `c_ispeed` and `c_ospeed`.
         #[cfg(not(any(target_arch = "powerpc", target_arch = "powerpc64")))]
         const_assert_eq!(
             memoffset::offset_of!(Termios, input_speed),

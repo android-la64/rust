@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen"
-version = "0.98.0"
+version = "0.101.2"
 authors = ["The Cranelift Project Developers"]
 build = "build.rs"
 description = "Low-level code generator library"
@@ -47,19 +47,19 @@ version = "0.9.0"
 optional = true
 
 [dependencies.cranelift-bforest]
-version = "0.98.0"
+version = "0.101.2"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.98.0"
+version = "0.101.2"
 
 [dependencies.cranelift-control]
-version = "0.98.0"
+version = "0.101.2"
 
 [dependencies.cranelift-entity]
-version = "0.98.0"
+version = "0.101.2"
 
 [dependencies.gimli]
-version = "0.27.0"
+version = "0.28.0"
 features = [
     "read",
     "std",
@@ -69,8 +69,9 @@ optional = true
 default-features = false
 
 [dependencies.hashbrown]
-version = "0.13.2"
+version = "0.14"
 features = ["raw"]
+default-features = false
 
 [dependencies.log]
 version = "0.4.8"
@@ -81,8 +82,11 @@ version = "0.9.2"
 features = ["checker"]
 
 [dependencies.serde]
-version = "1.0.94"
-features = ["derive"]
+version = "1.0.188"
+optional = true
+
+[dependencies.serde_derive]
+version = "1.0.188"
 optional = true
 
 [dependencies.sha2]
@@ -103,17 +107,17 @@ features = ["std"]
 default-features = false
 
 [dev-dependencies.criterion]
-version = "0.4.0"
+version = "0.5.0"
 features = ["html_reports"]
 
 [dev-dependencies.similar]
 version = "2.1.0"
 
 [build-dependencies.cranelift-codegen-meta]
-version = "0.98.0"
+version = "0.101.2"
 
 [build-dependencies.cranelift-isle]
-version = "=0.98.0"
+version = "=0.101.2"
 
 [features]
 all-arch = [
@@ -135,6 +139,7 @@ disas = [
 ]
 enable-serde = [
     "serde",
+    "serde_derive",
     "cranelift-entity/enable-serde",
     "regalloc2/enable-serde",
     "smallvec/serde",
@@ -154,7 +159,6 @@ souper-harvest = [
     "souper-ir/stringify",
 ]
 std = []
-testing_hooks = []
 trace-log = []
 unwind = ["gimli"]
 x86 = []

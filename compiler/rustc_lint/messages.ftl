@@ -5,6 +5,10 @@ lint_array_into_iter =
     .use_explicit_into_iter_suggestion =
         or use `IntoIterator::into_iter(..)` instead of `.into_iter()` to explicitly iterate by value
 
+lint_async_fn_in_trait = use of `async fn` in public traits is discouraged as auto trait bounds cannot be specified
+    .note = you can suppress this lint if you plan to use the trait only in your own code, or do not care about auto traits like `Send` on the `Future`
+    .suggestion = you can alternatively desugar to a normal `fn` that returns `impl Future` and add any desired bounds such as `Send`, but these cannot be relaxed without a breaking API change
+
 lint_atomic_ordering_fence = memory fences cannot have `Relaxed` ordering
     .help = consider using ordering modes `Acquire`, `Release`, `AcqRel` or `SeqCst`
 
@@ -319,6 +323,8 @@ lint_invalid_reference_casting_borrow_as_mut = casting `&T` to `&mut T` is undef
 
 lint_invalid_reference_casting_note_book = for more information, visit <https://doc.rust-lang.org/book/ch15-05-interior-mutability.html>
 
+lint_invalid_reference_casting_note_ty_has_interior_mutability = even for types with interior mutability, the only legal way to obtain a mutable pointer from a shared reference is through `UnsafeCell::get`
+
 lint_lintpass_by_hand = implementing `LintPass` by hand
     .help = try using `declare_lint_pass!` or `impl_lint_pass!` instead
 
@@ -488,6 +494,8 @@ lint_renamed_lint = lint `{$name}` has been renamed to `{$replace}`
 
 lint_requested_level = requested on the command line with `{$level} {$lint_name}`
 
+lint_span_use_eq_ctxt = use `.eq_ctxt()` instead of `.ctxt() == .ctxt()`
+
 lint_supertrait_as_deref_target = `{$t}` implements `Deref` with supertrait `{$target_principal}` as target
     .label = target type is set here
 
@@ -543,18 +551,18 @@ lint_unused_closure =
 
 lint_unused_comparisons = comparison is useless due to type limits
 
+lint_unused_coroutine =
+    unused {$pre}{$count ->
+        [one] coroutine
+        *[other] coroutine
+    }{$post} that must be used
+    .note = coroutines are lazy and do nothing unless resumed
+
 lint_unused_def = unused {$pre}`{$def}`{$post} that must be used
     .suggestion = use `let _ = ...` to ignore the resulting value
 
 lint_unused_delim = unnecessary {$delim} around {$item}
     .suggestion = remove these {$delim}
-
-lint_unused_generator =
-    unused {$pre}{$count ->
-        [one] generator
-        *[other] generator
-    }{$post} that must be used
-    .note = generators are lazy and do nothing unless resumed
 
 lint_unused_import_braces = braces around {$node} is unnecessary
 

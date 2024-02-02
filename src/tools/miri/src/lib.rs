@@ -1,4 +1,5 @@
 #![feature(rustc_private)]
+#![feature(cell_update)]
 #![feature(float_gamma)]
 #![feature(map_try_insert)]
 #![feature(never_type)]
@@ -8,6 +9,7 @@
 #![feature(yeet_expr)]
 #![feature(nonzero_ops)]
 #![feature(round_ties_even)]
+#![feature(let_chains)]
 #![feature(lint_reasons)]
 #![feature(trait_upcasting)]
 // Configure clippy and other lints
@@ -86,9 +88,8 @@ pub use rustc_const_eval::interpret::*;
 // Resolve ambiguity.
 pub use rustc_const_eval::interpret::{self, AllocMap, PlaceTy, Provenance as _};
 
-pub use crate::shims::dlsym::{Dlsym, EvalContextExt as _};
 pub use crate::shims::env::{EnvVars, EvalContextExt as _};
-pub use crate::shims::foreign_items::EvalContextExt as _;
+pub use crate::shims::foreign_items::{DynSym, EvalContextExt as _};
 pub use crate::shims::intrinsics::EvalContextExt as _;
 pub use crate::shims::os_str::EvalContextExt as _;
 pub use crate::shims::panic::{CatchUnwindData, EvalContextExt as _};
@@ -117,7 +118,7 @@ pub use crate::eval::{
     create_ecx, eval_entry, AlignmentCheck, BacktraceStyle, IsolatedOp, MiriConfig, RejectOpWith,
 };
 pub use crate::helpers::EvalContextExt as _;
-pub use crate::intptrcast::ProvenanceMode;
+pub use crate::intptrcast::{EvalContextExt as _, ProvenanceMode};
 pub use crate::machine::{
     AllocExtra, FrameExtra, MiriInterpCx, MiriInterpCxExt, MiriMachine, MiriMemoryKind,
     PrimitiveLayouts, Provenance, ProvenanceExtra,

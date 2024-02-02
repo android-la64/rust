@@ -19,7 +19,7 @@ use rustc_index::bit_set::GrowableBitSet;
 use rustc_macros::HashStable;
 use rustc_session::Limit;
 use rustc_span::sym;
-use rustc_target::abi::{Integer, IntegerType, Size};
+use rustc_target::abi::{Integer, IntegerType, Primitive, Size};
 use rustc_target::spec::abi::Abi;
 use smallvec::SmallVec;
 use std::{fmt, iter};
@@ -460,7 +460,7 @@ impl<'tcx> TyCtxt<'tcx> {
     /// Checks whether each generic argument is simply a unique generic parameter.
     pub fn uses_unique_generic_params(
         self,
-        args: GenericArgsRef<'tcx>,
+        args: &[ty::GenericArg<'tcx>],
         ignore_regions: CheckRegions,
     ) -> Result<(), NotUniqueParam<'tcx>> {
         let mut seen = GrowableBitSet::default();
@@ -548,15 +548,15 @@ impl<'tcx> TyCtxt<'tcx> {
     /// those are not yet phased out). The parent of the closure's
     /// `DefId` will also be the context where it appears.
     pub fn is_closure(self, def_id: DefId) -> bool {
-        matches!(self.def_kind(def_id), DefKind::Closure | DefKind::Generator)
+        matches!(self.def_kind(def_id), DefKind::Closure | DefKind::Coroutine)
     }
 
     /// Returns `true` if `def_id` refers to a definition that does not have its own
-    /// type-checking context, i.e. closure, generator or inline const.
+    /// type-checking context, i.e. closure, coroutine or inline const.
     pub fn is_typeck_child(self, def_id: DefId) -> bool {
         matches!(
             self.def_kind(def_id),
-            DefKind::Closure | DefKind::Generator | DefKind::InlineConst
+            DefKind::Closure | DefKind::Coroutine | DefKind::InlineConst
         )
     }
 
@@ -686,13 +686,13 @@ impl<'tcx> TyCtxt<'tcx> {
     }
 
     /// Return the set of types that should be taken into account when checking
-    /// trait bounds on a generator's internal state.
-    pub fn generator_hidden_types(
+    /// trait bounds on a coroutine's internal state.
+    pub fn coroutine_hidden_types(
         self,
         def_id: DefId,
     ) -> impl Iterator<Item = ty::EarlyBinder<Ty<'tcx>>> {
-        let generator_layout = self.mir_generator_witnesses(def_id);
-        generator_layout
+        let coroutine_layout = self.mir_coroutine_witnesses(def_id);
+        coroutine_layout
             .as_ref()
             .map_or_else(|| [].iter(), |l| l.field_tys.iter())
             .filter(|decl| !decl.ignore_for_traits)
@@ -709,7 +709,7 @@ impl<'tcx> TyCtxt<'tcx> {
             found_recursion: false,
             found_any_recursion: false,
             check_recursion: false,
-            expand_generators: false,
+            expand_coroutines: false,
             tcx: self,
         };
         val.fold_with(&mut visitor)
@@ -729,7 +729,7 @@ impl<'tcx> TyCtxt<'tcx> {
             found_recursion: false,
             found_any_recursion: false,
             check_recursion: true,
-            expand_generators: true,
+            expand_coroutines: true,
             tcx: self,
         };
 
@@ -746,9 +746,10 @@ impl<'tcx> TyCtxt<'tcx> {
     pub fn def_kind_descr(self, def_kind: DefKind, def_id: DefId) -> &'static str {
         match def_kind {
             DefKind::AssocFn if self.associated_item(def_id).fn_has_self_parameter => "method",
-            DefKind::Generator => match self.generator_kind(def_id).unwrap() {
-                rustc_hir::GeneratorKind::Async(..) => "async closure",
-                rustc_hir::GeneratorKind::Gen => "generator",
+            DefKind::Coroutine => match self.coroutine_kind(def_id).unwrap() {
+                rustc_hir::CoroutineKind::Async(..) => "async closure",
+                rustc_hir::CoroutineKind::Coroutine => "coroutine",
+                rustc_hir::CoroutineKind::Gen(..) => "gen closure",
             },
             _ => def_kind.descr(def_id),
         }
@@ -763,9 +764,10 @@ impl<'tcx> TyCtxt<'tcx> {
     pub fn def_kind_descr_article(self, def_kind: DefKind, def_id: DefId) -> &'static str {
         match def_kind {
             DefKind::AssocFn if self.associated_item(def_id).fn_has_self_parameter => "a",
-            DefKind::Generator => match self.generator_kind(def_id).unwrap() {
-                rustc_hir::GeneratorKind::Async(..) => "an",
-                rustc_hir::GeneratorKind::Gen => "a",
+            DefKind::Coroutine => match self.coroutine_kind(def_id).unwrap() {
+                rustc_hir::CoroutineKind::Async(..) => "an",
+                rustc_hir::CoroutineKind::Coroutine => "a",
+                rustc_hir::CoroutineKind::Gen(..) => "a",
             },
             _ => def_kind.article(),
         }
@@ -804,7 +806,7 @@ struct OpaqueTypeExpander<'tcx> {
     primary_def_id: Option<DefId>,
     found_recursion: bool,
     found_any_recursion: bool,
-    expand_generators: bool,
+    expand_coroutines: bool,
     /// Whether or not to check for recursive opaque types.
     /// This is `true` when we're explicitly checking for opaque type
     /// recursion, and 'false' otherwise to avoid unnecessary work.
@@ -842,7 +844,7 @@ impl<'tcx> OpaqueTypeExpander<'tcx> {
         }
     }
 
-    fn expand_generator(&mut self, def_id: DefId, args: GenericArgsRef<'tcx>) -> Option<Ty<'tcx>> {
+    fn expand_coroutine(&mut self, def_id: DefId, args: GenericArgsRef<'tcx>) -> Option<Ty<'tcx>> {
         if self.found_any_recursion {
             return None;
         }
@@ -851,11 +853,11 @@ impl<'tcx> OpaqueTypeExpander<'tcx> {
             let expanded_ty = match self.expanded_cache.get(&(def_id, args)) {
                 Some(expanded_ty) => *expanded_ty,
                 None => {
-                    for bty in self.tcx.generator_hidden_types(def_id) {
+                    for bty in self.tcx.coroutine_hidden_types(def_id) {
                         let hidden_ty = bty.instantiate(self.tcx, args);
                         self.fold_ty(hidden_ty);
                     }
-                    let expanded_ty = Ty::new_generator_witness(self.tcx, def_id, args);
+                    let expanded_ty = Ty::new_coroutine_witness(self.tcx, def_id, args);
                     self.expanded_cache.insert((def_id, args), expanded_ty);
                     expanded_ty
                 }
@@ -882,14 +884,14 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for OpaqueTypeExpander<'tcx> {
     fn fold_ty(&mut self, t: Ty<'tcx>) -> Ty<'tcx> {
         let mut t = if let ty::Alias(ty::Opaque, ty::AliasTy { def_id, args, .. }) = *t.kind() {
             self.expand_opaque_ty(def_id, args).unwrap_or(t)
-        } else if t.has_opaque_types() || t.has_generators() {
+        } else if t.has_opaque_types() || t.has_coroutines() {
             t.super_fold_with(self)
         } else {
             t
         };
-        if self.expand_generators {
-            if let ty::GeneratorWitness(def_id, args) = *t.kind() {
-                t = self.expand_generator(def_id, args).unwrap_or(t);
+        if self.expand_coroutines {
+            if let ty::CoroutineWitness(def_id, args) = *t.kind() {
+                t = self.expand_coroutine(def_id, args).unwrap_or(t);
             }
         }
         t
@@ -917,54 +919,62 @@ impl<'tcx> TypeFolder<TyCtxt<'tcx>> for OpaqueTypeExpander<'tcx> {
 }
 
 impl<'tcx> Ty<'tcx> {
+    /// Returns the `Size` for primitive types (bool, uint, int, char, float).
+    pub fn primitive_size(self, tcx: TyCtxt<'tcx>) -> Size {
+        match *self.kind() {
+            ty::Bool => Size::from_bytes(1),
+            ty::Char => Size::from_bytes(4),
+            ty::Int(ity) => Integer::from_int_ty(&tcx, ity).size(),
+            ty::Uint(uty) => Integer::from_uint_ty(&tcx, uty).size(),
+            ty::Float(ty::FloatTy::F32) => Primitive::F32.size(&tcx),
+            ty::Float(ty::FloatTy::F64) => Primitive::F64.size(&tcx),
+            _ => bug!("non primitive type"),
+        }
+    }
+
     pub fn int_size_and_signed(self, tcx: TyCtxt<'tcx>) -> (Size, bool) {
-        let (int, signed) = match *self.kind() {
-            ty::Int(ity) => (Integer::from_int_ty(&tcx, ity), true),
-            ty::Uint(uty) => (Integer::from_uint_ty(&tcx, uty), false),
+        match *self.kind() {
+            ty::Int(ity) => (Integer::from_int_ty(&tcx, ity).size(), true),
+            ty::Uint(uty) => (Integer::from_uint_ty(&tcx, uty).size(), false),
             _ => bug!("non integer discriminant"),
-        };
-        (int.size(), signed)
+        }
+    }
+
+    /// Returns the minimum and maximum values for the given numeric type (including `char`s) or
+    /// returns `None` if the type is not numeric.
+    pub fn numeric_min_and_max_as_bits(self, tcx: TyCtxt<'tcx>) -> Option<(u128, u128)> {
+        use rustc_apfloat::ieee::{Double, Single};
+        Some(match self.kind() {
+            ty::Int(_) | ty::Uint(_) => {
+                let (size, signed) = self.int_size_and_signed(tcx);
+                let min = if signed { size.truncate(size.signed_int_min() as u128) } else { 0 };
+                let max =
+                    if signed { size.signed_int_max() as u128 } else { size.unsigned_int_max() };
+                (min, max)
+            }
+            ty::Char => (0, std::char::MAX as u128),
+            ty::Float(ty::FloatTy::F32) => {
+                ((-Single::INFINITY).to_bits(), Single::INFINITY.to_bits())
+            }
+            ty::Float(ty::FloatTy::F64) => {
+                ((-Double::INFINITY).to_bits(), Double::INFINITY.to_bits())
+            }
+            _ => return None,
+        })
     }
 
     /// Returns the maximum value for the given numeric type (including `char`s)
     /// or returns `None` if the type is not numeric.
     pub fn numeric_max_val(self, tcx: TyCtxt<'tcx>) -> Option<ty::Const<'tcx>> {
-        let val = match self.kind() {
-            ty::Int(_) | ty::Uint(_) => {
-                let (size, signed) = self.int_size_and_signed(tcx);
-                let val =
-                    if signed { size.signed_int_max() as u128 } else { size.unsigned_int_max() };
-                Some(val)
-            }
-            ty::Char => Some(std::char::MAX as u128),
-            ty::Float(fty) => Some(match fty {
-                ty::FloatTy::F32 => rustc_apfloat::ieee::Single::INFINITY.to_bits(),
-                ty::FloatTy::F64 => rustc_apfloat::ieee::Double::INFINITY.to_bits(),
-            }),
-            _ => None,
-        };
-
-        val.map(|v| ty::Const::from_bits(tcx, v, ty::ParamEnv::empty().and(self)))
+        self.numeric_min_and_max_as_bits(tcx)
+            .map(|(_, max)| ty::Const::from_bits(tcx, max, ty::ParamEnv::empty().and(self)))
     }
 
     /// Returns the minimum value for the given numeric type (including `char`s)
     /// or returns `None` if the type is not numeric.
     pub fn numeric_min_val(self, tcx: TyCtxt<'tcx>) -> Option<ty::Const<'tcx>> {
-        let val = match self.kind() {
-            ty::Int(_) | ty::Uint(_) => {
-                let (size, signed) = self.int_size_and_signed(tcx);
-                let val = if signed { size.truncate(size.signed_int_min() as u128) } else { 0 };
-                Some(val)
-            }
-            ty::Char => Some(0),
-            ty::Float(fty) => Some(match fty {
-                ty::FloatTy::F32 => (-::rustc_apfloat::ieee::Single::INFINITY).to_bits(),
-                ty::FloatTy::F64 => (-::rustc_apfloat::ieee::Double::INFINITY).to_bits(),
-            }),
-            _ => None,
-        };
-
-        val.map(|v| ty::Const::from_bits(tcx, v, ty::ParamEnv::empty().and(self)))
+        self.numeric_min_and_max_as_bits(tcx)
+            .map(|(min, _)| ty::Const::from_bits(tcx, min, ty::ParamEnv::empty().and(self)))
     }
 
     /// Checks whether values of this type `T` are *moved* or *copied*
@@ -1024,8 +1034,8 @@ impl<'tcx> Ty<'tcx> {
             | ty::Closure(..)
             | ty::Dynamic(..)
             | ty::Foreign(_)
-            | ty::Generator(..)
-            | ty::GeneratorWitness(..)
+            | ty::Coroutine(..)
+            | ty::CoroutineWitness(..)
             | ty::Infer(_)
             | ty::Alias(..)
             | ty::Param(_)
@@ -1063,8 +1073,8 @@ impl<'tcx> Ty<'tcx> {
             | ty::Closure(..)
             | ty::Dynamic(..)
             | ty::Foreign(_)
-            | ty::Generator(..)
-            | ty::GeneratorWitness(..)
+            | ty::Coroutine(..)
+            | ty::CoroutineWitness(..)
             | ty::Infer(_)
             | ty::Alias(..)
             | ty::Param(_)
@@ -1184,7 +1194,7 @@ impl<'tcx> Ty<'tcx> {
             // Conservatively return `false` for all others...
 
             // Anonymous function types
-            ty::FnDef(..) | ty::Closure(..) | ty::Dynamic(..) | ty::Generator(..) => false,
+            ty::FnDef(..) | ty::Closure(..) | ty::Dynamic(..) | ty::Coroutine(..) => false,
 
             // Generic or inferred types
             //
@@ -1194,7 +1204,7 @@ impl<'tcx> Ty<'tcx> {
                 false
             }
 
-            ty::Foreign(_) | ty::GeneratorWitness(..) | ty::Error(_) => false,
+            ty::Foreign(_) | ty::CoroutineWitness(..) | ty::Error(_) => false,
         }
     }
 
@@ -1328,8 +1338,8 @@ pub fn needs_drop_components<'tcx>(
         | ty::Placeholder(..)
         | ty::Infer(_)
         | ty::Closure(..)
-        | ty::Generator(..)
-        | ty::GeneratorWitness(..) => Ok(smallvec![ty]),
+        | ty::Coroutine(..)
+        | ty::CoroutineWitness(..) => Ok(smallvec![ty]),
     }
 }
 
@@ -1360,7 +1370,7 @@ pub fn is_trivially_const_drop(ty: Ty<'_>) -> bool {
 
         // Not trivial because they have components, and instead of looking inside,
         // we'll just perform trait selection.
-        ty::Closure(..) | ty::Generator(..) | ty::GeneratorWitness(..) | ty::Adt(..) => false,
+        ty::Closure(..) | ty::Coroutine(..) | ty::CoroutineWitness(..) | ty::Adt(..) => false,
 
         ty::Array(ty, _) | ty::Slice(ty) => is_trivially_const_drop(ty),
 
@@ -1421,7 +1431,7 @@ pub fn reveal_opaque_types_in_bounds<'tcx>(
         found_recursion: false,
         found_any_recursion: false,
         check_recursion: false,
-        expand_generators: false,
+        expand_coroutines: false,
         tcx,
     };
     val.fold_with(&mut visitor)

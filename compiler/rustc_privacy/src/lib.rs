@@ -1,4 +1,7 @@
 #![doc(html_root_url = "https://doc.rust-lang.org/nightly/nightly-rustc/")]
+#![cfg_attr(not(bootstrap), doc(rust_logo))]
+#![cfg_attr(not(bootstrap), feature(rustdoc_internals))]
+#![cfg_attr(not(bootstrap), allow(internal_features))]
 #![feature(associated_type_defaults)]
 #![feature(rustc_private)]
 #![feature(try_blocks)]
@@ -185,7 +188,7 @@ where
             | ty::Foreign(def_id)
             | ty::FnDef(def_id, ..)
             | ty::Closure(def_id, ..)
-            | ty::Generator(def_id, ..) => {
+            | ty::Coroutine(def_id, ..) => {
                 self.def_id_visitor.visit_def_id(def_id, "type", &ty)?;
                 if V::SHALLOW {
                     return ControlFlow::Continue(());
@@ -207,22 +210,7 @@ where
                     }
                 }
             }
-            ty::Alias(ty::Weak, alias) => {
-                self.def_id_visitor.visit_def_id(alias.def_id, "type alias", &ty);
-            }
-            ty::Alias(ty::Projection, proj) => {
-                if V::SKIP_ASSOC_TYS {
-                    // Visitors searching for minimal visibility/reachability want to
-                    // conservatively approximate associated types like `<Type as Trait>::Alias`
-                    // as visible/reachable even if both `Type` and `Trait` are private.
-                    // Ideally, associated types should be substituted in the same way as
-                    // free type aliases, but this isn't done yet.
-                    return ControlFlow::Continue(());
-                }
-                // This will also visit args if necessary, so we don't need to recurse.
-                return self.visit_projection_ty(proj);
-            }
-            ty::Alias(ty::Inherent, data) => {
+            ty::Alias(kind @ (ty::Inherent | ty::Weak | ty::Projection), data) => {
                 if V::SKIP_ASSOC_TYS {
                     // Visitors searching for minimal visibility/reachability want to
                     // conservatively approximate associated types like `Type::Alias`
@@ -232,9 +220,14 @@ where
                     return ControlFlow::Continue(());
                 }
 
+                let kind = match kind {
+                    ty::Inherent | ty::Projection => "associated type",
+                    ty::Weak => "type alias",
+                    ty::Opaque => unreachable!(),
+                };
                 self.def_id_visitor.visit_def_id(
                     data.def_id,
-                    "associated type",
+                    kind,
                     &LazyDefPathStr { def_id: data.def_id, tcx },
                 )?;
 
@@ -291,7 +284,7 @@ where
             | ty::Param(..)
             | ty::Bound(..)
             | ty::Error(_)
-            | ty::GeneratorWitness(..) => {}
+            | ty::CoroutineWitness(..) => {}
             ty::Placeholder(..) | ty::Infer(..) => {
                 bug!("unexpected type: {:?}", ty)
             }
@@ -570,7 +563,8 @@ impl<'tcx> EmbargoVisitor<'tcx> {
             if !child.reexport_chain.is_empty()
                 && child.vis.is_accessible_from(defining_mod, self.tcx)
                 && let Res::Def(def_kind, def_id) = child.res
-                && let Some(def_id) = def_id.as_local() {
+                && let Some(def_id) = def_id.as_local()
+            {
                 let vis = self.tcx.local_visibility(def_id);
                 self.update_macro_reachable_def(def_id, def_kind, vis, defining_mod, macro_ev);
             }
@@ -662,7 +656,7 @@ impl<'tcx> EmbargoVisitor<'tcx> {
             | DefKind::GlobalAsm
             | DefKind::Impl { .. }
             | DefKind::Closure
-            | DefKind::Generator => (),
+            | DefKind::Coroutine => (),
         }
     }
 }
@@ -671,7 +665,8 @@ impl<'tcx> Visitor<'tcx> for EmbargoVisitor<'tcx> {
     fn visit_item(&mut self, item: &'tcx hir::Item<'tcx>) {
         if self.impl_trait_pass
             && let hir::ItemKind::OpaqueTy(ref opaque) = item.kind
-            && !opaque.in_trait {
+            && !opaque.in_trait
+        {
             // FIXME: This is some serious pessimization intended to workaround deficiencies
             // in the reachability pass (`middle/reachable.rs`). Types are marked as link-time
             // reachable if they are returned via `impl Trait`, even from private functions.

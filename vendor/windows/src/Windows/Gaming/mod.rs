@@ -6,5 +6,3 @@ pub mod Preview;
 pub mod UI;
 #[cfg(feature = "Gaming_XboxLive")]
 pub mod XboxLive;
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

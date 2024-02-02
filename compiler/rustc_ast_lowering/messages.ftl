@@ -11,8 +11,8 @@ ast_lowering_argument = argument
 ast_lowering_assoc_ty_parentheses =
     parenthesized generic arguments cannot be used in associated type constraints
 
-ast_lowering_async_generators_not_supported =
-    `async` generators are not yet supported
+ast_lowering_async_coroutines_not_supported =
+    `async` coroutines are not yet supported
 
 ast_lowering_async_non_move_closure_not_supported =
     `async` non-`move` closures with parameters are not currently supported
@@ -42,6 +42,9 @@ ast_lowering_clobber_abi_not_supported =
 
 ast_lowering_closure_cannot_be_static = closures cannot be static
 
+ast_lowering_coroutine_too_many_parameters =
+    too many parameters for a coroutine (expected 0 or 1 parameters)
+
 ast_lowering_does_not_support_modifiers =
     the `{$class_name}` register class does not support template modifiers
 
@@ -52,9 +55,6 @@ ast_lowering_extra_double_dot =
 ast_lowering_functional_record_update_destructuring_assignment =
     functional record updates are not allowed in destructuring assignments
     .suggestion = consider removing the trailing pattern
-
-ast_lowering_generator_too_many_parameters =
-    too many parameters for a generator (expected 0 or 1 parameters)
 
 ast_lowering_generic_type_with_parentheses =
     parenthesized type parameters may only be used with a `Fn` trait
@@ -99,7 +99,7 @@ ast_lowering_misplaced_double_dot =
     .note = only allowed in tuple, tuple struct, and slice patterns
 
 ast_lowering_misplaced_impl_trait =
-    `impl Trait` only allowed in function and inherent method return types, not in {$position}
+    `impl Trait` only allowed in function and inherent method argument and return types, not in {$position}
 
 ast_lowering_misplaced_relax_trait_bound =
     `?Trait` bounds are only permitted at the point where a type parameter is declared
@@ -135,12 +135,6 @@ ast_lowering_support_modifiers =
 ast_lowering_template_modifier = template modifier
 
 ast_lowering_this_not_async = this is not `async`
-
-ast_lowering_trait_fn_async =
-    functions in traits cannot be declared `async`
-    .label = `async` because of this
-    .note = `async` trait functions are not currently supported
-    .note2 = consider using the `async-trait` crate: https://crates.io/crates/async-trait
 
 ast_lowering_underscore_expr_lhs_assign =
     in expressions, `_` can only be used on the left-hand side of an assignment

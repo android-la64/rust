@@ -30,6 +30,7 @@ use crate::sources::source::QueryKind;
 use crate::sources::SourceConfigMap;
 use crate::sources::CRATES_IO_REGISTRY;
 use crate::util::auth;
+use crate::util::cache_lock::CacheLockMode;
 use crate::util::config::JobsConfig;
 use crate::util::Progress;
 use crate::util::ProgressStyle;
@@ -102,7 +103,7 @@ pub fn publish(ws: &Workspace<'_>, opts: &PublishOpts<'_>) -> CargoResult<()> {
         if allowed_registries.is_empty() {
             bail!(
                 "`{}` cannot be published.\n\
-                 `package.publish` is set to `false` or an empty list in Cargo.toml and prevents publishing.",
+                 `package.publish` must be set to `true` or a non-empty list in Cargo.toml to publish.",
                 pkg.name(),
             );
         } else if !allowed_registries.contains(&reg_name) {
@@ -233,7 +234,7 @@ fn wait_for_publish(
     progress.tick_now(0, max, "")?;
     let is_available = loop {
         {
-            let _lock = config.acquire_package_cache_lock()?;
+            let _lock = config.acquire_package_cache_lock(CacheLockMode::DownloadExclusive)?;
             // Force re-fetching the source
             //
             // As pulling from a git source is expensive, we track when we've done it within the

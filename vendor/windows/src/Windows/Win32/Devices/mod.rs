@@ -42,5 +42,3 @@ pub mod Tapi;
 pub mod Usb;
 #[cfg(feature = "Win32_Devices_WebServicesOnDevices")]
 pub mod WebServicesOnDevices;
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

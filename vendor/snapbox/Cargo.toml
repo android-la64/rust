@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.70.0"
 name = "snapbox"
-version = "0.4.13"
+version = "0.4.14"
 include = [
     "build.rs",
     "src/**/*",

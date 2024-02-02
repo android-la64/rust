@@ -9,19 +9,18 @@ use crate::utils::{CanonicalizedPath, NativeLib, NativeLibKind};
 use crate::{lint, HashStableContext};
 use crate::{EarlyErrorHandler, Session};
 
-use rustc_data_structures::fx::{FxHashMap, FxHashSet};
+use rustc_data_structures::fx::{FxHashMap, FxHashSet, FxIndexSet};
 use rustc_data_structures::stable_hasher::{StableOrd, ToStableHashKey};
 use rustc_target::abi::Align;
+use rustc_target::spec::LinkSelfContainedComponents;
 use rustc_target::spec::{PanicStrategy, RelocModel, SanitizerSet, SplitDebuginfo};
 use rustc_target::spec::{Target, TargetTriple, TargetWarnings, TARGETS};
 
-use crate::parse::{CrateCheckConfig, CrateConfig};
 use rustc_feature::UnstableFeatures;
 use rustc_span::edition::{Edition, DEFAULT_EDITION, EDITION_NAME_LIST, LATEST_STABLE_EDITION};
-use rustc_span::source_map::{FileName, FilePathMapping};
+use rustc_span::source_map::FilePathMapping;
 use rustc_span::symbol::{sym, Symbol};
-use rustc_span::RealFileName;
-use rustc_span::SourceFileHashAlgorithm;
+use rustc_span::{FileName, FileNameDisplayPreference, RealFileName, SourceFileHashAlgorithm};
 
 use rustc_errors::emitter::HumanReadableErrorType;
 use rustc_errors::{ColorConfig, DiagnosticArgValue, HandlerFlags, IntoDiagnosticArg};
@@ -168,6 +167,9 @@ pub enum MirSpanview {
 pub enum InstrumentCoverage {
     /// Default `-C instrument-coverage` or `-C instrument-coverage=statement`
     All,
+    /// Additionally, instrument branches and output branch coverage.
+    /// `-Zunstable-options -C instrument-coverage=branch`
+    Branch,
     /// `-Zunstable-options -C instrument-coverage=except-unused-generics`
     ExceptUnusedGenerics,
     /// `-Zunstable-options -C instrument-coverage=except-unused-functions`
@@ -232,63 +234,35 @@ pub struct LinkSelfContained {
     /// Used for compatibility with the existing opt-in and target inference.
     pub explicitly_set: Option<bool>,
 
-    /// The components that are enabled.
-    components: LinkSelfContainedComponents,
-}
+    /// The components that are enabled on the CLI, using the `+component` syntax or one of the
+    /// `true` shorcuts.
+    enabled_components: LinkSelfContainedComponents,
 
-bitflags::bitflags! {
-    #[derive(Default)]
-    /// The `-C link-self-contained` components that can individually be enabled or disabled.
-    pub struct LinkSelfContainedComponents: u8 {
-        /// CRT objects (e.g. on `windows-gnu`, `musl`, `wasi` targets)
-        const CRT_OBJECTS = 1 << 0;
-        /// libc static library (e.g. on `musl`, `wasi` targets)
-        const LIBC        = 1 << 1;
-        /// libgcc/libunwind (e.g. on `windows-gnu`, `fuchsia`, `fortanix`, `gnullvm` targets)
-        const UNWIND      = 1 << 2;
-        /// Linker, dlltool, and their necessary libraries (e.g. on `windows-gnu` and for `rust-lld`)
-        const LINKER      = 1 << 3;
-        /// Sanitizer runtime libraries
-        const SANITIZERS  = 1 << 4;
-        /// Other MinGW libs and Windows import libs
-        const MINGW       = 1 << 5;
-    }
-}
-
-impl FromStr for LinkSelfContainedComponents {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "crto" => LinkSelfContainedComponents::CRT_OBJECTS,
-            "libc" => LinkSelfContainedComponents::LIBC,
-            "unwind" => LinkSelfContainedComponents::UNWIND,
-            "linker" => LinkSelfContainedComponents::LINKER,
-            "sanitizers" => LinkSelfContainedComponents::SANITIZERS,
-            "mingw" => LinkSelfContainedComponents::MINGW,
-            _ => return Err(()),
-        })
-    }
+    /// The components that are disabled on the CLI, using the `-component` syntax or one of the
+    /// `false` shortcuts.
+    disabled_components: LinkSelfContainedComponents,
 }
 
 impl LinkSelfContained {
     /// Incorporates an enabled or disabled component as specified on the CLI, if possible.
     /// For example: `+linker`, and `-crto`.
-    pub(crate) fn handle_cli_component(&mut self, component: &str) -> Result<(), ()> {
+    pub(crate) fn handle_cli_component(&mut self, component: &str) -> Option<()> {
         // Note that for example `-Cself-contained=y -Cself-contained=-linker` is not an explicit
         // set of all values like `y` or `n` used to be. Therefore, if this flag had previously been
         // set in bulk with its historical values, then manually setting a component clears that
         // `explicitly_set` state.
         if let Some(component_to_enable) = component.strip_prefix('+') {
             self.explicitly_set = None;
-            self.components.insert(component_to_enable.parse()?);
-            Ok(())
+            self.enabled_components
+                .insert(LinkSelfContainedComponents::from_str(component_to_enable)?);
+            Some(())
         } else if let Some(component_to_disable) = component.strip_prefix('-') {
             self.explicitly_set = None;
-            self.components.remove(component_to_disable.parse()?);
-            Ok(())
+            self.disabled_components
+                .insert(LinkSelfContainedComponents::from_str(component_to_disable)?);
+            Some(())
         } else {
-            Err(())
+            None
         }
     }
 
@@ -296,11 +270,14 @@ impl LinkSelfContained {
     /// purposes.
     pub(crate) fn set_all_explicitly(&mut self, enabled: bool) {
         self.explicitly_set = Some(enabled);
-        self.components = if enabled {
-            LinkSelfContainedComponents::all()
+
+        if enabled {
+            self.enabled_components = LinkSelfContainedComponents::all();
+            self.disabled_components = LinkSelfContainedComponents::empty();
         } else {
-            LinkSelfContainedComponents::empty()
-        };
+            self.enabled_components = LinkSelfContainedComponents::empty();
+            self.disabled_components = LinkSelfContainedComponents::all();
+        }
     }
 
     /// Helper creating a fully enabled `LinkSelfContained` instance. Used in tests.
@@ -314,13 +291,32 @@ impl LinkSelfContained {
     /// components was set individually. This would also require the `-Zunstable-options` flag, to
     /// be allowed.
     fn are_unstable_variants_set(&self) -> bool {
-        let any_component_set = !self.components.is_empty();
+        let any_component_set =
+            !self.enabled_components.is_empty() || !self.disabled_components.is_empty();
         self.explicitly_set.is_none() && any_component_set
     }
 
-    /// Returns whether the self-contained linker component is enabled.
-    pub fn linker(&self) -> bool {
-        self.components.contains(LinkSelfContainedComponents::LINKER)
+    /// Returns whether the self-contained linker component was enabled on the CLI, using the
+    /// `-C link-self-contained=+linker` syntax, or one of the `true` shorcuts.
+    pub fn is_linker_enabled(&self) -> bool {
+        self.enabled_components.contains(LinkSelfContainedComponents::LINKER)
+    }
+
+    /// Returns whether the self-contained linker component was disabled on the CLI, using the
+    /// `-C link-self-contained=-linker` syntax, or one of the `false` shorcuts.
+    pub fn is_linker_disabled(&self) -> bool {
+        self.disabled_components.contains(LinkSelfContainedComponents::LINKER)
+    }
+
+    /// Returns CLI inconsistencies to emit errors: individual components were both enabled and
+    /// disabled.
+    fn check_consistency(&self) -> Option<LinkSelfContainedComponents> {
+        if self.explicitly_set.is_some() {
+            None
+        } else {
+            let common = self.enabled_components.intersection(self.disabled_components);
+            if common.is_empty() { None } else { Some(common) }
+        }
     }
 }
 
@@ -813,7 +809,6 @@ impl Input {
                 FileName::Anon(_) => None,
                 FileName::MacroExpansion(_) => None,
                 FileName::ProcMacroSourceCode(_) => None,
-                FileName::CfgSpec(_) => None,
                 FileName::CliCrateAttr(_) => None,
                 FileName::Custom(_) => None,
                 FileName::DocTest(path, _) => Some(path),
@@ -1024,6 +1019,32 @@ impl OutputFilenames {
     }
 }
 
+bitflags::bitflags! {
+    /// Scopes used to determined if it need to apply to --remap-path-prefix
+    pub struct RemapPathScopeComponents: u8 {
+        /// Apply remappings to the expansion of std::file!() macro
+        const MACRO = 1 << 0;
+        /// Apply remappings to printed compiler diagnostics
+        const DIAGNOSTICS = 1 << 1;
+        /// Apply remappings to debug information only when they are written to
+        /// compiled executables or libraries, but not when they are in split
+        /// debuginfo files
+        const UNSPLIT_DEBUGINFO = 1 << 2;
+        /// Apply remappings to debug information only when they are written to
+        /// split debug information files, but not in compiled executables or
+        /// libraries
+        const SPLIT_DEBUGINFO = 1 << 3;
+        /// Apply remappings to the paths pointing to split debug information
+        /// files. Does nothing when these files are not generated.
+        const SPLIT_DEBUGINFO_PATH = 1 << 4;
+
+        /// An alias for macro,unsplit-debuginfo,split-debuginfo-path. This
+        /// ensures all paths in compiled executables or libraries are remapped
+        /// but not elsewhere.
+        const OBJECT = Self::MACRO.bits | Self::UNSPLIT_DEBUGINFO.bits | Self::SPLIT_DEBUGINFO_PATH.bits;
+    }
+}
+
 pub fn host_triple() -> &'static str {
     // Get the host triple out of the build environment. This ensures that our
     // idea of the host triple is the same as for the set of libraries we've
@@ -1034,6 +1055,22 @@ pub fn host_triple() -> &'static str {
     // compile time) the target triple that this rustc is built with and
     // calling that (at runtime) the host triple.
     (option_env!("CFG_COMPILER_HOST_TRIPLE")).expect("CFG_COMPILER_HOST_TRIPLE")
+}
+
+fn file_path_mapping(
+    remap_path_prefix: Vec<(PathBuf, PathBuf)>,
+    unstable_opts: &UnstableOptions,
+) -> FilePathMapping {
+    FilePathMapping::new(
+        remap_path_prefix.clone(),
+        if unstable_opts.remap_path_scope.contains(RemapPathScopeComponents::DIAGNOSTICS)
+            && !remap_path_prefix.is_empty()
+        {
+            FileNameDisplayPreference::Remapped
+        } else {
+            FileNameDisplayPreference::Local
+        },
+    )
 }
 
 impl Default for Options {
@@ -1053,6 +1090,7 @@ impl Default for Options {
             target_triple: TargetTriple::from_triple(host_triple()),
             test: false,
             incremental: None,
+            untracked_state_hash: Default::default(),
             unstable_opts: Default::default(),
             prints: Vec::new(),
             cg: Default::default(),
@@ -1090,7 +1128,7 @@ impl Options {
     }
 
     pub fn file_path_mapping(&self) -> FilePathMapping {
-        FilePathMapping::new(self.remap_path_prefix.clone())
+        file_path_mapping(self.remap_path_prefix.clone(), &self.unstable_opts)
     }
 
     /// Returns `true` if there will be an output file generated.
@@ -1208,8 +1246,8 @@ pub const fn default_lib_output() -> CrateType {
     CrateType::Rlib
 }
 
-fn default_configuration(sess: &Session) -> CrateConfig {
-    // NOTE: This should be kept in sync with `CrateCheckConfig::fill_well_known` below.
+fn default_configuration(sess: &Session) -> Cfg {
+    // NOTE: This should be kept in sync with `CheckCfg::fill_well_known` below.
     let end = &sess.target.endian;
     let arch = &sess.target.arch;
     let wordsz = sess.target.pointer_width.to_string();
@@ -1225,7 +1263,7 @@ fn default_configuration(sess: &Session) -> CrateConfig {
         sess.emit_fatal(err);
     });
 
-    let mut ret = CrateConfig::default();
+    let mut ret = Cfg::default();
     ret.reserve(7); // the minimum number of insertions
     // Target bindings.
     ret.insert((sym::target_os, Some(Symbol::intern(os))));
@@ -1318,55 +1356,22 @@ fn default_configuration(sess: &Session) -> CrateConfig {
     ret
 }
 
-/// Converts the crate `cfg!` configuration from `String` to `Symbol`.
-/// `rustc_interface::interface::Config` accepts this in the compiler configuration,
-/// but the symbol interner is not yet set up then, so we must convert it later.
-pub fn to_crate_config(cfg: FxHashSet<(String, Option<String>)>) -> CrateConfig {
-    cfg.into_iter().map(|(a, b)| (Symbol::intern(&a), b.map(|b| Symbol::intern(&b)))).collect()
-}
+/// The parsed `--cfg` options that define the compilation environment of the
+/// crate, used to drive conditional compilation.
+///
+/// An `FxIndexSet` is used to ensure deterministic ordering of error messages
+/// relating to `--cfg`.
+pub type Cfg = FxIndexSet<(Symbol, Option<Symbol>)>;
 
-/// The parsed `--check-cfg` options
-pub struct CheckCfg<T = String> {
+/// The parsed `--check-cfg` options.
+#[derive(Default)]
+pub struct CheckCfg {
     /// Is well known names activated
     pub exhaustive_names: bool,
     /// Is well known values activated
     pub exhaustive_values: bool,
     /// All the expected values for a config name
-    pub expecteds: FxHashMap<T, ExpectedValues<T>>,
-}
-
-impl<T> Default for CheckCfg<T> {
-    fn default() -> Self {
-        CheckCfg {
-            exhaustive_names: false,
-            exhaustive_values: false,
-            expecteds: FxHashMap::default(),
-        }
-    }
-}
-
-impl<T> CheckCfg<T> {
-    fn map_data<O: Eq + Hash>(self, f: impl Fn(T) -> O) -> CheckCfg<O> {
-        CheckCfg {
-            exhaustive_names: self.exhaustive_names,
-            exhaustive_values: self.exhaustive_values,
-            expecteds: self
-                .expecteds
-                .into_iter()
-                .map(|(name, values)| {
-                    (
-                        f(name),
-                        match values {
-                            ExpectedValues::Some(values) => ExpectedValues::Some(
-                                values.into_iter().map(|b| b.map(|b| f(b))).collect(),
-                            ),
-                            ExpectedValues::Any => ExpectedValues::Any,
-                        },
-                    )
-                })
-                .collect(),
-        }
-    }
+    pub expecteds: FxHashMap<Symbol, ExpectedValues<Symbol>>,
 }
 
 pub enum ExpectedValues<T> {
@@ -1401,14 +1406,7 @@ impl<'a, T: Eq + Hash + Copy + 'a> Extend<&'a T> for ExpectedValues<T> {
     }
 }
 
-/// Converts the crate `--check-cfg` options from `String` to `Symbol`.
-/// `rustc_interface::interface::Config` accepts this in the compiler configuration,
-/// but the symbol interner is not yet set up then, so we must convert it later.
-pub fn to_crate_check_config(cfg: CheckCfg) -> CrateCheckConfig {
-    cfg.map_data(|s| Symbol::intern(&s))
-}
-
-impl CrateCheckConfig {
+impl CheckCfg {
     pub fn fill_well_known(&mut self, current_target: &Target) {
         if !self.exhaustive_values && !self.exhaustive_names {
             return;
@@ -1548,7 +1546,7 @@ impl CrateCheckConfig {
     }
 }
 
-pub fn build_configuration(sess: &Session, mut user_cfg: CrateConfig) -> CrateConfig {
+pub fn build_configuration(sess: &Session, mut user_cfg: Cfg) -> Cfg {
     // Combine the configuration requested by the session (command line) with
     // some default and generated configuration items.
     let default_cfg = default_configuration(sess);
@@ -2479,7 +2477,7 @@ pub fn parse_externs(
             let mut error = handler.early_struct_error(format!(
                 "crate name `{name}` passed to `--extern` is not a valid ASCII identifier"
             ));
-            let adjusted_name = name.replace("-", "_");
+            let adjusted_name = name.replace('-', "_");
             if crate::utils::is_ascii_ident(&adjusted_name) {
                 error.help(format!(
                     "consider replacing the dashes with underscores: `{adjusted_name}`"
@@ -2675,53 +2673,40 @@ pub fn build_session_options(
         );
     }
 
-    // Handle both `-Z symbol-mangling-version` and `-C symbol-mangling-version`; the latter takes
-    // precedence.
-    match (cg.symbol_mangling_version, unstable_opts.symbol_mangling_version) {
-        (Some(smv_c), Some(smv_z)) if smv_c != smv_z => {
-            handler.early_error(
-                "incompatible values passed for `-C symbol-mangling-version` \
-                and `-Z symbol-mangling-version`",
-            );
+    // Check for unstable values of `-C symbol-mangling-version`.
+    // This is what prevents them from being used on stable compilers.
+    match cg.symbol_mangling_version {
+        // Stable values:
+        None | Some(SymbolManglingVersion::V0) => {}
+        // Unstable values:
+        Some(SymbolManglingVersion::Legacy) => {
+            if !unstable_opts.unstable_options {
+                handler.early_error(
+                    "`-C symbol-mangling-version=legacy` requires `-Z unstable-options`",
+                );
+            }
         }
-        (Some(SymbolManglingVersion::V0), _) => {}
-        (Some(_), _) if !unstable_opts.unstable_options => {
-            handler
-                .early_error("`-C symbol-mangling-version=legacy` requires `-Z unstable-options`");
-        }
-        (None, None) => {}
-        (None, smv) => {
-            handler.early_warn(
-                "`-Z symbol-mangling-version` is deprecated; use `-C symbol-mangling-version`",
-            );
-            cg.symbol_mangling_version = smv;
-        }
-        _ => {}
     }
 
-    // Handle both `-Z instrument-coverage` and `-C instrument-coverage`; the latter takes
-    // precedence.
-    match (cg.instrument_coverage, unstable_opts.instrument_coverage) {
-        (Some(ic_c), Some(ic_z)) if ic_c != ic_z => {
-            handler.early_error(
-                "incompatible values passed for `-C instrument-coverage` \
-                and `-Z instrument-coverage`",
-            );
+    // Check for unstable values of `-C instrument-coverage`.
+    // This is what prevents them from being used on stable compilers.
+    match cg.instrument_coverage {
+        // Stable values:
+        InstrumentCoverage::All | InstrumentCoverage::Off => {}
+        // Unstable values:
+        InstrumentCoverage::Branch
+        | InstrumentCoverage::ExceptUnusedFunctions
+        | InstrumentCoverage::ExceptUnusedGenerics => {
+            if !unstable_opts.unstable_options {
+                handler.early_error(
+                    "`-C instrument-coverage=branch` and `-C instrument-coverage=except-*` \
+                    require `-Z unstable-options`",
+                );
+            }
         }
-        (Some(InstrumentCoverage::Off | InstrumentCoverage::All), _) => {}
-        (Some(_), _) if !unstable_opts.unstable_options => {
-            handler.early_error("`-C instrument-coverage=except-*` requires `-Z unstable-options`");
-        }
-        (None, None) => {}
-        (None, ic) => {
-            handler
-                .early_warn("`-Z instrument-coverage` is deprecated; use `-C instrument-coverage`");
-            cg.instrument_coverage = ic;
-        }
-        _ => {}
     }
 
-    if cg.instrument_coverage.is_some() && cg.instrument_coverage != Some(InstrumentCoverage::Off) {
+    if cg.instrument_coverage != InstrumentCoverage::Off {
         if cg.profile_generate.enabled() || cg.profile_use.is_some() {
             handler.early_error(
                 "option `-C instrument-coverage` is not compatible with either `-C profile-use` \
@@ -2759,9 +2744,8 @@ pub fn build_session_options(
     }
 
     // For testing purposes, until we have more feedback about these options: ensure `-Z
-    // unstable-options` is required when using the unstable `-C link-self-contained` options, like
-    // `-C link-self-contained=+linker`, and when using the unstable `-C linker-flavor` options, like
-    // `-C linker-flavor=gnu-lld-cc`.
+    // unstable-options` is required when using the unstable `-C link-self-contained` and `-C
+    // linker-flavor` options.
     if !nightly_options::is_unstable_enabled(matches) {
         let uses_unstable_self_contained_option =
             cg.link_self_contained.are_unstable_variants_set();
@@ -2781,6 +2765,19 @@ pub fn build_session_options(
                 ));
             }
         }
+    }
+
+    // Check `-C link-self-contained` for consistency: individual components cannot be both enabled
+    // and disabled at the same time.
+    if let Some(erroneous_components) = cg.link_self_contained.check_consistency() {
+        let names: String = erroneous_components
+            .into_iter()
+            .map(|c| c.as_str().unwrap())
+            .intersperse(", ")
+            .collect();
+        handler.early_error(format!(
+            "some `-C link-self-contained` components were both enabled and disabled: {names}"
+        ));
     }
 
     let prints = collect_print_requests(handler, &mut cg, &mut unstable_opts, matches);
@@ -2860,7 +2857,7 @@ pub fn build_session_options(
         handler.early_error(format!("Current directory is invalid: {e}"));
     });
 
-    let remap = FilePathMapping::new(remap_path_prefix.clone());
+    let remap = file_path_mapping(remap_path_prefix.clone(), &unstable_opts);
     let (path, remapped) = remap.map_prefix(&working_dir);
     let working_dir = if remapped {
         RealFileName::Remapped { virtual_name: path.into_owned(), local_path: Some(working_dir) }
@@ -2883,6 +2880,7 @@ pub fn build_session_options(
         target_triple,
         test,
         incremental,
+        untracked_state_hash: Default::default(),
         unstable_opts,
         prints,
         cg,
@@ -2919,8 +2917,8 @@ fn parse_pretty(handler: &EarlyErrorHandler, unstable_opts: &UnstableOptions) ->
         "expanded" => Source(PpSourceMode::Expanded),
         "expanded,identified" => Source(PpSourceMode::ExpandedIdentified),
         "expanded,hygiene" => Source(PpSourceMode::ExpandedHygiene),
-        "ast-tree" => AstTree(PpAstTreeMode::Normal),
-        "ast-tree,expanded" => AstTree(PpAstTreeMode::Expanded),
+        "ast-tree" => AstTree,
+        "ast-tree,expanded" => AstTreeExpanded,
         "hir" => Hir(PpHirMode::Normal),
         "hir,identified" => Hir(PpHirMode::Identified),
         "hir,typed" => Hir(PpHirMode::Typed),
@@ -3078,14 +3076,6 @@ pub enum PpSourceMode {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum PpAstTreeMode {
-    /// `-Zunpretty=ast`
-    Normal,
-    /// `-Zunpretty=ast,expanded`
-    Expanded,
-}
-
-#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum PpHirMode {
     /// `-Zunpretty=hir`
     Normal,
@@ -3100,7 +3090,10 @@ pub enum PpMode {
     /// Options that print the source code, i.e.
     /// `-Zunpretty=normal` and `-Zunpretty=expanded`
     Source(PpSourceMode),
-    AstTree(PpAstTreeMode),
+    /// `-Zunpretty=ast-tree`
+    AstTree,
+    /// `-Zunpretty=ast-tree,expanded`
+    AstTreeExpanded,
     /// Options that print the HIR, i.e. `-Zunpretty=hir`
     Hir(PpHirMode),
     /// `-Zunpretty=hir-tree`
@@ -3120,10 +3113,10 @@ impl PpMode {
         use PpMode::*;
         use PpSourceMode::*;
         match *self {
-            Source(Normal | Identified) | AstTree(PpAstTreeMode::Normal) => false,
+            Source(Normal | Identified) | AstTree => false,
 
             Source(Expanded | ExpandedIdentified | ExpandedHygiene)
-            | AstTree(PpAstTreeMode::Expanded)
+            | AstTreeExpanded
             | Hir(_)
             | HirTree
             | ThirTree
@@ -3135,7 +3128,7 @@ impl PpMode {
     pub fn needs_hir(&self) -> bool {
         use PpMode::*;
         match *self {
-            Source(_) | AstTree(_) => false,
+            Source(_) | AstTree | AstTreeExpanded => false,
 
             Hir(_) | HirTree | ThirTree | ThirFlat | Mir | MirCFG => true,
         }
@@ -3143,7 +3136,7 @@ impl PpMode {
 
     pub fn needs_analysis(&self) -> bool {
         use PpMode::*;
-        matches!(*self, Mir | MirCFG | ThirTree | ThirFlat)
+        matches!(*self, Hir(PpHirMode::Typed) | Mir | MirCFG | ThirTree | ThirFlat)
     }
 }
 
@@ -3168,14 +3161,15 @@ impl PpMode {
 pub(crate) mod dep_tracking {
     use super::{
         BranchProtection, CFGuard, CFProtection, CrateType, DebugInfo, DebugInfoCompression,
-        ErrorOutputType, InstrumentCoverage, InstrumentXRay, LdImpl, LinkerPluginLto,
+        ErrorOutputType, InliningThreshold, InstrumentCoverage, InstrumentXRay, LinkerPluginLto,
         LocationDetail, LtoCli, OomStrategy, OptLevel, OutFileName, OutputType, OutputTypes,
-        Passes, ResolveDocLinks, SourceFileHashAlgorithm, SplitDwarfKind, SwitchWithOptPath,
-        SymbolManglingVersion, TraitSolver, TrimmedDefPaths,
+        Polonius, RemapPathScopeComponents, ResolveDocLinks, SourceFileHashAlgorithm,
+        SplitDwarfKind, SwitchWithOptPath, SymbolManglingVersion, TraitSolver, TrimmedDefPaths,
     };
     use crate::lint;
     use crate::options::WasiExecModel;
-    use crate::utils::{NativeLib, NativeLibKind};
+    use crate::utils::NativeLib;
+    use rustc_data_structures::stable_hasher::Hash64;
     use rustc_errors::LanguageIdentifier;
     use rustc_feature::UnstableFeatures;
     use rustc_span::edition::Edition;
@@ -3231,6 +3225,7 @@ pub(crate) mod dep_tracking {
         usize,
         NonZeroUsize,
         u64,
+        Hash64,
         String,
         PathBuf,
         lint::Level,
@@ -3245,14 +3240,12 @@ pub(crate) mod dep_tracking {
         MergeFunctions,
         PanicStrategy,
         RelroLevel,
-        Passes,
         OptLevel,
         LtoCli,
         DebugInfo,
         DebugInfoCompression,
         UnstableFeatures,
         NativeLib,
-        NativeLibKind,
         SanitizerSet,
         CFGuard,
         CFProtection,
@@ -3265,9 +3258,9 @@ pub(crate) mod dep_tracking {
         StackProtector,
         SwitchWithOptPath,
         SymbolManglingVersion,
+        RemapPathScopeComponents,
         SourceFileHashAlgorithm,
         TrimmedDefPaths,
-        Option<LdImpl>,
         OutFileName,
         OutputType,
         RealFileName,
@@ -3276,6 +3269,8 @@ pub(crate) mod dep_tracking {
         OomStrategy,
         LanguageIdentifier,
         TraitSolver,
+        Polonius,
+        InliningThreshold,
     );
 
     impl<T1, T2> DepTrackingHash for (T1, T2)
@@ -3412,5 +3407,45 @@ impl DumpMonoStatsFormat {
             Self::Markdown => "md",
             Self::Json => "json",
         }
+    }
+}
+
+/// `-Zpolonius` values, enabling the borrow checker polonius analysis, and which version: legacy,
+/// or future prototype.
+#[derive(Clone, Copy, PartialEq, Hash, Debug, Default)]
+pub enum Polonius {
+    /// The default value: disabled.
+    #[default]
+    Off,
+
+    /// Legacy version, using datalog and the `polonius-engine` crate. Historical value for `-Zpolonius`.
+    Legacy,
+
+    /// In-tree prototype, extending the NLL infrastructure.
+    Next,
+}
+
+impl Polonius {
+    /// Returns whether the legacy version of polonius is enabled
+    pub fn is_legacy_enabled(&self) -> bool {
+        matches!(self, Polonius::Legacy)
+    }
+
+    /// Returns whether the "next" version of polonius is enabled
+    pub fn is_next_enabled(&self) -> bool {
+        matches!(self, Polonius::Next)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Hash, Debug)]
+pub enum InliningThreshold {
+    Always,
+    Sometimes(usize),
+    Never,
+}
+
+impl Default for InliningThreshold {
+    fn default() -> Self {
+        Self::Sometimes(100)
     }
 }

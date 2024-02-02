@@ -26,7 +26,8 @@
 //!   assumptions about their semantics: For `memcpy`, `memmove`, `memset`, `memcmp`, and `bcmp`, if
 //!   the `n` parameter is 0, the function is assumed to not be UB. Furthermore, for `memcpy`, if
 //!   source and target pointer are equal, the function is assumed to not be UB.
-//!   (Note that these are [standard assumptions](https://reviews.llvm.org/D86993) among compilers.)
+//!   (Note that these are standard assumptions among compilers:
+//!   [clang](https://reviews.llvm.org/D86993) and [GCC](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=32667) do the same.)
 //!   These functions are often provided by the system libc, but can also be provided by the
 //!   [compiler-builtins crate](https://crates.io/crates/compiler_builtins).
 //!   Note that the library does not guarantee that it will always make these assumptions, so Rust
@@ -68,6 +69,7 @@
     test(no_crate_inject, attr(deny(warnings))),
     test(attr(allow(dead_code, deprecated, unused_variables, unused_mut)))
 )]
+#![cfg_attr(not(bootstrap), doc(rust_logo))]
 #![doc(cfg_hide(
     not(test),
     any(not(feature = "miri-test-libstd"), test, doctest),
@@ -110,8 +112,6 @@
 //
 // Library features:
 // tidy-alphabetical-start
-#![cfg_attr(bootstrap, feature(no_coverage))] // rust-lang/rust#84605
-#![cfg_attr(not(bootstrap), feature(coverage_attribute))] // rust-lang/rust#84605
 #![feature(char_indices_offset)]
 #![feature(const_align_of_val)]
 #![feature(const_align_of_val_raw)]
@@ -126,7 +126,6 @@
 #![feature(const_caller_location)]
 #![feature(const_cell_into_inner)]
 #![feature(const_char_from_u32_unchecked)]
-#![feature(const_discriminant)]
 #![feature(const_eval_select)]
 #![feature(const_exact_div)]
 #![feature(const_float_bits_conv)]
@@ -135,7 +134,6 @@
 #![feature(const_hash)]
 #![feature(const_heap)]
 #![feature(const_index_range_slice_index)]
-#![feature(const_inherent_unchecked_arith)]
 #![feature(const_int_unchecked_arith)]
 #![feature(const_intrinsic_forget)]
 #![feature(const_ipv4)]
@@ -149,7 +147,6 @@
 #![feature(const_option)]
 #![feature(const_option_ext)]
 #![feature(const_pin)]
-#![feature(const_pointer_byte_offsets)]
 #![feature(const_pointer_is_aligned)]
 #![feature(const_ptr_as_ref)]
 #![feature(const_ptr_is_null)]
@@ -173,6 +170,7 @@
 #![feature(const_unsafecell_get_mut)]
 #![feature(const_waker)]
 #![feature(core_panic)]
+#![feature(coverage_attribute)]
 #![feature(duration_consts_float)]
 #![feature(internal_impls_macro)]
 #![feature(ip)]
@@ -189,6 +187,8 @@
 #![feature(str_split_inclusive_remainder)]
 #![feature(str_split_remainder)]
 #![feature(strict_provenance)]
+#![feature(unchecked_math)]
+#![feature(unchecked_shifts)]
 #![feature(utf16_extra)]
 #![feature(utf16_extra_const)]
 #![feature(variant_count)]
@@ -237,6 +237,7 @@
 #![feature(negative_impls)]
 #![feature(never_type)]
 #![feature(no_core)]
+#![feature(no_sanitize)]
 #![feature(platform_intrinsics)]
 #![feature(prelude_import)]
 #![feature(repr_simd)]
@@ -252,6 +253,7 @@
 #![feature(try_blocks)]
 #![feature(unboxed_closures)]
 #![feature(unsized_fn_params)]
+#![feature(with_negative_coherence)]
 // tidy-alphabetical-end
 //
 // Target features:
@@ -367,6 +369,8 @@ pub mod async_iter;
 pub mod cell;
 pub mod char;
 pub mod ffi;
+#[unstable(feature = "core_io_borrowed_buf", issue = "117693")]
+pub mod io;
 pub mod iter;
 pub mod net;
 pub mod option;
@@ -414,7 +418,8 @@ pub mod primitive;
     dead_code,
     unused_imports,
     unsafe_op_in_unsafe_fn,
-    ambiguous_glob_reexports
+    ambiguous_glob_reexports,
+    deprecated_in_future
 )]
 #[allow(rustdoc::bare_urls)]
 // FIXME: This annotation should be moved into rust-lang/stdarch after clashing_extern_declarations is

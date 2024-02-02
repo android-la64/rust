@@ -12,9 +12,9 @@
 [package]
 edition = "2018"
 name = "color-print"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["Johann David <johann.david.dev@protonmail.com>"]
-description = "Colorize and stylize strings at compile-time, by using an HTML-like syntax"
+description = "Colorize and stylize strings for terminal at compile-time, by using an HTML-like syntax"
 readme = "README.md"
 keywords = [
     "color",
@@ -23,10 +23,10 @@ keywords = [
     "terminfo",
 ]
 license = "MIT OR Apache-2.0"
-repository = "https://gitlab.com/yolenoyer/color-print"
+repository = "https://gitlab.com/dajoha/color-print"
 
 [dependencies.color-print-proc-macro]
-version = "0.3.4"
+version = "0.3.5"
 
 [dependencies.lazy_static]
 version = "1.4"

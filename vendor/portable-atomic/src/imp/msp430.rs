@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Atomic load/store implementation on MSP430.
 //
 // Adapted from https://github.com/pftbest/msp430-atomic.
@@ -8,6 +10,8 @@
 // See also src/imp/interrupt/msp430.rs.
 //
 // Note: Ordering is always SeqCst.
+//
+// Refs: https://www.ti.com/lit/ug/slau208q/slau208q.pdf
 
 #[cfg(not(portable_atomic_no_asm))]
 use core::arch::asm;
@@ -165,6 +169,7 @@ macro_rules! atomic {
                         concat!("add", $asm_suffix, " {val}, 0({dst})"),
                         dst = in(reg) dst,
                         val = in(reg) val,
+                        // Do not use `preserves_flags` because ADD modifies the V, N, Z, and C bits of the status register.
                         options(nostack),
                     );
                     #[cfg(portable_atomic_no_asm)]
@@ -186,6 +191,7 @@ macro_rules! atomic {
                         concat!("sub", $asm_suffix, " {val}, 0({dst})"),
                         dst = in(reg) dst,
                         val = in(reg) val,
+                        // Do not use `preserves_flags` because SUB modifies the V, N, Z, and C bits of the status register.
                         options(nostack),
                     );
                     #[cfg(portable_atomic_no_asm)]
@@ -207,6 +213,7 @@ macro_rules! atomic {
                         concat!("and", $asm_suffix, " {val}, 0({dst})"),
                         dst = in(reg) dst,
                         val = in(reg) val,
+                        // Do not use `preserves_flags` because AND modifies the V, N, Z, and C bits of the status register.
                         options(nostack),
                     );
                     #[cfg(portable_atomic_no_asm)]
@@ -228,7 +235,7 @@ macro_rules! atomic {
                         concat!("bis", $asm_suffix, " {val}, 0({dst})"),
                         dst = in(reg) dst,
                         val = in(reg) val,
-                        options(nostack),
+                        options(nostack, preserves_flags),
                     );
                     #[cfg(portable_atomic_no_asm)]
                     llvm_asm!(
@@ -249,6 +256,7 @@ macro_rules! atomic {
                         concat!("xor", $asm_suffix, " {val}, 0({dst})"),
                         dst = in(reg) dst,
                         val = in(reg) val,
+                        // Do not use `preserves_flags` because XOR modifies the V, N, Z, and C bits of the status register.
                         options(nostack),
                     );
                     #[cfg(portable_atomic_no_asm)]
@@ -269,6 +277,7 @@ macro_rules! atomic {
                     asm!(
                         concat!("inv", $asm_suffix, " 0({dst})"),
                         dst = in(reg) dst,
+                        // Do not use `preserves_flags` because INV modifies the V, N, Z, and C bits of the status register.
                         options(nostack),
                     );
                     #[cfg(portable_atomic_no_asm)]

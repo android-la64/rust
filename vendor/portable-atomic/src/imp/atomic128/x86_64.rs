@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Atomic{I,U}128 implementation on x86_64 using CMPXCHG16B (DWCAS).
 //
 // Note: On Miri and ThreadSanitizer which do not support inline assembly, we don't use
@@ -8,7 +10,7 @@
 // - atomic-maybe-uninit https://github.com/taiki-e/atomic-maybe-uninit
 //
 // Generated asm:
-// - x86_64 (+cmpxchg16b) https://godbolt.org/z/WPvfn16sY
+// - x86_64 (+cmpxchg16b) https://godbolt.org/z/55n54WeKr
 
 include!("macros.rs");
 
@@ -24,6 +26,8 @@ mod detect;
 #[cfg(not(portable_atomic_no_asm))]
 use core::arch::asm;
 use core::sync::atomic::Ordering;
+
+use crate::utils::{Pair, U128};
 
 // Asserts that the function is called in the correct context.
 macro_rules! debug_assert_cmpxchg16b {
@@ -59,24 +63,6 @@ macro_rules! ptr_modifier {
     () => {
         ""
     };
-}
-
-/// A 128-bit value represented as a pair of 64-bit values.
-///
-/// This type is `#[repr(C)]`, both fields have the same in-memory representation
-/// and are plain old datatypes, so access to the fields is always safe.
-#[derive(Clone, Copy)]
-#[repr(C)]
-union U128 {
-    whole: u128,
-    pair: Pair,
-}
-// A pair of 64-bit values in native-endian (little-endian) order.
-#[derive(Clone, Copy)]
-#[repr(C)]
-struct Pair {
-    lo: u64,
-    hi: u64,
 }
 
 #[cfg_attr(
@@ -293,7 +279,7 @@ unsafe fn atomic_load_cmpxchg16b(src: *mut u128) -> u128 {
     // omitting the storing of condition flags and avoid use of xchg to handle rbx.
     unsafe {
         // cmpxchg16b is always SeqCst.
-        let (prev_lo, prev_hi);
+        let (out_lo, out_hi);
         macro_rules! cmpxchg16b {
             ($rdi:tt) => {
                 asm!(
@@ -305,8 +291,8 @@ unsafe fn atomic_load_cmpxchg16b(src: *mut u128) -> u128 {
                     // set old/new args of cmpxchg16b to 0 (rbx is zeroed after saved to rbx_tmp, to avoid xchg)
                     rbx_tmp = out(reg) _,
                     in("rcx") 0_u64,
-                    inout("rax") 0_u64 => prev_lo,
-                    inout("rdx") 0_u64 => prev_hi,
+                    inout("rax") 0_u64 => out_lo,
+                    inout("rdx") 0_u64 => out_hi,
                     in($rdi) src,
                     // Do not use `preserves_flags` because CMPXCHG16B modifies the ZF flag.
                     options(nostack),
@@ -317,7 +303,7 @@ unsafe fn atomic_load_cmpxchg16b(src: *mut u128) -> u128 {
         cmpxchg16b!("edi");
         #[cfg(target_pointer_width = "64")]
         cmpxchg16b!("rdi");
-        U128 { pair: Pair { lo: prev_lo, hi: prev_hi } }.whole
+        U128 { pair: Pair { lo: out_lo, hi: out_hi } }.whole
     }
 }
 
@@ -401,11 +387,11 @@ unsafe fn atomic_compare_exchange(
     // SAFETY: the caller must guarantee that `dst` is valid for both writes and
     // reads, 16-byte aligned, that there are no concurrent non-atomic operations,
     // and cfg guarantees that CMPXCHG16B is available at compile-time.
-    let (res, ok) = unsafe { cmpxchg16b(dst, old, new) };
+    let (prev, ok) = unsafe { cmpxchg16b(dst, old, new) };
     #[cfg(not(any(target_feature = "cmpxchg16b", portable_atomic_target_feature = "cmpxchg16b")))]
     // SAFETY: the caller must guarantee that `dst` is valid for both writes and
     // reads, 16-byte aligned, and that there are no different kinds of concurrent accesses.
-    let (res, ok) = unsafe {
+    let (prev, ok) = unsafe {
         ifunc!(unsafe fn(dst: *mut u128, old: u128, new: u128) -> (u128, bool) {
             if detect::detect().has_cmpxchg16b() {
                 cmpxchg16b
@@ -416,9 +402,9 @@ unsafe fn atomic_compare_exchange(
         })
     };
     if ok {
-        Ok(res)
+        Ok(prev)
     } else {
-        Err(res)
+        Err(prev)
     }
 }
 
@@ -494,7 +480,7 @@ unsafe fn atomic_swap_cmpxchg16b(dst: *mut u128, val: u128, _order: Ordering) ->
 /// `$op` can use the following registers:
 /// - rsi/r8 pair: val argument (read-only for `$op`)
 /// - rax/rdx pair: previous value loaded (read-only for `$op`)
-/// - rbx/rcx pair: new value that will to stored
+/// - rbx/rcx pair: new value that will be stored
 // We could use CAS loop by atomic_compare_exchange here, but using an inline assembly allows
 // omitting the storing/comparing of condition flags and reducing uses of xchg/mov to handle rbx.
 macro_rules! atomic_rmw_cas_3 {
@@ -565,7 +551,7 @@ macro_rules! atomic_rmw_cas_3 {
 ///
 /// `$op` can use the following registers:
 /// - rax/rdx pair: previous value loaded (read-only for `$op`)
-/// - rbx/rcx pair: new value that will to stored
+/// - rbx/rcx pair: new value that will be stored
 // We could use CAS loop by atomic_compare_exchange here, but using an inline assembly allows
 // omitting the storing of condition flags and avoid use of xchg to handle rbx.
 macro_rules! atomic_rmw_cas_2 {

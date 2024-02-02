@@ -206,6 +206,7 @@ use crate::sources::source::MaybePackage;
 use crate::sources::source::QueryKind;
 use crate::sources::source::Source;
 use crate::sources::PathSource;
+use crate::util::cache_lock::CacheLockMode;
 use crate::util::hex;
 use crate::util::interning::InternedString;
 use crate::util::network::PollExt;
@@ -581,7 +582,9 @@ impl<'cfg> RegistrySource<'cfg> {
         let package_dir = format!("{}-{}", pkg.name(), pkg.version());
         let dst = self.src_path.join(&package_dir);
         let path = dst.join(PACKAGE_SOURCE_LOCK);
-        let path = self.config.assert_package_cache_locked(&path);
+        let path = self
+            .config
+            .assert_package_cache_locked(CacheLockMode::DownloadExclusive, &path);
         let unpack_dir = path.parent().unwrap();
         match fs::read_to_string(path) {
             Ok(ok) => match serde_json::from_str::<LockMetadata>(&ok) {
@@ -709,26 +712,33 @@ impl<'cfg> Source for RegistrySource<'cfg> {
         kind: QueryKind,
         f: &mut dyn FnMut(Summary),
     ) -> Poll<CargoResult<()>> {
-        // If this is a precise dependency, then it came from a lock file and in
+        let mut req = dep.version_req().clone();
+
+        // Handle `cargo update --precise` here.
+        if let Some((_, requested)) = self
+            .source_id
+            .precise_registry_version(dep.package_name().as_str())
+            .filter(|(c, _)| req.matches(c))
+        {
+            req.update_precise(&requested);
+        }
+
+        // If this is a locked dependency, then it came from a lock file and in
         // theory the registry is known to contain this version. If, however, we
         // come back with no summaries, then our registry may need to be
         // updated, so we fall back to performing a lazy update.
-        if kind == QueryKind::Exact && dep.source_id().precise().is_some() && !self.ops.is_updated()
-        {
+        if kind == QueryKind::Exact && req.is_locked() && !self.ops.is_updated() {
             debug!("attempting query without update");
             let mut called = false;
-            ready!(self.index.query_inner(
-                dep.package_name(),
-                dep.version_req(),
-                &mut *self.ops,
-                &self.yanked_whitelist,
-                &mut |s| {
-                    if dep.matches(&s) {
+            ready!(self
+                .index
+                .query_inner(dep.package_name(), &req, &mut *self.ops, &mut |s| {
+                    if dep.matches(s.as_summary()) {
+                        // We are looking for a package from a lock file so we do not care about yank
                         called = true;
-                        f(s);
+                        f(s.into_summary());
                     }
-                },
-            ))?;
+                },))?;
             if called {
                 Poll::Ready(Ok(()))
             } else {
@@ -738,22 +748,23 @@ impl<'cfg> Source for RegistrySource<'cfg> {
             }
         } else {
             let mut called = false;
-            ready!(self.index.query_inner(
-                dep.package_name(),
-                dep.version_req(),
-                &mut *self.ops,
-                &self.yanked_whitelist,
-                &mut |s| {
+            ready!(self
+                .index
+                .query_inner(dep.package_name(), &req, &mut *self.ops, &mut |s| {
                     let matched = match kind {
-                        QueryKind::Exact => dep.matches(&s),
+                        QueryKind::Exact => dep.matches(s.as_summary()),
                         QueryKind::Fuzzy => true,
                     };
-                    if matched {
-                        f(s);
+                    // Next filter out all yanked packages. Some yanked packages may
+                    // leak through if they're in a whitelist (aka if they were
+                    // previously in `Cargo.lock`
+                    if matched
+                        && (!s.is_yanked() || self.yanked_whitelist.contains(&s.package_id()))
+                    {
+                        f(s.into_summary());
                         called = true;
                     }
-                }
-            ))?;
+                }))?;
             if called {
                 return Poll::Ready(Ok(()));
             }
@@ -775,13 +786,9 @@ impl<'cfg> Source for RegistrySource<'cfg> {
                     }
                     any_pending |= self
                         .index
-                        .query_inner(
-                            name_permutation,
-                            dep.version_req(),
-                            &mut *self.ops,
-                            &self.yanked_whitelist,
-                            f,
-                        )?
+                        .query_inner(name_permutation, &req, &mut *self.ops, &mut |s| {
+                            f(s.into_summary());
+                        })?
                         .is_pending();
                 }
             }

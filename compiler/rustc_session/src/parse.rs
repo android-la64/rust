@@ -1,7 +1,7 @@
 //! Contains `ParseSess` which holds state living beyond what one `Parser` might.
 //! It also serves as an input to the parser itself.
 
-use crate::config::CheckCfg;
+use crate::config::{Cfg, CheckCfg};
 use crate::errors::{
     CliFeatureDiagnosticHelp, FeatureDiagnosticForIssue, FeatureDiagnosticHelp, FeatureGateError,
 };
@@ -9,7 +9,7 @@ use crate::lint::{
     builtin::UNSTABLE_SYNTAX_PRE_EXPANSION, BufferedEarlyLint, BuiltinLintDiagnostics, Lint, LintId,
 };
 use rustc_ast::node_id::NodeId;
-use rustc_data_structures::fx::{FxHashMap, FxHashSet, FxIndexSet};
+use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_data_structures::sync::{AppendOnlyVec, Lock, Lrc};
 use rustc_errors::{emitter::SilentEmitter, Handler};
 use rustc_errors::{
@@ -25,11 +25,6 @@ use rustc_span::{Span, Symbol};
 use rustc_ast::attr::AttrIdGenerator;
 use std::str;
 
-/// The set of keys (and, optionally, values) that define the compilation
-/// environment of the crate, used to drive conditional compilation.
-pub type CrateConfig = FxIndexSet<(Symbol, Option<Symbol>)>;
-pub type CrateCheckConfig = CheckCfg<Symbol>;
-
 /// Collected spans during parsing for places where a certain feature was
 /// used and should be feature gated accordingly in `check_crate`.
 #[derive(Default)]
@@ -39,7 +34,7 @@ pub struct GatedSpans {
 
 impl GatedSpans {
     /// Feature gate the given `span` under the given `feature`
-    /// which is same `Symbol` used in `active.rs`.
+    /// which is same `Symbol` used in `unstable.rs`.
     pub fn gate(&self, feature: Symbol, span: Span) {
         self.spans.borrow_mut().entry(feature).or_default().push(span);
     }
@@ -78,7 +73,7 @@ impl SymbolGallery {
 }
 
 /// Construct a diagnostic for a language feature error due to the given `span`.
-/// The `feature`'s `Symbol` is the one you used in `active.rs` and `rustc_span::symbols`.
+/// The `feature`'s `Symbol` is the one you used in `unstable.rs` and `rustc_span::symbols`.
 #[track_caller]
 pub fn feature_err(
     sess: &ParseSess,
@@ -193,8 +188,8 @@ pub fn add_feature_diagnostics_for_issue(
 pub struct ParseSess {
     pub span_diagnostic: Handler,
     pub unstable_features: UnstableFeatures,
-    pub config: CrateConfig,
-    pub check_config: CrateCheckConfig,
+    pub config: Cfg,
+    pub check_config: CheckCfg,
     pub edition: Edition,
     /// Places where raw identifiers were used. This is used to avoid complaining about idents
     /// clashing with keywords in new editions.
@@ -237,8 +232,8 @@ impl ParseSess {
         Self {
             span_diagnostic: handler,
             unstable_features: UnstableFeatures::from_environment(None),
-            config: FxIndexSet::default(),
-            check_config: CrateCheckConfig::default(),
+            config: Cfg::default(),
+            check_config: CheckCfg::default(),
             edition: ExpnId::root().expn_data().edition,
             raw_identifier_spans: Default::default(),
             bad_unicode_identifiers: Lock::new(Default::default()),

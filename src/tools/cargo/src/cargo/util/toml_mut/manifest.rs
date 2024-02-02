@@ -296,7 +296,7 @@ impl LocalManifest {
         let s = self.manifest.data.to_string();
         let new_contents_bytes = s.as_bytes();
 
-        cargo_util::paths::write(&self.path, new_contents_bytes)
+        cargo_util::paths::write_atomic(&self.path, new_contents_bytes)
     }
 
     /// Lookup a dependency.
@@ -349,12 +349,15 @@ impl LocalManifest {
             .get_key_value_mut(dep_key)
         {
             dep.update_toml(&crate_root, &mut dep_key, dep_item);
+            if let Some(table) = dep_item.as_inline_table_mut() {
+                // So long as we don't have `Cargo.toml` auto-formatting and inline-tables can only
+                // be on one line, there isn't really much in the way of interesting formatting to
+                // include (no comments), so let's just wipe it clean
+                table.fmt();
+            }
         } else {
             let new_dependency = dep.to_toml(&crate_root);
             table[dep_key] = new_dependency;
-        }
-        if let Some(t) = table.as_inline_table_mut() {
-            t.fmt()
         }
 
         Ok(())
@@ -364,17 +367,31 @@ impl LocalManifest {
     pub fn remove_from_table(&mut self, table_path: &[String], name: &str) -> CargoResult<()> {
         let parent_table = self.get_table_mut(table_path)?;
 
-        let dep = parent_table
-            .get_mut(name)
-            .filter(|t| !t.is_none())
-            .ok_or_else(|| non_existent_dependency_err(name, table_path.join(".")))?;
+        match parent_table.get_mut(name).filter(|t| !t.is_none()) {
+            Some(dep) => {
+                // remove the dependency
+                *dep = toml_edit::Item::None;
 
-        // remove the dependency
-        *dep = toml_edit::Item::None;
+                // remove table if empty
+                if parent_table.as_table_like().unwrap().is_empty() {
+                    *parent_table = toml_edit::Item::None;
+                }
+            }
+            None => {
+                // Search in other tables.
+                let sections = self.get_sections();
+                let found_table_path = sections.iter().find_map(|(t, i)| {
+                    let table_path: Vec<String> =
+                        t.to_table().iter().map(|s| s.to_string()).collect();
+                    i.get(name).is_some().then(|| table_path.join("."))
+                });
 
-        // remove table if empty
-        if parent_table.as_table_like().unwrap().is_empty() {
-            *parent_table = toml_edit::Item::None;
+                return Err(non_existent_dependency_err(
+                    name,
+                    table_path.join("."),
+                    found_table_path,
+                ));
+            }
         }
 
         Ok(())
@@ -494,12 +511,7 @@ fn fix_feature_activations(
 
     // Remove found idx in revers order so we don't invalidate the idx.
     for idx in remove_list.iter().rev() {
-        feature_values.remove(*idx);
-    }
-    if !remove_list.is_empty() {
-        // HACK: Instead of cleaning up the users formatting from having removed a feature, we just
-        // re-format the whole feature list
-        feature_values.fmt();
+        remove_array_index(feature_values, *idx);
     }
 
     if status == DependencyStatus::Required {
@@ -539,7 +551,53 @@ fn non_existent_table_err(table: impl std::fmt::Display) -> anyhow::Error {
 
 fn non_existent_dependency_err(
     name: impl std::fmt::Display,
-    table: impl std::fmt::Display,
+    search_table: impl std::fmt::Display,
+    found_table: Option<impl std::fmt::Display>,
 ) -> anyhow::Error {
-    anyhow::format_err!("the dependency `{name}` could not be found in `{table}`.")
+    let mut msg = format!("the dependency `{name}` could not be found in `{search_table}`");
+    if let Some(found_table) = found_table {
+        msg.push_str(&format!("; it is present in `{found_table}`",));
+    }
+    anyhow::format_err!(msg)
+}
+
+fn remove_array_index(array: &mut toml_edit::Array, index: usize) {
+    let value = array.remove(index);
+
+    // Captures all lines before leading whitespace
+    let prefix_lines = value
+        .decor()
+        .prefix()
+        .and_then(|p| p.as_str().expect("spans removed").rsplit_once('\n'))
+        .map(|(lines, _current)| lines);
+    // Captures all lines after trailing whitespace, before the next comma
+    let suffix_lines = value
+        .decor()
+        .suffix()
+        .and_then(|p| p.as_str().expect("spans removed").split_once('\n'))
+        .map(|(_current, lines)| lines);
+    let mut merged_lines = String::new();
+    if let Some(prefix_lines) = prefix_lines {
+        merged_lines.push_str(prefix_lines);
+        merged_lines.push('\n');
+    }
+    if let Some(suffix_lines) = suffix_lines {
+        merged_lines.push_str(suffix_lines);
+        merged_lines.push('\n');
+    }
+
+    let next_index = index; // Since `index` was removed, that effectively auto-advances us
+    if let Some(next) = array.get_mut(next_index) {
+        let next_decor = next.decor_mut();
+        let next_prefix = next_decor
+            .prefix()
+            .map(|s| s.as_str().expect("spans removed"))
+            .unwrap_or_default();
+        merged_lines.push_str(next_prefix);
+        next_decor.set_prefix(merged_lines);
+    } else {
+        let trailing = array.trailing().as_str().expect("spans removed");
+        merged_lines.push_str(trailing);
+        array.set_trailing(merged_lines);
+    }
 }

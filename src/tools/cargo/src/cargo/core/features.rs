@@ -195,7 +195,7 @@ pub const SEE_CHANNELS: &str =
 /// [`LATEST_STABLE`]: Edition::LATEST_STABLE
 /// [this example]: https://github.com/rust-lang/cargo/blob/3ebb5f15a940810f250b68821149387af583a79e/src/doc/src/reference/unstable.md?plain=1#L1238-L1264
 /// [`is_stable`]: Edition::is_stable
-/// [`TomlManifest::to_real_manifest`]: crate::util::toml::TomlManifest::to_real_manifest
+/// [`TomlManifest::to_real_manifest`]: crate::util::toml::schema::TomlManifest::to_real_manifest
 /// [`features!`]: macro.features.html
 #[derive(Clone, Copy, Debug, Hash, PartialOrd, Ord, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Edition {
@@ -205,20 +205,22 @@ pub enum Edition {
     Edition2018,
     /// The 2021 edition
     Edition2021,
+    /// The 2024 edition
+    Edition2024,
 }
 
 impl Edition {
     /// The latest edition that is unstable.
     ///
     /// This is `None` if there is no next unstable edition.
-    pub const LATEST_UNSTABLE: Option<Edition> = None;
+    pub const LATEST_UNSTABLE: Option<Edition> = Some(Edition::Edition2024);
     /// The latest stable edition.
     pub const LATEST_STABLE: Edition = Edition::Edition2021;
     /// Possible values allowed for the `--edition` CLI flag.
     ///
     /// This requires a static value due to the way clap works, otherwise I
     /// would have built this dynamically.
-    pub const CLI_VALUES: [&'static str; 3] = ["2015", "2018", "2021"];
+    pub const CLI_VALUES: [&'static str; 4] = ["2015", "2018", "2021", "2024"];
 
     /// Returns the first version that a particular edition was released on
     /// stable.
@@ -228,6 +230,7 @@ impl Edition {
             Edition2015 => None,
             Edition2018 => Some(semver::Version::new(1, 31, 0)),
             Edition2021 => Some(semver::Version::new(1, 56, 0)),
+            Edition2024 => None,
         }
     }
 
@@ -238,6 +241,7 @@ impl Edition {
             Edition2015 => true,
             Edition2018 => true,
             Edition2021 => true,
+            Edition2024 => false,
         }
     }
 
@@ -250,6 +254,7 @@ impl Edition {
             Edition2015 => None,
             Edition2018 => Some(Edition2015),
             Edition2021 => Some(Edition2018),
+            Edition2024 => Some(Edition2021),
         }
     }
 
@@ -260,7 +265,8 @@ impl Edition {
         match self {
             Edition2015 => Edition2018,
             Edition2018 => Edition2021,
-            Edition2021 => Edition2021,
+            Edition2021 => Edition2024,
+            Edition2024 => Edition2024,
         }
     }
 
@@ -286,6 +292,7 @@ impl Edition {
             Edition2015 => false,
             Edition2018 => true,
             Edition2021 => true,
+            Edition2024 => false,
         }
     }
 
@@ -298,6 +305,7 @@ impl Edition {
             Edition2015 => false,
             Edition2018 => true,
             Edition2021 => false,
+            Edition2024 => false,
         }
     }
 
@@ -316,6 +324,7 @@ impl fmt::Display for Edition {
             Edition::Edition2015 => f.write_str("2015"),
             Edition::Edition2018 => f.write_str("2018"),
             Edition::Edition2021 => f.write_str("2021"),
+            Edition::Edition2024 => f.write_str("2024"),
         }
     }
 }
@@ -326,13 +335,14 @@ impl FromStr for Edition {
             "2015" => Ok(Edition::Edition2015),
             "2018" => Ok(Edition::Edition2018),
             "2021" => Ok(Edition::Edition2021),
-            s if s.parse().map_or(false, |y: u16| y > 2021 && y < 2050) => bail!(
+            "2024" => Ok(Edition::Edition2024),
+            s if s.parse().map_or(false, |y: u16| y > 2024 && y < 2050) => bail!(
                 "this version of Cargo is older than the `{}` edition, \
-                 and only supports `2015`, `2018`, and `2021` editions.",
+                 and only supports `2015`, `2018`, `2021`, and `2024` editions.",
                 s
             ),
             s => bail!(
-                "supported edition values are `2015`, `2018`, or `2021`, \
+                "supported edition values are `2015`, `2018`, `2021`, or `2024`, \
                  but `{}` is unknown",
                 s
             ),
@@ -483,6 +493,12 @@ features! {
 
     // Allow specifying rustflags directly in a profile
     (stable, workspace_inheritance, "1.64", "reference/unstable.html#workspace-inheritance"),
+
+     // Support for 2024 edition.
+    (unstable, edition2024, "", "reference/unstable.html#edition-2024"),
+
+    // Allow setting trim-paths in a profile to control the sanitisation of file paths in build outputs.
+    (unstable, trim_paths, "", "reference/unstable.html#profile-trim-paths-option"),
 }
 
 pub struct Feature {
@@ -718,8 +734,7 @@ unstable_cli_options!(
     #[serde(deserialize_with = "deserialize_build_std")]
     build_std: Option<Vec<String>>  = ("Enable Cargo to compile the standard library itself as part of a crate graph compilation"),
     build_std_features: Option<Vec<String>>  = ("Configure features enabled for the standard library itself when building the standard library"),
-    #[serde(deserialize_with = "deserialize_check_cfg")]
-    check_cfg: Option<(/*features:*/ bool, /*well_known_names:*/ bool, /*well_known_values:*/ bool, /*output:*/ bool)> = ("Specify scope of compile-time checking of `cfg` names/values"),
+    check_cfg: bool = ("Enable compile-time checking of `cfg` names/values/features"),
     codegen_backend: bool = ("Enable the `codegen-backend` option in profiles in .cargo/config.toml file"),
     config_include: bool = ("Enable the `include` key in config files"),
     direct_minimal_versions: bool = ("Resolve minimal dependency versions instead of maximum (direct dependencies only)"),
@@ -743,6 +758,7 @@ unstable_cli_options!(
     separate_nightlies: bool = (HIDDEN),
     skip_rustdoc_fingerprint: bool = (HIDDEN),
     target_applies_to_host: bool = ("Enable the `target-applies-to-host` key in the .cargo/config.toml file"),
+    trim_paths: bool = ("Enable the `trim-paths` option in profiles"),
     unstable_options: bool = ("Allow the usage of unstable options"),
 );
 
@@ -829,20 +845,6 @@ where
     ))
 }
 
-fn deserialize_check_cfg<'de, D>(
-    deserializer: D,
-) -> Result<Option<(bool, bool, bool, bool)>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    use serde::de::Error;
-    let Some(crates) = <Option<Vec<String>>>::deserialize(deserializer)? else {
-        return Ok(None);
-    };
-
-    parse_check_cfg(crates.into_iter()).map_err(D::Error::custom)
-}
-
 #[derive(Debug, Copy, Clone, Default, Deserialize)]
 pub struct GitoxideFeatures {
     /// All fetches are done with `gitoxide`, which includes git dependencies as well as the crates index.
@@ -909,32 +911,6 @@ fn parse_gitoxide(
         }
     }
     Ok(Some(out))
-}
-
-fn parse_check_cfg(
-    it: impl Iterator<Item = impl AsRef<str>>,
-) -> CargoResult<Option<(bool, bool, bool, bool)>> {
-    let mut features = false;
-    let mut well_known_names = false;
-    let mut well_known_values = false;
-    let mut output = false;
-
-    for e in it {
-        match e.as_ref() {
-            "features" => features = true,
-            "names" => well_known_names = true,
-            "values" => well_known_values = true,
-            "output" => output = true,
-            _ => bail!("unstable check-cfg only takes `features`, `names`, `values` or `output` as valid inputs"),
-        }
-    }
-
-    Ok(Some((
-        features,
-        well_known_names,
-        well_known_values,
-        output,
-    )))
 }
 
 impl CliUnstable {
@@ -1094,7 +1070,7 @@ impl CliUnstable {
             }
             "build-std-features" => self.build_std_features = Some(parse_features(v)),
             "check-cfg" => {
-                self.check_cfg = v.map_or(Ok(None), |v| parse_check_cfg(v.split(',')))?
+                self.check_cfg = parse_empty(k, v)?;
             }
             "codegen-backend" => self.codegen_backend = parse_empty(k, v)?,
             "config-include" => self.config_include = parse_empty(k, v)?,
@@ -1117,6 +1093,7 @@ impl CliUnstable {
             "no-index-update" => self.no_index_update = parse_empty(k, v)?,
             "panic-abort-tests" => self.panic_abort_tests = parse_empty(k, v)?,
             "profile-rustflags" => self.profile_rustflags = parse_empty(k, v)?,
+            "trim-paths" => self.trim_paths = parse_empty(k, v)?,
             "publish-timeout" => self.publish_timeout = parse_empty(k, v)?,
             "rustdoc-map" => self.rustdoc_map = parse_empty(k, v)?,
             "rustdoc-scrape-examples" => self.rustdoc_scrape_examples = parse_empty(k, v)?,
@@ -1125,7 +1102,10 @@ impl CliUnstable {
             "script" => self.script = parse_empty(k, v)?,
             "target-applies-to-host" => self.target_applies_to_host = parse_empty(k, v)?,
             "unstable-options" => self.unstable_options = parse_empty(k, v)?,
-            _ => bail!("unknown `-Z` flag specified: {}", k),
+            _ => bail!("\
+            unknown `-Z` flag specified: {k}\n\n\
+            For available unstable features, see https://doc.rust-lang.org/nightly/cargo/reference/unstable.html\n\
+            If you intended to use an unstable rustc feature, try setting `RUSTFLAGS=\"-Z{k}\"`"),
         }
 
         Ok(())

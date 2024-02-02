@@ -148,12 +148,8 @@ impl<'tcx> Queries<'tcx> {
             );
             let dep_graph = setup_dep_graph(sess, crate_name, stable_crate_id)?;
 
-            let lint_store = Lrc::new(passes::create_lint_store(
-                sess,
-                &*self.codegen_backend().metadata_loader(),
-                self.compiler.register_lints.as_deref(),
-                &pre_configured_attrs,
-            ));
+            let lint_store =
+                Lrc::new(passes::create_lint_store(sess, self.compiler.register_lints.as_deref()));
             let cstore = FreezeLock::new(Box::new(CStore::new(
                 self.codegen_backend().metadata_loader(),
                 stable_crate_id,
@@ -181,9 +177,11 @@ impl<'tcx> Queries<'tcx> {
                 feed.crate_name(crate_name);
 
                 let feed = tcx.feed_unit_query();
-                feed.features_query(
-                    tcx.arena.alloc(rustc_expand::config::features(sess, &pre_configured_attrs)),
-                );
+                feed.features_query(tcx.arena.alloc(rustc_expand::config::features(
+                    sess,
+                    &pre_configured_attrs,
+                    crate_name,
+                )));
                 feed.crate_for_resolver(tcx.arena.alloc(Steal::new((krate, pre_configured_attrs))));
             });
             Ok(qcx)

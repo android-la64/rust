@@ -10,6 +10,7 @@ pub fn cli() -> Command {
         .about("Compile a package, and pass extra options to the compiler")
         .arg(
             Arg::new("args")
+                .value_name("ARGS")
                 .num_args(0..)
                 .help("Extra rustc flags")
                 .trailing_var_arg(true),
@@ -38,9 +39,9 @@ pub fn cli() -> Command {
             "Build only the specified example",
             "Build all examples",
             "Build only the specified test target",
-            "Build all tests",
+            "Build all test targets",
             "Build only the specified bench target",
-            "Build all benches",
+            "Build all bench targets",
             "Build all targets",
         )
         .arg_features()

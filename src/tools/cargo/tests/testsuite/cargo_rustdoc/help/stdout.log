@@ -1,9 +1,9 @@
 Build a package's documentation, using specified custom flags.
 
-Usage: cargo[EXE] rustdoc [OPTIONS] [args]...
+Usage: cargo[EXE] rustdoc [OPTIONS] [ARGS]...
 
 Arguments:
-  [args]...  Extra rustdoc flags
+  [ARGS]...  Extra rustdoc flags
 
 Options:
       --open                  Opens the docs in a browser after the operation
@@ -26,9 +26,9 @@ Target Selection:
       --bin [<NAME>]      Build only the specified binary
       --examples          Build all examples
       --example [<NAME>]  Build only the specified example
-      --tests             Build all tests
+      --tests             Build all test targets
       --test [<NAME>]     Build only the specified test target
-      --benches           Build all benches
+      --benches           Build all bench targets
       --bench [<NAME>]    Build only the specified bench target
       --all-targets       Build all targets
 

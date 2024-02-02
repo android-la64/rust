@@ -445,8 +445,8 @@ impl<'a> State<'a> {
                 self.ibox(0);
                 self.print_block_with_attrs(blk, attrs);
             }
-            ast::ExprKind::Async(capture_clause, blk) => {
-                self.word_nbsp("async");
+            ast::ExprKind::Gen(capture_clause, blk, kind) => {
+                self.word_nbsp(kind.modifier());
                 self.print_capture_clause(*capture_clause);
                 // cbox/ibox in analogy to the `ExprKind::Block` arm above
                 self.cbox(0);
@@ -673,7 +673,7 @@ impl<'a> State<'a> {
 
     fn print_capture_clause(&mut self, capture_clause: ast::CaptureBy) {
         match capture_clause {
-            ast::CaptureBy::Value => self.word_space("move"),
+            ast::CaptureBy::Value { .. } => self.word_space("move"),
             ast::CaptureBy::Ref => {}
         }
     }
@@ -684,8 +684,8 @@ pub fn reconstruct_format_args_template_string(pieces: &[FormatArgsPiece]) -> St
     for piece in pieces {
         match piece {
             FormatArgsPiece::Literal(s) => {
-                for c in s.as_str().escape_debug() {
-                    template.push(c);
+                for c in s.as_str().chars() {
+                    template.extend(c.escape_debug());
                     if let '{' | '}' = c {
                         template.push(c);
                     }

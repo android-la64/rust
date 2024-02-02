@@ -10,8 +10,8 @@ use rustc_ast::{
     Path, PathSegment, QSelf,
 };
 use rustc_errors::{Applicability, IntoDiagnostic, PResult};
-use rustc_span::source_map::{BytePos, Span};
 use rustc_span::symbol::{kw, sym, Ident};
+use rustc_span::{BytePos, Span};
 use std::mem;
 use thin_vec::ThinVec;
 use tracing::debug;
@@ -487,10 +487,24 @@ impl<'a> Parser<'a> {
         // Take a snapshot before attempting to parse - we can restore this later.
         let snapshot = is_first_invocation.then(|| self.clone());
 
+        self.angle_bracket_nesting += 1;
         debug!("parse_generic_args_with_leading_angle_bracket_recovery: (snapshotting)");
         match self.parse_angle_args(ty_generics) {
-            Ok(args) => Ok(args),
+            Ok(args) => {
+                self.angle_bracket_nesting -= 1;
+                Ok(args)
+            }
+            Err(mut e) if self.angle_bracket_nesting > 10 => {
+                self.angle_bracket_nesting -= 1;
+                // When encountering severely malformed code where there are several levels of
+                // nested unclosed angle args (`f::<f::<f::<f::<...`), we avoid severe O(n^2)
+                // behavior by bailing out earlier (#117080).
+                e.emit();
+                rustc_errors::FatalError.raise();
+            }
             Err(e) if is_first_invocation && self.unmatched_angle_bracket_count > 0 => {
+                self.angle_bracket_nesting -= 1;
+
                 // Swap `self` with our backup of the parser state before attempting to parse
                 // generic arguments.
                 let snapshot = mem::replace(self, snapshot.unwrap());
@@ -520,8 +534,8 @@ impl<'a> Parser<'a> {
                     // Make a span over ${unmatched angle bracket count} characters.
                     // This is safe because `all_angle_brackets` ensures that there are only `<`s,
                     // i.e. no multibyte characters, in this range.
-                    let span =
-                        lo.with_hi(lo.lo() + BytePos(snapshot.unmatched_angle_bracket_count));
+                    let span = lo
+                        .with_hi(lo.lo() + BytePos(snapshot.unmatched_angle_bracket_count.into()));
                     self.sess.emit_err(errors::UnmatchedAngle {
                         span,
                         plural: snapshot.unmatched_angle_bracket_count > 1,
@@ -531,7 +545,10 @@ impl<'a> Parser<'a> {
                     self.parse_angle_args(ty_generics)
                 }
             }
-            Err(e) => Err(e),
+            Err(e) => {
+                self.angle_bracket_nesting -= 1;
+                Err(e)
+            }
         }
     }
 
@@ -764,7 +781,8 @@ impl<'a> Parser<'a> {
                     if let ast::TyKind::Slice(inner_ty) | ast::TyKind::Array(inner_ty, _) = &ty.kind
                         && let ast::TyKind::Err = inner_ty.kind
                         && let Some(snapshot) = snapshot
-                        && let Some(expr) = self.recover_unbraced_const_arg_that_can_begin_ty(snapshot)
+                        && let Some(expr) =
+                            self.recover_unbraced_const_arg_that_can_begin_ty(snapshot)
                     {
                         return Ok(Some(self.dummy_const_arg_needs_braces(
                             self.struct_span_err(expr.span, "invalid const generic expression"),
@@ -776,12 +794,10 @@ impl<'a> Parser<'a> {
                 }
                 Err(err) => {
                     if let Some(snapshot) = snapshot
-                        && let Some(expr) = self.recover_unbraced_const_arg_that_can_begin_ty(snapshot)
+                        && let Some(expr) =
+                            self.recover_unbraced_const_arg_that_can_begin_ty(snapshot)
                     {
-                        return Ok(Some(self.dummy_const_arg_needs_braces(
-                            err,
-                            expr.span,
-                        )));
+                        return Ok(Some(self.dummy_const_arg_needs_braces(err, expr.span)));
                     }
                     // Try to recover from possible `const` arg without braces.
                     return self.recover_const_arg(start, err).map(Some);

@@ -155,12 +155,18 @@ pub trait Sized {
 /// Those implementations are:
 ///
 /// - Arrays `[T; N]` implement `Unsize<[T]>`.
-/// - Types implementing a trait `Trait` also implement `Unsize<dyn Trait>`.
-/// - Structs `Foo<..., T, ...>` implement `Unsize<Foo<..., U, ...>>` if all of these conditions
-///   are met:
-///   - `T: Unsize<U>`.
-///   - Only the last field of `Foo` has a type involving `T`.
-///   - `Bar<T>: Unsize<Bar<U>>`, where `Bar<T>` stands for the actual type of that last field.
+/// - A type implements `Unsize<dyn Trait + 'a>` if all of these conditions are met:
+///   - The type implements `Trait`.
+///   - `Trait` is object safe.
+///   - The type is sized.
+///   - The type outlives `'a`.
+/// - Structs `Foo<..., T1, ..., Tn, ...>` implement `Unsize<Foo<..., U1, ..., Un, ...>>`
+/// where any number of (type and const) parameters may be changed if all of these conditions
+/// are met:
+///   - Only the last field of `Foo` has a type involving the parameters `T1`, ..., `Tn`.
+///   - All other parameters of the struct are equal.
+///   - `Field<T1, ..., Tn>: Unsize<Field<U1, ..., Un>>`, where `Field<...>` stands for the actual
+///     type of the struct's last field.
 ///
 /// `Unsize` is used along with [`ops::CoerceUnsized`] to allow
 /// "user-defined" containers such as [`Rc`] to contain dynamically-sized
@@ -247,6 +253,7 @@ marker_impls! {
 ///
 /// const CFN: Wrap<fn(&())> = Wrap(higher_order);
 ///
+/// #[allow(pointer_structural_match)]
 /// fn main() {
 ///     match CFN {
 ///         CFN => {}
@@ -573,59 +580,72 @@ impl<T: ?Sized> Copy for &T {}
 #[lang = "sync"]
 #[rustc_on_unimplemented(
     on(
-        any(_Self = "core::cell:OnceCell<T>", _Self = "std::cell::OnceCell<T>"),
+        _Self = "core::cell::once::OnceCell<T>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::OnceLock` instead"
     ),
     on(
-        any(_Self = "core::cell::Cell<u8>", _Self = "std::cell::Cell<u8>"),
+        _Self = "core::cell::Cell<u8>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicU8` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<u16>", _Self = "std::cell::Cell<u16>"),
+        _Self = "core::cell::Cell<u16>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicU16` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<u32>", _Self = "std::cell::Cell<u32>"),
+        _Self = "core::cell::Cell<u32>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicU32` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<u64>", _Self = "std::cell::Cell<u64>"),
+        _Self = "core::cell::Cell<u64>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicU64` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<usize>", _Self = "std::cell::Cell<usize>"),
+        _Self = "core::cell::Cell<usize>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicUsize` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<i8>", _Self = "std::cell::Cell<i8>"),
+        _Self = "core::cell::Cell<i8>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicI8` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<i16>", _Self = "std::cell::Cell<i16>"),
+        _Self = "core::cell::Cell<i16>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicI16` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<i32>", _Self = "std::cell::Cell<i32>"),
+        _Self = "core::cell::Cell<i32>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicI32` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<i64>", _Self = "std::cell::Cell<i64>"),
+        _Self = "core::cell::Cell<i64>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicI64` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<isize>", _Self = "std::cell::Cell<isize>"),
+        _Self = "core::cell::Cell<isize>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicIsize` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<bool>", _Self = "std::cell::Cell<bool>"),
+        _Self = "core::cell::Cell<bool>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` or `std::sync::atomic::AtomicBool` instead",
     ),
     on(
-        any(_Self = "core::cell::Cell<T>", _Self = "std::cell::Cell<T>"),
+        all(
+            _Self = "core::cell::Cell<T>",
+            not(_Self = "core::cell::Cell<u8>"),
+            not(_Self = "core::cell::Cell<u16>"),
+            not(_Self = "core::cell::Cell<u32>"),
+            not(_Self = "core::cell::Cell<u64>"),
+            not(_Self = "core::cell::Cell<usize>"),
+            not(_Self = "core::cell::Cell<i8>"),
+            not(_Self = "core::cell::Cell<i16>"),
+            not(_Self = "core::cell::Cell<i32>"),
+            not(_Self = "core::cell::Cell<i64>"),
+            not(_Self = "core::cell::Cell<isize>"),
+            not(_Self = "core::cell::Cell<bool>")
+        ),
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock`",
     ),
     on(
-        any(_Self = "core::cell::RefCell<T>", _Self = "std::cell::RefCell<T>"),
+        _Self = "core::cell::RefCell<T>",
         note = "if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` instead",
     ),
     message = "`{Self}` cannot be shared between threads safely",

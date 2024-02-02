@@ -9,16 +9,17 @@ use rustc_infer::traits::{ImplSource, Obligation, ObligationCause};
 use rustc_middle::mir::visit::{MutatingUseContext, NonMutatingUseContext, PlaceContext, Visitor};
 use rustc_middle::mir::*;
 use rustc_middle::traits::BuiltinImplSource;
+use rustc_middle::ty::GenericArgs;
 use rustc_middle::ty::{self, adjustment::PointerCoercion, Instance, InstanceDef, Ty, TyCtxt};
-use rustc_middle::ty::{GenericArgKind, GenericArgs};
 use rustc_middle::ty::{TraitRef, TypeVisitableExt};
 use rustc_mir_dataflow::{self, Analysis};
 use rustc_span::{sym, Span, Symbol};
 use rustc_trait_selection::traits::error_reporting::TypeErrCtxtExt as _;
 use rustc_trait_selection::traits::{self, ObligationCauseCode, ObligationCtxt, SelectionContext};
+use rustc_type_ir::visit::{TypeSuperVisitable, TypeVisitor};
 
 use std::mem;
-use std::ops::Deref;
+use std::ops::{ControlFlow, Deref};
 
 use super::ops::{self, NonConstOp, Status};
 use super::qualifs::{self, CustomEq, HasMutInterior, NeedsDrop};
@@ -188,6 +189,24 @@ impl<'mir, 'tcx> Qualifs<'mir, 'tcx> {
     }
 }
 
+struct LocalReturnTyVisitor<'ck, 'mir, 'tcx> {
+    kind: LocalKind,
+    checker: &'ck mut Checker<'mir, 'tcx>,
+}
+
+impl<'ck, 'mir, 'tcx> TypeVisitor<TyCtxt<'tcx>> for LocalReturnTyVisitor<'ck, 'mir, 'tcx> {
+    fn visit_ty(&mut self, t: Ty<'tcx>) -> ControlFlow<Self::BreakTy> {
+        match t.kind() {
+            ty::FnPtr(_) => ControlFlow::Continue(()),
+            ty::Ref(_, _, hir::Mutability::Mut) => {
+                self.checker.check_op(ops::ty::MutRef(self.kind));
+                t.super_visit_with(self)
+            }
+            _ => t.super_visit_with(self),
+        }
+    }
+}
+
 pub struct Checker<'mir, 'tcx> {
     ccx: &'mir ConstCx<'mir, 'tcx>,
     qualifs: Qualifs<'mir, 'tcx>,
@@ -228,7 +247,7 @@ impl<'mir, 'tcx> Checker<'mir, 'tcx> {
 
         // `async` functions cannot be `const fn`. This is checked during AST lowering, so there's
         // no need to emit duplicate errors here.
-        if self.ccx.is_async() || body.generator.is_some() {
+        if self.ccx.is_async() || body.coroutine.is_some() {
             tcx.sess.delay_span_bug(body.span, "`async` functions cannot be `const fn`");
             return;
         }
@@ -237,7 +256,7 @@ impl<'mir, 'tcx> Checker<'mir, 'tcx> {
         if self.const_kind() == hir::ConstContext::ConstFn {
             for (idx, local) in body.local_decls.iter_enumerated() {
                 // Handle the return place below.
-                if idx == RETURN_PLACE || local.internal {
+                if idx == RETURN_PLACE {
                     continue;
                 }
 
@@ -304,7 +323,7 @@ impl<'mir, 'tcx> Checker<'mir, 'tcx> {
         let gate = match op.status_in_item(self.ccx) {
             Status::Allowed => return,
 
-            Status::Unstable(gate) if self.tcx.features().enabled(gate) => {
+            Status::Unstable(gate) if self.tcx.features().active(gate) => {
                 let unstable_in_stable = self.ccx.is_const_stable_const_fn()
                     && !super::rustc_allow_const_fn_unstable(self.tcx, self.def_id(), gate);
                 if unstable_in_stable {
@@ -346,20 +365,9 @@ impl<'mir, 'tcx> Checker<'mir, 'tcx> {
     fn check_local_or_return_ty(&mut self, ty: Ty<'tcx>, local: Local) {
         let kind = self.body.local_kind(local);
 
-        for ty in ty.walk() {
-            let ty = match ty.unpack() {
-                GenericArgKind::Type(ty) => ty,
+        let mut visitor = LocalReturnTyVisitor { kind, checker: self };
 
-                // No constraints on lifetimes or constants, except potentially
-                // constants' types, but `walk` will get to them as well.
-                GenericArgKind::Lifetime(_) | GenericArgKind::Const(_) => continue,
-            };
-
-            match *ty.kind() {
-                ty::Ref(_, _, hir::Mutability::Mut) => self.check_op(ops::ty::MutRef(kind)),
-                _ => {}
-            }
-        }
+        visitor.visit_ty(ty);
     }
 
     fn check_mut_borrow(&mut self, local: Local, kind: hir::BorrowKind) {
@@ -455,10 +463,11 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
             | Rvalue::Len(_) => {}
 
             Rvalue::Aggregate(kind, ..) => {
-                if let AggregateKind::Generator(def_id, ..) = kind.as_ref()
-                    && let Some(generator_kind @ hir::GeneratorKind::Async(..)) = self.tcx.generator_kind(def_id)
+                if let AggregateKind::Coroutine(def_id, ..) = kind.as_ref()
+                    && let Some(coroutine_kind @ hir::CoroutineKind::Async(..)) =
+                        self.tcx.coroutine_kind(def_id)
                 {
-                    self.check_op(ops::Generator(generator_kind));
+                    self.check_op(ops::Coroutine(coroutine_kind));
                 }
             }
 
@@ -571,8 +580,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                 }
             }
 
-            Rvalue::BinaryOp(op, box (lhs, rhs))
-            | Rvalue::CheckedBinaryOp(op, box (lhs, rhs)) => {
+            Rvalue::BinaryOp(op, box (lhs, rhs)) | Rvalue::CheckedBinaryOp(op, box (lhs, rhs)) => {
                 let lhs_ty = lhs.ty(self.body, self.tcx);
                 let rhs_ty = rhs.ty(self.body, self.tcx);
 
@@ -580,18 +588,16 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                     // Int, bool, and char operations are fine.
                 } else if lhs_ty.is_fn_ptr() || lhs_ty.is_unsafe_ptr() {
                     assert_eq!(lhs_ty, rhs_ty);
-                    assert!(
-                        matches!(
-                            op,
-                            BinOp::Eq
+                    assert!(matches!(
+                        op,
+                        BinOp::Eq
                             | BinOp::Ne
                             | BinOp::Le
                             | BinOp::Lt
                             | BinOp::Ge
                             | BinOp::Gt
                             | BinOp::Offset
-                        )
-                    );
+                    ));
 
                     self.check_op(ops::RawPtrComparison);
                 } else if lhs_ty.is_floating_point() || rhs_ty.is_floating_point() {
@@ -743,7 +749,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
 
                 let errors = ocx.select_all_or_error();
                 if !errors.is_empty() {
-                    infcx.err_ctxt().report_fulfillment_errors(&errors);
+                    infcx.err_ctxt().report_fulfillment_errors(errors);
                 }
 
                 // Attempting to call a trait method?
@@ -887,7 +893,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
 
                 // At this point, we are calling a function, `callee`, whose `DefId` is known...
 
-                // `begin_panic` and `panic_display` are generic functions that accept
+                // `begin_panic` and `#[rustc_const_panic_str]` functions accept generic
                 // types other than str. Check to enforce that only str can be used in
                 // const-eval.
 
@@ -899,8 +905,8 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                     }
                 }
 
-                // const-eval of the `panic_display` fn assumes the argument is `&&str`
-                if Some(callee) == tcx.lang_items().panic_display() {
+                // const-eval of `#[rustc_const_panic_str]` functions assumes the argument is `&&str`
+                if tcx.has_attr(callee, sym::rustc_const_panic_str) {
                     match args[0].ty(&self.ccx.body.local_decls, tcx).kind() {
                         ty::Ref(_, ty, _) if matches!(ty.kind(), ty::Ref(_, ty, _) if ty.is_str()) =>
                         {
@@ -939,7 +945,9 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                     if self.span.allows_unstable(gate) {
                         return;
                     }
-                    if let Some(implied_by_gate) = implied_by && self.span.allows_unstable(implied_by_gate) {
+                    if let Some(implied_by_gate) = implied_by
+                        && self.span.allows_unstable(implied_by_gate)
+                    {
                         return;
                     }
 
@@ -1034,8 +1042,8 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
 
             TerminatorKind::InlineAsm { .. } => self.check_op(ops::InlineAsm),
 
-            TerminatorKind::GeneratorDrop | TerminatorKind::Yield { .. } => {
-                self.check_op(ops::Generator(hir::GeneratorKind::Gen))
+            TerminatorKind::CoroutineDrop | TerminatorKind::Yield { .. } => {
+                self.check_op(ops::Coroutine(hir::CoroutineKind::Coroutine))
             }
 
             TerminatorKind::UnwindTerminate(_) => {

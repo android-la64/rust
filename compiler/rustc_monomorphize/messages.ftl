@@ -7,8 +7,6 @@ monomorphize_couldnt_dump_mono_stats =
 monomorphize_encountered_error_while_instantiating =
     the above error was encountered while instantiating `{$formatted_item}`
 
-monomorphize_fatal_error = {$error_message}
-
 monomorphize_large_assignments =
     moving {$size} bytes
     .label = value moved from here
@@ -28,8 +26,6 @@ monomorphize_type_length_limit = reached the type-length limit while instantiati
 
 monomorphize_unknown_cgu_collection_mode =
     unknown codegen-item collection mode '{$mode}', falling back to 'lazy' mode
-
-monomorphize_unknown_partition_strategy = unknown partitioning strategy
 
 monomorphize_unused_generic_params = item has unused generic parameters
 

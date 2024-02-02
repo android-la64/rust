@@ -31,7 +31,7 @@ use rustc_hir::definitions::{DefPathData, DisambiguatedDefPathData};
 use rustc_middle::middle::privacy::EffectiveVisibilities;
 use rustc_middle::middle::stability;
 use rustc_middle::ty::layout::{LayoutError, LayoutOfHelpers, TyAndLayout};
-use rustc_middle::ty::print::with_no_trimmed_paths;
+use rustc_middle::ty::print::{with_no_trimmed_paths, PrintError};
 use rustc_middle::ty::{self, print::Printer, GenericArg, RegisteredTools, Ty, TyCtxt};
 use rustc_session::config::ExpectedValues;
 use rustc_session::lint::{BuiltinLintDiagnostics, LintExpectationId};
@@ -109,7 +109,7 @@ struct LintAlias {
 
 struct LintGroup {
     lint_ids: Vec<LintId>,
-    from_plugin: bool,
+    is_loaded: bool,
     depr: Option<LintAlias>,
 }
 
@@ -160,9 +160,7 @@ impl LintStore {
                 // Don't display deprecated lint groups.
                 depr.is_none()
             })
-            .map(|(k, LintGroup { lint_ids, from_plugin, .. })| {
-                (*k, lint_ids.clone(), *from_plugin)
-            })
+            .map(|(k, LintGroup { lint_ids, is_loaded, .. })| (*k, lint_ids.clone(), *is_loaded))
     }
 
     pub fn register_early_pass(
@@ -221,7 +219,7 @@ impl LintStore {
                         .entry(edition.lint_name())
                         .or_insert(LintGroup {
                             lint_ids: vec![],
-                            from_plugin: lint.is_plugin,
+                            is_loaded: lint.is_loaded,
                             depr: None,
                         })
                         .lint_ids
@@ -234,7 +232,7 @@ impl LintStore {
                         .entry("future_incompatible")
                         .or_insert(LintGroup {
                             lint_ids: vec![],
-                            from_plugin: lint.is_plugin,
+                            is_loaded: lint.is_loaded,
                             depr: None,
                         })
                         .lint_ids
@@ -249,7 +247,7 @@ impl LintStore {
             alias,
             LintGroup {
                 lint_ids: vec![],
-                from_plugin: false,
+                is_loaded: false,
                 depr: Some(LintAlias { name: lint_name, silent: true }),
             },
         );
@@ -257,21 +255,21 @@ impl LintStore {
 
     pub fn register_group(
         &mut self,
-        from_plugin: bool,
+        is_loaded: bool,
         name: &'static str,
         deprecated_name: Option<&'static str>,
         to: Vec<LintId>,
     ) {
         let new = self
             .lint_groups
-            .insert(name, LintGroup { lint_ids: to, from_plugin, depr: None })
+            .insert(name, LintGroup { lint_ids: to, is_loaded, depr: None })
             .is_none();
         if let Some(deprecated) = deprecated_name {
             self.lint_groups.insert(
                 deprecated,
                 LintGroup {
                     lint_ids: vec![],
-                    from_plugin,
+                    is_loaded,
                     depr: Some(LintAlias { name, silent: false }),
                 },
             );
@@ -727,11 +725,14 @@ pub trait LintContext: Sized {
                                 .collect::<Vec<_>>();
                             possibilities.sort();
 
+                            let mut should_print_possibilities = true;
                             if let Some((value, value_span)) = value {
                                 if best_match_values.contains(&Some(value)) {
                                     db.span_suggestion(name_span, "there is a config with a similar name and value", best_match, Applicability::MaybeIncorrect);
+                                    should_print_possibilities = false;
                                 } else if best_match_values.contains(&None) {
                                     db.span_suggestion(name_span.to(value_span), "there is a config with a similar name and no value", best_match, Applicability::MaybeIncorrect);
+                                    should_print_possibilities = false;
                                 } else if let Some(first_value) = possibilities.first() {
                                     db.span_suggestion(name_span.to(value_span), "there is a config with a similar name and different values", format!("{best_match} = \"{first_value}\""), Applicability::MaybeIncorrect);
                                 } else {
@@ -741,13 +742,25 @@ pub trait LintContext: Sized {
                                 db.span_suggestion(name_span, "there is a config with a similar name", best_match, Applicability::MaybeIncorrect);
                             }
 
-                            if !possibilities.is_empty() {
+                            if !possibilities.is_empty() && should_print_possibilities {
                                 let possibilities = possibilities.join("`, `");
                                 db.help(format!("expected values for `{best_match}` are: `{possibilities}`"));
                             }
                         } else {
                             db.span_suggestion(name_span, "there is a config with a similar name", best_match, Applicability::MaybeIncorrect);
                         }
+                    } else if !possibilities.is_empty() {
+                        let mut possibilities = possibilities.iter()
+                            .map(Symbol::as_str)
+                            .collect::<Vec<_>>();
+                        possibilities.sort();
+                        let possibilities = possibilities.join("`, `");
+
+                        // The list of expected names can be long (even by default) and
+                        // so the diagnostic produced can take a lot of space. To avoid
+                        // cloging the user output we only want to print that diagnostic
+                        // once.
+                        db.help_once(format!("expected names are: `{possibilities}`"));
                     }
                 },
                 BuiltinLintDiagnostics::UnexpectedCfgValue((name, name_span), value) => {
@@ -1185,51 +1198,45 @@ impl<'tcx> LateContext<'tcx> {
     /// }
     /// ```
     pub fn get_def_path(&self, def_id: DefId) -> Vec<Symbol> {
-        pub struct AbsolutePathPrinter<'tcx> {
-            pub tcx: TyCtxt<'tcx>,
+        struct AbsolutePathPrinter<'tcx> {
+            tcx: TyCtxt<'tcx>,
+            path: Vec<Symbol>,
         }
 
         impl<'tcx> Printer<'tcx> for AbsolutePathPrinter<'tcx> {
-            type Error = !;
-
-            type Path = Vec<Symbol>;
-            type Region = ();
-            type Type = ();
-            type DynExistential = ();
-            type Const = ();
-
             fn tcx(&self) -> TyCtxt<'tcx> {
                 self.tcx
             }
 
-            fn print_region(self, _region: ty::Region<'_>) -> Result<Self::Region, Self::Error> {
+            fn print_region(&mut self, _region: ty::Region<'_>) -> Result<(), PrintError> {
                 Ok(())
             }
 
-            fn print_type(self, _ty: Ty<'tcx>) -> Result<Self::Type, Self::Error> {
+            fn print_type(&mut self, _ty: Ty<'tcx>) -> Result<(), PrintError> {
                 Ok(())
             }
 
             fn print_dyn_existential(
-                self,
+                &mut self,
                 _predicates: &'tcx ty::List<ty::PolyExistentialPredicate<'tcx>>,
-            ) -> Result<Self::DynExistential, Self::Error> {
+            ) -> Result<(), PrintError> {
                 Ok(())
             }
 
-            fn print_const(self, _ct: ty::Const<'tcx>) -> Result<Self::Const, Self::Error> {
+            fn print_const(&mut self, _ct: ty::Const<'tcx>) -> Result<(), PrintError> {
                 Ok(())
             }
 
-            fn path_crate(self, cnum: CrateNum) -> Result<Self::Path, Self::Error> {
-                Ok(vec![self.tcx.crate_name(cnum)])
+            fn path_crate(&mut self, cnum: CrateNum) -> Result<(), PrintError> {
+                self.path = vec![self.tcx.crate_name(cnum)];
+                Ok(())
             }
 
             fn path_qualified(
-                self,
+                &mut self,
                 self_ty: Ty<'tcx>,
                 trait_ref: Option<ty::TraitRef<'tcx>>,
-            ) -> Result<Self::Path, Self::Error> {
+            ) -> Result<(), PrintError> {
                 if trait_ref.is_none() {
                     if let ty::Adt(def, args) = self_ty.kind() {
                         return self.print_def_path(def.did(), args);
@@ -1238,24 +1245,25 @@ impl<'tcx> LateContext<'tcx> {
 
                 // This shouldn't ever be needed, but just in case:
                 with_no_trimmed_paths!({
-                    Ok(vec![match trait_ref {
+                    self.path = vec![match trait_ref {
                         Some(trait_ref) => Symbol::intern(&format!("{trait_ref:?}")),
                         None => Symbol::intern(&format!("<{self_ty}>")),
-                    }])
+                    }];
+                    Ok(())
                 })
             }
 
             fn path_append_impl(
-                self,
-                print_prefix: impl FnOnce(Self) -> Result<Self::Path, Self::Error>,
+                &mut self,
+                print_prefix: impl FnOnce(&mut Self) -> Result<(), PrintError>,
                 _disambiguated_data: &DisambiguatedDefPathData,
                 self_ty: Ty<'tcx>,
                 trait_ref: Option<ty::TraitRef<'tcx>>,
-            ) -> Result<Self::Path, Self::Error> {
-                let mut path = print_prefix(self)?;
+            ) -> Result<(), PrintError> {
+                print_prefix(self)?;
 
                 // This shouldn't ever be needed, but just in case:
-                path.push(match trait_ref {
+                self.path.push(match trait_ref {
                     Some(trait_ref) => {
                         with_no_trimmed_paths!(Symbol::intern(&format!(
                             "<impl {} for {}>",
@@ -1268,35 +1276,37 @@ impl<'tcx> LateContext<'tcx> {
                     }
                 });
 
-                Ok(path)
+                Ok(())
             }
 
             fn path_append(
-                self,
-                print_prefix: impl FnOnce(Self) -> Result<Self::Path, Self::Error>,
+                &mut self,
+                print_prefix: impl FnOnce(&mut Self) -> Result<(), PrintError>,
                 disambiguated_data: &DisambiguatedDefPathData,
-            ) -> Result<Self::Path, Self::Error> {
-                let mut path = print_prefix(self)?;
+            ) -> Result<(), PrintError> {
+                print_prefix(self)?;
 
                 // Skip `::{{extern}}` blocks and `::{{constructor}}` on tuple/unit structs.
                 if let DefPathData::ForeignMod | DefPathData::Ctor = disambiguated_data.data {
-                    return Ok(path);
+                    return Ok(());
                 }
 
-                path.push(Symbol::intern(&disambiguated_data.data.to_string()));
-                Ok(path)
+                self.path.push(Symbol::intern(&disambiguated_data.data.to_string()));
+                Ok(())
             }
 
             fn path_generic_args(
-                self,
-                print_prefix: impl FnOnce(Self) -> Result<Self::Path, Self::Error>,
+                &mut self,
+                print_prefix: impl FnOnce(&mut Self) -> Result<(), PrintError>,
                 _args: &[GenericArg<'tcx>],
-            ) -> Result<Self::Path, Self::Error> {
+            ) -> Result<(), PrintError> {
                 print_prefix(self)
             }
         }
 
-        AbsolutePathPrinter { tcx: self.tcx }.print_def_path(def_id, &[]).unwrap()
+        let mut printer = AbsolutePathPrinter { tcx: self.tcx, path: vec![] };
+        printer.print_def_path(def_id, &[]).unwrap();
+        printer.path
     }
 
     /// Returns the associated type `name` for `self_ty` as an implementation of `trait_id`.
@@ -1342,7 +1352,7 @@ impl<'tcx> LateContext<'tcx> {
             && let Some(init) = match parent_node {
                 hir::Node::Expr(expr) => Some(expr),
                 hir::Node::Local(hir::Local { init, .. }) => *init,
-                _ => None
+                _ => None,
             }
         {
             expr = init.peel_blocks();
@@ -1391,9 +1401,9 @@ impl<'tcx> LateContext<'tcx> {
                     hir::ItemKind::Const(.., body_id) | hir::ItemKind::Static(.., body_id) => {
                         Some(self.tcx.hir().body(body_id).value)
                     }
-                    _ => None
-                }
-                _ => None
+                    _ => None,
+                },
+                _ => None,
             }
         {
             expr = init.peel_blocks();

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-odb"
-version = "0.53.0"
+version = "0.54.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -49,7 +49,7 @@ optional = true
 version = "^0.8.0"
 
 [dependencies.gix-features]
-version = "^0.35.0"
+version = "^0.36.0"
 features = [
     "rustsha1",
     "walkdir",
@@ -58,13 +58,13 @@ features = [
 ]
 
 [dependencies.gix-hash]
-version = "^0.13.0"
+version = "^0.13.1"
 
 [dependencies.gix-object]
-version = "^0.37.0"
+version = "^0.38.0"
 
 [dependencies.gix-pack]
-version = "^0.43.0"
+version = "^0.44.0"
 default-features = false
 
 [dependencies.gix-path]

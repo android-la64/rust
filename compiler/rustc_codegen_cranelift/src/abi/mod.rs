@@ -6,6 +6,7 @@ mod returning;
 
 use std::borrow::Cow;
 
+use cranelift_codegen::ir::{AbiParam, SigRef};
 use cranelift_module::ModuleError;
 use rustc_middle::middle::codegen_fn_attrs::CodegenFnAttrFlags;
 use rustc_middle::ty::layout::FnAbiOf;
@@ -13,12 +14,9 @@ use rustc_session::Session;
 use rustc_target::abi::call::{Conv, FnAbi};
 use rustc_target::spec::abi::Abi;
 
-use cranelift_codegen::ir::{AbiParam, SigRef};
-
 use self::pass_mode::*;
-use crate::prelude::*;
-
 pub(crate) use self::returning::codegen_return;
+use crate::prelude::*;
 
 fn clif_sig_from_fn_abi<'tcx>(
     tcx: TyCtxt<'tcx>,
@@ -30,7 +28,7 @@ fn clif_sig_from_fn_abi<'tcx>(
     let inputs = fn_abi.args.iter().flat_map(|arg_abi| arg_abi.get_abi_param(tcx).into_iter());
 
     let (return_ptr, returns) = fn_abi.ret.get_abi_return(tcx);
-    // Sometimes the first param is an pointer to the place where the return value needs to be stored.
+    // Sometimes the first param is a pointer to the place where the return value needs to be stored.
     let params: Vec<_> = return_ptr.into_iter().chain(inputs).collect();
 
     Signature { params, returns, call_conv }
@@ -122,32 +120,25 @@ impl<'tcx> FunctionCx<'_, '_, 'tcx> {
         args: &[Value],
     ) -> Cow<'_, [Value]> {
         if self.tcx.sess.target.is_like_windows {
-            let (mut params, mut args): (Vec<_>, Vec<_>) =
-                params
-                    .into_iter()
-                    .zip(args)
-                    .map(|(param, &arg)| {
-                        if param.value_type == types::I128 {
-                            let arg_ptr = Pointer::stack_slot(self.bcx.create_sized_stack_slot(
-                                StackSlotData { kind: StackSlotKind::ExplicitSlot, size: 16 },
-                            ));
-                            arg_ptr.store(self, arg, MemFlags::trusted());
-                            (AbiParam::new(self.pointer_type), arg_ptr.get_addr(self))
-                        } else {
-                            (param, arg)
-                        }
-                    })
-                    .unzip();
+            let (mut params, mut args): (Vec<_>, Vec<_>) = params
+                .into_iter()
+                .zip(args)
+                .map(|(param, &arg)| {
+                    if param.value_type == types::I128 {
+                        let arg_ptr = self.create_stack_slot(16, 16);
+                        arg_ptr.store(self, arg, MemFlags::trusted());
+                        (AbiParam::new(self.pointer_type), arg_ptr.get_addr(self))
+                    } else {
+                        (param, arg)
+                    }
+                })
+                .unzip();
 
             let indirect_ret_val = returns.len() == 1 && returns[0].value_type == types::I128;
 
             if indirect_ret_val {
                 params.insert(0, AbiParam::new(self.pointer_type));
-                let ret_ptr =
-                    Pointer::stack_slot(self.bcx.create_sized_stack_slot(StackSlotData {
-                        kind: StackSlotKind::ExplicitSlot,
-                        size: 16,
-                    }));
+                let ret_ptr = self.create_stack_slot(16, 16);
                 args.insert(0, ret_ptr.get_addr(self));
                 self.lib_call_unadjusted(name, params, vec![], &args);
                 return Cow::Owned(vec![ret_ptr.load(self, types::I128, MemFlags::trusted())]);

@@ -13,7 +13,7 @@ use rustc_middle::ty::layout::{LayoutOf as _, ValidityRequirement};
 use rustc_middle::ty::GenericArgsRef;
 use rustc_middle::ty::{Ty, TyCtxt};
 use rustc_span::symbol::{sym, Symbol};
-use rustc_target::abi::{Abi, Align, Primitive, Size};
+use rustc_target::abi::{Abi, Primitive, Size};
 
 use super::{
     util::ensure_monomorphic_enough, CheckInAllocMsg, ImmTy, InterpCx, Machine, OpTy, PlaceTy,
@@ -21,8 +21,6 @@ use super::{
 };
 
 use crate::fluent_generated as fluent;
-
-mod caller_location;
 
 fn numeric_intrinsic<Prov>(name: Symbol, bits: u128, kind: Primitive) -> Scalar<Prov> {
     let size = match kind {
@@ -99,8 +97,8 @@ pub(crate) fn eval_nullary_intrinsic<'tcx>(
             | ty::FnPtr(_)
             | ty::Dynamic(_, _, _)
             | ty::Closure(_, _)
-            | ty::Generator(_, _, _)
-            | ty::GeneratorWitness(..)
+            | ty::Coroutine(_, _, _)
+            | ty::CoroutineWitness(..)
             | ty::Never
             | ty::Tuple(_)
             | ty::Error(_) => ConstValue::from_target_usize(0u64, &tcx),
@@ -130,8 +128,10 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         match intrinsic_name {
             sym::caller_location => {
                 let span = self.find_closest_untracked_caller_location();
-                let location = self.alloc_caller_location_for_span(span);
-                self.write_immediate(location.to_ref(self), dest)?;
+                let val = self.tcx.span_as_caller_location(span);
+                let val =
+                    self.const_val_to_op(val, self.tcx.caller_location_ty(), Some(dest.layout))?;
+                self.copy_op(&val, dest, /* allow_transmute */ false)?;
             }
 
             sym::min_align_of_val | sym::size_of_val => {
@@ -164,7 +164,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                     sym::type_name => Ty::new_static_str(self.tcx.tcx),
                     _ => bug!(),
                 };
-                let val = self.ctfe_query(None, |tcx| {
+                let val = self.ctfe_query(|tcx| {
                     tcx.const_eval_global_id(self.param_env, gid, Some(tcx.span))
                 })?;
                 let val = self.const_val_to_op(val, ty, Some(dest.layout))?;
@@ -218,7 +218,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
             sym::discriminant_value => {
                 let place = self.deref_pointer(&args[0])?;
                 let variant = self.read_discriminant(&place)?;
-                let discr = self.discriminant_for_variant(place.layout, variant)?;
+                let discr = self.discriminant_for_variant(place.layout.ty, variant)?;
                 self.write_immediate(*discr, dest)?;
             }
             sym::exact_div => {
@@ -349,10 +349,9 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                 // Check that the range between them is dereferenceable ("in-bounds or one past the
                 // end of the same allocation"). This is like the check in ptr_offset_inbounds.
                 let min_ptr = if dist >= 0 { b } else { a };
-                self.check_ptr_access_align(
+                self.check_ptr_access(
                     min_ptr,
                     Size::from_bytes(dist.unsigned_abs()),
-                    Align::ONE,
                     CheckInAllocMsg::OffsetFromTest,
                 )?;
 
@@ -500,6 +499,9 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         b: &ImmTy<'tcx, M::Provenance>,
         dest: &PlaceTy<'tcx, M::Provenance>,
     ) -> InterpResult<'tcx> {
+        assert_eq!(a.layout.ty, b.layout.ty);
+        assert!(matches!(a.layout.ty.kind(), ty::Int(..) | ty::Uint(..)));
+
         // Performs an exact division, resulting in undefined behavior where
         // `x % y != 0` or `y == 0` or `x == T::MIN && y == -1`.
         // First, check x % y != 0 (or if that computation overflows).
@@ -522,7 +524,10 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         l: &ImmTy<'tcx, M::Provenance>,
         r: &ImmTy<'tcx, M::Provenance>,
     ) -> InterpResult<'tcx, Scalar<M::Provenance>> {
+        assert_eq!(l.layout.ty, r.layout.ty);
+        assert!(matches!(l.layout.ty.kind(), ty::Int(..) | ty::Uint(..)));
         assert!(matches!(mir_op, BinOp::Add | BinOp::Sub));
+
         let (val, overflowed) = self.overflowing_binary_op(mir_op, l, r)?;
         Ok(if overflowed {
             let size = l.layout.size;
@@ -565,16 +570,8 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
     pub fn ptr_offset_inbounds(
         &self,
         ptr: Pointer<Option<M::Provenance>>,
-        pointee_ty: Ty<'tcx>,
-        offset_count: i64,
+        offset_bytes: i64,
     ) -> InterpResult<'tcx, Pointer<Option<M::Provenance>>> {
-        // We cannot overflow i64 as a type's size must be <= isize::MAX.
-        let pointee_size = i64::try_from(self.layout_of(pointee_ty)?.size.bytes()).unwrap();
-        // The computed offset, in bytes, must not overflow an isize.
-        // `checked_mul` enforces a too small bound, but no actual allocation can be big enough for
-        // the difference to be noticeable.
-        let offset_bytes =
-            offset_count.checked_mul(pointee_size).ok_or(err_ub!(PointerArithOverflow))?;
         // The offset being in bounds cannot rely on "wrapping around" the address space.
         // So, first rule out overflows in the pointer arithmetic.
         let offset_ptr = ptr.signed_offset(offset_bytes, self)?;
@@ -583,10 +580,9 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         // pointers to be properly aligned (unlike a read/write operation).
         let min_ptr = if offset_bytes >= 0 { ptr } else { offset_ptr };
         // This call handles checking for integer/null pointers.
-        self.check_ptr_access_align(
+        self.check_ptr_access(
             min_ptr,
             Size::from_bytes(offset_bytes.unsigned_abs()),
-            Align::ONE,
             CheckInAllocMsg::PointerArithmeticTest,
         )?;
         Ok(offset_ptr)
@@ -615,7 +611,10 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         let src = self.read_pointer(src)?;
         let dst = self.read_pointer(dst)?;
 
-        self.mem_copy(src, align, dst, align, size, nonoverlapping)
+        self.check_ptr_align(src, align)?;
+        self.check_ptr_align(dst, align)?;
+
+        self.mem_copy(src, dst, size, nonoverlapping)
     }
 
     pub(crate) fn write_bytes_intrinsic(
@@ -671,7 +670,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                          size|
          -> InterpResult<'tcx, &[u8]> {
             let ptr = this.read_pointer(op)?;
-            let Some(alloc_ref) = self.get_ptr_alloc(ptr, size, Align::ONE)? else {
+            let Some(alloc_ref) = self.get_ptr_alloc(ptr, size)? else {
                 // zero-sized access
                 return Ok(&[]);
             };

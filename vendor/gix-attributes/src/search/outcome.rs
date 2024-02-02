@@ -1,6 +1,6 @@
 use bstr::{BString, ByteSlice};
-use byteyarn::Yarn;
 use gix_glob::Pattern;
+use kstring::{KString, KStringRef};
 
 use crate::{
     search::{
@@ -44,7 +44,7 @@ impl Outcome {
     pub fn initialize_with_selection<'a>(
         &mut self,
         collection: &MetadataCollection,
-        attribute_names: impl IntoIterator<Item = impl Into<&'a str>>,
+        attribute_names: impl IntoIterator<Item = impl Into<KStringRef<'a>>>,
     ) {
         self.initialize_with_selection_inner(collection, &mut attribute_names.into_iter().map(Into::into))
     }
@@ -52,15 +52,15 @@ impl Outcome {
     fn initialize_with_selection_inner(
         &mut self,
         collection: &MetadataCollection,
-        attribute_names: &mut dyn Iterator<Item = &str>,
+        attribute_names: &mut dyn Iterator<Item = KStringRef<'_>>,
     ) {
         self.initialize(collection);
 
         self.selected.clear();
         self.selected.extend(attribute_names.map(|name| {
             (
-                Yarn::inlined(name).unwrap_or_else(|| name.to_string().into_boxed_str().into()),
-                collection.name_to_meta.get(name).map(|meta| meta.id),
+                name.to_owned(),
+                collection.name_to_meta.get(name.as_str()).map(|meta| meta.id),
             )
         }));
         self.reset_remaining();
@@ -176,12 +176,11 @@ impl Outcome {
         source: Option<&std::path::PathBuf>,
         sequence_number: usize,
     ) -> bool {
-        self.attrs_stack.extend(attrs.filter_map(|attr| {
-            self.matches_by_id[attr.id.0]
-                .r#match
-                .is_none()
-                .then(|| (attr.id, attr.inner.clone(), None))
-        }));
+        self.attrs_stack.extend(
+            attrs
+                .filter(|attr| self.matches_by_id[attr.id.0].r#match.is_none())
+                .map(|attr| (attr.id, attr.inner.clone(), None)),
+        );
         while let Some((id, assignment, parent_order)) = self.attrs_stack.pop() {
             let slot = &mut self.matches_by_id[id.0];
             if slot.r#match.is_some() {
@@ -212,12 +211,12 @@ impl Outcome {
             if is_macro {
                 // TODO(borrowchk): one fine day we should be able to re-borrow `slot` without having to redo the array access.
                 let slot = &self.matches_by_id[id.0];
-                self.attrs_stack.extend(slot.macro_attributes.iter().filter_map(|attr| {
-                    self.matches_by_id[attr.id.0]
-                        .r#match
-                        .is_none()
-                        .then(|| (attr.id, attr.inner.clone(), Some(id)))
-                }));
+                self.attrs_stack.extend(
+                    slot.macro_attributes
+                        .iter()
+                        .filter(|attr| self.matches_by_id[attr.id.0].r#match.is_none())
+                        .map(|attr| (attr.id, attr.inner.clone(), Some(id))),
+                );
             }
         }
         false
@@ -315,7 +314,7 @@ impl MetadataCollection {
             None => {
                 let order = AttributeId(self.name_to_meta.len());
                 self.name_to_meta.insert(
-                    Yarn::inlined(name).unwrap_or_else(|| name.to_string().into_boxed_str().into()),
+                    KString::from_ref(name),
                     Metadata {
                         id: order,
                         macro_attributes: Default::default(),
@@ -335,10 +334,7 @@ impl MetadataCollection {
             Some(meta) => meta.id,
             None => {
                 let order = AttributeId(self.name_to_meta.len());
-                self.name_to_meta.insert(
-                    Yarn::inlined(name).unwrap_or_else(|| name.to_string().into_boxed_str().into()),
-                    order.into(),
-                );
+                self.name_to_meta.insert(KString::from_ref(name), order.into());
                 order
             }
         }

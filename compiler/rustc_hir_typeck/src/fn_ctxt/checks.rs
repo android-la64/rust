@@ -11,11 +11,12 @@ use crate::{
 use rustc_ast as ast;
 use rustc_data_structures::fx::FxIndexSet;
 use rustc_errors::{
-    pluralize, Applicability, Diagnostic, DiagnosticId, ErrorGuaranteed, MultiSpan,
+    pluralize, Applicability, Diagnostic, DiagnosticId, ErrorGuaranteed, MultiSpan, StashKey,
 };
 use rustc_hir as hir;
 use rustc_hir::def::{CtorOf, DefKind, Res};
 use rustc_hir::def_id::DefId;
+use rustc_hir::intravisit::Visitor;
 use rustc_hir::{ExprKind, Node, QPath};
 use rustc_hir_analysis::astconv::AstConv;
 use rustc_hir_analysis::check::intrinsicck::InlineAsmCtxt;
@@ -26,9 +27,10 @@ use rustc_infer::infer::error_reporting::{FailureCode, ObligationCauseExt};
 use rustc_infer::infer::type_variable::{TypeVariableOrigin, TypeVariableOriginKind};
 use rustc_infer::infer::TypeTrace;
 use rustc_infer::infer::{DefineOpaqueTypes, InferOk};
+use rustc_middle::traits::ObligationCauseCode::ExprBindingObligation;
 use rustc_middle::ty::adjustment::AllowTwoPhase;
 use rustc_middle::ty::visit::TypeVisitableExt;
-use rustc_middle::ty::{self, IsSuggestable, Ty};
+use rustc_middle::ty::{self, IsSuggestable, Ty, TyCtxt};
 use rustc_session::Session;
 use rustc_span::symbol::{kw, Ident};
 use rustc_span::{self, sym, BytePos, Span};
@@ -365,13 +367,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     continue;
                 }
 
-                // For this check, we do *not* want to treat async generator closures (async blocks)
+                // For this check, we do *not* want to treat async coroutine closures (async blocks)
                 // as proper closures. Doing so would regress type inference when feeding
                 // the return value of an argument-position async block to an argument-position
                 // closure wrapped in a block.
                 // See <https://github.com/rust-lang/rust/issues/112225>.
                 let is_closure = if let ExprKind::Closure(closure) = arg.kind {
-                    !tcx.generator_is_async(closure.def_id.to_def_id())
+                    !tcx.coroutine_is_async(closure.def_id.to_def_id())
                 } else {
                     false
                 };
@@ -651,7 +653,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 && provided_arg_tys.len() == formal_and_expected_inputs.len() - 1 + tys.len()
             {
                 // Wrap up the N provided arguments starting at this position in a tuple.
-                let provided_as_tuple = Ty::new_tup_from_iter(tcx,
+                let provided_as_tuple = Ty::new_tup_from_iter(
+                    tcx,
                     provided_arg_tys.iter().map(|(ty, _)| *ty).skip(mismatch_idx).take(tys.len()),
                 );
 
@@ -722,6 +725,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         &mut err,
                         fn_def_id,
                         callee_ty,
+                        call_expr,
+                        None,
                         Some(mismatch_idx),
                         is_method,
                     );
@@ -826,6 +831,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 &mut err,
                 fn_def_id,
                 callee_ty,
+                call_expr,
+                Some(expected_ty),
                 Some(expected_idx.as_usize()),
                 is_method,
             );
@@ -879,8 +886,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 && self.tcx.def_kind(fn_def_id).is_fn_like()
                 && let self_implicit =
                     matches!(call_expr.kind, hir::ExprKind::MethodCall(..)) as usize
-                && let Some(arg) = self.tcx.fn_arg_names(fn_def_id)
-                    .get(expected_idx.as_usize() + self_implicit)
+                && let Some(arg) =
+                    self.tcx.fn_arg_names(fn_def_id).get(expected_idx.as_usize() + self_implicit)
                 && arg.name != kw::SelfLower
             {
                 format!("/* {} */", arg.name)
@@ -941,9 +948,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         && error_span.can_be_used_for_suggestions()
                     {
                         if arg_idx.index() > 0
-                        && let Some((_, prev)) = provided_arg_tys
-                            .get(ProvidedIdx::from_usize(arg_idx.index() - 1)
-                        ) {
+                            && let Some((_, prev)) =
+                                provided_arg_tys.get(ProvidedIdx::from_usize(arg_idx.index() - 1))
+                        {
                             // Include previous comma
                             span = prev.shrink_to_hi().to(span);
                         }
@@ -1208,7 +1215,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
 
         // Call out where the function is defined
-        self.label_fn_like(&mut err, fn_def_id, callee_ty, None, is_method);
+        self.label_fn_like(&mut err, fn_def_id, callee_ty, call_expr, None, None, is_method);
 
         // And add a suggestion block for all of the parameters
         let suggestion_text = match suggestion_text {
@@ -1286,7 +1293,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err: &mut rustc_errors::DiagnosticBuilder<'tcx, ErrorGuaranteed>,
     ) {
         if let ty::RawPtr(ty::TypeAndMut { mutbl: hir::Mutability::Mut, .. }) = expected_ty.kind()
-            && let ty::RawPtr(ty::TypeAndMut { mutbl: hir::Mutability::Not, .. }) = provided_ty.kind()
+            && let ty::RawPtr(ty::TypeAndMut { mutbl: hir::Mutability::Not, .. }) =
+                provided_ty.kind()
             && let hir::ExprKind::Call(callee, _) = arg.kind
             && let hir::ExprKind::Path(hir::QPath::Resolved(_, path)) = callee.kind
             && let Res::Def(_, def_id) = path.res
@@ -1294,9 +1302,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         {
             // The user provided `ptr::null()`, but the function expects
             // `ptr::null_mut()`.
-            err.subdiagnostic(SuggestPtrNullMut {
-                span: arg.span
-            });
+            err.subdiagnostic(SuggestPtrNullMut { span: arg.span });
         }
     }
 
@@ -1370,7 +1376,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 }
                 _ => bug!("unexpected type: {:?}", ty.normalized),
             },
-            Res::Def(DefKind::Struct | DefKind::Union | DefKind::TyAlias | DefKind::AssocTy, _)
+            Res::Def(
+                DefKind::Struct | DefKind::Union | DefKind::TyAlias { .. } | DefKind::AssocTy,
+                _,
+            )
             | Res::SelfTyParam { .. }
             | Res::SelfTyAlias { .. } => match ty.normalized.ty_adt_def() {
                 Some(adt) if !adt.is_enum() => {
@@ -1840,6 +1849,55 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
     }
 
+    pub(super) fn collect_unused_stmts_for_coerce_return_ty(
+        &self,
+        errors_causecode: Vec<(Span, ObligationCauseCode<'tcx>)>,
+    ) {
+        for (span, code) in errors_causecode {
+            let Some(mut diag) =
+                self.tcx.sess.diagnostic().steal_diagnostic(span, StashKey::MaybeForgetReturn)
+            else {
+                continue;
+            };
+
+            if let Some(fn_sig) = self.body_fn_sig()
+                && let ExprBindingObligation(_, _, hir_id, ..) = code
+                && !fn_sig.output().is_unit()
+            {
+                    let mut block_num = 0;
+                    let mut found_semi = false;
+                    for (_, node) in self.tcx.hir().parent_iter(hir_id) {
+                        match node {
+                            hir::Node::Stmt(stmt) => if let hir::StmtKind::Semi(ref expr) = stmt.kind {
+                                let expr_ty = self.typeck_results.borrow().expr_ty(expr);
+                                let return_ty = fn_sig.output();
+                                if !matches!(expr.kind, hir::ExprKind::Ret(..)) &&
+                                    self.can_coerce(expr_ty, return_ty) {
+                                    found_semi = true;
+                                }
+                            },
+                            hir::Node::Block(_block) => if found_semi {
+                                block_num += 1;
+                            }
+                            hir::Node::Item(item) => if let hir::ItemKind::Fn(..) = item.kind {
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                    if block_num > 1 && found_semi {
+                        diag.span_suggestion_verbose(
+                            span.shrink_to_lo(),
+                            "you might have meant to return this to infer its type parameters",
+                            "return ",
+                            Applicability::MaybeIncorrect,
+                        );
+                    }
+            }
+            diag.emit();
+        }
+    }
+
     /// Given a vector of fulfillment errors, try to adjust the spans of the
     /// errors to more accurately point at the cause of the failure.
     ///
@@ -1899,6 +1957,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err: &mut Diagnostic,
         callable_def_id: Option<DefId>,
         callee_ty: Option<Ty<'tcx>>,
+        call_expr: &'tcx hir::Expr<'tcx>,
+        expected_ty: Option<Ty<'tcx>>,
         // A specific argument should be labeled, instead of all of them
         expected_idx: Option<usize>,
         is_method: bool,
@@ -1921,8 +1981,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let callee_ty = callee_ty.peel_refs();
             match *callee_ty.kind() {
                 ty::Param(param) => {
-                    let param =
-                        self.tcx.generics_of(self.body_id).type_param(&param, self.tcx);
+                    let param = self.tcx.generics_of(self.body_id).type_param(&param, self.tcx);
                     if param.kind.is_synthetic() {
                         // if it's `impl Fn() -> ..` then just fall down to the def-id based logic
                         def_id = param.def_id;
@@ -1936,8 +1995,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         // FIXME(compiler-errors): This could be problematic if something has two
                         // fn-like predicates with different args, but callable types really never
                         // do that, so it's OK.
-                        for (predicate, span) in instantiated
-                        {
+                        for (predicate, span) in instantiated {
                             if let ty::ClauseKind::Trait(pred) = predicate.kind().skip_binder()
                                 && pred.self_ty().peel_refs() == callee_ty
                                 && self.tcx.is_fn_trait(pred.def_id())
@@ -1956,7 +2014,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 _ => {
                     // Look for a user-provided impl of a `Fn` trait, and point to it.
                     let new_def_id = self.probe(|_| {
-                        let trait_ref = ty::TraitRef::new(self.tcx,
+                        let trait_ref = ty::TraitRef::new(
+                            self.tcx,
                             call_kind.to_def_id(self.tcx),
                             [
                                 callee_ty,
@@ -1988,7 +2047,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             }
         }
 
-        if let Some(def_span) = self.tcx.def_ident_span(def_id) && !def_span.is_dummy() {
+        if let Some(def_span) = self.tcx.def_ident_span(def_id)
+            && !def_span.is_dummy()
+        {
             let mut spans: MultiSpan = def_span.into();
 
             let params = self
@@ -2015,6 +2076,48 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let param = expected_idx
                 .and_then(|expected_idx| self.tcx.hir().body(*body).params.get(expected_idx));
             let (kind, span) = if let Some(param) = param {
+                // Try to find earlier invocations of this closure to find if the type mismatch
+                // is because of inference. If we find one, point at them.
+                let mut call_finder = FindClosureArg { tcx: self.tcx, calls: vec![] };
+                let node = self
+                    .tcx
+                    .opt_local_def_id_to_hir_id(self.tcx.hir().get_parent_item(call_expr.hir_id))
+                    .and_then(|hir_id| self.tcx.hir().find(hir_id));
+                match node {
+                    Some(hir::Node::Item(item)) => call_finder.visit_item(item),
+                    Some(hir::Node::TraitItem(item)) => call_finder.visit_trait_item(item),
+                    Some(hir::Node::ImplItem(item)) => call_finder.visit_impl_item(item),
+                    _ => {}
+                }
+                let typeck = self.typeck_results.borrow();
+                for (rcvr, args) in call_finder.calls {
+                    if rcvr.hir_id.owner == typeck.hir_owner
+                        && let Some(rcvr_ty) = typeck.node_type_opt(rcvr.hir_id)
+                        && let ty::Closure(call_def_id, _) = rcvr_ty.kind()
+                        && def_id == *call_def_id
+                        && let Some(idx) = expected_idx
+                        && let Some(arg) = args.get(idx)
+                        && let Some(arg_ty) = typeck.node_type_opt(arg.hir_id)
+                        && let Some(expected_ty) = expected_ty
+                        && self.can_eq(self.param_env, arg_ty, expected_ty)
+                    {
+                        let mut sp: MultiSpan = vec![arg.span].into();
+                        sp.push_span_label(
+                            arg.span,
+                            format!("expected because this argument is of type `{arg_ty}`"),
+                        );
+                        sp.push_span_label(rcvr.span, "in this closure call");
+                        err.span_note(
+                            sp,
+                            format!(
+                                "expected because the closure was earlier called with an \
+                                argument of type `{arg_ty}`",
+                            ),
+                        );
+                        break;
+                    }
+                }
+
                 ("closure parameter", param.span)
             } else {
                 ("closure", self.tcx.def_span(def_id))
@@ -2026,5 +2129,25 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 format!("{} defined here", self.tcx.def_descr(def_id)),
             );
         }
+    }
+}
+
+struct FindClosureArg<'tcx> {
+    tcx: TyCtxt<'tcx>,
+    calls: Vec<(&'tcx hir::Expr<'tcx>, &'tcx [hir::Expr<'tcx>])>,
+}
+
+impl<'tcx> Visitor<'tcx> for FindClosureArg<'tcx> {
+    type NestedFilter = rustc_middle::hir::nested_filter::All;
+
+    fn nested_visit_map(&mut self) -> Self::Map {
+        self.tcx.hir()
+    }
+
+    fn visit_expr(&mut self, ex: &'tcx hir::Expr<'tcx>) {
+        if let hir::ExprKind::Call(rcvr, args) = ex.kind {
+            self.calls.push((rcvr, args));
+        }
+        hir::intravisit::walk_expr(self, ex);
     }
 }

@@ -87,7 +87,8 @@ pub fn cprintln(input: TokenStream) -> TokenStream {
 
 /// Colorizes a string literal, without formatting the `format!`-like placeholders.
 ///
-/// Accepts only one argument.
+/// * Accepts only one argument;
+/// * Will panic if feature `terminfo` is activated.
 ///
 /// #### Example
 ///
@@ -120,6 +121,16 @@ pub fn untagged(input: TokenStream) -> TokenStream {
     crate::untagged::get_untagged(input)
         .unwrap_or_else(|err| err.to_token_stream())
         .into()
+}
+
+/// Colorizes a string literal, without formatting the `format!`-like placeholders.
+///
+/// * Accepts only one argument;
+/// * Will panic if feature `terminfo` is activated.
+#[cfg(feature = "terminfo")]
+#[proc_macro]
+pub fn cstr(_: TokenStream) -> TokenStream {
+    panic!("Macro cstr!() cannot be used with terminfo feature")
 }
 
 /// Renders a whole processed macro.

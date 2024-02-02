@@ -12,7 +12,7 @@
 [package]
 rust-version = "1.48.0"
 name = "libloading"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["Simonas Kazlauskas <libloading@kazlauskas.me>"]
 description = "Bindings around the platform's dynamic library loading primitives with greatly improved memory safety."
 documentation = "https://docs.rs/libloading/"

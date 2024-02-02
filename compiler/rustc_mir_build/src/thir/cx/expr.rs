@@ -191,11 +191,16 @@ impl<'tcx> Cx<'tcx> {
                 source: self.mirror_expr(source),
                 cast: PointerCoercion::ArrayToPointer,
             }
-        } else {
-            // check whether this is casting an enum variant discriminant
-            // to prevent cycles, we refer to the discriminant initializer
+        } else if let hir::ExprKind::Path(ref qpath) = source.kind
+           && let res = self.typeck_results().qpath_res(qpath, source.hir_id)
+           && let ty = self.typeck_results().node_type(source.hir_id)
+           && let ty::Adt(adt_def, args) = ty.kind()
+           && let Res::Def(DefKind::Ctor(CtorOf::Variant, CtorKind::Const), variant_ctor_id) = res
+        {
+            // Check whether this is casting an enum variant discriminant.
+            // To prevent cycles, we refer to the discriminant initializer,
             // which is always an integer and thus doesn't need to know the
-            // enum's layout (or its tag type) to compute it during const eval
+            // enum's layout (or its tag type) to compute it during const eval.
             // Example:
             // enum Foo {
             //     A,
@@ -203,21 +208,6 @@ impl<'tcx> Cx<'tcx> {
             // }
             // The correct solution would be to add symbolic computations to miri,
             // so we wouldn't have to compute and store the actual value
-
-            let hir::ExprKind::Path(ref qpath) = source.kind else {
-                return ExprKind::Cast { source: self.mirror_expr(source) };
-            };
-
-            let res = self.typeck_results().qpath_res(qpath, source.hir_id);
-            let ty = self.typeck_results().node_type(source.hir_id);
-            let ty::Adt(adt_def, args) = ty.kind() else {
-                return ExprKind::Cast { source: self.mirror_expr(source) };
-            };
-
-            let Res::Def(DefKind::Ctor(CtorOf::Variant, CtorKind::Const), variant_ctor_id) = res
-            else {
-                return ExprKind::Cast { source: self.mirror_expr(source) };
-            };
 
             let idx = adt_def.variant_index_with_ctor_id(variant_ctor_id);
             let (discr_did, discr_offset) = adt_def.discriminant_def_for_variant(idx);
@@ -255,6 +245,10 @@ impl<'tcx> Cx<'tcx> {
             };
 
             ExprKind::Cast { source }
+        } else {
+            // Default to `ExprKind::Cast` for all explicit casts.
+            // MIR building then picks the right MIR casts based on the types.
+            ExprKind::Cast { source: self.mirror_expr(source) }
         }
     }
 
@@ -320,17 +314,23 @@ impl<'tcx> Cx<'tcx> {
                                 reason: errors::RustcBoxAttrReason::Attributes,
                             });
                         } else if let Some(box_item) = tcx.lang_items().owned_box() {
-                            if let hir::ExprKind::Path(hir::QPath::TypeRelative(ty, fn_path)) = fun.kind
+                            if let hir::ExprKind::Path(hir::QPath::TypeRelative(ty, fn_path)) =
+                                fun.kind
                                 && let hir::TyKind::Path(hir::QPath::Resolved(_, path)) = ty.kind
                                 && path.res.opt_def_id().is_some_and(|did| did == box_item)
                                 && fn_path.ident.name == sym::new
                                 && let [value] = args
                             {
-                                return Expr { temp_lifetime, ty: expr_ty, span: expr.span, kind: ExprKind::Box { value: self.mirror_expr(value) } }
+                                return Expr {
+                                    temp_lifetime,
+                                    ty: expr_ty,
+                                    span: expr.span,
+                                    kind: ExprKind::Box { value: self.mirror_expr(value) },
+                                };
                             } else {
                                 tcx.sess.emit_err(errors::RustcBoxAttributeError {
                                     span: expr.span,
-                                    reason: errors::RustcBoxAttrReason::NotBoxNew
+                                    reason: errors::RustcBoxAttrReason::NotBoxNew,
                                 });
                             }
                         } else {
@@ -343,17 +343,16 @@ impl<'tcx> Cx<'tcx> {
 
                     // Tuple-like ADTs are represented as ExprKind::Call. We convert them here.
                     let adt_data = if let hir::ExprKind::Path(ref qpath) = fun.kind
-                    && let Some(adt_def) = expr_ty.ty_adt_def() {
+                        && let Some(adt_def) = expr_ty.ty_adt_def()
+                    {
                         match qpath {
-                            hir::QPath::Resolved(_, ref path) => {
-                                match path.res {
-                                    Res::Def(DefKind::Ctor(_, CtorKind::Fn), ctor_id) => {
-                                        Some((adt_def, adt_def.variant_index_with_ctor_id(ctor_id)))
-                                    }
-                                    Res::SelfCtor(..) => Some((adt_def, FIRST_VARIANT)),
-                                    _ => None,
+                            hir::QPath::Resolved(_, ref path) => match path.res {
+                                Res::Def(DefKind::Ctor(_, CtorKind::Fn), ctor_id) => {
+                                    Some((adt_def, adt_def.variant_index_with_ctor_id(ctor_id)))
                                 }
-                            }
+                                Res::SelfCtor(..) => Some((adt_def, FIRST_VARIANT)),
+                                _ => None,
+                            },
                             hir::QPath::TypeRelative(_ty, _) => {
                                 if let Some((DefKind::Ctor(_, CtorKind::Fn), ctor_id)) =
                                     self.typeck_results().type_dependent_def(fun.hir_id)
@@ -362,7 +361,6 @@ impl<'tcx> Cx<'tcx> {
                                 } else {
                                     None
                                 }
-
                             }
                             _ => None,
                         }
@@ -570,8 +568,8 @@ impl<'tcx> Cx<'tcx> {
                 let closure_ty = self.typeck_results().expr_ty(expr);
                 let (def_id, args, movability) = match *closure_ty.kind() {
                     ty::Closure(def_id, args) => (def_id, UpvarArgs::Closure(args), None),
-                    ty::Generator(def_id, args, movability) => {
-                        (def_id, UpvarArgs::Generator(args), Some(movability))
+                    ty::Coroutine(def_id, args, movability) => {
+                        (def_id, UpvarArgs::Coroutine(args), Some(movability))
                     }
                     _ => {
                         span_bug!(expr.span, "closure expr w/o closure type: {:?}", closure_ty);
@@ -672,7 +670,7 @@ impl<'tcx> Cx<'tcx> {
             hir::ExprKind::OffsetOf(_, _) => {
                 let data = self.typeck_results.offset_of_data();
                 let &(container, ref indices) = data.get(expr.hir_id).unwrap();
-                let fields = tcx.mk_fields_from_iter(indices.iter().copied());
+                let fields = tcx.mk_offset_of_from_iter(indices.iter().copied());
 
                 ExprKind::OffsetOf { container, fields }
             }

@@ -211,7 +211,6 @@ impl CheckAttrVisitor<'_> {
                 sym::deprecated => self.check_deprecated(hir_id, attr, span, target),
                 sym::macro_use | sym::macro_escape => self.check_macro_use(hir_id, attr, target),
                 sym::path => self.check_generic_attr(hir_id, attr, target, Target::Mod),
-                sym::plugin_registrar => self.check_plugin_registrar(hir_id, attr, target),
                 sym::macro_export => self.check_macro_export(hir_id, attr, target),
                 sym::ignore | sym::should_panic => {
                     self.check_generic_attr(hir_id, attr, target, Target::Fn)
@@ -1076,7 +1075,9 @@ impl CheckAttrVisitor<'_> {
     ) -> bool {
         let mut is_valid = true;
 
-        if let Some(mi) = attr.meta() && let Some(list) = mi.meta_item_list() {
+        if let Some(mi) = attr.meta()
+            && let Some(list) = mi.meta_item_list()
+        {
             for meta in list {
                 if let Some(i_meta) = meta.meta_item() {
                     match i_meta.name_or_empty() {
@@ -1108,6 +1109,7 @@ impl CheckAttrVisitor<'_> {
                         | sym::html_root_url
                         | sym::html_no_source
                         | sym::test
+                        | sym::rust_logo
                             if !self.check_attr_crate_level(attr, meta, hir_id) =>
                         {
                             is_valid = false;
@@ -1132,14 +1134,7 @@ impl CheckAttrVisitor<'_> {
                             is_valid = false;
                         }
 
-                        sym::masked
-                            if !self.check_doc_masked(
-                                attr,
-                                meta,
-                                hir_id,
-                                target,
-                            ) =>
-                        {
+                        sym::masked if !self.check_doc_masked(attr, meta, hir_id, target) => {
                             is_valid = false;
                         }
 
@@ -1166,6 +1161,18 @@ impl CheckAttrVisitor<'_> {
                         | sym::plugins
                         | sym::fake_variadic => {}
 
+                        sym::rust_logo => {
+                            if !self.tcx.features().rustdoc_internals {
+                                feature_err(
+                                    &self.tcx.sess.parse_sess,
+                                    sym::rustdoc_internals,
+                                    meta.span(),
+                                    "the `#[doc(rust_logo)]` attribute is used for Rust branding",
+                                )
+                                .emit();
+                            }
+                        }
+
                         sym::test => {
                             if !self.check_test_attr(meta, hir_id) {
                                 is_valid = false;
@@ -1179,13 +1186,11 @@ impl CheckAttrVisitor<'_> {
                                     INVALID_DOC_ATTRIBUTES,
                                     hir_id,
                                     i_meta.span,
-                                    errors::DocTestUnknownSpotlight {
-                                        path,
-                                        span: i_meta.span
-                                    }
+                                    errors::DocTestUnknownSpotlight { path, span: i_meta.span },
                                 );
-                            } else if i_meta.has_name(sym::include) &&
-                                    let Some(value) = i_meta.value_str() {
+                            } else if i_meta.has_name(sym::include)
+                                && let Some(value) = i_meta.value_str()
+                            {
                                 let applicability = if list.len() == 1 {
                                     Applicability::MachineApplicable
                                 } else {
@@ -1200,16 +1205,19 @@ impl CheckAttrVisitor<'_> {
                                     errors::DocTestUnknownInclude {
                                         path,
                                         value: value.to_string(),
-                                        inner: match attr.style { AttrStyle::Inner=>  "!" , AttrStyle::Outer => "" },
+                                        inner: match attr.style {
+                                            AttrStyle::Inner => "!",
+                                            AttrStyle::Outer => "",
+                                        },
                                         sugg: (attr.meta().unwrap().span, applicability),
-                                    }
+                                    },
                                 );
                             } else {
                                 self.tcx.emit_spanned_lint(
                                     INVALID_DOC_ATTRIBUTES,
                                     hir_id,
                                     i_meta.span,
-                                    errors::DocTestUnknownAny { path }
+                                    errors::DocTestUnknownAny { path },
                                 );
                             }
                             is_valid = false;
@@ -2189,8 +2197,9 @@ impl CheckAttrVisitor<'_> {
                 attr.span,
                 errors::MacroExport::Normal,
             );
-        } else if let Some(meta_item_list) = attr.meta_item_list() &&
-        !meta_item_list.is_empty() {
+        } else if let Some(meta_item_list) = attr.meta_item_list()
+            && !meta_item_list.is_empty()
+        {
             if meta_item_list.len() > 1 {
                 self.tcx.emit_spanned_lint(
                     INVALID_MACRO_EXPORT_ARGUMENTS,
@@ -2227,17 +2236,6 @@ impl CheckAttrVisitor<'_> {
         }
     }
 
-    fn check_plugin_registrar(&self, hir_id: HirId, attr: &Attribute, target: Target) {
-        if target != Target::Fn {
-            self.tcx.emit_spanned_lint(
-                UNUSED_ATTRIBUTES,
-                hir_id,
-                attr.span,
-                errors::PluginRegistrar,
-            );
-        }
-    }
-
     fn check_unused_attribute(&self, hir_id: HirId, attr: &Attribute) {
         // Warn on useless empty attributes.
         let note = if matches!(
@@ -2255,9 +2253,9 @@ impl CheckAttrVisitor<'_> {
         {
             errors::UnusedNote::EmptyList { name: attr.name_or_empty() }
         } else if matches!(
-                attr.name_or_empty(),
-                sym::allow | sym::warn | sym::deny | sym::forbid | sym::expect
-            ) && let Some(meta) = attr.meta_item_list()
+            attr.name_or_empty(),
+            sym::allow | sym::warn | sym::deny | sym::forbid | sym::expect
+        ) && let Some(meta) = attr.meta_item_list()
             && meta.len() == 1
             && let Some(item) = meta[0].meta_item()
             && let MetaItemKind::NameValue(_) = &item.kind
@@ -2380,7 +2378,7 @@ impl CheckAttrVisitor<'_> {
 
         let errors = ocx.select_all_or_error();
         if !errors.is_empty() {
-            infcx.err_ctxt().report_fulfillment_errors(&errors);
+            infcx.err_ctxt().report_fulfillment_errors(errors);
             self.abort.set(true);
         }
     }
@@ -2524,10 +2522,30 @@ fn check_invalid_crate_level_attr(tcx: TyCtxt<'_>, attrs: &[Attribute]) {
         if attr.style == AttrStyle::Inner {
             for attr_to_check in ATTRS_TO_CHECK {
                 if attr.has_name(*attr_to_check) {
+                    let item = tcx
+                        .hir()
+                        .items()
+                        .map(|id| tcx.hir().item(id))
+                        .find(|item| !item.span.is_dummy()) // Skip prelude `use`s
+                        .map(|item| errors::ItemFollowingInnerAttr {
+                            span: item.ident.span,
+                            kind: item.kind.descr(),
+                        });
                     tcx.sess.emit_err(errors::InvalidAttrAtCrateLevel {
                         span: attr.span,
-                        snippet: tcx.sess.source_map().span_to_snippet(attr.span).ok(),
+                        sugg_span: tcx
+                            .sess
+                            .source_map()
+                            .span_to_snippet(attr.span)
+                            .ok()
+                            .filter(|src| src.starts_with("#!["))
+                            .map(|_| {
+                                attr.span
+                                    .with_lo(attr.span.lo() + BytePos(1))
+                                    .with_hi(attr.span.lo() + BytePos(2))
+                            }),
                         name: *attr_to_check,
+                        item,
                     });
                 }
             }

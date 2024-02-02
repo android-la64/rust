@@ -5,7 +5,7 @@
 //! collect them instead.
 
 use rustc_ast::Attribute;
-use rustc_attr::{rust_version_symbol, VERSION_PLACEHOLDER};
+use rustc_attr::VERSION_PLACEHOLDER;
 use rustc_hir::intravisit::Visitor;
 use rustc_middle::hir::nested_filter;
 use rustc_middle::middle::lib_features::LibFeatures;
@@ -56,8 +56,10 @@ impl<'tcx> LibFeatureCollector<'tcx> {
                     }
                 }
 
-                if let Some(s) = since && s.as_str() == VERSION_PLACEHOLDER {
-                    since = Some(rust_version_symbol());
+                if let Some(s) = since
+                    && s.as_str() == VERSION_PLACEHOLDER
+                {
+                    since = Some(sym::env_CFG_RELEASE);
                 }
 
                 if let Some(feature) = feature {

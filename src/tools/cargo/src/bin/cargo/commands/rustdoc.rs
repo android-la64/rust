@@ -7,6 +7,7 @@ pub fn cli() -> Command {
         .about("Build a package's documentation, using specified custom flags.")
         .arg(
             Arg::new("args")
+                .value_name("ARGS")
                 .help("Extra rustdoc flags")
                 .num_args(0..)
                 .trailing_var_arg(true),
@@ -26,9 +27,9 @@ pub fn cli() -> Command {
             "Build only the specified example",
             "Build all examples",
             "Build only the specified test target",
-            "Build all tests",
+            "Build all test targets",
             "Build only the specified bench target",
-            "Build all benches",
+            "Build all bench targets",
             "Build all targets",
         )
         .arg_features()

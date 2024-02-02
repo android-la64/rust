@@ -2,7 +2,7 @@
 
 Counting bytes really fast
 
-[![Build Status](https://travis-ci.org/llogiq/bytecount.svg?branch=master)](https://travis-ci.org/llogiq/bytecount)
+[![Continuous integration](https://github.com/llogiq/bytecount/actions/workflows/ci.yml/badge.svg)](https://github.com/llogiq/bytecount/actions/workflows/ci.yml)
 [![Windows build status](https://ci.appveyor.com/api/projects/status/github/llogiq/bytecount?svg=true)](https://ci.appveyor.com/project/llogiq/bytecount)
 [![Current Version](https://img.shields.io/crates/v/bytecount.svg)](https://crates.io/crates/bytecount)
 [![License: Apache 2.0/MIT](https://img.shields.io/crates/l/bytecount.svg)](#license)
@@ -12,7 +12,7 @@ The [newlinebench](https://github.com/llogiq/newlinebench) repository has furthe
 
 To use bytecount in your crate, if you have [cargo-edit](https://github.com/killercup/cargo-edit), just type
 `cargo add bytecount` in a terminal with the crate root as the current path. Otherwise you can manually edit your
-`Cargo.toml` to add `bytecount = 0.6.3` to your `[dependencies]` section.
+`Cargo.toml` to add `bytecount = 0.6.4` to your `[dependencies]` section.
 
 In your crate root (`lib.rs` or `main.rs`, depending on if you are writing a
 library or application), add `extern crate bytecount;`. Now you can simply use

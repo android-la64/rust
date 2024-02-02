@@ -40,13 +40,17 @@ use libc::{c_int, mode_t};
 ))]
 use libc::c_char;
 #[cfg(any(
-    target_os = "linux",
+    all(target_os = "linux", not(target_env = "musl")),
     target_os = "emscripten",
     target_os = "android",
-    target_os = "hurd",
+    target_os = "hurd"
 ))]
 use libc::dirfd;
-#[cfg(any(target_os = "linux", target_os = "emscripten", target_os = "hurd"))]
+#[cfg(any(
+    all(target_os = "linux", not(target_env = "musl")),
+    target_os = "emscripten",
+    target_os = "hurd"
+))]
 use libc::fstatat64;
 #[cfg(any(
     target_os = "android",
@@ -54,11 +58,13 @@ use libc::fstatat64;
     target_os = "fuchsia",
     target_os = "redox",
     target_os = "illumos",
+    target_os = "aix",
     target_os = "nto",
     target_os = "vita",
+    all(target_os = "linux", target_env = "musl"),
 ))]
 use libc::readdir as readdir64;
-#[cfg(any(target_os = "linux", target_os = "hurd"))]
+#[cfg(any(all(target_os = "linux", not(target_env = "musl")), target_os = "hurd"))]
 use libc::readdir64;
 #[cfg(any(target_os = "emscripten", target_os = "l4re"))]
 use libc::readdir64_r;
@@ -71,6 +77,7 @@ use libc::readdir64_r;
     target_os = "l4re",
     target_os = "fuchsia",
     target_os = "redox",
+    target_os = "aix",
     target_os = "nto",
     target_os = "vita",
     target_os = "hurd",
@@ -82,7 +89,7 @@ use libc::{
     lstat as lstat64, off64_t, open as open64, stat as stat64,
 };
 #[cfg(not(any(
-    target_os = "linux",
+    all(target_os = "linux", not(target_env = "musl")),
     target_os = "emscripten",
     target_os = "l4re",
     target_os = "android",
@@ -93,7 +100,7 @@ use libc::{
     lstat as lstat64, off_t as off64_t, open as open64, stat as stat64,
 };
 #[cfg(any(
-    target_os = "linux",
+    all(target_os = "linux", not(target_env = "musl")),
     target_os = "emscripten",
     target_os = "l4re",
     target_os = "hurd"
@@ -288,6 +295,7 @@ unsafe impl Sync for Dir {}
     target_os = "illumos",
     target_os = "fuchsia",
     target_os = "redox",
+    target_os = "aix",
     target_os = "nto",
     target_os = "vita",
     target_os = "hurd",
@@ -311,6 +319,7 @@ pub struct DirEntry {
     target_os = "illumos",
     target_os = "fuchsia",
     target_os = "redox",
+    target_os = "aix",
     target_os = "nto",
     target_os = "vita",
     target_os = "hurd",
@@ -320,8 +329,9 @@ struct dirent64_min {
     #[cfg(not(any(
         target_os = "solaris",
         target_os = "illumos",
+        target_os = "aix",
         target_os = "nto",
-        target_os = "vita"
+        target_os = "vita",
     )))]
     d_type: u8,
 }
@@ -333,6 +343,7 @@ struct dirent64_min {
     target_os = "illumos",
     target_os = "fuchsia",
     target_os = "redox",
+    target_os = "aix",
     target_os = "nto",
     target_os = "vita",
     target_os = "hurd",
@@ -464,7 +475,22 @@ impl FileAttr {
     }
 }
 
-#[cfg(not(any(target_os = "netbsd", target_os = "nto")))]
+#[cfg(target_os = "aix")]
+impl FileAttr {
+    pub fn modified(&self) -> io::Result<SystemTime> {
+        Ok(SystemTime::new(self.stat.st_mtime.tv_sec as i64, self.stat.st_mtime.tv_nsec as i64))
+    }
+
+    pub fn accessed(&self) -> io::Result<SystemTime> {
+        Ok(SystemTime::new(self.stat.st_atime.tv_sec as i64, self.stat.st_atime.tv_nsec as i64))
+    }
+
+    pub fn created(&self) -> io::Result<SystemTime> {
+        Ok(SystemTime::new(self.stat.st_ctime.tv_sec as i64, self.stat.st_ctime.tv_nsec as i64))
+    }
+}
+
+#[cfg(not(any(target_os = "netbsd", target_os = "nto", target_os = "aix")))]
 impl FileAttr {
     #[cfg(not(any(
         target_os = "vxworks",
@@ -671,6 +697,7 @@ impl Iterator for ReadDir {
         target_os = "fuchsia",
         target_os = "redox",
         target_os = "illumos",
+        target_os = "aix",
         target_os = "nto",
         target_os = "vita",
         target_os = "hurd",
@@ -748,6 +775,7 @@ impl Iterator for ReadDir {
                     #[cfg(not(any(
                         target_os = "solaris",
                         target_os = "illumos",
+                        target_os = "aix",
                         target_os = "nto",
                     )))]
                     d_type: *offset_ptr!(entry_ptr, d_type) as u8,
@@ -772,6 +800,7 @@ impl Iterator for ReadDir {
         target_os = "fuchsia",
         target_os = "redox",
         target_os = "illumos",
+        target_os = "aix",
         target_os = "nto",
         target_os = "vita",
         target_os = "hurd",
@@ -829,10 +858,10 @@ impl DirEntry {
 
     #[cfg(all(
         any(
-            target_os = "linux",
+            all(target_os = "linux", not(target_env = "musl")),
             target_os = "emscripten",
             target_os = "android",
-            target_os = "hurd",
+            target_os = "hurd"
         ),
         not(miri)
     ))]
@@ -858,7 +887,7 @@ impl DirEntry {
 
     #[cfg(any(
         not(any(
-            target_os = "linux",
+            all(target_os = "linux", not(target_env = "musl")),
             target_os = "emscripten",
             target_os = "android",
             target_os = "hurd",
@@ -874,6 +903,7 @@ impl DirEntry {
         target_os = "illumos",
         target_os = "haiku",
         target_os = "vxworks",
+        target_os = "aix",
         target_os = "nto",
         target_os = "vita",
     ))]
@@ -886,6 +916,7 @@ impl DirEntry {
         target_os = "illumos",
         target_os = "haiku",
         target_os = "vxworks",
+        target_os = "aix",
         target_os = "nto",
         target_os = "vita",
     )))]
@@ -920,6 +951,7 @@ impl DirEntry {
         target_os = "espidf",
         target_os = "horizon",
         target_os = "vita",
+        target_os = "aix",
         target_os = "nto",
         target_os = "hurd",
     ))]
@@ -977,6 +1009,7 @@ impl DirEntry {
         target_os = "illumos",
         target_os = "fuchsia",
         target_os = "redox",
+        target_os = "aix",
         target_os = "nto",
         target_os = "vita",
         target_os = "hurd",
@@ -991,6 +1024,7 @@ impl DirEntry {
         target_os = "illumos",
         target_os = "fuchsia",
         target_os = "redox",
+        target_os = "aix",
         target_os = "nto",
         target_os = "vita",
         target_os = "hurd",
@@ -1391,6 +1425,7 @@ impl FromInner<FileDesc> for File {
 }
 
 impl AsFd for File {
+    #[inline]
     fn as_fd(&self) -> BorrowedFd<'_> {
         self.0.as_fd()
     }
@@ -2025,6 +2060,7 @@ mod remove_dir_impl {
         target_os = "illumos",
         target_os = "haiku",
         target_os = "vxworks",
+        target_os = "aix",
     ))]
     fn is_dir(_ent: &DirEntry) -> Option<bool> {
         None
@@ -2035,6 +2071,7 @@ mod remove_dir_impl {
         target_os = "illumos",
         target_os = "haiku",
         target_os = "vxworks",
+        target_os = "aix",
     )))]
     fn is_dir(ent: &DirEntry) -> Option<bool> {
         match ent.entry.d_type {

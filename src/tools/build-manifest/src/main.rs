@@ -102,6 +102,7 @@ static TARGETS: &[&str] = &[
     "loongarch64-unknown-none-softfloat",
     "m68k-unknown-linux-gnu",
     "csky-unknown-linux-gnuabiv2",
+    "csky-unknown-linux-gnuabiv2hf",
     "mips-unknown-linux-gnu",
     "mips-unknown-linux-musl",
     "mips64-unknown-linux-gnuabi64",
@@ -191,7 +192,8 @@ static PKG_INSTALLERS: &[&str] = &["x86_64-apple-darwin", "aarch64-apple-darwin"
 
 static MINGW: &[&str] = &["i686-pc-windows-gnu", "x86_64-pc-windows-gnu"];
 
-static NIGHTLY_ONLY_COMPONENTS: &[PkgType] = &[PkgType::Miri, PkgType::JsonDocs];
+static NIGHTLY_ONLY_COMPONENTS: &[PkgType] =
+    &[PkgType::Miri, PkgType::JsonDocs, PkgType::RustcCodegenCranelift];
 
 macro_rules! t {
     ($e:expr) => {
@@ -264,6 +266,29 @@ impl Builder {
             // channel-rust-1.XX.toml
             let major_minor = rust_version.split('.').take(2).collect::<Vec<_>>().join(".");
             self.write_channel_files(&major_minor, &manifest);
+        } else if channel == "beta" {
+            // channel-rust-1.XX.YY-beta.Z.toml
+            let rust_version = self
+                .versions
+                .version(&PkgType::Rust)
+                .expect("missing Rust tarball")
+                .version
+                .expect("missing Rust version")
+                .split(' ')
+                .next()
+                .unwrap()
+                .to_string();
+            self.write_channel_files(&rust_version, &manifest);
+
+            // channel-rust-1.XX.YY-beta.toml
+            let major_minor_patch_beta =
+                rust_version.split('.').take(3).collect::<Vec<_>>().join(".");
+            self.write_channel_files(&major_minor_patch_beta, &manifest);
+
+            // channel-rust-1.XX-beta.toml
+            let major_minor_beta =
+                format!("{}-beta", rust_version.split('.').take(2).collect::<Vec<_>>().join("."));
+            self.write_channel_files(&major_minor_beta, &manifest);
         }
 
         if let Some(path) = std::env::var_os("BUILD_MANIFEST_SHIPPED_FILES_PATH") {
@@ -335,7 +360,15 @@ impl Builder {
 
         // NOTE: this profile is effectively deprecated; do not add new components to it.
         let mut complete = default;
-        complete.extend([Rls, RustAnalyzer, RustSrc, LlvmTools, RustAnalysis, Miri]);
+        complete.extend([
+            Rls,
+            RustAnalyzer,
+            RustSrc,
+            LlvmTools,
+            RustAnalysis,
+            Miri,
+            RustcCodegenCranelift,
+        ]);
         profile("complete", &complete);
 
         // The compiler libraries are not stable for end users, and they're also huge, so we only
@@ -422,7 +455,8 @@ impl Builder {
                 | PkgType::Rustfmt
                 | PkgType::LlvmTools
                 | PkgType::RustAnalysis
-                | PkgType::JsonDocs => {
+                | PkgType::JsonDocs
+                | PkgType::RustcCodegenCranelift => {
                     extensions.push(host_component(pkg));
                 }
                 PkgType::RustcDev | PkgType::RustcDocs => {

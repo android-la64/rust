@@ -419,7 +419,9 @@ impl<'a> MissingNativeLibrary<'a> {
         // if it looks like the user has provided a complete filename rather just the bare lib name,
         // then provide a note that they might want to try trimming the name
         let suggested_name = if !verbatim {
-            if let Some(libname) = libname.strip_prefix("lib") && let Some(libname) = libname.strip_suffix(".a") {
+            if let Some(libname) = libname.strip_prefix("lib")
+                && let Some(libname) = libname.strip_suffix(".a")
+            {
                 // this is a unix style filename so trim prefix & suffix
                 Some(libname)
             } else if let Some(libname) = libname.strip_suffix(".lib") {
@@ -678,14 +680,6 @@ impl IntoDiagnostic<'_> for CannotFindCrate {
         diag.span_label(self.span, fluent::metadata_cant_find_crate);
         diag
     }
-}
-
-#[derive(Diagnostic)]
-#[diag(metadata_no_dylib_plugin, code = "E0457")]
-pub struct NoDylibPlugin {
-    #[primary_span]
-    pub span: Span,
-    pub crate_name: Symbol,
 }
 
 #[derive(Diagnostic)]

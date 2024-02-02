@@ -31,7 +31,7 @@ declare_clippy_lint! {
     /// The `resize` call first allocates memory (since `Vec::new()` did not), and only *then* zero-initializes it.
     ///
     /// ### Example
-    /// ```rust
+    /// ```no_run
     /// # use core::iter::repeat;
     /// # let len = 4;
     /// let mut vec1 = Vec::new();
@@ -45,7 +45,7 @@ declare_clippy_lint! {
     /// ```
     ///
     /// Use instead:
-    /// ```rust
+    /// ```no_run
     /// # let len = 4;
     /// let mut vec1 = vec![0; len];
     /// let mut vec2 = vec![0; len];
@@ -335,7 +335,7 @@ impl<'a, 'tcx> Visitor<'tcx> for VectorInitializationVisitor<'a, 'tcx> {
 
     fn visit_block(&mut self, block: &'tcx Block<'_>) {
         if self.initialization_found {
-            if let Some(s) = block.stmts.get(0) {
+            if let Some(s) = block.stmts.first() {
                 self.visit_stmt(s);
             }
 

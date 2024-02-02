@@ -22,8 +22,8 @@ use cargo::core::Registry;
 use cargo::core::SourceId;
 use cargo::core::Workspace;
 use cargo::sources::source::QueryKind;
+use cargo::util::cache_lock::CacheLockMode;
 use cargo::util::command_prelude::*;
-use cargo::util::ToSemver;
 use cargo::CargoResult;
 use cargo_util::ProcessBuilder;
 
@@ -148,26 +148,13 @@ fn bump_check(args: &clap::ArgMatches, config: &cargo::util::Config) -> CargoRes
         anyhow::bail!(msg)
     }
 
-    // Tracked by https://github.com/obi1kenobi/cargo-semver-checks/issues/511
-    let exclude_args = [
-        "--exclude",
-        "cargo-credential-1password",
-        "--exclude",
-        "cargo-credential-libsecret",
-        "--exclude",
-        "cargo-credential-macos-keychain",
-        "--exclude",
-        "cargo-credential-wincred",
-    ];
-
     // Even when we test against baseline-rev, we still need to make sure a
     // change doesn't violate SemVer rules against crates.io releases. The
     // possibility of this happening is nearly zero but no harm to check twice.
     let mut cmd = ProcessBuilder::new("cargo");
     cmd.arg("semver-checks")
         .arg("check-release")
-        .arg("--workspace")
-        .args(&exclude_args);
+        .arg("--workspace");
     config.shell().status("Running", &cmd)?;
     cmd.exec()?;
 
@@ -176,8 +163,7 @@ fn bump_check(args: &clap::ArgMatches, config: &cargo::util::Config) -> CargoRes
         cmd.arg("semver-checks")
             .arg("--workspace")
             .arg("--baseline-rev")
-            .arg(referenced_commit.id().to_string())
-            .args(&exclude_args);
+            .arg(referenced_commit.id().to_string());
         config.shell().status("Running", &cmd)?;
         cmd.exec()?;
     }
@@ -290,7 +276,7 @@ fn beta_and_stable_branch(repo: &git2::Repository) -> CargoResult<[git2::Branch<
             tracing::trace!("branch `{name}` is not in the format of `<remote>/rust-<semver>`");
             continue;
         };
-        let Ok(version) = version.to_semver() else {
+        let Ok(version) = version.parse::<semver::Version>() else {
             tracing::trace!("branch `{name}` is not a valid semver: `{version}`");
             continue;
         };
@@ -361,7 +347,7 @@ fn check_crates_io<'a>(
 ) -> CargoResult<()> {
     let source_id = SourceId::crates_io(config)?;
     let mut registry = PackageRegistry::new(config)?;
-    let _lock = config.acquire_package_cache_lock()?;
+    let _lock = config.acquire_package_cache_lock(CacheLockMode::DownloadExclusive)?;
     registry.lock_patches();
     config.shell().status(
         STATUS,

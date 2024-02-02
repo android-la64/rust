@@ -36,6 +36,37 @@ Caused by:
 }
 
 #[cargo_test]
+fn empty_feature_name() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                authors = []
+
+                [features]
+                "" = []
+            "#,
+        )
+        .file("src/main.rs", "")
+        .build();
+
+    p.cargo("check")
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] failed to parse manifest at `[..]`
+
+Caused by:
+  feature name cannot be empty
+",
+        )
+        .run();
+}
+
+#[cargo_test]
 fn same_name() {
     // Feature with the same name as a dependency.
     let p = project()
@@ -1144,6 +1175,61 @@ fn activating_feature_activates_dep() {
 }
 
 #[cargo_test]
+fn activating_feature_does_not_activate_transitive_dev_dependency() {
+    let p = project()
+        .no_manifest()
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.0"
+                edition = "2021"
+
+                [features]
+                f = ["b/f"]
+
+                [dependencies]
+                b = { path = "../b" }
+            "#,
+        )
+        .file(
+            "b/Cargo.toml",
+            r#"
+                [package]
+                name = "b"
+                version = "0.0.0"
+                edition = "2021"
+
+                [features]
+                f = ["c/f"]
+
+                [dev-dependencies]
+                c = { path = "../c" }
+            "#,
+        )
+        .file(
+            "c/Cargo.toml",
+            r#"
+                [package]
+                name = "c"
+                version = "0.0.0"
+                edition = "2021"
+
+                [features]
+                f = []
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .file("b/src/lib.rs", "")
+        .file("c/src/lib.rs", "compile_error!")
+        .build();
+
+    p.cargo("check --manifest-path a/Cargo.toml --features f")
+        .run();
+}
+
+#[cargo_test]
 fn dep_feature_in_cmd_line() {
     let p = project()
         .file(
@@ -1990,7 +2076,7 @@ error: failed to parse manifest at `[ROOT]/foo/Cargo.toml`
 
 Caused by:
   invalid character `&` in feature `a&b` in package foo v0.1.0 ([ROOT]/foo), \
-  characters must be Unicode XID characters, `+`, or `.` \
+  characters must be Unicode XID characters, '-', `+`, or `.` \
   (numbers, `+`, `-`, `_`, `.`, or most letters)
 ",
         )

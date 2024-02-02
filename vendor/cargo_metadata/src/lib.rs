@@ -99,6 +99,8 @@ pub use dependency::DependencyBuilder;
 pub use dependency::{Dependency, DependencyKind};
 use diagnostic::Diagnostic;
 pub use errors::{Error, Result};
+#[cfg(feature = "unstable")]
+pub use libtest::TestMessage;
 #[allow(deprecated)]
 pub use messages::parse_messages;
 pub use messages::{
@@ -115,6 +117,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 mod dependency;
 pub mod diagnostic;
 mod errors;
+#[cfg(feature = "unstable")]
+pub mod libtest;
 mod messages;
 
 /// An "opaque" identifier for a package.
@@ -151,6 +155,11 @@ pub struct Metadata {
     pub packages: Vec<Package>,
     /// A list of all workspace members
     pub workspace_members: Vec<PackageId>,
+    /// The list of default workspace members
+    ///
+    /// This not available if running with a version of Cargo older than 1.71.
+    #[serde(skip_serializing_if = "workspace_default_members_is_missing")]
+    pub workspace_default_members: WorkspaceDefaultMembers,
     /// Dependencies graph
     pub resolve: Option<Resolve>,
     /// Workspace root
@@ -190,6 +199,18 @@ impl Metadata {
             .filter(|&p| self.workspace_members.contains(&p.id))
             .collect()
     }
+
+    /// Get the workspace default packages.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if running with a version of Cargo older than 1.71.
+    pub fn workspace_default_packages(&self) -> Vec<&Package> {
+        self.packages
+            .iter()
+            .filter(|&p| self.workspace_default_members.contains(&p.id))
+            .collect()
+    }
 }
 
 impl<'a> std::ops::Index<&'a PackageId> for Metadata {
@@ -201,6 +222,41 @@ impl<'a> std::ops::Index<&'a PackageId> for Metadata {
             .find(|p| p.id == *idx)
             .unwrap_or_else(|| panic!("no package with this id: {:?}", idx))
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(transparent)]
+/// A list of default workspace members.
+///
+/// See [`Metadata::workspace_default_members`].
+///
+/// It is only available if running a version of Cargo of 1.71 or newer.
+///
+/// # Panics
+///
+/// Dereferencing when running an older version of Cargo will panic.
+pub struct WorkspaceDefaultMembers(Option<Vec<PackageId>>);
+
+impl core::ops::Deref for WorkspaceDefaultMembers {
+    type Target = [PackageId];
+
+    fn deref(&self) -> &Self::Target {
+        self.0
+            .as_ref()
+            .expect("WorkspaceDefaultMembers should only be dereferenced on Cargo versions >= 1.71")
+    }
+}
+
+/// Return true if a valid value for [`WorkspaceDefaultMembers`] is missing, and
+/// dereferencing it would panic.
+///
+/// Internal helper for `skip_serializing_if` and test code. Might be removed in
+/// the future.
+#[doc(hidden)]
+pub fn workspace_default_members_is_missing(
+    workspace_default_members: &WorkspaceDefaultMembers,
+) -> bool {
+    workspace_default_members.0.is_none()
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -289,11 +345,12 @@ pub struct DepKindInfo {
 /// Each [`target`][Package::targets] of a `Package` will be built as a crate.
 /// For more information, see <https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html>.
 pub struct Package {
-    /// Name as given in the `Cargo.toml`
+    /// The [`name` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-name-field) as given in the `Cargo.toml`
+    // (We say "given in" instead of "specified in" since the `name` key cannot be inherited from the workspace.)
     pub name: String,
-    /// Version given in the `Cargo.toml`
+    /// The [`version` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-version-field) as specified in the `Cargo.toml`
     pub version: Version,
-    /// Authors given in the `Cargo.toml`
+    /// The [`authors` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-authors-field) as specified in the `Cargo.toml`
     #[serde(default)]
     pub authors: Vec<String>,
     /// An opaque identifier for a package
@@ -301,12 +358,13 @@ pub struct Package {
     /// The source of the package, e.g.
     /// crates.io or `None` for local projects.
     pub source: Option<Source>,
-    /// Description as given in the `Cargo.toml`
+    /// The [`description` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-description-field) as specified in the `Cargo.toml`
     pub description: Option<String>,
     /// List of dependencies of this particular package
     pub dependencies: Vec<Dependency>,
-    /// License as given in the `Cargo.toml`
+    /// The [`license` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields) as specified in the `Cargo.toml`
     pub license: Option<String>,
+    /// The [`license-file` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields) as specified in the `Cargo.toml`.
     /// If the package is using a nonstandard license, this key may be specified instead of
     /// `license`, and must point to a file relative to the manifest.
     pub license_file: Option<Utf8PathBuf>,
@@ -316,32 +374,33 @@ pub struct Package {
     pub features: BTreeMap<String, Vec<String>>,
     /// Path containing the `Cargo.toml`
     pub manifest_path: Utf8PathBuf,
-    /// Categories as given in the `Cargo.toml`
+    /// The [`categories` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-categories-field) as specified in the `Cargo.toml`
     #[serde(default)]
     pub categories: Vec<String>,
-    /// Keywords as given in the `Cargo.toml`
+    /// The [`keywords` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-keywords-field) as specified in the `Cargo.toml`
     #[serde(default)]
     pub keywords: Vec<String>,
-    /// Readme as given in the `Cargo.toml`
+    /// The [`readme` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-readme-field) as specified in the `Cargo.toml`
     pub readme: Option<Utf8PathBuf>,
-    /// Repository as given in the `Cargo.toml`
+    /// The [`repository` URL](https://doc.rust-lang.org/cargo/reference/manifest.html#the-repository-field) as specified in the `Cargo.toml`
     // can't use `url::Url` because that requires a more recent stable compiler
     pub repository: Option<String>,
-    /// Homepage as given in the `Cargo.toml`
+    /// The [`homepage` URL](https://doc.rust-lang.org/cargo/reference/manifest.html#the-homepage-field) as specified in the `Cargo.toml`.
     ///
     /// On versions of cargo before 1.49, this will always be [`None`].
     pub homepage: Option<String>,
-    /// Documentation URL as given in the `Cargo.toml`
+    /// The [`documentation` URL](https://doc.rust-lang.org/cargo/reference/manifest.html#the-documentation-field) as specified in the `Cargo.toml`.
     ///
     /// On versions of cargo before 1.49, this will always be [`None`].
     pub documentation: Option<String>,
-    /// Default Rust edition for the package
+    /// The default Rust edition for the package (either what's specified in the [`edition` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-edition-field)
+    /// or defaulting to [`Edition::E2015`]).
     ///
     /// Beware that individual targets may specify their own edition in
     /// [`Target::edition`].
     #[serde(default)]
     pub edition: Edition,
-    /// Contents of the free form package.metadata section
+    /// Contents of the free form [`package.metadata` section](https://doc.rust-lang.org/cargo/reference/manifest.html#the-metadata-table).
     ///
     /// This contents can be serialized to a struct using serde:
     ///
@@ -368,16 +427,19 @@ pub struct Package {
     pub metadata: serde_json::Value,
     /// The name of a native library the package is linking to.
     pub links: Option<String>,
-    /// List of registries to which this package may be published.
+    /// List of registries to which this package may be published (derived from the [`publish` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-publish-field)).
     ///
     /// Publishing is unrestricted if `None`, and forbidden if the `Vec` is empty.
     ///
     /// This is always `None` if running with a version of Cargo older than 1.39.
     pub publish: Option<Vec<String>>,
+    /// The [`default-run` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-default-run-field) as given in the `Cargo.toml`
+    // (We say "given in" instead of "specified in" since the `default-run` key cannot be inherited from the workspace.)
     /// The default binary to run by `cargo run`.
     ///
     /// This is always `None` if running with a version of Cargo older than 1.55.
     pub default_run: Option<String>,
+    /// The [`rust-version` field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field) as specified in the `Cargo.toml`.
     /// The minimum supported Rust version of this package.
     ///
     /// This is always `None` if running with a version of Cargo older than 1.58.

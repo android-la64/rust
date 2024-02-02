@@ -10,7 +10,7 @@
 //! all other analyses. The `LintPass`es built into rustc are defined
 //! within [rustc_session::lint::builtin],
 //! which has further comments on how to add such a lint.
-//! rustc can also load user-defined lint plugins via the plugin mechanism.
+//! rustc can also load external lint plugins, as is done for Clippy.
 //!
 //! Some of rustc's lints are defined elsewhere in the compiler and work by
 //! calling `add_lint()` on the overall `Session` object. This works when
@@ -27,6 +27,8 @@
 
 #![allow(rustc::potential_query_instability)]
 #![doc(html_root_url = "https://doc.rust-lang.org/nightly/nightly-rustc/")]
+#![cfg_attr(not(bootstrap), doc(rust_logo))]
+#![cfg_attr(not(bootstrap), feature(rustdoc_internals))]
 #![feature(array_windows)]
 #![feature(box_patterns)]
 #![feature(control_flow_enum)]
@@ -50,6 +52,7 @@ extern crate rustc_session;
 extern crate tracing;
 
 mod array_into_iter;
+mod async_fn_in_trait;
 pub mod builtin;
 mod context;
 mod deref_into_dyn_supertrait;
@@ -96,6 +99,7 @@ use rustc_session::lint::builtin::{
 };
 
 use array_into_iter::ArrayIntoIter;
+use async_fn_in_trait::AsyncFnInTrait;
 use builtin::*;
 use deref_into_dyn_supertrait::*;
 use drop_forget_useless::*;
@@ -234,6 +238,7 @@ late_lint_methods!(
             MapUnitFn: MapUnitFn,
             MissingDebugImplementations: MissingDebugImplementations,
             MissingDoc: MissingDoc,
+            AsyncFnInTrait: AsyncFnInTrait,
         ]
     ]
 );
@@ -501,6 +506,11 @@ fn register_builtins(store: &mut LintStore) {
         "replaced with another group of lints, see RFC \
          <https://rust-lang.github.io/rfcs/2145-type-privacy.html> for more information",
     );
+    store.register_removed(
+        "invalid_alignment",
+        "converted into hard error, see PR #104616 \
+         <https://github.com/rust-lang/rust/pull/104616> for more information",
+    );
 }
 
 fn register_internals(store: &mut LintStore) {
@@ -521,6 +531,8 @@ fn register_internals(store: &mut LintStore) {
     store.register_late_mod_pass(|_| Box::new(BadOptAccess));
     store.register_lints(&PassByValue::get_lints());
     store.register_late_mod_pass(|_| Box::new(PassByValue));
+    store.register_lints(&SpanUseEqCtxt::get_lints());
+    store.register_late_mod_pass(|_| Box::new(SpanUseEqCtxt));
     // FIXME(davidtwco): deliberately do not include `UNTRANSLATABLE_DIAGNOSTIC` and
     // `DIAGNOSTIC_OUTSIDE_OF_IMPL` here because `-Wrustc::internal` is provided to every crate and
     // these lints will trigger all of the time - change this once migration to diagnostic structs
@@ -538,6 +550,7 @@ fn register_internals(store: &mut LintStore) {
             LintId::of(USAGE_OF_QUALIFIED_TY),
             LintId::of(EXISTING_DOC_KEYWORD),
             LintId::of(BAD_OPT_ACCESS),
+            LintId::of(SPAN_USE_EQ_CTXT),
         ],
     );
 }

@@ -821,12 +821,7 @@ fn handle_equal_sign(v: &mut Vec<Token<'_>>, c: ReservedChar) -> bool {
     true
 }
 
-fn check_if_number<'a>(
-    iterator: &mut MyPeekable<'_>,
-    start: usize,
-    pos: usize,
-    source: &'a str,
-) -> bool {
+fn check_if_number(iterator: &mut MyPeekable<'_>, start: usize, pos: usize, source: &str) -> bool {
     if source[start..pos].find('.').is_some() {
         return false;
     } else if u64::from_str(&source[start..pos]).is_ok() {
@@ -1064,32 +1059,12 @@ impl<'a> Tokens<'a> {
     }
 }
 
-pub struct IntoIterTokens<'a> {
-    inner: Tokens<'a>,
-}
-
 impl<'a> IntoIterator for Tokens<'a> {
-    type Item = (Token<'a>, Option<&'a Token<'a>>);
-    type IntoIter = IntoIterTokens<'a>;
+    type Item = Token<'a>;
+    type IntoIter = std::vec::IntoIter<Token<'a>>;
 
-    fn into_iter(mut self) -> Self::IntoIter {
-        self.0.reverse();
-        IntoIterTokens { inner: self }
-    }
-}
-
-impl<'a> Iterator for IntoIterTokens<'a> {
-    type Item = (Token<'a>, Option<&'a Token<'a>>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.inner.0.is_empty() {
-            None
-        } else {
-            let ret = self.inner.0.pop().expect("pop() failed");
-            // FIXME once generic traits' types are stabilized, use a second
-            // lifetime instead of transmute!
-            Some((ret, unsafe { std::mem::transmute(self.inner.0.last()) }))
-        }
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 

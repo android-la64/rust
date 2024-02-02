@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-revwalk"
-version = "0.8.0"
+version = "0.9.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -28,19 +28,19 @@ repository = "https://github.com/Byron/gitoxide"
 doctest = false
 
 [dependencies.gix-commitgraph]
-version = "^0.21.0"
+version = "^0.22.0"
 
 [dependencies.gix-date]
 version = "^0.8.0"
 
 [dependencies.gix-hash]
-version = "^0.13.0"
+version = "^0.13.1"
 
 [dependencies.gix-hashtable]
 version = "^0.4.0"
 
 [dependencies.gix-object]
-version = "^0.37.0"
+version = "^0.38.0"
 
 [dependencies.smallvec]
 version = "1.10.0"

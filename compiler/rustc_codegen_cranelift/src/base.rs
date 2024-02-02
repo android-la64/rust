@@ -1,14 +1,13 @@
 //! Codegen of a single function
 
+use cranelift_codegen::ir::UserFuncName;
+use cranelift_codegen::CodegenError;
+use cranelift_module::ModuleError;
 use rustc_ast::InlineAsmOptions;
 use rustc_index::IndexVec;
 use rustc_middle::ty::adjustment::PointerCoercion;
 use rustc_middle::ty::layout::FnAbiOf;
 use rustc_middle::ty::print::with_no_trimmed_paths;
-
-use cranelift_codegen::ir::UserFuncName;
-use cranelift_codegen::CodegenError;
-use cranelift_module::ModuleError;
 
 use crate::constant::ConstantCx;
 use crate::debuginfo::FunctionDebugContext;
@@ -250,17 +249,6 @@ pub(crate) fn verify_func(
 }
 
 fn codegen_fn_body(fx: &mut FunctionCx<'_, '_, '_>, start_block: Block) {
-    if let Err(err) =
-        fx.mir.post_mono_checks(fx.tcx, ty::ParamEnv::reveal_all(), |c| Ok(fx.monomorphize(c)))
-    {
-        err.emit_err(fx.tcx);
-        fx.bcx.append_block_params_for_function_params(fx.block_map[START_BLOCK]);
-        fx.bcx.switch_to_block(fx.block_map[START_BLOCK]);
-        // compilation should have been aborted
-        fx.bcx.ins().trap(TrapCode::UnreachableCodeReached);
-        return;
-    }
-
     let arg_uninhabited = fx
         .mir
         .args_iter()
@@ -490,7 +478,7 @@ fn codegen_fn_body(fx: &mut FunctionCx<'_, '_, '_>, start_block: Block) {
             TerminatorKind::Yield { .. }
             | TerminatorKind::FalseEdge { .. }
             | TerminatorKind::FalseUnwind { .. }
-            | TerminatorKind::GeneratorDrop => {
+            | TerminatorKind::CoroutineDrop => {
                 bug!("shouldn't exist at codegen {:?}", bb_data.terminator());
             }
             TerminatorKind::Drop { place, target, unwind: _, replace: _ } => {
@@ -778,7 +766,7 @@ fn codegen_stmt<'tcx>(
                         NullOp::SizeOf => layout.size.bytes(),
                         NullOp::AlignOf => layout.align.abi.bytes(),
                         NullOp::OffsetOf(fields) => {
-                            layout.offset_of_subfield(fx, fields.iter().map(|f| f.index())).bytes()
+                            layout.offset_of_subfield(fx, fields.iter()).bytes()
                         }
                     };
                     let val = CValue::by_val(

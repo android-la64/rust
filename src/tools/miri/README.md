@@ -223,9 +223,10 @@ degree documented below):
 - All Rust [Tier 1 targets](https://doc.rust-lang.org/rustc/platform-support.html) are supported by
   Miri. They are all checked on Miri's CI, and some (at least one per OS) are even checked on every
   Rust PR, so the shipped Miri should always work on these targets.
-- We also support `s390x-unknown-linux-gnu` as our "big-endian target of choice".
+- `aarch64-apple-darwin` is supported.
+- `s390x-unknown-linux-gnu` is supported as our "big-endian target of choice".
 - For every other target with OS `linux`, `macos`, or `windows`, Miri should generally work, but we
-  make no promises.
+  make no promises and we don't run tests for such targets.
 - For targets on other operating systems, even basic operations such as printing to the standard
   output might not work, and Miri might fail before even reaching the `main` function.
 
@@ -480,8 +481,10 @@ Moreover, Miri recognizes some environment variables:
   purpose.
 * `MIRI_TEST_THREADS` (recognized by the test suite): set the number of threads to use for running tests.
   By default the number of cores is used.
-* `MIRI_NO_STD` (recognized by `cargo miri` and the test suite) makes sure that the target's
-  sysroot is built without libstd. This allows testing and running no_std programs.
+* `MIRI_NO_STD` (recognized by `cargo miri`) makes sure that the target's sysroot is built without
+  libstd. This allows testing and running no_std programs.
+  (Miri has a heuristic to detect no-std targets based on the target name; this environment variable
+  is only needed when that heuristic fails.)
 * `RUSTC_BLESS` (recognized by the test suite and `cargo-miri-test/run-test.py`): overwrite all
   `stderr` and `stdout` files instead of checking whether the output matches.
 * `MIRI_SKIP_UI_CHECKS` (recognized by the test suite): don't check whether the

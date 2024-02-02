@@ -22,7 +22,9 @@ use crate::sources::{PathSource, CRATES_IO_INDEX, CRATES_IO_REGISTRY};
 use crate::util::edit_distance;
 use crate::util::errors::{CargoResult, ManifestError};
 use crate::util::interning::InternedString;
-use crate::util::toml::{read_manifest, InheritableFields, TomlDependency, TomlProfiles};
+use crate::util::toml::{
+    read_manifest, schema::InheritableFields, schema::TomlDependency, schema::TomlProfiles,
+};
 use crate::util::RustVersion;
 use crate::util::{config::ConfigRelativePath, Config, Filesystem, IntoUrl};
 use cargo_util::paths;
@@ -1491,7 +1493,7 @@ impl<'cfg> Workspace<'cfg> {
                         // Check if `dep_name` is member of the workspace, but isn't associated with current package.
                         self.current_opt() != Some(member) && member.name() == *dep_name
                     });
-                    if is_member && specs.iter().any(|spec| spec.name() == *dep_name) {
+                    if is_member && specs.iter().any(|spec| spec.name() == dep_name.as_str()) {
                         member_specific_features
                             .entry(*dep_name)
                             .or_default()

@@ -8,7 +8,7 @@ use rustc_middle::ty::adjustment::PointerCoercion;
 use rustc_middle::ty::layout::{IntegerExt, LayoutOf, TyAndLayout};
 use rustc_middle::ty::{self, FloatTy, Ty, TypeAndMut};
 use rustc_target::abi::Integer;
-use rustc_type_ir::sty::TyKind::*;
+use rustc_type_ir::TyKind::*;
 
 use super::{
     util::ensure_monomorphic_enough, FnVal, ImmTy, Immediate, InterpCx, Machine, OpTy, PlaceTy,
@@ -145,16 +145,12 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                 assert!(dest.layout.is_sized());
                 assert_eq!(cast_ty, dest.layout.ty); // we otherwise ignore `cast_ty` enirely...
                 if src.layout.size != dest.layout.size {
-                    let src_bytes = src.layout.size.bytes();
-                    let dest_bytes = dest.layout.size.bytes();
-                    let src_ty = format!("{}", src.layout.ty);
-                    let dest_ty = format!("{}", dest.layout.ty);
                     throw_ub_custom!(
                         fluent::const_eval_invalid_transmute,
-                        src_bytes = src_bytes,
-                        dest_bytes = dest_bytes,
-                        src = src_ty,
-                        dest = dest_ty,
+                        src_bytes = src.layout.size.bytes(),
+                        dest_bytes = dest.layout.size.bytes(),
+                        src = src.layout.ty,
+                        dest = dest.layout.ty,
                     );
                 }
 
@@ -185,7 +181,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         src: &ImmTy<'tcx, M::Provenance>,
         cast_to: TyAndLayout<'tcx>,
     ) -> InterpResult<'tcx, ImmTy<'tcx, M::Provenance>> {
-        use rustc_type_ir::sty::TyKind::*;
+        use rustc_type_ir::TyKind::*;
 
         let val = match src.layout.ty.kind() {
             // Floating point
@@ -310,7 +306,22 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
     where
         F: Float + Into<Scalar<M::Provenance>> + FloatConvert<Single> + FloatConvert<Double>,
     {
-        use rustc_type_ir::sty::TyKind::*;
+        use rustc_type_ir::TyKind::*;
+
+        fn adjust_nan<
+            'mir,
+            'tcx: 'mir,
+            M: Machine<'mir, 'tcx>,
+            F1: rustc_apfloat::Float + FloatConvert<F2>,
+            F2: rustc_apfloat::Float,
+        >(
+            ecx: &InterpCx<'mir, 'tcx, M>,
+            f1: F1,
+            f2: F2,
+        ) -> F2 {
+            if f2.is_nan() { M::generate_nan(ecx, &[f1]) } else { f2 }
+        }
+
         match *dest_ty.kind() {
             // float -> uint
             Uint(t) => {
@@ -330,9 +341,13 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                 Scalar::from_int(v, size)
             }
             // float -> f32
-            Float(FloatTy::F32) => Scalar::from_f32(f.convert(&mut false).value),
+            Float(FloatTy::F32) => {
+                Scalar::from_f32(adjust_nan(self, f, f.convert(&mut false).value))
+            }
             // float -> f64
-            Float(FloatTy::F64) => Scalar::from_f64(f.convert(&mut false).value),
+            Float(FloatTy::F64) => {
+                Scalar::from_f64(adjust_nan(self, f, f.convert(&mut false).value))
+            }
             // That's it.
             _ => span_bug!(self.cur_span(), "invalid float to {} cast", dest_ty),
         }

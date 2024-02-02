@@ -62,7 +62,8 @@ pub const _MM_FROUND_NEARBYINT: i32 = _MM_FROUND_NO_EXC | _MM_FROUND_CUR_DIRECTI
 #[cfg_attr(test, assert_instr(pblendvb))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_blendv_epi8(a: __m128i, b: __m128i, mask: __m128i) -> __m128i {
-    transmute(pblendvb(a.as_i8x16(), b.as_i8x16(), mask.as_i8x16()))
+    let mask: i8x16 = simd_lt(mask.as_i8x16(), i8x16::splat(0));
+    transmute(simd_select(mask, b.as_i8x16(), a.as_i8x16()))
 }
 
 /// Blend packed 16-bit integers from `a` and `b` using the mask `IMM8`.
@@ -74,15 +75,25 @@ pub unsafe fn _mm_blendv_epi8(a: __m128i, b: __m128i, mask: __m128i) -> __m128i 
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_blend_epi16)
 #[inline]
 #[target_feature(enable = "sse4.1")]
-// Note: LLVM7 prefers the single-precision floating-point domain when possible
-// see https://bugs.llvm.org/show_bug.cgi?id=38195
-// #[cfg_attr(test, assert_instr(pblendw, IMM8 = 0xF0))]
-#[cfg_attr(test, assert_instr(blendps, IMM8 = 0xF0))]
+#[cfg_attr(test, assert_instr(pblendw, IMM8 = 0xB1))]
 #[rustc_legacy_const_generics(2)]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_blend_epi16<const IMM8: i32>(a: __m128i, b: __m128i) -> __m128i {
     static_assert_uimm_bits!(IMM8, 8);
-    transmute(pblendw(a.as_i16x8(), b.as_i16x8(), IMM8 as u8))
+    transmute::<i16x8, _>(simd_shuffle!(
+        a.as_i16x8(),
+        b.as_i16x8(),
+        [
+            [0, 8][IMM8 as usize & 1],
+            [1, 9][(IMM8 >> 1) as usize & 1],
+            [2, 10][(IMM8 >> 2) as usize & 1],
+            [3, 11][(IMM8 >> 3) as usize & 1],
+            [4, 12][(IMM8 >> 4) as usize & 1],
+            [5, 13][(IMM8 >> 5) as usize & 1],
+            [6, 14][(IMM8 >> 6) as usize & 1],
+            [7, 15][(IMM8 >> 7) as usize & 1],
+        ]
+    ))
 }
 
 /// Blend packed double-precision (64-bit) floating-point elements from `a`
@@ -94,7 +105,8 @@ pub unsafe fn _mm_blend_epi16<const IMM8: i32>(a: __m128i, b: __m128i) -> __m128
 #[cfg_attr(test, assert_instr(blendvpd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_blendv_pd(a: __m128d, b: __m128d, mask: __m128d) -> __m128d {
-    blendvpd(a, b, mask)
+    let mask: i64x2 = simd_lt(transmute::<_, i64x2>(mask), i64x2::splat(0));
+    transmute(simd_select(mask, b.as_f64x2(), a.as_f64x2()))
 }
 
 /// Blend packed single-precision (32-bit) floating-point elements from `a`
@@ -106,7 +118,8 @@ pub unsafe fn _mm_blendv_pd(a: __m128d, b: __m128d, mask: __m128d) -> __m128d {
 #[cfg_attr(test, assert_instr(blendvps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_blendv_ps(a: __m128, b: __m128, mask: __m128) -> __m128 {
-    blendvps(a, b, mask)
+    let mask: i32x4 = simd_lt(transmute::<_, i32x4>(mask), i32x4::splat(0));
+    transmute(simd_select(mask, b.as_f32x4(), a.as_f32x4()))
 }
 
 /// Blend packed double-precision (64-bit) floating-point elements from `a`
@@ -123,7 +136,11 @@ pub unsafe fn _mm_blendv_ps(a: __m128, b: __m128, mask: __m128) -> __m128 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_blend_pd<const IMM2: i32>(a: __m128d, b: __m128d) -> __m128d {
     static_assert_uimm_bits!(IMM2, 2);
-    blendpd(a, b, IMM2 as u8)
+    transmute::<f64x2, _>(simd_shuffle!(
+        a.as_f64x2(),
+        b.as_f64x2(),
+        [[0, 2][IMM2 as usize & 1], [1, 3][(IMM2 >> 1) as usize & 1]]
+    ))
 }
 
 /// Blend packed single-precision (32-bit) floating-point elements from `a`
@@ -137,7 +154,16 @@ pub unsafe fn _mm_blend_pd<const IMM2: i32>(a: __m128d, b: __m128d) -> __m128d {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_blend_ps<const IMM4: i32>(a: __m128, b: __m128) -> __m128 {
     static_assert_uimm_bits!(IMM4, 4);
-    blendps(a, b, IMM4 as u8)
+    transmute::<f32x4, _>(simd_shuffle!(
+        a.as_f32x4(),
+        b.as_f32x4(),
+        [
+            [0, 4][IMM4 as usize & 1],
+            [1, 5][(IMM4 >> 1) as usize & 1],
+            [2, 6][(IMM4 >> 2) as usize & 1],
+            [3, 7][(IMM4 >> 3) as usize & 1],
+        ]
+    ))
 }
 
 /// Extracts a single-precision (32-bit) floating-point element from `a`,
@@ -175,7 +201,7 @@ pub unsafe fn _mm_blend_ps<const IMM4: i32>(a: __m128, b: __m128) -> __m128 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_extract_ps<const IMM8: i32>(a: __m128) -> i32 {
     static_assert_uimm_bits!(IMM8, 2);
-    transmute(simd_extract::<_, f32>(a, IMM8 as u32))
+    simd_extract::<_, f32>(a, IMM8 as u32).to_bits() as i32
 }
 
 /// Extracts an 8-bit integer from `a`, selected with `IMM8`. Returns a 32-bit
@@ -923,7 +949,9 @@ pub unsafe fn _mm_minpos_epu16(a: __m128i) -> __m128i {
 #[cfg_attr(test, assert_instr(pmuldq))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_mul_epi32(a: __m128i, b: __m128i) -> __m128i {
-    transmute(pmuldq(a.as_i32x4(), b.as_i32x4()))
+    let a = simd_cast::<_, i64x2>(simd_cast::<_, i32x2>(a.as_i64x2()));
+    let b = simd_cast::<_, i64x2>(simd_cast::<_, i32x2>(b.as_i64x2()));
+    transmute(simd_mul(a, b))
 }
 
 /// Multiplies the packed 32-bit integers in `a` and `b`, producing intermediate
@@ -1124,18 +1152,6 @@ pub unsafe fn _mm_test_mix_ones_zeros(a: __m128i, mask: __m128i) -> i32 {
 
 #[allow(improper_ctypes)]
 extern "C" {
-    #[link_name = "llvm.x86.sse41.pblendvb"]
-    fn pblendvb(a: i8x16, b: i8x16, mask: i8x16) -> i8x16;
-    #[link_name = "llvm.x86.sse41.blendvpd"]
-    fn blendvpd(a: __m128d, b: __m128d, mask: __m128d) -> __m128d;
-    #[link_name = "llvm.x86.sse41.blendvps"]
-    fn blendvps(a: __m128, b: __m128, mask: __m128) -> __m128;
-    #[link_name = "llvm.x86.sse41.blendpd"]
-    fn blendpd(a: __m128d, b: __m128d, imm2: u8) -> __m128d;
-    #[link_name = "llvm.x86.sse41.blendps"]
-    fn blendps(a: __m128, b: __m128, imm4: u8) -> __m128;
-    #[link_name = "llvm.x86.sse41.pblendw"]
-    fn pblendw(a: i16x8, b: i16x8, imm8: u8) -> i16x8;
     #[link_name = "llvm.x86.sse41.insertps"]
     fn insertps(a: __m128, b: __m128, imm8: u8) -> __m128;
     #[link_name = "llvm.x86.sse41.packusdw"]
@@ -1154,8 +1170,6 @@ extern "C" {
     fn roundss(a: __m128, b: __m128, rounding: i32) -> __m128;
     #[link_name = "llvm.x86.sse41.phminposuw"]
     fn phminposuw(a: u16x8) -> u16x8;
-    #[link_name = "llvm.x86.sse41.pmuldq"]
-    fn pmuldq(a: i32x4, b: i32x4) -> i64x2;
     #[link_name = "llvm.x86.sse41.mpsadbw"]
     fn mpsadbw(a: u8x16, b: u8x16, imm8: u8) -> u16x8;
     #[link_name = "llvm.x86.sse41.ptestz"]
@@ -1245,9 +1259,9 @@ mod tests {
     #[simd_test(enable = "sse4.1")]
     unsafe fn test_mm_extract_ps() {
         let a = _mm_setr_ps(0.0, 1.0, 2.0, 3.0);
-        let r: f32 = transmute(_mm_extract_ps::<1>(a));
+        let r: f32 = f32::from_bits(_mm_extract_ps::<1>(a) as u32);
         assert_eq!(r, 1.0);
-        let r: f32 = transmute(_mm_extract_ps::<3>(a));
+        let r: f32 = f32::from_bits(_mm_extract_ps::<3>(a) as u32);
         assert_eq!(r, 3.0);
     }
 
@@ -1668,6 +1682,7 @@ mod tests {
         assert_eq_m128(r, e);
     }
 
+    #[allow(deprecated)] // FIXME: This test uses deprecated CSR access functions
     #[simd_test(enable = "sse4.1")]
     unsafe fn test_mm_round_sd() {
         let a = _mm_setr_pd(1.5, 3.5);
@@ -1680,6 +1695,7 @@ mod tests {
         assert_eq_m128d(r, e);
     }
 
+    #[allow(deprecated)] // FIXME: This test uses deprecated CSR access functions
     #[simd_test(enable = "sse4.1")]
     unsafe fn test_mm_round_ss() {
         let a = _mm_setr_ps(1.5, 3.5, 7.5, 15.5);

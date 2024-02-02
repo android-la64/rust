@@ -3,6 +3,8 @@
 //! This module contains the code for creating and emitting diagnostics.
 
 #![doc(html_root_url = "https://doc.rust-lang.org/nightly/nightly-rustc/")]
+#![cfg_attr(not(bootstrap), doc(rust_logo))]
+#![cfg_attr(not(bootstrap), feature(rustdoc_internals))]
 #![feature(array_windows)]
 #![feature(extract_if)]
 #![feature(if_let_guard)]
@@ -505,6 +507,9 @@ pub enum StashKey {
     CallAssocMethod,
     TraitMissingMethod,
     OpaqueHiddenTypeMismatch,
+    MaybeForgetReturn,
+    /// Query cycle detected, stashing in favor of a better error.
+    Cycle,
 }
 
 fn default_track_diagnostic(d: &mut Diagnostic, f: &mut dyn FnMut(&mut Diagnostic)) {
@@ -551,7 +556,7 @@ impl Drop for HandlerInner {
         // instead of "require some error happened". Sadly that isn't ideal, as
         // lints can be `#[allow]`'d, potentially leading to this triggering.
         // Also, "good path" should be replaced with a better naming.
-        if !self.has_any_message() && !self.suppressed_expected_diag {
+        if !self.has_any_message() && !self.suppressed_expected_diag && !std::thread::panicking() {
             let bugs = std::mem::replace(&mut self.delayed_good_path_bugs, Vec::new());
             self.flush_delayed(
                 bugs,
@@ -1376,16 +1381,16 @@ impl HandlerInner {
                 self.emitted_diagnostic_codes.insert(code.clone());
             }
 
-            let already_emitted = |this: &mut Self| {
+            let already_emitted = {
                 let mut hasher = StableHasher::new();
                 diagnostic.hash(&mut hasher);
                 let diagnostic_hash = hasher.finish();
-                !this.emitted_diagnostics.insert(diagnostic_hash)
+                !self.emitted_diagnostics.insert(diagnostic_hash)
             };
 
             // Only emit the diagnostic if we've been asked to deduplicate or
             // haven't already emitted an equivalent diagnostic.
-            if !(self.flags.deduplicate_diagnostics && already_emitted(self)) {
+            if !(self.flags.deduplicate_diagnostics && already_emitted) {
                 debug!(?diagnostic);
                 debug!(?self.emitted_diagnostics);
                 let already_emitted_sub = |sub: &mut SubDiagnostic| {
@@ -1401,6 +1406,11 @@ impl HandlerInner {
                 };
 
                 diagnostic.children.extract_if(already_emitted_sub).for_each(|_| {});
+                if already_emitted {
+                    diagnostic.note(
+                        "duplicate diagnostic emitted due to `-Z deduplicate-diagnostics=no`",
+                    );
+                }
 
                 self.emitter.emit_diagnostic(diagnostic);
                 if diagnostic.is_error() {
@@ -1666,7 +1676,11 @@ impl HandlerInner {
                 let _ = write!(
                     &mut out,
                     "delayed span bug: {}\n{}\n",
-                    bug.inner.styled_message().iter().filter_map(|(msg, _)| msg.as_str()).collect::<String>(),
+                    bug.inner
+                        .styled_message()
+                        .iter()
+                        .filter_map(|(msg, _)| msg.as_str())
+                        .collect::<String>(),
                     &bug.note
                 );
             }

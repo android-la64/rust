@@ -15,9 +15,7 @@
 #![feature(const_hash)]
 #![feature(const_heap)]
 #![feature(const_maybe_uninit_as_mut_ptr)]
-#![feature(const_maybe_uninit_assume_init_read)]
 #![feature(const_nonnull_new)]
-#![feature(const_pointer_byte_offsets)]
 #![feature(const_pointer_is_aligned)]
 #![feature(const_ptr_as_ref)]
 #![feature(const_ptr_write)]
@@ -25,6 +23,7 @@
 #![feature(const_likely)]
 #![feature(const_location_fields)]
 #![feature(core_intrinsics)]
+#![feature(core_io_borrowed_buf)]
 #![feature(core_private_bignum)]
 #![feature(core_private_diy_float)]
 #![feature(dec2flt)]
@@ -49,6 +48,7 @@
 #![feature(sort_internals)]
 #![feature(slice_take)]
 #![feature(slice_from_ptr_range)]
+#![feature(slice_split_once)]
 #![feature(split_as_slice)]
 #![feature(maybe_uninit_uninit_array)]
 #![feature(maybe_uninit_write_slice)]
@@ -87,7 +87,6 @@
 #![feature(const_waker)]
 #![feature(never_type)]
 #![feature(unwrap_infallible)]
-#![feature(pointer_byte_offsets)]
 #![feature(pointer_is_aligned)]
 #![feature(portable_simd)]
 #![feature(ptr_metadata)]
@@ -120,8 +119,6 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(fuzzy_provenance_casts)]
 
-extern crate test;
-
 mod alloc;
 mod any;
 mod array;
@@ -139,6 +136,7 @@ mod fmt;
 mod future;
 mod hash;
 mod intrinsics;
+mod io;
 mod iter;
 mod lazy;
 #[cfg(test)]

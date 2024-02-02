@@ -1,30 +1,30 @@
 #[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
 #[repr(transparent)]
-pub struct ID2D1SimplifiedGeometrySink(::windows::core::IUnknown);
+pub struct ID2D1SimplifiedGeometrySink(::windows_core::IUnknown);
 impl ID2D1SimplifiedGeometrySink {
     pub unsafe fn SetFillMode(&self, fillmode: D2D1_FILL_MODE) {
-        (::windows::core::Interface::vtable(self).SetFillMode)(::windows::core::Interface::as_raw(self), fillmode)
+        (::windows_core::Interface::vtable(self).SetFillMode)(::windows_core::Interface::as_raw(self), fillmode)
     }
     pub unsafe fn SetSegmentFlags(&self, vertexflags: D2D1_PATH_SEGMENT) {
-        (::windows::core::Interface::vtable(self).SetSegmentFlags)(::windows::core::Interface::as_raw(self), vertexflags)
+        (::windows_core::Interface::vtable(self).SetSegmentFlags)(::windows_core::Interface::as_raw(self), vertexflags)
     }
     pub unsafe fn BeginFigure(&self, startpoint: D2D_POINT_2F, figurebegin: D2D1_FIGURE_BEGIN) {
-        (::windows::core::Interface::vtable(self).BeginFigure)(::windows::core::Interface::as_raw(self), ::core::mem::transmute(startpoint), figurebegin)
+        (::windows_core::Interface::vtable(self).BeginFigure)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(startpoint), figurebegin)
     }
     pub unsafe fn AddLines(&self, points: &[D2D_POINT_2F]) {
-        (::windows::core::Interface::vtable(self).AddLines)(::windows::core::Interface::as_raw(self), ::core::mem::transmute(points.as_ptr()), points.len() as _)
+        (::windows_core::Interface::vtable(self).AddLines)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(points.as_ptr()), points.len() as _)
     }
     pub unsafe fn AddBeziers(&self, beziers: &[D2D1_BEZIER_SEGMENT]) {
-        (::windows::core::Interface::vtable(self).AddBeziers)(::windows::core::Interface::as_raw(self), ::core::mem::transmute(beziers.as_ptr()), beziers.len() as _)
+        (::windows_core::Interface::vtable(self).AddBeziers)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(beziers.as_ptr()), beziers.len() as _)
     }
     pub unsafe fn EndFigure(&self, figureend: D2D1_FIGURE_END) {
-        (::windows::core::Interface::vtable(self).EndFigure)(::windows::core::Interface::as_raw(self), figureend)
+        (::windows_core::Interface::vtable(self).EndFigure)(::windows_core::Interface::as_raw(self), figureend)
     }
-    pub unsafe fn Close(&self) -> ::windows::core::Result<()> {
-        (::windows::core::Interface::vtable(self).Close)(::windows::core::Interface::as_raw(self)).ok()
+    pub unsafe fn Close(&self) -> ::windows_core::Result<()> {
+        (::windows_core::Interface::vtable(self).Close)(::windows_core::Interface::as_raw(self)).ok()
     }
 }
-::windows::imp::interface_hierarchy!(ID2D1SimplifiedGeometrySink, ::windows::core::IUnknown);
+::windows_core::imp::interface_hierarchy!(ID2D1SimplifiedGeometrySink, ::windows_core::IUnknown);
 impl ::core::cmp::PartialEq for ID2D1SimplifiedGeometrySink {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
@@ -38,7 +38,7 @@ impl ::core::fmt::Debug for ID2D1SimplifiedGeometrySink {
 }
 unsafe impl ::core::marker::Send for ID2D1SimplifiedGeometrySink {}
 unsafe impl ::core::marker::Sync for ID2D1SimplifiedGeometrySink {}
-unsafe impl ::windows::core::Interface for ID2D1SimplifiedGeometrySink {
+unsafe impl ::windows_core::Interface for ID2D1SimplifiedGeometrySink {
     type Vtable = ID2D1SimplifiedGeometrySink_Vtbl;
 }
 impl ::core::clone::Clone for ID2D1SimplifiedGeometrySink {
@@ -46,39 +46,153 @@ impl ::core::clone::Clone for ID2D1SimplifiedGeometrySink {
         Self(self.0.clone())
     }
 }
-unsafe impl ::windows::core::ComInterface for ID2D1SimplifiedGeometrySink {
-    const IID: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x2cd9069e_12e2_11dc_9fed_001143a055f9);
+unsafe impl ::windows_core::ComInterface for ID2D1SimplifiedGeometrySink {
+    const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2cd9069e_12e2_11dc_9fed_001143a055f9);
 }
 #[repr(C)]
 #[doc(hidden)]
 pub struct ID2D1SimplifiedGeometrySink_Vtbl {
-    pub base__: ::windows::core::IUnknown_Vtbl,
+    pub base__: ::windows_core::IUnknown_Vtbl,
     pub SetFillMode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, fillmode: D2D1_FILL_MODE),
     pub SetSegmentFlags: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, vertexflags: D2D1_PATH_SEGMENT),
     pub BeginFigure: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, startpoint: D2D_POINT_2F, figurebegin: D2D1_FIGURE_BEGIN),
     pub AddLines: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, points: *const D2D_POINT_2F, pointscount: u32),
     pub AddBeziers: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, beziers: *const D2D1_BEZIER_SEGMENT, bezierscount: u32),
     pub EndFigure: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, figureend: D2D1_FIGURE_END),
-    pub Close: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows::core::HRESULT,
+    pub Close: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_ANISOTROPIC: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(4u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_CUBIC: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(2u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(5u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_LINEAR: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(3u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_NEAREST_NEIGHBOR: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_ALPHA_MODE_IGNORE: D2D1_ALPHA_MODE = D2D1_ALPHA_MODE(3u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_ALPHA_MODE_PREMULTIPLIED: D2D1_ALPHA_MODE = D2D1_ALPHA_MODE(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_ALPHA_MODE_STRAIGHT: D2D1_ALPHA_MODE = D2D1_ALPHA_MODE(2u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_ALPHA_MODE_UNKNOWN: D2D1_ALPHA_MODE = D2D1_ALPHA_MODE(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_COLOR: D2D1_BLEND_MODE = D2D1_BLEND_MODE(22u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_COLOR_BURN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(5u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_COLOR_DODGE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(9u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_DARKEN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(2u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_DARKER_COLOR: D2D1_BLEND_MODE = D2D1_BLEND_MODE(7u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_DIFFERENCE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(18u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_DISSOLVE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(4u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_DIVISION: D2D1_BLEND_MODE = D2D1_BLEND_MODE(25u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_EXCLUSION: D2D1_BLEND_MODE = D2D1_BLEND_MODE(19u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_HARD_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(13u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_HARD_MIX: D2D1_BLEND_MODE = D2D1_BLEND_MODE(17u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_HUE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(20u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_LIGHTEN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(3u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_LIGHTER_COLOR: D2D1_BLEND_MODE = D2D1_BLEND_MODE(8u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_LINEAR_BURN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(6u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_LINEAR_DODGE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(10u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_LINEAR_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(15u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_LUMINOSITY: D2D1_BLEND_MODE = D2D1_BLEND_MODE(23u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_MULTIPLY: D2D1_BLEND_MODE = D2D1_BLEND_MODE(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_OVERLAY: D2D1_BLEND_MODE = D2D1_BLEND_MODE(11u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_PIN_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(16u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_SATURATION: D2D1_BLEND_MODE = D2D1_BLEND_MODE(21u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_SCREEN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_SOFT_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(12u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_SUBTRACT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(24u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BLEND_MODE_VIVID_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(14u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BORDER_MODE_HARD: D2D1_BORDER_MODE = D2D1_BORDER_MODE(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_BORDER_MODE_SOFT: D2D1_BORDER_MODE = D2D1_BORDER_MODE(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COLORMATRIX_ALPHA_MODE_PREMULTIPLIED: D2D1_COLORMATRIX_ALPHA_MODE = D2D1_COLORMATRIX_ALPHA_MODE(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COLORMATRIX_ALPHA_MODE_STRAIGHT: D2D1_COLORMATRIX_ALPHA_MODE = D2D1_COLORMATRIX_ALPHA_MODE(2u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_BOUNDED_SOURCE_COPY: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(11u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_DESTINATION_ATOP: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(7u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_DESTINATION_IN: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(3u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_DESTINATION_OUT: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(5u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_DESTINATION_OVER: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_MASK_INVERT: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(12u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_PLUS: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(9u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_SOURCE_ATOP: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(6u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_SOURCE_COPY: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(10u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_SOURCE_IN: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(2u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_SOURCE_OUT: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(4u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_SOURCE_OVER: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_COMPOSITE_MODE_XOR: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(8u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_FIGURE_BEGIN_FILLED: D2D1_FIGURE_BEGIN = D2D1_FIGURE_BEGIN(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_FIGURE_BEGIN_HOLLOW: D2D1_FIGURE_BEGIN = D2D1_FIGURE_BEGIN(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_FIGURE_END_CLOSED: D2D1_FIGURE_END = D2D1_FIGURE_END(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_FIGURE_END_OPEN: D2D1_FIGURE_END = D2D1_FIGURE_END(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_FILL_MODE_ALTERNATE: D2D1_FILL_MODE = D2D1_FILL_MODE(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_FILL_MODE_WINDING: D2D1_FILL_MODE = D2D1_FILL_MODE(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_PATH_SEGMENT_FORCE_ROUND_LINE_JOIN: D2D1_PATH_SEGMENT = D2D1_PATH_SEGMENT(2u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_PATH_SEGMENT_FORCE_UNSTROKED: D2D1_PATH_SEGMENT = D2D1_PATH_SEGMENT(1u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_PATH_SEGMENT_NONE: D2D1_PATH_SEGMENT = D2D1_PATH_SEGMENT(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_TURBULENCE_NOISE_FRACTAL_SUM: D2D1_TURBULENCE_NOISE = D2D1_TURBULENCE_NOISE(0u32);
+#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
+pub const D2D1_TURBULENCE_NOISE_TURBULENCE: D2D1_TURBULENCE_NOISE = D2D1_TURBULENCE_NOISE(1u32);
 #[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_NEAREST_NEIGHBOR: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_LINEAR: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_CUBIC: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(2u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(3u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_ANISOTROPIC: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(4u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(5u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_FORCE_DWORD: D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE = D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE(4294967295u32);
 impl ::core::marker::Copy for D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE {}
 impl ::core::clone::Clone for D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE {
     fn clone(&self) -> Self {
@@ -90,8 +204,8 @@ impl ::core::default::Default for D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -102,16 +216,6 @@ impl ::core::fmt::Debug for D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_ALPHA_MODE(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_ALPHA_MODE_UNKNOWN: D2D1_ALPHA_MODE = D2D1_ALPHA_MODE(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_ALPHA_MODE_PREMULTIPLIED: D2D1_ALPHA_MODE = D2D1_ALPHA_MODE(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_ALPHA_MODE_STRAIGHT: D2D1_ALPHA_MODE = D2D1_ALPHA_MODE(2u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_ALPHA_MODE_IGNORE: D2D1_ALPHA_MODE = D2D1_ALPHA_MODE(3u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_ALPHA_MODE_FORCE_DWORD: D2D1_ALPHA_MODE = D2D1_ALPHA_MODE(4294967295u32);
 impl ::core::marker::Copy for D2D1_ALPHA_MODE {}
 impl ::core::clone::Clone for D2D1_ALPHA_MODE {
     fn clone(&self) -> Self {
@@ -123,8 +227,8 @@ impl ::core::default::Default for D2D1_ALPHA_MODE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_ALPHA_MODE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_ALPHA_MODE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_ALPHA_MODE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -135,60 +239,6 @@ impl ::core::fmt::Debug for D2D1_ALPHA_MODE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_BLEND_MODE(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_MULTIPLY: D2D1_BLEND_MODE = D2D1_BLEND_MODE(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_SCREEN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_DARKEN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(2u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_LIGHTEN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(3u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_DISSOLVE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(4u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_COLOR_BURN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(5u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_LINEAR_BURN: D2D1_BLEND_MODE = D2D1_BLEND_MODE(6u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_DARKER_COLOR: D2D1_BLEND_MODE = D2D1_BLEND_MODE(7u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_LIGHTER_COLOR: D2D1_BLEND_MODE = D2D1_BLEND_MODE(8u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_COLOR_DODGE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(9u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_LINEAR_DODGE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(10u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_OVERLAY: D2D1_BLEND_MODE = D2D1_BLEND_MODE(11u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_SOFT_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(12u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_HARD_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(13u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_VIVID_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(14u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_LINEAR_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(15u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_PIN_LIGHT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(16u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_HARD_MIX: D2D1_BLEND_MODE = D2D1_BLEND_MODE(17u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_DIFFERENCE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(18u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_EXCLUSION: D2D1_BLEND_MODE = D2D1_BLEND_MODE(19u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_HUE: D2D1_BLEND_MODE = D2D1_BLEND_MODE(20u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_SATURATION: D2D1_BLEND_MODE = D2D1_BLEND_MODE(21u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_COLOR: D2D1_BLEND_MODE = D2D1_BLEND_MODE(22u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_LUMINOSITY: D2D1_BLEND_MODE = D2D1_BLEND_MODE(23u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_SUBTRACT: D2D1_BLEND_MODE = D2D1_BLEND_MODE(24u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_DIVISION: D2D1_BLEND_MODE = D2D1_BLEND_MODE(25u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BLEND_MODE_FORCE_DWORD: D2D1_BLEND_MODE = D2D1_BLEND_MODE(4294967295u32);
 impl ::core::marker::Copy for D2D1_BLEND_MODE {}
 impl ::core::clone::Clone for D2D1_BLEND_MODE {
     fn clone(&self) -> Self {
@@ -200,8 +250,8 @@ impl ::core::default::Default for D2D1_BLEND_MODE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_BLEND_MODE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_BLEND_MODE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_BLEND_MODE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -212,12 +262,6 @@ impl ::core::fmt::Debug for D2D1_BLEND_MODE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_BORDER_MODE(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BORDER_MODE_SOFT: D2D1_BORDER_MODE = D2D1_BORDER_MODE(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BORDER_MODE_HARD: D2D1_BORDER_MODE = D2D1_BORDER_MODE(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_BORDER_MODE_FORCE_DWORD: D2D1_BORDER_MODE = D2D1_BORDER_MODE(4294967295u32);
 impl ::core::marker::Copy for D2D1_BORDER_MODE {}
 impl ::core::clone::Clone for D2D1_BORDER_MODE {
     fn clone(&self) -> Self {
@@ -229,8 +273,8 @@ impl ::core::default::Default for D2D1_BORDER_MODE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_BORDER_MODE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_BORDER_MODE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_BORDER_MODE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -241,12 +285,6 @@ impl ::core::fmt::Debug for D2D1_BORDER_MODE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_COLORMATRIX_ALPHA_MODE(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COLORMATRIX_ALPHA_MODE_PREMULTIPLIED: D2D1_COLORMATRIX_ALPHA_MODE = D2D1_COLORMATRIX_ALPHA_MODE(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COLORMATRIX_ALPHA_MODE_STRAIGHT: D2D1_COLORMATRIX_ALPHA_MODE = D2D1_COLORMATRIX_ALPHA_MODE(2u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COLORMATRIX_ALPHA_MODE_FORCE_DWORD: D2D1_COLORMATRIX_ALPHA_MODE = D2D1_COLORMATRIX_ALPHA_MODE(4294967295u32);
 impl ::core::marker::Copy for D2D1_COLORMATRIX_ALPHA_MODE {}
 impl ::core::clone::Clone for D2D1_COLORMATRIX_ALPHA_MODE {
     fn clone(&self) -> Self {
@@ -258,8 +296,8 @@ impl ::core::default::Default for D2D1_COLORMATRIX_ALPHA_MODE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_COLORMATRIX_ALPHA_MODE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_COLORMATRIX_ALPHA_MODE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_COLORMATRIX_ALPHA_MODE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -270,34 +308,6 @@ impl ::core::fmt::Debug for D2D1_COLORMATRIX_ALPHA_MODE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_COMPOSITE_MODE(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_SOURCE_OVER: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_DESTINATION_OVER: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_SOURCE_IN: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(2u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_DESTINATION_IN: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(3u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_SOURCE_OUT: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(4u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_DESTINATION_OUT: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(5u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_SOURCE_ATOP: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(6u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_DESTINATION_ATOP: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(7u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_XOR: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(8u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_PLUS: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(9u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_SOURCE_COPY: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(10u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_BOUNDED_SOURCE_COPY: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(11u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_MASK_INVERT: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(12u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_COMPOSITE_MODE_FORCE_DWORD: D2D1_COMPOSITE_MODE = D2D1_COMPOSITE_MODE(4294967295u32);
 impl ::core::marker::Copy for D2D1_COMPOSITE_MODE {}
 impl ::core::clone::Clone for D2D1_COMPOSITE_MODE {
     fn clone(&self) -> Self {
@@ -309,8 +319,8 @@ impl ::core::default::Default for D2D1_COMPOSITE_MODE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_COMPOSITE_MODE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_COMPOSITE_MODE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_COMPOSITE_MODE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -321,12 +331,6 @@ impl ::core::fmt::Debug for D2D1_COMPOSITE_MODE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_FIGURE_BEGIN(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_FIGURE_BEGIN_FILLED: D2D1_FIGURE_BEGIN = D2D1_FIGURE_BEGIN(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_FIGURE_BEGIN_HOLLOW: D2D1_FIGURE_BEGIN = D2D1_FIGURE_BEGIN(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_FIGURE_BEGIN_FORCE_DWORD: D2D1_FIGURE_BEGIN = D2D1_FIGURE_BEGIN(4294967295u32);
 impl ::core::marker::Copy for D2D1_FIGURE_BEGIN {}
 impl ::core::clone::Clone for D2D1_FIGURE_BEGIN {
     fn clone(&self) -> Self {
@@ -338,8 +342,8 @@ impl ::core::default::Default for D2D1_FIGURE_BEGIN {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_FIGURE_BEGIN {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_FIGURE_BEGIN {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_FIGURE_BEGIN {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -350,12 +354,6 @@ impl ::core::fmt::Debug for D2D1_FIGURE_BEGIN {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_FIGURE_END(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_FIGURE_END_OPEN: D2D1_FIGURE_END = D2D1_FIGURE_END(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_FIGURE_END_CLOSED: D2D1_FIGURE_END = D2D1_FIGURE_END(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_FIGURE_END_FORCE_DWORD: D2D1_FIGURE_END = D2D1_FIGURE_END(4294967295u32);
 impl ::core::marker::Copy for D2D1_FIGURE_END {}
 impl ::core::clone::Clone for D2D1_FIGURE_END {
     fn clone(&self) -> Self {
@@ -367,8 +365,8 @@ impl ::core::default::Default for D2D1_FIGURE_END {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_FIGURE_END {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_FIGURE_END {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_FIGURE_END {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -379,12 +377,6 @@ impl ::core::fmt::Debug for D2D1_FIGURE_END {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_FILL_MODE(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_FILL_MODE_ALTERNATE: D2D1_FILL_MODE = D2D1_FILL_MODE(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_FILL_MODE_WINDING: D2D1_FILL_MODE = D2D1_FILL_MODE(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_FILL_MODE_FORCE_DWORD: D2D1_FILL_MODE = D2D1_FILL_MODE(4294967295u32);
 impl ::core::marker::Copy for D2D1_FILL_MODE {}
 impl ::core::clone::Clone for D2D1_FILL_MODE {
     fn clone(&self) -> Self {
@@ -396,8 +388,8 @@ impl ::core::default::Default for D2D1_FILL_MODE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_FILL_MODE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_FILL_MODE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_FILL_MODE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -408,14 +400,6 @@ impl ::core::fmt::Debug for D2D1_FILL_MODE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_PATH_SEGMENT(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_PATH_SEGMENT_NONE: D2D1_PATH_SEGMENT = D2D1_PATH_SEGMENT(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_PATH_SEGMENT_FORCE_UNSTROKED: D2D1_PATH_SEGMENT = D2D1_PATH_SEGMENT(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_PATH_SEGMENT_FORCE_ROUND_LINE_JOIN: D2D1_PATH_SEGMENT = D2D1_PATH_SEGMENT(2u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_PATH_SEGMENT_FORCE_DWORD: D2D1_PATH_SEGMENT = D2D1_PATH_SEGMENT(4294967295u32);
 impl ::core::marker::Copy for D2D1_PATH_SEGMENT {}
 impl ::core::clone::Clone for D2D1_PATH_SEGMENT {
     fn clone(&self) -> Self {
@@ -427,8 +411,8 @@ impl ::core::default::Default for D2D1_PATH_SEGMENT {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_PATH_SEGMENT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_PATH_SEGMENT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_PATH_SEGMENT {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -472,12 +456,6 @@ impl ::core::ops::Not for D2D1_PATH_SEGMENT {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct D2D1_TURBULENCE_NOISE(pub u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_TURBULENCE_NOISE_FRACTAL_SUM: D2D1_TURBULENCE_NOISE = D2D1_TURBULENCE_NOISE(0u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_TURBULENCE_NOISE_TURBULENCE: D2D1_TURBULENCE_NOISE = D2D1_TURBULENCE_NOISE(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`*"]
-pub const D2D1_TURBULENCE_NOISE_FORCE_DWORD: D2D1_TURBULENCE_NOISE = D2D1_TURBULENCE_NOISE(4294967295u32);
 impl ::core::marker::Copy for D2D1_TURBULENCE_NOISE {}
 impl ::core::clone::Clone for D2D1_TURBULENCE_NOISE {
     fn clone(&self) -> Self {
@@ -489,8 +467,8 @@ impl ::core::default::Default for D2D1_TURBULENCE_NOISE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for D2D1_TURBULENCE_NOISE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_TURBULENCE_NOISE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for D2D1_TURBULENCE_NOISE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -515,8 +493,8 @@ impl ::core::fmt::Debug for D2D1_BEZIER_SEGMENT {
         f.debug_struct("D2D1_BEZIER_SEGMENT").field("point1", &self.point1).field("point2", &self.point2).field("point3", &self.point3).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D1_BEZIER_SEGMENT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_BEZIER_SEGMENT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D1_BEZIER_SEGMENT {
     fn eq(&self, other: &Self) -> bool {
@@ -548,8 +526,8 @@ impl ::core::fmt::Debug for D2D1_COLOR_F {
         f.debug_struct("D2D1_COLOR_F").field("r", &self.r).field("g", &self.g).field("b", &self.b).field("a", &self.a).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D1_COLOR_F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_COLOR_F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D1_COLOR_F {
     fn eq(&self, other: &Self) -> bool {
@@ -584,8 +562,8 @@ impl ::core::fmt::Debug for D2D1_PIXEL_FORMAT {
     }
 }
 #[cfg(feature = "Win32_Graphics_Dxgi_Common")]
-impl ::windows::core::TypeKind for D2D1_PIXEL_FORMAT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D1_PIXEL_FORMAT {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Graphics_Dxgi_Common")]
 impl ::core::cmp::PartialEq for D2D1_PIXEL_FORMAT {
@@ -620,8 +598,8 @@ impl ::core::fmt::Debug for D2D_COLOR_F {
         f.debug_struct("D2D_COLOR_F").field("r", &self.r).field("g", &self.g).field("b", &self.b).field("a", &self.a).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_COLOR_F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_COLOR_F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_COLOR_F {
     fn eq(&self, other: &Self) -> bool {
@@ -645,8 +623,8 @@ impl ::core::clone::Clone for D2D_MATRIX_4X3_F {
         *self
     }
 }
-impl ::windows::core::TypeKind for D2D_MATRIX_4X3_F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_MATRIX_4X3_F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for D2D_MATRIX_4X3_F {
     fn default() -> Self {
@@ -665,8 +643,8 @@ impl ::core::clone::Clone for D2D_MATRIX_4X3_F_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for D2D_MATRIX_4X3_F_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_MATRIX_4X3_F_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for D2D_MATRIX_4X3_F_0 {
     fn default() -> Self {
@@ -700,8 +678,8 @@ impl ::core::fmt::Debug for D2D_MATRIX_4X3_F_0_0 {
         f.debug_struct("D2D_MATRIX_4X3_F_0_0").field("_11", &self._11).field("_12", &self._12).field("_13", &self._13).field("_21", &self._21).field("_22", &self._22).field("_23", &self._23).field("_31", &self._31).field("_32", &self._32).field("_33", &self._33).field("_41", &self._41).field("_42", &self._42).field("_43", &self._43).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_MATRIX_4X3_F_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_MATRIX_4X3_F_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_MATRIX_4X3_F_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -725,8 +703,8 @@ impl ::core::clone::Clone for D2D_MATRIX_4X4_F {
         *self
     }
 }
-impl ::windows::core::TypeKind for D2D_MATRIX_4X4_F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_MATRIX_4X4_F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for D2D_MATRIX_4X4_F {
     fn default() -> Self {
@@ -745,8 +723,8 @@ impl ::core::clone::Clone for D2D_MATRIX_4X4_F_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for D2D_MATRIX_4X4_F_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_MATRIX_4X4_F_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for D2D_MATRIX_4X4_F_0 {
     fn default() -> Self {
@@ -784,8 +762,8 @@ impl ::core::fmt::Debug for D2D_MATRIX_4X4_F_0_0 {
         f.debug_struct("D2D_MATRIX_4X4_F_0_0").field("_11", &self._11).field("_12", &self._12).field("_13", &self._13).field("_14", &self._14).field("_21", &self._21).field("_22", &self._22).field("_23", &self._23).field("_24", &self._24).field("_31", &self._31).field("_32", &self._32).field("_33", &self._33).field("_34", &self._34).field("_41", &self._41).field("_42", &self._42).field("_43", &self._43).field("_44", &self._44).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_MATRIX_4X4_F_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_MATRIX_4X4_F_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_MATRIX_4X4_F_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -809,8 +787,8 @@ impl ::core::clone::Clone for D2D_MATRIX_5X4_F {
         *self
     }
 }
-impl ::windows::core::TypeKind for D2D_MATRIX_5X4_F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_MATRIX_5X4_F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for D2D_MATRIX_5X4_F {
     fn default() -> Self {
@@ -829,8 +807,8 @@ impl ::core::clone::Clone for D2D_MATRIX_5X4_F_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for D2D_MATRIX_5X4_F_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_MATRIX_5X4_F_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for D2D_MATRIX_5X4_F_0 {
     fn default() -> Self {
@@ -893,8 +871,8 @@ impl ::core::fmt::Debug for D2D_MATRIX_5X4_F_0_0 {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_MATRIX_5X4_F_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_MATRIX_5X4_F_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_MATRIX_5X4_F_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -924,8 +902,8 @@ impl ::core::fmt::Debug for D2D_POINT_2F {
         f.debug_struct("D2D_POINT_2F").field("x", &self.x).field("y", &self.y).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_POINT_2F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_POINT_2F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_POINT_2F {
     fn eq(&self, other: &Self) -> bool {
@@ -955,8 +933,8 @@ impl ::core::fmt::Debug for D2D_POINT_2U {
         f.debug_struct("D2D_POINT_2U").field("x", &self.x).field("y", &self.y).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_POINT_2U {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_POINT_2U {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_POINT_2U {
     fn eq(&self, other: &Self) -> bool {
@@ -988,8 +966,8 @@ impl ::core::fmt::Debug for D2D_RECT_F {
         f.debug_struct("D2D_RECT_F").field("left", &self.left).field("top", &self.top).field("right", &self.right).field("bottom", &self.bottom).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_RECT_F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_RECT_F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_RECT_F {
     fn eq(&self, other: &Self) -> bool {
@@ -1021,8 +999,8 @@ impl ::core::fmt::Debug for D2D_RECT_U {
         f.debug_struct("D2D_RECT_U").field("left", &self.left).field("top", &self.top).field("right", &self.right).field("bottom", &self.bottom).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_RECT_U {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_RECT_U {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_RECT_U {
     fn eq(&self, other: &Self) -> bool {
@@ -1052,8 +1030,8 @@ impl ::core::fmt::Debug for D2D_SIZE_F {
         f.debug_struct("D2D_SIZE_F").field("width", &self.width).field("height", &self.height).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_SIZE_F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_SIZE_F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_SIZE_F {
     fn eq(&self, other: &Self) -> bool {
@@ -1083,8 +1061,8 @@ impl ::core::fmt::Debug for D2D_SIZE_U {
         f.debug_struct("D2D_SIZE_U").field("width", &self.width).field("height", &self.height).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_SIZE_U {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_SIZE_U {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_SIZE_U {
     fn eq(&self, other: &Self) -> bool {
@@ -1114,8 +1092,8 @@ impl ::core::fmt::Debug for D2D_VECTOR_2F {
         f.debug_struct("D2D_VECTOR_2F").field("x", &self.x).field("y", &self.y).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_VECTOR_2F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_VECTOR_2F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_VECTOR_2F {
     fn eq(&self, other: &Self) -> bool {
@@ -1146,8 +1124,8 @@ impl ::core::fmt::Debug for D2D_VECTOR_3F {
         f.debug_struct("D2D_VECTOR_3F").field("x", &self.x).field("y", &self.y).field("z", &self.z).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_VECTOR_3F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_VECTOR_3F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_VECTOR_3F {
     fn eq(&self, other: &Self) -> bool {
@@ -1179,8 +1157,8 @@ impl ::core::fmt::Debug for D2D_VECTOR_4F {
         f.debug_struct("D2D_VECTOR_4F").field("x", &self.x).field("y", &self.y).field("z", &self.z).field("w", &self.w).finish()
     }
 }
-impl ::windows::core::TypeKind for D2D_VECTOR_4F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for D2D_VECTOR_4F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for D2D_VECTOR_4F {
     fn eq(&self, other: &Self) -> bool {

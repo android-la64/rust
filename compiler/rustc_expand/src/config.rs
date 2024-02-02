@@ -13,17 +13,16 @@ use rustc_ast::NodeId;
 use rustc_ast::{self as ast, AttrStyle, Attribute, HasAttrs, HasTokens, MetaItem};
 use rustc_attr as attr;
 use rustc_data_structures::flat_map_in_place::FlatMapInPlace;
-use rustc_data_structures::fx::FxHashMap;
-use rustc_feature::{Feature, Features, State as FeatureState};
-use rustc_feature::{
-    ACCEPTED_FEATURES, ACTIVE_FEATURES, REMOVED_FEATURES, STABLE_REMOVED_FEATURES,
-};
+use rustc_data_structures::fx::FxHashSet;
+use rustc_feature::Features;
+use rustc_feature::{ACCEPTED_FEATURES, REMOVED_FEATURES, UNSTABLE_FEATURES};
 use rustc_parse::validate_attr;
 use rustc_session::parse::feature_err;
 use rustc_session::Session;
-use rustc_span::edition::{Edition, ALL_EDITIONS};
+use rustc_span::edition::ALL_EDITIONS;
 use rustc_span::symbol::{sym, Symbol};
-use rustc_span::{Span, DUMMY_SP};
+use rustc_span::Span;
+use thin_vec::ThinVec;
 
 /// A folder that strips out items that do not belong in the current configuration.
 pub struct StripUnconfigured<'a> {
@@ -36,85 +35,56 @@ pub struct StripUnconfigured<'a> {
     pub lint_node_id: NodeId,
 }
 
-pub fn features(sess: &Session, krate_attrs: &[Attribute]) -> Features {
-    fn feature_removed(sess: &Session, span: Span, reason: Option<&str>) {
-        sess.emit_err(FeatureRemoved {
-            span,
-            reason: reason.map(|reason| FeatureRemovedReason { reason }),
-        });
-    }
-
-    fn active_features_up_to(edition: Edition) -> impl Iterator<Item = &'static Feature> {
-        ACTIVE_FEATURES.iter().filter(move |feature| {
-            if let Some(feature_edition) = feature.edition {
-                feature_edition <= edition
-            } else {
-                false
-            }
-        })
+pub fn features(sess: &Session, krate_attrs: &[Attribute], crate_name: Symbol) -> Features {
+    fn feature_list(attr: &Attribute) -> ThinVec<ast::NestedMetaItem> {
+        if attr.has_name(sym::feature)
+            && let Some(list) = attr.meta_item_list()
+        {
+            list
+        } else {
+            ThinVec::new()
+        }
     }
 
     let mut features = Features::default();
-    let mut edition_enabled_features = FxHashMap::default();
+
+    // The edition from `--edition`.
     let crate_edition = sess.edition();
 
-    for &edition in ALL_EDITIONS {
-        if edition <= crate_edition {
-            // The `crate_edition` implies its respective umbrella feature-gate
-            // (i.e., `#![feature(rust_20XX_preview)]` isn't needed on edition 20XX).
-            edition_enabled_features.insert(edition.feature_name(), edition);
-        }
-    }
-
-    for feature in active_features_up_to(crate_edition) {
-        feature.set(&mut features, DUMMY_SP);
-        edition_enabled_features.insert(feature.name, crate_edition);
-    }
-
-    // Process the edition umbrella feature-gates first, to ensure
-    // `edition_enabled_features` is completed before it's queried.
+    // The maximum of (a) the edition from `--edition` and (b) any edition
+    // umbrella feature-gates declared in the code.
+    // - E.g. if `crate_edition` is 2015 but `rust_2018_preview` is present,
+    //   `feature_edition` is 2018
+    let mut features_edition = crate_edition;
     for attr in krate_attrs {
-        if !attr.has_name(sym::feature) {
-            continue;
-        }
-
-        let Some(list) = attr.meta_item_list() else {
-            continue;
-        };
-
-        for mi in list {
-            if !mi.is_word() {
-                continue;
-            }
-
-            let name = mi.name_or_empty();
-
-            let edition = ALL_EDITIONS.iter().find(|e| name == e.feature_name()).copied();
-            if let Some(edition) = edition {
-                if edition <= crate_edition {
-                    continue;
-                }
-
-                for feature in active_features_up_to(edition) {
-                    // FIXME(Manishearth) there is currently no way to set
-                    // lib features by edition
-                    feature.set(&mut features, DUMMY_SP);
-                    edition_enabled_features.insert(feature.name, edition);
+        for mi in feature_list(attr) {
+            if mi.is_word() {
+                let name = mi.name_or_empty();
+                let edition = ALL_EDITIONS.iter().find(|e| name == e.feature_name()).copied();
+                if let Some(edition) = edition
+                    && edition > features_edition
+                {
+                    features_edition = edition;
                 }
             }
         }
     }
 
-    for attr in krate_attrs {
-        if !attr.has_name(sym::feature) {
-            continue;
+    // Enable edition-dependent features based on `features_edition`.
+    // - E.g. enable `test_2018_feature` if `features_edition` is 2018 or higher
+    let mut edition_enabled_features = FxHashSet::default();
+    for f in UNSTABLE_FEATURES {
+        if let Some(edition) = f.feature.edition && edition <= features_edition {
+            // FIXME(Manishearth) there is currently no way to set lib features by
+            // edition.
+            edition_enabled_features.insert(f.feature.name);
+            (f.set_enabled)(&mut features);
         }
+    }
 
-        let Some(list) = attr.meta_item_list() else {
-            continue;
-        };
-
-        for mi in list {
+    // Process all features declared in the code.
+    for attr in krate_attrs {
+        for mi in feature_list(attr) {
             let name = match mi.ident() {
                 Some(ident) if mi.is_word() => ident.name,
                 Some(ident) => {
@@ -136,38 +106,57 @@ pub fn features(sess: &Session, krate_attrs: &[Attribute]) -> Features {
                 }
             };
 
-            if let Some(&edition) = edition_enabled_features.get(&name) {
+            // If the declared feature is an edition umbrella feature-gate,
+            // warn if it was redundant w.r.t. `crate_edition`.
+            // - E.g. warn if `rust_2018_preview` is declared when
+            //   `crate_edition` is 2018
+            // - E.g. don't warn if `rust_2018_preview` is declared when
+            //   `crate_edition` is 2015.
+            if let Some(&edition) = ALL_EDITIONS.iter().find(|e| name == e.feature_name()) {
+                if edition <= crate_edition {
+                    sess.emit_warning(FeatureIncludedInEdition {
+                        span: mi.span(),
+                        feature: name,
+                        edition,
+                    });
+                }
+                features.set_declared_lang_feature(name, mi.span(), None);
+                continue;
+            }
+
+            // If the declared feature is edition-dependent and was already
+            // enabled due to `feature_edition`, give a warning.
+            // - E.g. warn if `test_2018_feature` is declared when
+            //   `feature_edition` is 2018 or higher.
+            if edition_enabled_features.contains(&name) {
                 sess.emit_warning(FeatureIncludedInEdition {
                     span: mi.span(),
                     feature: name,
-                    edition,
+                    edition: features_edition,
+                });
+                features.set_declared_lang_feature(name, mi.span(), None);
+                continue;
+            }
+
+            // If the declared feature has been removed, issue an error.
+            if let Some(f) = REMOVED_FEATURES.iter().find(|f| name == f.feature.name) {
+                sess.emit_err(FeatureRemoved {
+                    span: mi.span(),
+                    reason: f.reason.map(|reason| FeatureRemovedReason { reason }),
                 });
                 continue;
             }
 
-            if ALL_EDITIONS.iter().any(|e| name == e.feature_name()) {
-                // Handled in the separate loop above.
+            // If the declared feature is stable, record it.
+            if let Some(f) = ACCEPTED_FEATURES.iter().find(|f| name == f.name) {
+                let since = Some(Symbol::intern(f.since));
+                features.set_declared_lang_feature(name, mi.span(), since);
                 continue;
             }
 
-            let removed = REMOVED_FEATURES.iter().find(|f| name == f.name);
-            let stable_removed = STABLE_REMOVED_FEATURES.iter().find(|f| name == f.name);
-            if let Some(Feature { state, .. }) = removed.or(stable_removed) {
-                if let FeatureState::Removed { reason } | FeatureState::Stabilized { reason } =
-                    state
-                {
-                    feature_removed(sess, mi.span(), *reason);
-                    continue;
-                }
-            }
-
-            if let Some(Feature { since, .. }) = ACCEPTED_FEATURES.iter().find(|f| name == f.name) {
-                let since = Some(Symbol::intern(since));
-                features.declared_lang_features.push((name, mi.span(), since));
-                features.active_features.insert(name);
-                continue;
-            }
-
+            // If `-Z allow-features` is used and the declared feature is
+            // unstable and not also listed as one of the allowed features,
+            // issue an error.
             if let Some(allowed) = sess.opts.unstable_opts.allow_features.as_ref() {
                 if allowed.iter().all(|f| name.as_str() != f) {
                     sess.emit_err(FeatureNotAllowed { span: mi.span(), name });
@@ -175,15 +164,25 @@ pub fn features(sess: &Session, krate_attrs: &[Attribute]) -> Features {
                 }
             }
 
-            if let Some(f) = ACTIVE_FEATURES.iter().find(|f| name == f.name) {
-                f.set(&mut features, mi.span());
-                features.declared_lang_features.push((name, mi.span(), None));
-                features.active_features.insert(name);
+            // If the declared feature is unstable, record it.
+            if let Some(f) = UNSTABLE_FEATURES.iter().find(|f| name == f.feature.name) {
+                (f.set_enabled)(&mut features);
+                // When the ICE comes from core, alloc or std (approximation of the standard library), there's a chance
+                // that the person hitting the ICE may be using -Zbuild-std or similar with an untested target.
+                // The bug is probably in the standard library and not the compiler in that case, but that doesn't
+                // really matter - we want a bug report.
+                if features.internal(name)
+                    && ![sym::core, sym::alloc, sym::std].contains(&crate_name)
+                {
+                    sess.using_internal_features.store(true, std::sync::atomic::Ordering::Relaxed);
+                }
+                features.set_declared_lang_feature(name, mi.span(), None);
                 continue;
             }
 
-            features.declared_lib_features.push((name, mi.span()));
-            features.active_features.insert(name);
+            // Otherwise, the feature is unknown. Record it as a lib feature.
+            // It will be checked later.
+            features.set_declared_lib_feature(name, mi.span());
         }
     }
 
@@ -252,7 +251,8 @@ impl<'a> StripUnconfigured<'a> {
         let trees: Vec<_> = stream
             .0
             .iter()
-            .flat_map(|tree| match tree.clone() {
+            .flat_map(|tree| {
+                match tree.clone() {
                 AttrTokenTree::Attributes(mut data) => {
                     data.attrs.flat_map_in_place(|attr| self.process_cfg_attr(&attr));
 
@@ -267,18 +267,17 @@ impl<'a> StripUnconfigured<'a> {
                 }
                 AttrTokenTree::Delimited(sp, delim, mut inner) => {
                     inner = self.configure_tokens(&inner);
-                    Some(AttrTokenTree::Delimited(sp, delim, inner))
-                        .into_iter()
+                    Some(AttrTokenTree::Delimited(sp, delim, inner)).into_iter()
                 }
-                AttrTokenTree::Token(ref token, _) if let TokenKind::Interpolated(nt) = &token.kind => {
-                    panic!(
-                        "Nonterminal should have been flattened at {:?}: {:?}",
-                        token.span, nt
-                    );
+                AttrTokenTree::Token(ref token, _)
+                    if let TokenKind::Interpolated(nt) = &token.kind =>
+                {
+                    panic!("Nonterminal should have been flattened at {:?}: {:?}", token.span, nt);
                 }
                 AttrTokenTree::Token(token, spacing) => {
                     Some(AttrTokenTree::Token(token, spacing)).into_iter()
                 }
+            }
             })
             .collect();
         AttrTokenStream::new(trees)

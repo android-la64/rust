@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-config"
-version = "0.30.0"
+version = "0.31.0"
 authors = ["Edward Shen <code@eddie.sh>"]
 include = [
     "src/**/*",
@@ -63,16 +63,16 @@ optional = true
 version = "^0.14.0"
 
 [dependencies.gix-features]
-version = "^0.35.0"
+version = "^0.36.0"
 
 [dependencies.gix-glob]
-version = "^0.13.0"
+version = "^0.14.0"
 
 [dependencies.gix-path]
 version = "^0.10.0"
 
 [dependencies.gix-ref]
-version = "^0.37.0"
+version = "^0.38.0"
 
 [dependencies.gix-sec]
 version = "^0.10.0"

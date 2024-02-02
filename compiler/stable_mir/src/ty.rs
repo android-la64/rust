@@ -3,10 +3,10 @@ use super::{
     mir::{Body, Mutability},
     with, AllocId, DefId, Symbol,
 };
-use crate::Opaque;
+use crate::{Filename, Opaque};
 use std::fmt::{self, Debug, Formatter};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Ty(pub usize);
 
 impl Debug for Ty {
@@ -21,26 +21,45 @@ impl Ty {
     }
 }
 
-impl From<TyKind> for Ty {
-    fn from(value: TyKind) -> Self {
-        with(|context| context.mk_ty(value))
+/// Represents a constant in MIR or from the Type system.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Const {
+    /// The constant kind.
+    pub(crate) kind: ConstantKind,
+    /// The constant type.
+    pub(crate) ty: Ty,
+    /// Used for internal tracking of the internal constant.
+    pub id: ConstId,
+}
+
+impl Const {
+    /// Build a constant. Note that this should only be used by the compiler.
+    pub fn new(kind: ConstantKind, ty: Ty, id: ConstId) -> Const {
+        Const { kind, ty, id }
+    }
+
+    /// Retrieve the constant kind.
+    pub fn kind(&self) -> &ConstantKind {
+        &self.kind
+    }
+
+    /// Get the constant type.
+    pub fn ty(&self) -> Ty {
+        self.ty
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Const {
-    pub literal: ConstantKind,
-    pub ty: Ty,
-}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ConstId(pub usize);
 
 type Ident = Opaque;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Region {
     pub kind: RegionKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RegionKind {
     ReEarlyBound(EarlyBoundRegion),
     ReLateBound(DebruijnIndex, BoundRegion),
@@ -51,7 +70,7 @@ pub enum RegionKind {
 
 pub(crate) type DebruijnIndex = u32;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EarlyBoundRegion {
     pub def_id: RegionDef,
     pub index: u32,
@@ -60,7 +79,7 @@ pub struct EarlyBoundRegion {
 
 pub(crate) type BoundVar = u32;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BoundRegion {
     pub var: BoundVar,
     pub kind: BoundRegionKind,
@@ -68,25 +87,47 @@ pub struct BoundRegion {
 
 pub(crate) type UniverseIndex = u32;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Placeholder<T> {
     pub universe: UniverseIndex,
     pub bound: T,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Span(pub usize);
+pub struct Span(usize);
 
 impl Debug for Span {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Span")
             .field("id", &self.0)
-            .field("repr", &with(|cx| cx.print_span(*self)))
+            .field("repr", &with(|cx| cx.span_to_string(*self)))
             .finish()
     }
 }
 
-#[derive(Clone, Debug)]
+impl Span {
+    /// Return filename for diagnostic purposes
+    pub fn get_filename(&self) -> Filename {
+        with(|c| c.get_filename(self))
+    }
+
+    /// Return lines that corespond to this `Span`
+    pub fn get_lines(&self) -> LineInfo {
+        with(|c| c.get_lines(&self))
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+/// Information you get from `Span` in a struct form.
+/// Line and col start from 1.
+pub struct LineInfo {
+    pub start_line: usize,
+    pub start_col: usize,
+    pub end_line: usize,
+    pub end_col: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TyKind {
     RigidTy(RigidTy),
     Alias(AliasKind, AliasTy),
@@ -94,7 +135,7 @@ pub enum TyKind {
     Bound(usize, BoundTy),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RigidTy {
     Bool,
     Char,
@@ -111,7 +152,7 @@ pub enum RigidTy {
     FnDef(FnDef, GenericArgs),
     FnPtr(PolyFnSig),
     Closure(ClosureDef, GenericArgs),
-    Generator(GeneratorDef, GenericArgs, Movability),
+    Coroutine(CoroutineDef, GenericArgs, Movability),
     Dynamic(Vec<Binder<ExistentialPredicate>>, Region, DynKind),
     Never,
     Tuple(Vec<Ty>),
@@ -165,7 +206,7 @@ impl FnDef {
 pub struct ClosureDef(pub DefId);
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct GeneratorDef(pub DefId);
+pub struct CoroutineDef(pub DefId);
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ParamDef(pub DefId);
@@ -194,7 +235,8 @@ pub struct ImplDef(pub DefId);
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct RegionDef(pub DefId);
 
-#[derive(Clone, Debug)]
+/// A list of generic arguments.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GenericArgs(pub Vec<GenericArgKind>);
 
 impl std::ops::Index<ParamTy> for GenericArgs {
@@ -213,7 +255,7 @@ impl std::ops::Index<ParamConst> for GenericArgs {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GenericArgKind {
     Lifetime(Region),
     Type(Ty),
@@ -242,13 +284,13 @@ impl GenericArgKind {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TermKind {
     Type(Ty),
     Const(Const),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AliasKind {
     Projection,
     Inherent,
@@ -256,7 +298,7 @@ pub enum AliasKind {
     Weak,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AliasTy {
     pub def_id: AliasDef,
     pub args: GenericArgs,
@@ -264,7 +306,7 @@ pub struct AliasTy {
 
 pub type PolyFnSig = Binder<FnSig>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FnSig {
     pub inputs_and_output: Vec<Ty>,
     pub c_variadic: bool,
@@ -303,18 +345,18 @@ pub enum Abi {
     RiscvInterruptS,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Binder<T> {
     pub value: T,
     pub bound_vars: Vec<BoundVariableKind>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EarlyBinder<T> {
     pub value: T,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BoundVariableKind {
     Ty(BoundTyKind),
     Region(BoundRegionKind),
@@ -327,46 +369,46 @@ pub enum BoundTyKind {
     Param(ParamDef, String),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BoundRegionKind {
     BrAnon,
     BrNamed(BrNamedDef, String),
     BrEnv,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DynKind {
     Dyn,
     DynStar,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExistentialPredicate {
     Trait(ExistentialTraitRef),
     Projection(ExistentialProjection),
     AutoTrait(TraitDef),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExistentialTraitRef {
     pub def_id: TraitDef,
     pub generic_args: GenericArgs,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExistentialProjection {
     pub def_id: TraitDef,
     pub generic_args: GenericArgs,
     pub term: TermKind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParamTy {
     pub index: u32,
     pub name: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BoundTy {
     pub var: usize,
     pub kind: BoundTyKind,
@@ -382,14 +424,14 @@ pub type Promoted = u32;
 pub type InitMaskMaterialized = Vec<u64>;
 
 /// Stores the provenance information of pointers stored in memory.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProvenanceMap {
     /// Provenance in this map applies from the given offset for an entire pointer-size worth of
     /// bytes. Two entries in this map are always at least a pointer size apart.
     pub ptrs: Vec<(Size, Prov)>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Allocation {
     pub bytes: Bytes,
     pub provenance: ProvenanceMap,
@@ -397,20 +439,23 @@ pub struct Allocation {
     pub mutability: Mutability,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ConstantKind {
     Allocated(Allocation),
     Unevaluated(UnevaluatedConst),
     Param(ParamConst),
+    /// Store ZST constants.
+    /// We have to special handle these constants since its type might be generic.
+    ZeroSized,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParamConst {
     pub index: u32,
     pub name: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UnevaluatedConst {
     pub def: ConstDef,
     pub args: GenericArgs,
@@ -424,7 +469,7 @@ pub enum TraitSpecializationKind {
     AlwaysApplicable,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TraitDecl {
     pub def_id: TraitDef,
     pub unsafety: Safety,
@@ -455,13 +500,13 @@ impl TraitDecl {
 
 pub type ImplTrait = EarlyBinder<TraitRef>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TraitRef {
     pub def_id: TraitDef,
     pub args: GenericArgs,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Generics {
     pub parent: Option<GenericDef>,
     pub parent_count: usize,
@@ -472,14 +517,14 @@ pub struct Generics {
     pub host_effect_index: Option<usize>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GenericParamDefKind {
     Lifetime,
     Type { has_default: bool, synthetic: bool },
     Const { has_default: bool },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GenericParamDef {
     pub name: super::Symbol,
     pub def_id: GenericDef,
@@ -493,7 +538,7 @@ pub struct GenericPredicates {
     pub predicates: Vec<(PredicateKind, Span)>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PredicateKind {
     Clause(ClauseKind),
     ObjectSafe(TraitDef),
@@ -505,7 +550,7 @@ pub enum PredicateKind {
     AliasRelate(TermKind, TermKind, AliasRelationDirection),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ClauseKind {
     Trait(TraitPredicate),
     RegionOutlives(RegionOutlivesPredicate),
@@ -516,52 +561,75 @@ pub enum ClauseKind {
     ConstEvaluatable(Const),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ClosureKind {
     Fn,
     FnMut,
     FnOnce,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubtypePredicate {
     pub a: Ty,
     pub b: Ty,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CoercePredicate {
     pub a: Ty,
     pub b: Ty,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AliasRelationDirection {
     Equate,
     Subtype,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TraitPredicate {
     pub trait_ref: TraitRef,
     pub polarity: ImplPolarity,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OutlivesPredicate<A, B>(pub A, pub B);
 
 pub type RegionOutlivesPredicate = OutlivesPredicate<Region, Region>;
 pub type TypeOutlivesPredicate = OutlivesPredicate<Ty, Region>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectionPredicate {
     pub projection_ty: AliasTy,
     pub term: TermKind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ImplPolarity {
     Positive,
     Negative,
     Reservation,
 }
+
+pub trait IndexedVal {
+    fn to_val(index: usize) -> Self;
+
+    fn to_index(&self) -> usize;
+}
+
+macro_rules! index_impl {
+    ($name:ident) => {
+        impl IndexedVal for $name {
+            fn to_val(index: usize) -> Self {
+                $name(index)
+            }
+            fn to_index(&self) -> usize {
+                self.0
+            }
+        }
+    };
+}
+
+index_impl!(ConstId);
+index_impl!(Ty);
+index_impl!(Span);

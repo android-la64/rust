@@ -1,32 +1,32 @@
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
 #[cfg(feature = "Win32_UI_TextServices")]
 #[inline]
-pub unsafe fn ActivateKeyboardLayout<P0>(hkl: P0, flags: ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> ::windows::core::Result<super::super::TextServices::HKL>
+pub unsafe fn ActivateKeyboardLayout<P0>(hkl: P0, flags: ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> ::windows_core::Result<super::super::TextServices::HKL>
 where
-    P0: ::windows::core::IntoParam<super::super::TextServices::HKL>,
+    P0: ::windows_core::IntoParam<super::super::TextServices::HKL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn ActivateKeyboardLayout ( hkl : super::super::TextServices:: HKL , flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS ) -> super::super::TextServices:: HKL );
+    ::windows_targets::link!("user32.dll" "system" fn ActivateKeyboardLayout(hkl : super::super::TextServices:: HKL, flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> super::super::TextServices:: HKL);
     let result__ = ActivateKeyboardLayout(hkl.into_param().abi(), flags);
-    ::windows::imp::then(!result__.is_invalid(), || result__).ok_or_else(::windows::core::Error::from_win32)
+    (!result__.is_invalid()).then(|| result__).ok_or_else(::windows_core::Error::from_win32)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn BlockInput<P0>(fblockit: P0) -> super::super::super::Foundation::BOOL
+pub unsafe fn BlockInput<P0>(fblockit: P0) -> ::windows_core::Result<()>
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::BOOL>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::BOOL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn BlockInput ( fblockit : super::super::super::Foundation:: BOOL ) -> super::super::super::Foundation:: BOOL );
-    BlockInput(fblockit.into_param().abi())
+    ::windows_targets::link!("user32.dll" "system" fn BlockInput(fblockit : super::super::super::Foundation:: BOOL) -> super::super::super::Foundation:: BOOL);
+    BlockInput(fblockit.into_param().abi()).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DragDetect<P0>(hwnd: P0, pt: super::super::super::Foundation::POINT) -> super::super::super::Foundation::BOOL
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::HWND>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::HWND>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn DragDetect ( hwnd : super::super::super::Foundation:: HWND , pt : super::super::super::Foundation:: POINT ) -> super::super::super::Foundation:: BOOL );
+    ::windows_targets::link!("user32.dll" "system" fn DragDetect(hwnd : super::super::super::Foundation:: HWND, pt : super::super::super::Foundation:: POINT) -> super::super::super::Foundation:: BOOL);
     DragDetect(hwnd.into_param().abi(), ::core::mem::transmute(pt))
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
@@ -34,121 +34,121 @@ where
 #[inline]
 pub unsafe fn EnableWindow<P0, P1>(hwnd: P0, benable: P1) -> super::super::super::Foundation::BOOL
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::HWND>,
-    P1: ::windows::core::IntoParam<super::super::super::Foundation::BOOL>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::HWND>,
+    P1: ::windows_core::IntoParam<super::super::super::Foundation::BOOL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn EnableWindow ( hwnd : super::super::super::Foundation:: HWND , benable : super::super::super::Foundation:: BOOL ) -> super::super::super::Foundation:: BOOL );
+    ::windows_targets::link!("user32.dll" "system" fn EnableWindow(hwnd : super::super::super::Foundation:: HWND, benable : super::super::super::Foundation:: BOOL) -> super::super::super::Foundation:: BOOL);
     EnableWindow(hwnd.into_param().abi(), benable.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetActiveWindow() -> super::super::super::Foundation::HWND {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetActiveWindow ( ) -> super::super::super::Foundation:: HWND );
+    ::windows_targets::link!("user32.dll" "system" fn GetActiveWindow() -> super::super::super::Foundation:: HWND);
     GetActiveWindow()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn GetAsyncKeyState(vkey: i32) -> i16 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetAsyncKeyState ( vkey : i32 ) -> i16 );
+    ::windows_targets::link!("user32.dll" "system" fn GetAsyncKeyState(vkey : i32) -> i16);
     GetAsyncKeyState(vkey)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetCapture() -> super::super::super::Foundation::HWND {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetCapture ( ) -> super::super::super::Foundation:: HWND );
+    ::windows_targets::link!("user32.dll" "system" fn GetCapture() -> super::super::super::Foundation:: HWND);
     GetCapture()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn GetDoubleClickTime() -> u32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetDoubleClickTime ( ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetDoubleClickTime() -> u32);
     GetDoubleClickTime()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetFocus() -> super::super::super::Foundation::HWND {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetFocus ( ) -> super::super::super::Foundation:: HWND );
+    ::windows_targets::link!("user32.dll" "system" fn GetFocus() -> super::super::super::Foundation:: HWND);
     GetFocus()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn GetKBCodePage() -> u32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKBCodePage ( ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetKBCodePage() -> u32);
     GetKBCodePage()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn GetKeyNameTextA(lparam: i32, lpstring: &mut [u8]) -> i32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKeyNameTextA ( lparam : i32 , lpstring : ::windows::core::PSTR , cchsize : i32 ) -> i32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetKeyNameTextA(lparam : i32, lpstring : ::windows_core::PSTR, cchsize : i32) -> i32);
     GetKeyNameTextA(lparam, ::core::mem::transmute(lpstring.as_ptr()), lpstring.len() as _)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn GetKeyNameTextW(lparam: i32, lpstring: &mut [u16]) -> i32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKeyNameTextW ( lparam : i32 , lpstring : ::windows::core::PWSTR , cchsize : i32 ) -> i32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetKeyNameTextW(lparam : i32, lpstring : ::windows_core::PWSTR, cchsize : i32) -> i32);
     GetKeyNameTextW(lparam, ::core::mem::transmute(lpstring.as_ptr()), lpstring.len() as _)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn GetKeyState(nvirtkey: i32) -> i16 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKeyState ( nvirtkey : i32 ) -> i16 );
+    ::windows_targets::link!("user32.dll" "system" fn GetKeyState(nvirtkey : i32) -> i16);
     GetKeyState(nvirtkey)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
 #[cfg(feature = "Win32_UI_TextServices")]
 #[inline]
 pub unsafe fn GetKeyboardLayout(idthread: u32) -> super::super::TextServices::HKL {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKeyboardLayout ( idthread : u32 ) -> super::super::TextServices:: HKL );
+    ::windows_targets::link!("user32.dll" "system" fn GetKeyboardLayout(idthread : u32) -> super::super::TextServices:: HKL);
     GetKeyboardLayout(idthread)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
 #[cfg(feature = "Win32_UI_TextServices")]
 #[inline]
 pub unsafe fn GetKeyboardLayoutList(lplist: ::core::option::Option<&mut [super::super::TextServices::HKL]>) -> i32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKeyboardLayoutList ( nbuff : i32 , lplist : *mut super::super::TextServices:: HKL ) -> i32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetKeyboardLayoutList(nbuff : i32, lplist : *mut super::super::TextServices:: HKL) -> i32);
     GetKeyboardLayoutList(lplist.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(lplist.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())))
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn GetKeyboardLayoutNameA(pwszklid: &mut [u8; 9]) -> super::super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKeyboardLayoutNameA ( pwszklid : ::windows::core::PSTR ) -> super::super::super::Foundation:: BOOL );
-    GetKeyboardLayoutNameA(::core::mem::transmute(pwszklid.as_ptr()))
+pub unsafe fn GetKeyboardLayoutNameA(pwszklid: &mut [u8; 9]) -> ::windows_core::Result<()> {
+    ::windows_targets::link!("user32.dll" "system" fn GetKeyboardLayoutNameA(pwszklid : ::windows_core::PSTR) -> super::super::super::Foundation:: BOOL);
+    GetKeyboardLayoutNameA(::core::mem::transmute(pwszklid.as_ptr())).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn GetKeyboardLayoutNameW(pwszklid: &mut [u16; 9]) -> super::super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKeyboardLayoutNameW ( pwszklid : ::windows::core::PWSTR ) -> super::super::super::Foundation:: BOOL );
-    GetKeyboardLayoutNameW(::core::mem::transmute(pwszklid.as_ptr()))
+pub unsafe fn GetKeyboardLayoutNameW(pwszklid: &mut [u16; 9]) -> ::windows_core::Result<()> {
+    ::windows_targets::link!("user32.dll" "system" fn GetKeyboardLayoutNameW(pwszklid : ::windows_core::PWSTR) -> super::super::super::Foundation:: BOOL);
+    GetKeyboardLayoutNameW(::core::mem::transmute(pwszklid.as_ptr())).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn GetKeyboardState(lpkeystate: &mut [u8; 256]) -> super::super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKeyboardState ( lpkeystate : *mut u8 ) -> super::super::super::Foundation:: BOOL );
-    GetKeyboardState(::core::mem::transmute(lpkeystate.as_ptr()))
+pub unsafe fn GetKeyboardState(lpkeystate: &mut [u8; 256]) -> ::windows_core::Result<()> {
+    ::windows_targets::link!("user32.dll" "system" fn GetKeyboardState(lpkeystate : *mut u8) -> super::super::super::Foundation:: BOOL);
+    GetKeyboardState(::core::mem::transmute(lpkeystate.as_ptr())).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn GetKeyboardType(ntypeflag: i32) -> i32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetKeyboardType ( ntypeflag : i32 ) -> i32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetKeyboardType(ntypeflag : i32) -> i32);
     GetKeyboardType(ntypeflag)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetLastInputInfo(plii: *mut LASTINPUTINFO) -> super::super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetLastInputInfo ( plii : *mut LASTINPUTINFO ) -> super::super::super::Foundation:: BOOL );
+    ::windows_targets::link!("user32.dll" "system" fn GetLastInputInfo(plii : *mut LASTINPUTINFO) -> super::super::super::Foundation:: BOOL);
     GetLastInputInfo(plii)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn GetMouseMovePointsEx(cbsize: u32, lppt: *const MOUSEMOVEPOINT, lpptbuf: &mut [MOUSEMOVEPOINT], resolution: GET_MOUSE_MOVE_POINTS_EX_RESOLUTION) -> i32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetMouseMovePointsEx ( cbsize : u32 , lppt : *const MOUSEMOVEPOINT , lpptbuf : *mut MOUSEMOVEPOINT , nbufpoints : i32 , resolution : GET_MOUSE_MOVE_POINTS_EX_RESOLUTION ) -> i32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetMouseMovePointsEx(cbsize : u32, lppt : *const MOUSEMOVEPOINT, lpptbuf : *mut MOUSEMOVEPOINT, nbufpoints : i32, resolution : GET_MOUSE_MOVE_POINTS_EX_RESOLUTION) -> i32);
     GetMouseMovePointsEx(cbsize, lppt, ::core::mem::transmute(lpptbuf.as_ptr()), lpptbuf.len() as _, resolution)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
@@ -156,37 +156,37 @@ pub unsafe fn GetMouseMovePointsEx(cbsize: u32, lppt: *const MOUSEMOVEPOINT, lpp
 #[inline]
 pub unsafe fn IsWindowEnabled<P0>(hwnd: P0) -> super::super::super::Foundation::BOOL
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::HWND>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::HWND>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn IsWindowEnabled ( hwnd : super::super::super::Foundation:: HWND ) -> super::super::super::Foundation:: BOOL );
+    ::windows_targets::link!("user32.dll" "system" fn IsWindowEnabled(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: BOOL);
     IsWindowEnabled(hwnd.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
 #[cfg(feature = "Win32_UI_TextServices")]
 #[inline]
-pub unsafe fn LoadKeyboardLayoutA<P0>(pwszklid: P0, flags: ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> ::windows::core::Result<super::super::TextServices::HKL>
+pub unsafe fn LoadKeyboardLayoutA<P0>(pwszklid: P0, flags: ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> ::windows_core::Result<super::super::TextServices::HKL>
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn LoadKeyboardLayoutA ( pwszklid : ::windows::core::PCSTR , flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS ) -> super::super::TextServices:: HKL );
+    ::windows_targets::link!("user32.dll" "system" fn LoadKeyboardLayoutA(pwszklid : ::windows_core::PCSTR, flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> super::super::TextServices:: HKL);
     let result__ = LoadKeyboardLayoutA(pwszklid.into_param().abi(), flags);
-    ::windows::imp::then(!result__.is_invalid(), || result__).ok_or_else(::windows::core::Error::from_win32)
+    (!result__.is_invalid()).then(|| result__).ok_or_else(::windows_core::Error::from_win32)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
 #[cfg(feature = "Win32_UI_TextServices")]
 #[inline]
-pub unsafe fn LoadKeyboardLayoutW<P0>(pwszklid: P0, flags: ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> ::windows::core::Result<super::super::TextServices::HKL>
+pub unsafe fn LoadKeyboardLayoutW<P0>(pwszklid: P0, flags: ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> ::windows_core::Result<super::super::TextServices::HKL>
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn LoadKeyboardLayoutW ( pwszklid : ::windows::core::PCWSTR , flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS ) -> super::super::TextServices:: HKL );
+    ::windows_targets::link!("user32.dll" "system" fn LoadKeyboardLayoutW(pwszklid : ::windows_core::PCWSTR, flags : ACTIVATE_KEYBOARD_LAYOUT_FLAGS) -> super::super::TextServices:: HKL);
     let result__ = LoadKeyboardLayoutW(pwszklid.into_param().abi(), flags);
-    ::windows::imp::then(!result__.is_invalid(), || result__).ok_or_else(::windows::core::Error::from_win32)
+    (!result__.is_invalid()).then(|| result__).ok_or_else(::windows_core::Error::from_win32)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn MapVirtualKeyA(ucode: u32, umaptype: MAP_VIRTUAL_KEY_TYPE) -> u32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn MapVirtualKeyA ( ucode : u32 , umaptype : MAP_VIRTUAL_KEY_TYPE ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn MapVirtualKeyA(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE) -> u32);
     MapVirtualKeyA(ucode, umaptype)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
@@ -194,9 +194,9 @@ pub unsafe fn MapVirtualKeyA(ucode: u32, umaptype: MAP_VIRTUAL_KEY_TYPE) -> u32 
 #[inline]
 pub unsafe fn MapVirtualKeyExA<P0>(ucode: u32, umaptype: MAP_VIRTUAL_KEY_TYPE, dwhkl: P0) -> u32
 where
-    P0: ::windows::core::IntoParam<super::super::TextServices::HKL>,
+    P0: ::windows_core::IntoParam<super::super::TextServices::HKL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn MapVirtualKeyExA ( ucode : u32 , umaptype : MAP_VIRTUAL_KEY_TYPE , dwhkl : super::super::TextServices:: HKL ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn MapVirtualKeyExA(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE, dwhkl : super::super::TextServices:: HKL) -> u32);
     MapVirtualKeyExA(ucode, umaptype, dwhkl.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
@@ -204,44 +204,44 @@ where
 #[inline]
 pub unsafe fn MapVirtualKeyExW<P0>(ucode: u32, umaptype: MAP_VIRTUAL_KEY_TYPE, dwhkl: P0) -> u32
 where
-    P0: ::windows::core::IntoParam<super::super::TextServices::HKL>,
+    P0: ::windows_core::IntoParam<super::super::TextServices::HKL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn MapVirtualKeyExW ( ucode : u32 , umaptype : MAP_VIRTUAL_KEY_TYPE , dwhkl : super::super::TextServices:: HKL ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn MapVirtualKeyExW(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE, dwhkl : super::super::TextServices:: HKL) -> u32);
     MapVirtualKeyExW(ucode, umaptype, dwhkl.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn MapVirtualKeyW(ucode: u32, umaptype: MAP_VIRTUAL_KEY_TYPE) -> u32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn MapVirtualKeyW ( ucode : u32 , umaptype : MAP_VIRTUAL_KEY_TYPE ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn MapVirtualKeyW(ucode : u32, umaptype : MAP_VIRTUAL_KEY_TYPE) -> u32);
     MapVirtualKeyW(ucode, umaptype)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn OemKeyScan(woemchar: u16) -> u32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn OemKeyScan ( woemchar : u16 ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn OemKeyScan(woemchar : u16) -> u32);
     OemKeyScan(woemchar)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn RegisterHotKey<P0>(hwnd: P0, id: i32, fsmodifiers: HOT_KEY_MODIFIERS, vk: u32) -> super::super::super::Foundation::BOOL
+pub unsafe fn RegisterHotKey<P0>(hwnd: P0, id: i32, fsmodifiers: HOT_KEY_MODIFIERS, vk: u32) -> ::windows_core::Result<()>
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::HWND>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::HWND>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn RegisterHotKey ( hwnd : super::super::super::Foundation:: HWND , id : i32 , fsmodifiers : HOT_KEY_MODIFIERS , vk : u32 ) -> super::super::super::Foundation:: BOOL );
-    RegisterHotKey(hwnd.into_param().abi(), id, fsmodifiers, vk)
+    ::windows_targets::link!("user32.dll" "system" fn RegisterHotKey(hwnd : super::super::super::Foundation:: HWND, id : i32, fsmodifiers : HOT_KEY_MODIFIERS, vk : u32) -> super::super::super::Foundation:: BOOL);
+    RegisterHotKey(hwnd.into_param().abi(), id, fsmodifiers, vk).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn ReleaseCapture() -> super::super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn ReleaseCapture ( ) -> super::super::super::Foundation:: BOOL );
-    ReleaseCapture()
+pub unsafe fn ReleaseCapture() -> ::windows_core::Result<()> {
+    ::windows_targets::link!("user32.dll" "system" fn ReleaseCapture() -> super::super::super::Foundation:: BOOL);
+    ReleaseCapture().ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn SendInput(pinputs: &[INPUT], cbsize: i32) -> u32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn SendInput ( cinputs : u32 , pinputs : *const INPUT , cbsize : i32 ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn SendInput(cinputs : u32, pinputs : *const INPUT, cbsize : i32) -> u32);
     SendInput(pinputs.len() as _, ::core::mem::transmute(pinputs.as_ptr()), cbsize)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
@@ -249,9 +249,9 @@ pub unsafe fn SendInput(pinputs: &[INPUT], cbsize: i32) -> u32 {
 #[inline]
 pub unsafe fn SetActiveWindow<P0>(hwnd: P0) -> super::super::super::Foundation::HWND
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::HWND>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::HWND>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn SetActiveWindow ( hwnd : super::super::super::Foundation:: HWND ) -> super::super::super::Foundation:: HWND );
+    ::windows_targets::link!("user32.dll" "system" fn SetActiveWindow(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: HWND);
     SetActiveWindow(hwnd.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
@@ -259,49 +259,49 @@ where
 #[inline]
 pub unsafe fn SetCapture<P0>(hwnd: P0) -> super::super::super::Foundation::HWND
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::HWND>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::HWND>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn SetCapture ( hwnd : super::super::super::Foundation:: HWND ) -> super::super::super::Foundation:: HWND );
+    ::windows_targets::link!("user32.dll" "system" fn SetCapture(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: HWND);
     SetCapture(hwnd.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn SetDoubleClickTime(param0: u32) -> super::super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn SetDoubleClickTime ( param0 : u32 ) -> super::super::super::Foundation:: BOOL );
-    SetDoubleClickTime(param0)
+pub unsafe fn SetDoubleClickTime(param0: u32) -> ::windows_core::Result<()> {
+    ::windows_targets::link!("user32.dll" "system" fn SetDoubleClickTime(param0 : u32) -> super::super::super::Foundation:: BOOL);
+    SetDoubleClickTime(param0).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetFocus<P0>(hwnd: P0) -> super::super::super::Foundation::HWND
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::HWND>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::HWND>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn SetFocus ( hwnd : super::super::super::Foundation:: HWND ) -> super::super::super::Foundation:: HWND );
+    ::windows_targets::link!("user32.dll" "system" fn SetFocus(hwnd : super::super::super::Foundation:: HWND) -> super::super::super::Foundation:: HWND);
     SetFocus(hwnd.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn SetKeyboardState(lpkeystate: &[u8; 256]) -> super::super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn SetKeyboardState ( lpkeystate : *const u8 ) -> super::super::super::Foundation:: BOOL );
-    SetKeyboardState(::core::mem::transmute(lpkeystate.as_ptr()))
+pub unsafe fn SetKeyboardState(lpkeystate: &[u8; 256]) -> ::windows_core::Result<()> {
+    ::windows_targets::link!("user32.dll" "system" fn SetKeyboardState(lpkeystate : *const u8) -> super::super::super::Foundation:: BOOL);
+    SetKeyboardState(::core::mem::transmute(lpkeystate.as_ptr())).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SwapMouseButton<P0>(fswap: P0) -> super::super::super::Foundation::BOOL
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::BOOL>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::BOOL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn SwapMouseButton ( fswap : super::super::super::Foundation:: BOOL ) -> super::super::super::Foundation:: BOOL );
+    ::windows_targets::link!("user32.dll" "system" fn SwapMouseButton(fswap : super::super::super::Foundation:: BOOL) -> super::super::super::Foundation:: BOOL);
     SwapMouseButton(fswap.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn ToAscii(uvirtkey: u32, uscancode: u32, lpkeystate: ::core::option::Option<&[u8; 256]>, lpchar: *mut u16, uflags: u32) -> i32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn ToAscii ( uvirtkey : u32 , uscancode : u32 , lpkeystate : *const u8 , lpchar : *mut u16 , uflags : u32 ) -> i32 );
+    ::windows_targets::link!("user32.dll" "system" fn ToAscii(uvirtkey : u32, uscancode : u32, lpkeystate : *const u8, lpchar : *mut u16, uflags : u32) -> i32);
     ToAscii(uvirtkey, uscancode, ::core::mem::transmute(lpkeystate.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), lpchar, uflags)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
@@ -309,15 +309,15 @@ pub unsafe fn ToAscii(uvirtkey: u32, uscancode: u32, lpkeystate: ::core::option:
 #[inline]
 pub unsafe fn ToAsciiEx<P0>(uvirtkey: u32, uscancode: u32, lpkeystate: ::core::option::Option<&[u8; 256]>, lpchar: *mut u16, uflags: u32, dwhkl: P0) -> i32
 where
-    P0: ::windows::core::IntoParam<super::super::TextServices::HKL>,
+    P0: ::windows_core::IntoParam<super::super::TextServices::HKL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn ToAsciiEx ( uvirtkey : u32 , uscancode : u32 , lpkeystate : *const u8 , lpchar : *mut u16 , uflags : u32 , dwhkl : super::super::TextServices:: HKL ) -> i32 );
+    ::windows_targets::link!("user32.dll" "system" fn ToAsciiEx(uvirtkey : u32, uscancode : u32, lpkeystate : *const u8, lpchar : *mut u16, uflags : u32, dwhkl : super::super::TextServices:: HKL) -> i32);
     ToAsciiEx(uvirtkey, uscancode, ::core::mem::transmute(lpkeystate.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), lpchar, uflags, dwhkl.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn ToUnicode(wvirtkey: u32, wscancode: u32, lpkeystate: ::core::option::Option<&[u8; 256]>, pwszbuff: &mut [u16], wflags: u32) -> i32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn ToUnicode ( wvirtkey : u32 , wscancode : u32 , lpkeystate : *const u8 , pwszbuff : ::windows::core::PWSTR , cchbuff : i32 , wflags : u32 ) -> i32 );
+    ::windows_targets::link!("user32.dll" "system" fn ToUnicode(wvirtkey : u32, wscancode : u32, lpkeystate : *const u8, pwszbuff : ::windows_core::PWSTR, cchbuff : i32, wflags : u32) -> i32);
     ToUnicode(wvirtkey, wscancode, ::core::mem::transmute(lpkeystate.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), ::core::mem::transmute(pwszbuff.as_ptr()), pwszbuff.len() as _, wflags)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
@@ -325,42 +325,42 @@ pub unsafe fn ToUnicode(wvirtkey: u32, wscancode: u32, lpkeystate: ::core::optio
 #[inline]
 pub unsafe fn ToUnicodeEx<P0>(wvirtkey: u32, wscancode: u32, lpkeystate: &[u8; 256], pwszbuff: &mut [u16], wflags: u32, dwhkl: P0) -> i32
 where
-    P0: ::windows::core::IntoParam<super::super::TextServices::HKL>,
+    P0: ::windows_core::IntoParam<super::super::TextServices::HKL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn ToUnicodeEx ( wvirtkey : u32 , wscancode : u32 , lpkeystate : *const u8 , pwszbuff : ::windows::core::PWSTR , cchbuff : i32 , wflags : u32 , dwhkl : super::super::TextServices:: HKL ) -> i32 );
+    ::windows_targets::link!("user32.dll" "system" fn ToUnicodeEx(wvirtkey : u32, wscancode : u32, lpkeystate : *const u8, pwszbuff : ::windows_core::PWSTR, cchbuff : i32, wflags : u32, dwhkl : super::super::TextServices:: HKL) -> i32);
     ToUnicodeEx(wvirtkey, wscancode, ::core::mem::transmute(lpkeystate.as_ptr()), ::core::mem::transmute(pwszbuff.as_ptr()), pwszbuff.len() as _, wflags, dwhkl.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn TrackMouseEvent(lpeventtrack: *mut TRACKMOUSEEVENT) -> super::super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn TrackMouseEvent ( lpeventtrack : *mut TRACKMOUSEEVENT ) -> super::super::super::Foundation:: BOOL );
-    TrackMouseEvent(lpeventtrack)
+pub unsafe fn TrackMouseEvent(lpeventtrack: *mut TRACKMOUSEEVENT) -> ::windows_core::Result<()> {
+    ::windows_targets::link!("user32.dll" "system" fn TrackMouseEvent(lpeventtrack : *mut TRACKMOUSEEVENT) -> super::super::super::Foundation:: BOOL);
+    TrackMouseEvent(lpeventtrack).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`, `\"Win32_UI_TextServices\"`*"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_TextServices"))]
 #[inline]
-pub unsafe fn UnloadKeyboardLayout<P0>(hkl: P0) -> super::super::super::Foundation::BOOL
+pub unsafe fn UnloadKeyboardLayout<P0>(hkl: P0) -> ::windows_core::Result<()>
 where
-    P0: ::windows::core::IntoParam<super::super::TextServices::HKL>,
+    P0: ::windows_core::IntoParam<super::super::TextServices::HKL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn UnloadKeyboardLayout ( hkl : super::super::TextServices:: HKL ) -> super::super::super::Foundation:: BOOL );
-    UnloadKeyboardLayout(hkl.into_param().abi())
+    ::windows_targets::link!("user32.dll" "system" fn UnloadKeyboardLayout(hkl : super::super::TextServices:: HKL) -> super::super::super::Foundation:: BOOL);
+    UnloadKeyboardLayout(hkl.into_param().abi()).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn UnregisterHotKey<P0>(hwnd: P0, id: i32) -> super::super::super::Foundation::BOOL
+pub unsafe fn UnregisterHotKey<P0>(hwnd: P0, id: i32) -> ::windows_core::Result<()>
 where
-    P0: ::windows::core::IntoParam<super::super::super::Foundation::HWND>,
+    P0: ::windows_core::IntoParam<super::super::super::Foundation::HWND>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn UnregisterHotKey ( hwnd : super::super::super::Foundation:: HWND , id : i32 ) -> super::super::super::Foundation:: BOOL );
-    UnregisterHotKey(hwnd.into_param().abi(), id)
+    ::windows_targets::link!("user32.dll" "system" fn UnregisterHotKey(hwnd : super::super::super::Foundation:: HWND, id : i32) -> super::super::super::Foundation:: BOOL);
+    UnregisterHotKey(hwnd.into_param().abi(), id).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn VkKeyScanA(ch: u8) -> i16 {
-    ::windows_targets::link ! ( "user32.dll""system" fn VkKeyScanA ( ch : u8 ) -> i16 );
+    ::windows_targets::link!("user32.dll" "system" fn VkKeyScanA(ch : u8) -> i16);
     VkKeyScanA(ch)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
@@ -368,9 +368,9 @@ pub unsafe fn VkKeyScanA(ch: u8) -> i16 {
 #[inline]
 pub unsafe fn VkKeyScanExA<P0>(ch: u8, dwhkl: P0) -> i16
 where
-    P0: ::windows::core::IntoParam<super::super::TextServices::HKL>,
+    P0: ::windows_core::IntoParam<super::super::TextServices::HKL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn VkKeyScanExA ( ch : u8 , dwhkl : super::super::TextServices:: HKL ) -> i16 );
+    ::windows_targets::link!("user32.dll" "system" fn VkKeyScanExA(ch : u8, dwhkl : super::super::TextServices:: HKL) -> i16);
     VkKeyScanExA(ch, dwhkl.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_UI_TextServices\"`*"]
@@ -378,34 +378,34 @@ where
 #[inline]
 pub unsafe fn VkKeyScanExW<P0>(ch: u16, dwhkl: P0) -> i16
 where
-    P0: ::windows::core::IntoParam<super::super::TextServices::HKL>,
+    P0: ::windows_core::IntoParam<super::super::TextServices::HKL>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn VkKeyScanExW ( ch : u16 , dwhkl : super::super::TextServices:: HKL ) -> i16 );
+    ::windows_targets::link!("user32.dll" "system" fn VkKeyScanExW(ch : u16, dwhkl : super::super::TextServices:: HKL) -> i16);
     VkKeyScanExW(ch, dwhkl.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn VkKeyScanW(ch: u16) -> i16 {
-    ::windows_targets::link ! ( "user32.dll""system" fn VkKeyScanW ( ch : u16 ) -> i16 );
+    ::windows_targets::link!("user32.dll" "system" fn VkKeyScanW(ch : u16) -> i16);
     VkKeyScanW(ch)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn _TrackMouseEvent(lpeventtrack: *mut TRACKMOUSEEVENT) -> super::super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "comctl32.dll""system" fn _TrackMouseEvent ( lpeventtrack : *mut TRACKMOUSEEVENT ) -> super::super::super::Foundation:: BOOL );
+    ::windows_targets::link!("comctl32.dll" "system" fn _TrackMouseEvent(lpeventtrack : *mut TRACKMOUSEEVENT) -> super::super::super::Foundation:: BOOL);
     _TrackMouseEvent(lpeventtrack)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn keybd_event(bvk: u8, bscan: u8, dwflags: KEYBD_EVENT_FLAGS, dwextrainfo: usize) {
-    ::windows_targets::link ! ( "user32.dll""system" fn keybd_event ( bvk : u8 , bscan : u8 , dwflags : KEYBD_EVENT_FLAGS , dwextrainfo : usize ) -> ( ) );
+    ::windows_targets::link!("user32.dll" "system" fn keybd_event(bvk : u8, bscan : u8, dwflags : KEYBD_EVENT_FLAGS, dwextrainfo : usize) -> ());
     keybd_event(bvk, bscan, dwflags, dwextrainfo)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[inline]
 pub unsafe fn mouse_event(dwflags: MOUSE_EVENT_FLAGS, dx: i32, dy: i32, dwdata: i32, dwextrainfo: usize) {
-    ::windows_targets::link ! ( "user32.dll""system" fn mouse_event ( dwflags : MOUSE_EVENT_FLAGS , dx : i32 , dy : i32 , dwdata : i32 , dwextrainfo : usize ) -> ( ) );
+    ::windows_targets::link!("user32.dll" "system" fn mouse_event(dwflags : MOUSE_EVENT_FLAGS, dx : i32, dy : i32, dwdata : i32, dwextrainfo : usize) -> ());
     mouse_event(dwflags, dx, dy, dwdata, dwextrainfo)
 }
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
@@ -449,6 +449,10 @@ pub const FMR_KBD_OASYS_TYPE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const FMV_KBD_OASYS_TYPE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const GMMP_USE_DISPLAY_POINTS: GET_MOUSE_MOVE_POINTS_EX_RESOLUTION = GET_MOUSE_MOVE_POINTS_EX_RESOLUTION(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const GMMP_USE_HIGH_RESOLUTION_POINTS: GET_MOUSE_MOVE_POINTS_EX_RESOLUTION = GET_MOUSE_MOVE_POINTS_EX_RESOLUTION(2u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const GRAVE: u32 = 768u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const GRPSELTAP: u32 = 128u32;
@@ -456,6 +460,12 @@ pub const GRPSELTAP: u32 = 128u32;
 pub const HACEK: u32 = 780u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const HOOK_ABOVE: u32 = 777u32;
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const INPUT_HARDWARE: INPUT_TYPE = INPUT_TYPE(2u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const INPUT_KEYBOARD: INPUT_TYPE = INPUT_TYPE(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const INPUT_MOUSE: INPUT_TYPE = INPUT_TYPE(0u32);
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const KANALOK: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
@@ -531,6 +541,30 @@ pub const KEYBOARD_TYPE_KOREA: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const KEYBOARD_TYPE_UNKNOWN: u32 = 81u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KEYEVENTF_EXTENDEDKEY: KEYBD_EVENT_FLAGS = KEYBD_EVENT_FLAGS(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KEYEVENTF_KEYUP: KEYBD_EVENT_FLAGS = KEYBD_EVENT_FLAGS(2u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KEYEVENTF_SCANCODE: KEYBD_EVENT_FLAGS = KEYBD_EVENT_FLAGS(8u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KEYEVENTF_UNICODE: KEYBD_EVENT_FLAGS = KEYBD_EVENT_FLAGS(4u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KLF_ACTIVATE: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KLF_NOTELLSHELL: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(128u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KLF_REORDER: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(8u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KLF_REPLACELANG: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(16u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KLF_RESET: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(1073741824u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KLF_SETFORPROCESS: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(256u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KLF_SHIFTLOCK: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(65536u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const KLF_SUBSTITUTE_OK: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(2u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const KLLF_ALTGR: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const KLLF_GLOBAL_ATTRS: u32 = 2u32;
@@ -540,6 +574,16 @@ pub const KLLF_LRM_RLM: u32 = 4u32;
 pub const KLLF_SHIFTLOCK: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const MACRON: u32 = 772u32;
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MAPVK_VK_TO_CHAR: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(2u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MAPVK_VK_TO_VSC: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(0u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MAPVK_VK_TO_VSC_EX: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(4u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MAPVK_VSC_TO_VK: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MAPVK_VSC_TO_VK_EX: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(3u32);
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const MICROSOFT_KBD_001_TYPE: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
@@ -560,6 +604,44 @@ pub const MICROSOFT_KBD_106_TYPE: u32 = 2u32;
 pub const MICROSOFT_KBD_AX_TYPE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const MICROSOFT_KBD_FUNC: u32 = 12u32;
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOD_ALT: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOD_CONTROL: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(2u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOD_NOREPEAT: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(16384u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOD_SHIFT: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(4u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOD_WIN: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(8u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_ABSOLUTE: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(32768u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_HWHEEL: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(4096u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_LEFTDOWN: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(2u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_LEFTUP: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(4u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_MIDDLEDOWN: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(32u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_MIDDLEUP: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(64u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_MOVE: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_MOVE_NOCOALESCE: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(8192u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_RIGHTDOWN: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(8u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_RIGHTUP: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(16u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_VIRTUALDESK: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(16384u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_WHEEL: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(2048u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_XDOWN: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(128u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const MOUSEEVENTF_XUP: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(256u32);
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const NEC_KBD_106_TYPE: u32 = 5u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
@@ -627,6 +709,16 @@ pub const SHFT_INVALID: u32 = 15u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const TILDE: u32 = 771u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const TME_CANCEL: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(2147483648u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const TME_HOVER: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const TME_LEAVE: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(2u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const TME_NONCLIENT: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(16u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const TME_QUERY: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(1073741824u32);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const TONOS: u32 = 900u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const TOSHIBA_KBD_DESKTOP_TYPE: u32 = 13u32;
@@ -635,65 +727,543 @@ pub const TOSHIBA_KBD_LAPTOP_TYPE: u32 = 15u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const UMLAUT: u32 = 776u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_0: VIRTUAL_KEY = VIRTUAL_KEY(48u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_1: VIRTUAL_KEY = VIRTUAL_KEY(49u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_2: VIRTUAL_KEY = VIRTUAL_KEY(50u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_3: VIRTUAL_KEY = VIRTUAL_KEY(51u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_4: VIRTUAL_KEY = VIRTUAL_KEY(52u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_5: VIRTUAL_KEY = VIRTUAL_KEY(53u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_6: VIRTUAL_KEY = VIRTUAL_KEY(54u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_7: VIRTUAL_KEY = VIRTUAL_KEY(55u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_8: VIRTUAL_KEY = VIRTUAL_KEY(56u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_9: VIRTUAL_KEY = VIRTUAL_KEY(57u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_A: VIRTUAL_KEY = VIRTUAL_KEY(65u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ABNT_C1: VIRTUAL_KEY = VIRTUAL_KEY(193u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ABNT_C2: VIRTUAL_KEY = VIRTUAL_KEY(194u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ACCEPT: VIRTUAL_KEY = VIRTUAL_KEY(30u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ADD: VIRTUAL_KEY = VIRTUAL_KEY(107u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_APPS: VIRTUAL_KEY = VIRTUAL_KEY(93u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ATTN: VIRTUAL_KEY = VIRTUAL_KEY(246u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_B: VIRTUAL_KEY = VIRTUAL_KEY(66u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_BACK: VIRTUAL_KEY = VIRTUAL_KEY(8u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_BROWSER_BACK: VIRTUAL_KEY = VIRTUAL_KEY(166u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_BROWSER_FAVORITES: VIRTUAL_KEY = VIRTUAL_KEY(171u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_BROWSER_FORWARD: VIRTUAL_KEY = VIRTUAL_KEY(167u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_BROWSER_HOME: VIRTUAL_KEY = VIRTUAL_KEY(172u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_BROWSER_REFRESH: VIRTUAL_KEY = VIRTUAL_KEY(168u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_BROWSER_SEARCH: VIRTUAL_KEY = VIRTUAL_KEY(170u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_BROWSER_STOP: VIRTUAL_KEY = VIRTUAL_KEY(169u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_C: VIRTUAL_KEY = VIRTUAL_KEY(67u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_CANCEL: VIRTUAL_KEY = VIRTUAL_KEY(3u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_CAPITAL: VIRTUAL_KEY = VIRTUAL_KEY(20u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_CLEAR: VIRTUAL_KEY = VIRTUAL_KEY(12u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_CONTROL: VIRTUAL_KEY = VIRTUAL_KEY(17u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_CONVERT: VIRTUAL_KEY = VIRTUAL_KEY(28u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_CRSEL: VIRTUAL_KEY = VIRTUAL_KEY(247u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_D: VIRTUAL_KEY = VIRTUAL_KEY(68u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_ALPHANUMERIC: VIRTUAL_KEY = VIRTUAL_KEY(240u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_CODEINPUT: VIRTUAL_KEY = VIRTUAL_KEY(250u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_DBCSCHAR: VIRTUAL_KEY = VIRTUAL_KEY(244u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_DETERMINESTRING: VIRTUAL_KEY = VIRTUAL_KEY(252u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_ENTERDLGCONVERSIONMODE: VIRTUAL_KEY = VIRTUAL_KEY(253u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_ENTERIMECONFIGMODE: VIRTUAL_KEY = VIRTUAL_KEY(248u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_ENTERWORDREGISTERMODE: VIRTUAL_KEY = VIRTUAL_KEY(247u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_FLUSHSTRING: VIRTUAL_KEY = VIRTUAL_KEY(249u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_HIRAGANA: VIRTUAL_KEY = VIRTUAL_KEY(242u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_KATAKANA: VIRTUAL_KEY = VIRTUAL_KEY(241u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_NOCODEINPUT: VIRTUAL_KEY = VIRTUAL_KEY(251u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_NOROMAN: VIRTUAL_KEY = VIRTUAL_KEY(246u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_ROMAN: VIRTUAL_KEY = VIRTUAL_KEY(245u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DBE_SBCSCHAR: VIRTUAL_KEY = VIRTUAL_KEY(243u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DECIMAL: VIRTUAL_KEY = VIRTUAL_KEY(110u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DELETE: VIRTUAL_KEY = VIRTUAL_KEY(46u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DIVIDE: VIRTUAL_KEY = VIRTUAL_KEY(111u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(40u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_E: VIRTUAL_KEY = VIRTUAL_KEY(69u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_END: VIRTUAL_KEY = VIRTUAL_KEY(35u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_EREOF: VIRTUAL_KEY = VIRTUAL_KEY(249u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ESCAPE: VIRTUAL_KEY = VIRTUAL_KEY(27u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_EXECUTE: VIRTUAL_KEY = VIRTUAL_KEY(43u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_EXSEL: VIRTUAL_KEY = VIRTUAL_KEY(248u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F: VIRTUAL_KEY = VIRTUAL_KEY(70u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F1: VIRTUAL_KEY = VIRTUAL_KEY(112u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F10: VIRTUAL_KEY = VIRTUAL_KEY(121u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F11: VIRTUAL_KEY = VIRTUAL_KEY(122u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F12: VIRTUAL_KEY = VIRTUAL_KEY(123u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F13: VIRTUAL_KEY = VIRTUAL_KEY(124u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F14: VIRTUAL_KEY = VIRTUAL_KEY(125u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F15: VIRTUAL_KEY = VIRTUAL_KEY(126u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F16: VIRTUAL_KEY = VIRTUAL_KEY(127u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F17: VIRTUAL_KEY = VIRTUAL_KEY(128u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F18: VIRTUAL_KEY = VIRTUAL_KEY(129u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F19: VIRTUAL_KEY = VIRTUAL_KEY(130u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F2: VIRTUAL_KEY = VIRTUAL_KEY(113u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F20: VIRTUAL_KEY = VIRTUAL_KEY(131u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F21: VIRTUAL_KEY = VIRTUAL_KEY(132u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F22: VIRTUAL_KEY = VIRTUAL_KEY(133u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F23: VIRTUAL_KEY = VIRTUAL_KEY(134u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F24: VIRTUAL_KEY = VIRTUAL_KEY(135u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F3: VIRTUAL_KEY = VIRTUAL_KEY(114u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F4: VIRTUAL_KEY = VIRTUAL_KEY(115u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F5: VIRTUAL_KEY = VIRTUAL_KEY(116u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F6: VIRTUAL_KEY = VIRTUAL_KEY(117u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F7: VIRTUAL_KEY = VIRTUAL_KEY(118u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F8: VIRTUAL_KEY = VIRTUAL_KEY(119u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_F9: VIRTUAL_KEY = VIRTUAL_KEY(120u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_FINAL: VIRTUAL_KEY = VIRTUAL_KEY(24u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_G: VIRTUAL_KEY = VIRTUAL_KEY(71u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_A: VIRTUAL_KEY = VIRTUAL_KEY(195u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_B: VIRTUAL_KEY = VIRTUAL_KEY(196u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_DPAD_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(204u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_DPAD_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(205u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_DPAD_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(206u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_DPAD_UP: VIRTUAL_KEY = VIRTUAL_KEY(203u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_LEFT_SHOULDER: VIRTUAL_KEY = VIRTUAL_KEY(200u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_LEFT_THUMBSTICK_BUTTON: VIRTUAL_KEY = VIRTUAL_KEY(209u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_LEFT_THUMBSTICK_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(212u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_LEFT_THUMBSTICK_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(214u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_LEFT_THUMBSTICK_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(213u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_LEFT_THUMBSTICK_UP: VIRTUAL_KEY = VIRTUAL_KEY(211u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_LEFT_TRIGGER: VIRTUAL_KEY = VIRTUAL_KEY(201u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_MENU: VIRTUAL_KEY = VIRTUAL_KEY(207u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_RIGHT_SHOULDER: VIRTUAL_KEY = VIRTUAL_KEY(199u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_RIGHT_THUMBSTICK_BUTTON: VIRTUAL_KEY = VIRTUAL_KEY(210u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_RIGHT_THUMBSTICK_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(216u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_RIGHT_THUMBSTICK_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(218u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_RIGHT_THUMBSTICK_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(217u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_RIGHT_THUMBSTICK_UP: VIRTUAL_KEY = VIRTUAL_KEY(215u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_RIGHT_TRIGGER: VIRTUAL_KEY = VIRTUAL_KEY(202u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_VIEW: VIRTUAL_KEY = VIRTUAL_KEY(208u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_X: VIRTUAL_KEY = VIRTUAL_KEY(197u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_GAMEPAD_Y: VIRTUAL_KEY = VIRTUAL_KEY(198u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_H: VIRTUAL_KEY = VIRTUAL_KEY(72u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_HANGEUL: VIRTUAL_KEY = VIRTUAL_KEY(21u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_HANGUL: VIRTUAL_KEY = VIRTUAL_KEY(21u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_HANJA: VIRTUAL_KEY = VIRTUAL_KEY(25u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_HELP: VIRTUAL_KEY = VIRTUAL_KEY(47u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_HOME: VIRTUAL_KEY = VIRTUAL_KEY(36u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_I: VIRTUAL_KEY = VIRTUAL_KEY(73u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ICO_00: VIRTUAL_KEY = VIRTUAL_KEY(228u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ICO_CLEAR: VIRTUAL_KEY = VIRTUAL_KEY(230u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ICO_HELP: VIRTUAL_KEY = VIRTUAL_KEY(227u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_IME_OFF: VIRTUAL_KEY = VIRTUAL_KEY(26u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_IME_ON: VIRTUAL_KEY = VIRTUAL_KEY(22u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_INSERT: VIRTUAL_KEY = VIRTUAL_KEY(45u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_J: VIRTUAL_KEY = VIRTUAL_KEY(74u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_JUNJA: VIRTUAL_KEY = VIRTUAL_KEY(23u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_K: VIRTUAL_KEY = VIRTUAL_KEY(75u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_KANA: VIRTUAL_KEY = VIRTUAL_KEY(21u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_KANJI: VIRTUAL_KEY = VIRTUAL_KEY(25u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_L: VIRTUAL_KEY = VIRTUAL_KEY(76u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LAUNCH_APP1: VIRTUAL_KEY = VIRTUAL_KEY(182u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LAUNCH_APP2: VIRTUAL_KEY = VIRTUAL_KEY(183u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LAUNCH_MAIL: VIRTUAL_KEY = VIRTUAL_KEY(180u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LAUNCH_MEDIA_SELECT: VIRTUAL_KEY = VIRTUAL_KEY(181u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LBUTTON: VIRTUAL_KEY = VIRTUAL_KEY(1u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LCONTROL: VIRTUAL_KEY = VIRTUAL_KEY(162u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(37u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LMENU: VIRTUAL_KEY = VIRTUAL_KEY(164u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LSHIFT: VIRTUAL_KEY = VIRTUAL_KEY(160u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_LWIN: VIRTUAL_KEY = VIRTUAL_KEY(91u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_M: VIRTUAL_KEY = VIRTUAL_KEY(77u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_MBUTTON: VIRTUAL_KEY = VIRTUAL_KEY(4u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_MEDIA_NEXT_TRACK: VIRTUAL_KEY = VIRTUAL_KEY(176u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_MEDIA_PLAY_PAUSE: VIRTUAL_KEY = VIRTUAL_KEY(179u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_MEDIA_PREV_TRACK: VIRTUAL_KEY = VIRTUAL_KEY(177u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_MEDIA_STOP: VIRTUAL_KEY = VIRTUAL_KEY(178u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_MENU: VIRTUAL_KEY = VIRTUAL_KEY(18u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_MODECHANGE: VIRTUAL_KEY = VIRTUAL_KEY(31u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_MULTIPLY: VIRTUAL_KEY = VIRTUAL_KEY(106u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_N: VIRTUAL_KEY = VIRTUAL_KEY(78u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NAVIGATION_ACCEPT: VIRTUAL_KEY = VIRTUAL_KEY(142u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NAVIGATION_CANCEL: VIRTUAL_KEY = VIRTUAL_KEY(143u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NAVIGATION_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(139u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NAVIGATION_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(140u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NAVIGATION_MENU: VIRTUAL_KEY = VIRTUAL_KEY(137u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NAVIGATION_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(141u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NAVIGATION_UP: VIRTUAL_KEY = VIRTUAL_KEY(138u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NAVIGATION_VIEW: VIRTUAL_KEY = VIRTUAL_KEY(136u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NEXT: VIRTUAL_KEY = VIRTUAL_KEY(34u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NONAME: VIRTUAL_KEY = VIRTUAL_KEY(252u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NONCONVERT: VIRTUAL_KEY = VIRTUAL_KEY(29u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMLOCK: VIRTUAL_KEY = VIRTUAL_KEY(144u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD0: VIRTUAL_KEY = VIRTUAL_KEY(96u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD1: VIRTUAL_KEY = VIRTUAL_KEY(97u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD2: VIRTUAL_KEY = VIRTUAL_KEY(98u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD3: VIRTUAL_KEY = VIRTUAL_KEY(99u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD4: VIRTUAL_KEY = VIRTUAL_KEY(100u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD5: VIRTUAL_KEY = VIRTUAL_KEY(101u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD6: VIRTUAL_KEY = VIRTUAL_KEY(102u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD7: VIRTUAL_KEY = VIRTUAL_KEY(103u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD8: VIRTUAL_KEY = VIRTUAL_KEY(104u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_NUMPAD9: VIRTUAL_KEY = VIRTUAL_KEY(105u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_O: VIRTUAL_KEY = VIRTUAL_KEY(79u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_1: VIRTUAL_KEY = VIRTUAL_KEY(186u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_102: VIRTUAL_KEY = VIRTUAL_KEY(226u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_2: VIRTUAL_KEY = VIRTUAL_KEY(191u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_3: VIRTUAL_KEY = VIRTUAL_KEY(192u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_4: VIRTUAL_KEY = VIRTUAL_KEY(219u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_5: VIRTUAL_KEY = VIRTUAL_KEY(220u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_6: VIRTUAL_KEY = VIRTUAL_KEY(221u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_7: VIRTUAL_KEY = VIRTUAL_KEY(222u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_8: VIRTUAL_KEY = VIRTUAL_KEY(223u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_ATTN: VIRTUAL_KEY = VIRTUAL_KEY(240u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_AUTO: VIRTUAL_KEY = VIRTUAL_KEY(243u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_AX: VIRTUAL_KEY = VIRTUAL_KEY(225u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_BACKTAB: VIRTUAL_KEY = VIRTUAL_KEY(245u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_CLEAR: VIRTUAL_KEY = VIRTUAL_KEY(254u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_COMMA: VIRTUAL_KEY = VIRTUAL_KEY(188u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_COPY: VIRTUAL_KEY = VIRTUAL_KEY(242u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_CUSEL: VIRTUAL_KEY = VIRTUAL_KEY(239u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_ENLW: VIRTUAL_KEY = VIRTUAL_KEY(244u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_FINISH: VIRTUAL_KEY = VIRTUAL_KEY(241u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_FJ_JISHO: VIRTUAL_KEY = VIRTUAL_KEY(146u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_FJ_LOYA: VIRTUAL_KEY = VIRTUAL_KEY(149u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_FJ_MASSHOU: VIRTUAL_KEY = VIRTUAL_KEY(147u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_FJ_ROYA: VIRTUAL_KEY = VIRTUAL_KEY(150u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_FJ_TOUROKU: VIRTUAL_KEY = VIRTUAL_KEY(148u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_JUMP: VIRTUAL_KEY = VIRTUAL_KEY(234u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_MINUS: VIRTUAL_KEY = VIRTUAL_KEY(189u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_NEC_EQUAL: VIRTUAL_KEY = VIRTUAL_KEY(146u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_PA1: VIRTUAL_KEY = VIRTUAL_KEY(235u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_PA2: VIRTUAL_KEY = VIRTUAL_KEY(236u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_PA3: VIRTUAL_KEY = VIRTUAL_KEY(237u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_PERIOD: VIRTUAL_KEY = VIRTUAL_KEY(190u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_PLUS: VIRTUAL_KEY = VIRTUAL_KEY(187u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_RESET: VIRTUAL_KEY = VIRTUAL_KEY(233u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_OEM_WSCTRL: VIRTUAL_KEY = VIRTUAL_KEY(238u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_P: VIRTUAL_KEY = VIRTUAL_KEY(80u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_PA1: VIRTUAL_KEY = VIRTUAL_KEY(253u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_PACKET: VIRTUAL_KEY = VIRTUAL_KEY(231u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_PAUSE: VIRTUAL_KEY = VIRTUAL_KEY(19u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_PLAY: VIRTUAL_KEY = VIRTUAL_KEY(250u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_PRINT: VIRTUAL_KEY = VIRTUAL_KEY(42u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_PRIOR: VIRTUAL_KEY = VIRTUAL_KEY(33u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_PROCESSKEY: VIRTUAL_KEY = VIRTUAL_KEY(229u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_Q: VIRTUAL_KEY = VIRTUAL_KEY(81u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_R: VIRTUAL_KEY = VIRTUAL_KEY(82u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_RBUTTON: VIRTUAL_KEY = VIRTUAL_KEY(2u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_RCONTROL: VIRTUAL_KEY = VIRTUAL_KEY(163u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_RETURN: VIRTUAL_KEY = VIRTUAL_KEY(13u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(39u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_RMENU: VIRTUAL_KEY = VIRTUAL_KEY(165u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_RSHIFT: VIRTUAL_KEY = VIRTUAL_KEY(161u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_RWIN: VIRTUAL_KEY = VIRTUAL_KEY(92u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_S: VIRTUAL_KEY = VIRTUAL_KEY(83u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_SCROLL: VIRTUAL_KEY = VIRTUAL_KEY(145u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_SELECT: VIRTUAL_KEY = VIRTUAL_KEY(41u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_SEPARATOR: VIRTUAL_KEY = VIRTUAL_KEY(108u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_SHIFT: VIRTUAL_KEY = VIRTUAL_KEY(16u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_SLEEP: VIRTUAL_KEY = VIRTUAL_KEY(95u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_SNAPSHOT: VIRTUAL_KEY = VIRTUAL_KEY(44u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_SPACE: VIRTUAL_KEY = VIRTUAL_KEY(32u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_SUBTRACT: VIRTUAL_KEY = VIRTUAL_KEY(109u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_T: VIRTUAL_KEY = VIRTUAL_KEY(84u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_TAB: VIRTUAL_KEY = VIRTUAL_KEY(9u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_U: VIRTUAL_KEY = VIRTUAL_KEY(85u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_UP: VIRTUAL_KEY = VIRTUAL_KEY(38u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_V: VIRTUAL_KEY = VIRTUAL_KEY(86u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_VOLUME_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(174u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_VOLUME_MUTE: VIRTUAL_KEY = VIRTUAL_KEY(173u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_VOLUME_UP: VIRTUAL_KEY = VIRTUAL_KEY(175u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_W: VIRTUAL_KEY = VIRTUAL_KEY(87u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_X: VIRTUAL_KEY = VIRTUAL_KEY(88u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_XBUTTON1: VIRTUAL_KEY = VIRTUAL_KEY(5u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_XBUTTON2: VIRTUAL_KEY = VIRTUAL_KEY(6u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_Y: VIRTUAL_KEY = VIRTUAL_KEY(89u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_Z: VIRTUAL_KEY = VIRTUAL_KEY(90u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK_ZOOM: VIRTUAL_KEY = VIRTUAL_KEY(251u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
+pub const VK__none_: VIRTUAL_KEY = VIRTUAL_KEY(255u16);
+#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const WCH_DEAD: u32 = 61441u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const WCH_LGTR: u32 = 61442u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub const WCH_NONE: u32 = 61440u32;
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszACUTE: ::windows::core::PCWSTR = ::windows::core::w!("\u{301}");
+pub const wszACUTE: ::windows_core::PCWSTR = ::windows_core::w!("\u{301}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszBREVE: ::windows::core::PCWSTR = ::windows::core::w!("\u{306}");
+pub const wszBREVE: ::windows_core::PCWSTR = ::windows_core::w!("\u{306}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszCEDILLA: ::windows::core::PCWSTR = ::windows::core::w!("\u{327}");
+pub const wszCEDILLA: ::windows_core::PCWSTR = ::windows_core::w!("\u{327}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszCIRCUMFLEX: ::windows::core::PCWSTR = ::windows::core::w!("\u{302}");
+pub const wszCIRCUMFLEX: ::windows_core::PCWSTR = ::windows_core::w!("\u{302}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszDIARESIS_TONOS: ::windows::core::PCWSTR = ::windows::core::w!("\u{385}");
+pub const wszDIARESIS_TONOS: ::windows_core::PCWSTR = ::windows_core::w!("\u{385}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszDOT_ABOVE: ::windows::core::PCWSTR = ::windows::core::w!("\u{307}");
+pub const wszDOT_ABOVE: ::windows_core::PCWSTR = ::windows_core::w!("\u{307}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszDOUBLE_ACUTE: ::windows::core::PCWSTR = ::windows::core::w!("\u{30b}");
+pub const wszDOUBLE_ACUTE: ::windows_core::PCWSTR = ::windows_core::w!("\u{30b}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszGRAVE: ::windows::core::PCWSTR = ::windows::core::w!("\u{300}");
+pub const wszGRAVE: ::windows_core::PCWSTR = ::windows_core::w!("\u{300}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszHACEK: ::windows::core::PCWSTR = ::windows::core::w!("\u{30c}");
+pub const wszHACEK: ::windows_core::PCWSTR = ::windows_core::w!("\u{30c}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszHOOK_ABOVE: ::windows::core::PCWSTR = ::windows::core::w!("\u{309}");
+pub const wszHOOK_ABOVE: ::windows_core::PCWSTR = ::windows_core::w!("\u{309}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszMACRON: ::windows::core::PCWSTR = ::windows::core::w!("\u{304}");
+pub const wszMACRON: ::windows_core::PCWSTR = ::windows_core::w!("\u{304}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszOGONEK: ::windows::core::PCWSTR = ::windows::core::w!("\u{328}");
+pub const wszOGONEK: ::windows_core::PCWSTR = ::windows_core::w!("\u{328}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszOVERSCORE: ::windows::core::PCWSTR = ::windows::core::w!("\u{305}");
+pub const wszOVERSCORE: ::windows_core::PCWSTR = ::windows_core::w!("\u{305}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszRING: ::windows::core::PCWSTR = ::windows::core::w!("\u{30a}");
+pub const wszRING: ::windows_core::PCWSTR = ::windows_core::w!("\u{30a}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszTILDE: ::windows::core::PCWSTR = ::windows::core::w!("\u{303}");
+pub const wszTILDE: ::windows_core::PCWSTR = ::windows_core::w!("\u{303}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszTONOS: ::windows::core::PCWSTR = ::windows::core::w!("\u{384}");
+pub const wszTONOS: ::windows_core::PCWSTR = ::windows_core::w!("\u{384}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const wszUMLAUT: ::windows::core::PCWSTR = ::windows::core::w!("\u{308}");
+pub const wszUMLAUT: ::windows_core::PCWSTR = ::windows_core::w!("\u{308}");
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ACTIVATE_KEYBOARD_LAYOUT_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KLF_REORDER: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(8u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KLF_RESET: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(1073741824u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KLF_SETFORPROCESS: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(256u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KLF_SHIFTLOCK: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(65536u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KLF_ACTIVATE: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KLF_NOTELLSHELL: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(128u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KLF_REPLACELANG: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(16u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KLF_SUBSTITUTE_OK: ACTIVATE_KEYBOARD_LAYOUT_FLAGS = ACTIVATE_KEYBOARD_LAYOUT_FLAGS(2u32);
 impl ::core::marker::Copy for ACTIVATE_KEYBOARD_LAYOUT_FLAGS {}
 impl ::core::clone::Clone for ACTIVATE_KEYBOARD_LAYOUT_FLAGS {
     fn clone(&self) -> Self {
@@ -705,8 +1275,8 @@ impl ::core::default::Default for ACTIVATE_KEYBOARD_LAYOUT_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for ACTIVATE_KEYBOARD_LAYOUT_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for ACTIVATE_KEYBOARD_LAYOUT_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for ACTIVATE_KEYBOARD_LAYOUT_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -717,10 +1287,6 @@ impl ::core::fmt::Debug for ACTIVATE_KEYBOARD_LAYOUT_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GET_MOUSE_MOVE_POINTS_EX_RESOLUTION(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const GMMP_USE_DISPLAY_POINTS: GET_MOUSE_MOVE_POINTS_EX_RESOLUTION = GET_MOUSE_MOVE_POINTS_EX_RESOLUTION(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const GMMP_USE_HIGH_RESOLUTION_POINTS: GET_MOUSE_MOVE_POINTS_EX_RESOLUTION = GET_MOUSE_MOVE_POINTS_EX_RESOLUTION(2u32);
 impl ::core::marker::Copy for GET_MOUSE_MOVE_POINTS_EX_RESOLUTION {}
 impl ::core::clone::Clone for GET_MOUSE_MOVE_POINTS_EX_RESOLUTION {
     fn clone(&self) -> Self {
@@ -732,8 +1298,8 @@ impl ::core::default::Default for GET_MOUSE_MOVE_POINTS_EX_RESOLUTION {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for GET_MOUSE_MOVE_POINTS_EX_RESOLUTION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GET_MOUSE_MOVE_POINTS_EX_RESOLUTION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for GET_MOUSE_MOVE_POINTS_EX_RESOLUTION {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -744,16 +1310,6 @@ impl ::core::fmt::Debug for GET_MOUSE_MOVE_POINTS_EX_RESOLUTION {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct HOT_KEY_MODIFIERS(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOD_ALT: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOD_CONTROL: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(2u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOD_NOREPEAT: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(16384u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOD_SHIFT: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(4u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOD_WIN: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(8u32);
 impl ::core::marker::Copy for HOT_KEY_MODIFIERS {}
 impl ::core::clone::Clone for HOT_KEY_MODIFIERS {
     fn clone(&self) -> Self {
@@ -765,8 +1321,8 @@ impl ::core::default::Default for HOT_KEY_MODIFIERS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for HOT_KEY_MODIFIERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for HOT_KEY_MODIFIERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for HOT_KEY_MODIFIERS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -810,12 +1366,6 @@ impl ::core::ops::Not for HOT_KEY_MODIFIERS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct INPUT_TYPE(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const INPUT_MOUSE: INPUT_TYPE = INPUT_TYPE(0u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const INPUT_KEYBOARD: INPUT_TYPE = INPUT_TYPE(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const INPUT_HARDWARE: INPUT_TYPE = INPUT_TYPE(2u32);
 impl ::core::marker::Copy for INPUT_TYPE {}
 impl ::core::clone::Clone for INPUT_TYPE {
     fn clone(&self) -> Self {
@@ -827,8 +1377,8 @@ impl ::core::default::Default for INPUT_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for INPUT_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for INPUT_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for INPUT_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -839,14 +1389,6 @@ impl ::core::fmt::Debug for INPUT_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct KEYBD_EVENT_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KEYEVENTF_EXTENDEDKEY: KEYBD_EVENT_FLAGS = KEYBD_EVENT_FLAGS(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KEYEVENTF_KEYUP: KEYBD_EVENT_FLAGS = KEYBD_EVENT_FLAGS(2u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KEYEVENTF_SCANCODE: KEYBD_EVENT_FLAGS = KEYBD_EVENT_FLAGS(8u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const KEYEVENTF_UNICODE: KEYBD_EVENT_FLAGS = KEYBD_EVENT_FLAGS(4u32);
 impl ::core::marker::Copy for KEYBD_EVENT_FLAGS {}
 impl ::core::clone::Clone for KEYBD_EVENT_FLAGS {
     fn clone(&self) -> Self {
@@ -858,8 +1400,8 @@ impl ::core::default::Default for KEYBD_EVENT_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for KEYBD_EVENT_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for KEYBD_EVENT_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for KEYBD_EVENT_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -903,16 +1445,6 @@ impl ::core::ops::Not for KEYBD_EVENT_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MAP_VIRTUAL_KEY_TYPE(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MAPVK_VK_TO_VSC: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(0u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MAPVK_VSC_TO_VK: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MAPVK_VK_TO_CHAR: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(2u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MAPVK_VSC_TO_VK_EX: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(3u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MAPVK_VK_TO_VSC_EX: MAP_VIRTUAL_KEY_TYPE = MAP_VIRTUAL_KEY_TYPE(4u32);
 impl ::core::marker::Copy for MAP_VIRTUAL_KEY_TYPE {}
 impl ::core::clone::Clone for MAP_VIRTUAL_KEY_TYPE {
     fn clone(&self) -> Self {
@@ -924,8 +1456,8 @@ impl ::core::default::Default for MAP_VIRTUAL_KEY_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for MAP_VIRTUAL_KEY_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MAP_VIRTUAL_KEY_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for MAP_VIRTUAL_KEY_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -936,34 +1468,6 @@ impl ::core::fmt::Debug for MAP_VIRTUAL_KEY_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MOUSE_EVENT_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_ABSOLUTE: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(32768u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_LEFTDOWN: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(2u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_LEFTUP: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(4u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_MIDDLEDOWN: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(32u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_MIDDLEUP: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(64u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_MOVE: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_RIGHTDOWN: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(8u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_RIGHTUP: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(16u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_WHEEL: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(2048u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_XDOWN: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(128u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_XUP: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(256u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_HWHEEL: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(4096u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_MOVE_NOCOALESCE: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(8192u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const MOUSEEVENTF_VIRTUALDESK: MOUSE_EVENT_FLAGS = MOUSE_EVENT_FLAGS(16384u32);
 impl ::core::marker::Copy for MOUSE_EVENT_FLAGS {}
 impl ::core::clone::Clone for MOUSE_EVENT_FLAGS {
     fn clone(&self) -> Self {
@@ -975,8 +1479,8 @@ impl ::core::default::Default for MOUSE_EVENT_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for MOUSE_EVENT_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MOUSE_EVENT_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for MOUSE_EVENT_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1020,16 +1524,6 @@ impl ::core::ops::Not for MOUSE_EVENT_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct TRACKMOUSEEVENT_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const TME_CANCEL: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(2147483648u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const TME_HOVER: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const TME_LEAVE: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(2u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const TME_NONCLIENT: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(16u32);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const TME_QUERY: TRACKMOUSEEVENT_FLAGS = TRACKMOUSEEVENT_FLAGS(1073741824u32);
 impl ::core::marker::Copy for TRACKMOUSEEVENT_FLAGS {}
 impl ::core::clone::Clone for TRACKMOUSEEVENT_FLAGS {
     fn clone(&self) -> Self {
@@ -1041,8 +1535,8 @@ impl ::core::default::Default for TRACKMOUSEEVENT_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for TRACKMOUSEEVENT_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TRACKMOUSEEVENT_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for TRACKMOUSEEVENT_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1086,500 +1580,6 @@ impl ::core::ops::Not for TRACKMOUSEEVENT_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct VIRTUAL_KEY(pub u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_0: VIRTUAL_KEY = VIRTUAL_KEY(48u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_1: VIRTUAL_KEY = VIRTUAL_KEY(49u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_2: VIRTUAL_KEY = VIRTUAL_KEY(50u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_3: VIRTUAL_KEY = VIRTUAL_KEY(51u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_4: VIRTUAL_KEY = VIRTUAL_KEY(52u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_5: VIRTUAL_KEY = VIRTUAL_KEY(53u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_6: VIRTUAL_KEY = VIRTUAL_KEY(54u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_7: VIRTUAL_KEY = VIRTUAL_KEY(55u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_8: VIRTUAL_KEY = VIRTUAL_KEY(56u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_9: VIRTUAL_KEY = VIRTUAL_KEY(57u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_A: VIRTUAL_KEY = VIRTUAL_KEY(65u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_B: VIRTUAL_KEY = VIRTUAL_KEY(66u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_C: VIRTUAL_KEY = VIRTUAL_KEY(67u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_D: VIRTUAL_KEY = VIRTUAL_KEY(68u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_E: VIRTUAL_KEY = VIRTUAL_KEY(69u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F: VIRTUAL_KEY = VIRTUAL_KEY(70u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_G: VIRTUAL_KEY = VIRTUAL_KEY(71u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_H: VIRTUAL_KEY = VIRTUAL_KEY(72u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_I: VIRTUAL_KEY = VIRTUAL_KEY(73u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_J: VIRTUAL_KEY = VIRTUAL_KEY(74u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_K: VIRTUAL_KEY = VIRTUAL_KEY(75u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_L: VIRTUAL_KEY = VIRTUAL_KEY(76u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_M: VIRTUAL_KEY = VIRTUAL_KEY(77u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_N: VIRTUAL_KEY = VIRTUAL_KEY(78u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_O: VIRTUAL_KEY = VIRTUAL_KEY(79u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_P: VIRTUAL_KEY = VIRTUAL_KEY(80u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_Q: VIRTUAL_KEY = VIRTUAL_KEY(81u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_R: VIRTUAL_KEY = VIRTUAL_KEY(82u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_S: VIRTUAL_KEY = VIRTUAL_KEY(83u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_T: VIRTUAL_KEY = VIRTUAL_KEY(84u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_U: VIRTUAL_KEY = VIRTUAL_KEY(85u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_V: VIRTUAL_KEY = VIRTUAL_KEY(86u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_W: VIRTUAL_KEY = VIRTUAL_KEY(87u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_X: VIRTUAL_KEY = VIRTUAL_KEY(88u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_Y: VIRTUAL_KEY = VIRTUAL_KEY(89u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_Z: VIRTUAL_KEY = VIRTUAL_KEY(90u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ABNT_C1: VIRTUAL_KEY = VIRTUAL_KEY(193u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ABNT_C2: VIRTUAL_KEY = VIRTUAL_KEY(194u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_ALPHANUMERIC: VIRTUAL_KEY = VIRTUAL_KEY(240u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_CODEINPUT: VIRTUAL_KEY = VIRTUAL_KEY(250u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_DBCSCHAR: VIRTUAL_KEY = VIRTUAL_KEY(244u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_DETERMINESTRING: VIRTUAL_KEY = VIRTUAL_KEY(252u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_ENTERDLGCONVERSIONMODE: VIRTUAL_KEY = VIRTUAL_KEY(253u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_ENTERIMECONFIGMODE: VIRTUAL_KEY = VIRTUAL_KEY(248u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_ENTERWORDREGISTERMODE: VIRTUAL_KEY = VIRTUAL_KEY(247u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_FLUSHSTRING: VIRTUAL_KEY = VIRTUAL_KEY(249u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_HIRAGANA: VIRTUAL_KEY = VIRTUAL_KEY(242u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_KATAKANA: VIRTUAL_KEY = VIRTUAL_KEY(241u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_NOCODEINPUT: VIRTUAL_KEY = VIRTUAL_KEY(251u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_NOROMAN: VIRTUAL_KEY = VIRTUAL_KEY(246u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_ROMAN: VIRTUAL_KEY = VIRTUAL_KEY(245u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DBE_SBCSCHAR: VIRTUAL_KEY = VIRTUAL_KEY(243u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK__none_: VIRTUAL_KEY = VIRTUAL_KEY(255u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LBUTTON: VIRTUAL_KEY = VIRTUAL_KEY(1u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_RBUTTON: VIRTUAL_KEY = VIRTUAL_KEY(2u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_CANCEL: VIRTUAL_KEY = VIRTUAL_KEY(3u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_MBUTTON: VIRTUAL_KEY = VIRTUAL_KEY(4u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_XBUTTON1: VIRTUAL_KEY = VIRTUAL_KEY(5u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_XBUTTON2: VIRTUAL_KEY = VIRTUAL_KEY(6u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_BACK: VIRTUAL_KEY = VIRTUAL_KEY(8u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_TAB: VIRTUAL_KEY = VIRTUAL_KEY(9u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_CLEAR: VIRTUAL_KEY = VIRTUAL_KEY(12u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_RETURN: VIRTUAL_KEY = VIRTUAL_KEY(13u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_SHIFT: VIRTUAL_KEY = VIRTUAL_KEY(16u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_CONTROL: VIRTUAL_KEY = VIRTUAL_KEY(17u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_MENU: VIRTUAL_KEY = VIRTUAL_KEY(18u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_PAUSE: VIRTUAL_KEY = VIRTUAL_KEY(19u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_CAPITAL: VIRTUAL_KEY = VIRTUAL_KEY(20u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_KANA: VIRTUAL_KEY = VIRTUAL_KEY(21u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_HANGEUL: VIRTUAL_KEY = VIRTUAL_KEY(21u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_HANGUL: VIRTUAL_KEY = VIRTUAL_KEY(21u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_IME_ON: VIRTUAL_KEY = VIRTUAL_KEY(22u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_JUNJA: VIRTUAL_KEY = VIRTUAL_KEY(23u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_FINAL: VIRTUAL_KEY = VIRTUAL_KEY(24u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_HANJA: VIRTUAL_KEY = VIRTUAL_KEY(25u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_KANJI: VIRTUAL_KEY = VIRTUAL_KEY(25u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_IME_OFF: VIRTUAL_KEY = VIRTUAL_KEY(26u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ESCAPE: VIRTUAL_KEY = VIRTUAL_KEY(27u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_CONVERT: VIRTUAL_KEY = VIRTUAL_KEY(28u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NONCONVERT: VIRTUAL_KEY = VIRTUAL_KEY(29u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ACCEPT: VIRTUAL_KEY = VIRTUAL_KEY(30u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_MODECHANGE: VIRTUAL_KEY = VIRTUAL_KEY(31u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_SPACE: VIRTUAL_KEY = VIRTUAL_KEY(32u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_PRIOR: VIRTUAL_KEY = VIRTUAL_KEY(33u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NEXT: VIRTUAL_KEY = VIRTUAL_KEY(34u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_END: VIRTUAL_KEY = VIRTUAL_KEY(35u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_HOME: VIRTUAL_KEY = VIRTUAL_KEY(36u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(37u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_UP: VIRTUAL_KEY = VIRTUAL_KEY(38u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(39u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(40u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_SELECT: VIRTUAL_KEY = VIRTUAL_KEY(41u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_PRINT: VIRTUAL_KEY = VIRTUAL_KEY(42u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_EXECUTE: VIRTUAL_KEY = VIRTUAL_KEY(43u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_SNAPSHOT: VIRTUAL_KEY = VIRTUAL_KEY(44u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_INSERT: VIRTUAL_KEY = VIRTUAL_KEY(45u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DELETE: VIRTUAL_KEY = VIRTUAL_KEY(46u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_HELP: VIRTUAL_KEY = VIRTUAL_KEY(47u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LWIN: VIRTUAL_KEY = VIRTUAL_KEY(91u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_RWIN: VIRTUAL_KEY = VIRTUAL_KEY(92u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_APPS: VIRTUAL_KEY = VIRTUAL_KEY(93u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_SLEEP: VIRTUAL_KEY = VIRTUAL_KEY(95u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD0: VIRTUAL_KEY = VIRTUAL_KEY(96u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD1: VIRTUAL_KEY = VIRTUAL_KEY(97u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD2: VIRTUAL_KEY = VIRTUAL_KEY(98u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD3: VIRTUAL_KEY = VIRTUAL_KEY(99u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD4: VIRTUAL_KEY = VIRTUAL_KEY(100u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD5: VIRTUAL_KEY = VIRTUAL_KEY(101u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD6: VIRTUAL_KEY = VIRTUAL_KEY(102u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD7: VIRTUAL_KEY = VIRTUAL_KEY(103u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD8: VIRTUAL_KEY = VIRTUAL_KEY(104u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMPAD9: VIRTUAL_KEY = VIRTUAL_KEY(105u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_MULTIPLY: VIRTUAL_KEY = VIRTUAL_KEY(106u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ADD: VIRTUAL_KEY = VIRTUAL_KEY(107u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_SEPARATOR: VIRTUAL_KEY = VIRTUAL_KEY(108u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_SUBTRACT: VIRTUAL_KEY = VIRTUAL_KEY(109u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DECIMAL: VIRTUAL_KEY = VIRTUAL_KEY(110u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_DIVIDE: VIRTUAL_KEY = VIRTUAL_KEY(111u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F1: VIRTUAL_KEY = VIRTUAL_KEY(112u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F2: VIRTUAL_KEY = VIRTUAL_KEY(113u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F3: VIRTUAL_KEY = VIRTUAL_KEY(114u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F4: VIRTUAL_KEY = VIRTUAL_KEY(115u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F5: VIRTUAL_KEY = VIRTUAL_KEY(116u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F6: VIRTUAL_KEY = VIRTUAL_KEY(117u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F7: VIRTUAL_KEY = VIRTUAL_KEY(118u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F8: VIRTUAL_KEY = VIRTUAL_KEY(119u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F9: VIRTUAL_KEY = VIRTUAL_KEY(120u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F10: VIRTUAL_KEY = VIRTUAL_KEY(121u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F11: VIRTUAL_KEY = VIRTUAL_KEY(122u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F12: VIRTUAL_KEY = VIRTUAL_KEY(123u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F13: VIRTUAL_KEY = VIRTUAL_KEY(124u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F14: VIRTUAL_KEY = VIRTUAL_KEY(125u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F15: VIRTUAL_KEY = VIRTUAL_KEY(126u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F16: VIRTUAL_KEY = VIRTUAL_KEY(127u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F17: VIRTUAL_KEY = VIRTUAL_KEY(128u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F18: VIRTUAL_KEY = VIRTUAL_KEY(129u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F19: VIRTUAL_KEY = VIRTUAL_KEY(130u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F20: VIRTUAL_KEY = VIRTUAL_KEY(131u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F21: VIRTUAL_KEY = VIRTUAL_KEY(132u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F22: VIRTUAL_KEY = VIRTUAL_KEY(133u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F23: VIRTUAL_KEY = VIRTUAL_KEY(134u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_F24: VIRTUAL_KEY = VIRTUAL_KEY(135u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NAVIGATION_VIEW: VIRTUAL_KEY = VIRTUAL_KEY(136u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NAVIGATION_MENU: VIRTUAL_KEY = VIRTUAL_KEY(137u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NAVIGATION_UP: VIRTUAL_KEY = VIRTUAL_KEY(138u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NAVIGATION_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(139u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NAVIGATION_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(140u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NAVIGATION_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(141u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NAVIGATION_ACCEPT: VIRTUAL_KEY = VIRTUAL_KEY(142u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NAVIGATION_CANCEL: VIRTUAL_KEY = VIRTUAL_KEY(143u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NUMLOCK: VIRTUAL_KEY = VIRTUAL_KEY(144u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_SCROLL: VIRTUAL_KEY = VIRTUAL_KEY(145u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_NEC_EQUAL: VIRTUAL_KEY = VIRTUAL_KEY(146u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_FJ_JISHO: VIRTUAL_KEY = VIRTUAL_KEY(146u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_FJ_MASSHOU: VIRTUAL_KEY = VIRTUAL_KEY(147u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_FJ_TOUROKU: VIRTUAL_KEY = VIRTUAL_KEY(148u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_FJ_LOYA: VIRTUAL_KEY = VIRTUAL_KEY(149u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_FJ_ROYA: VIRTUAL_KEY = VIRTUAL_KEY(150u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LSHIFT: VIRTUAL_KEY = VIRTUAL_KEY(160u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_RSHIFT: VIRTUAL_KEY = VIRTUAL_KEY(161u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LCONTROL: VIRTUAL_KEY = VIRTUAL_KEY(162u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_RCONTROL: VIRTUAL_KEY = VIRTUAL_KEY(163u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LMENU: VIRTUAL_KEY = VIRTUAL_KEY(164u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_RMENU: VIRTUAL_KEY = VIRTUAL_KEY(165u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_BROWSER_BACK: VIRTUAL_KEY = VIRTUAL_KEY(166u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_BROWSER_FORWARD: VIRTUAL_KEY = VIRTUAL_KEY(167u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_BROWSER_REFRESH: VIRTUAL_KEY = VIRTUAL_KEY(168u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_BROWSER_STOP: VIRTUAL_KEY = VIRTUAL_KEY(169u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_BROWSER_SEARCH: VIRTUAL_KEY = VIRTUAL_KEY(170u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_BROWSER_FAVORITES: VIRTUAL_KEY = VIRTUAL_KEY(171u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_BROWSER_HOME: VIRTUAL_KEY = VIRTUAL_KEY(172u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_VOLUME_MUTE: VIRTUAL_KEY = VIRTUAL_KEY(173u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_VOLUME_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(174u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_VOLUME_UP: VIRTUAL_KEY = VIRTUAL_KEY(175u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_MEDIA_NEXT_TRACK: VIRTUAL_KEY = VIRTUAL_KEY(176u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_MEDIA_PREV_TRACK: VIRTUAL_KEY = VIRTUAL_KEY(177u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_MEDIA_STOP: VIRTUAL_KEY = VIRTUAL_KEY(178u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_MEDIA_PLAY_PAUSE: VIRTUAL_KEY = VIRTUAL_KEY(179u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LAUNCH_MAIL: VIRTUAL_KEY = VIRTUAL_KEY(180u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LAUNCH_MEDIA_SELECT: VIRTUAL_KEY = VIRTUAL_KEY(181u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LAUNCH_APP1: VIRTUAL_KEY = VIRTUAL_KEY(182u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_LAUNCH_APP2: VIRTUAL_KEY = VIRTUAL_KEY(183u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_1: VIRTUAL_KEY = VIRTUAL_KEY(186u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_PLUS: VIRTUAL_KEY = VIRTUAL_KEY(187u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_COMMA: VIRTUAL_KEY = VIRTUAL_KEY(188u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_MINUS: VIRTUAL_KEY = VIRTUAL_KEY(189u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_PERIOD: VIRTUAL_KEY = VIRTUAL_KEY(190u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_2: VIRTUAL_KEY = VIRTUAL_KEY(191u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_3: VIRTUAL_KEY = VIRTUAL_KEY(192u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_A: VIRTUAL_KEY = VIRTUAL_KEY(195u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_B: VIRTUAL_KEY = VIRTUAL_KEY(196u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_X: VIRTUAL_KEY = VIRTUAL_KEY(197u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_Y: VIRTUAL_KEY = VIRTUAL_KEY(198u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_RIGHT_SHOULDER: VIRTUAL_KEY = VIRTUAL_KEY(199u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_LEFT_SHOULDER: VIRTUAL_KEY = VIRTUAL_KEY(200u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_LEFT_TRIGGER: VIRTUAL_KEY = VIRTUAL_KEY(201u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_RIGHT_TRIGGER: VIRTUAL_KEY = VIRTUAL_KEY(202u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_DPAD_UP: VIRTUAL_KEY = VIRTUAL_KEY(203u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_DPAD_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(204u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_DPAD_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(205u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_DPAD_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(206u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_MENU: VIRTUAL_KEY = VIRTUAL_KEY(207u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_VIEW: VIRTUAL_KEY = VIRTUAL_KEY(208u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_LEFT_THUMBSTICK_BUTTON: VIRTUAL_KEY = VIRTUAL_KEY(209u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_RIGHT_THUMBSTICK_BUTTON: VIRTUAL_KEY = VIRTUAL_KEY(210u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_LEFT_THUMBSTICK_UP: VIRTUAL_KEY = VIRTUAL_KEY(211u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_LEFT_THUMBSTICK_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(212u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_LEFT_THUMBSTICK_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(213u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_LEFT_THUMBSTICK_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(214u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_RIGHT_THUMBSTICK_UP: VIRTUAL_KEY = VIRTUAL_KEY(215u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_RIGHT_THUMBSTICK_DOWN: VIRTUAL_KEY = VIRTUAL_KEY(216u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_RIGHT_THUMBSTICK_RIGHT: VIRTUAL_KEY = VIRTUAL_KEY(217u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_GAMEPAD_RIGHT_THUMBSTICK_LEFT: VIRTUAL_KEY = VIRTUAL_KEY(218u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_4: VIRTUAL_KEY = VIRTUAL_KEY(219u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_5: VIRTUAL_KEY = VIRTUAL_KEY(220u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_6: VIRTUAL_KEY = VIRTUAL_KEY(221u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_7: VIRTUAL_KEY = VIRTUAL_KEY(222u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_8: VIRTUAL_KEY = VIRTUAL_KEY(223u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_AX: VIRTUAL_KEY = VIRTUAL_KEY(225u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_102: VIRTUAL_KEY = VIRTUAL_KEY(226u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ICO_HELP: VIRTUAL_KEY = VIRTUAL_KEY(227u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ICO_00: VIRTUAL_KEY = VIRTUAL_KEY(228u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_PROCESSKEY: VIRTUAL_KEY = VIRTUAL_KEY(229u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ICO_CLEAR: VIRTUAL_KEY = VIRTUAL_KEY(230u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_PACKET: VIRTUAL_KEY = VIRTUAL_KEY(231u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_RESET: VIRTUAL_KEY = VIRTUAL_KEY(233u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_JUMP: VIRTUAL_KEY = VIRTUAL_KEY(234u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_PA1: VIRTUAL_KEY = VIRTUAL_KEY(235u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_PA2: VIRTUAL_KEY = VIRTUAL_KEY(236u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_PA3: VIRTUAL_KEY = VIRTUAL_KEY(237u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_WSCTRL: VIRTUAL_KEY = VIRTUAL_KEY(238u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_CUSEL: VIRTUAL_KEY = VIRTUAL_KEY(239u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_ATTN: VIRTUAL_KEY = VIRTUAL_KEY(240u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_FINISH: VIRTUAL_KEY = VIRTUAL_KEY(241u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_COPY: VIRTUAL_KEY = VIRTUAL_KEY(242u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_AUTO: VIRTUAL_KEY = VIRTUAL_KEY(243u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_ENLW: VIRTUAL_KEY = VIRTUAL_KEY(244u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_BACKTAB: VIRTUAL_KEY = VIRTUAL_KEY(245u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ATTN: VIRTUAL_KEY = VIRTUAL_KEY(246u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_CRSEL: VIRTUAL_KEY = VIRTUAL_KEY(247u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_EXSEL: VIRTUAL_KEY = VIRTUAL_KEY(248u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_EREOF: VIRTUAL_KEY = VIRTUAL_KEY(249u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_PLAY: VIRTUAL_KEY = VIRTUAL_KEY(250u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_ZOOM: VIRTUAL_KEY = VIRTUAL_KEY(251u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_NONAME: VIRTUAL_KEY = VIRTUAL_KEY(252u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_PA1: VIRTUAL_KEY = VIRTUAL_KEY(253u16);
-#[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
-pub const VK_OEM_CLEAR: VIRTUAL_KEY = VIRTUAL_KEY(254u16);
 impl ::core::marker::Copy for VIRTUAL_KEY {}
 impl ::core::clone::Clone for VIRTUAL_KEY {
     fn clone(&self) -> Self {
@@ -1591,8 +1591,8 @@ impl ::core::default::Default for VIRTUAL_KEY {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for VIRTUAL_KEY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VIRTUAL_KEY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for VIRTUAL_KEY {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1617,8 +1617,8 @@ impl ::core::fmt::Debug for DEADKEY {
         f.debug_struct("DEADKEY").field("dwBoth", &self.dwBoth).field("wchComposed", &self.wchComposed).field("uFlags", &self.uFlags).finish()
     }
 }
-impl ::windows::core::TypeKind for DEADKEY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEADKEY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEADKEY {
     fn eq(&self, other: &Self) -> bool {
@@ -1649,8 +1649,8 @@ impl ::core::fmt::Debug for HARDWAREINPUT {
         f.debug_struct("HARDWAREINPUT").field("uMsg", &self.uMsg).field("wParamL", &self.wParamL).field("wParamH", &self.wParamH).finish()
     }
 }
-impl ::windows::core::TypeKind for HARDWAREINPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for HARDWAREINPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for HARDWAREINPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -1675,8 +1675,8 @@ impl ::core::clone::Clone for INPUT {
         *self
     }
 }
-impl ::windows::core::TypeKind for INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for INPUT {
     fn default() -> Self {
@@ -1696,8 +1696,8 @@ impl ::core::clone::Clone for INPUT_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for INPUT_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for INPUT_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for INPUT_0 {
     fn default() -> Self {
@@ -1725,8 +1725,8 @@ impl ::core::fmt::Debug for KBDNLSTABLES {
         f.debug_struct("KBDNLSTABLES").field("OEMIdentifier", &self.OEMIdentifier).field("LayoutInformation", &self.LayoutInformation).field("NumOfVkToF", &self.NumOfVkToF).field("pVkToF", &self.pVkToF).field("NumOfMouseVKey", &self.NumOfMouseVKey).field("pusMouseVKey", &self.pusMouseVKey).finish()
     }
 }
-impl ::windows::core::TypeKind for KBDNLSTABLES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for KBDNLSTABLES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for KBDNLSTABLES {
     fn eq(&self, other: &Self) -> bool {
@@ -1787,8 +1787,8 @@ impl ::core::fmt::Debug for KBDTABLES {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for KBDTABLES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for KBDTABLES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for KBDTABLES {
     fn eq(&self, other: &Self) -> bool {
@@ -1819,8 +1819,8 @@ impl ::core::fmt::Debug for KBDTABLE_DESC {
         f.debug_struct("KBDTABLE_DESC").field("wszDllName", &self.wszDllName).field("dwType", &self.dwType).field("dwSubType", &self.dwSubType).finish()
     }
 }
-impl ::windows::core::TypeKind for KBDTABLE_DESC {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for KBDTABLE_DESC {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for KBDTABLE_DESC {
     fn eq(&self, other: &Self) -> bool {
@@ -1850,8 +1850,8 @@ impl ::core::fmt::Debug for KBDTABLE_MULTI {
         f.debug_struct("KBDTABLE_MULTI").field("nTables", &self.nTables).field("aKbdTables", &self.aKbdTables).finish()
     }
 }
-impl ::windows::core::TypeKind for KBDTABLE_MULTI {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for KBDTABLE_MULTI {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for KBDTABLE_MULTI {
     fn eq(&self, other: &Self) -> bool {
@@ -1882,8 +1882,8 @@ impl ::core::fmt::Debug for KBD_TYPE_INFO {
         f.debug_struct("KBD_TYPE_INFO").field("dwVersion", &self.dwVersion).field("dwType", &self.dwType).field("dwSubType", &self.dwSubType).finish()
     }
 }
-impl ::windows::core::TypeKind for KBD_TYPE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for KBD_TYPE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for KBD_TYPE_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -1916,8 +1916,8 @@ impl ::core::fmt::Debug for KEYBDINPUT {
         f.debug_struct("KEYBDINPUT").field("wVk", &self.wVk).field("wScan", &self.wScan).field("dwFlags", &self.dwFlags).field("time", &self.time).field("dwExtraInfo", &self.dwExtraInfo).finish()
     }
 }
-impl ::windows::core::TypeKind for KEYBDINPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for KEYBDINPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for KEYBDINPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -1947,8 +1947,8 @@ impl ::core::fmt::Debug for LASTINPUTINFO {
         f.debug_struct("LASTINPUTINFO").field("cbSize", &self.cbSize).field("dwTime", &self.dwTime).finish()
     }
 }
-impl ::windows::core::TypeKind for LASTINPUTINFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LASTINPUTINFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LASTINPUTINFO {
     fn eq(&self, other: &Self) -> bool {
@@ -1979,8 +1979,8 @@ impl ::core::fmt::Debug for LIGATURE1 {
         f.debug_struct("LIGATURE1").field("VirtualKey", &self.VirtualKey).field("ModificationNumber", &self.ModificationNumber).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for LIGATURE1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LIGATURE1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LIGATURE1 {
     fn eq(&self, other: &Self) -> bool {
@@ -2011,8 +2011,8 @@ impl ::core::fmt::Debug for LIGATURE2 {
         f.debug_struct("LIGATURE2").field("VirtualKey", &self.VirtualKey).field("ModificationNumber", &self.ModificationNumber).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for LIGATURE2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LIGATURE2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LIGATURE2 {
     fn eq(&self, other: &Self) -> bool {
@@ -2043,8 +2043,8 @@ impl ::core::fmt::Debug for LIGATURE3 {
         f.debug_struct("LIGATURE3").field("VirtualKey", &self.VirtualKey).field("ModificationNumber", &self.ModificationNumber).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for LIGATURE3 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LIGATURE3 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LIGATURE3 {
     fn eq(&self, other: &Self) -> bool {
@@ -2075,8 +2075,8 @@ impl ::core::fmt::Debug for LIGATURE4 {
         f.debug_struct("LIGATURE4").field("VirtualKey", &self.VirtualKey).field("ModificationNumber", &self.ModificationNumber).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for LIGATURE4 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LIGATURE4 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LIGATURE4 {
     fn eq(&self, other: &Self) -> bool {
@@ -2107,8 +2107,8 @@ impl ::core::fmt::Debug for LIGATURE5 {
         f.debug_struct("LIGATURE5").field("VirtualKey", &self.VirtualKey).field("ModificationNumber", &self.ModificationNumber).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for LIGATURE5 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LIGATURE5 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LIGATURE5 {
     fn eq(&self, other: &Self) -> bool {
@@ -2139,8 +2139,8 @@ impl ::core::fmt::Debug for MODIFIERS {
         f.debug_struct("MODIFIERS").field("pVkToBit", &self.pVkToBit).field("wMaxModBits", &self.wMaxModBits).field("ModNumber", &self.ModNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for MODIFIERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MODIFIERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for MODIFIERS {
     fn eq(&self, other: &Self) -> bool {
@@ -2174,8 +2174,8 @@ impl ::core::fmt::Debug for MOUSEINPUT {
         f.debug_struct("MOUSEINPUT").field("dx", &self.dx).field("dy", &self.dy).field("mouseData", &self.mouseData).field("dwFlags", &self.dwFlags).field("time", &self.time).field("dwExtraInfo", &self.dwExtraInfo).finish()
     }
 }
-impl ::windows::core::TypeKind for MOUSEINPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MOUSEINPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for MOUSEINPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -2207,8 +2207,8 @@ impl ::core::fmt::Debug for MOUSEMOVEPOINT {
         f.debug_struct("MOUSEMOVEPOINT").field("x", &self.x).field("y", &self.y).field("time", &self.time).field("dwExtraInfo", &self.dwExtraInfo).finish()
     }
 }
-impl ::windows::core::TypeKind for MOUSEMOVEPOINT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MOUSEMOVEPOINT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for MOUSEMOVEPOINT {
     fn eq(&self, other: &Self) -> bool {
@@ -2245,8 +2245,8 @@ impl ::core::fmt::Debug for TRACKMOUSEEVENT {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for TRACKMOUSEEVENT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TRACKMOUSEEVENT {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for TRACKMOUSEEVENT {
@@ -2283,8 +2283,8 @@ impl ::core::fmt::Debug for VK_F {
         f.debug_struct("VK_F").field("Vk", &self.Vk).field("NLSFEProcType", &self.NLSFEProcType).field("NLSFEProcCurrent", &self.NLSFEProcCurrent).field("NLSFEProcSwitch", &self.NLSFEProcSwitch).field("NLSFEProc", &self.NLSFEProc).field("NLSFEProcAlt", &self.NLSFEProcAlt).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_F {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_F {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_F {
     fn eq(&self, other: &Self) -> bool {
@@ -2314,8 +2314,8 @@ impl ::core::fmt::Debug for VK_FPARAM {
         f.debug_struct("VK_FPARAM").field("NLSFEProcIndex", &self.NLSFEProcIndex).field("NLSFEProcParam", &self.NLSFEProcParam).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_FPARAM {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_FPARAM {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_FPARAM {
     fn eq(&self, other: &Self) -> bool {
@@ -2345,8 +2345,8 @@ impl ::core::fmt::Debug for VK_TO_BIT {
         f.debug_struct("VK_TO_BIT").field("Vk", &self.Vk).field("ModBits", &self.ModBits).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_BIT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_BIT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_BIT {
     fn eq(&self, other: &Self) -> bool {
@@ -2377,8 +2377,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS1 {
         f.debug_struct("VK_TO_WCHARS1").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS1 {
     fn eq(&self, other: &Self) -> bool {
@@ -2409,8 +2409,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS10 {
         f.debug_struct("VK_TO_WCHARS10").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS10 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS10 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS10 {
     fn eq(&self, other: &Self) -> bool {
@@ -2441,8 +2441,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS2 {
         f.debug_struct("VK_TO_WCHARS2").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS2 {
     fn eq(&self, other: &Self) -> bool {
@@ -2473,8 +2473,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS3 {
         f.debug_struct("VK_TO_WCHARS3").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS3 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS3 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS3 {
     fn eq(&self, other: &Self) -> bool {
@@ -2505,8 +2505,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS4 {
         f.debug_struct("VK_TO_WCHARS4").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS4 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS4 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS4 {
     fn eq(&self, other: &Self) -> bool {
@@ -2537,8 +2537,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS5 {
         f.debug_struct("VK_TO_WCHARS5").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS5 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS5 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS5 {
     fn eq(&self, other: &Self) -> bool {
@@ -2569,8 +2569,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS6 {
         f.debug_struct("VK_TO_WCHARS6").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS6 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS6 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS6 {
     fn eq(&self, other: &Self) -> bool {
@@ -2601,8 +2601,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS7 {
         f.debug_struct("VK_TO_WCHARS7").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS7 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS7 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS7 {
     fn eq(&self, other: &Self) -> bool {
@@ -2633,8 +2633,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS8 {
         f.debug_struct("VK_TO_WCHARS8").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS8 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS8 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS8 {
     fn eq(&self, other: &Self) -> bool {
@@ -2665,8 +2665,8 @@ impl ::core::fmt::Debug for VK_TO_WCHARS9 {
         f.debug_struct("VK_TO_WCHARS9").field("VirtualKey", &self.VirtualKey).field("Attributes", &self.Attributes).field("wch", &self.wch).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHARS9 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHARS9 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHARS9 {
     fn eq(&self, other: &Self) -> bool {
@@ -2697,8 +2697,8 @@ impl ::core::fmt::Debug for VK_TO_WCHAR_TABLE {
         f.debug_struct("VK_TO_WCHAR_TABLE").field("pVkToWchars", &self.pVkToWchars).field("nModifications", &self.nModifications).field("cbSize", &self.cbSize).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_TO_WCHAR_TABLE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_TO_WCHAR_TABLE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_TO_WCHAR_TABLE {
     fn eq(&self, other: &Self) -> bool {
@@ -2728,8 +2728,8 @@ impl ::core::fmt::Debug for VK_VSC {
         f.debug_struct("VK_VSC").field("Vk", &self.Vk).field("Vsc", &self.Vsc).finish()
     }
 }
-impl ::windows::core::TypeKind for VK_VSC {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VK_VSC {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VK_VSC {
     fn eq(&self, other: &Self) -> bool {
@@ -2746,7 +2746,7 @@ impl ::core::default::Default for VK_VSC {
 #[doc = "*Required features: `\"Win32_UI_Input_KeyboardAndMouse\"`*"]
 pub struct VSC_LPWSTR {
     pub vsc: u8,
-    pub pwsz: ::windows::core::PWSTR,
+    pub pwsz: ::windows_core::PWSTR,
 }
 impl ::core::marker::Copy for VSC_LPWSTR {}
 impl ::core::clone::Clone for VSC_LPWSTR {
@@ -2759,8 +2759,8 @@ impl ::core::fmt::Debug for VSC_LPWSTR {
         f.debug_struct("VSC_LPWSTR").field("vsc", &self.vsc).field("pwsz", &self.pwsz).finish()
     }
 }
-impl ::windows::core::TypeKind for VSC_LPWSTR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VSC_LPWSTR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VSC_LPWSTR {
     fn eq(&self, other: &Self) -> bool {
@@ -2790,8 +2790,8 @@ impl ::core::fmt::Debug for VSC_VK {
         f.debug_struct("VSC_VK").field("Vsc", &self.Vsc).field("Vk", &self.Vk).finish()
     }
 }
-impl ::windows::core::TypeKind for VSC_VK {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VSC_VK {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VSC_VK {
     fn eq(&self, other: &Self) -> bool {
@@ -2804,5 +2804,3 @@ impl ::core::default::Default for VSC_VK {
         unsafe { ::core::mem::zeroed() }
     }
 }
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

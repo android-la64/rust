@@ -640,6 +640,11 @@ impl<T> [T] {
     /// Calling this method with an out-of-bounds index is *[undefined behavior]*
     /// even if the resulting reference is not used.
     ///
+    /// You can think of this like `.get(index).unwrap_unchecked()`.  It's UB
+    /// to call `.get_unchecked(len)`, even if you immediately convert to a
+    /// pointer.  And it's UB to call `.get_unchecked(..len + 1)`,
+    /// `.get_unchecked(..=len)`, or similar.
+    ///
     /// [`get`]: slice::get
     /// [undefined behavior]: https://doc.rust-lang.org/reference/behavior-considered-undefined.html
     ///
@@ -674,6 +679,11 @@ impl<T> [T] {
     ///
     /// Calling this method with an out-of-bounds index is *[undefined behavior]*
     /// even if the resulting reference is not used.
+    ///
+    /// You can think of this like `.get_mut(index).unwrap_unchecked()`.  It's
+    /// UB to call `.get_unchecked_mut(len)`, even if you immediately convert
+    /// to a pointer.  And it's UB to call `.get_unchecked_mut(..len + 1)`,
+    /// `.get_unchecked_mut(..=len)`, or similar.
     ///
     /// [`get_mut`]: slice::get_mut
     /// [undefined behavior]: https://doc.rust-lang.org/reference/behavior-considered-undefined.html
@@ -730,7 +740,7 @@ impl<T> [T] {
     /// [`as_mut_ptr`]: slice::as_mut_ptr
     #[stable(feature = "rust1", since = "1.0.0")]
     #[rustc_const_stable(feature = "const_slice_as_ptr", since = "1.32.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     #[inline(always)]
     #[must_use]
     pub const fn as_ptr(&self) -> *const T {
@@ -761,7 +771,7 @@ impl<T> [T] {
     #[stable(feature = "rust1", since = "1.0.0")]
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[rustc_allow_const_fn_unstable(const_mut_refs)]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     #[inline(always)]
     #[must_use]
     pub const fn as_mut_ptr(&mut self) -> *mut T {
@@ -2480,6 +2490,62 @@ impl<T> [T] {
         F: FnMut(&T) -> bool,
     {
         RSplitNMut::new(self.rsplit_mut(pred), n)
+    }
+
+    /// Splits the slice on the first element that matches the specified
+    /// predicate.
+    ///
+    /// If any matching elements are resent in the slice, returns the prefix
+    /// before the match and suffix after. The matching element itself is not
+    /// included. If no elements match, returns `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// #![feature(slice_split_once)]
+    /// let s = [1, 2, 3, 2, 4];
+    /// assert_eq!(s.split_once(|&x| x == 2), Some((
+    ///     &[1][..],
+    ///     &[3, 2, 4][..]
+    /// )));
+    /// assert_eq!(s.split_once(|&x| x == 0), None);
+    /// ```
+    #[unstable(feature = "slice_split_once", reason = "newly added", issue = "112811")]
+    #[inline]
+    pub fn split_once<F>(&self, pred: F) -> Option<(&[T], &[T])>
+    where
+        F: FnMut(&T) -> bool,
+    {
+        let index = self.iter().position(pred)?;
+        Some((&self[..index], &self[index + 1..]))
+    }
+
+    /// Splits the slice on the last element that matches the specified
+    /// predicate.
+    ///
+    /// If any matching elements are resent in the slice, returns the prefix
+    /// before the match and suffix after. The matching element itself is not
+    /// included. If no elements match, returns `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// #![feature(slice_split_once)]
+    /// let s = [1, 2, 3, 2, 4];
+    /// assert_eq!(s.rsplit_once(|&x| x == 2), Some((
+    ///     &[1, 2, 3][..],
+    ///     &[4][..]
+    /// )));
+    /// assert_eq!(s.rsplit_once(|&x| x == 0), None);
+    /// ```
+    #[unstable(feature = "slice_split_once", reason = "newly added", issue = "112811")]
+    #[inline]
+    pub fn rsplit_once<F>(&self, pred: F) -> Option<(&[T], &[T])>
+    where
+        F: FnMut(&T) -> bool,
+    {
+        let index = self.iter().rposition(pred)?;
+        Some((&self[..index], &self[index + 1..]))
     }
 
     /// Returns `true` if the slice contains an element with the given value.

@@ -166,7 +166,6 @@ fn translate_position(input: &[u8], index: usize) -> (usize, usize) {
         None => 0,
     };
     let line = input[0..line_start].iter().filter(|b| **b == b'\n').count();
-    let line = line;
 
     let column = std::str::from_utf8(&input[line_start..=index])
         .map(|s| s.chars().count() - 1)
@@ -310,7 +309,7 @@ impl Display for CustomError {
                 )
             }
             CustomError::OutOfRange => write!(f, "value is out of range"),
-            CustomError::RecursionLimitExceeded => write!(f, "recursion limit exceded"),
+            CustomError::RecursionLimitExceeded => write!(f, "recursion limit exceeded"),
         }
     }
 }

@@ -412,8 +412,6 @@ pub struct BuiltinIncompleteFeatures {
 #[note]
 pub struct BuiltinInternalFeatures {
     pub name: Symbol,
-    #[subdiagnostic]
-    pub note: Option<BuiltinFeatureIssueNote>,
 }
 
 #[derive(Subdiagnostic)]
@@ -771,12 +769,16 @@ pub enum InvalidReferenceCastingDiag {
     BorrowAsMut {
         #[label]
         orig_cast: Option<Span>,
+        #[note(lint_invalid_reference_casting_note_ty_has_interior_mutability)]
+        ty_has_interior_mutability: Option<()>,
     },
     #[diag(lint_invalid_reference_casting_assign_to_ref)]
     #[note(lint_invalid_reference_casting_note_book)]
     AssignToRef {
         #[label]
         orig_cast: Option<Span>,
+        #[note(lint_invalid_reference_casting_note_ty_has_interior_mutability)]
+        ty_has_interior_mutability: Option<()>,
     },
 }
 
@@ -897,6 +899,10 @@ pub struct DefaultHashTypesDiag<'a> {
 pub struct QueryInstability {
     pub query: Symbol,
 }
+
+#[derive(LintDiagnostic)]
+#[diag(lint_span_use_eq_ctxt)]
+pub struct SpanUseEqCtxtDiag;
 
 #[derive(LintDiagnostic)]
 #[diag(lint_tykind_kind)]
@@ -1694,9 +1700,9 @@ pub struct UnusedClosure<'a> {
 // FIXME(davidtwco): this isn't properly translatable because of the
 // pre/post strings
 #[derive(LintDiagnostic)]
-#[diag(lint_unused_generator)]
+#[diag(lint_unused_coroutine)]
 #[note]
-pub struct UnusedGenerator<'a> {
+pub struct UnusedCoroutine<'a> {
     pub count: usize,
     pub pre: &'a str,
     pub post: &'a str,
@@ -1818,3 +1824,24 @@ pub struct UnusedAllocationDiag;
 #[derive(LintDiagnostic)]
 #[diag(lint_unused_allocation_mut)]
 pub struct UnusedAllocationMutDiag;
+
+pub struct AsyncFnInTraitDiag {
+    pub sugg: Option<Vec<(Span, String)>>,
+}
+
+impl<'a> DecorateLint<'a, ()> for AsyncFnInTraitDiag {
+    fn decorate_lint<'b>(
+        self,
+        diag: &'b mut rustc_errors::DiagnosticBuilder<'a, ()>,
+    ) -> &'b mut rustc_errors::DiagnosticBuilder<'a, ()> {
+        diag.note(fluent::lint_note);
+        if let Some(sugg) = self.sugg {
+            diag.multipart_suggestion(fluent::lint_suggestion, sugg, Applicability::MaybeIncorrect);
+        }
+        diag
+    }
+
+    fn msg(&self) -> rustc_errors::DiagnosticMessage {
+        fluent::lint_async_fn_in_trait
+    }
+}

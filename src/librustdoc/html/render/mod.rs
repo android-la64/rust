@@ -48,13 +48,13 @@ use std::str;
 use std::string::ToString;
 
 use askama::Template;
-use rustc_attr::{ConstStability, Deprecation, StabilityLevel};
+use rustc_attr::{ConstStability, DeprecatedSince, Deprecation, StabilityLevel, StableSince};
 use rustc_data_structures::captures::Captures;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_hir::def_id::{DefId, DefIdSet};
 use rustc_hir::Mutability;
-use rustc_middle::middle::stability;
-use rustc_middle::ty::TyCtxt;
+use rustc_middle::ty::{self, TyCtxt};
+use rustc_session::RustcVersion;
 use rustc_span::{
     symbol::{sym, Symbol},
     BytePos, FileName, RealFileName,
@@ -102,6 +102,7 @@ pub(crate) struct IndexItem {
     pub(crate) desc: String,
     pub(crate) parent: Option<DefId>,
     pub(crate) parent_idx: Option<isize>,
+    pub(crate) impl_id: Option<DefId>,
     pub(crate) search_type: Option<IndexItemFunctionType>,
     pub(crate) aliases: Box<[Symbol]>,
     pub(crate) deprecation: Option<Deprecation>,
@@ -615,24 +616,22 @@ fn short_item_info(
 ) -> Vec<ShortItemInfo> {
     let mut extra_info = vec![];
 
-    if let Some(depr @ Deprecation { note, since, is_since_rustc_version: _, suggestion: _ }) =
-        item.deprecation(cx.tcx())
-    {
+    if let Some(depr @ Deprecation { note, since, suggestion: _ }) = item.deprecation(cx.tcx()) {
         // We display deprecation messages for #[deprecated], but only display
         // the future-deprecation messages for rustc versions.
-        let mut message = if let Some(since) = since {
-            let since = since.as_str();
-            if !stability::deprecation_in_effect(&depr) {
-                if since == "TBD" {
-                    String::from("Deprecating in a future Rust version")
+        let mut message = match since {
+            DeprecatedSince::RustcVersion(version) => {
+                if depr.is_in_effect() {
+                    format!("Deprecated since {version}")
                 } else {
-                    format!("Deprecating in {}", Escape(since))
+                    format!("Deprecating in {version}")
                 }
-            } else {
-                format!("Deprecated since {}", Escape(since))
             }
-        } else {
-            String::from("Deprecated")
+            DeprecatedSince::Future => String::from("Deprecating in a future Rust version"),
+            DeprecatedSince::NonStandard(since) => {
+                format!("Deprecated since {}", Escape(since.as_str()))
+            }
+            DeprecatedSince::Unspecified | DeprecatedSince::Err => String::from("Deprecated"),
         };
 
         if let Some(note) = note {
@@ -867,10 +866,10 @@ fn assoc_method(
     let (indent, indent_str, end_newline) = if parent == ItemType::Trait {
         header_len += 4;
         let indent_str = "    ";
-        write!(w, "{}", render_attributes_in_pre(meth, indent_str, tcx));
+        write!(w, "{}", render_attributes_in_pre(meth, indent_str, cx));
         (4, indent_str, Ending::NoNewline)
     } else {
-        render_attributes_in_code(w, meth, tcx);
+        render_attributes_in_code(w, meth, cx);
         (0, "", Ending::Newline)
     };
     w.reserve(header_len + "<a href=\"\" class=\"fn\">{".len() + "</a>".len());
@@ -910,13 +909,17 @@ fn assoc_method(
 /// consequence of the above rules.
 fn render_stability_since_raw_with_extra(
     w: &mut Buffer,
-    ver: Option<Symbol>,
+    ver: Option<StableSince>,
     const_stability: Option<ConstStability>,
-    containing_ver: Option<Symbol>,
-    containing_const_ver: Option<Symbol>,
+    containing_ver: Option<StableSince>,
+    containing_const_ver: Option<StableSince>,
     extra_class: &str,
 ) -> bool {
-    let stable_version = ver.filter(|inner| !inner.is_empty() && Some(*inner) != containing_ver);
+    let stable_version = if ver != containing_ver && let Some(ver) = &ver {
+        since_to_string(ver)
+    } else {
+        None
+    };
 
     let mut title = String::new();
     let mut stability = String::new();
@@ -930,7 +933,8 @@ fn render_stability_since_raw_with_extra(
         Some(ConstStability { level: StabilityLevel::Stable { since, .. }, .. })
             if Some(since) != containing_const_ver =>
         {
-            Some((format!("const since {since}"), format!("const: {since}")))
+            since_to_string(&since)
+                .map(|since| (format!("const since {since}"), format!("const: {since}")))
         }
         Some(ConstStability { level: StabilityLevel::Unstable { issue, .. }, feature, .. }) => {
             let unstable = if let Some(n) = issue {
@@ -970,13 +974,21 @@ fn render_stability_since_raw_with_extra(
     !stability.is_empty()
 }
 
+fn since_to_string(since: &StableSince) -> Option<String> {
+    match since {
+        StableSince::Version(since) => Some(since.to_string()),
+        StableSince::Current => Some(RustcVersion::CURRENT.to_string()),
+        StableSince::Err => None,
+    }
+}
+
 #[inline]
 fn render_stability_since_raw(
     w: &mut Buffer,
-    ver: Option<Symbol>,
+    ver: Option<StableSince>,
     const_stability: Option<ConstStability>,
-    containing_ver: Option<Symbol>,
-    containing_const_ver: Option<Symbol>,
+    containing_ver: Option<StableSince>,
+    containing_const_ver: Option<StableSince>,
 ) -> bool {
     render_stability_since_raw_with_extra(
         w,
@@ -1046,13 +1058,13 @@ fn render_assoc_item(
 
 // When an attribute is rendered inside a `<pre>` tag, it is formatted using
 // a whitespace prefix and newline.
-fn render_attributes_in_pre<'a, 'b: 'a>(
+fn render_attributes_in_pre<'a, 'tcx: 'a>(
     it: &'a clean::Item,
     prefix: &'a str,
-    tcx: TyCtxt<'b>,
-) -> impl fmt::Display + Captures<'a> + Captures<'b> {
+    cx: &'a Context<'tcx>,
+) -> impl fmt::Display + Captures<'a> + Captures<'tcx> {
     crate::html::format::display_fn(move |f| {
-        for a in it.attributes(tcx, false) {
+        for a in it.attributes(cx.tcx(), cx.cache(), false) {
             writeln!(f, "{prefix}{a}")?;
         }
         Ok(())
@@ -1061,8 +1073,8 @@ fn render_attributes_in_pre<'a, 'b: 'a>(
 
 // When an attribute is rendered inside a <code> tag, it is formatted using
 // a div to produce a newline after it.
-fn render_attributes_in_code(w: &mut impl fmt::Write, it: &clean::Item, tcx: TyCtxt<'_>) {
-    for attr in it.attributes(tcx, false) {
+fn render_attributes_in_code(w: &mut impl fmt::Write, it: &clean::Item, cx: &Context<'_>) {
+    for attr in it.attributes(cx.tcx(), cx.cache(), false) {
         write!(w, "<div class=\"code-attribute\">{attr}</div>").unwrap();
     }
 }
@@ -1131,13 +1143,13 @@ pub(crate) fn render_all_impls(
 fn render_assoc_items<'a, 'cx: 'a>(
     cx: &'a mut Context<'cx>,
     containing_item: &'a clean::Item,
-    did: DefId,
+    it: DefId,
     what: AssocItemRender<'a>,
 ) -> impl fmt::Display + 'a + Captures<'cx> {
     let mut derefs = DefIdSet::default();
-    derefs.insert(did);
+    derefs.insert(it);
     display_fn(move |f| {
-        render_assoc_items_inner(f, cx, containing_item, did, what, &mut derefs);
+        render_assoc_items_inner(f, cx, containing_item, it, what, &mut derefs);
         Ok(())
     })
 }
@@ -1146,17 +1158,15 @@ fn render_assoc_items_inner(
     mut w: &mut dyn fmt::Write,
     cx: &mut Context<'_>,
     containing_item: &clean::Item,
-    did: DefId,
+    it: DefId,
     what: AssocItemRender<'_>,
     derefs: &mut DefIdSet,
 ) {
     info!("Documenting associated items of {:?}", containing_item.name);
     let shared = Rc::clone(&cx.shared);
-    let v = shared.all_impls_for_item(containing_item, did);
-    let v = v.as_slice();
-    let (non_trait, traits): (Vec<&Impl>, _) =
-        v.iter().partition(|i| i.inner_impl().trait_.is_none());
-    let mut saw_impls = FxHashSet::default();
+    let cache = &shared.cache;
+    let Some(v) = cache.impls.get(&it) else { return };
+    let (non_trait, traits): (Vec<_>, _) = v.iter().partition(|i| i.inner_impl().trait_.is_none());
     if !non_trait.is_empty() {
         let mut tmp_buf = Buffer::html();
         let (render_mode, id, class_html) = match what {
@@ -1185,9 +1195,6 @@ fn render_assoc_items_inner(
         };
         let mut impls_buf = Buffer::html();
         for i in &non_trait {
-            if !saw_impls.insert(i.def_id()) {
-                continue;
-            }
             render_impl(
                 &mut impls_buf,
                 cx,
@@ -1233,10 +1240,8 @@ fn render_assoc_items_inner(
 
         let (synthetic, concrete): (Vec<&Impl>, Vec<&Impl>) =
             traits.into_iter().partition(|t| t.inner_impl().kind.is_auto());
-        let (blanket_impl, concrete): (Vec<&Impl>, _) = concrete
-            .into_iter()
-            .filter(|t| saw_impls.insert(t.def_id()))
-            .partition(|t| t.inner_impl().kind.is_blanket());
+        let (blanket_impl, concrete): (Vec<&Impl>, _) =
+            concrete.into_iter().partition(|t| t.inner_impl().kind.is_blanket());
 
         render_all_impls(w, cx, containing_item, &concrete, &synthetic, &blanket_impl);
     }
@@ -1877,7 +1882,7 @@ pub(crate) fn render_impl_summary(
     aliases: &[String],
 ) {
     let inner_impl = i.inner_impl();
-    let id = cx.derive_id(get_id_for_impl(&inner_impl.for_, inner_impl.trait_.as_ref(), cx));
+    let id = cx.derive_id(get_id_for_impl(cx.tcx(), i.impl_item.item_id));
     let aliases = if aliases.is_empty() {
         String::new()
     } else {
@@ -1994,21 +1999,35 @@ pub(crate) fn small_url_encode(s: String) -> String {
     }
 }
 
-fn get_id_for_impl(for_: &clean::Type, trait_: Option<&clean::Path>, cx: &Context<'_>) -> String {
-    match trait_ {
-        Some(t) => small_url_encode(format!("impl-{:#}-for-{:#}", t.print(cx), for_.print(cx))),
-        None => small_url_encode(format!("impl-{:#}", for_.print(cx))),
-    }
+fn get_id_for_impl<'tcx>(tcx: TyCtxt<'tcx>, impl_id: ItemId) -> String {
+    use rustc_middle::ty::print::with_forced_trimmed_paths;
+    let (type_, trait_) = match impl_id {
+        ItemId::Auto { trait_, for_ } => {
+            let ty = tcx.type_of(for_).skip_binder();
+            (ty, Some(ty::TraitRef::new(tcx, trait_, [ty])))
+        }
+        ItemId::Blanket { impl_id, .. } | ItemId::DefId(impl_id) => {
+            match tcx.impl_subject(impl_id).skip_binder() {
+                ty::ImplSubject::Trait(trait_ref) => {
+                    (trait_ref.args[0].expect_ty(), Some(trait_ref))
+                }
+                ty::ImplSubject::Inherent(ty) => (ty, None),
+            }
+        }
+    };
+    with_forced_trimmed_paths!(small_url_encode(if let Some(trait_) = trait_ {
+        format!("impl-{trait_}-for-{type_}", trait_ = trait_.print_only_trait_path())
+    } else {
+        format!("impl-{type_}")
+    }))
 }
 
 fn extract_for_impl_name(item: &clean::Item, cx: &Context<'_>) -> Option<(String, String)> {
     match *item.kind {
-        clean::ItemKind::ImplItem(ref i) => {
-            i.trait_.as_ref().map(|trait_| {
-                // Alternative format produces no URLs,
-                // so this parameter does nothing.
-                (format!("{:#}", i.for_.print(cx)), get_id_for_impl(&i.for_, Some(trait_), cx))
-            })
+        clean::ItemKind::ImplItem(ref i) if i.trait_.is_some() => {
+            // Alternative format produces no URLs,
+            // so this parameter does nothing.
+            Some((format!("{:#}", i.for_.print(cx)), get_id_for_impl(cx.tcx(), item.item_id)))
         }
         _ => None,
     }
@@ -2079,6 +2098,7 @@ impl ItemSection {
     const ALL: &'static [Self] = {
         use ItemSection::*;
         // NOTE: The order here affects the order in the UI.
+        // Keep this synchronized with addSidebarItems in main.js
         &[
             Reexports,
             PrimitiveTypes,

@@ -283,7 +283,7 @@ mod prim_never {}
 /// `char` type. For technical reasons, there is additional, separate
 /// documentation in [the `std::char` module](char/index.html) as well.
 ///
-/// # Validity
+/// # Validity and Layout
 ///
 /// A `char` is a '[Unicode scalar value]', which is any '[Unicode code point]'
 /// other than a [surrogate code point]. This has a fixed numerical definition:
@@ -291,7 +291,7 @@ mod prim_never {}
 /// Surrogate code points, used by UTF-16, are in the range 0xD800 to 0xDFFF.
 ///
 /// No `char` may be constructed, whether as a literal or at runtime, that is not a
-/// Unicode scalar value:
+/// Unicode scalar value. Violating this rule causes undefined behavior.
 ///
 /// ```compile_fail
 /// // Each of these is a compiler error
@@ -308,9 +308,10 @@ mod prim_never {}
 /// let _ = unsafe { char::from_u32_unchecked(0x110000) };
 /// ```
 ///
-/// USVs are also the exact set of values that may be encoded in UTF-8. Because
-/// `char` values are USVs and `str` values are valid UTF-8, it is safe to store
-/// any `char` in a `str` or read any character from a `str` as a `char`.
+/// Unicode scalar values are also the exact set of values that may be encoded in UTF-8. Because
+/// `char` values are Unicode scalar values and functions may assume [incoming `str` values are
+/// valid UTF-8](primitive.str.html#invariant), it is safe to store any `char` in a `str` or read
+/// any character from a `str` as a `char`.
 ///
 /// The gap in valid `char` values is understood by the compiler, so in the
 /// below example the two ranges are understood to cover the whole range of
@@ -324,11 +325,17 @@ mod prim_never {}
 /// };
 /// ```
 ///
-/// All USVs are valid `char` values, but not all of them represent a real
-/// character. Many USVs are not currently assigned to a character, but may be
-/// in the future ("reserved"); some will never be a character
-/// ("noncharacters"); and some may be given different meanings by different
-/// users ("private use").
+/// All Unicode scalar values are valid `char` values, but not all of them represent a real
+/// character. Many Unicode scalar values are not currently assigned to a character, but may be in
+/// the future ("reserved"); some will never be a character ("noncharacters"); and some may be given
+/// different meanings by different users ("private use").
+///
+/// `char` is guaranteed to have the same size and alignment as `u32` on all
+/// platforms.
+/// ```
+/// use std::alloc::Layout;
+/// assert_eq!(Layout::new::<char>(), Layout::new::<u32>());
+/// ```
 ///
 /// [Unicode code point]: https://www.unicode.org/glossary/#code_point
 /// [Unicode scalar value]: https://www.unicode.org/glossary/#unicode_scalar_value
@@ -887,8 +894,6 @@ mod prim_slice {}
 /// type. It is usually seen in its borrowed form, `&str`. It is also the type
 /// of string literals, `&'static str`.
 ///
-/// String slices are always valid UTF-8.
-///
 /// # Basic Usage
 ///
 /// String literals are string slices:
@@ -942,6 +947,14 @@ mod prim_slice {}
 /// Note: This example shows the internals of `&str`. `unsafe` should not be
 /// used to get a string slice under normal circumstances. Use `as_str`
 /// instead.
+///
+/// # Invariant
+///
+/// Rust libraries may assume that string slices are always valid UTF-8.
+///
+/// Constructing a non-UTF-8 string slice is not immediate undefined behavior, but any function
+/// called on a string slice may assume that it is valid UTF-8, which means that a non-UTF-8 string
+/// slice can lead to undefined behavior down the road.
 #[stable(feature = "rust1", since = "1.0.0")]
 mod prim_str {}
 
@@ -1077,26 +1090,6 @@ mod prim_tuple {}
 #[doc(hidden)]
 impl<T> (T,) {}
 
-// Fake impl that's only really used for docs.
-#[cfg(doc)]
-#[stable(feature = "rust1", since = "1.0.0")]
-#[doc(fake_variadic)]
-/// This trait is implemented on arbitrary-length tuples.
-impl<T: Clone> Clone for (T,) {
-    fn clone(&self) -> Self {
-        loop {}
-    }
-}
-
-// Fake impl that's only really used for docs.
-#[cfg(doc)]
-#[stable(feature = "rust1", since = "1.0.0")]
-#[doc(fake_variadic)]
-/// This trait is implemented on arbitrary-length tuples.
-impl<T: Copy> Copy for (T,) {
-    // empty
-}
-
 #[rustc_doc_primitive = "f32"]
 /// A 32-bit floating point type (specifically, the "binary32" type defined in IEEE 754-2008).
 ///
@@ -1142,10 +1135,9 @@ impl<T: Copy> Copy for (T,) {
 ///     surprising results upon inspecting the bit patterns,
 ///     as the same calculations might produce NaNs with different bit patterns.
 ///
-/// When the number resulting from a primitive operation (addition,
-/// subtraction, multiplication, or division) on this type is not exactly
-/// representable as `f32`, it is rounded according to the roundTiesToEven
-/// direction defined in IEEE 754-2008. That means:
+/// When a primitive operation (addition, subtraction, multiplication, or
+/// division) is performed on this type, the result is rounded according to the
+/// roundTiesToEven direction defined in IEEE 754-2008. That means:
 ///
 /// - The result is the representable value closest to the true value, if there
 ///   is a unique closest representable value.
@@ -1154,6 +1146,9 @@ impl<T: Copy> Copy for (T,) {
 /// - If the true value's magnitude is ≥ `f32::MAX` + 2<sup>(`f32::MAX_EXP` −
 ///   `f32::MANTISSA_DIGITS` − 1)</sup>, the result is ∞ or −∞ (preserving the
 ///   true value's sign).
+/// - If the result of a sum exactly equals zero, the outcome is +0.0 unless
+///   both arguments were negative, then it is -0.0. Subtraction `a - b` is
+///   regarded as a sum `a + (-b)`.
 ///
 /// For more information on floating point numbers, see [Wikipedia][wikipedia].
 ///

@@ -1,13 +1,13 @@
 #[doc = "*Required features: `\"Win32_NetworkManagement_Multicast\"`*"]
 #[inline]
 pub unsafe fn McastApiCleanup() {
-    ::windows_targets::link ! ( "dhcpcsvc.dll""system" fn McastApiCleanup ( ) -> ( ) );
+    ::windows_targets::link!("dhcpcsvc.dll" "system" fn McastApiCleanup() -> ());
     McastApiCleanup()
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Multicast\"`*"]
 #[inline]
 pub unsafe fn McastApiStartup(version: *mut u32) -> u32 {
-    ::windows_targets::link ! ( "dhcpcsvc.dll""system" fn McastApiStartup ( version : *mut u32 ) -> u32 );
+    ::windows_targets::link!("dhcpcsvc.dll" "system" fn McastApiStartup(version : *mut u32) -> u32);
     McastApiStartup(version)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Multicast\"`, `\"Win32_Foundation\"`*"]
@@ -15,33 +15,33 @@ pub unsafe fn McastApiStartup(version: *mut u32) -> u32 {
 #[inline]
 pub unsafe fn McastEnumerateScopes<P0>(addrfamily: u16, requery: P0, pscopelist: *mut MCAST_SCOPE_ENTRY, pscopelen: *mut u32, pscopecount: *mut u32) -> u32
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::BOOL>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::BOOL>,
 {
-    ::windows_targets::link ! ( "dhcpcsvc.dll""system" fn McastEnumerateScopes ( addrfamily : u16 , requery : super::super::Foundation:: BOOL , pscopelist : *mut MCAST_SCOPE_ENTRY , pscopelen : *mut u32 , pscopecount : *mut u32 ) -> u32 );
+    ::windows_targets::link!("dhcpcsvc.dll" "system" fn McastEnumerateScopes(addrfamily : u16, requery : super::super::Foundation:: BOOL, pscopelist : *mut MCAST_SCOPE_ENTRY, pscopelen : *mut u32, pscopecount : *mut u32) -> u32);
     McastEnumerateScopes(addrfamily, requery.into_param().abi(), pscopelist, pscopelen, pscopecount)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Multicast\"`*"]
 #[inline]
 pub unsafe fn McastGenUID(prequestid: *mut MCAST_CLIENT_UID) -> u32 {
-    ::windows_targets::link ! ( "dhcpcsvc.dll""system" fn McastGenUID ( prequestid : *mut MCAST_CLIENT_UID ) -> u32 );
+    ::windows_targets::link!("dhcpcsvc.dll" "system" fn McastGenUID(prequestid : *mut MCAST_CLIENT_UID) -> u32);
     McastGenUID(prequestid)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Multicast\"`*"]
 #[inline]
 pub unsafe fn McastReleaseAddress(addrfamily: u16, prequestid: *mut MCAST_CLIENT_UID, preleaserequest: *mut MCAST_LEASE_REQUEST) -> u32 {
-    ::windows_targets::link ! ( "dhcpcsvc.dll""system" fn McastReleaseAddress ( addrfamily : u16 , prequestid : *mut MCAST_CLIENT_UID , preleaserequest : *mut MCAST_LEASE_REQUEST ) -> u32 );
+    ::windows_targets::link!("dhcpcsvc.dll" "system" fn McastReleaseAddress(addrfamily : u16, prequestid : *mut MCAST_CLIENT_UID, preleaserequest : *mut MCAST_LEASE_REQUEST) -> u32);
     McastReleaseAddress(addrfamily, prequestid, preleaserequest)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Multicast\"`*"]
 #[inline]
 pub unsafe fn McastRenewAddress(addrfamily: u16, prequestid: *mut MCAST_CLIENT_UID, prenewrequest: *mut MCAST_LEASE_REQUEST, prenewresponse: *mut MCAST_LEASE_RESPONSE) -> u32 {
-    ::windows_targets::link ! ( "dhcpcsvc.dll""system" fn McastRenewAddress ( addrfamily : u16 , prequestid : *mut MCAST_CLIENT_UID , prenewrequest : *mut MCAST_LEASE_REQUEST , prenewresponse : *mut MCAST_LEASE_RESPONSE ) -> u32 );
+    ::windows_targets::link!("dhcpcsvc.dll" "system" fn McastRenewAddress(addrfamily : u16, prequestid : *mut MCAST_CLIENT_UID, prenewrequest : *mut MCAST_LEASE_REQUEST, prenewresponse : *mut MCAST_LEASE_RESPONSE) -> u32);
     McastRenewAddress(addrfamily, prequestid, prenewrequest, prenewresponse)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Multicast\"`*"]
 #[inline]
 pub unsafe fn McastRequestAddress(addrfamily: u16, prequestid: *mut MCAST_CLIENT_UID, pscopectx: *mut MCAST_SCOPE_CTX, paddrrequest: *mut MCAST_LEASE_REQUEST, paddrresponse: *mut MCAST_LEASE_RESPONSE) -> u32 {
-    ::windows_targets::link ! ( "dhcpcsvc.dll""system" fn McastRequestAddress ( addrfamily : u16 , prequestid : *mut MCAST_CLIENT_UID , pscopectx : *mut MCAST_SCOPE_CTX , paddrrequest : *mut MCAST_LEASE_REQUEST , paddrresponse : *mut MCAST_LEASE_RESPONSE ) -> u32 );
+    ::windows_targets::link!("dhcpcsvc.dll" "system" fn McastRequestAddress(addrfamily : u16, prequestid : *mut MCAST_CLIENT_UID, pscopectx : *mut MCAST_SCOPE_CTX, paddrrequest : *mut MCAST_LEASE_REQUEST, paddrresponse : *mut MCAST_LEASE_RESPONSE) -> u32);
     McastRequestAddress(addrfamily, prequestid, pscopectx, paddrrequest, paddrresponse)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Multicast\"`*"]
@@ -64,8 +64,8 @@ impl ::core::clone::Clone for IPNG_ADDRESS {
         *self
     }
 }
-impl ::windows::core::TypeKind for IPNG_ADDRESS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for IPNG_ADDRESS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for IPNG_ADDRESS {
     fn default() -> Self {
@@ -89,8 +89,8 @@ impl ::core::fmt::Debug for MCAST_CLIENT_UID {
         f.debug_struct("MCAST_CLIENT_UID").field("ClientUID", &self.ClientUID).field("ClientUIDLength", &self.ClientUIDLength).finish()
     }
 }
-impl ::windows::core::TypeKind for MCAST_CLIENT_UID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MCAST_CLIENT_UID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for MCAST_CLIENT_UID {
     fn eq(&self, other: &Self) -> bool {
@@ -121,8 +121,8 @@ impl ::core::clone::Clone for MCAST_LEASE_REQUEST {
         *self
     }
 }
-impl ::windows::core::TypeKind for MCAST_LEASE_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MCAST_LEASE_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for MCAST_LEASE_REQUEST {
     fn default() -> Self {
@@ -144,8 +144,8 @@ impl ::core::clone::Clone for MCAST_LEASE_RESPONSE {
         *self
     }
 }
-impl ::windows::core::TypeKind for MCAST_LEASE_RESPONSE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MCAST_LEASE_RESPONSE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for MCAST_LEASE_RESPONSE {
     fn default() -> Self {
@@ -165,8 +165,8 @@ impl ::core::clone::Clone for MCAST_SCOPE_CTX {
         *self
     }
 }
-impl ::windows::core::TypeKind for MCAST_SCOPE_CTX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MCAST_SCOPE_CTX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for MCAST_SCOPE_CTX {
     fn default() -> Self {
@@ -191,8 +191,8 @@ impl ::core::clone::Clone for MCAST_SCOPE_ENTRY {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for MCAST_SCOPE_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MCAST_SCOPE_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for MCAST_SCOPE_ENTRY {
@@ -200,5 +200,3 @@ impl ::core::default::Default for MCAST_SCOPE_ENTRY {
         unsafe { ::core::mem::zeroed() }
     }
 }
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

@@ -1,4 +1,5 @@
 // only-x86_64
+// ignore-sgx Tests incompatible with LVI mitigations
 // assembly-output: emit-asm
 // make sure the feature is not enabled at compile-time
 // compile-flags: -C opt-level=3 -C target-feature=-sse4.1 -C llvm-args=-x86-asm-syntax=intel
@@ -22,6 +23,7 @@ pub unsafe fn sse41_blend_nofeature(x: __m128, y: __m128) -> __m128 {
     f(x, y)
 }
 
+#[no_mangle]
 #[target_feature(enable = "sse4.1")]
 pub fn sse41_blend_noinline(x: __m128, y: __m128) -> __m128 {
     let f = {

@@ -12,13 +12,14 @@ use rustc_hir::pat_util::EnumerateAndAdjustIterator;
 use rustc_hir::{HirId, Pat, PatKind};
 use rustc_infer::infer;
 use rustc_infer::infer::type_variable::{TypeVariableOrigin, TypeVariableOriginKind};
-use rustc_middle::middle::stability::EvalResult;
+use rustc_middle::mir::interpret::ErrorHandled;
 use rustc_middle::ty::{self, Adt, BindingMode, Ty, TypeVisitableExt};
 use rustc_session::lint::builtin::NON_EXHAUSTIVE_OMITTED_PATTERNS;
 use rustc_span::edit_distance::find_best_match_for_name;
 use rustc_span::hygiene::DesugaringKind;
-use rustc_span::source_map::{Span, Spanned};
+use rustc_span::source_map::Spanned;
 use rustc_span::symbol::{kw, sym, Ident};
+use rustc_span::Span;
 use rustc_span::{BytePos, DUMMY_SP};
 use rustc_target::abi::FieldIdx;
 use rustc_trait_selection::traits::{ObligationCause, Pattern};
@@ -165,9 +166,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     fn check_pat(&self, pat: &'tcx Pat<'tcx>, expected: Ty<'tcx>, pat_info: PatInfo<'tcx, '_>) {
         let PatInfo { binding_mode: def_bm, top_info: ti, .. } = pat_info;
         let path_res = match &pat.kind {
-            PatKind::Path(qpath) => {
-                Some(self.resolve_ty_and_res_fully_qualified_call(qpath, pat.hir_id, pat.span))
-            }
+            PatKind::Path(qpath) => Some(
+                self.resolve_ty_and_res_fully_qualified_call(qpath, pat.hir_id, pat.span, None),
+            ),
             _ => None,
         };
         let adjust_mode = self.calc_adjust_mode(pat, path_res.map(|(res, ..)| res));
@@ -407,16 +408,19 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     .borrow_mut()
                     .treat_byte_string_as_slice
                     .insert(lt.hir_id.local_id);
-                pat_ty = Ty::new_imm_ref(tcx,tcx.lifetimes.re_static, Ty::new_slice(tcx,tcx.types.u8));
+                pat_ty =
+                    Ty::new_imm_ref(tcx, tcx.lifetimes.re_static, Ty::new_slice(tcx, tcx.types.u8));
             }
         }
 
-        if self.tcx.features().string_deref_patterns && let hir::ExprKind::Lit(Spanned { node: ast::LitKind::Str(..), .. }) = lt.kind {
+        if self.tcx.features().string_deref_patterns
+            && let hir::ExprKind::Lit(Spanned { node: ast::LitKind::Str(..), .. }) = lt.kind
+        {
             let tcx = self.tcx;
             let expected = self.resolve_vars_if_possible(expected);
             pat_ty = match expected.kind() {
                 ty::Adt(def, _) if Some(def.did()) == tcx.lang_items().string() => expected,
-                ty::Str => Ty::new_static_str(tcx,),
+                ty::Str => Ty::new_static_str(tcx),
                 _ => pat_ty,
             };
         }
@@ -708,7 +712,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     fn borrow_pat_suggestion(&self, err: &mut Diagnostic, pat: &Pat<'_>) {
         let tcx = self.tcx;
         if let PatKind::Ref(inner, mutbl) = pat.kind
-        && let PatKind::Binding(_, _, binding, ..) = inner.kind {
+            && let PatKind::Binding(_, _, binding, ..) = inner.kind
+        {
             let binding_parent_id = tcx.hir().parent_id(pat.hir_id);
             let binding_parent = tcx.hir().get(binding_parent_id);
             debug!(?inner, ?pat, ?binding_parent);
@@ -755,7 +760,6 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     format!("to declare a mutable {ident_kind} use"),
                     format!("mut {binding}"),
                 ))
-
             };
 
             match binding_parent {
@@ -778,7 +782,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 hir::Node::Pat(pt) if let PatKind::TupleStruct(_, pat_arr, _) = pt.kind => {
                     for i in pat_arr.iter() {
                         if let PatKind::Ref(the_ref, _) = i.kind
-                        && let PatKind::Binding(mt, _, ident, _) = the_ref.kind {
+                            && let PatKind::Binding(mt, _, ident, _) = the_ref.kind
+                        {
                             let hir::BindingAnnotation(_, mtblty) = mt;
                             err.span_suggestion_verbose(
                                 i.span,
@@ -1055,7 +1060,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         // Resolve the path and check the definition for errors.
         let (res, opt_ty, segments) =
-            self.resolve_ty_and_res_fully_qualified_call(qpath, pat.hir_id, pat.span);
+            self.resolve_ty_and_res_fully_qualified_call(qpath, pat.hir_id, pat.span, None);
         if res == Res::Err {
             let e = tcx.sess.delay_span_bug(pat.span, "`Res::Err` but no error emitted");
             self.set_tainted_by_errors(e);
@@ -1408,6 +1413,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 adt.variant_descr(),
                 &inexistent_fields,
                 &mut unmentioned_fields,
+                pat,
                 variant,
                 args,
             ))
@@ -1434,15 +1440,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let accessible_unmentioned_fields: Vec<_> = unmentioned_fields
                 .iter()
                 .copied()
-                .filter(|(field, _)| {
-                    field.vis.is_accessible_from(tcx.parent_module(pat.hir_id), tcx)
-                        && !matches!(
-                            tcx.eval_stability(field.did, None, DUMMY_SP, None),
-                            EvalResult::Deny { .. }
-                        )
-                        // We only want to report the error if it is hidden and not local
-                        && !(tcx.is_doc_hidden(field.did) && !field.did.is_local())
-                })
+                .filter(|(field, _)| self.is_field_suggestable(field, pat.hir_id, pat.span))
                 .collect();
 
             if !has_rest_pat {
@@ -1488,7 +1486,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             (Some(mut err), None) => {
                 err.emit();
             }
-            (None, None) if let Some(mut err) =
+            (None, None)
+                if let Some(mut err) =
                     self.error_tuple_variant_index_shorthand(variant, pat, fields) =>
             {
                 err.emit();
@@ -1512,9 +1511,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         {
             let has_shorthand_field_name = field_patterns.iter().any(|field| field.is_shorthand);
             if has_shorthand_field_name {
-                let path = rustc_hir_pretty::to_string(rustc_hir_pretty::NO_ANN, |s| {
-                    s.print_qpath(qpath, false)
-                });
+                let path = rustc_hir_pretty::qpath_to_string(qpath);
                 let mut err = struct_span_err!(
                     self.tcx.sess,
                     pat.span,
@@ -1578,12 +1575,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         kind_name: &str,
         inexistent_fields: &[&hir::PatField<'tcx>],
         unmentioned_fields: &mut Vec<(&'tcx ty::FieldDef, Ident)>,
+        pat: &'tcx Pat<'tcx>,
         variant: &ty::VariantDef,
         args: &'tcx ty::List<ty::GenericArg<'tcx>>,
     ) -> DiagnosticBuilder<'tcx, ErrorGuaranteed> {
         let tcx = self.tcx;
-        let (field_names, t, plural) = if inexistent_fields.len() == 1 {
-            (format!("a field named `{}`", inexistent_fields[0].ident), "this", "")
+        let (field_names, t, plural) = if let [field] = inexistent_fields {
+            (format!("a field named `{}`", field.ident), "this", "")
         } else {
             (
                 format!(
@@ -1620,10 +1618,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 ),
             );
 
-            if unmentioned_fields.len() == 1 {
-                let input =
-                    unmentioned_fields.iter().map(|(_, field)| field.name).collect::<Vec<_>>();
-                let suggested_name = find_best_match_for_name(&input, pat_field.ident.name, None);
+            if let [(field_def, field)] = unmentioned_fields.as_slice()
+                && self.is_field_suggestable(field_def, pat.hir_id, pat.span)
+            {
+                let suggested_name =
+                    find_best_match_for_name(&[field.name], pat_field.ident.name, None);
                 if let Some(suggested_name) = suggested_name {
                     err.span_suggestion(
                         pat_field.ident.span,
@@ -1646,22 +1645,17 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         PatKind::Lit(expr)
                             if !self.can_coerce(
                                 self.typeck_results.borrow().expr_ty(expr),
-                                self.field_ty(
-                                    unmentioned_fields[0].1.span,
-                                    unmentioned_fields[0].0,
-                                    args,
-                                ),
+                                self.field_ty(field.span, field_def, args),
                             ) => {}
                         _ => {
-                            let unmentioned_field = unmentioned_fields[0].1.name;
                             err.span_suggestion_short(
                                 pat_field.ident.span,
                                 format!(
                                     "`{}` has a field named `{}`",
                                     tcx.def_path_str(variant.def_id),
-                                    unmentioned_field
+                                    field.name,
                                 ),
-                                unmentioned_field.to_string(),
+                                field.name,
                                 Applicability::MaybeIncorrect,
                             );
                         }
@@ -1699,9 +1693,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 return None;
             }
 
-            let path = rustc_hir_pretty::to_string(rustc_hir_pretty::NO_ANN, |s| {
-                s.print_qpath(qpath, false)
-            });
+            let path = rustc_hir_pretty::qpath_to_string(qpath);
             let mut err = struct_span_err!(
                 self.tcx.sess,
                 pat.span,
@@ -1751,9 +1743,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                             f
                         }
                     }
-                    Err(_) => rustc_hir_pretty::to_string(rustc_hir_pretty::NO_ANN, |s| {
-                        s.print_pat(field.pat)
-                    }),
+                    Err(_) => rustc_hir_pretty::pat_to_string(field.pat),
                 }
             })
             .collect::<Vec<String>>()
@@ -1871,8 +1861,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         fields: &'tcx [hir::PatField<'tcx>],
     ) -> DiagnosticBuilder<'tcx, ErrorGuaranteed> {
         let inaccessible = if have_inaccessible_fields { " and inaccessible fields" } else { "" };
-        let field_names = if unmentioned_fields.len() == 1 {
-            format!("field `{}`{}", unmentioned_fields[0].1, inaccessible)
+        let field_names = if let [(_, field)] = unmentioned_fields {
+            format!("field `{field}`{inaccessible}")
         } else {
             let fields = unmentioned_fields
                 .iter()
@@ -2176,7 +2166,19 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         len: ty::Const<'tcx>,
         min_len: u64,
     ) -> (Option<Ty<'tcx>>, Ty<'tcx>) {
-        let guar = if let Some(len) = len.try_eval_target_usize(self.tcx, self.param_env) {
+        let len = match len.eval(self.tcx, self.param_env, None) {
+            Ok(val) => val
+                .try_to_scalar()
+                .and_then(|scalar| scalar.try_to_int().ok())
+                .and_then(|int| int.try_to_target_usize(self.tcx).ok()),
+            Err(ErrorHandled::Reported(..)) => {
+                let guar = self.error_scrutinee_unfixed_length(span);
+                return (Some(Ty::new_error(self.tcx, guar)), arr_ty);
+            }
+            Err(ErrorHandled::TooGeneric(..)) => None,
+        };
+
+        let guar = if let Some(len) = len {
             // Now we know the length...
             if slice.is_none() {
                 // ...and since there is no variable-length pattern,
@@ -2280,7 +2282,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             && let ty::Array(..) | ty::Slice(..) = ty.kind()
         {
             err.help("the semantics of slice patterns changed recently; see issue #62254");
-        } else if self.autoderef(span, expected_ty)
+        } else if self
+            .autoderef(span, expected_ty)
             .any(|(ty, _)| matches!(ty.kind(), ty::Slice(..) | ty::Array(..)))
             && let Some(span) = ti.span
             && let Some(_) = ti.origin_expr
@@ -2301,7 +2304,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         Applicability::MaybeIncorrect,
                     );
                 }
-                _ => ()
+                _ => (),
             }
             if is_slice_or_array_or_vector.0 {
                 err.span_suggestion(

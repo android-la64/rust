@@ -270,6 +270,51 @@ pub async fn closure4(n: &mut usize) {
     })();
 }
 
+// Should not warn.
+async fn _f(v: &mut Vec<()>) {
+    let x = || v.pop();
+    _ = || || x;
+}
+
+struct Data<T: ?Sized> {
+    value: T,
+}
+// Unsafe functions should not warn.
+unsafe fn get_mut_unchecked<T>(ptr: &mut NonNull<Data<T>>) -> &mut T {
+    &mut (*ptr.as_ptr()).value
+}
+// Unsafe blocks should not warn.
+fn get_mut_unchecked2<T>(ptr: &mut NonNull<Data<T>>) -> &mut T {
+    unsafe { &mut (*ptr.as_ptr()).value }
+}
+
+fn set_true(b: &mut bool) {
+    *b = true;
+}
+
+// Should not warn.
+fn true_setter(b: &mut bool) -> impl FnOnce() + '_ {
+    move || set_true(b)
+}
+
+// Should not warn.
+fn filter_copy<T: Copy>(predicate: &mut impl FnMut(T) -> bool) -> impl FnMut(&T) -> bool + '_ {
+    move |&item| predicate(item)
+}
+
+// `is_from_proc_macro` stress tests
+fn _empty_tup(x: &mut (())) {}
+fn _single_tup(x: &mut ((i32,))) {}
+fn _multi_tup(x: &mut ((i32, u32))) {}
+fn _fn(x: &mut (fn())) {}
+#[rustfmt::skip]
+fn _extern_rust_fn(x: &mut extern "Rust" fn()) {}
+fn _extern_c_fn(x: &mut extern "C" fn()) {}
+fn _unsafe_fn(x: &mut unsafe fn()) {}
+fn _unsafe_extern_fn(x: &mut unsafe extern "C" fn()) {}
+fn _fn_with_arg(x: &mut unsafe extern "C" fn(i32)) {}
+fn _fn_with_ret(x: &mut unsafe extern "C" fn() -> (i32)) {}
+
 fn main() {
     let mut u = 0;
     let mut v = vec![0];

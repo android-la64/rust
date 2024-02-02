@@ -43,21 +43,6 @@ impl ErrorHandled {
         }
     }
 
-    pub fn emit_err(&self, tcx: TyCtxt<'_>) -> ErrorGuaranteed {
-        match self {
-            &ErrorHandled::Reported(err, span) => {
-                if !err.is_tainted_by_errors && !span.is_dummy() {
-                    tcx.sess.emit_err(error::ErroneousConstant { span });
-                }
-                err.error
-            }
-            &ErrorHandled::TooGeneric(span) => tcx.sess.delay_span_bug(
-                span,
-                "encountered TooGeneric error when monomorphic data was expected",
-            ),
-        }
-    }
-
     pub fn emit_note(&self, tcx: TyCtxt<'_>) {
         match self {
             &ErrorHandled::Reported(err, span) => {
@@ -231,10 +216,8 @@ pub enum InvalidProgramInfo<'tcx> {
 }
 
 /// Details of why a pointer had to be in-bounds.
-#[derive(Debug, Copy, Clone, TyEncodable, TyDecodable, HashStable)]
+#[derive(Debug, Copy, Clone)]
 pub enum CheckInAllocMsg {
-    /// We are dereferencing a pointer (i.e., creating a place).
-    DerefTest,
     /// We are access memory.
     MemoryAccessTest,
     /// We are doing pointer arithmetic.
@@ -245,7 +228,16 @@ pub enum CheckInAllocMsg {
     InboundsTest,
 }
 
-#[derive(Debug, Copy, Clone, TyEncodable, TyDecodable, HashStable)]
+/// Details of which pointer is not aligned.
+#[derive(Debug, Copy, Clone)]
+pub enum CheckAlignMsg {
+    /// The accessed pointer did not have proper alignment.
+    AccessedPtr,
+    /// The access ocurred with a place that was based on a misaligned pointer.
+    BasedOn,
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum InvalidMetaKind {
     /// Size of a `[T]` is too big
     SliceTooBig,
@@ -276,6 +268,13 @@ pub struct BadBytesAccess {
 pub struct ScalarSizeMismatch {
     pub target_size: u64,
     pub data_size: u64,
+}
+
+/// Information about a misaligned pointer.
+#[derive(Copy, Clone, Hash, PartialEq, Eq, Debug)]
+pub struct Misalignment {
+    pub has: Align,
+    pub required: Align,
 }
 
 macro_rules! impl_into_diagnostic_arg_through_debug {
@@ -339,7 +338,7 @@ pub enum UndefinedBehaviorInfo<'tcx> {
     /// Using an integer as a pointer in the wrong way.
     DanglingIntPointer(u64, CheckInAllocMsg),
     /// Used a pointer with bad alignment.
-    AlignmentCheckFailed { required: Align, has: Align },
+    AlignmentCheckFailed(Misalignment, CheckAlignMsg),
     /// Writing to read-only memory.
     WriteToReadOnly(AllocId),
     /// Trying to access the data behind a function pointer.

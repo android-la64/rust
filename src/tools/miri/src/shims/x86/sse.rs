@@ -7,7 +7,7 @@ use rand::Rng as _;
 
 use super::{bin_op_simd_float_all, bin_op_simd_float_first, FloatBinOp, FloatCmpOp};
 use crate::*;
-use shims::foreign_items::EmulateByNameResult;
+use shims::foreign_items::EmulateForeignItemResult;
 
 impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
 pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
@@ -19,7 +19,7 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
         abi: Abi,
         args: &[OpTy<'tcx, Provenance>],
         dest: &PlaceTy<'tcx, Provenance>,
-    ) -> InterpResult<'tcx, EmulateByNameResult<'mir, 'tcx>> {
+    ) -> InterpResult<'tcx, EmulateForeignItemResult> {
         let this = self.eval_context_mut();
         // Prefix should have already been checked.
         let unprefixed_name = link_name.as_str().strip_prefix("llvm.x86.sse.").unwrap();
@@ -141,10 +141,10 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
 
                 let left = this.read_scalar(&this.project_index(&left, 0)?)?.to_f32()?;
                 let right = this.read_scalar(&this.project_index(&right, 0)?)?.to_f32()?;
-                // The difference between the com* and *ucom variants is signaling
+                // The difference between the com* and ucom* variants is signaling
                 // of exceptions when either argument is a quiet NaN. We do not
                 // support accessing the SSE status register from miri (or from Rust,
-                // for that matter), so we treat equally both variants.
+                // for that matter), so we treat both variants equally.
                 let res = match unprefixed_name {
                     "comieq.ss" | "ucomieq.ss" => left == right,
                     "comilt.ss" | "ucomilt.ss" => left < right,
@@ -209,28 +209,9 @@ pub(super) trait EvalContextExt<'mir, 'tcx: 'mir>:
                     )?;
                 }
             }
-            // Used to implement the _mm_movemask_ps function.
-            // Returns a scalar integer where the i-th bit is the highest
-            // bit of the i-th component of `op`.
-            // https://www.felixcloutier.com/x86/movmskps
-            "movmsk.ps" => {
-                let [op] = this.check_shim(abi, Abi::C { unwind: false }, link_name, args)?;
-                let (op, op_len) = this.operand_to_simd(op)?;
-
-                let mut res = 0;
-                for i in 0..op_len {
-                    let op = this.read_scalar(&this.project_index(&op, i)?)?;
-                    let op = op.to_u32()?;
-
-                    // Extract the highest bit of `op` and place it in the `i`-th bit of `res`
-                    res |= (op >> 31) << i;
-                }
-
-                this.write_scalar(Scalar::from_u32(res), dest)?;
-            }
-            _ => return Ok(EmulateByNameResult::NotSupported),
+            _ => return Ok(EmulateForeignItemResult::NotSupported),
         }
-        Ok(EmulateByNameResult::NeedsJumping)
+        Ok(EmulateForeignItemResult::NeedsJumping)
     }
 }
 

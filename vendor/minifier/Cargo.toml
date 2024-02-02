@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "minifier"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 description = "Minifier tool/lib for JS/CSS/JSON files"
 documentation = "https://docs.rs/minifier-rs"
@@ -26,7 +26,6 @@ keywords = [
 ]
 license = "MIT"
 repository = "https://github.com/GuillaumeGomez/minifier-rs"
-resolver = "2"
 
 [profile.release]
 opt-level = 3
@@ -51,10 +50,3 @@ optional = true
 
 [features]
 html = ["regex"]
-
-[badges.appveyor]
-repository = "GuillaumeGomez/minifier-rs"
-service = "github"
-
-[badges.travis-ci]
-repository = "GuillaumeGomez/minifier-rs"

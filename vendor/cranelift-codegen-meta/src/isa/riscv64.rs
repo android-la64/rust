@@ -1,7 +1,5 @@
 use crate::cdsl::isa::TargetIsa;
-use crate::cdsl::settings::{SettingGroup, SettingGroupBuilder};
-
-use crate::shared::Definitions as SharedDefinitions;
+use crate::cdsl::settings::{PredicateNode, SettingGroupBuilder};
 
 macro_rules! define_zvl_ext {
     (DEF: $settings:expr, $size:expr) => {{
@@ -27,15 +25,69 @@ macro_rules! define_zvl_ext {
     }};
 }
 
-fn define_settings(_shared: &SettingGroup) -> SettingGroup {
+pub(crate) fn define() -> TargetIsa {
     let mut setting = SettingGroupBuilder::new("riscv64");
 
-    let _has_m = setting.add_bool("has_m", "has extension M?", "", false);
-    let _has_a = setting.add_bool("has_a", "has extension A?", "", false);
-    let _has_f = setting.add_bool("has_f", "has extension F?", "", false);
-    let _has_d = setting.add_bool("has_d", "has extension D?", "", false);
-    let _has_v = setting.add_bool("has_v", "has extension V?", "", false);
-    let _has_c = setting.add_bool("has_c", "has extension C?", "", false);
+    // We target a minimum of riscv64g. That means that we have the following extensions by default:
+    //
+    // * M (integer multiplication and division)
+    // * A (atomic instructions)
+    // * F (single-precision floating point)
+    // * D (double-precision floating point)
+    // * Zicsr (control and status register instructions)
+    // * Zifencei (instruction-fetch fence)
+
+    let has_m = setting.add_bool(
+        "has_m",
+        "has extension M?",
+        "Integer multiplication and division",
+        true,
+    );
+    let has_a = setting.add_bool("has_a", "has extension A?", "Atomic instructions", true);
+    let has_f = setting.add_bool(
+        "has_f",
+        "has extension F?",
+        "Single-precision floating point",
+        true,
+    );
+    let has_d = setting.add_bool(
+        "has_d",
+        "has extension D?",
+        "Double-precision floating point",
+        true,
+    );
+    let _has_v = setting.add_bool(
+        "has_v",
+        "has extension V?",
+        "Vector instruction support",
+        false,
+    );
+
+    let has_zca = setting.add_bool(
+        "has_zca",
+        "has extension Zca?",
+        "Zca is the C extension without floating point loads",
+        false,
+    );
+    let has_zcd = setting.add_bool(
+        "has_zcd",
+        "has extension Zcd?",
+        "Zcd contains only the double precision floating point loads from the C extension",
+        false,
+    );
+    setting.add_preset(
+        "has_c",
+        "Support for compressed instructions",
+        preset!(has_zca && has_zcd),
+    );
+
+    let _has_zcb = setting.add_bool(
+        "has_zcb",
+        "has extension Zcb?",
+        "Zcb: Extra compressed instructions",
+        false,
+    );
+
     let _has_zbkb = setting.add_bool(
         "has_zbkb",
         "has extension zbkb?",
@@ -67,17 +119,17 @@ fn define_settings(_shared: &SettingGroup) -> SettingGroup {
         false,
     );
 
-    let _has_zicsr = setting.add_bool(
+    let has_zicsr = setting.add_bool(
         "has_zicsr",
         "has extension zicsr?",
         "Zicsr: Control and Status Register (CSR) Instructions",
-        false,
+        true,
     );
-    let _has_zifencei = setting.add_bool(
+    let has_zifencei = setting.add_bool(
         "has_zifencei",
         "has extension zifencei?",
         "Zifencei: Instruction-Fetch Fence",
-        false,
+        true,
     );
 
     // Zvl*: Minimum Vector Length Standard Extensions
@@ -99,10 +151,10 @@ fn define_settings(_shared: &SettingGroup) -> SettingGroup {
     let (_, zvl32768b) = define_zvl_ext!(setting, 32768, zvl16384b);
     let (_, _zvl65536b) = define_zvl_ext!(setting, 65536, zvl32768b);
 
-    setting.build()
-}
+    setting.add_predicate(
+        "has_g",
+        predicate!(has_m && has_a && has_f && has_d && has_zicsr && has_zifencei),
+    );
 
-pub(crate) fn define(shared_defs: &mut SharedDefinitions) -> TargetIsa {
-    let settings = define_settings(&shared_defs.settings);
-    TargetIsa::new("riscv64", settings)
+    TargetIsa::new("riscv64", setting.build())
 }

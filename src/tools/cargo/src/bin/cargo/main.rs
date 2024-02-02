@@ -4,7 +4,7 @@
 
 use cargo::util::network::http::http_handle;
 use cargo::util::network::http::needs_custom_http_transport;
-use cargo::util::toml::StringOrVec;
+use cargo::util::toml::schema::StringOrVec;
 use cargo::util::CliError;
 use cargo::util::{self, closest_msg, command_prelude, CargoResult, CliResult, Config};
 use cargo_util::{ProcessBuilder, ProcessError};
@@ -192,10 +192,9 @@ fn execute_external_subcommand(config: &Config, cmd: &str, args: &[&OsStr]) -> C
                 let did_you_mean = closest_msg(cmd, suggestions.keys(), |c| c);
 
                 anyhow::format_err!(
-                    "no such command: `{}`{}\n\n\t\
-                    View all installed commands with `cargo --list`",
-                    cmd,
-                    did_you_mean
+                    "no such command: `{cmd}`{did_you_mean}\n\n\t\
+                    View all installed commands with `cargo --list`\n\t\
+                    Find a package to install `{cmd}` with `cargo search cargo-{cmd}`",
                 )
             };
 

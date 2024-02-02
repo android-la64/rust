@@ -896,7 +896,8 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
 
             if !restricted_shadowing && binding.expansion != LocalExpnId::ROOT {
                 if let NameBindingKind::Import { import, .. } = binding.kind
-                    && matches!(import.kind, ImportKind::MacroExport) {
+                    && matches!(import.kind, ImportKind::MacroExport)
+                {
                     self.macro_expanded_macro_export_errors.insert((path_span, binding.span));
                 }
             }
@@ -928,9 +929,10 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             if !self.is_accessible_from(import_vis, parent_scope.module) {
                 continue;
             }
-            if let Some(ignored) = ignore_binding &&
-                let NameBindingKind::Import { import, .. } = ignored.kind &&
-                import == *single_import {
+            if let Some(ignored) = ignore_binding
+                && let NameBindingKind::Import { import, .. } = ignored.kind
+                && import == *single_import
+            {
                 // Ignore not just the binding itself, but if it has a shadowed_glob,
                 // ignore that, too, because this loop is supposed to only process
                 // named imports.
@@ -1081,7 +1083,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                 for rib in ribs {
                     match rib.kind {
                         RibKind::Normal
-                        | RibKind::ClosureOrAsync
+                        | RibKind::FnOrCoroutine
                         | RibKind::Module(..)
                         | RibKind::MacroDefinition(..)
                         | RibKind::ForwardGenericParamBan => {
@@ -1154,7 +1156,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                 for rib in ribs {
                     let has_generic_params: HasGenericParams = match rib.kind {
                         RibKind::Normal
-                        | RibKind::ClosureOrAsync
+                        | RibKind::FnOrCoroutine
                         | RibKind::Module(..)
                         | RibKind::MacroDefinition(..)
                         | RibKind::InlineAsmSym
@@ -1238,7 +1240,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                 for rib in ribs {
                     let has_generic_params = match rib.kind {
                         RibKind::Normal
-                        | RibKind::ClosureOrAsync
+                        | RibKind::FnOrCoroutine
                         | RibKind::Module(..)
                         | RibKind::MacroDefinition(..)
                         | RibKind::InlineAsmSym
@@ -1440,7 +1442,9 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                     finalize,
                     ignore_binding,
                 )
-            } else if let Some(ribs) = ribs && let Some(TypeNS | ValueNS) = opt_ns {
+            } else if let Some(ribs) = ribs
+                && let Some(TypeNS | ValueNS) = opt_ns
+            {
                 match self.resolve_ident_in_lexical_scope(
                     ident,
                     ns,

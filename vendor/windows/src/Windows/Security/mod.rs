@@ -14,5 +14,3 @@ pub mod EnterpriseData;
 pub mod ExchangeActiveSyncProvisioning;
 #[cfg(feature = "Security_Isolation")]
 pub mod Isolation;
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

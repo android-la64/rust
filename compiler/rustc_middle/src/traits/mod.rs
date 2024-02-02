@@ -301,13 +301,18 @@ pub enum ObligationCauseCode<'tcx> {
     InlineAsmSized,
     /// Captured closure type must be `Sized`.
     SizedClosureCapture(LocalDefId),
-    /// Types live across generator yields must be `Sized`.
-    SizedGeneratorInterior(LocalDefId),
+    /// Types live across coroutine yields must be `Sized`.
+    SizedCoroutineInterior(LocalDefId),
     /// `[expr; N]` requires `type_of(expr): Copy`.
     RepeatElementCopy {
-        /// If element is a `const fn` we display a help message suggesting to move the
-        /// function call to a new `const` item while saying that `T` doesn't implement `Copy`.
-        is_const_fn: bool,
+        /// If element is a `const fn` or const ctor we display a help message suggesting
+        /// to move it to a new `const` item while saying that `T` doesn't implement `Copy`.
+        is_constable: IsConstable,
+        elt_type: Ty<'tcx>,
+        elt_span: Span,
+        /// Span of the statement/item in which the repeat expression occurs. We can use this to
+        /// place a `const` declaration before it
+        elt_stmt_span: Span,
     },
 
     /// Types of fields (other than the last, except for packed structs) in a struct must be sized.
@@ -455,6 +460,21 @@ pub enum ObligationCauseCode<'tcx> {
     TypeAlias(InternedObligationCauseCode<'tcx>, Span, DefId),
 }
 
+/// Whether a value can be extracted into a const.
+/// Used for diagnostics around array repeat expressions.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, HashStable, TyEncodable, TyDecodable)]
+pub enum IsConstable {
+    No,
+    /// Call to a const fn
+    Fn,
+    /// Use of a const ctor
+    Ctor,
+}
+
+crate::TrivialTypeTraversalAndLiftImpls! {
+    IsConstable,
+}
+
 /// The 'location' at which we try to perform HIR-based wf checking.
 /// This information is used to obtain an `hir::Ty`, which
 /// we can walk in order to obtain precise spans for any
@@ -541,6 +561,7 @@ pub struct MatchExpressionArmCause<'tcx> {
     pub prior_arm_ty: Ty<'tcx>,
     pub prior_arm_span: Span,
     pub scrut_span: Span,
+    pub scrut_hir_id: hir::HirId,
     pub source: hir::MatchSource,
     pub prior_arms: Vec<Span>,
     pub opt_suggest_box_span: Option<Span>,

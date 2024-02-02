@@ -14,14 +14,11 @@
 //! At present, however, we do run collection across all items in the
 //! crate as a kind of pass. This should eventually be factored away.
 
-use crate::astconv::AstConv;
-use crate::check::intrinsic::intrinsic_operation_unsafety;
-use crate::errors;
-use hir::def::DefKind;
 use rustc_data_structures::captures::Captures;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_errors::{Applicability, DiagnosticBuilder, ErrorGuaranteed, StashKey};
 use rustc_hir as hir;
+use rustc_hir::def::DefKind;
 use rustc_hir::def_id::{DefId, LocalDefId, LocalModDefId};
 use rustc_hir::intravisit::{self, Visitor};
 use rustc_hir::{GenericParamKind, Node};
@@ -39,6 +36,11 @@ use rustc_trait_selection::traits::error_reporting::suggestions::NextTypeParamNa
 use rustc_trait_selection::traits::ObligationCtxt;
 use std::iter;
 use std::ops::Bound;
+
+use crate::astconv::AstConv;
+use crate::check::intrinsic::intrinsic_operation_unsafety;
+use crate::errors;
+pub use type_of::test_opaque_hidden_types;
 
 mod generics_of;
 mod item_bounds;
@@ -76,7 +78,7 @@ pub fn provide(providers: &mut Providers) {
         fn_sig,
         impl_trait_ref,
         impl_polarity,
-        generator_kind,
+        coroutine_kind,
         collect_mod_item_types,
         is_type_alias_impl_trait,
         ..*providers
@@ -212,7 +214,9 @@ pub(crate) fn placeholder_type_error_diag<'tcx>(
         let mut is_fn = false;
         let mut is_const_or_static = false;
 
-        if let Some(hir_ty) = hir_ty && let hir::TyKind::BareFn(_) = hir_ty.kind {
+        if let Some(hir_ty) = hir_ty
+            && let hir::TyKind::BareFn(_) = hir_ty.kind
+        {
             is_fn = true;
 
             // Check if parent is const or static
@@ -224,10 +228,8 @@ pub(crate) fn placeholder_type_error_diag<'tcx>(
                 Node::Item(&hir::Item {
                     kind: hir::ItemKind::Const(..) | hir::ItemKind::Static(..),
                     ..
-                }) | Node::TraitItem(&hir::TraitItem {
-                    kind: hir::TraitItemKind::Const(..),
-                    ..
-                }) | Node::ImplItem(&hir::ImplItem { kind: hir::ImplItemKind::Const(..), .. })
+                }) | Node::TraitItem(&hir::TraitItem { kind: hir::TraitItemKind::Const(..), .. })
+                    | Node::ImplItem(&hir::ImplItem { kind: hir::ImplItemKind::Const(..), .. })
             );
         }
 
@@ -1004,10 +1006,7 @@ fn trait_def(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::TraitDef {
                 && let Some(lit) = meta.name_value_literal()
             {
                 if seen_attr {
-                    tcx.sess.span_err(
-                        meta.span,
-                        "duplicated `implement_via_object` meta item",
-                    );
+                    tcx.sess.span_err(meta.span, "duplicated `implement_via_object` meta item");
                 }
                 seen_attr = true;
 
@@ -1021,7 +1020,10 @@ fn trait_def(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::TraitDef {
                     _ => {
                         tcx.sess.span_err(
                             meta.span,
-                            format!("unknown literal passed to `implement_via_object` attribute: {}", lit.symbol),
+                            format!(
+                                "unknown literal passed to `implement_via_object` attribute: {}",
+                                lit.symbol
+                            ),
                         );
                     }
                 }
@@ -1115,8 +1117,7 @@ fn fn_sig(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::EarlyBinder<ty::PolyFnSig<
 
         ImplItem(hir::ImplItem { kind: ImplItemKind::Fn(sig, _), generics, .. }) => {
             // Do not try to infer the return type for a impl method coming from a trait
-            if let Item(hir::Item { kind: ItemKind::Impl(i), .. }) =
-                tcx.hir().get_parent(hir_id)
+            if let Item(hir::Item { kind: ItemKind::Impl(i), .. }) = tcx.hir().get_parent(hir_id)
                 && i.of_trait.is_some()
             {
                 icx.astconv().ty_of_fn(
@@ -1343,7 +1344,13 @@ fn suggest_impl_trait<'tcx>(
         if ocx.select_where_possible().is_empty()
             && let item_ty = infcx.resolve_vars_if_possible(item_ty)
             && let Some(item_ty) = item_ty.make_suggestable(tcx, false)
-            && let Some(sugg) = formatter(tcx, infcx.resolve_vars_if_possible(args), trait_def_id, assoc_item_def_id, item_ty)
+            && let Some(sugg) = formatter(
+                tcx,
+                infcx.resolve_vars_if_possible(args),
+                trait_def_id,
+                assoc_item_def_id,
+                item_ty,
+            )
         {
             return Some(sugg);
         }
@@ -1543,12 +1550,12 @@ fn compute_sig_of_foreign_fn_decl<'tcx>(
     fty
 }
 
-fn generator_kind(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Option<hir::GeneratorKind> {
+fn coroutine_kind(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Option<hir::CoroutineKind> {
     match tcx.hir().get_by_def_id(def_id) {
         Node::Expr(&rustc_hir::Expr {
             kind: rustc_hir::ExprKind::Closure(&rustc_hir::Closure { body, .. }),
             ..
-        }) => tcx.hir().body(body).generator_kind(),
+        }) => tcx.hir().body(body).coroutine_kind(),
         _ => None,
     }
 }

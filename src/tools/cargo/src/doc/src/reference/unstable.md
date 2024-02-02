@@ -93,6 +93,8 @@ For the latest nightly, see the [nightly version] of this page.
     * [codegen-backend](#codegen-backend) --- Select the codegen backend used by rustc.
     * [per-package-target](#per-package-target) --- Sets the `--target` to use for each individual package.
     * [artifact dependencies](#artifact-dependencies) --- Allow build artifacts to be included into other build artifacts and build them for different targets.
+    * [Edition 2024](#edition-2024) — Adds support for the 2024 Edition.
+    * [Profile `trim-paths` option](#profile-trim-paths-option) --- Control the sanitization of file paths in build outputs.
 * Information and metadata
     * [Build-plan](#build-plan) --- Emits JSON information on which commands will be run.
     * [unit-graph](#unit-graph) --- Emits JSON for Cargo's internal graph structure.
@@ -1079,34 +1081,14 @@ you are ok with dev-deps being build for `cargo doc`.
 * RFC: [#3013](https://github.com/rust-lang/rfcs/pull/3013)
 * Tracking Issue: [#10554](https://github.com/rust-lang/cargo/issues/10554)
 
-`-Z check-cfg` command line enables compile time checking of name and values in `#[cfg]`, `cfg!`,
-`#[link]` and `#[cfg_attr]` with the `rustc` and `rustdoc` unstable `--check-cfg` command line.
+`-Z check-cfg` command line enables compile time checking of Cargo features as well as `rustc`
+well known names and values in `#[cfg]`, `cfg!`, `#[link]` and `#[cfg_attr]` with the `rustc`
+and `rustdoc` unstable `--check-cfg` command line.
 
-It's values are:
- - `features`: enables features checking via `--check-cfg=values(feature, ...)`.
-    Note than this command line options will probably become the default when stabilizing.
- - `names`: enables well known names checking via `--check-cfg=names()`.
- - `values`: enables well known values checking via `--check-cfg=values()`.
- - `output`: enable the use of `rustc-check-cfg` in build script.
-
-For instance:
+You can use the flag like this:
 
 ```
-cargo check -Z unstable-options -Z check-cfg=features
-cargo check -Z unstable-options -Z check-cfg=names
-cargo check -Z unstable-options -Z check-cfg=values
-cargo check -Z unstable-options -Z check-cfg=features,names,values
-```
-
-Or for `output`:
-
-```rust,no_run
-// build.rs
-println!("cargo:rustc-check-cfg=names(foo, bar)");
-```
-
-```
-cargo check -Z unstable-options -Z check-cfg=output
+cargo check -Z unstable-options -Z check-cfg
 ```
 
 ### `cargo:rustc-check-cfg=CHECK_CFG`
@@ -1115,11 +1097,22 @@ The `rustc-check-cfg` instruction tells Cargo to pass the given value to the
 `--check-cfg` flag to the compiler. This may be used for compile-time
 detection of unexpected conditional compilation name and/or values.
 
-This can only be used in combination with `-Zcheck-cfg=output` otherwise it is ignored
+This can only be used in combination with `-Zcheck-cfg` otherwise it is ignored
 with a warning.
 
-If you want to integrate with Cargo features, use `-Zcheck-cfg=features` instead of
+If you want to integrate with Cargo features, only use `-Zcheck-cfg` instead of
 trying to do it manually with this option.
+
+You can use the instruction like this:
+
+```rust,no_run
+// build.rs
+println!("cargo:rustc-check-cfg=cfg(foo, bar)");
+```
+
+```
+cargo check -Z unstable-options -Z check-cfg
+```
 
 ## codegen-backend
 
@@ -1229,9 +1222,6 @@ at the start of the infostring at the top of the file.
 
 Inferred / defaulted manifest fields:
 - `package.name = <slugified file stem>`
-- `package.version = "0.0.0"` to [call attention to this crate being used in unexpected places](https://matklad.github.io/2021/08/22/large-rust-workspaces.html#Smaller-Tips)
-- `package.publish = false` to avoid accidental publishes, particularly if we
-  later add support for including them in a workspace.
 - `package.edition = <current>` to avoid always having to add an embedded
   manifest at the cost of potentially breaking scripts on rust upgrades
   - Warn when `edition` is unspecified to raise awareness of this
@@ -1270,6 +1260,128 @@ Differences between `cargo run --manifest-path <path>` and `cargo <path>`
 - `cargo <path>` is at a verbosity level below the normal default.  Pass `-v` to get normal output.
 
 ### Documentation Updates
+
+## Edition 2024
+* Tracking Issue: (none created yet)
+* RFC: [rust-lang/rfcs#3501](https://github.com/rust-lang/rfcs/pull/3501)
+
+Support for the 2024 [edition] can be enabled by adding the `edition2024`
+unstable feature to the top of `Cargo.toml`:
+
+```toml
+cargo-features = ["edition2024"]
+
+[package]
+name = "my-package"
+version = "0.1.0"
+edition = "2024"
+```
+
+If you want to transition an existing project from a previous edition, then
+`cargo fix --edition` can be used on the nightly channel. After running `cargo
+fix`, you can switch the edition to 2024 as illustrated above.
+
+This feature is very unstable, and is only intended for early testing and
+experimentation. Future nightly releases may introduce changes for the 2024
+edition that may break your build.
+
+[edition]: ../../edition-guide/index.html
+
+## Profile `trim-paths` option
+
+* Tracking Issue: [rust-lang/cargo#12137](https://github.com/rust-lang/cargo/issues/12137)
+* Tracking Rustc Issue: [rust-lang/rust#111540](https://github.com/rust-lang/rust/issues/111540)
+
+This adds a new profile setting to control how paths are sanitized in the resulting binary.
+This can be enabled like so:
+
+```toml
+cargo-features = ["trim-paths"]
+
+[package]
+# ...
+
+[profile.release]
+trim-paths = ["diagnostics", "object"]
+```
+
+To set this in a profile in Cargo configuration,
+you need to use either `-Z trim-paths` or `[unstable]` table to enable it.
+For example,
+
+```toml
+# .cargo/config.toml
+[unstable]
+trim-paths = true
+
+[profile.release]
+trim-paths = ["diagnostics", "object"]
+```
+
+### Documentation updates
+
+#### trim-paths
+
+*as a new ["Profiles settings" entry](./profiles.html#profile-settings)*
+
+`trim-paths` is a profile setting which enables and controls the sanitization of file paths in build outputs.
+It takes the following values:
+
+- `"none"` and `false` --- disable path sanitization
+- `"macro"` --- sanitize paths in the expansion of `std::file!()` macro.
+    This is where paths in embedded panic messages come from
+- `"diagnostics"` --- sanitize paths in printed compiler diagnostics
+- `"object"` --- sanitize paths in compiled executables or libraries
+- `"all"` and `true` --- sanitize paths in all possible locations
+
+It also takes an array with the combinations of `"macro"`, `"diagnostics"`, and `"object"`.
+
+It is defaulted to `none` for the `dev` profile, and `object` for the `release` profile.
+You can manually override it by specifying this option in `Cargo.toml`:
+
+```toml
+[profile.dev]
+trim-paths = "all"
+
+[profile.release]
+trim-paths = ["object", "diagnostics"]
+```
+
+The default `release` profile setting (`object`) sanitizes only the paths in emitted executable or library files.
+It always affects paths from macros such as panic messages, and in debug information only if they will be embedded together with the binary
+(the default on platforms with ELF binaries, such as Linux and windows-gnu),
+but will not touch them if they are in separate files (the default on Windows MSVC and macOS).
+But the paths to these separate files are sanitized.
+
+If `trim-paths` is not `none` or `false`, then the following paths are sanitized if they appear in a selected scope:
+
+1. Path to the source files of the standard and core library (sysroot) will begin with `/rustc/[rustc commit hash]`,
+   e.g. `/home/username/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs` -> 
+   `/rustc/fe72845f7bb6a77b9e671e6a4f32fe714962cec4/library/core/src/result.rs`
+2. Path to the current package will be stripped, relatively to the current workspace root, e.g. `/home/username/crate/src/lib.rs` -> `src/lib.rs`.
+3. Path to dependency packages will be replaced with `[package name]-[version]`. E.g. `/home/username/deps/foo/src/lib.rs` -> `foo-0.1.0/src/lib.rs`
+
+When a path to the source files of the standard and core library is *not* in scope for sanitization,
+the emitted path will depend on if `rust-src` component is present.
+If it is, then some paths will point to the copy of the source files on your file system;
+if it isn't, then they will show up as `/rustc/[rustc commit hash]/library/...`
+(just like when it is selected for sanitization).
+Paths to all other source files will not be affected.
+
+This will not affect any hard-coded paths in the source code, such as in strings.
+
+#### Environment variable
+
+*as a new entry of ["Environment variables Cargo sets for build scripts"](./environment-variables.md#environment-variables-cargo-sets-for-crates)*
+
+* `CARGO_TRIM_PATHS` --- The value of `trim-paths` profile option.
+    `false`, `"none"`, and empty arrays would be converted to `none`.
+    `true` and `"all"` become `all`.
+    Values in a non-empty array would be joined into a comma-separated list.
+    If the build script introduces absolute paths to built artifacts (such as by invoking a compiler),
+    the user may request them to be sanitized in different types of artifacts.
+    Common paths requiring sanitization include `OUT_DIR` and `CARGO_MANIFEST_DIR`,
+    plus any other introduced by the build script, such as include directories.
 
 # Stabilized and removed features
 

@@ -14,7 +14,7 @@ declare_clippy_lint! {
     /// comment.
     ///
     /// ### Example
-    /// ```rust
+    /// ```no_run
     /// //// My amazing data structure
     /// pub struct Foo {
     ///     // ...
@@ -22,13 +22,13 @@ declare_clippy_lint! {
     /// ```
     ///
     /// Use instead:
-    /// ```rust
+    /// ```no_run
     /// /// My amazing data structure
     /// pub struct Foo {
     ///     // ...
     /// }
     /// ```
-    #[clippy::version = "1.72.0"]
+    #[clippy::version = "1.73.0"]
     pub FOUR_FORWARD_SLASHES,
     suspicious,
     "comments with 4 forward slashes (`////`) likely intended to be doc comments (`///`)"

@@ -184,11 +184,12 @@ pub struct DirEntry(fs_imp::DirEntry);
 /// ```
 #[derive(Clone, Debug)]
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg_attr(not(test), rustc_diagnostic_item = "FsOpenOptions")]
 pub struct OpenOptions(fs_imp::OpenOptions);
 
 /// Representation of the various timestamps on a file.
 #[derive(Copy, Clone, Debug, Default)]
-#[unstable(feature = "file_set_times", issue = "98245")]
+#[stable(feature = "file_set_times", since = "1.75.0")]
 pub struct FileTimes(fs_imp::FileTimes);
 
 /// Representation of the various permissions on a file.
@@ -201,6 +202,7 @@ pub struct FileTimes(fs_imp::FileTimes);
 /// [`PermissionsExt`]: crate::os::unix::fs::PermissionsExt
 #[derive(Clone, PartialEq, Eq, Debug)]
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg_attr(not(test), rustc_diagnostic_item = "FsPermissions")]
 pub struct Permissions(fs_imp::FilePermissions);
 
 /// A structure representing a type of file with accessors for each file type.
@@ -674,8 +676,6 @@ impl File {
     /// # Examples
     ///
     /// ```no_run
-    /// #![feature(file_set_times)]
-    ///
     /// fn main() -> std::io::Result<()> {
     ///     use std::fs::{self, File, FileTimes};
     ///
@@ -688,7 +688,7 @@ impl File {
     ///     Ok(())
     /// }
     /// ```
-    #[unstable(feature = "file_set_times", issue = "98245")]
+    #[stable(feature = "file_set_times", since = "1.75.0")]
     #[doc(alias = "futimens")]
     #[doc(alias = "futimes")]
     #[doc(alias = "SetFileTime")]
@@ -699,7 +699,7 @@ impl File {
     /// Changes the modification time of the underlying file.
     ///
     /// This is an alias for `set_times(FileTimes::new().set_modified(time))`.
-    #[unstable(feature = "file_set_times", issue = "98245")]
+    #[stable(feature = "file_set_times", since = "1.75.0")]
     #[inline]
     pub fn set_modified(&self, time: SystemTime) -> io::Result<()> {
         self.set_times(FileTimes::new().set_modified(time))
@@ -1413,20 +1413,20 @@ impl FileTimes {
     /// Create a new `FileTimes` with no times set.
     ///
     /// Using the resulting `FileTimes` in [`File::set_times`] will not modify any timestamps.
-    #[unstable(feature = "file_set_times", issue = "98245")]
+    #[stable(feature = "file_set_times", since = "1.75.0")]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Set the last access time of a file.
-    #[unstable(feature = "file_set_times", issue = "98245")]
+    #[stable(feature = "file_set_times", since = "1.75.0")]
     pub fn set_accessed(mut self, t: SystemTime) -> Self {
         self.0.set_accessed(t.into_inner());
         self
     }
 
     /// Set the last modified time of a file.
-    #[unstable(feature = "file_set_times", issue = "98245")]
+    #[stable(feature = "file_set_times", since = "1.75.0")]
     pub fn set_modified(mut self, t: SystemTime) -> Self {
         self.0.set_modified(t.into_inner());
         self
@@ -1440,7 +1440,7 @@ impl AsInnerMut<fs_imp::FileTimes> for FileTimes {
 }
 
 // For implementing OS extension traits in `std::os`
-#[unstable(feature = "file_set_times", issue = "98245")]
+#[stable(feature = "file_set_times", since = "1.75.0")]
 impl Sealed for FileTimes {}
 
 impl Permissions {
@@ -2241,6 +2241,7 @@ pub fn canonicalize<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
 /// ```
 #[doc(alias = "mkdir")]
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg_attr(not(test), rustc_diagnostic_item = "fs_create_dir")]
 pub fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
     DirBuilder::new().create(path.as_ref())
 }

@@ -3,9 +3,41 @@ pub const ComponentTypeEnforcementClientRp: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 pub const ComponentTypeEnforcementClientSoH: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const extendedIsolationStateInfected: ExtendedIsolationState = ExtendedIsolationState(2i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const extendedIsolationStateNoData: ExtendedIsolationState = ExtendedIsolationState(0i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const extendedIsolationStateTransition: ExtendedIsolationState = ExtendedIsolationState(1i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const extendedIsolationStateUnknown: ExtendedIsolationState = ExtendedIsolationState(3i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const failureCategoryClientCommunication: FailureCategory = FailureCategory(3i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const failureCategoryClientComponent: FailureCategory = FailureCategory(2i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 pub const failureCategoryCount: u32 = 5u32;
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const failureCategoryNone: FailureCategory = FailureCategory(0i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const failureCategoryOther: FailureCategory = FailureCategory(1i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const failureCategoryServerCommunication: FailureCategory = FailureCategory(5i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const failureCategoryServerComponent: FailureCategory = FailureCategory(4i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const fixupStateCouldNotUpdate: FixupState = FixupState(2i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const fixupStateInProgress: FixupState = FixupState(1i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const fixupStateSuccess: FixupState = FixupState(0i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 pub const freshSoHRequest: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const isolationStateInProbation: IsolationState = IsolationState(2i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const isolationStateNotRestricted: IsolationState = IsolationState(1i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const isolationStateRestrictedAccess: IsolationState = IsolationState(3i32);
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 pub const maxConnectionCountPerEnforcer: u32 = 20u32;
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
@@ -25,21 +57,31 @@ pub const maxSystemHealthEntityCount: u32 = 20u32;
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 pub const minNetworkSoHSize: u32 = 12u32;
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const napNotifyTypeQuarState: NapNotifyType = NapNotifyType(2i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const napNotifyTypeServiceState: NapNotifyType = NapNotifyType(1i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const napNotifyTypeUnknown: NapNotifyType = NapNotifyType(0i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 pub const percentageNotSupported: u32 = 101u32;
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const remoteConfigTypeConfigBlob: RemoteConfigurationType = RemoteConfigurationType(2i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const remoteConfigTypeMachine: RemoteConfigurationType = RemoteConfigurationType(1i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 pub const shaFixup: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const tracingLevelAdvanced: NapTracingLevel = NapTracingLevel(2i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const tracingLevelBasic: NapTracingLevel = NapTracingLevel(1i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const tracingLevelDebug: NapTracingLevel = NapTracingLevel(3i32);
+#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
+pub const tracingLevelUndefined: NapTracingLevel = NapTracingLevel(0i32);
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ExtendedIsolationState(pub i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const extendedIsolationStateNoData: ExtendedIsolationState = ExtendedIsolationState(0i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const extendedIsolationStateTransition: ExtendedIsolationState = ExtendedIsolationState(1i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const extendedIsolationStateInfected: ExtendedIsolationState = ExtendedIsolationState(2i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const extendedIsolationStateUnknown: ExtendedIsolationState = ExtendedIsolationState(3i32);
 impl ::core::marker::Copy for ExtendedIsolationState {}
 impl ::core::clone::Clone for ExtendedIsolationState {
     fn clone(&self) -> Self {
@@ -51,8 +93,8 @@ impl ::core::default::Default for ExtendedIsolationState {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for ExtendedIsolationState {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for ExtendedIsolationState {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for ExtendedIsolationState {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -63,18 +105,6 @@ impl ::core::fmt::Debug for ExtendedIsolationState {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct FailureCategory(pub i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const failureCategoryNone: FailureCategory = FailureCategory(0i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const failureCategoryOther: FailureCategory = FailureCategory(1i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const failureCategoryClientComponent: FailureCategory = FailureCategory(2i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const failureCategoryClientCommunication: FailureCategory = FailureCategory(3i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const failureCategoryServerComponent: FailureCategory = FailureCategory(4i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const failureCategoryServerCommunication: FailureCategory = FailureCategory(5i32);
 impl ::core::marker::Copy for FailureCategory {}
 impl ::core::clone::Clone for FailureCategory {
     fn clone(&self) -> Self {
@@ -86,8 +116,8 @@ impl ::core::default::Default for FailureCategory {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for FailureCategory {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FailureCategory {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for FailureCategory {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -98,12 +128,6 @@ impl ::core::fmt::Debug for FailureCategory {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct FixupState(pub i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const fixupStateSuccess: FixupState = FixupState(0i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const fixupStateInProgress: FixupState = FixupState(1i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const fixupStateCouldNotUpdate: FixupState = FixupState(2i32);
 impl ::core::marker::Copy for FixupState {}
 impl ::core::clone::Clone for FixupState {
     fn clone(&self) -> Self {
@@ -115,8 +139,8 @@ impl ::core::default::Default for FixupState {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for FixupState {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FixupState {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for FixupState {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -127,12 +151,6 @@ impl ::core::fmt::Debug for FixupState {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct IsolationState(pub i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const isolationStateNotRestricted: IsolationState = IsolationState(1i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const isolationStateInProbation: IsolationState = IsolationState(2i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const isolationStateRestrictedAccess: IsolationState = IsolationState(3i32);
 impl ::core::marker::Copy for IsolationState {}
 impl ::core::clone::Clone for IsolationState {
     fn clone(&self) -> Self {
@@ -144,8 +162,8 @@ impl ::core::default::Default for IsolationState {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for IsolationState {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for IsolationState {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for IsolationState {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -156,12 +174,6 @@ impl ::core::fmt::Debug for IsolationState {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct NapNotifyType(pub i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const napNotifyTypeUnknown: NapNotifyType = NapNotifyType(0i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const napNotifyTypeServiceState: NapNotifyType = NapNotifyType(1i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const napNotifyTypeQuarState: NapNotifyType = NapNotifyType(2i32);
 impl ::core::marker::Copy for NapNotifyType {}
 impl ::core::clone::Clone for NapNotifyType {
     fn clone(&self) -> Self {
@@ -173,8 +185,8 @@ impl ::core::default::Default for NapNotifyType {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for NapNotifyType {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NapNotifyType {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for NapNotifyType {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -185,14 +197,6 @@ impl ::core::fmt::Debug for NapNotifyType {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct NapTracingLevel(pub i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const tracingLevelUndefined: NapTracingLevel = NapTracingLevel(0i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const tracingLevelBasic: NapTracingLevel = NapTracingLevel(1i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const tracingLevelAdvanced: NapTracingLevel = NapTracingLevel(2i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const tracingLevelDebug: NapTracingLevel = NapTracingLevel(3i32);
 impl ::core::marker::Copy for NapTracingLevel {}
 impl ::core::clone::Clone for NapTracingLevel {
     fn clone(&self) -> Self {
@@ -204,8 +208,8 @@ impl ::core::default::Default for NapTracingLevel {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for NapTracingLevel {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NapTracingLevel {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for NapTracingLevel {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -216,10 +220,6 @@ impl ::core::fmt::Debug for NapTracingLevel {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RemoteConfigurationType(pub i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const remoteConfigTypeMachine: RemoteConfigurationType = RemoteConfigurationType(1i32);
-#[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
-pub const remoteConfigTypeConfigBlob: RemoteConfigurationType = RemoteConfigurationType(2i32);
 impl ::core::marker::Copy for RemoteConfigurationType {}
 impl ::core::clone::Clone for RemoteConfigurationType {
     fn clone(&self) -> Self {
@@ -231,8 +231,8 @@ impl ::core::default::Default for RemoteConfigurationType {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for RemoteConfigurationType {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RemoteConfigurationType {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for RemoteConfigurationType {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -243,7 +243,7 @@ impl ::core::fmt::Debug for RemoteConfigurationType {
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CorrelationId {
-    pub connId: ::windows::core::GUID,
+    pub connId: ::windows_core::GUID,
     pub timeStamp: super::super::Foundation::FILETIME,
 }
 #[cfg(feature = "Win32_Foundation")]
@@ -261,8 +261,8 @@ impl ::core::fmt::Debug for CorrelationId {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for CorrelationId {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CorrelationId {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for CorrelationId {
@@ -282,7 +282,7 @@ impl ::core::default::Default for CorrelationId {
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 pub struct CountedString {
     pub length: u16,
-    pub string: ::windows::core::PWSTR,
+    pub string: ::windows_core::PWSTR,
 }
 impl ::core::marker::Copy for CountedString {}
 impl ::core::clone::Clone for CountedString {
@@ -295,8 +295,8 @@ impl ::core::fmt::Debug for CountedString {
         f.debug_struct("CountedString").field("length", &self.length).field("string", &self.string).finish()
     }
 }
-impl ::windows::core::TypeKind for CountedString {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CountedString {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CountedString {
     fn eq(&self, other: &Self) -> bool {
@@ -330,8 +330,8 @@ impl ::core::fmt::Debug for FailureCategoryMapping {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for FailureCategoryMapping {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FailureCategoryMapping {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for FailureCategoryMapping {
@@ -366,8 +366,8 @@ impl ::core::fmt::Debug for FixupInfo {
         f.debug_struct("FixupInfo").field("state", &self.state).field("percentage", &self.percentage).field("resultCodes", &self.resultCodes).field("fixupMsgId", &self.fixupMsgId).finish()
     }
 }
-impl ::windows::core::TypeKind for FixupInfo {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FixupInfo {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FixupInfo {
     fn eq(&self, other: &Self) -> bool {
@@ -396,8 +396,8 @@ impl ::core::fmt::Debug for Ipv4Address {
         f.debug_struct("Ipv4Address").field("addr", &self.addr).finish()
     }
 }
-impl ::windows::core::TypeKind for Ipv4Address {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for Ipv4Address {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for Ipv4Address {
     fn eq(&self, other: &Self) -> bool {
@@ -426,8 +426,8 @@ impl ::core::fmt::Debug for Ipv6Address {
         f.debug_struct("Ipv6Address").field("addr", &self.addr).finish()
     }
 }
-impl ::windows::core::TypeKind for Ipv6Address {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for Ipv6Address {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for Ipv6Address {
     fn eq(&self, other: &Self) -> bool {
@@ -463,8 +463,8 @@ impl ::core::fmt::Debug for IsolationInfo {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for IsolationInfo {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for IsolationInfo {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for IsolationInfo {
@@ -504,8 +504,8 @@ impl ::core::fmt::Debug for IsolationInfoEx {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for IsolationInfoEx {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for IsolationInfoEx {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for IsolationInfoEx {
@@ -530,8 +530,8 @@ pub struct NapComponentRegistrationInfo {
     pub description: CountedString,
     pub version: CountedString,
     pub vendorName: CountedString,
-    pub infoClsid: ::windows::core::GUID,
-    pub configClsid: ::windows::core::GUID,
+    pub infoClsid: ::windows_core::GUID,
+    pub configClsid: ::windows_core::GUID,
     pub registrationDate: super::super::Foundation::FILETIME,
     pub componentType: u32,
 }
@@ -550,8 +550,8 @@ impl ::core::fmt::Debug for NapComponentRegistrationInfo {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for NapComponentRegistrationInfo {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NapComponentRegistrationInfo {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for NapComponentRegistrationInfo {
@@ -584,8 +584,8 @@ impl ::core::fmt::Debug for NetworkSoH {
         f.debug_struct("NetworkSoH").field("size", &self.size).field("data", &self.data).finish()
     }
 }
-impl ::windows::core::TypeKind for NetworkSoH {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NetworkSoH {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NetworkSoH {
     fn eq(&self, other: &Self) -> bool {
@@ -615,8 +615,8 @@ impl ::core::fmt::Debug for PrivateData {
         f.debug_struct("PrivateData").field("size", &self.size).field("data", &self.data).finish()
     }
 }
-impl ::windows::core::TypeKind for PrivateData {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PrivateData {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PrivateData {
     fn eq(&self, other: &Self) -> bool {
@@ -633,7 +633,7 @@ impl ::core::default::Default for PrivateData {
 #[doc = "*Required features: `\"Win32_Security_NetworkAccessProtection\"`*"]
 pub struct ResultCodes {
     pub count: u16,
-    pub results: *mut ::windows::core::HRESULT,
+    pub results: *mut ::windows_core::HRESULT,
 }
 impl ::core::marker::Copy for ResultCodes {}
 impl ::core::clone::Clone for ResultCodes {
@@ -646,8 +646,8 @@ impl ::core::fmt::Debug for ResultCodes {
         f.debug_struct("ResultCodes").field("count", &self.count).field("results", &self.results).finish()
     }
 }
-impl ::windows::core::TypeKind for ResultCodes {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for ResultCodes {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for ResultCodes {
     fn eq(&self, other: &Self) -> bool {
@@ -677,8 +677,8 @@ impl ::core::fmt::Debug for SoH {
         f.debug_struct("SoH").field("count", &self.count).field("attributes", &self.attributes).finish()
     }
 }
-impl ::windows::core::TypeKind for SoH {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SoH {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SoH {
     fn eq(&self, other: &Self) -> bool {
@@ -709,8 +709,8 @@ impl ::core::fmt::Debug for SoHAttribute {
         f.debug_struct("SoHAttribute").field("type", &self.r#type).field("size", &self.size).field("value", &self.value).finish()
     }
 }
-impl ::windows::core::TypeKind for SoHAttribute {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SoHAttribute {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SoHAttribute {
     fn eq(&self, other: &Self) -> bool {
@@ -742,8 +742,8 @@ impl ::core::fmt::Debug for SystemHealthAgentState {
         f.debug_struct("SystemHealthAgentState").field("id", &self.id).field("shaResultCodes", &self.shaResultCodes).field("failureCategory", &self.failureCategory).field("fixupInfo", &self.fixupInfo).finish()
     }
 }
-impl ::windows::core::TypeKind for SystemHealthAgentState {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SystemHealthAgentState {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SystemHealthAgentState {
     fn eq(&self, other: &Self) -> bool {
@@ -756,5 +756,3 @@ impl ::core::default::Default for SystemHealthAgentState {
         unsafe { ::core::mem::zeroed() }
     }
 }
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

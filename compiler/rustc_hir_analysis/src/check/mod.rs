@@ -90,9 +90,8 @@ use rustc_middle::ty::error::{ExpectedFound, TypeError};
 use rustc_middle::ty::{self, Ty, TyCtxt};
 use rustc_middle::ty::{GenericArgs, GenericArgsRef};
 use rustc_session::parse::feature_err;
-use rustc_span::source_map::DUMMY_SP;
 use rustc_span::symbol::{kw, Ident};
-use rustc_span::{self, def_id::CRATE_DEF_ID, BytePos, Span, Symbol};
+use rustc_span::{self, def_id::CRATE_DEF_ID, BytePos, Span, Symbol, DUMMY_SP};
 use rustc_target::abi::VariantIdx;
 use rustc_target::spec::abi::Abi;
 use rustc_trait_selection::traits::error_reporting::suggestions::ReturnsVisitor;
@@ -114,7 +113,7 @@ pub fn provide(providers: &mut Providers) {
         region_scope_tree,
         collect_return_position_impl_trait_in_trait_tys,
         compare_impl_const: compare_impl_item::compare_impl_const_raw,
-        check_generator_obligations: check::check_generator_obligations,
+        check_coroutine_obligations: check::check_coroutine_obligations,
         ..*providers
     };
 }
@@ -588,7 +587,7 @@ pub fn check_function_signature<'tcx>(
         Ok(()) => {
             let errors = ocx.select_all_or_error();
             if !errors.is_empty() {
-                infcx.err_ctxt().report_fulfillment_errors(&errors);
+                infcx.err_ctxt().report_fulfillment_errors(errors);
                 return;
             }
         }

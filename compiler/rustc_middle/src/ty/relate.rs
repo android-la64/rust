@@ -8,6 +8,7 @@ use crate::ty::error::{ExpectedFound, TypeError};
 use crate::ty::{self, Expr, ImplSubject, Term, TermKind, Ty, TyCtxt, TypeFoldable};
 use crate::ty::{GenericArg, GenericArgKind, GenericArgsRef};
 use rustc_hir as hir;
+use rustc_hir::def::DefKind;
 use rustc_hir::def_id::DefId;
 use rustc_target::spec::abi;
 use std::iter;
@@ -134,7 +135,7 @@ pub fn relate_type_and_mut<'tcx, R: TypeRelation<'tcx>>(
 }
 
 #[inline]
-pub fn relate_args<'tcx, R: TypeRelation<'tcx>>(
+pub fn relate_args_invariantly<'tcx, R: TypeRelation<'tcx>>(
     relation: &mut R,
     a_arg: GenericArgsRef<'tcx>,
     b_arg: GenericArgsRef<'tcx>,
@@ -273,8 +274,21 @@ impl<'tcx> Relate<'tcx> for ty::AliasTy<'tcx> {
         if a.def_id != b.def_id {
             Err(TypeError::ProjectionMismatched(expected_found(relation, a.def_id, b.def_id)))
         } else {
-            let args = relation.relate(a.args, b.args)?;
-            Ok(relation.tcx().mk_alias_ty(a.def_id, args))
+            let args = match relation.tcx().def_kind(a.def_id) {
+                DefKind::OpaqueTy => relate_args_with_variances(
+                    relation,
+                    a.def_id,
+                    relation.tcx().variances_of(a.def_id),
+                    a.args,
+                    b.args,
+                    false, // do not fetch `type_of(a_def_id)`, as it will cause a cycle
+                )?,
+                DefKind::AssocTy | DefKind::AssocConst | DefKind::TyAlias => {
+                    relate_args_invariantly(relation, a.args, b.args)?
+                }
+                def => bug!("unknown alias DefKind: {def:?}"),
+            };
+            Ok(ty::AliasTy::new(relation.tcx(), a.def_id, args))
         }
     }
 }
@@ -315,7 +329,7 @@ impl<'tcx> Relate<'tcx> for ty::TraitRef<'tcx> {
         if a.def_id != b.def_id {
             Err(TypeError::Traits(expected_found(relation, a.def_id, b.def_id)))
         } else {
-            let args = relate_args(relation, a.args, b.args)?;
+            let args = relate_args_invariantly(relation, a.args, b.args)?;
             Ok(ty::TraitRef::new(relation.tcx(), a.def_id, args))
         }
     }
@@ -331,26 +345,26 @@ impl<'tcx> Relate<'tcx> for ty::ExistentialTraitRef<'tcx> {
         if a.def_id != b.def_id {
             Err(TypeError::Traits(expected_found(relation, a.def_id, b.def_id)))
         } else {
-            let args = relate_args(relation, a.args, b.args)?;
+            let args = relate_args_invariantly(relation, a.args, b.args)?;
             Ok(ty::ExistentialTraitRef { def_id: a.def_id, args })
         }
     }
 }
 
 #[derive(PartialEq, Copy, Debug, Clone, TypeFoldable, TypeVisitable)]
-struct GeneratorWitness<'tcx>(&'tcx ty::List<Ty<'tcx>>);
+struct CoroutineWitness<'tcx>(&'tcx ty::List<Ty<'tcx>>);
 
-impl<'tcx> Relate<'tcx> for GeneratorWitness<'tcx> {
+impl<'tcx> Relate<'tcx> for CoroutineWitness<'tcx> {
     fn relate<R: TypeRelation<'tcx>>(
         relation: &mut R,
-        a: GeneratorWitness<'tcx>,
-        b: GeneratorWitness<'tcx>,
-    ) -> RelateResult<'tcx, GeneratorWitness<'tcx>> {
+        a: CoroutineWitness<'tcx>,
+        b: CoroutineWitness<'tcx>,
+    ) -> RelateResult<'tcx, CoroutineWitness<'tcx>> {
         assert_eq!(a.0.len(), b.0.len());
         let tcx = relation.tcx();
         let types =
             tcx.mk_type_list_from_iter(iter::zip(a.0, b.0).map(|(a, b)| relation.relate(a, b)))?;
-        Ok(GeneratorWitness(types))
+        Ok(CoroutineWitness(types))
     }
 }
 
@@ -443,31 +457,31 @@ pub fn structurally_relate_tys<'tcx, R: TypeRelation<'tcx>>(
             Ok(Ty::new_dynamic(tcx, relation.relate(a_obj, b_obj)?, region_bound, a_repr))
         }
 
-        (&ty::Generator(a_id, a_args, movability), &ty::Generator(b_id, b_args, _))
+        (&ty::Coroutine(a_id, a_args, movability), &ty::Coroutine(b_id, b_args, _))
             if a_id == b_id =>
         {
-            // All Generator types with the same id represent
-            // the (anonymous) type of the same generator expression. So
+            // All Coroutine types with the same id represent
+            // the (anonymous) type of the same coroutine expression. So
             // all of their regions should be equated.
-            let args = relation.relate(a_args, b_args)?;
-            Ok(Ty::new_generator(tcx, a_id, args, movability))
+            let args = relate_args_invariantly(relation, a_args, b_args)?;
+            Ok(Ty::new_coroutine(tcx, a_id, args, movability))
         }
 
-        (&ty::GeneratorWitness(a_id, a_args), &ty::GeneratorWitness(b_id, b_args))
+        (&ty::CoroutineWitness(a_id, a_args), &ty::CoroutineWitness(b_id, b_args))
             if a_id == b_id =>
         {
-            // All GeneratorWitness types with the same id represent
-            // the (anonymous) type of the same generator expression. So
+            // All CoroutineWitness types with the same id represent
+            // the (anonymous) type of the same coroutine expression. So
             // all of their regions should be equated.
-            let args = relation.relate(a_args, b_args)?;
-            Ok(Ty::new_generator_witness(tcx, a_id, args))
+            let args = relate_args_invariantly(relation, a_args, b_args)?;
+            Ok(Ty::new_coroutine_witness(tcx, a_id, args))
         }
 
         (&ty::Closure(a_id, a_args), &ty::Closure(b_id, b_args)) if a_id == b_id => {
             // All Closure types with the same id represent
             // the (anonymous) type of the same closure expression. So
             // all of their regions should be equated.
-            let args = relation.relate(a_args, b_args)?;
+            let args = relate_args_invariantly(relation, a_args, b_args)?;
             Ok(Ty::new_closure(tcx, a_id, &args))
         }
 
@@ -534,24 +548,6 @@ pub fn structurally_relate_tys<'tcx, R: TypeRelation<'tcx>>(
         (&ty::FnPtr(a_fty), &ty::FnPtr(b_fty)) => {
             let fty = relation.relate(a_fty, b_fty)?;
             Ok(Ty::new_fn_ptr(tcx, fty))
-        }
-
-        // The args of opaque types may not all be invariant, so we have
-        // to treat them separately from other aliases.
-        (
-            &ty::Alias(ty::Opaque, ty::AliasTy { def_id: a_def_id, args: a_args, .. }),
-            &ty::Alias(ty::Opaque, ty::AliasTy { def_id: b_def_id, args: b_args, .. }),
-        ) if a_def_id == b_def_id => {
-            let opt_variances = tcx.variances_of(a_def_id);
-            let args = relate_args_with_variances(
-                relation,
-                a_def_id,
-                opt_variances,
-                a_args,
-                b_args,
-                false, // do not fetch `type_of(a_def_id)`, as it will cause a cycle
-            )?;
-            Ok(Ty::new_opaque(tcx, a_def_id, args))
         }
 
         // Alias tend to mostly already be handled downstream due to normalization.
@@ -709,19 +705,19 @@ impl<'tcx> Relate<'tcx> for ty::ClosureArgs<'tcx> {
         a: ty::ClosureArgs<'tcx>,
         b: ty::ClosureArgs<'tcx>,
     ) -> RelateResult<'tcx, ty::ClosureArgs<'tcx>> {
-        let args = relate_args(relation, a.args, b.args)?;
+        let args = relate_args_invariantly(relation, a.args, b.args)?;
         Ok(ty::ClosureArgs { args })
     }
 }
 
-impl<'tcx> Relate<'tcx> for ty::GeneratorArgs<'tcx> {
+impl<'tcx> Relate<'tcx> for ty::CoroutineArgs<'tcx> {
     fn relate<R: TypeRelation<'tcx>>(
         relation: &mut R,
-        a: ty::GeneratorArgs<'tcx>,
-        b: ty::GeneratorArgs<'tcx>,
-    ) -> RelateResult<'tcx, ty::GeneratorArgs<'tcx>> {
-        let args = relate_args(relation, a.args, b.args)?;
-        Ok(ty::GeneratorArgs { args })
+        a: ty::CoroutineArgs<'tcx>,
+        b: ty::CoroutineArgs<'tcx>,
+    ) -> RelateResult<'tcx, ty::CoroutineArgs<'tcx>> {
+        let args = relate_args_invariantly(relation, a.args, b.args)?;
+        Ok(ty::CoroutineArgs { args })
     }
 }
 
@@ -731,7 +727,7 @@ impl<'tcx> Relate<'tcx> for GenericArgsRef<'tcx> {
         a: GenericArgsRef<'tcx>,
         b: GenericArgsRef<'tcx>,
     ) -> RelateResult<'tcx, GenericArgsRef<'tcx>> {
-        relate_args(relation, a, b)
+        relate_args_invariantly(relation, a, b)
     }
 }
 
@@ -831,19 +827,6 @@ impl<'tcx> Relate<'tcx> for Term<'tcx> {
             (TermKind::Ty(a), TermKind::Ty(b)) => relation.relate(a, b)?.into(),
             (TermKind::Const(a), TermKind::Const(b)) => relation.relate(a, b)?.into(),
             _ => return Err(TypeError::Mismatch),
-        })
-    }
-}
-
-impl<'tcx> Relate<'tcx> for ty::ProjectionPredicate<'tcx> {
-    fn relate<R: TypeRelation<'tcx>>(
-        relation: &mut R,
-        a: ty::ProjectionPredicate<'tcx>,
-        b: ty::ProjectionPredicate<'tcx>,
-    ) -> RelateResult<'tcx, ty::ProjectionPredicate<'tcx>> {
-        Ok(ty::ProjectionPredicate {
-            projection_ty: relation.relate(a.projection_ty, b.projection_ty)?,
-            term: relation.relate(a.term, b.term)?,
         })
     }
 }

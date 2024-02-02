@@ -172,7 +172,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let ty = self.node_ty(closure_hir_id);
         let (closure_def_id, args) = match *ty.kind() {
             ty::Closure(def_id, args) => (def_id, UpvarArgs::Closure(args)),
-            ty::Generator(def_id, args, _) => (def_id, UpvarArgs::Generator(args)),
+            ty::Coroutine(def_id, args, _) => (def_id, UpvarArgs::Coroutine(args)),
             ty::Error(_) => {
                 // #51714: skip analysis when we have already encountered type errors
                 return;
@@ -366,7 +366,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// Note that we *always* infer a minimal kind, even if
     /// we don't always *use* that in the final result (i.e., sometimes
     /// we've taken the closure kind from the expectations instead, and
-    /// for generators we don't even implement the closure traits
+    /// for coroutines we don't even implement the closure traits
     /// really).
     ///
     /// If we inferred that the closure needs to be FnMut/FnOnce, last element of the returned tuple
@@ -424,7 +424,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 origin = updated.1;
 
                 let (place, capture_kind) = match capture_clause {
-                    hir::CaptureBy::Value => adjust_for_move_closure(place, capture_kind),
+                    hir::CaptureBy::Value { .. } => adjust_for_move_closure(place, capture_kind),
                     hir::CaptureBy::Ref => adjust_for_non_move_closure(place, capture_kind),
                 };
 
@@ -958,7 +958,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let ty = self.resolve_vars_if_possible(self.node_ty(var_hir_id));
 
         let ty = match closure_clause {
-            hir::CaptureBy::Value => ty, // For move closure the capture kind should be by value
+            hir::CaptureBy::Value { .. } => ty, // For move closure the capture kind should be by value
             hir::CaptureBy::Ref => {
                 // For non move closure the capture kind is the max capture kind of all captures
                 // according to the ordering ImmBorrow < UniqueImmBorrow < MutBorrow < ByValue
@@ -1073,7 +1073,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
             match closure_clause {
                 // Only migrate if closure is a move closure
-                hir::CaptureBy::Value => {
+                hir::CaptureBy::Value { .. } => {
                     let mut diagnostics_info = FxIndexSet::default();
                     let upvars =
                         self.tcx.upvars_mentioned(closure_def_id).expect("must be an upvar");
@@ -1479,10 +1479,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             // If the data will be moved out of this place, then the place will be truncated
             // at the first Deref in `adjust_upvar_borrow_kind_for_consume` and then moved into
             // the closure.
-            hir::CaptureBy::Value if !place.deref_tys().any(Ty::is_ref) => {
+            hir::CaptureBy::Value { .. } if !place.deref_tys().any(Ty::is_ref) => {
                 ty::UpvarCapture::ByValue
             }
-            hir::CaptureBy::Value | hir::CaptureBy::Ref => ty::UpvarCapture::ByRef(ty::ImmBorrow),
+            hir::CaptureBy::Value { .. } | hir::CaptureBy::Ref => {
+                ty::UpvarCapture::ByRef(ty::ImmBorrow)
+            }
         }
     }
 

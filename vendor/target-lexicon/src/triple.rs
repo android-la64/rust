@@ -121,7 +121,8 @@ impl Triple {
                 Architecture::Aarch64(_) => CallingConvention::AppleAarch64,
                 _ => CallingConvention::SystemV,
             },
-            OperatingSystem::Bitrig
+            OperatingSystem::Aix
+            | OperatingSystem::Bitrig
             | OperatingSystem::Cloudabi
             | OperatingSystem::Dragonfly
             | OperatingSystem::Freebsd
@@ -228,6 +229,9 @@ impl fmt::Display for Triple {
             // ad-hoc, and is just sufficient to handle the current set of recognized
             // triples.
             write!(f, "-{}", self.operating_system)?;
+        } else if self.architecture.is_clever() && self.operating_system == OperatingSystem::Unknown
+        {
+            write!(f, "-{}", self.vendor)?;
         } else {
             write!(f, "-{}-{}", self.vendor, self.operating_system)?;
         }
@@ -397,7 +401,7 @@ impl Triple {
 #[macro_export]
 macro_rules! triple {
     ($str:tt) => {
-        target_lexicon::Triple::from_str($str).expect("invalid triple literal")
+        <$crate::Triple as core::str::FromStr>::from_str($str).expect("invalid triple literal")
     };
 }
 

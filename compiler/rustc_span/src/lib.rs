@@ -4,28 +4,36 @@
 //!
 //! - the *span*, represented by [`SpanData`] and related types;
 //! - source code as represented by a [`SourceMap`]; and
-//! - interned strings, represented by [`Symbol`]s, with some common symbols available statically in the [`sym`] module.
+//! - interned strings, represented by [`Symbol`]s, with some common symbols available statically
+//!   in the [`sym`] module.
 //!
-//! Unlike most compilers, the span contains not only the position in the source code, but also various other metadata,
-//! such as the edition and macro hygiene. This metadata is stored in [`SyntaxContext`] and [`ExpnData`].
+//! Unlike most compilers, the span contains not only the position in the source code, but also
+//! various other metadata, such as the edition and macro hygiene. This metadata is stored in
+//! [`SyntaxContext`] and [`ExpnData`].
 //!
 //! ## Note
 //!
 //! This API is completely unstable and subject to change.
 
+// tidy-alphabetical-start
+#![allow(internal_features)]
+#![cfg_attr(not(bootstrap), doc(rust_logo))]
+#![cfg_attr(not(bootstrap), feature(rustdoc_internals))]
+#![deny(rustc::diagnostic_outside_of_impl)]
+#![deny(rustc::untranslatable_diagnostic)]
 #![doc(html_root_url = "https://doc.rust-lang.org/nightly/nightly-rustc/")]
 #![feature(array_windows)]
+#![feature(cfg_match)]
+#![feature(core_io_borrowed_buf)]
 #![feature(if_let_guard)]
-#![feature(negative_impls)]
-#![feature(min_specialization)]
-#![feature(rustc_attrs)]
 #![feature(let_chains)]
-#![feature(round_char_boundary)]
-#![feature(read_buf)]
+#![feature(min_specialization)]
+#![feature(negative_impls)]
 #![feature(new_uninit)]
-#![deny(rustc::untranslatable_diagnostic)]
-#![deny(rustc::diagnostic_outside_of_impl)]
-#![allow(internal_features)]
+#![feature(read_buf)]
+#![feature(round_char_boundary)]
+#![feature(rustc_attrs)]
+// tidy-alphabetical-end
 
 #[macro_use]
 extern crate rustc_macros;
@@ -112,7 +120,6 @@ impl SessionGlobals {
     }
 }
 
-#[inline]
 pub fn create_session_globals_then<R>(edition: Edition, f: impl FnOnce() -> R) -> R {
     assert!(
         !SESSION_GLOBALS.is_set(),
@@ -123,7 +130,6 @@ pub fn create_session_globals_then<R>(edition: Edition, f: impl FnOnce() -> R) -
     SESSION_GLOBALS.set(&session_globals, f)
 }
 
-#[inline]
 pub fn set_session_globals_then<R>(session_globals: &SessionGlobals, f: impl FnOnce() -> R) -> R {
     assert!(
         !SESSION_GLOBALS.is_set(),
@@ -133,7 +139,6 @@ pub fn set_session_globals_then<R>(session_globals: &SessionGlobals, f: impl FnO
     SESSION_GLOBALS.set(session_globals, f)
 }
 
-#[inline]
 pub fn create_default_session_if_not_set_then<R, F>(f: F) -> R
 where
     F: FnOnce(&SessionGlobals) -> R,
@@ -141,7 +146,6 @@ where
     create_session_if_not_set_then(edition::DEFAULT_EDITION, f)
 }
 
-#[inline]
 pub fn create_session_if_not_set_then<R, F>(edition: Edition, f: F) -> R
 where
     F: FnOnce(&SessionGlobals) -> R,
@@ -154,7 +158,6 @@ where
     }
 }
 
-#[inline]
 pub fn with_session_globals<R, F>(f: F) -> R
 where
     F: FnOnce(&SessionGlobals) -> R,
@@ -162,7 +165,6 @@ where
     SESSION_GLOBALS.with(f)
 }
 
-#[inline]
 pub fn create_default_session_globals_then<R>(f: impl FnOnce() -> R) -> R {
     create_session_globals_then(edition::DEFAULT_EDITION, f)
 }
@@ -174,8 +176,7 @@ scoped_tls::scoped_thread_local!(static SESSION_GLOBALS: SessionGlobals);
 
 // FIXME: We should use this enum or something like it to get rid of the
 // use of magic `/rust/1.x/...` paths across the board.
-#[derive(Debug, Eq, PartialEq, Clone, Ord, PartialOrd)]
-#[derive(Decodable)]
+#[derive(Debug, Eq, PartialEq, Clone, Ord, PartialOrd, Decodable)]
 pub enum RealFileName {
     LocalPath(PathBuf),
     /// For remapped paths (namely paths into libstd that have been mapped
@@ -212,8 +213,8 @@ impl<S: Encoder> Encodable<S> for RealFileName {
 
             RealFileName::Remapped { ref local_path, ref virtual_name } => encoder
                 .emit_enum_variant(1, |encoder| {
-                    // For privacy and build reproducibility, we must not embed host-dependant path in artifacts
-                    // if they have been remapped by --remap-path-prefix
+                    // For privacy and build reproducibility, we must not embed host-dependant path
+                    // in artifacts if they have been remapped by --remap-path-prefix
                     assert!(local_path.is_none());
                     local_path.encode(encoder);
                     virtual_name.encode(encoder);
@@ -280,8 +281,7 @@ impl RealFileName {
 }
 
 /// Differentiates between real files and common virtual files.
-#[derive(Debug, Eq, PartialEq, Clone, Ord, PartialOrd, Hash)]
-#[derive(Decodable, Encodable)]
+#[derive(Debug, Eq, PartialEq, Clone, Ord, PartialOrd, Hash, Decodable, Encodable)]
 pub enum FileName {
     Real(RealFileName),
     /// Call to `quote!`.
@@ -292,8 +292,6 @@ pub enum FileName {
     // FIXME(jseyfried)
     MacroExpansion(Hash64),
     ProcMacroSourceCode(Hash64),
-    /// Strings provided as `--cfg [cfgspec]` stored in a `crate_cfg`.
-    CfgSpec(Hash64),
     /// Strings provided as crate attributes in the CLI.
     CliCrateAttr(Hash64),
     /// Custom sources for explicit parser calls from plugins and drivers.
@@ -305,7 +303,6 @@ pub enum FileName {
 
 impl From<PathBuf> for FileName {
     fn from(p: PathBuf) -> Self {
-        assert!(!p.to_string_lossy().ends_with('>'));
         FileName::Real(RealFileName::LocalPath(p))
     }
 }
@@ -339,7 +336,6 @@ impl fmt::Display for FileNameDisplay<'_> {
             MacroExpansion(_) => write!(fmt, "<macro expansion>"),
             Anon(_) => write!(fmt, "<anon>"),
             ProcMacroSourceCode(_) => write!(fmt, "<proc-macro source code>"),
-            CfgSpec(_) => write!(fmt, "<cfgspec>"),
             CliCrateAttr(_) => write!(fmt, "<crate attribute>"),
             Custom(ref s) => write!(fmt, "<{s}>"),
             DocTest(ref path, _) => write!(fmt, "{}", path.display()),
@@ -365,7 +361,6 @@ impl FileName {
             Anon(_)
             | MacroExpansion(_)
             | ProcMacroSourceCode(_)
-            | CfgSpec(_)
             | CliCrateAttr(_)
             | Custom(_)
             | QuoteExpansion(_)
@@ -374,7 +369,7 @@ impl FileName {
         }
     }
 
-    pub fn prefer_remapped(&self) -> FileNameDisplay<'_> {
+    pub fn prefer_remapped_unconditionaly(&self) -> FileNameDisplay<'_> {
         FileNameDisplay { inner: self, display_pref: FileNameDisplayPreference::Remapped }
     }
 
@@ -955,7 +950,7 @@ impl Span {
     /// Produces a span with the same location as `self` and context produced by a macro with the
     /// given ID and transparency, assuming that macro was defined directly and not produced by
     /// some other macro (which is the case for built-in and procedural macros).
-    pub fn with_ctxt_from_mark(self, expn_id: ExpnId, transparency: Transparency) -> Span {
+    fn with_ctxt_from_mark(self, expn_id: ExpnId, transparency: Transparency) -> Span {
         self.with_ctxt(SyntaxContext::root().apply_mark(expn_id, transparency))
     }
 
@@ -1530,7 +1525,8 @@ impl SourceFile {
         })
     }
 
-    /// This converts the `lines` field to contain `SourceFileLines::Lines` if needed and freezes it.
+    /// This converts the `lines` field to contain `SourceFileLines::Lines` if needed and freezes
+    /// it.
     fn convert_diffs_to_lines_frozen(&self) {
         let mut guard = if let Some(guard) = self.lines.try_write() { guard } else { return };
 
@@ -2248,7 +2244,10 @@ where
 
 /// Useful type to use with `Result<>` indicate that an error has already
 /// been reported to the user, so no need to continue checking.
-#[derive(Clone, Copy, Debug, Encodable, Decodable, Hash, PartialEq, Eq, PartialOrd, Ord)]
+///
+/// The `()` field is necessary: it is non-`pub`, which means values of this
+/// type cannot be constructed outside of this crate.
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(HashStable_Generic)]
 pub struct ErrorGuaranteed(());
 
@@ -2258,5 +2257,23 @@ impl ErrorGuaranteed {
     #[deprecated = "`Session::delay_span_bug` should be preferred over this function"]
     pub fn unchecked_claim_error_was_emitted() -> Self {
         ErrorGuaranteed(())
+    }
+}
+
+impl<E: rustc_serialize::Encoder> Encodable<E> for ErrorGuaranteed {
+    #[inline]
+    fn encode(&self, _e: &mut E) {
+        panic!(
+            "should never serialize an `ErrorGuaranteed`, as we do not write metadata or \
+            incremental caches in case errors occurred"
+        )
+    }
+}
+impl<D: rustc_serialize::Decoder> Decodable<D> for ErrorGuaranteed {
+    #[inline]
+    fn decode(_d: &mut D) -> ErrorGuaranteed {
+        panic!(
+            "`ErrorGuaranteed` should never have been serialized to metadata or incremental caches"
+        )
     }
 }

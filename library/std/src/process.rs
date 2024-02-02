@@ -526,6 +526,7 @@ impl fmt::Debug for ChildStderr {
 /// list_dir.status().expect("process failed to execute");
 /// ```
 #[stable(feature = "process", since = "1.0.0")]
+#[cfg_attr(not(test), rustc_diagnostic_item = "Command")]
 pub struct Command {
     inner: imp::Command,
 }
@@ -607,7 +608,7 @@ impl Command {
     ///
     /// Note that the argument is not passed through a shell, but given
     /// literally to the program. This means that shell syntax like quotes,
-    /// escaped characters, word splitting, glob patterns, substitution, etc.
+    /// escaped characters, word splitting, glob patterns, variable substitution, etc.
     /// have no effect.
     ///
     /// # Examples
@@ -637,7 +638,7 @@ impl Command {
     ///
     /// Note that the arguments are not passed through a shell, but given
     /// literally to the program. This means that shell syntax like quotes,
-    /// escaped characters, word splitting, glob patterns, substitution, etc.
+    /// escaped characters, word splitting, glob patterns, variable substitution, etc.
     /// have no effect.
     ///
     /// # Examples
@@ -1593,7 +1594,7 @@ impl From<io::Stderr> for Stdio {
 pub struct ExitStatus(imp::ExitStatus);
 
 /// The default value is one which indicates successful completion.
-#[stable(feature = "process-exitcode-default", since = "1.73.0")]
+#[stable(feature = "process_exitstatus_default", since = "1.73.0")]
 impl Default for ExitStatus {
     fn default() -> Self {
         // Ideally this would be done by ExitCode::default().into() but that is complicated.
@@ -1959,6 +1960,14 @@ impl ExitCode {
     }
 }
 
+/// The default value is [`ExitCode::SUCCESS`]
+#[stable(feature = "process_exitcode_default", since = "1.75.0")]
+impl Default for ExitCode {
+    fn default() -> Self {
+        ExitCode::SUCCESS
+    }
+}
+
 #[stable(feature = "process_exitcode", since = "1.61.0")]
 impl From<u8> for ExitCode {
     /// Construct an `ExitCode` from an arbitrary u8 value.
@@ -2196,6 +2205,7 @@ impl Child {
 /// process::exit(0x0100);
 /// ```
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg_attr(not(test), rustc_diagnostic_item = "process_exit")]
 pub fn exit(code: i32) -> ! {
     crate::rt::cleanup();
     crate::sys::os::exit(code)

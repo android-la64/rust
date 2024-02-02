@@ -7,7 +7,7 @@ extern crate rustc_span;
 
 use rustc_interface::interface;
 use rustc_session::config::{Input, Options, OutFileName, OutputType, OutputTypes};
-use rustc_span::source_map::FileName;
+use rustc_span::FileName;
 
 use std::path::PathBuf;
 
@@ -57,10 +57,12 @@ fn compile(code: String, output: PathBuf, sysroot: PathBuf) {
         locale_resources: &[],
         lint_caps: Default::default(),
         parse_sess_created: None,
+        hash_untracked_state: None,
         register_lints: None,
         override_queries: None,
         make_codegen_backend: None,
         registry: rustc_driver::diagnostics_registry(),
+        using_internal_features: std::sync::Arc::default(),
         expanded_args: Default::default(),
     };
 

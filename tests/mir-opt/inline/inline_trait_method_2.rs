@@ -3,6 +3,9 @@
 
 // EMIT_MIR inline_trait_method_2.test2.Inline.after.mir
 fn test2(x: &dyn X) -> bool {
+    // CHECK-LABEL: fn test2(
+    // CHECK: (inlined test)
+    // CHECK-NOT: (inlined <dyn X as X>::y)
     test(x)
 }
 

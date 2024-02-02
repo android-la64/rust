@@ -20,7 +20,7 @@ pub use self::Variance::*;
 use crate::error::{OpaqueHiddenTypeMismatch, TypeMismatchReason};
 use crate::metadata::ModChild;
 use crate::middle::privacy::EffectiveVisibilities;
-use crate::mir::{Body, GeneratorLayout};
+use crate::mir::{Body, CoroutineLayout};
 use crate::query::Providers;
 use crate::traits::{self, Reveal};
 use crate::ty;
@@ -54,7 +54,7 @@ use rustc_span::symbol::{kw, sym, Ident, Symbol};
 use rustc_span::{ExpnId, ExpnKind, Span};
 use rustc_target::abi::{Align, FieldIdx, Integer, IntegerType, VariantIdx};
 pub use rustc_target::abi::{ReprFlags, ReprOptions};
-pub use rustc_type_ir::{DebugWithInfcx, InferCtxtLike, OptWithInfcx};
+pub use rustc_type_ir::{DebugWithInfcx, InferCtxtLike, WithInfcx};
 pub use vtable::*;
 
 use std::fmt::Debug;
@@ -97,17 +97,17 @@ pub use self::rvalue_scopes::RvalueScopes;
 pub use self::sty::BoundRegionKind::*;
 pub use self::sty::{
     AliasTy, Article, Binder, BoundRegion, BoundRegionKind, BoundTy, BoundTyKind, BoundVar,
-    BoundVariableKind, CanonicalPolyFnSig, ClosureArgs, ClosureArgsParts, ConstKind, ConstVid,
-    EarlyBoundRegion, EffectVid, ExistentialPredicate, ExistentialProjection, ExistentialTraitRef,
-    FnSig, FreeRegion, GenSig, GeneratorArgs, GeneratorArgsParts, InlineConstArgs,
+    BoundVariableKind, CanonicalPolyFnSig, ClauseKind, ClosureArgs, ClosureArgsParts, ConstKind,
+    ConstVid, CoroutineArgs, CoroutineArgsParts, EarlyBoundRegion, EffectVid, ExistentialPredicate,
+    ExistentialProjection, ExistentialTraitRef, FnSig, FreeRegion, GenSig, InlineConstArgs,
     InlineConstArgsParts, ParamConst, ParamTy, PolyExistentialPredicate, PolyExistentialProjection,
-    PolyExistentialTraitRef, PolyFnSig, PolyGenSig, PolyTraitRef, Region, RegionKind, RegionVid,
-    TraitRef, TyKind, TypeAndMut, UpvarArgs, VarianceDiagInfo,
+    PolyExistentialTraitRef, PolyFnSig, PolyGenSig, PolyTraitRef, PredicateKind, Region,
+    RegionKind, RegionVid, TraitRef, TyKind, TypeAndMut, UpvarArgs, VarianceDiagInfo,
 };
 pub use self::trait_def::TraitDef;
 pub use self::typeck_results::{
-    CanonicalUserType, CanonicalUserTypeAnnotation, CanonicalUserTypeAnnotations, TypeckResults,
-    UserType, UserTypeAnnotationIndex,
+    CanonicalUserType, CanonicalUserTypeAnnotation, CanonicalUserTypeAnnotations, IsIdentity,
+    TypeckResults, UserType, UserTypeAnnotationIndex,
 };
 
 pub mod _match;
@@ -233,6 +233,7 @@ impl MainDefinition {
 #[derive(Clone, Debug, TypeFoldable, TypeVisitable)]
 pub struct ImplHeader<'tcx> {
     pub impl_def_id: DefId,
+    pub impl_args: ty::GenericArgsRef<'tcx>,
     pub self_ty: Ty<'tcx>,
     pub trait_ref: Option<TraitRef<'tcx>>,
     pub predicates: Vec<Predicate<'tcx>>,
@@ -578,11 +579,6 @@ impl rustc_errors::IntoDiagnosticArg for Clause<'_> {
 pub struct Clause<'tcx>(Interned<'tcx, WithCachedTypeInfo<ty::Binder<'tcx, PredicateKind<'tcx>>>>);
 
 impl<'tcx> Clause<'tcx> {
-    pub fn from_projection_clause(tcx: TyCtxt<'tcx>, pred: PolyProjectionPredicate<'tcx>) -> Self {
-        let pred: Predicate<'tcx> = pred.to_predicate(tcx);
-        pred.expect_clause()
-    }
-
     pub fn as_predicate(self) -> Predicate<'tcx> {
         Predicate(self.0)
     }
@@ -627,98 +623,6 @@ impl<'tcx> Clause<'tcx> {
             Some(clause.rebind(o))
         } else {
             None
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, TyEncodable, TyDecodable)]
-#[derive(HashStable, TypeFoldable, TypeVisitable, Lift)]
-/// A clause is something that can appear in where bounds or be inferred
-/// by implied bounds.
-pub enum ClauseKind<'tcx> {
-    /// Corresponds to `where Foo: Bar<A, B, C>`. `Foo` here would be
-    /// the `Self` type of the trait reference and `A`, `B`, and `C`
-    /// would be the type parameters.
-    Trait(TraitPredicate<'tcx>),
-
-    /// `where 'a: 'b`
-    RegionOutlives(RegionOutlivesPredicate<'tcx>),
-
-    /// `where T: 'a`
-    TypeOutlives(TypeOutlivesPredicate<'tcx>),
-
-    /// `where <T as TraitRef>::Name == X`, approximately.
-    /// See the `ProjectionPredicate` struct for details.
-    Projection(ProjectionPredicate<'tcx>),
-
-    /// Ensures that a const generic argument to a parameter `const N: u8`
-    /// is of type `u8`.
-    ConstArgHasType(Const<'tcx>, Ty<'tcx>),
-
-    /// No syntax: `T` well-formed.
-    WellFormed(GenericArg<'tcx>),
-
-    /// Constant initializer must evaluate successfully.
-    ConstEvaluatable(ty::Const<'tcx>),
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, TyEncodable, TyDecodable)]
-#[derive(HashStable, TypeFoldable, TypeVisitable, Lift)]
-pub enum PredicateKind<'tcx> {
-    /// Prove a clause
-    Clause(ClauseKind<'tcx>),
-
-    /// Trait must be object-safe.
-    ObjectSafe(DefId),
-
-    /// No direct syntax. May be thought of as `where T: FnFoo<...>`
-    /// for some generic args `...` and `T` being a closure type.
-    /// Satisfied (or refuted) once we know the closure's kind.
-    ClosureKind(DefId, GenericArgsRef<'tcx>, ClosureKind),
-
-    /// `T1 <: T2`
-    ///
-    /// This obligation is created most often when we have two
-    /// unresolved type variables and hence don't have enough
-    /// information to process the subtyping obligation yet.
-    Subtype(SubtypePredicate<'tcx>),
-
-    /// `T1` coerced to `T2`
-    ///
-    /// Like a subtyping obligation, this is created most often
-    /// when we have two unresolved type variables and hence
-    /// don't have enough information to process the coercion
-    /// obligation yet. At the moment, we actually process coercions
-    /// very much like subtyping and don't handle the full coercion
-    /// logic.
-    Coerce(CoercePredicate<'tcx>),
-
-    /// Constants must be equal. The first component is the const that is expected.
-    ConstEquate(Const<'tcx>, Const<'tcx>),
-
-    /// A marker predicate that is always ambiguous.
-    /// Used for coherence to mark opaque types as possibly equal to each other but ambiguous.
-    Ambiguous,
-
-    /// Separate from `ClauseKind::Projection` which is used for normalization in new solver.
-    /// This predicate requires two terms to be equal to eachother.
-    ///
-    /// Only used for new solver
-    AliasRelate(Term<'tcx>, Term<'tcx>, AliasRelationDirection),
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, TyEncodable, TyDecodable)]
-#[derive(HashStable, Debug)]
-pub enum AliasRelationDirection {
-    Equate,
-    Subtype,
-}
-
-impl std::fmt::Display for AliasRelationDirection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AliasRelationDirection::Equate => write!(f, "=="),
-            AliasRelationDirection::Subtype => write!(f, "<:"),
         }
     }
 }
@@ -1028,7 +932,7 @@ impl<'tcx> Term<'tcx> {
                 _ => None,
             },
             TermKind::Const(ct) => match ct.kind() {
-                ConstKind::Unevaluated(uv) => Some(tcx.mk_alias_ty(uv.def, uv.args)),
+                ConstKind::Unevaluated(uv) => Some(AliasTy::new(tcx, uv.def, uv.args)),
                 _ => None,
             },
         }
@@ -1089,19 +993,19 @@ impl ParamTerm {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum TermVid<'tcx> {
+pub enum TermVid {
     Ty(ty::TyVid),
-    Const(ty::ConstVid<'tcx>),
+    Const(ty::ConstVid),
 }
 
-impl From<ty::TyVid> for TermVid<'_> {
+impl From<ty::TyVid> for TermVid {
     fn from(value: ty::TyVid) -> Self {
         TermVid::Ty(value)
     }
 }
 
-impl<'tcx> From<ty::ConstVid<'tcx>> for TermVid<'tcx> {
-    fn from(value: ty::ConstVid<'tcx>) -> Self {
+impl From<ty::ConstVid> for TermVid {
+    fn from(value: ty::ConstVid) -> Self {
         TermVid::Const(value)
     }
 }
@@ -1296,9 +1200,22 @@ impl<'tcx> ToPredicate<'tcx, PolyTraitPredicate<'tcx>> for Binder<'tcx, TraitRef
     }
 }
 
+impl<'tcx> ToPredicate<'tcx> for TraitPredicate<'tcx> {
+    fn to_predicate(self, tcx: TyCtxt<'tcx>) -> Predicate<'tcx> {
+        PredicateKind::Clause(ClauseKind::Trait(self)).to_predicate(tcx)
+    }
+}
+
 impl<'tcx> ToPredicate<'tcx> for PolyTraitPredicate<'tcx> {
     fn to_predicate(self, tcx: TyCtxt<'tcx>) -> Predicate<'tcx> {
         self.map_bound(|p| PredicateKind::Clause(ClauseKind::Trait(p))).to_predicate(tcx)
+    }
+}
+
+impl<'tcx> ToPredicate<'tcx, Clause<'tcx>> for TraitPredicate<'tcx> {
+    fn to_predicate(self, tcx: TyCtxt<'tcx>) -> Clause<'tcx> {
+        let p: Predicate<'tcx> = self.to_predicate(tcx);
+        p.expect_clause()
     }
 }
 
@@ -1340,9 +1257,10 @@ impl<'tcx> ToPredicate<'tcx, Clause<'tcx>> for ProjectionPredicate<'tcx> {
     }
 }
 
-impl<'tcx> ToPredicate<'tcx> for TraitPredicate<'tcx> {
-    fn to_predicate(self, tcx: TyCtxt<'tcx>) -> Predicate<'tcx> {
-        PredicateKind::Clause(ClauseKind::Trait(self)).to_predicate(tcx)
+impl<'tcx> ToPredicate<'tcx, Clause<'tcx>> for PolyProjectionPredicate<'tcx> {
+    fn to_predicate(self, tcx: TyCtxt<'tcx>) -> Clause<'tcx> {
+        let p: Predicate<'tcx> = self.to_predicate(tcx);
+        p.expect_clause()
     }
 }
 
@@ -1609,7 +1527,7 @@ pub struct BoundConst<'tcx> {
     pub ty: Ty<'tcx>,
 }
 
-pub type PlaceholderConst<'tcx> = Placeholder<BoundVar>;
+pub type PlaceholderConst = Placeholder<BoundVar>;
 
 /// When type checking, we use the `ParamEnv` to track
 /// details about the set of where-clauses that are in scope at this
@@ -1743,30 +1661,9 @@ impl<'tcx> ParamEnv<'tcx> {
         Self::new(List::empty(), self.reveal())
     }
 
-    /// Creates a suitable environment in which to perform trait
-    /// queries on the given value. When type-checking, this is simply
-    /// the pair of the environment plus value. But when reveal is set to
-    /// All, then if `value` does not reference any type parameters, we will
-    /// pair it with the empty environment. This improves caching and is generally
-    /// invisible.
-    ///
-    /// N.B., we preserve the environment when type-checking because it
-    /// is possible for the user to have wacky where-clauses like
-    /// `where Box<u32>: Copy`, which are clearly never
-    /// satisfiable. We generally want to behave as if they were true,
-    /// although the surrounding function is never reachable.
+    /// Creates a pair of param-env and value for use in queries.
     pub fn and<T: TypeVisitable<TyCtxt<'tcx>>>(self, value: T) -> ParamEnvAnd<'tcx, T> {
-        match self.reveal() {
-            Reveal::UserFacing => ParamEnvAnd { param_env: self, value },
-
-            Reveal::All => {
-                if value.is_global() {
-                    ParamEnvAnd { param_env: self.without_caller_bounds(), value }
-                } else {
-                    ParamEnvAnd { param_env: self, value }
-                }
-            }
-        }
+        ParamEnvAnd { param_env: self, value }
     }
 }
 
@@ -2114,7 +2011,7 @@ impl<'tcx> TyCtxt<'tcx> {
 
         // Generate a deterministically-derived seed from the item's path hash
         // to allow for cross-crate compilation to actually work
-        let mut field_shuffle_seed = self.def_path_hash(did).0.to_smaller_hash();
+        let mut field_shuffle_seed = self.def_path_hash(did).0.to_smaller_hash().as_u64();
 
         // If the user defined a custom seed for layout randomization, xor the item's
         // path hash with the user defined seed, this will allowing determinism while
@@ -2433,10 +2330,10 @@ impl<'tcx> TyCtxt<'tcx> {
         self.def_kind(trait_def_id) == DefKind::TraitAlias
     }
 
-    /// Returns layout of a generator. Layout might be unavailable if the
-    /// generator is tainted by errors.
-    pub fn generator_layout(self, def_id: DefId) -> Option<&'tcx GeneratorLayout<'tcx>> {
-        self.optimized_mir(def_id).generator_layout()
+    /// Returns layout of a coroutine. Layout might be unavailable if the
+    /// coroutine is tainted by errors.
+    pub fn coroutine_layout(self, def_id: DefId) -> Option<&'tcx CoroutineLayout<'tcx>> {
+        self.optimized_mir(def_id).coroutine_layout()
     }
 
     /// Given the `DefId` of an impl, returns the `DefId` of the trait it implements.

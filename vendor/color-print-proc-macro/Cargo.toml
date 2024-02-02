@@ -12,12 +12,12 @@
 [package]
 edition = "2018"
 name = "color-print-proc-macro"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["Johann David <johann.david.dev@protonmail.com>"]
 description = "Implementation for the package color-print"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
-repository = "https://gitlab.com/yolenoyer/color-print"
+repository = "https://gitlab.com/dajoha/color-print"
 
 [lib]
 proc-macro = true

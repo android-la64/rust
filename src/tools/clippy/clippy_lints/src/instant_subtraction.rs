@@ -1,5 +1,5 @@
+use clippy_config::msrvs::{self, Msrv};
 use clippy_utils::diagnostics::{self, span_lint_and_sugg};
-use clippy_utils::msrvs::{self, Msrv};
 use clippy_utils::source::snippet_with_context;
 use clippy_utils::sugg::Sugg;
 use clippy_utils::ty;
@@ -21,13 +21,13 @@ declare_clippy_lint! {
     /// `prev_instant.elapsed()` also more clearly signals intention.
     ///
     /// ### Example
-    /// ```rust
+    /// ```no_run
     /// use std::time::Instant;
     /// let prev_instant = Instant::now();
     /// let duration = Instant::now() - prev_instant;
     /// ```
     /// Use instead:
-    /// ```rust
+    /// ```no_run
     /// use std::time::Instant;
     /// let prev_instant = Instant::now();
     /// let duration = prev_instant.elapsed();
@@ -47,13 +47,13 @@ declare_clippy_lint! {
     /// unintentional panics.
     ///
     /// ### Example
-    /// ```rust
+    /// ```no_run
     /// # use std::time::{Instant, Duration};
     /// let time_passed = Instant::now() - Duration::from_secs(5);
     /// ```
     ///
     /// Use instead:
-    /// ```rust
+    /// ```no_run
     /// # use std::time::{Instant, Duration};
     /// let time_passed = Instant::now().checked_sub(Duration::from_secs(5));
     /// ```
@@ -130,11 +130,7 @@ fn is_instant_now_call(cx: &LateContext<'_>, expr_block: &'_ Expr<'_>) -> bool {
 
 fn is_an_instant(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
     let expr_ty = cx.typeck_results().expr_ty(expr);
-
-    match expr_ty.kind() {
-        rustc_middle::ty::Adt(def, _) => clippy_utils::match_def_path(cx, def.did(), &clippy_utils::paths::INSTANT),
-        _ => false,
-    }
+    ty::is_type_diagnostic_item(cx, expr_ty, sym::Instant)
 }
 
 fn is_a_duration(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {

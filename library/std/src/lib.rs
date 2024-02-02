@@ -227,6 +227,7 @@
     test(no_crate_inject, attr(deny(warnings))),
     test(attr(allow(dead_code, deprecated, unused_variables, unused_mut)))
 )]
+#![cfg_attr(not(bootstrap), doc(rust_logo))]
 #![doc(cfg_hide(
     not(test),
     not(any(test, bootstrap)),
@@ -259,7 +260,7 @@
     all(target_vendor = "fortanix", target_env = "sgx"),
     feature(slice_index_methods, coerce_unsized, sgx_platform)
 )]
-#![cfg_attr(windows, feature(round_char_boundary))]
+#![cfg_attr(any(windows, target_os = "uefi"), feature(round_char_boundary))]
 #![cfg_attr(target_os = "xous", feature(slice_ptr_len))]
 //
 // Language features:
@@ -270,6 +271,7 @@
 #![feature(allow_internal_unstable)]
 #![feature(c_unwind)]
 #![feature(cfg_target_thread_local)]
+#![feature(cfi_encoding)]
 #![feature(concat_idents)]
 #![feature(const_mut_refs)]
 #![feature(const_trait_impl)]
@@ -292,6 +294,7 @@
 #![feature(needs_panic_runtime)]
 #![feature(negative_impls)]
 #![feature(never_type)]
+#![feature(no_sanitize)]
 #![feature(platform_intrinsics)]
 #![feature(prelude_import)]
 #![feature(rustc_attrs)]
@@ -307,6 +310,7 @@
 // tidy-alphabetical-start
 #![feature(char_internals)]
 #![feature(core_intrinsics)]
+#![feature(core_io_borrowed_buf)]
 #![feature(duration_constants)]
 #![feature(error_generic_member_access)]
 #![feature(error_in_core)]
@@ -328,7 +332,6 @@
 #![feature(panic_can_unwind)]
 #![feature(panic_info_message)]
 #![feature(panic_internals)]
-#![feature(pointer_byte_offsets)]
 #![feature(pointer_is_aligned)]
 #![feature(portable_simd)]
 #![feature(prelude_2024)]

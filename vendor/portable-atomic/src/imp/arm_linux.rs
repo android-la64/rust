@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // 64-bit atomic implementation using kuser_cmpxchg64 on pre-v6 ARM Linux/Android.
 //
 // Refs:
@@ -14,26 +16,9 @@
 #[path = "fallback/outline_atomics.rs"]
 mod fallback;
 
-#[cfg(not(portable_atomic_no_asm))]
-use core::arch::asm;
-use core::{cell::UnsafeCell, mem, sync::atomic::Ordering};
+use core::{arch::asm, cell::UnsafeCell, mem, sync::atomic::Ordering};
 
-/// A 64-bit value represented as a pair of 32-bit values.
-///
-/// This type is `#[repr(C)]`, both fields have the same in-memory representation
-/// and are plain old datatypes, so access to the fields is always safe.
-#[derive(Clone, Copy)]
-#[repr(C)]
-union U64 {
-    whole: u64,
-    pair: Pair,
-}
-#[derive(Clone, Copy)]
-#[repr(C)]
-struct Pair {
-    lo: u32,
-    hi: u32,
-}
+use crate::utils::{Pair, U64};
 
 // https://www.kernel.org/doc/Documentation/arm/kernel_user_helpers.txt
 const KUSER_HELPER_VERSION: usize = 0xFFFF0FFC;
@@ -48,8 +33,8 @@ fn __kuser_helper_version() -> i32 {
     if v != 0 {
         return v;
     }
-    // SAFETY: core assumes that at least __kuser_cmpxchg (__kuser_helper_version >= 2) is available
-    // on this platform. __kuser_helper_version is always available on such a platform.
+    // SAFETY: core assumes that at least __kuser_memory_barrier (__kuser_helper_version >= 3) is
+    // available on this platform. __kuser_helper_version is always available on such a platform.
     v = unsafe { (KUSER_HELPER_VERSION as *const i32).read() };
     CACHE.store(v, Ordering::Relaxed);
     v
@@ -79,16 +64,16 @@ unsafe fn __kuser_cmpxchg64(old_val: *const u64, new_val: *const u64, ptr: *mut 
 unsafe fn byte_wise_atomic_load(src: *const u64) -> u64 {
     // SAFETY: the caller must uphold the safety contract.
     unsafe {
-        let (prev_lo, prev_hi);
+        let (out_lo, out_hi);
         asm!(
-            "ldr {prev_lo}, [{src}]",
-            "ldr {prev_hi}, [{src}, #4]",
+            "ldr {out_lo}, [{src}]",
+            "ldr {out_hi}, [{src}, #4]",
             src = in(reg) src,
-            prev_lo = out(reg) prev_lo,
-            prev_hi = out(reg) prev_hi,
+            out_lo = out(reg) out_lo,
+            out_hi = out(reg) out_hi,
             options(pure, nostack, preserves_flags, readonly),
         );
-        U64 { pair: Pair { lo: prev_lo, hi: prev_hi } }.whole
+        U64 { pair: Pair { lo: out_lo, hi: out_hi } }.whole
     }
 }
 
@@ -109,10 +94,10 @@ where
             // so we must use inline assembly to implement byte_wise_atomic_load.
             // (i.e., byte-wise atomic based on the standard library's atomic types
             // cannot be used here).
-            let old = byte_wise_atomic_load(dst);
-            let next = f(old);
-            if __kuser_cmpxchg64(&old, &next, dst) {
-                return old;
+            let prev = byte_wise_atomic_load(dst);
+            let next = f(prev);
+            if __kuser_cmpxchg64(&prev, &next, dst) {
+                return prev;
             }
         }
     }
@@ -169,8 +154,10 @@ atomic_with_ifunc! {
 atomic_with_ifunc! {
     unsafe fn atomic_compare_exchange(dst: *mut u64, old: u64, new: u64) -> (u64, bool) {
         // SAFETY: the caller must uphold the safety contract.
-        let res = unsafe { atomic_update_kuser_cmpxchg64(dst, |v| if v == old { new } else { v }) };
-        (res, res == old)
+        let prev = unsafe {
+            atomic_update_kuser_cmpxchg64(dst, |v| if v == old { new } else { v })
+        };
+        (prev, prev == old)
     }
     fallback = atomic_compare_exchange_seqcst
 }
@@ -343,15 +330,15 @@ macro_rules! atomic64 {
                 // SAFETY: any data races are prevented by the kernel user helper or the lock
                 // and the raw pointer passed in is valid because we got it from a reference.
                 unsafe {
-                    let (res, ok) = atomic_compare_exchange(
+                    let (prev, ok) = atomic_compare_exchange(
                         self.v.get().cast::<u64>(),
                         current as u64,
                         new as u64,
                     );
                     if ok {
-                        Ok(res as $int_type)
+                        Ok(prev as $int_type)
                     } else {
-                        Err(res as $int_type)
+                        Err(prev as $int_type)
                     }
                 }
             }

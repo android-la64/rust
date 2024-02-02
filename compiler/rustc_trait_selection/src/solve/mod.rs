@@ -32,18 +32,13 @@ mod assembly;
 mod canonicalize;
 mod eval_ctxt;
 mod fulfill;
-mod inherent_projection;
 pub mod inspect;
 mod normalize;
-mod opaques;
 mod project_goals;
 mod search_graph;
 mod trait_goals;
-mod weak_types;
 
-pub use eval_ctxt::{
-    EvalCtxt, GenerateProofTree, InferCtxtEvalExt, InferCtxtSelectExt, UseGlobalCache,
-};
+pub use eval_ctxt::{EvalCtxt, GenerateProofTree, InferCtxtEvalExt, InferCtxtSelectExt};
 pub use fulfill::FulfillmentCtxt;
 pub(crate) use normalize::{deeply_normalize, deeply_normalize_with_skipped_universes};
 

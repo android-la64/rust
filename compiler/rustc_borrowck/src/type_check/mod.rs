@@ -14,6 +14,7 @@ use rustc_hir as hir;
 use rustc_hir::def::DefKind;
 use rustc_hir::def_id::LocalDefId;
 use rustc_hir::lang_items::LangItem;
+use rustc_index::bit_set::SparseBitMatrix;
 use rustc_index::{IndexSlice, IndexVec};
 use rustc_infer::infer::canonical::QueryRegionConstraints;
 use rustc_infer::infer::outlives::env::RegionBoundPairs;
@@ -50,6 +51,8 @@ use rustc_mir_dataflow::impls::MaybeInitializedPlaces;
 use rustc_mir_dataflow::move_paths::MoveData;
 use rustc_mir_dataflow::ResultsCursor;
 
+use crate::dataflow::BorrowIndex;
+use crate::region_infer::values::PointIndex;
 use crate::session_diagnostics::{MoveUnsized, SimdShuffleLastConst};
 use crate::{
     borrow_set::BorrowSet,
@@ -163,6 +166,9 @@ pub(crate) fn type_check<'mir, 'tcx>(
 
     debug!(?normalized_inputs_and_output);
 
+    // When using `-Zpolonius=next`, liveness will record the set of live loans per point.
+    let mut live_loans = SparseBitMatrix::new(borrow_set.len());
+
     let mut borrowck_context = BorrowCheckContext {
         universal_regions,
         location_table,
@@ -170,6 +176,7 @@ pub(crate) fn type_check<'mir, 'tcx>(
         all_facts,
         constraints: &mut constraints,
         upvars,
+        live_loans: &mut live_loans,
     };
 
     let mut checker = TypeChecker::new(
@@ -181,11 +188,7 @@ pub(crate) fn type_check<'mir, 'tcx>(
         &mut borrowck_context,
     );
 
-    // FIXME(-Ztrait-solver=next): A bit dubious that we're only registering
-    // predefined opaques in the typeck root.
-    if infcx.next_trait_solver() && !infcx.tcx.is_typeck_child(body.source.def_id()) {
-        checker.register_predefined_opaques_in_new_solver();
-    }
+    checker.check_user_type_annotations();
 
     let mut verifier = TypeVerifier::new(&mut checker, promoted);
     verifier.visit_body(&body);
@@ -240,7 +243,7 @@ pub(crate) fn type_check<'mir, 'tcx>(
         })
         .collect();
 
-    MirTypeckResults { constraints, universal_region_relations, opaque_type_values }
+    MirTypeckResults { constraints, universal_region_relations, opaque_type_values, live_loans }
 }
 
 fn translate_outlives_facts(typeck: &mut TypeChecker<'_, '_>) {
@@ -664,8 +667,8 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
                         PlaceTy { ty: base_ty, variant_index: Some(index) }
                     }
                 }
-                // We do not need to handle generators here, because this runs
-                // before the generator transform stage.
+                // We do not need to handle coroutines here, because this runs
+                // before the coroutine transform stage.
                 _ => {
                     let ty = if let Some(name) = maybe_name {
                         span_mirbug_and_err!(
@@ -767,13 +770,13 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
         let (variant, args) = match base_ty {
             PlaceTy { ty, variant_index: Some(variant_index) } => match *ty.kind() {
                 ty::Adt(adt_def, args) => (adt_def.variant(variant_index), args),
-                ty::Generator(def_id, args, _) => {
-                    let mut variants = args.as_generator().state_tys(def_id, tcx);
+                ty::Coroutine(def_id, args, _) => {
+                    let mut variants = args.as_coroutine().state_tys(def_id, tcx);
                     let Some(mut variant) = variants.nth(variant_index.into()) else {
                         bug!(
-                            "variant_index of generator out of range: {:?}/{:?}",
+                            "variant_index of coroutine out of range: {:?}/{:?}",
                             variant_index,
-                            args.as_generator().state_tys(def_id, tcx).count()
+                            args.as_coroutine().state_tys(def_id, tcx).count()
                         );
                     };
                     return match variant.nth(field.index()) {
@@ -781,7 +784,7 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
                         None => Err(FieldAccessError::OutOfRange { field_count: variant.count() }),
                     };
                 }
-                _ => bug!("can't have downcast of non-adt non-generator type"),
+                _ => bug!("can't have downcast of non-adt non-coroutine type"),
             },
             PlaceTy { ty, variant_index: None } => match *ty.kind() {
                 ty::Adt(adt_def, args) if !adt_def.is_enum() => {
@@ -795,13 +798,13 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
                         }),
                     };
                 }
-                ty::Generator(_, args, _) => {
+                ty::Coroutine(_, args, _) => {
                     // Only prefix fields (upvars and current state) are
                     // accessible without a variant index.
-                    return match args.as_generator().prefix_tys().get(field.index()) {
+                    return match args.as_coroutine().prefix_tys().get(field.index()) {
                         Some(ty) => Ok(*ty),
                         None => Err(FieldAccessError::OutOfRange {
-                            field_count: args.as_generator().prefix_tys().len(),
+                            field_count: args.as_coroutine().prefix_tys().len(),
                         }),
                     };
                 }
@@ -855,12 +858,21 @@ struct BorrowCheckContext<'a, 'tcx> {
     borrow_set: &'a BorrowSet<'tcx>,
     pub(crate) constraints: &'a mut MirTypeckRegionConstraints<'tcx>,
     upvars: &'a [Upvar<'tcx>],
+
+    /// The set of loans that are live at a given point in the CFG, filled in by `liveness::trace`,
+    /// when using `-Zpolonius=next`.
+    pub(crate) live_loans: &'a mut SparseBitMatrix<PointIndex, BorrowIndex>,
 }
 
+/// Holder struct for passing results from MIR typeck to the rest of the non-lexical regions
+/// inference computation.
 pub(crate) struct MirTypeckResults<'tcx> {
     pub(crate) constraints: MirTypeckRegionConstraints<'tcx>,
     pub(crate) universal_region_relations: Frozen<UniversalRegionRelations<'tcx>>,
     pub(crate) opaque_type_values: FxIndexMap<OpaqueTypeKey<'tcx>, OpaqueHiddenType<'tcx>>,
+
+    /// The set of loans that are live at a given point in the CFG, when using `-Zpolonius=next`.
+    pub(crate) live_loans: SparseBitMatrix<PointIndex, BorrowIndex>,
 }
 
 /// A collection of region constraints that must be satisfied for the
@@ -1005,7 +1017,13 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             borrowck_context,
             reported_errors: Default::default(),
         };
-        checker.check_user_type_annotations();
+
+        // FIXME(-Ztrait-solver=next): A bit dubious that we're only registering
+        // predefined opaques in the typeck root.
+        if infcx.next_trait_solver() && !infcx.tcx.is_typeck_child(body.source.def_id()) {
+            checker.register_predefined_opaques_in_new_solver();
+        }
+
         checker
     }
 
@@ -1335,7 +1353,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             | TerminatorKind::UnwindResume
             | TerminatorKind::UnwindTerminate(_)
             | TerminatorKind::Return
-            | TerminatorKind::GeneratorDrop
+            | TerminatorKind::CoroutineDrop
             | TerminatorKind::Unreachable
             | TerminatorKind::Drop { .. }
             | TerminatorKind::FalseEdge { .. }
@@ -1452,7 +1470,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
 
                 let value_ty = value.ty(body, tcx);
                 match body.yield_ty() {
-                    None => span_mirbug!(self, term, "yield in non-generator"),
+                    None => span_mirbug!(self, term, "yield in non-coroutine"),
                     Some(ty) => {
                         if let Err(terr) = self.sub_types(
                             value_ty,
@@ -1624,7 +1642,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             }
             TerminatorKind::UnwindTerminate(_) => {
                 if !is_cleanup {
-                    span_mirbug!(self, block_data, "abort on non-cleanup block!")
+                    span_mirbug!(self, block_data, "terminate on non-cleanup block!")
                 }
             }
             TerminatorKind::Return => {
@@ -1632,9 +1650,9 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                     span_mirbug!(self, block_data, "return on cleanup block")
                 }
             }
-            TerminatorKind::GeneratorDrop { .. } => {
+            TerminatorKind::CoroutineDrop { .. } => {
                 if is_cleanup {
-                    span_mirbug!(self, block_data, "generator_drop in cleanup block")
+                    span_mirbug!(self, block_data, "coroutine_drop in cleanup block")
                 }
             }
             TerminatorKind::Yield { resume, drop, .. } => {
@@ -1781,14 +1799,14 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                     }),
                 }
             }
-            AggregateKind::Generator(_, args, _) => {
+            AggregateKind::Coroutine(_, args, _) => {
                 // It doesn't make sense to look at a field beyond the prefix;
                 // these require a variant index, and are not initialized in
                 // aggregate rvalues.
-                match args.as_generator().prefix_tys().get(field_index.as_usize()) {
+                match args.as_coroutine().prefix_tys().get(field_index.as_usize()) {
                     Some(ty) => Ok(*ty),
                     None => Err(FieldAccessError::OutOfRange {
-                        field_count: args.as_generator().prefix_tys().len(),
+                        field_count: args.as_coroutine().prefix_tys().len(),
                     }),
                 }
             }
@@ -2381,7 +2399,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                 AggregateKind::Array(_) => None,
                 AggregateKind::Tuple => None,
                 AggregateKind::Closure(_, _) => None,
-                AggregateKind::Generator(_, _, _) => None,
+                AggregateKind::Coroutine(_, _, _) => None,
             },
         }
     }
@@ -2609,7 +2627,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             // desugaring. A closure gets desugared to a struct, and
             // these extra requirements are basically like where
             // clauses on the struct.
-            AggregateKind::Closure(def_id, args) | AggregateKind::Generator(def_id, args, _) => {
+            AggregateKind::Closure(def_id, args) | AggregateKind::Coroutine(def_id, args, _) => {
                 (def_id, self.prove_closure_bounds(tcx, def_id.expect_local(), args, location))
             }
 
@@ -2657,7 +2675,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
 
         let parent_args = match tcx.def_kind(def_id) {
             DefKind::Closure => args.as_closure().parent_args(),
-            DefKind::Generator => args.as_generator().parent_args(),
+            DefKind::Coroutine => args.as_coroutine().parent_args(),
             DefKind::InlineConst => args.as_inline_const().parent_args(),
             other => bug!("unexpected item {:?}", other),
         };

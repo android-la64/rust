@@ -11,7 +11,6 @@ use crate::ir::{
     StackSlots, Table, TableData, Type,
 };
 use crate::isa::CallConv;
-use crate::value_label::ValueLabelsRanges;
 use crate::write::write_function;
 use crate::HashMap;
 #[cfg(feature = "enable-serde")]
@@ -65,7 +64,10 @@ impl<'de> Deserialize<'de> for VersionMarker {
 /// Function parameters used when creating this function, and that will become applied after
 /// compilation to materialize the final `CompiledCode`.
 #[derive(Clone, PartialEq)]
-#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(
+    feature = "enable-serde",
+    derive(serde_derive::Serialize, serde_derive::Deserialize)
+)]
 pub struct FunctionParameters {
     /// The first `SourceLoc` appearing in the function, serving as a base for every relative
     /// source loc in the function.
@@ -147,7 +149,10 @@ impl FunctionParameters {
 /// Additionally, these fields can be the same for two functions that would be compiled the same
 /// way, and finalized by applying `FunctionParameters` onto their `CompiledCodeStencil`.
 #[derive(Clone, PartialEq, Hash)]
-#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(
+    feature = "enable-serde",
+    derive(serde_derive::Serialize, serde_derive::Deserialize)
+)]
 pub struct FunctionStencil {
     /// A version marker used to ensure that serialized clif ir is never deserialized with a
     /// different version of Cranelift.
@@ -309,7 +314,17 @@ impl FunctionStencil {
     pub fn is_leaf(&self) -> bool {
         // Conservative result: if there's at least one function signature referenced in this
         // function, assume it is not a leaf.
-        self.dfg.signatures.is_empty()
+        let has_signatures = !self.dfg.signatures.is_empty();
+
+        // Under some TLS models, retrieving the address of a TLS variable requires calling a
+        // function. Conservatively assume that any function that references a tls global value
+        // is not a leaf.
+        let has_tls = self.global_values.values().any(|gv| match gv {
+            GlobalValueData::Symbol { tls, .. } => *tls,
+            _ => false,
+        });
+
+        !has_signatures && !has_tls
     }
 
     /// Replace the `dst` instruction's data with the `src` instruction's data
@@ -417,15 +432,7 @@ impl Function {
 
     /// Return an object that can display this function with correct ISA-specific annotations.
     pub fn display(&self) -> DisplayFunction<'_> {
-        DisplayFunction(self, Default::default())
-    }
-
-    /// Return an object that can display this function with correct ISA-specific annotations.
-    pub fn display_with<'a>(
-        &'a self,
-        annotations: DisplayFunctionAnnotations<'a>,
-    ) -> DisplayFunction<'a> {
-        DisplayFunction(self, annotations)
+        DisplayFunction(self)
     }
 
     /// Sets an absolute source location for the given instruction.
@@ -456,15 +463,8 @@ impl Function {
     }
 }
 
-/// Additional annotations for function display.
-#[derive(Default)]
-pub struct DisplayFunctionAnnotations<'a> {
-    /// Enable value labels annotations.
-    pub value_ranges: Option<&'a ValueLabelsRanges>,
-}
-
-/// Wrapper type capable of displaying a `Function` with correct ISA annotations.
-pub struct DisplayFunction<'a>(&'a Function, DisplayFunctionAnnotations<'a>);
+/// Wrapper type capable of displaying a `Function`.
+pub struct DisplayFunction<'a>(&'a Function);
 
 impl<'a> fmt::Display for DisplayFunction<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {

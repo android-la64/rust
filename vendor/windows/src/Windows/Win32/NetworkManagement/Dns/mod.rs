@@ -1,74 +1,76 @@
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
+#[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn DnsAcquireContextHandle_A(credentialflags: u32, credentials: ::core::option::Option<*const ::core::ffi::c_void>, pcontext: *mut DnsContextHandle) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsAcquireContextHandle_A ( credentialflags : u32 , credentials : *const ::core::ffi::c_void , pcontext : *mut DnsContextHandle ) -> i32 );
+pub unsafe fn DnsAcquireContextHandle_A(credentialflags: u32, credentials: ::core::option::Option<*const ::core::ffi::c_void>, pcontext: *mut super::super::Foundation::HANDLE) -> i32 {
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsAcquireContextHandle_A(credentialflags : u32, credentials : *const ::core::ffi::c_void, pcontext : *mut super::super::Foundation:: HANDLE) -> i32);
     DnsAcquireContextHandle_A(credentialflags, ::core::mem::transmute(credentials.unwrap_or(::std::ptr::null())), pcontext)
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
+#[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn DnsAcquireContextHandle_W(credentialflags: u32, credentials: ::core::option::Option<*const ::core::ffi::c_void>, pcontext: *mut DnsContextHandle) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsAcquireContextHandle_W ( credentialflags : u32 , credentials : *const ::core::ffi::c_void , pcontext : *mut DnsContextHandle ) -> i32 );
+pub unsafe fn DnsAcquireContextHandle_W(credentialflags: u32, credentials: ::core::option::Option<*const ::core::ffi::c_void>, pcontext: *mut super::super::Foundation::HANDLE) -> i32 {
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsAcquireContextHandle_W(credentialflags : u32, credentials : *const ::core::ffi::c_void, pcontext : *mut super::super::Foundation:: HANDLE) -> i32);
     DnsAcquireContextHandle_W(credentialflags, ::core::mem::transmute(credentials.unwrap_or(::std::ptr::null())), pcontext)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsCancelQuery(pcancelhandle: *const DNS_QUERY_CANCEL) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsCancelQuery ( pcancelhandle : *const DNS_QUERY_CANCEL ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsCancelQuery(pcancelhandle : *const DNS_QUERY_CANCEL) -> i32);
     DnsCancelQuery(pcancelhandle)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionDeletePolicyEntries(policyentrytag: DNS_CONNECTION_POLICY_TAG) -> u32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionDeletePolicyEntries ( policyentrytag : DNS_CONNECTION_POLICY_TAG ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionDeletePolicyEntries(policyentrytag : DNS_CONNECTION_POLICY_TAG) -> u32);
     DnsConnectionDeletePolicyEntries(policyentrytag)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionDeleteProxyInfo<P0>(pwszconnectionname: P0, r#type: DNS_CONNECTION_PROXY_TYPE) -> u32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionDeleteProxyInfo ( pwszconnectionname : ::windows::core::PCWSTR , r#type : DNS_CONNECTION_PROXY_TYPE ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionDeleteProxyInfo(pwszconnectionname : ::windows_core::PCWSTR, r#type : DNS_CONNECTION_PROXY_TYPE) -> u32);
     DnsConnectionDeleteProxyInfo(pwszconnectionname.into_param().abi(), r#type)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionFreeNameList(pnamelist: *mut DNS_CONNECTION_NAME_LIST) {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionFreeNameList ( pnamelist : *mut DNS_CONNECTION_NAME_LIST ) -> ( ) );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionFreeNameList(pnamelist : *mut DNS_CONNECTION_NAME_LIST) -> ());
     DnsConnectionFreeNameList(pnamelist)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionFreeProxyInfo(pproxyinfo: *mut DNS_CONNECTION_PROXY_INFO) {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionFreeProxyInfo ( pproxyinfo : *mut DNS_CONNECTION_PROXY_INFO ) -> ( ) );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionFreeProxyInfo(pproxyinfo : *mut DNS_CONNECTION_PROXY_INFO) -> ());
     DnsConnectionFreeProxyInfo(pproxyinfo)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsConnectionFreeProxyInfoEx(pproxyinfoex: *mut DNS_CONNECTION_PROXY_INFO_EX) {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionFreeProxyInfoEx ( pproxyinfoex : *mut DNS_CONNECTION_PROXY_INFO_EX ) -> ( ) );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionFreeProxyInfoEx(pproxyinfoex : *mut DNS_CONNECTION_PROXY_INFO_EX) -> ());
     DnsConnectionFreeProxyInfoEx(pproxyinfoex)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionFreeProxyList(pproxylist: *mut DNS_CONNECTION_PROXY_LIST) {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionFreeProxyList ( pproxylist : *mut DNS_CONNECTION_PROXY_LIST ) -> ( ) );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionFreeProxyList(pproxylist : *mut DNS_CONNECTION_PROXY_LIST) -> ());
     DnsConnectionFreeProxyList(pproxylist)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionGetNameList(pnamelist: *mut DNS_CONNECTION_NAME_LIST) -> u32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionGetNameList ( pnamelist : *mut DNS_CONNECTION_NAME_LIST ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionGetNameList(pnamelist : *mut DNS_CONNECTION_NAME_LIST) -> u32);
     DnsConnectionGetNameList(pnamelist)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionGetProxyInfo<P0>(pwszconnectionname: P0, r#type: DNS_CONNECTION_PROXY_TYPE, pproxyinfo: *mut DNS_CONNECTION_PROXY_INFO) -> u32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionGetProxyInfo ( pwszconnectionname : ::windows::core::PCWSTR , r#type : DNS_CONNECTION_PROXY_TYPE , pproxyinfo : *mut DNS_CONNECTION_PROXY_INFO ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionGetProxyInfo(pwszconnectionname : ::windows_core::PCWSTR, r#type : DNS_CONNECTION_PROXY_TYPE, pproxyinfo : *mut DNS_CONNECTION_PROXY_INFO) -> u32);
     DnsConnectionGetProxyInfo(pwszconnectionname.into_param().abi(), r#type, pproxyinfo)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -76,89 +78,100 @@ where
 #[inline]
 pub unsafe fn DnsConnectionGetProxyInfoForHostUrl<P0>(pwszhosturl: P0, pselectioncontext: ::core::option::Option<&[u8]>, dwexplicitinterfaceindex: u32, pproxyinfoex: *mut DNS_CONNECTION_PROXY_INFO_EX) -> u32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionGetProxyInfoForHostUrl ( pwszhosturl : ::windows::core::PCWSTR , pselectioncontext : *const u8 , dwselectioncontextlength : u32 , dwexplicitinterfaceindex : u32 , pproxyinfoex : *mut DNS_CONNECTION_PROXY_INFO_EX ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionGetProxyInfoForHostUrl(pwszhosturl : ::windows_core::PCWSTR, pselectioncontext : *const u8, dwselectioncontextlength : u32, dwexplicitinterfaceindex : u32, pproxyinfoex : *mut DNS_CONNECTION_PROXY_INFO_EX) -> u32);
     DnsConnectionGetProxyInfoForHostUrl(pwszhosturl.into_param().abi(), ::core::mem::transmute(pselectioncontext.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pselectioncontext.as_deref().map_or(0, |slice| slice.len() as _), dwexplicitinterfaceindex, pproxyinfoex)
+}
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
+#[cfg(feature = "Win32_Foundation")]
+#[inline]
+pub unsafe fn DnsConnectionGetProxyInfoForHostUrlEx<P0, P1>(pwszhosturl: P0, pselectioncontext: ::core::option::Option<&[u8]>, dwexplicitinterfaceindex: u32, pwszconnectionname: P1, pproxyinfoex: *mut DNS_CONNECTION_PROXY_INFO_EX) -> u32
+where
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
+    P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
+{
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionGetProxyInfoForHostUrlEx(pwszhosturl : ::windows_core::PCWSTR, pselectioncontext : *const u8, dwselectioncontextlength : u32, dwexplicitinterfaceindex : u32, pwszconnectionname : ::windows_core::PCWSTR, pproxyinfoex : *mut DNS_CONNECTION_PROXY_INFO_EX) -> u32);
+    DnsConnectionGetProxyInfoForHostUrlEx(pwszhosturl.into_param().abi(), ::core::mem::transmute(pselectioncontext.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pselectioncontext.as_deref().map_or(0, |slice| slice.len() as _), dwexplicitinterfaceindex, pwszconnectionname.into_param().abi(), pproxyinfoex)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionGetProxyList<P0>(pwszconnectionname: P0, pproxylist: *mut DNS_CONNECTION_PROXY_LIST) -> u32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionGetProxyList ( pwszconnectionname : ::windows::core::PCWSTR , pproxylist : *mut DNS_CONNECTION_PROXY_LIST ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionGetProxyList(pwszconnectionname : ::windows_core::PCWSTR, pproxylist : *mut DNS_CONNECTION_PROXY_LIST) -> u32);
     DnsConnectionGetProxyList(pwszconnectionname.into_param().abi(), pproxylist)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionSetPolicyEntries(policyentrytag: DNS_CONNECTION_POLICY_TAG, ppolicyentrylist: *const DNS_CONNECTION_POLICY_ENTRY_LIST) -> u32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionSetPolicyEntries ( policyentrytag : DNS_CONNECTION_POLICY_TAG , ppolicyentrylist : *const DNS_CONNECTION_POLICY_ENTRY_LIST ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionSetPolicyEntries(policyentrytag : DNS_CONNECTION_POLICY_TAG, ppolicyentrylist : *const DNS_CONNECTION_POLICY_ENTRY_LIST) -> u32);
     DnsConnectionSetPolicyEntries(policyentrytag, ppolicyentrylist)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionSetProxyInfo<P0>(pwszconnectionname: P0, r#type: DNS_CONNECTION_PROXY_TYPE, pproxyinfo: *const DNS_CONNECTION_PROXY_INFO) -> u32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionSetProxyInfo ( pwszconnectionname : ::windows::core::PCWSTR , r#type : DNS_CONNECTION_PROXY_TYPE , pproxyinfo : *const DNS_CONNECTION_PROXY_INFO ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionSetProxyInfo(pwszconnectionname : ::windows_core::PCWSTR, r#type : DNS_CONNECTION_PROXY_TYPE, pproxyinfo : *const DNS_CONNECTION_PROXY_INFO) -> u32);
     DnsConnectionSetProxyInfo(pwszconnectionname.into_param().abi(), r#type, pproxyinfo)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsConnectionUpdateIfIndexTable(pconnectionifindexentries: *const DNS_CONNECTION_IFINDEX_LIST) -> u32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsConnectionUpdateIfIndexTable ( pconnectionifindexentries : *const DNS_CONNECTION_IFINDEX_LIST ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsConnectionUpdateIfIndexTable(pconnectionifindexentries : *const DNS_CONNECTION_IFINDEX_LIST) -> u32);
     DnsConnectionUpdateIfIndexTable(pconnectionifindexentries)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsExtractRecordsFromMessage_UTF8(pdnsbuffer: *const DNS_MESSAGE_BUFFER, wmessagelength: u16, pprecord: *mut *mut DNS_RECORDA) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsExtractRecordsFromMessage_UTF8 ( pdnsbuffer : *const DNS_MESSAGE_BUFFER , wmessagelength : u16 , pprecord : *mut *mut DNS_RECORDA ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsExtractRecordsFromMessage_UTF8(pdnsbuffer : *const DNS_MESSAGE_BUFFER, wmessagelength : u16, pprecord : *mut *mut DNS_RECORDA) -> i32);
     DnsExtractRecordsFromMessage_UTF8(pdnsbuffer, wmessagelength, pprecord)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsExtractRecordsFromMessage_W(pdnsbuffer: *const DNS_MESSAGE_BUFFER, wmessagelength: u16, pprecord: *mut *mut DNS_RECORDA) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsExtractRecordsFromMessage_W ( pdnsbuffer : *const DNS_MESSAGE_BUFFER , wmessagelength : u16 , pprecord : *mut *mut DNS_RECORDA ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsExtractRecordsFromMessage_W(pdnsbuffer : *const DNS_MESSAGE_BUFFER, wmessagelength : u16, pprecord : *mut *mut DNS_RECORDA) -> i32);
     DnsExtractRecordsFromMessage_W(pdnsbuffer, wmessagelength, pprecord)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsFree(pdata: ::core::option::Option<*const ::core::ffi::c_void>, freetype: DNS_FREE_TYPE) {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsFree ( pdata : *const ::core::ffi::c_void , freetype : DNS_FREE_TYPE ) -> ( ) );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsFree(pdata : *const ::core::ffi::c_void, freetype : DNS_FREE_TYPE) -> ());
     DnsFree(::core::mem::transmute(pdata.unwrap_or(::std::ptr::null())), freetype)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsFreeCustomServers(pcservers: *mut u32, ppservers: *mut *mut DNS_CUSTOM_SERVER) {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsFreeCustomServers ( pcservers : *mut u32 , ppservers : *mut *mut DNS_CUSTOM_SERVER ) -> ( ) );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsFreeCustomServers(pcservers : *mut u32, ppservers : *mut *mut DNS_CUSTOM_SERVER) -> ());
     DnsFreeCustomServers(pcservers, ppservers)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsFreeProxyName<P0>(proxyname: P0)
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsFreeProxyName ( proxyname : ::windows::core::PCWSTR ) -> ( ) );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsFreeProxyName(proxyname : ::windows_core::PCWSTR) -> ());
     DnsFreeProxyName(proxyname.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsGetApplicationSettings(pcservers: *mut u32, ppdefaultservers: *mut *mut DNS_CUSTOM_SERVER, psettings: ::core::option::Option<*mut DNS_APPLICATION_SETTINGS>) -> u32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsGetApplicationSettings ( pcservers : *mut u32 , ppdefaultservers : *mut *mut DNS_CUSTOM_SERVER , psettings : *mut DNS_APPLICATION_SETTINGS ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsGetApplicationSettings(pcservers : *mut u32, ppdefaultservers : *mut *mut DNS_CUSTOM_SERVER, psettings : *mut DNS_APPLICATION_SETTINGS) -> u32);
     DnsGetApplicationSettings(pcservers, ppdefaultservers, ::core::mem::transmute(psettings.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsGetProxyInformation<P0>(hostname: P0, proxyinformation: *mut DNS_PROXY_INFORMATION, defaultproxyinformation: ::core::option::Option<*mut DNS_PROXY_INFORMATION>, completionroutine: DNS_PROXY_COMPLETION_ROUTINE, completioncontext: ::core::option::Option<*const ::core::ffi::c_void>) -> u32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsGetProxyInformation ( hostname : ::windows::core::PCWSTR , proxyinformation : *mut DNS_PROXY_INFORMATION , defaultproxyinformation : *mut DNS_PROXY_INFORMATION , completionroutine : DNS_PROXY_COMPLETION_ROUTINE , completioncontext : *const ::core::ffi::c_void ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsGetProxyInformation(hostname : ::windows_core::PCWSTR, proxyinformation : *mut DNS_PROXY_INFORMATION, defaultproxyinformation : *mut DNS_PROXY_INFORMATION, completionroutine : DNS_PROXY_COMPLETION_ROUTINE, completioncontext : *const ::core::ffi::c_void) -> u32);
     DnsGetProxyInformation(hostname.into_param().abi(), proxyinformation, ::core::mem::transmute(defaultproxyinformation.unwrap_or(::std::ptr::null_mut())), completionroutine, ::core::mem::transmute(completioncontext.unwrap_or(::std::ptr::null())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -166,9 +179,9 @@ where
 #[inline]
 pub unsafe fn DnsModifyRecordsInSet_A<P0>(paddrecords: ::core::option::Option<*const DNS_RECORDA>, pdeleterecords: ::core::option::Option<*const DNS_RECORDA>, options: u32, hcredentials: P0, pextralist: ::core::option::Option<*mut ::core::ffi::c_void>, preserved: ::core::option::Option<*mut ::core::ffi::c_void>) -> i32
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsModifyRecordsInSet_A ( paddrecords : *const DNS_RECORDA , pdeleterecords : *const DNS_RECORDA , options : u32 , hcredentials : super::super::Foundation:: HANDLE , pextralist : *mut ::core::ffi::c_void , preserved : *mut ::core::ffi::c_void ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsModifyRecordsInSet_A(paddrecords : *const DNS_RECORDA, pdeleterecords : *const DNS_RECORDA, options : u32, hcredentials : super::super::Foundation:: HANDLE, pextralist : *mut ::core::ffi::c_void, preserved : *mut ::core::ffi::c_void) -> i32);
     DnsModifyRecordsInSet_A(::core::mem::transmute(paddrecords.unwrap_or(::std::ptr::null())), ::core::mem::transmute(pdeleterecords.unwrap_or(::std::ptr::null())), options, hcredentials.into_param().abi(), ::core::mem::transmute(pextralist.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -176,9 +189,9 @@ where
 #[inline]
 pub unsafe fn DnsModifyRecordsInSet_UTF8<P0>(paddrecords: ::core::option::Option<*const DNS_RECORDA>, pdeleterecords: ::core::option::Option<*const DNS_RECORDA>, options: u32, hcredentials: P0, pextralist: ::core::option::Option<*mut ::core::ffi::c_void>, preserved: ::core::option::Option<*mut ::core::ffi::c_void>) -> i32
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsModifyRecordsInSet_UTF8 ( paddrecords : *const DNS_RECORDA , pdeleterecords : *const DNS_RECORDA , options : u32 , hcredentials : super::super::Foundation:: HANDLE , pextralist : *mut ::core::ffi::c_void , preserved : *mut ::core::ffi::c_void ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsModifyRecordsInSet_UTF8(paddrecords : *const DNS_RECORDA, pdeleterecords : *const DNS_RECORDA, options : u32, hcredentials : super::super::Foundation:: HANDLE, pextralist : *mut ::core::ffi::c_void, preserved : *mut ::core::ffi::c_void) -> i32);
     DnsModifyRecordsInSet_UTF8(::core::mem::transmute(paddrecords.unwrap_or(::std::ptr::null())), ::core::mem::transmute(pdeleterecords.unwrap_or(::std::ptr::null())), options, hcredentials.into_param().abi(), ::core::mem::transmute(pextralist.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -186,9 +199,9 @@ where
 #[inline]
 pub unsafe fn DnsModifyRecordsInSet_W<P0>(paddrecords: ::core::option::Option<*const DNS_RECORDA>, pdeleterecords: ::core::option::Option<*const DNS_RECORDA>, options: u32, hcredentials: P0, pextralist: ::core::option::Option<*mut ::core::ffi::c_void>, preserved: ::core::option::Option<*mut ::core::ffi::c_void>) -> i32
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsModifyRecordsInSet_W ( paddrecords : *const DNS_RECORDA , pdeleterecords : *const DNS_RECORDA , options : u32 , hcredentials : super::super::Foundation:: HANDLE , pextralist : *mut ::core::ffi::c_void , preserved : *mut ::core::ffi::c_void ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsModifyRecordsInSet_W(paddrecords : *const DNS_RECORDA, pdeleterecords : *const DNS_RECORDA, options : u32, hcredentials : super::super::Foundation:: HANDLE, pextralist : *mut ::core::ffi::c_void, preserved : *mut ::core::ffi::c_void) -> i32);
     DnsModifyRecordsInSet_W(::core::mem::transmute(paddrecords.unwrap_or(::std::ptr::null())), ::core::mem::transmute(pdeleterecords.unwrap_or(::std::ptr::null())), options, hcredentials.into_param().abi(), ::core::mem::transmute(pextralist.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -196,10 +209,10 @@ where
 #[inline]
 pub unsafe fn DnsNameCompare_A<P0, P1>(pname1: P0, pname2: P1) -> super::super::Foundation::BOOL
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCSTR>,
-    P1: ::windows::core::IntoParam<::windows::core::PCSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
+    P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsNameCompare_A ( pname1 : ::windows::core::PCSTR , pname2 : ::windows::core::PCSTR ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsNameCompare_A(pname1 : ::windows_core::PCSTR, pname2 : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     DnsNameCompare_A(pname1.into_param().abi(), pname2.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -207,91 +220,91 @@ where
 #[inline]
 pub unsafe fn DnsNameCompare_W<P0, P1>(pname1: P0, pname2: P1) -> super::super::Foundation::BOOL
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
-    P1: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
+    P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsNameCompare_W ( pname1 : ::windows::core::PCWSTR , pname2 : ::windows::core::PCWSTR ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsNameCompare_W(pname1 : ::windows_core::PCWSTR, pname2 : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     DnsNameCompare_W(pname1.into_param().abi(), pname2.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsQueryConfig<P0>(config: DNS_CONFIG_TYPE, flag: u32, pwsadaptername: P0, preserved: ::core::option::Option<*const ::core::ffi::c_void>, pbuffer: ::core::option::Option<*mut ::core::ffi::c_void>, pbuflen: *mut u32) -> i32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsQueryConfig ( config : DNS_CONFIG_TYPE , flag : u32 , pwsadaptername : ::windows::core::PCWSTR , preserved : *const ::core::ffi::c_void , pbuffer : *mut ::core::ffi::c_void , pbuflen : *mut u32 ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsQueryConfig(config : DNS_CONFIG_TYPE, flag : u32, pwsadaptername : ::windows_core::PCWSTR, preserved : *const ::core::ffi::c_void, pbuffer : *mut ::core::ffi::c_void, pbuflen : *mut u32) -> i32);
     DnsQueryConfig(config, flag, pwsadaptername.into_param().abi(), ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null())), ::core::mem::transmute(pbuffer.unwrap_or(::std::ptr::null_mut())), pbuflen)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsQueryEx(pqueryrequest: *const DNS_QUERY_REQUEST, pqueryresults: *mut DNS_QUERY_RESULT, pcancelhandle: ::core::option::Option<*mut DNS_QUERY_CANCEL>) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsQueryEx ( pqueryrequest : *const DNS_QUERY_REQUEST , pqueryresults : *mut DNS_QUERY_RESULT , pcancelhandle : *mut DNS_QUERY_CANCEL ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsQueryEx(pqueryrequest : *const DNS_QUERY_REQUEST, pqueryresults : *mut DNS_QUERY_RESULT, pcancelhandle : *mut DNS_QUERY_CANCEL) -> i32);
     DnsQueryEx(pqueryrequest, pqueryresults, ::core::mem::transmute(pcancelhandle.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn DnsQuery_A<P0>(pszname: P0, wtype: DNS_TYPE, options: DNS_QUERY_OPTIONS, pextra: ::core::option::Option<*mut ::core::ffi::c_void>, ppqueryresults: *mut *mut DNS_RECORDA, preserved: ::core::option::Option<*mut *mut ::core::ffi::c_void>) -> super::super::Foundation::WIN32_ERROR
+pub unsafe fn DnsQuery_A<P0>(pszname: P0, wtype: DNS_TYPE, options: DNS_QUERY_OPTIONS, pextra: ::core::option::Option<*mut ::core::ffi::c_void>, ppqueryresults: *mut *mut DNS_RECORDA, preserved: ::core::option::Option<*mut *mut ::core::ffi::c_void>) -> ::windows_core::Result<()>
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsQuery_A ( pszname : ::windows::core::PCSTR , wtype : DNS_TYPE , options : DNS_QUERY_OPTIONS , pextra : *mut ::core::ffi::c_void , ppqueryresults : *mut *mut DNS_RECORDA , preserved : *mut *mut ::core::ffi::c_void ) -> super::super::Foundation:: WIN32_ERROR );
-    DnsQuery_A(pszname.into_param().abi(), wtype, options, ::core::mem::transmute(pextra.unwrap_or(::std::ptr::null_mut())), ppqueryresults, ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut())))
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsQuery_A(pszname : ::windows_core::PCSTR, wtype : DNS_TYPE, options : DNS_QUERY_OPTIONS, pextra : *mut ::core::ffi::c_void, ppqueryresults : *mut *mut DNS_RECORDA, preserved : *mut *mut ::core::ffi::c_void) -> super::super::Foundation:: WIN32_ERROR);
+    DnsQuery_A(pszname.into_param().abi(), wtype, options, ::core::mem::transmute(pextra.unwrap_or(::std::ptr::null_mut())), ppqueryresults, ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut()))).ok()
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn DnsQuery_UTF8<P0>(pszname: P0, wtype: DNS_TYPE, options: DNS_QUERY_OPTIONS, pextra: ::core::option::Option<*mut ::core::ffi::c_void>, ppqueryresults: *mut *mut DNS_RECORDA, preserved: ::core::option::Option<*mut *mut ::core::ffi::c_void>) -> super::super::Foundation::WIN32_ERROR
+pub unsafe fn DnsQuery_UTF8<P0>(pszname: P0, wtype: DNS_TYPE, options: DNS_QUERY_OPTIONS, pextra: ::core::option::Option<*mut ::core::ffi::c_void>, ppqueryresults: *mut *mut DNS_RECORDA, preserved: ::core::option::Option<*mut *mut ::core::ffi::c_void>) -> ::windows_core::Result<()>
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsQuery_UTF8 ( pszname : ::windows::core::PCSTR , wtype : DNS_TYPE , options : DNS_QUERY_OPTIONS , pextra : *mut ::core::ffi::c_void , ppqueryresults : *mut *mut DNS_RECORDA , preserved : *mut *mut ::core::ffi::c_void ) -> super::super::Foundation:: WIN32_ERROR );
-    DnsQuery_UTF8(pszname.into_param().abi(), wtype, options, ::core::mem::transmute(pextra.unwrap_or(::std::ptr::null_mut())), ppqueryresults, ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut())))
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsQuery_UTF8(pszname : ::windows_core::PCSTR, wtype : DNS_TYPE, options : DNS_QUERY_OPTIONS, pextra : *mut ::core::ffi::c_void, ppqueryresults : *mut *mut DNS_RECORDA, preserved : *mut *mut ::core::ffi::c_void) -> super::super::Foundation:: WIN32_ERROR);
+    DnsQuery_UTF8(pszname.into_param().abi(), wtype, options, ::core::mem::transmute(pextra.unwrap_or(::std::ptr::null_mut())), ppqueryresults, ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut()))).ok()
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn DnsQuery_W<P0>(pszname: P0, wtype: DNS_TYPE, options: DNS_QUERY_OPTIONS, pextra: ::core::option::Option<*mut ::core::ffi::c_void>, ppqueryresults: *mut *mut DNS_RECORDA, preserved: ::core::option::Option<*mut *mut ::core::ffi::c_void>) -> super::super::Foundation::WIN32_ERROR
+pub unsafe fn DnsQuery_W<P0>(pszname: P0, wtype: DNS_TYPE, options: DNS_QUERY_OPTIONS, pextra: ::core::option::Option<*mut ::core::ffi::c_void>, ppqueryresults: *mut *mut DNS_RECORDA, preserved: ::core::option::Option<*mut *mut ::core::ffi::c_void>) -> ::windows_core::Result<()>
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsQuery_W ( pszname : ::windows::core::PCWSTR , wtype : DNS_TYPE , options : DNS_QUERY_OPTIONS , pextra : *mut ::core::ffi::c_void , ppqueryresults : *mut *mut DNS_RECORDA , preserved : *mut *mut ::core::ffi::c_void ) -> super::super::Foundation:: WIN32_ERROR );
-    DnsQuery_W(pszname.into_param().abi(), wtype, options, ::core::mem::transmute(pextra.unwrap_or(::std::ptr::null_mut())), ppqueryresults, ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut())))
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsQuery_W(pszname : ::windows_core::PCWSTR, wtype : DNS_TYPE, options : DNS_QUERY_OPTIONS, pextra : *mut ::core::ffi::c_void, ppqueryresults : *mut *mut DNS_RECORDA, preserved : *mut *mut ::core::ffi::c_void) -> super::super::Foundation:: WIN32_ERROR);
+    DnsQuery_W(pszname.into_param().abi(), wtype, options, ::core::mem::transmute(pextra.unwrap_or(::std::ptr::null_mut())), ppqueryresults, ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut()))).ok()
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsRecordCompare(precord1: *const DNS_RECORDA, precord2: *const DNS_RECORDA) -> super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsRecordCompare ( precord1 : *const DNS_RECORDA , precord2 : *const DNS_RECORDA ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsRecordCompare(precord1 : *const DNS_RECORDA, precord2 : *const DNS_RECORDA) -> super::super::Foundation:: BOOL);
     DnsRecordCompare(precord1, precord2)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsRecordCopyEx(precord: *const DNS_RECORDA, charsetin: DNS_CHARSET, charsetout: DNS_CHARSET) -> *mut DNS_RECORDA {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsRecordCopyEx ( precord : *const DNS_RECORDA , charsetin : DNS_CHARSET , charsetout : DNS_CHARSET ) -> *mut DNS_RECORDA );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsRecordCopyEx(precord : *const DNS_RECORDA, charsetin : DNS_CHARSET, charsetout : DNS_CHARSET) -> *mut DNS_RECORDA);
     DnsRecordCopyEx(precord, charsetin, charsetout)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsRecordSetCompare(prr1: *mut DNS_RECORDA, prr2: *mut DNS_RECORDA, ppdiff1: ::core::option::Option<*mut *mut DNS_RECORDA>, ppdiff2: ::core::option::Option<*mut *mut DNS_RECORDA>) -> super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsRecordSetCompare ( prr1 : *mut DNS_RECORDA , prr2 : *mut DNS_RECORDA , ppdiff1 : *mut *mut DNS_RECORDA , ppdiff2 : *mut *mut DNS_RECORDA ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsRecordSetCompare(prr1 : *mut DNS_RECORDA, prr2 : *mut DNS_RECORDA, ppdiff1 : *mut *mut DNS_RECORDA, ppdiff2 : *mut *mut DNS_RECORDA) -> super::super::Foundation:: BOOL);
     DnsRecordSetCompare(prr1, prr2, ::core::mem::transmute(ppdiff1.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(ppdiff2.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsRecordSetCopyEx(precordset: *const DNS_RECORDA, charsetin: DNS_CHARSET, charsetout: DNS_CHARSET) -> *mut DNS_RECORDA {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsRecordSetCopyEx ( precordset : *const DNS_RECORDA , charsetin : DNS_CHARSET , charsetout : DNS_CHARSET ) -> *mut DNS_RECORDA );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsRecordSetCopyEx(precordset : *const DNS_RECORDA, charsetin : DNS_CHARSET, charsetout : DNS_CHARSET) -> *mut DNS_RECORDA);
     DnsRecordSetCopyEx(precordset, charsetin, charsetout)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsRecordSetDetach(precordlist: *mut DNS_RECORDA) -> *mut DNS_RECORDA {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsRecordSetDetach ( precordlist : *mut DNS_RECORDA ) -> *mut DNS_RECORDA );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsRecordSetDetach(precordlist : *mut DNS_RECORDA) -> *mut DNS_RECORDA);
     DnsRecordSetDetach(precordlist)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -299,9 +312,9 @@ pub unsafe fn DnsRecordSetDetach(precordlist: *mut DNS_RECORDA) -> *mut DNS_RECO
 #[inline]
 pub unsafe fn DnsReleaseContextHandle<P0>(hcontext: P0)
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsReleaseContextHandle ( hcontext : super::super::Foundation:: HANDLE ) -> ( ) );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsReleaseContextHandle(hcontext : super::super::Foundation:: HANDLE) -> ());
     DnsReleaseContextHandle(hcontext.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -309,9 +322,9 @@ where
 #[inline]
 pub unsafe fn DnsReplaceRecordSetA<P0>(preplaceset: *const DNS_RECORDA, options: u32, hcontext: P0, pextrainfo: ::core::option::Option<*mut ::core::ffi::c_void>, preserved: ::core::option::Option<*mut ::core::ffi::c_void>) -> i32
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsReplaceRecordSetA ( preplaceset : *const DNS_RECORDA , options : u32 , hcontext : super::super::Foundation:: HANDLE , pextrainfo : *mut ::core::ffi::c_void , preserved : *mut ::core::ffi::c_void ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsReplaceRecordSetA(preplaceset : *const DNS_RECORDA, options : u32, hcontext : super::super::Foundation:: HANDLE, pextrainfo : *mut ::core::ffi::c_void, preserved : *mut ::core::ffi::c_void) -> i32);
     DnsReplaceRecordSetA(preplaceset, options, hcontext.into_param().abi(), ::core::mem::transmute(pextrainfo.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -319,9 +332,9 @@ where
 #[inline]
 pub unsafe fn DnsReplaceRecordSetUTF8<P0>(preplaceset: *const DNS_RECORDA, options: u32, hcontext: P0, pextrainfo: ::core::option::Option<*mut ::core::ffi::c_void>, preserved: ::core::option::Option<*mut ::core::ffi::c_void>) -> i32
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsReplaceRecordSetUTF8 ( preplaceset : *const DNS_RECORDA , options : u32 , hcontext : super::super::Foundation:: HANDLE , pextrainfo : *mut ::core::ffi::c_void , preserved : *mut ::core::ffi::c_void ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsReplaceRecordSetUTF8(preplaceset : *const DNS_RECORDA, options : u32, hcontext : super::super::Foundation:: HANDLE, pextrainfo : *mut ::core::ffi::c_void, preserved : *mut ::core::ffi::c_void) -> i32);
     DnsReplaceRecordSetUTF8(preplaceset, options, hcontext.into_param().abi(), ::core::mem::transmute(pextrainfo.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -329,122 +342,122 @@ where
 #[inline]
 pub unsafe fn DnsReplaceRecordSetW<P0>(preplaceset: *const DNS_RECORDA, options: u32, hcontext: P0, pextrainfo: ::core::option::Option<*mut ::core::ffi::c_void>, preserved: ::core::option::Option<*mut ::core::ffi::c_void>) -> i32
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsReplaceRecordSetW ( preplaceset : *const DNS_RECORDA , options : u32 , hcontext : super::super::Foundation:: HANDLE , pextrainfo : *mut ::core::ffi::c_void , preserved : *mut ::core::ffi::c_void ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsReplaceRecordSetW(preplaceset : *const DNS_RECORDA, options : u32, hcontext : super::super::Foundation:: HANDLE, pextrainfo : *mut ::core::ffi::c_void, preserved : *mut ::core::ffi::c_void) -> i32);
     DnsReplaceRecordSetW(preplaceset, options, hcontext.into_param().abi(), ::core::mem::transmute(pextrainfo.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsServiceBrowse(prequest: *const DNS_SERVICE_BROWSE_REQUEST, pcancel: *mut DNS_SERVICE_CANCEL) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceBrowse ( prequest : *const DNS_SERVICE_BROWSE_REQUEST , pcancel : *mut DNS_SERVICE_CANCEL ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceBrowse(prequest : *const DNS_SERVICE_BROWSE_REQUEST, pcancel : *mut DNS_SERVICE_CANCEL) -> i32);
     DnsServiceBrowse(prequest, pcancel)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsServiceBrowseCancel(pcancelhandle: *const DNS_SERVICE_CANCEL) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceBrowseCancel ( pcancelhandle : *const DNS_SERVICE_CANCEL ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceBrowseCancel(pcancelhandle : *const DNS_SERVICE_CANCEL) -> i32);
     DnsServiceBrowseCancel(pcancelhandle)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
-pub unsafe fn DnsServiceConstructInstance<P0, P1>(pservicename: P0, phostname: P1, pip4: ::core::option::Option<*const u32>, pip6: ::core::option::Option<*const IP6_ADDRESS>, wport: u16, wpriority: u16, wweight: u16, dwpropertiescount: u32, keys: *const ::windows::core::PCWSTR, values: *const ::windows::core::PCWSTR) -> *mut DNS_SERVICE_INSTANCE
+pub unsafe fn DnsServiceConstructInstance<P0, P1>(pservicename: P0, phostname: P1, pip4: ::core::option::Option<*const u32>, pip6: ::core::option::Option<*const IP6_ADDRESS>, wport: u16, wpriority: u16, wweight: u16, dwpropertiescount: u32, keys: *const ::windows_core::PCWSTR, values: *const ::windows_core::PCWSTR) -> *mut DNS_SERVICE_INSTANCE
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
-    P1: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
+    P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceConstructInstance ( pservicename : ::windows::core::PCWSTR , phostname : ::windows::core::PCWSTR , pip4 : *const u32 , pip6 : *const IP6_ADDRESS , wport : u16 , wpriority : u16 , wweight : u16 , dwpropertiescount : u32 , keys : *const ::windows::core::PCWSTR , values : *const ::windows::core::PCWSTR ) -> *mut DNS_SERVICE_INSTANCE );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceConstructInstance(pservicename : ::windows_core::PCWSTR, phostname : ::windows_core::PCWSTR, pip4 : *const u32, pip6 : *const IP6_ADDRESS, wport : u16, wpriority : u16, wweight : u16, dwpropertiescount : u32, keys : *const ::windows_core::PCWSTR, values : *const ::windows_core::PCWSTR) -> *mut DNS_SERVICE_INSTANCE);
     DnsServiceConstructInstance(pservicename.into_param().abi(), phostname.into_param().abi(), ::core::mem::transmute(pip4.unwrap_or(::std::ptr::null())), ::core::mem::transmute(pip6.unwrap_or(::std::ptr::null())), wport, wpriority, wweight, dwpropertiescount, keys, values)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsServiceCopyInstance(porig: *const DNS_SERVICE_INSTANCE) -> *mut DNS_SERVICE_INSTANCE {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceCopyInstance ( porig : *const DNS_SERVICE_INSTANCE ) -> *mut DNS_SERVICE_INSTANCE );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceCopyInstance(porig : *const DNS_SERVICE_INSTANCE) -> *mut DNS_SERVICE_INSTANCE);
     DnsServiceCopyInstance(porig)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsServiceDeRegister(prequest: *const DNS_SERVICE_REGISTER_REQUEST, pcancel: ::core::option::Option<*mut DNS_SERVICE_CANCEL>) -> u32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceDeRegister ( prequest : *const DNS_SERVICE_REGISTER_REQUEST , pcancel : *mut DNS_SERVICE_CANCEL ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceDeRegister(prequest : *const DNS_SERVICE_REGISTER_REQUEST, pcancel : *mut DNS_SERVICE_CANCEL) -> u32);
     DnsServiceDeRegister(prequest, ::core::mem::transmute(pcancel.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsServiceFreeInstance(pinstance: *const DNS_SERVICE_INSTANCE) {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceFreeInstance ( pinstance : *const DNS_SERVICE_INSTANCE ) -> ( ) );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceFreeInstance(pinstance : *const DNS_SERVICE_INSTANCE) -> ());
     DnsServiceFreeInstance(pinstance)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsServiceRegister(prequest: *const DNS_SERVICE_REGISTER_REQUEST, pcancel: ::core::option::Option<*mut DNS_SERVICE_CANCEL>) -> u32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceRegister ( prequest : *const DNS_SERVICE_REGISTER_REQUEST , pcancel : *mut DNS_SERVICE_CANCEL ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceRegister(prequest : *const DNS_SERVICE_REGISTER_REQUEST, pcancel : *mut DNS_SERVICE_CANCEL) -> u32);
     DnsServiceRegister(prequest, ::core::mem::transmute(pcancel.unwrap_or(::std::ptr::null_mut())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsServiceRegisterCancel(pcancelhandle: *const DNS_SERVICE_CANCEL) -> u32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceRegisterCancel ( pcancelhandle : *const DNS_SERVICE_CANCEL ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceRegisterCancel(pcancelhandle : *const DNS_SERVICE_CANCEL) -> u32);
     DnsServiceRegisterCancel(pcancelhandle)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsServiceResolve(prequest: *const DNS_SERVICE_RESOLVE_REQUEST, pcancel: *mut DNS_SERVICE_CANCEL) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceResolve ( prequest : *const DNS_SERVICE_RESOLVE_REQUEST , pcancel : *mut DNS_SERVICE_CANCEL ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceResolve(prequest : *const DNS_SERVICE_RESOLVE_REQUEST, pcancel : *mut DNS_SERVICE_CANCEL) -> i32);
     DnsServiceResolve(prequest, pcancel)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsServiceResolveCancel(pcancelhandle: *const DNS_SERVICE_CANCEL) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsServiceResolveCancel ( pcancelhandle : *const DNS_SERVICE_CANCEL ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsServiceResolveCancel(pcancelhandle : *const DNS_SERVICE_CANCEL) -> i32);
     DnsServiceResolveCancel(pcancelhandle)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsSetApplicationSettings(pservers: &[DNS_CUSTOM_SERVER], psettings: ::core::option::Option<*const DNS_APPLICATION_SETTINGS>) -> u32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsSetApplicationSettings ( cservers : u32 , pservers : *const DNS_CUSTOM_SERVER , psettings : *const DNS_APPLICATION_SETTINGS ) -> u32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsSetApplicationSettings(cservers : u32, pservers : *const DNS_CUSTOM_SERVER, psettings : *const DNS_APPLICATION_SETTINGS) -> u32);
     DnsSetApplicationSettings(pservers.len() as _, ::core::mem::transmute(pservers.as_ptr()), ::core::mem::transmute(psettings.unwrap_or(::std::ptr::null())))
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DnsStartMulticastQuery(pqueryrequest: *const MDNS_QUERY_REQUEST, phandle: *mut MDNS_QUERY_HANDLE) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsStartMulticastQuery ( pqueryrequest : *const MDNS_QUERY_REQUEST , phandle : *mut MDNS_QUERY_HANDLE ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsStartMulticastQuery(pqueryrequest : *const MDNS_QUERY_REQUEST, phandle : *mut MDNS_QUERY_HANDLE) -> i32);
     DnsStartMulticastQuery(pqueryrequest, phandle)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsStopMulticastQuery(phandle: *mut MDNS_QUERY_HANDLE) -> i32 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsStopMulticastQuery ( phandle : *mut MDNS_QUERY_HANDLE ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsStopMulticastQuery(phandle : *mut MDNS_QUERY_HANDLE) -> i32);
     DnsStopMulticastQuery(phandle)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsValidateName_A<P0>(pszname: P0, format: DNS_NAME_FORMAT) -> i32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsValidateName_A ( pszname : ::windows::core::PCSTR , format : DNS_NAME_FORMAT ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsValidateName_A(pszname : ::windows_core::PCSTR, format : DNS_NAME_FORMAT) -> i32);
     DnsValidateName_A(pszname.into_param().abi(), format)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsValidateName_UTF8<P0>(pszname: P0, format: DNS_NAME_FORMAT) -> i32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsValidateName_UTF8 ( pszname : ::windows::core::PCSTR , format : DNS_NAME_FORMAT ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsValidateName_UTF8(pszname : ::windows_core::PCSTR, format : DNS_NAME_FORMAT) -> i32);
     DnsValidateName_UTF8(pszname.into_param().abi(), format)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[inline]
 pub unsafe fn DnsValidateName_W<P0>(pszname: P0, format: DNS_NAME_FORMAT) -> i32
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsValidateName_W ( pszname : ::windows::core::PCWSTR , format : DNS_NAME_FORMAT ) -> i32 );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsValidateName_W(pszname : ::windows_core::PCWSTR, format : DNS_NAME_FORMAT) -> i32);
     DnsValidateName_W(pszname.into_param().abi(), format)
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -452,10 +465,10 @@ where
 #[inline]
 pub unsafe fn DnsWriteQuestionToBuffer_UTF8<P0, P1>(pdnsbuffer: *mut DNS_MESSAGE_BUFFER, pdwbuffersize: *mut u32, pszname: P0, wtype: u16, xid: u16, frecursiondesired: P1) -> super::super::Foundation::BOOL
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCSTR>,
-    P1: ::windows::core::IntoParam<super::super::Foundation::BOOL>,
+    P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
+    P1: ::windows_core::IntoParam<super::super::Foundation::BOOL>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsWriteQuestionToBuffer_UTF8 ( pdnsbuffer : *mut DNS_MESSAGE_BUFFER , pdwbuffersize : *mut u32 , pszname : ::windows::core::PCSTR , wtype : u16 , xid : u16 , frecursiondesired : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsWriteQuestionToBuffer_UTF8(pdnsbuffer : *mut DNS_MESSAGE_BUFFER, pdwbuffersize : *mut u32, pszname : ::windows_core::PCSTR, wtype : u16, xid : u16, frecursiondesired : super::super::Foundation:: BOOL) -> super::super::Foundation:: BOOL);
     DnsWriteQuestionToBuffer_UTF8(pdnsbuffer, pdwbuffersize, pszname.into_param().abi(), wtype, xid, frecursiondesired.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
@@ -463,10 +476,10 @@ where
 #[inline]
 pub unsafe fn DnsWriteQuestionToBuffer_W<P0, P1>(pdnsbuffer: *mut DNS_MESSAGE_BUFFER, pdwbuffersize: *mut u32, pszname: P0, wtype: u16, xid: u16, frecursiondesired: P1) -> super::super::Foundation::BOOL
 where
-    P0: ::windows::core::IntoParam<::windows::core::PCWSTR>,
-    P1: ::windows::core::IntoParam<super::super::Foundation::BOOL>,
+    P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
+    P1: ::windows_core::IntoParam<super::super::Foundation::BOOL>,
 {
-    ::windows_targets::link ! ( "dnsapi.dll""system" fn DnsWriteQuestionToBuffer_W ( pdnsbuffer : *mut DNS_MESSAGE_BUFFER , pdwbuffersize : *mut u32 , pszname : ::windows::core::PCWSTR , wtype : u16 , xid : u16 , frecursiondesired : super::super::Foundation:: BOOL ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link!("dnsapi.dll" "system" fn DnsWriteQuestionToBuffer_W(pdnsbuffer : *mut DNS_MESSAGE_BUFFER, pdwbuffersize : *mut u32, pszname : ::windows_core::PCWSTR, wtype : u16, xid : u16, frecursiondesired : super::super::Foundation:: BOOL) -> super::super::Foundation:: BOOL);
     DnsWriteQuestionToBuffer_W(pdnsbuffer, pdwbuffersize, pszname.into_param().abi(), wtype, xid, frecursiondesired.into_param().abi())
 }
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
@@ -644,7 +657,23 @@ pub const DNS_CONNECTION_PROXY_INFO_PASSWORD_MAX_LENGTH: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const DNS_CONNECTION_PROXY_INFO_SERVER_MAX_LENGTH: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_CONNECTION_PROXY_INFO_SWITCH_CONFIG: DNS_CONNECTION_PROXY_INFO_SWITCH = DNS_CONNECTION_PROXY_INFO_SWITCH(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_CONNECTION_PROXY_INFO_SWITCH_SCRIPT: DNS_CONNECTION_PROXY_INFO_SWITCH = DNS_CONNECTION_PROXY_INFO_SWITCH(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_CONNECTION_PROXY_INFO_SWITCH_WPAD: DNS_CONNECTION_PROXY_INFO_SWITCH = DNS_CONNECTION_PROXY_INFO_SWITCH(2i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const DNS_CONNECTION_PROXY_INFO_USERNAME_MAX_LENGTH: u32 = 128u32;
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_CONNECTION_PROXY_TYPE_HTTP: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_CONNECTION_PROXY_TYPE_NULL: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_CONNECTION_PROXY_TYPE_SOCKS4: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_CONNECTION_PROXY_TYPE_SOCKS5: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_CONNECTION_PROXY_TYPE_WAP: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(2i32);
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const DNS_CUSTOM_SERVER_TYPE_DOH: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
@@ -689,6 +718,68 @@ pub const DNS_OPCODE_UPDATE: u32 = 5u32;
 pub const DNS_PORT_HOST_ORDER: u32 = 53u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const DNS_PORT_NET_ORDER: u32 = 13568u32;
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_PROXY_INFORMATION_DEFAULT_SETTINGS: DNS_PROXY_INFORMATION_TYPE = DNS_PROXY_INFORMATION_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_PROXY_INFORMATION_DIRECT: DNS_PROXY_INFORMATION_TYPE = DNS_PROXY_INFORMATION_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_PROXY_INFORMATION_DOES_NOT_EXIST: DNS_PROXY_INFORMATION_TYPE = DNS_PROXY_INFORMATION_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_PROXY_INFORMATION_PROXY_NAME: DNS_PROXY_INFORMATION_TYPE = DNS_PROXY_INFORMATION_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_ACCEPT_TRUNCATED_RESPONSE: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_ADDRCONFIG: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(8192u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_APPEND_MULTILABEL: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(8388608u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_BYPASS_CACHE: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(8u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_CACHE_ONLY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(16u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_DISABLE_IDN_ENCODING: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(2097152u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_DNSSEC_CHECKING_DISABLED: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(33554432u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_DNSSEC_OK: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(16777216u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_DONT_RESET_TTL_VALUES: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1048576u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_DUAL_ADDR: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(16384u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_MULTICAST_ONLY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1024u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_NO_HOSTS_FILE: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(64u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_NO_LOCAL_NAME: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(32u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_NO_MULTICAST: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(2048u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_NO_NETBT: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(128u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_NO_RECURSION: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(4u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_NO_WIRE_QUERY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(16u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_REQUEST_VERSION1: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_REQUEST_VERSION2: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(2u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_REQUEST_VERSION3: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(3u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_RESERVED: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(4026531840u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_RESULTS_VERSION1: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_RETURN_MESSAGE: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(512u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_STANDARD: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(0u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_TREAT_AS_FQDN: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(4096u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_USE_TCP_ONLY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(2u32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_QUERY_WIRE_ONLY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(256u32);
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const DNS_RCLASS_ALL: u32 = 65280u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
@@ -886,6 +977,142 @@ pub const DNS_TKEY_MODE_RESOLVER_ASSIGN: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const DNS_TKEY_MODE_SERVER_ASSIGN: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_A: DNS_TYPE = DNS_TYPE(1u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_A6: DNS_TYPE = DNS_TYPE(38u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_AAAA: DNS_TYPE = DNS_TYPE(28u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_ADDRS: DNS_TYPE = DNS_TYPE(248u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_AFSDB: DNS_TYPE = DNS_TYPE(18u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_ALL: DNS_TYPE = DNS_TYPE(255u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_ANY: DNS_TYPE = DNS_TYPE(255u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_ATMA: DNS_TYPE = DNS_TYPE(34u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_AXFR: DNS_TYPE = DNS_TYPE(252u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_CERT: DNS_TYPE = DNS_TYPE(37u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_CNAME: DNS_TYPE = DNS_TYPE(5u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_DHCID: DNS_TYPE = DNS_TYPE(49u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_DNAME: DNS_TYPE = DNS_TYPE(39u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_DNSKEY: DNS_TYPE = DNS_TYPE(48u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_DS: DNS_TYPE = DNS_TYPE(43u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_EID: DNS_TYPE = DNS_TYPE(31u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_GID: DNS_TYPE = DNS_TYPE(102u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_GPOS: DNS_TYPE = DNS_TYPE(27u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_HINFO: DNS_TYPE = DNS_TYPE(13u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_HTTPS: DNS_TYPE = DNS_TYPE(65u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_ISDN: DNS_TYPE = DNS_TYPE(20u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_IXFR: DNS_TYPE = DNS_TYPE(251u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_KEY: DNS_TYPE = DNS_TYPE(25u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_KX: DNS_TYPE = DNS_TYPE(36u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_LOC: DNS_TYPE = DNS_TYPE(29u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_MAILA: DNS_TYPE = DNS_TYPE(254u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_MAILB: DNS_TYPE = DNS_TYPE(253u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_MB: DNS_TYPE = DNS_TYPE(7u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_MD: DNS_TYPE = DNS_TYPE(3u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_MF: DNS_TYPE = DNS_TYPE(4u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_MG: DNS_TYPE = DNS_TYPE(8u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_MINFO: DNS_TYPE = DNS_TYPE(14u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_MR: DNS_TYPE = DNS_TYPE(9u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_MX: DNS_TYPE = DNS_TYPE(15u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NAPTR: DNS_TYPE = DNS_TYPE(35u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NBSTAT: DNS_TYPE = DNS_TYPE(65282u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NIMLOC: DNS_TYPE = DNS_TYPE(32u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NS: DNS_TYPE = DNS_TYPE(2u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NSAP: DNS_TYPE = DNS_TYPE(22u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NSAPPTR: DNS_TYPE = DNS_TYPE(23u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NSEC: DNS_TYPE = DNS_TYPE(47u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NSEC3: DNS_TYPE = DNS_TYPE(50u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NSEC3PARAM: DNS_TYPE = DNS_TYPE(51u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NULL: DNS_TYPE = DNS_TYPE(10u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_NXT: DNS_TYPE = DNS_TYPE(30u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_OPT: DNS_TYPE = DNS_TYPE(41u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_PTR: DNS_TYPE = DNS_TYPE(12u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_PX: DNS_TYPE = DNS_TYPE(26u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_RP: DNS_TYPE = DNS_TYPE(17u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_RRSIG: DNS_TYPE = DNS_TYPE(46u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_RT: DNS_TYPE = DNS_TYPE(21u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_SIG: DNS_TYPE = DNS_TYPE(24u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_SINK: DNS_TYPE = DNS_TYPE(40u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_SOA: DNS_TYPE = DNS_TYPE(6u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_SRV: DNS_TYPE = DNS_TYPE(33u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_SVCB: DNS_TYPE = DNS_TYPE(64u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_TEXT: DNS_TYPE = DNS_TYPE(16u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_TKEY: DNS_TYPE = DNS_TYPE(249u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_TLSA: DNS_TYPE = DNS_TYPE(52u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_TSIG: DNS_TYPE = DNS_TYPE(250u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_UID: DNS_TYPE = DNS_TYPE(101u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_UINFO: DNS_TYPE = DNS_TYPE(100u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_UNSPEC: DNS_TYPE = DNS_TYPE(103u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_WINS: DNS_TYPE = DNS_TYPE(65281u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_WINSR: DNS_TYPE = DNS_TYPE(65282u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_WKS: DNS_TYPE = DNS_TYPE(11u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_X25: DNS_TYPE = DNS_TYPE(19u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DNS_TYPE_ZERO: DNS_TYPE = DNS_TYPE(0u16);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const DNS_UPDATE_CACHE_SECURITY_CONTEXT: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const DNS_UPDATE_FORCE_SECURITY_NEGO: u32 = 2048u32;
@@ -928,6 +1155,100 @@ pub const DNS_WINS_FLAG_LOCAL: u32 = 65536u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const DNS_WINS_FLAG_SCOPE: u32 = 2147483648u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsCharSetAnsi: DNS_CHARSET = DNS_CHARSET(3i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsCharSetUnicode: DNS_CHARSET = DNS_CHARSET(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsCharSetUnknown: DNS_CHARSET = DNS_CHARSET(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsCharSetUtf8: DNS_CHARSET = DNS_CHARSET(2i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigAdapterDomainName_A: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigAdapterDomainName_UTF8: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigAdapterDomainName_W: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigAdapterHostNameRegistrationEnabled: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(10i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigAdapterInfo: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(8i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigAddressRegistrationMaxCount: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(11i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigDnsServerList: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(6i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigFullHostName_A: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(16i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigFullHostName_UTF8: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(17i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigFullHostName_W: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(15i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigHostName_A: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(13i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigHostName_UTF8: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(14i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigHostName_W: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(12i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigNameServer: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(18i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigPrimaryDomainName_A: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigPrimaryDomainName_UTF8: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigPrimaryDomainName_W: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigPrimaryHostNameRegistrationEnabled: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(9i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsConfigSearchList: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(7i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsFreeFlat: DNS_FREE_TYPE = DNS_FREE_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsFreeParsedMessageFields: DNS_FREE_TYPE = DNS_FREE_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsFreeRecordList: DNS_FREE_TYPE = DNS_FREE_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsNameDomain: DNS_NAME_FORMAT = DNS_NAME_FORMAT(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsNameDomainLabel: DNS_NAME_FORMAT = DNS_NAME_FORMAT(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsNameHostnameFull: DNS_NAME_FORMAT = DNS_NAME_FORMAT(2i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsNameHostnameLabel: DNS_NAME_FORMAT = DNS_NAME_FORMAT(3i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsNameSrvRecord: DNS_NAME_FORMAT = DNS_NAME_FORMAT(5i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsNameValidateTld: DNS_NAME_FORMAT = DNS_NAME_FORMAT(6i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsNameWildcard: DNS_NAME_FORMAT = DNS_NAME_FORMAT(4i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSectionAddtional: DNS_SECTION = DNS_SECTION(3i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSectionAnswer: DNS_SECTION = DNS_SECTION(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSectionAuthority: DNS_SECTION = DNS_SECTION(2i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSectionQuestion: DNS_SECTION = DNS_SECTION(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamAlpn: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamDohPath: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(7i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamDohPathOpenDns: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(65432i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamDohPathQuad9: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(65380i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamEch: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamIpv4Hint: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamIpv6Hint: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(6i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamMandatory: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamNoDefaultAlpn: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const DnsSvcbParamPort: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const IP4_ADDRESS_STRING_BUFFER_LENGTH: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const IP4_ADDRESS_STRING_LENGTH: u32 = 16u32;
@@ -938,17 +1259,15 @@ pub const IP6_ADDRESS_STRING_LENGTH: u32 = 65u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub const SIZEOF_IP4_ADDRESS: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const TAG_DNS_CONNECTION_POLICY_TAG_CONNECTION_MANAGER: DNS_CONNECTION_POLICY_TAG = DNS_CONNECTION_POLICY_TAG(1i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const TAG_DNS_CONNECTION_POLICY_TAG_DEFAULT: DNS_CONNECTION_POLICY_TAG = DNS_CONNECTION_POLICY_TAG(0i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
+pub const TAG_DNS_CONNECTION_POLICY_TAG_WWWPT: DNS_CONNECTION_POLICY_TAG = DNS_CONNECTION_POLICY_TAG(2i32);
+#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_CHARSET(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsCharSetUnknown: DNS_CHARSET = DNS_CHARSET(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsCharSetUnicode: DNS_CHARSET = DNS_CHARSET(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsCharSetUtf8: DNS_CHARSET = DNS_CHARSET(2i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsCharSetAnsi: DNS_CHARSET = DNS_CHARSET(3i32);
 impl ::core::marker::Copy for DNS_CHARSET {}
 impl ::core::clone::Clone for DNS_CHARSET {
     fn clone(&self) -> Self {
@@ -960,8 +1279,8 @@ impl ::core::default::Default for DNS_CHARSET {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_CHARSET {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CHARSET {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_CHARSET {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -972,44 +1291,6 @@ impl ::core::fmt::Debug for DNS_CHARSET {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_CONFIG_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigPrimaryDomainName_W: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigPrimaryDomainName_A: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigPrimaryDomainName_UTF8: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigAdapterDomainName_W: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigAdapterDomainName_A: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigAdapterDomainName_UTF8: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigDnsServerList: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(6i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigSearchList: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(7i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigAdapterInfo: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(8i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigPrimaryHostNameRegistrationEnabled: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(9i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigAdapterHostNameRegistrationEnabled: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(10i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigAddressRegistrationMaxCount: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(11i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigHostName_W: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(12i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigHostName_A: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(13i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigHostName_UTF8: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(14i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigFullHostName_W: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(15i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigFullHostName_A: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(16i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigFullHostName_UTF8: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(17i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsConfigNameServer: DNS_CONFIG_TYPE = DNS_CONFIG_TYPE(18i32);
 impl ::core::marker::Copy for DNS_CONFIG_TYPE {}
 impl ::core::clone::Clone for DNS_CONFIG_TYPE {
     fn clone(&self) -> Self {
@@ -1021,8 +1302,8 @@ impl ::core::default::Default for DNS_CONFIG_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_CONFIG_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONFIG_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_CONFIG_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1033,12 +1314,6 @@ impl ::core::fmt::Debug for DNS_CONFIG_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_CONNECTION_POLICY_TAG(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const TAG_DNS_CONNECTION_POLICY_TAG_DEFAULT: DNS_CONNECTION_POLICY_TAG = DNS_CONNECTION_POLICY_TAG(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const TAG_DNS_CONNECTION_POLICY_TAG_CONNECTION_MANAGER: DNS_CONNECTION_POLICY_TAG = DNS_CONNECTION_POLICY_TAG(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const TAG_DNS_CONNECTION_POLICY_TAG_WWWPT: DNS_CONNECTION_POLICY_TAG = DNS_CONNECTION_POLICY_TAG(2i32);
 impl ::core::marker::Copy for DNS_CONNECTION_POLICY_TAG {}
 impl ::core::clone::Clone for DNS_CONNECTION_POLICY_TAG {
     fn clone(&self) -> Self {
@@ -1050,8 +1325,8 @@ impl ::core::default::Default for DNS_CONNECTION_POLICY_TAG {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_POLICY_TAG {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_POLICY_TAG {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_CONNECTION_POLICY_TAG {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1062,12 +1337,6 @@ impl ::core::fmt::Debug for DNS_CONNECTION_POLICY_TAG {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_CONNECTION_PROXY_INFO_SWITCH(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_CONNECTION_PROXY_INFO_SWITCH_CONFIG: DNS_CONNECTION_PROXY_INFO_SWITCH = DNS_CONNECTION_PROXY_INFO_SWITCH(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_CONNECTION_PROXY_INFO_SWITCH_SCRIPT: DNS_CONNECTION_PROXY_INFO_SWITCH = DNS_CONNECTION_PROXY_INFO_SWITCH(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_CONNECTION_PROXY_INFO_SWITCH_WPAD: DNS_CONNECTION_PROXY_INFO_SWITCH = DNS_CONNECTION_PROXY_INFO_SWITCH(2i32);
 impl ::core::marker::Copy for DNS_CONNECTION_PROXY_INFO_SWITCH {}
 impl ::core::clone::Clone for DNS_CONNECTION_PROXY_INFO_SWITCH {
     fn clone(&self) -> Self {
@@ -1079,8 +1348,8 @@ impl ::core::default::Default for DNS_CONNECTION_PROXY_INFO_SWITCH {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_PROXY_INFO_SWITCH {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_PROXY_INFO_SWITCH {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_CONNECTION_PROXY_INFO_SWITCH {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1091,16 +1360,6 @@ impl ::core::fmt::Debug for DNS_CONNECTION_PROXY_INFO_SWITCH {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_CONNECTION_PROXY_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_CONNECTION_PROXY_TYPE_NULL: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_CONNECTION_PROXY_TYPE_HTTP: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_CONNECTION_PROXY_TYPE_WAP: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_CONNECTION_PROXY_TYPE_SOCKS4: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_CONNECTION_PROXY_TYPE_SOCKS5: DNS_CONNECTION_PROXY_TYPE = DNS_CONNECTION_PROXY_TYPE(5i32);
 impl ::core::marker::Copy for DNS_CONNECTION_PROXY_TYPE {}
 impl ::core::clone::Clone for DNS_CONNECTION_PROXY_TYPE {
     fn clone(&self) -> Self {
@@ -1112,8 +1371,8 @@ impl ::core::default::Default for DNS_CONNECTION_PROXY_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_PROXY_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_PROXY_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_CONNECTION_PROXY_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1124,12 +1383,6 @@ impl ::core::fmt::Debug for DNS_CONNECTION_PROXY_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_FREE_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsFreeFlat: DNS_FREE_TYPE = DNS_FREE_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsFreeRecordList: DNS_FREE_TYPE = DNS_FREE_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsFreeParsedMessageFields: DNS_FREE_TYPE = DNS_FREE_TYPE(2i32);
 impl ::core::marker::Copy for DNS_FREE_TYPE {}
 impl ::core::clone::Clone for DNS_FREE_TYPE {
     fn clone(&self) -> Self {
@@ -1141,8 +1394,8 @@ impl ::core::default::Default for DNS_FREE_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_FREE_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_FREE_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_FREE_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1153,20 +1406,6 @@ impl ::core::fmt::Debug for DNS_FREE_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_NAME_FORMAT(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsNameDomain: DNS_NAME_FORMAT = DNS_NAME_FORMAT(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsNameDomainLabel: DNS_NAME_FORMAT = DNS_NAME_FORMAT(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsNameHostnameFull: DNS_NAME_FORMAT = DNS_NAME_FORMAT(2i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsNameHostnameLabel: DNS_NAME_FORMAT = DNS_NAME_FORMAT(3i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsNameWildcard: DNS_NAME_FORMAT = DNS_NAME_FORMAT(4i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsNameSrvRecord: DNS_NAME_FORMAT = DNS_NAME_FORMAT(5i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsNameValidateTld: DNS_NAME_FORMAT = DNS_NAME_FORMAT(6i32);
 impl ::core::marker::Copy for DNS_NAME_FORMAT {}
 impl ::core::clone::Clone for DNS_NAME_FORMAT {
     fn clone(&self) -> Self {
@@ -1178,8 +1417,8 @@ impl ::core::default::Default for DNS_NAME_FORMAT {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_NAME_FORMAT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NAME_FORMAT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_NAME_FORMAT {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1190,14 +1429,6 @@ impl ::core::fmt::Debug for DNS_NAME_FORMAT {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_PROXY_INFORMATION_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_PROXY_INFORMATION_DIRECT: DNS_PROXY_INFORMATION_TYPE = DNS_PROXY_INFORMATION_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_PROXY_INFORMATION_DEFAULT_SETTINGS: DNS_PROXY_INFORMATION_TYPE = DNS_PROXY_INFORMATION_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_PROXY_INFORMATION_PROXY_NAME: DNS_PROXY_INFORMATION_TYPE = DNS_PROXY_INFORMATION_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_PROXY_INFORMATION_DOES_NOT_EXIST: DNS_PROXY_INFORMATION_TYPE = DNS_PROXY_INFORMATION_TYPE(3i32);
 impl ::core::marker::Copy for DNS_PROXY_INFORMATION_TYPE {}
 impl ::core::clone::Clone for DNS_PROXY_INFORMATION_TYPE {
     fn clone(&self) -> Self {
@@ -1209,8 +1440,8 @@ impl ::core::default::Default for DNS_PROXY_INFORMATION_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_PROXY_INFORMATION_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_PROXY_INFORMATION_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_PROXY_INFORMATION_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1221,60 +1452,6 @@ impl ::core::fmt::Debug for DNS_PROXY_INFORMATION_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_QUERY_OPTIONS(pub u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_STANDARD: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(0u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_ACCEPT_TRUNCATED_RESPONSE: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_USE_TCP_ONLY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(2u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_NO_RECURSION: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(4u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_BYPASS_CACHE: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(8u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_NO_WIRE_QUERY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(16u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_NO_LOCAL_NAME: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(32u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_NO_HOSTS_FILE: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(64u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_NO_NETBT: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(128u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_WIRE_ONLY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(256u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_RETURN_MESSAGE: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(512u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_MULTICAST_ONLY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1024u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_NO_MULTICAST: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(2048u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_TREAT_AS_FQDN: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(4096u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_ADDRCONFIG: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(8192u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_DUAL_ADDR: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(16384u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_DONT_RESET_TTL_VALUES: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1048576u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_DISABLE_IDN_ENCODING: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(2097152u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_APPEND_MULTILABEL: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(8388608u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_DNSSEC_OK: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(16777216u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_DNSSEC_CHECKING_DISABLED: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(33554432u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_RESERVED: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(4026531840u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_CACHE_ONLY: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(16u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_REQUEST_VERSION1: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_REQUEST_VERSION2: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(2u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_RESULTS_VERSION1: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(1u32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_QUERY_REQUEST_VERSION3: DNS_QUERY_OPTIONS = DNS_QUERY_OPTIONS(3u32);
 impl ::core::marker::Copy for DNS_QUERY_OPTIONS {}
 impl ::core::clone::Clone for DNS_QUERY_OPTIONS {
     fn clone(&self) -> Self {
@@ -1286,8 +1463,8 @@ impl ::core::default::Default for DNS_QUERY_OPTIONS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_QUERY_OPTIONS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_QUERY_OPTIONS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_QUERY_OPTIONS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1331,14 +1508,6 @@ impl ::core::ops::Not for DNS_QUERY_OPTIONS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_SECTION(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSectionQuestion: DNS_SECTION = DNS_SECTION(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSectionAnswer: DNS_SECTION = DNS_SECTION(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSectionAuthority: DNS_SECTION = DNS_SECTION(2i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSectionAddtional: DNS_SECTION = DNS_SECTION(3i32);
 impl ::core::marker::Copy for DNS_SECTION {}
 impl ::core::clone::Clone for DNS_SECTION {
     fn clone(&self) -> Self {
@@ -1350,8 +1519,8 @@ impl ::core::default::Default for DNS_SECTION {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_SECTION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SECTION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_SECTION {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1362,26 +1531,6 @@ impl ::core::fmt::Debug for DNS_SECTION {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_SVCB_PARAM_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamMandatory: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamAlpn: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamNoDefaultAlpn: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamPort: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamIpv4Hint: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamEch: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamIpv6Hint: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(6i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamDohPath: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(7i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamDohPathQuad9: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(65380i32);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DnsSvcbParamDohPathOpenDns: DNS_SVCB_PARAM_TYPE = DNS_SVCB_PARAM_TYPE(65432i32);
 impl ::core::marker::Copy for DNS_SVCB_PARAM_TYPE {}
 impl ::core::clone::Clone for DNS_SVCB_PARAM_TYPE {
     fn clone(&self) -> Self {
@@ -1393,8 +1542,8 @@ impl ::core::default::Default for DNS_SVCB_PARAM_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_PARAM_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_PARAM_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_SVCB_PARAM_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1405,142 +1554,6 @@ impl ::core::fmt::Debug for DNS_SVCB_PARAM_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DNS_TYPE(pub u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_ZERO: DNS_TYPE = DNS_TYPE(0u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_A: DNS_TYPE = DNS_TYPE(1u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NS: DNS_TYPE = DNS_TYPE(2u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_MD: DNS_TYPE = DNS_TYPE(3u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_MF: DNS_TYPE = DNS_TYPE(4u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_CNAME: DNS_TYPE = DNS_TYPE(5u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_SOA: DNS_TYPE = DNS_TYPE(6u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_MB: DNS_TYPE = DNS_TYPE(7u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_MG: DNS_TYPE = DNS_TYPE(8u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_MR: DNS_TYPE = DNS_TYPE(9u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NULL: DNS_TYPE = DNS_TYPE(10u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_WKS: DNS_TYPE = DNS_TYPE(11u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_PTR: DNS_TYPE = DNS_TYPE(12u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_HINFO: DNS_TYPE = DNS_TYPE(13u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_MINFO: DNS_TYPE = DNS_TYPE(14u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_MX: DNS_TYPE = DNS_TYPE(15u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_TEXT: DNS_TYPE = DNS_TYPE(16u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_RP: DNS_TYPE = DNS_TYPE(17u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_AFSDB: DNS_TYPE = DNS_TYPE(18u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_X25: DNS_TYPE = DNS_TYPE(19u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_ISDN: DNS_TYPE = DNS_TYPE(20u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_RT: DNS_TYPE = DNS_TYPE(21u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NSAP: DNS_TYPE = DNS_TYPE(22u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NSAPPTR: DNS_TYPE = DNS_TYPE(23u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_SIG: DNS_TYPE = DNS_TYPE(24u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_KEY: DNS_TYPE = DNS_TYPE(25u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_PX: DNS_TYPE = DNS_TYPE(26u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_GPOS: DNS_TYPE = DNS_TYPE(27u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_AAAA: DNS_TYPE = DNS_TYPE(28u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_LOC: DNS_TYPE = DNS_TYPE(29u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NXT: DNS_TYPE = DNS_TYPE(30u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_EID: DNS_TYPE = DNS_TYPE(31u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NIMLOC: DNS_TYPE = DNS_TYPE(32u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_SRV: DNS_TYPE = DNS_TYPE(33u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_ATMA: DNS_TYPE = DNS_TYPE(34u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NAPTR: DNS_TYPE = DNS_TYPE(35u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_KX: DNS_TYPE = DNS_TYPE(36u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_CERT: DNS_TYPE = DNS_TYPE(37u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_A6: DNS_TYPE = DNS_TYPE(38u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_DNAME: DNS_TYPE = DNS_TYPE(39u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_SINK: DNS_TYPE = DNS_TYPE(40u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_OPT: DNS_TYPE = DNS_TYPE(41u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_DS: DNS_TYPE = DNS_TYPE(43u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_RRSIG: DNS_TYPE = DNS_TYPE(46u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NSEC: DNS_TYPE = DNS_TYPE(47u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_DNSKEY: DNS_TYPE = DNS_TYPE(48u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_DHCID: DNS_TYPE = DNS_TYPE(49u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NSEC3: DNS_TYPE = DNS_TYPE(50u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NSEC3PARAM: DNS_TYPE = DNS_TYPE(51u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_TLSA: DNS_TYPE = DNS_TYPE(52u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_SVCB: DNS_TYPE = DNS_TYPE(64u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_HTTPS: DNS_TYPE = DNS_TYPE(65u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_UINFO: DNS_TYPE = DNS_TYPE(100u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_UID: DNS_TYPE = DNS_TYPE(101u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_GID: DNS_TYPE = DNS_TYPE(102u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_UNSPEC: DNS_TYPE = DNS_TYPE(103u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_ADDRS: DNS_TYPE = DNS_TYPE(248u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_TKEY: DNS_TYPE = DNS_TYPE(249u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_TSIG: DNS_TYPE = DNS_TYPE(250u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_IXFR: DNS_TYPE = DNS_TYPE(251u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_AXFR: DNS_TYPE = DNS_TYPE(252u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_MAILB: DNS_TYPE = DNS_TYPE(253u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_MAILA: DNS_TYPE = DNS_TYPE(254u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_ALL: DNS_TYPE = DNS_TYPE(255u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_ANY: DNS_TYPE = DNS_TYPE(255u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_WINS: DNS_TYPE = DNS_TYPE(65281u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_WINSR: DNS_TYPE = DNS_TYPE(65282u16);
-#[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
-pub const DNS_TYPE_NBSTAT: DNS_TYPE = DNS_TYPE(65282u16);
 impl ::core::marker::Copy for DNS_TYPE {}
 impl ::core::clone::Clone for DNS_TYPE {
     fn clone(&self) -> Self {
@@ -1552,8 +1565,8 @@ impl ::core::default::Default for DNS_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DNS_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DNS_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -1571,8 +1584,8 @@ impl ::core::clone::Clone for DNS_AAAA_DATA {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_AAAA_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_AAAA_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_AAAA_DATA {
     fn default() -> Self {
@@ -1591,8 +1604,8 @@ impl ::core::clone::Clone for DNS_ADDR {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_ADDR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_ADDR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_ADDR {
     fn default() -> Self {
@@ -1610,8 +1623,8 @@ impl ::core::clone::Clone for DNS_ADDR_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_ADDR_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_ADDR_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_ADDR_0 {
     fn default() -> Self {
@@ -1638,8 +1651,8 @@ impl ::core::clone::Clone for DNS_ADDR_ARRAY {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_ADDR_ARRAY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_ADDR_ARRAY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_ADDR_ARRAY {
     fn default() -> Self {
@@ -1663,8 +1676,8 @@ impl ::core::fmt::Debug for DNS_APPLICATION_SETTINGS {
         f.debug_struct("DNS_APPLICATION_SETTINGS").field("Version", &self.Version).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_APPLICATION_SETTINGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_APPLICATION_SETTINGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_APPLICATION_SETTINGS {
     fn eq(&self, other: &Self) -> bool {
@@ -1694,8 +1707,8 @@ impl ::core::fmt::Debug for DNS_ATMA_DATA {
         f.debug_struct("DNS_ATMA_DATA").field("AddressType", &self.AddressType).field("Address", &self.Address).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_ATMA_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_ATMA_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_ATMA_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -1724,8 +1737,8 @@ impl ::core::fmt::Debug for DNS_A_DATA {
         f.debug_struct("DNS_A_DATA").field("IpAddress", &self.IpAddress).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_A_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_A_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_A_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -1741,7 +1754,7 @@ impl ::core::default::Default for DNS_A_DATA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_CONNECTION_IFINDEX_ENTRY {
-    pub pwszConnectionName: ::windows::core::PCWSTR,
+    pub pwszConnectionName: ::windows_core::PCWSTR,
     pub dwIfIndex: u32,
 }
 impl ::core::marker::Copy for DNS_CONNECTION_IFINDEX_ENTRY {}
@@ -1755,8 +1768,8 @@ impl ::core::fmt::Debug for DNS_CONNECTION_IFINDEX_ENTRY {
         f.debug_struct("DNS_CONNECTION_IFINDEX_ENTRY").field("pwszConnectionName", &self.pwszConnectionName).field("dwIfIndex", &self.dwIfIndex).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_IFINDEX_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_IFINDEX_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_CONNECTION_IFINDEX_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -1786,8 +1799,8 @@ impl ::core::fmt::Debug for DNS_CONNECTION_IFINDEX_LIST {
         f.debug_struct("DNS_CONNECTION_IFINDEX_LIST").field("pConnectionIfIndexEntries", &self.pConnectionIfIndexEntries).field("nEntries", &self.nEntries).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_IFINDEX_LIST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_IFINDEX_LIST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_CONNECTION_IFINDEX_LIST {
     fn eq(&self, other: &Self) -> bool {
@@ -1816,8 +1829,8 @@ impl ::core::fmt::Debug for DNS_CONNECTION_NAME {
         f.debug_struct("DNS_CONNECTION_NAME").field("wszName", &self.wszName).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_NAME {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_NAME {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_CONNECTION_NAME {
     fn eq(&self, other: &Self) -> bool {
@@ -1847,8 +1860,8 @@ impl ::core::fmt::Debug for DNS_CONNECTION_NAME_LIST {
         f.debug_struct("DNS_CONNECTION_NAME_LIST").field("cNames", &self.cNames).field("pNames", &self.pNames).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_NAME_LIST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_NAME_LIST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_CONNECTION_NAME_LIST {
     fn eq(&self, other: &Self) -> bool {
@@ -1864,12 +1877,12 @@ impl ::core::default::Default for DNS_CONNECTION_NAME_LIST {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_CONNECTION_POLICY_ENTRY {
-    pub pwszHost: ::windows::core::PCWSTR,
-    pub pwszAppId: ::windows::core::PCWSTR,
+    pub pwszHost: ::windows_core::PCWSTR,
+    pub pwszAppId: ::windows_core::PCWSTR,
     pub cbAppSid: u32,
     pub pbAppSid: *mut u8,
     pub nConnections: u32,
-    pub ppwszConnections: *const ::windows::core::PCWSTR,
+    pub ppwszConnections: *const ::windows_core::PCWSTR,
     pub dwPolicyEntryFlags: u32,
 }
 impl ::core::marker::Copy for DNS_CONNECTION_POLICY_ENTRY {}
@@ -1883,8 +1896,8 @@ impl ::core::fmt::Debug for DNS_CONNECTION_POLICY_ENTRY {
         f.debug_struct("DNS_CONNECTION_POLICY_ENTRY").field("pwszHost", &self.pwszHost).field("pwszAppId", &self.pwszAppId).field("cbAppSid", &self.cbAppSid).field("pbAppSid", &self.pbAppSid).field("nConnections", &self.nConnections).field("ppwszConnections", &self.ppwszConnections).field("dwPolicyEntryFlags", &self.dwPolicyEntryFlags).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_POLICY_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_POLICY_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_CONNECTION_POLICY_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -1914,8 +1927,8 @@ impl ::core::fmt::Debug for DNS_CONNECTION_POLICY_ENTRY_LIST {
         f.debug_struct("DNS_CONNECTION_POLICY_ENTRY_LIST").field("pPolicyEntries", &self.pPolicyEntries).field("nEntries", &self.nEntries).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_POLICY_ENTRY_LIST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_POLICY_ENTRY_LIST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_CONNECTION_POLICY_ENTRY_LIST {
     fn eq(&self, other: &Self) -> bool {
@@ -1940,8 +1953,8 @@ impl ::core::clone::Clone for DNS_CONNECTION_PROXY_ELEMENT {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_PROXY_ELEMENT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_PROXY_ELEMENT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_CONNECTION_PROXY_ELEMENT {
     fn default() -> Self {
@@ -1952,7 +1965,7 @@ impl ::core::default::Default for DNS_CONNECTION_PROXY_ELEMENT {
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_CONNECTION_PROXY_INFO {
     pub Version: u32,
-    pub pwszFriendlyName: ::windows::core::PWSTR,
+    pub pwszFriendlyName: ::windows_core::PWSTR,
     pub Flags: u32,
     pub Switch: DNS_CONNECTION_PROXY_INFO_SWITCH,
     pub Anonymous: DNS_CONNECTION_PROXY_INFO_0,
@@ -1963,8 +1976,8 @@ impl ::core::clone::Clone for DNS_CONNECTION_PROXY_INFO {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_PROXY_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_PROXY_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_CONNECTION_PROXY_INFO {
     fn default() -> Self {
@@ -1983,8 +1996,8 @@ impl ::core::clone::Clone for DNS_CONNECTION_PROXY_INFO_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_PROXY_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_PROXY_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_CONNECTION_PROXY_INFO_0 {
     fn default() -> Self {
@@ -1994,11 +2007,11 @@ impl ::core::default::Default for DNS_CONNECTION_PROXY_INFO_0 {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_CONNECTION_PROXY_INFO_0_0 {
-    pub pwszServer: ::windows::core::PWSTR,
-    pub pwszUsername: ::windows::core::PWSTR,
-    pub pwszPassword: ::windows::core::PWSTR,
-    pub pwszException: ::windows::core::PWSTR,
-    pub pwszExtraInfo: ::windows::core::PWSTR,
+    pub pwszServer: ::windows_core::PWSTR,
+    pub pwszUsername: ::windows_core::PWSTR,
+    pub pwszPassword: ::windows_core::PWSTR,
+    pub pwszException: ::windows_core::PWSTR,
+    pub pwszExtraInfo: ::windows_core::PWSTR,
     pub Port: u16,
 }
 impl ::core::marker::Copy for DNS_CONNECTION_PROXY_INFO_0_0 {}
@@ -2012,8 +2025,8 @@ impl ::core::fmt::Debug for DNS_CONNECTION_PROXY_INFO_0_0 {
         f.debug_struct("DNS_CONNECTION_PROXY_INFO_0_0").field("pwszServer", &self.pwszServer).field("pwszUsername", &self.pwszUsername).field("pwszPassword", &self.pwszPassword).field("pwszException", &self.pwszException).field("pwszExtraInfo", &self.pwszExtraInfo).field("Port", &self.Port).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_PROXY_INFO_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_PROXY_INFO_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_CONNECTION_PROXY_INFO_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -2029,9 +2042,9 @@ impl ::core::default::Default for DNS_CONNECTION_PROXY_INFO_0_0 {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_CONNECTION_PROXY_INFO_0_1 {
-    pub pwszScript: ::windows::core::PWSTR,
-    pub pwszUsername: ::windows::core::PWSTR,
-    pub pwszPassword: ::windows::core::PWSTR,
+    pub pwszScript: ::windows_core::PWSTR,
+    pub pwszUsername: ::windows_core::PWSTR,
+    pub pwszPassword: ::windows_core::PWSTR,
 }
 impl ::core::marker::Copy for DNS_CONNECTION_PROXY_INFO_0_1 {}
 impl ::core::clone::Clone for DNS_CONNECTION_PROXY_INFO_0_1 {
@@ -2044,8 +2057,8 @@ impl ::core::fmt::Debug for DNS_CONNECTION_PROXY_INFO_0_1 {
         f.debug_struct("DNS_CONNECTION_PROXY_INFO_0_1").field("pwszScript", &self.pwszScript).field("pwszUsername", &self.pwszUsername).field("pwszPassword", &self.pwszPassword).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_PROXY_INFO_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_PROXY_INFO_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_CONNECTION_PROXY_INFO_0_1 {
     fn eq(&self, other: &Self) -> bool {
@@ -2064,7 +2077,7 @@ impl ::core::default::Default for DNS_CONNECTION_PROXY_INFO_0_1 {
 pub struct DNS_CONNECTION_PROXY_INFO_EX {
     pub ProxyInfo: DNS_CONNECTION_PROXY_INFO,
     pub dwInterfaceIndex: u32,
-    pub pwszConnectionName: ::windows::core::PWSTR,
+    pub pwszConnectionName: ::windows_core::PWSTR,
     pub fDirectConfiguration: super::super::Foundation::BOOL,
     pub hConnection: super::super::Foundation::HANDLE,
 }
@@ -2077,8 +2090,8 @@ impl ::core::clone::Clone for DNS_CONNECTION_PROXY_INFO_EX {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_CONNECTION_PROXY_INFO_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_PROXY_INFO_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_CONNECTION_PROXY_INFO_EX {
@@ -2103,8 +2116,8 @@ impl ::core::fmt::Debug for DNS_CONNECTION_PROXY_LIST {
         f.debug_struct("DNS_CONNECTION_PROXY_LIST").field("cProxies", &self.cProxies).field("pProxies", &self.pProxies).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_CONNECTION_PROXY_LIST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CONNECTION_PROXY_LIST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_CONNECTION_PROXY_LIST {
     fn eq(&self, other: &Self) -> bool {
@@ -2131,8 +2144,8 @@ impl ::core::clone::Clone for DNS_CUSTOM_SERVER {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_CUSTOM_SERVER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CUSTOM_SERVER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_CUSTOM_SERVER {
     fn default() -> Self {
@@ -2142,7 +2155,7 @@ impl ::core::default::Default for DNS_CUSTOM_SERVER {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub union DNS_CUSTOM_SERVER_0 {
-    pub pwszTemplate: ::windows::core::PWSTR,
+    pub pwszTemplate: ::windows_core::PWSTR,
 }
 impl ::core::marker::Copy for DNS_CUSTOM_SERVER_0 {}
 impl ::core::clone::Clone for DNS_CUSTOM_SERVER_0 {
@@ -2150,8 +2163,8 @@ impl ::core::clone::Clone for DNS_CUSTOM_SERVER_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_CUSTOM_SERVER_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CUSTOM_SERVER_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_CUSTOM_SERVER_0 {
     fn default() -> Self {
@@ -2169,8 +2182,8 @@ impl ::core::clone::Clone for DNS_CUSTOM_SERVER_1 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_CUSTOM_SERVER_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_CUSTOM_SERVER_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_CUSTOM_SERVER_1 {
     fn default() -> Self {
@@ -2194,8 +2207,8 @@ impl ::core::fmt::Debug for DNS_DHCID_DATA {
         f.debug_struct("DNS_DHCID_DATA").field("dwByteCount", &self.dwByteCount).field("DHCID", &self.DHCID).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_DHCID_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_DHCID_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_DHCID_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -2229,8 +2242,8 @@ impl ::core::fmt::Debug for DNS_DS_DATA {
         f.debug_struct("DNS_DS_DATA").field("wKeyTag", &self.wKeyTag).field("chAlgorithm", &self.chAlgorithm).field("chDigestType", &self.chDigestType).field("wDigestLength", &self.wDigestLength).field("wPad", &self.wPad).field("Digest", &self.Digest).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_DS_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_DS_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_DS_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -2260,8 +2273,8 @@ impl ::core::clone::Clone for DNS_HEADER {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_HEADER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_HEADER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_HEADER {
     fn default() -> Self {
@@ -2281,8 +2294,8 @@ impl ::core::clone::Clone for DNS_HEADER_EXT {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_HEADER_EXT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_HEADER_EXT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_HEADER_EXT {
     fn default() -> Self {
@@ -2310,8 +2323,8 @@ impl ::core::fmt::Debug for DNS_KEY_DATA {
         f.debug_struct("DNS_KEY_DATA").field("wFlags", &self.wFlags).field("chProtocol", &self.chProtocol).field("chAlgorithm", &self.chAlgorithm).field("wKeyLength", &self.wKeyLength).field("wPad", &self.wPad).field("Key", &self.Key).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_KEY_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_KEY_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_KEY_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -2346,8 +2359,8 @@ impl ::core::fmt::Debug for DNS_LOC_DATA {
         f.debug_struct("DNS_LOC_DATA").field("wVersion", &self.wVersion).field("wSize", &self.wSize).field("wHorPrec", &self.wHorPrec).field("wVerPrec", &self.wVerPrec).field("dwLatitude", &self.dwLatitude).field("dwLongitude", &self.dwLongitude).field("dwAltitude", &self.dwAltitude).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_LOC_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_LOC_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_LOC_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -2372,8 +2385,8 @@ impl ::core::clone::Clone for DNS_MESSAGE_BUFFER {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_MESSAGE_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_MESSAGE_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_MESSAGE_BUFFER {
     fn default() -> Self {
@@ -2383,8 +2396,8 @@ impl ::core::default::Default for DNS_MESSAGE_BUFFER {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_MINFO_DATAA {
-    pub pNameMailbox: ::windows::core::PSTR,
-    pub pNameErrorsMailbox: ::windows::core::PSTR,
+    pub pNameMailbox: ::windows_core::PSTR,
+    pub pNameErrorsMailbox: ::windows_core::PSTR,
 }
 impl ::core::marker::Copy for DNS_MINFO_DATAA {}
 impl ::core::clone::Clone for DNS_MINFO_DATAA {
@@ -2397,8 +2410,8 @@ impl ::core::fmt::Debug for DNS_MINFO_DATAA {
         f.debug_struct("DNS_MINFO_DATAA").field("pNameMailbox", &self.pNameMailbox).field("pNameErrorsMailbox", &self.pNameErrorsMailbox).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_MINFO_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_MINFO_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_MINFO_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -2414,8 +2427,8 @@ impl ::core::default::Default for DNS_MINFO_DATAA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_MINFO_DATAW {
-    pub pNameMailbox: ::windows::core::PWSTR,
-    pub pNameErrorsMailbox: ::windows::core::PWSTR,
+    pub pNameMailbox: ::windows_core::PWSTR,
+    pub pNameErrorsMailbox: ::windows_core::PWSTR,
 }
 impl ::core::marker::Copy for DNS_MINFO_DATAW {}
 impl ::core::clone::Clone for DNS_MINFO_DATAW {
@@ -2428,8 +2441,8 @@ impl ::core::fmt::Debug for DNS_MINFO_DATAW {
         f.debug_struct("DNS_MINFO_DATAW").field("pNameMailbox", &self.pNameMailbox).field("pNameErrorsMailbox", &self.pNameErrorsMailbox).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_MINFO_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_MINFO_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_MINFO_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -2445,7 +2458,7 @@ impl ::core::default::Default for DNS_MINFO_DATAW {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_MX_DATAA {
-    pub pNameExchange: ::windows::core::PSTR,
+    pub pNameExchange: ::windows_core::PSTR,
     pub wPreference: u16,
     pub Pad: u16,
 }
@@ -2460,8 +2473,8 @@ impl ::core::fmt::Debug for DNS_MX_DATAA {
         f.debug_struct("DNS_MX_DATAA").field("pNameExchange", &self.pNameExchange).field("wPreference", &self.wPreference).field("Pad", &self.Pad).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_MX_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_MX_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_MX_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -2477,7 +2490,7 @@ impl ::core::default::Default for DNS_MX_DATAA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_MX_DATAW {
-    pub pNameExchange: ::windows::core::PWSTR,
+    pub pNameExchange: ::windows_core::PWSTR,
     pub wPreference: u16,
     pub Pad: u16,
 }
@@ -2492,8 +2505,8 @@ impl ::core::fmt::Debug for DNS_MX_DATAW {
         f.debug_struct("DNS_MX_DATAW").field("pNameExchange", &self.pNameExchange).field("wPreference", &self.wPreference).field("Pad", &self.Pad).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_MX_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_MX_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_MX_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -2511,10 +2524,10 @@ impl ::core::default::Default for DNS_MX_DATAW {
 pub struct DNS_NAPTR_DATAA {
     pub wOrder: u16,
     pub wPreference: u16,
-    pub pFlags: ::windows::core::PSTR,
-    pub pService: ::windows::core::PSTR,
-    pub pRegularExpression: ::windows::core::PSTR,
-    pub pReplacement: ::windows::core::PSTR,
+    pub pFlags: ::windows_core::PSTR,
+    pub pService: ::windows_core::PSTR,
+    pub pRegularExpression: ::windows_core::PSTR,
+    pub pReplacement: ::windows_core::PSTR,
 }
 impl ::core::marker::Copy for DNS_NAPTR_DATAA {}
 impl ::core::clone::Clone for DNS_NAPTR_DATAA {
@@ -2527,8 +2540,8 @@ impl ::core::fmt::Debug for DNS_NAPTR_DATAA {
         f.debug_struct("DNS_NAPTR_DATAA").field("wOrder", &self.wOrder).field("wPreference", &self.wPreference).field("pFlags", &self.pFlags).field("pService", &self.pService).field("pRegularExpression", &self.pRegularExpression).field("pReplacement", &self.pReplacement).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_NAPTR_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NAPTR_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_NAPTR_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -2546,10 +2559,10 @@ impl ::core::default::Default for DNS_NAPTR_DATAA {
 pub struct DNS_NAPTR_DATAW {
     pub wOrder: u16,
     pub wPreference: u16,
-    pub pFlags: ::windows::core::PWSTR,
-    pub pService: ::windows::core::PWSTR,
-    pub pRegularExpression: ::windows::core::PWSTR,
-    pub pReplacement: ::windows::core::PWSTR,
+    pub pFlags: ::windows_core::PWSTR,
+    pub pService: ::windows_core::PWSTR,
+    pub pRegularExpression: ::windows_core::PWSTR,
+    pub pReplacement: ::windows_core::PWSTR,
 }
 impl ::core::marker::Copy for DNS_NAPTR_DATAW {}
 impl ::core::clone::Clone for DNS_NAPTR_DATAW {
@@ -2562,8 +2575,8 @@ impl ::core::fmt::Debug for DNS_NAPTR_DATAW {
         f.debug_struct("DNS_NAPTR_DATAW").field("wOrder", &self.wOrder).field("wPreference", &self.wPreference).field("pFlags", &self.pFlags).field("pService", &self.pService).field("pRegularExpression", &self.pRegularExpression).field("pReplacement", &self.pReplacement).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_NAPTR_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NAPTR_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_NAPTR_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -2597,8 +2610,8 @@ impl ::core::fmt::Debug for DNS_NSEC3PARAM_DATA {
         f.debug_struct("DNS_NSEC3PARAM_DATA").field("chAlgorithm", &self.chAlgorithm).field("bFlags", &self.bFlags).field("wIterations", &self.wIterations).field("bSaltLength", &self.bSaltLength).field("bPad", &self.bPad).field("pbSalt", &self.pbSalt).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_NSEC3PARAM_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NSEC3PARAM_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_NSEC3PARAM_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -2633,8 +2646,8 @@ impl ::core::fmt::Debug for DNS_NSEC3_DATA {
         f.debug_struct("DNS_NSEC3_DATA").field("chAlgorithm", &self.chAlgorithm).field("bFlags", &self.bFlags).field("wIterations", &self.wIterations).field("bSaltLength", &self.bSaltLength).field("bHashLength", &self.bHashLength).field("wTypeBitMapsLength", &self.wTypeBitMapsLength).field("chData", &self.chData).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_NSEC3_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NSEC3_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_NSEC3_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -2650,7 +2663,7 @@ impl ::core::default::Default for DNS_NSEC3_DATA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_NSEC_DATAA {
-    pub pNextDomainName: ::windows::core::PSTR,
+    pub pNextDomainName: ::windows_core::PSTR,
     pub wTypeBitMapsLength: u16,
     pub wPad: u16,
     pub TypeBitMaps: [u8; 1],
@@ -2666,8 +2679,8 @@ impl ::core::fmt::Debug for DNS_NSEC_DATAA {
         f.debug_struct("DNS_NSEC_DATAA").field("pNextDomainName", &self.pNextDomainName).field("wTypeBitMapsLength", &self.wTypeBitMapsLength).field("wPad", &self.wPad).field("TypeBitMaps", &self.TypeBitMaps).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_NSEC_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NSEC_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_NSEC_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -2683,7 +2696,7 @@ impl ::core::default::Default for DNS_NSEC_DATAA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_NSEC_DATAW {
-    pub pNextDomainName: ::windows::core::PWSTR,
+    pub pNextDomainName: ::windows_core::PWSTR,
     pub wTypeBitMapsLength: u16,
     pub wPad: u16,
     pub TypeBitMaps: [u8; 1],
@@ -2699,8 +2712,8 @@ impl ::core::fmt::Debug for DNS_NSEC_DATAW {
         f.debug_struct("DNS_NSEC_DATAW").field("pNextDomainName", &self.pNextDomainName).field("wTypeBitMapsLength", &self.wTypeBitMapsLength).field("wPad", &self.wPad).field("TypeBitMaps", &self.TypeBitMaps).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_NSEC_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NSEC_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_NSEC_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -2730,8 +2743,8 @@ impl ::core::fmt::Debug for DNS_NULL_DATA {
         f.debug_struct("DNS_NULL_DATA").field("dwByteCount", &self.dwByteCount).field("Data", &self.Data).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_NULL_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NULL_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_NULL_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -2747,7 +2760,7 @@ impl ::core::default::Default for DNS_NULL_DATA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_NXT_DATAA {
-    pub pNameNext: ::windows::core::PSTR,
+    pub pNameNext: ::windows_core::PSTR,
     pub wNumTypes: u16,
     pub wTypes: [u16; 1],
 }
@@ -2762,8 +2775,8 @@ impl ::core::fmt::Debug for DNS_NXT_DATAA {
         f.debug_struct("DNS_NXT_DATAA").field("pNameNext", &self.pNameNext).field("wNumTypes", &self.wNumTypes).field("wTypes", &self.wTypes).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_NXT_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NXT_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_NXT_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -2779,7 +2792,7 @@ impl ::core::default::Default for DNS_NXT_DATAA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_NXT_DATAW {
-    pub pNameNext: ::windows::core::PWSTR,
+    pub pNameNext: ::windows_core::PWSTR,
     pub wNumTypes: u16,
     pub wTypes: [u16; 1],
 }
@@ -2794,8 +2807,8 @@ impl ::core::fmt::Debug for DNS_NXT_DATAW {
         f.debug_struct("DNS_NXT_DATAW").field("pNameNext", &self.pNameNext).field("wNumTypes", &self.wNumTypes).field("wTypes", &self.wTypes).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_NXT_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_NXT_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_NXT_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -2826,8 +2839,8 @@ impl ::core::fmt::Debug for DNS_OPT_DATA {
         f.debug_struct("DNS_OPT_DATA").field("wDataLength", &self.wDataLength).field("wPad", &self.wPad).field("Data", &self.Data).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_OPT_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_OPT_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_OPT_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -2845,7 +2858,7 @@ impl ::core::default::Default for DNS_OPT_DATA {
 pub struct DNS_PROXY_INFORMATION {
     pub version: u32,
     pub proxyInformationType: DNS_PROXY_INFORMATION_TYPE,
-    pub proxyName: ::windows::core::PWSTR,
+    pub proxyName: ::windows_core::PWSTR,
 }
 impl ::core::marker::Copy for DNS_PROXY_INFORMATION {}
 impl ::core::clone::Clone for DNS_PROXY_INFORMATION {
@@ -2858,8 +2871,8 @@ impl ::core::fmt::Debug for DNS_PROXY_INFORMATION {
         f.debug_struct("DNS_PROXY_INFORMATION").field("version", &self.version).field("proxyInformationType", &self.proxyInformationType).field("proxyName", &self.proxyName).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_PROXY_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_PROXY_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_PROXY_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -2875,7 +2888,7 @@ impl ::core::default::Default for DNS_PROXY_INFORMATION {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_PTR_DATAA {
-    pub pNameHost: ::windows::core::PSTR,
+    pub pNameHost: ::windows_core::PSTR,
 }
 impl ::core::marker::Copy for DNS_PTR_DATAA {}
 impl ::core::clone::Clone for DNS_PTR_DATAA {
@@ -2888,8 +2901,8 @@ impl ::core::fmt::Debug for DNS_PTR_DATAA {
         f.debug_struct("DNS_PTR_DATAA").field("pNameHost", &self.pNameHost).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_PTR_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_PTR_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_PTR_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -2905,7 +2918,7 @@ impl ::core::default::Default for DNS_PTR_DATAA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_PTR_DATAW {
-    pub pNameHost: ::windows::core::PWSTR,
+    pub pNameHost: ::windows_core::PWSTR,
 }
 impl ::core::marker::Copy for DNS_PTR_DATAW {}
 impl ::core::clone::Clone for DNS_PTR_DATAW {
@@ -2918,8 +2931,8 @@ impl ::core::fmt::Debug for DNS_PTR_DATAW {
         f.debug_struct("DNS_PTR_DATAW").field("pNameHost", &self.pNameHost).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_PTR_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_PTR_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_PTR_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -2948,8 +2961,8 @@ impl ::core::fmt::Debug for DNS_QUERY_CANCEL {
         f.debug_struct("DNS_QUERY_CANCEL").field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_QUERY_CANCEL {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_QUERY_CANCEL {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_QUERY_CANCEL {
     fn eq(&self, other: &Self) -> bool {
@@ -2967,7 +2980,7 @@ impl ::core::default::Default for DNS_QUERY_CANCEL {
 #[cfg(feature = "Win32_Foundation")]
 pub struct DNS_QUERY_REQUEST {
     pub Version: u32,
-    pub QueryName: ::windows::core::PCWSTR,
+    pub QueryName: ::windows_core::PCWSTR,
     pub QueryType: u16,
     pub QueryOptions: u64,
     pub pDnsServerList: *mut DNS_ADDR_ARRAY,
@@ -2990,8 +3003,8 @@ impl ::core::fmt::Debug for DNS_QUERY_REQUEST {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_QUERY_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_QUERY_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_QUERY_REQUEST {
@@ -3004,7 +3017,7 @@ impl ::core::default::Default for DNS_QUERY_REQUEST {
 #[cfg(feature = "Win32_Foundation")]
 pub struct DNS_QUERY_REQUEST3 {
     pub Version: u32,
-    pub QueryName: ::windows::core::PCWSTR,
+    pub QueryName: ::windows_core::PCWSTR,
     pub QueryType: u16,
     pub QueryOptions: u64,
     pub pDnsServerList: *mut DNS_ADDR_ARRAY,
@@ -3043,8 +3056,8 @@ impl ::core::fmt::Debug for DNS_QUERY_REQUEST3 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_QUERY_REQUEST3 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_QUERY_REQUEST3 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_QUERY_REQUEST3 {
@@ -3077,8 +3090,8 @@ impl ::core::fmt::Debug for DNS_QUERY_RESULT {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_QUERY_RESULT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_QUERY_RESULT {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DNS_QUERY_RESULT {
@@ -3099,7 +3112,7 @@ impl ::core::default::Default for DNS_QUERY_RESULT {
 #[cfg(feature = "Win32_Foundation")]
 pub struct DNS_RECORDA {
     pub pNext: *mut DNS_RECORDA,
-    pub pName: ::windows::core::PSTR,
+    pub pName: ::windows_core::PSTR,
     pub wType: u16,
     pub wDataLength: u16,
     pub Flags: DNS_RECORDA_1,
@@ -3116,8 +3129,8 @@ impl ::core::clone::Clone for DNS_RECORDA {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RECORDA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORDA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_RECORDA {
@@ -3225,8 +3238,8 @@ impl ::core::clone::Clone for DNS_RECORDA_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RECORDA_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORDA_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_RECORDA_0 {
@@ -3250,8 +3263,8 @@ impl ::core::clone::Clone for DNS_RECORDA_1 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RECORDA_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORDA_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_RECORDA_1 {
@@ -3264,7 +3277,7 @@ impl ::core::default::Default for DNS_RECORDA_1 {
 #[cfg(feature = "Win32_Foundation")]
 pub struct DNS_RECORDW {
     pub pNext: *mut DNS_RECORDW,
-    pub pName: ::windows::core::PWSTR,
+    pub pName: ::windows_core::PWSTR,
     pub wType: u16,
     pub wDataLength: u16,
     pub Flags: DNS_RECORDW_1,
@@ -3281,8 +3294,8 @@ impl ::core::clone::Clone for DNS_RECORDW {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RECORDW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORDW {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_RECORDW {
@@ -3390,8 +3403,8 @@ impl ::core::clone::Clone for DNS_RECORDW_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RECORDW_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORDW_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_RECORDW_0 {
@@ -3415,8 +3428,8 @@ impl ::core::clone::Clone for DNS_RECORDW_1 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RECORDW_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORDW_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_RECORDW_1 {
@@ -3440,8 +3453,8 @@ impl ::core::fmt::Debug for DNS_RECORD_FLAGS {
         f.debug_struct("DNS_RECORD_FLAGS").field("_bitfield", &self._bitfield).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_RECORD_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORD_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_RECORD_FLAGS {
     fn eq(&self, other: &Self) -> bool {
@@ -3459,7 +3472,7 @@ impl ::core::default::Default for DNS_RECORD_FLAGS {
 #[cfg(feature = "Win32_Foundation")]
 pub struct DNS_RECORD_OPTW {
     pub pNext: *mut DNS_RECORDW,
-    pub pName: ::windows::core::PWSTR,
+    pub pName: ::windows_core::PWSTR,
     pub wType: u16,
     pub wDataLength: u16,
     pub Flags: DNS_RECORD_OPTW_1,
@@ -3477,8 +3490,8 @@ impl ::core::clone::Clone for DNS_RECORD_OPTW {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RECORD_OPTW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORD_OPTW {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_RECORD_OPTW {
@@ -3502,8 +3515,8 @@ impl ::core::clone::Clone for DNS_RECORD_OPTW_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RECORD_OPTW_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORD_OPTW_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_RECORD_OPTW_0 {
@@ -3527,8 +3540,8 @@ impl ::core::clone::Clone for DNS_RECORD_OPTW_1 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RECORD_OPTW_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RECORD_OPTW_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_RECORD_OPTW_1 {
@@ -3558,8 +3571,8 @@ impl ::core::fmt::Debug for DNS_RRSET {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_RRSET {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_RRSET {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DNS_RRSET {
@@ -3581,7 +3594,7 @@ impl ::core::default::Default for DNS_RRSET {
 pub struct DNS_SERVICE_BROWSE_REQUEST {
     pub Version: u32,
     pub InterfaceIndex: u32,
-    pub QueryName: ::windows::core::PCWSTR,
+    pub QueryName: ::windows_core::PCWSTR,
     pub Anonymous: DNS_SERVICE_BROWSE_REQUEST_0,
     pub pQueryContext: *mut ::core::ffi::c_void,
 }
@@ -3594,8 +3607,8 @@ impl ::core::clone::Clone for DNS_SERVICE_BROWSE_REQUEST {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_SERVICE_BROWSE_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SERVICE_BROWSE_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_SERVICE_BROWSE_REQUEST {
@@ -3619,8 +3632,8 @@ impl ::core::clone::Clone for DNS_SERVICE_BROWSE_REQUEST_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_SERVICE_BROWSE_REQUEST_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SERVICE_BROWSE_REQUEST_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_SERVICE_BROWSE_REQUEST_0 {
@@ -3644,8 +3657,8 @@ impl ::core::fmt::Debug for DNS_SERVICE_CANCEL {
         f.debug_struct("DNS_SERVICE_CANCEL").field("reserved", &self.reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SERVICE_CANCEL {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SERVICE_CANCEL {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SERVICE_CANCEL {
     fn eq(&self, other: &Self) -> bool {
@@ -3661,16 +3674,16 @@ impl ::core::default::Default for DNS_SERVICE_CANCEL {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_SERVICE_INSTANCE {
-    pub pszInstanceName: ::windows::core::PWSTR,
-    pub pszHostName: ::windows::core::PWSTR,
+    pub pszInstanceName: ::windows_core::PWSTR,
+    pub pszHostName: ::windows_core::PWSTR,
     pub ip4Address: *mut u32,
     pub ip6Address: *mut IP6_ADDRESS,
     pub wPort: u16,
     pub wPriority: u16,
     pub wWeight: u16,
     pub dwPropertyCount: u32,
-    pub keys: *mut ::windows::core::PWSTR,
-    pub values: *mut ::windows::core::PWSTR,
+    pub keys: *mut ::windows_core::PWSTR,
+    pub values: *mut ::windows_core::PWSTR,
     pub dwInterfaceIndex: u32,
 }
 impl ::core::marker::Copy for DNS_SERVICE_INSTANCE {}
@@ -3684,8 +3697,8 @@ impl ::core::fmt::Debug for DNS_SERVICE_INSTANCE {
         f.debug_struct("DNS_SERVICE_INSTANCE").field("pszInstanceName", &self.pszInstanceName).field("pszHostName", &self.pszHostName).field("ip4Address", &self.ip4Address).field("ip6Address", &self.ip6Address).field("wPort", &self.wPort).field("wPriority", &self.wPriority).field("wWeight", &self.wWeight).field("dwPropertyCount", &self.dwPropertyCount).field("keys", &self.keys).field("values", &self.values).field("dwInterfaceIndex", &self.dwInterfaceIndex).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SERVICE_INSTANCE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SERVICE_INSTANCE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SERVICE_INSTANCE {
     fn eq(&self, other: &Self) -> bool {
@@ -3725,8 +3738,8 @@ impl ::core::fmt::Debug for DNS_SERVICE_REGISTER_REQUEST {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_SERVICE_REGISTER_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SERVICE_REGISTER_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DNS_SERVICE_REGISTER_REQUEST {
@@ -3739,7 +3752,7 @@ impl ::core::default::Default for DNS_SERVICE_REGISTER_REQUEST {
 pub struct DNS_SERVICE_RESOLVE_REQUEST {
     pub Version: u32,
     pub InterfaceIndex: u32,
-    pub QueryName: ::windows::core::PWSTR,
+    pub QueryName: ::windows_core::PWSTR,
     pub pResolveCompletionCallback: PDNS_SERVICE_RESOLVE_COMPLETE,
     pub pQueryContext: *mut ::core::ffi::c_void,
 }
@@ -3754,8 +3767,8 @@ impl ::core::fmt::Debug for DNS_SERVICE_RESOLVE_REQUEST {
         f.debug_struct("DNS_SERVICE_RESOLVE_REQUEST").field("Version", &self.Version).field("InterfaceIndex", &self.InterfaceIndex).field("QueryName", &self.QueryName).field("pQueryContext", &self.pQueryContext).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SERVICE_RESOLVE_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SERVICE_RESOLVE_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_SERVICE_RESOLVE_REQUEST {
     fn default() -> Self {
@@ -3773,7 +3786,7 @@ pub struct DNS_SIG_DATAA {
     pub dwTimeSigned: u32,
     pub wKeyTag: u16,
     pub wSignatureLength: u16,
-    pub pNameSigner: ::windows::core::PSTR,
+    pub pNameSigner: ::windows_core::PSTR,
     pub Signature: [u8; 1],
 }
 impl ::core::marker::Copy for DNS_SIG_DATAA {}
@@ -3787,8 +3800,8 @@ impl ::core::fmt::Debug for DNS_SIG_DATAA {
         f.debug_struct("DNS_SIG_DATAA").field("wTypeCovered", &self.wTypeCovered).field("chAlgorithm", &self.chAlgorithm).field("chLabelCount", &self.chLabelCount).field("dwOriginalTtl", &self.dwOriginalTtl).field("dwExpiration", &self.dwExpiration).field("dwTimeSigned", &self.dwTimeSigned).field("wKeyTag", &self.wKeyTag).field("wSignatureLength", &self.wSignatureLength).field("pNameSigner", &self.pNameSigner).field("Signature", &self.Signature).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SIG_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SIG_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SIG_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -3812,7 +3825,7 @@ pub struct DNS_SIG_DATAW {
     pub dwTimeSigned: u32,
     pub wKeyTag: u16,
     pub wSignatureLength: u16,
-    pub pNameSigner: ::windows::core::PWSTR,
+    pub pNameSigner: ::windows_core::PWSTR,
     pub Signature: [u8; 1],
 }
 impl ::core::marker::Copy for DNS_SIG_DATAW {}
@@ -3826,8 +3839,8 @@ impl ::core::fmt::Debug for DNS_SIG_DATAW {
         f.debug_struct("DNS_SIG_DATAW").field("wTypeCovered", &self.wTypeCovered).field("chAlgorithm", &self.chAlgorithm).field("chLabelCount", &self.chLabelCount).field("dwOriginalTtl", &self.dwOriginalTtl).field("dwExpiration", &self.dwExpiration).field("dwTimeSigned", &self.dwTimeSigned).field("wKeyTag", &self.wKeyTag).field("wSignatureLength", &self.wSignatureLength).field("pNameSigner", &self.pNameSigner).field("Signature", &self.Signature).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SIG_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SIG_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SIG_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -3843,8 +3856,8 @@ impl ::core::default::Default for DNS_SIG_DATAW {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_SOA_DATAA {
-    pub pNamePrimaryServer: ::windows::core::PSTR,
-    pub pNameAdministrator: ::windows::core::PSTR,
+    pub pNamePrimaryServer: ::windows_core::PSTR,
+    pub pNameAdministrator: ::windows_core::PSTR,
     pub dwSerialNo: u32,
     pub dwRefresh: u32,
     pub dwRetry: u32,
@@ -3862,8 +3875,8 @@ impl ::core::fmt::Debug for DNS_SOA_DATAA {
         f.debug_struct("DNS_SOA_DATAA").field("pNamePrimaryServer", &self.pNamePrimaryServer).field("pNameAdministrator", &self.pNameAdministrator).field("dwSerialNo", &self.dwSerialNo).field("dwRefresh", &self.dwRefresh).field("dwRetry", &self.dwRetry).field("dwExpire", &self.dwExpire).field("dwDefaultTtl", &self.dwDefaultTtl).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SOA_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SOA_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SOA_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -3879,8 +3892,8 @@ impl ::core::default::Default for DNS_SOA_DATAA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_SOA_DATAW {
-    pub pNamePrimaryServer: ::windows::core::PWSTR,
-    pub pNameAdministrator: ::windows::core::PWSTR,
+    pub pNamePrimaryServer: ::windows_core::PWSTR,
+    pub pNameAdministrator: ::windows_core::PWSTR,
     pub dwSerialNo: u32,
     pub dwRefresh: u32,
     pub dwRetry: u32,
@@ -3898,8 +3911,8 @@ impl ::core::fmt::Debug for DNS_SOA_DATAW {
         f.debug_struct("DNS_SOA_DATAW").field("pNamePrimaryServer", &self.pNamePrimaryServer).field("pNameAdministrator", &self.pNameAdministrator).field("dwSerialNo", &self.dwSerialNo).field("dwRefresh", &self.dwRefresh).field("dwRetry", &self.dwRetry).field("dwExpire", &self.dwExpire).field("dwDefaultTtl", &self.dwDefaultTtl).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SOA_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SOA_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SOA_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -3915,7 +3928,7 @@ impl ::core::default::Default for DNS_SOA_DATAW {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_SRV_DATAA {
-    pub pNameTarget: ::windows::core::PSTR,
+    pub pNameTarget: ::windows_core::PSTR,
     pub wPriority: u16,
     pub wWeight: u16,
     pub wPort: u16,
@@ -3932,8 +3945,8 @@ impl ::core::fmt::Debug for DNS_SRV_DATAA {
         f.debug_struct("DNS_SRV_DATAA").field("pNameTarget", &self.pNameTarget).field("wPriority", &self.wPriority).field("wWeight", &self.wWeight).field("wPort", &self.wPort).field("Pad", &self.Pad).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SRV_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SRV_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SRV_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -3949,7 +3962,7 @@ impl ::core::default::Default for DNS_SRV_DATAA {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_SRV_DATAW {
-    pub pNameTarget: ::windows::core::PWSTR,
+    pub pNameTarget: ::windows_core::PWSTR,
     pub wPriority: u16,
     pub wWeight: u16,
     pub wPort: u16,
@@ -3966,8 +3979,8 @@ impl ::core::fmt::Debug for DNS_SRV_DATAW {
         f.debug_struct("DNS_SRV_DATAW").field("pNameTarget", &self.pNameTarget).field("wPriority", &self.wPriority).field("wWeight", &self.wWeight).field("wPort", &self.wPort).field("Pad", &self.Pad).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SRV_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SRV_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SRV_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -3984,7 +3997,7 @@ impl ::core::default::Default for DNS_SRV_DATAW {
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_SVCB_DATA {
     pub wSvcPriority: u16,
-    pub pszTargetName: ::windows::core::PSTR,
+    pub pszTargetName: ::windows_core::PSTR,
     pub cSvcParams: u16,
     pub pSvcParams: *mut DNS_SVCB_PARAM,
 }
@@ -3999,8 +4012,8 @@ impl ::core::fmt::Debug for DNS_SVCB_DATA {
         f.debug_struct("DNS_SVCB_DATA").field("wSvcPriority", &self.wSvcPriority).field("pszTargetName", &self.pszTargetName).field("cSvcParams", &self.cSvcParams).field("pSvcParams", &self.pSvcParams).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SVCB_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -4025,8 +4038,8 @@ impl ::core::clone::Clone for DNS_SVCB_PARAM {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_PARAM {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_PARAM {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_SVCB_PARAM {
     fn default() -> Self {
@@ -4042,7 +4055,7 @@ pub union DNS_SVCB_PARAM_0 {
     pub pAlpn: *mut DNS_SVCB_PARAM_ALPN,
     pub wPort: u16,
     pub pUnknown: *mut DNS_SVCB_PARAM_UNKNOWN,
-    pub pszDohPath: ::windows::core::PSTR,
+    pub pszDohPath: ::windows_core::PSTR,
     pub pReserved: *mut ::core::ffi::c_void,
 }
 impl ::core::marker::Copy for DNS_SVCB_PARAM_0 {}
@@ -4051,8 +4064,8 @@ impl ::core::clone::Clone for DNS_SVCB_PARAM_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_PARAM_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_PARAM_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_SVCB_PARAM_0 {
     fn default() -> Self {
@@ -4076,8 +4089,8 @@ impl ::core::fmt::Debug for DNS_SVCB_PARAM_ALPN {
         f.debug_struct("DNS_SVCB_PARAM_ALPN").field("cIds", &self.cIds).field("rgIds", &self.rgIds).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_PARAM_ALPN {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_PARAM_ALPN {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SVCB_PARAM_ALPN {
     fn eq(&self, other: &Self) -> bool {
@@ -4107,8 +4120,8 @@ impl ::core::fmt::Debug for DNS_SVCB_PARAM_ALPN_ID {
         f.debug_struct("DNS_SVCB_PARAM_ALPN_ID").field("cBytes", &self.cBytes).field("pbId", &self.pbId).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_PARAM_ALPN_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_PARAM_ALPN_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SVCB_PARAM_ALPN_ID {
     fn eq(&self, other: &Self) -> bool {
@@ -4138,8 +4151,8 @@ impl ::core::fmt::Debug for DNS_SVCB_PARAM_IPV4 {
         f.debug_struct("DNS_SVCB_PARAM_IPV4").field("cIps", &self.cIps).field("rgIps", &self.rgIps).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_PARAM_IPV4 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_PARAM_IPV4 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SVCB_PARAM_IPV4 {
     fn eq(&self, other: &Self) -> bool {
@@ -4164,8 +4177,8 @@ impl ::core::clone::Clone for DNS_SVCB_PARAM_IPV6 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_PARAM_IPV6 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_PARAM_IPV6 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_SVCB_PARAM_IPV6 {
     fn default() -> Self {
@@ -4189,8 +4202,8 @@ impl ::core::fmt::Debug for DNS_SVCB_PARAM_MANDATORY {
         f.debug_struct("DNS_SVCB_PARAM_MANDATORY").field("cMandatoryKeys", &self.cMandatoryKeys).field("rgwMandatoryKeys", &self.rgwMandatoryKeys).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_PARAM_MANDATORY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_PARAM_MANDATORY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SVCB_PARAM_MANDATORY {
     fn eq(&self, other: &Self) -> bool {
@@ -4220,8 +4233,8 @@ impl ::core::fmt::Debug for DNS_SVCB_PARAM_UNKNOWN {
         f.debug_struct("DNS_SVCB_PARAM_UNKNOWN").field("cBytes", &self.cBytes).field("pbSvcParamValue", &self.pbSvcParamValue).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_SVCB_PARAM_UNKNOWN {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_SVCB_PARAM_UNKNOWN {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_SVCB_PARAM_UNKNOWN {
     fn eq(&self, other: &Self) -> bool {
@@ -4238,7 +4251,7 @@ impl ::core::default::Default for DNS_SVCB_PARAM_UNKNOWN {
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DNS_TKEY_DATAA {
-    pub pNameAlgorithm: ::windows::core::PSTR,
+    pub pNameAlgorithm: ::windows_core::PSTR,
     pub pAlgorithmPacket: *mut u8,
     pub pKey: *mut u8,
     pub pOtherData: *mut u8,
@@ -4279,8 +4292,8 @@ impl ::core::fmt::Debug for DNS_TKEY_DATAA {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_TKEY_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_TKEY_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DNS_TKEY_DATAA {
@@ -4300,7 +4313,7 @@ impl ::core::default::Default for DNS_TKEY_DATAA {
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DNS_TKEY_DATAW {
-    pub pNameAlgorithm: ::windows::core::PWSTR,
+    pub pNameAlgorithm: ::windows_core::PWSTR,
     pub pAlgorithmPacket: *mut u8,
     pub pKey: *mut u8,
     pub pOtherData: *mut u8,
@@ -4341,8 +4354,8 @@ impl ::core::fmt::Debug for DNS_TKEY_DATAW {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_TKEY_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_TKEY_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DNS_TKEY_DATAW {
@@ -4379,8 +4392,8 @@ impl ::core::fmt::Debug for DNS_TLSA_DATA {
         f.debug_struct("DNS_TLSA_DATA").field("bCertUsage", &self.bCertUsage).field("bSelector", &self.bSelector).field("bMatchingType", &self.bMatchingType).field("bCertificateAssociationDataLength", &self.bCertificateAssociationDataLength).field("bPad", &self.bPad).field("bCertificateAssociationData", &self.bCertificateAssociationData).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_TLSA_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_TLSA_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_TLSA_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -4397,7 +4410,7 @@ impl ::core::default::Default for DNS_TLSA_DATA {
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DNS_TSIG_DATAA {
-    pub pNameAlgorithm: ::windows::core::PSTR,
+    pub pNameAlgorithm: ::windows_core::PSTR,
     pub pAlgorithmPacket: *mut u8,
     pub pSignature: *mut u8,
     pub pOtherData: *mut u8,
@@ -4438,8 +4451,8 @@ impl ::core::fmt::Debug for DNS_TSIG_DATAA {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_TSIG_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_TSIG_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DNS_TSIG_DATAA {
@@ -4459,7 +4472,7 @@ impl ::core::default::Default for DNS_TSIG_DATAA {
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DNS_TSIG_DATAW {
-    pub pNameAlgorithm: ::windows::core::PWSTR,
+    pub pNameAlgorithm: ::windows_core::PWSTR,
     pub pAlgorithmPacket: *mut u8,
     pub pSignature: *mut u8,
     pub pOtherData: *mut u8,
@@ -4500,8 +4513,8 @@ impl ::core::fmt::Debug for DNS_TSIG_DATAW {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DNS_TSIG_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_TSIG_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DNS_TSIG_DATAW {
@@ -4521,7 +4534,7 @@ impl ::core::default::Default for DNS_TSIG_DATAW {
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_TXT_DATAA {
     pub dwStringCount: u32,
-    pub pStringArray: [::windows::core::PSTR; 1],
+    pub pStringArray: [::windows_core::PSTR; 1],
 }
 impl ::core::marker::Copy for DNS_TXT_DATAA {}
 impl ::core::clone::Clone for DNS_TXT_DATAA {
@@ -4534,8 +4547,8 @@ impl ::core::fmt::Debug for DNS_TXT_DATAA {
         f.debug_struct("DNS_TXT_DATAA").field("dwStringCount", &self.dwStringCount).field("pStringArray", &self.pStringArray).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_TXT_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_TXT_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_TXT_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -4552,7 +4565,7 @@ impl ::core::default::Default for DNS_TXT_DATAA {
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
 pub struct DNS_TXT_DATAW {
     pub dwStringCount: u32,
-    pub pStringArray: [::windows::core::PWSTR; 1],
+    pub pStringArray: [::windows_core::PWSTR; 1],
 }
 impl ::core::marker::Copy for DNS_TXT_DATAW {}
 impl ::core::clone::Clone for DNS_TXT_DATAW {
@@ -4565,8 +4578,8 @@ impl ::core::fmt::Debug for DNS_TXT_DATAW {
         f.debug_struct("DNS_TXT_DATAW").field("dwStringCount", &self.dwStringCount).field("pStringArray", &self.pStringArray).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_TXT_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_TXT_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_TXT_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -4596,8 +4609,8 @@ impl ::core::fmt::Debug for DNS_UNKNOWN_DATA {
         f.debug_struct("DNS_UNKNOWN_DATA").field("dwByteCount", &self.dwByteCount).field("bData", &self.bData).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_UNKNOWN_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_UNKNOWN_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_UNKNOWN_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -4616,7 +4629,7 @@ pub struct DNS_WINSR_DATAA {
     pub dwMappingFlag: u32,
     pub dwLookupTimeout: u32,
     pub dwCacheTimeout: u32,
-    pub pNameResultDomain: ::windows::core::PSTR,
+    pub pNameResultDomain: ::windows_core::PSTR,
 }
 impl ::core::marker::Copy for DNS_WINSR_DATAA {}
 impl ::core::clone::Clone for DNS_WINSR_DATAA {
@@ -4629,8 +4642,8 @@ impl ::core::fmt::Debug for DNS_WINSR_DATAA {
         f.debug_struct("DNS_WINSR_DATAA").field("dwMappingFlag", &self.dwMappingFlag).field("dwLookupTimeout", &self.dwLookupTimeout).field("dwCacheTimeout", &self.dwCacheTimeout).field("pNameResultDomain", &self.pNameResultDomain).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_WINSR_DATAA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_WINSR_DATAA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_WINSR_DATAA {
     fn eq(&self, other: &Self) -> bool {
@@ -4649,7 +4662,7 @@ pub struct DNS_WINSR_DATAW {
     pub dwMappingFlag: u32,
     pub dwLookupTimeout: u32,
     pub dwCacheTimeout: u32,
-    pub pNameResultDomain: ::windows::core::PWSTR,
+    pub pNameResultDomain: ::windows_core::PWSTR,
 }
 impl ::core::marker::Copy for DNS_WINSR_DATAW {}
 impl ::core::clone::Clone for DNS_WINSR_DATAW {
@@ -4662,8 +4675,8 @@ impl ::core::fmt::Debug for DNS_WINSR_DATAW {
         f.debug_struct("DNS_WINSR_DATAW").field("dwMappingFlag", &self.dwMappingFlag).field("dwLookupTimeout", &self.dwLookupTimeout).field("dwCacheTimeout", &self.dwCacheTimeout).field("pNameResultDomain", &self.pNameResultDomain).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_WINSR_DATAW {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_WINSR_DATAW {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_WINSR_DATAW {
     fn eq(&self, other: &Self) -> bool {
@@ -4696,8 +4709,8 @@ impl ::core::fmt::Debug for DNS_WINS_DATA {
         f.debug_struct("DNS_WINS_DATA").field("dwMappingFlag", &self.dwMappingFlag).field("dwLookupTimeout", &self.dwLookupTimeout).field("dwCacheTimeout", &self.dwCacheTimeout).field("cWinsServerCount", &self.cWinsServerCount).field("WinsServers", &self.WinsServers).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_WINS_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_WINS_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_WINS_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -4722,8 +4735,8 @@ impl ::core::clone::Clone for DNS_WIRE_QUESTION {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_WIRE_QUESTION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_WIRE_QUESTION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_WIRE_QUESTION {
     fn default() -> Self {
@@ -4744,8 +4757,8 @@ impl ::core::clone::Clone for DNS_WIRE_RECORD {
         *self
     }
 }
-impl ::windows::core::TypeKind for DNS_WIRE_RECORD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_WIRE_RECORD {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DNS_WIRE_RECORD {
     fn default() -> Self {
@@ -4770,8 +4783,8 @@ impl ::core::fmt::Debug for DNS_WKS_DATA {
         f.debug_struct("DNS_WKS_DATA").field("IpAddress", &self.IpAddress).field("chProtocol", &self.chProtocol).field("BitMask", &self.BitMask).finish()
     }
 }
-impl ::windows::core::TypeKind for DNS_WKS_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DNS_WKS_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DNS_WKS_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -4783,33 +4796,6 @@ impl ::core::default::Default for DNS_WKS_DATA {
     fn default() -> Self {
         unsafe { ::core::mem::zeroed() }
     }
-}
-#[repr(transparent)]
-#[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
-pub struct DnsContextHandle(pub isize);
-impl DnsContextHandle {
-    pub fn is_invalid(&self) -> bool {
-        self.0 == -1 || self.0 == 0
-    }
-}
-impl ::core::default::Default for DnsContextHandle {
-    fn default() -> Self {
-        unsafe { ::core::mem::zeroed() }
-    }
-}
-impl ::core::clone::Clone for DnsContextHandle {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-impl ::core::marker::Copy for DnsContextHandle {}
-impl ::core::fmt::Debug for DnsContextHandle {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("DnsContextHandle").field(&self.0).finish()
-    }
-}
-impl ::windows::core::TypeKind for DnsContextHandle {
-    type TypeKind = ::windows::core::CopyType;
 }
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`*"]
@@ -4828,8 +4814,8 @@ impl ::core::fmt::Debug for IP4_ARRAY {
         f.debug_struct("IP4_ARRAY").field("AddrCount", &self.AddrCount).field("AddrArray", &self.AddrArray).finish()
     }
 }
-impl ::windows::core::TypeKind for IP4_ARRAY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for IP4_ARRAY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for IP4_ARRAY {
     fn eq(&self, other: &Self) -> bool {
@@ -4860,8 +4846,8 @@ impl ::core::clone::Clone for IP6_ADDRESS {
     }
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::windows::core::TypeKind for IP6_ADDRESS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for IP6_ADDRESS {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 impl ::core::default::Default for IP6_ADDRESS {
@@ -4886,8 +4872,8 @@ impl ::core::clone::Clone for IP6_ADDRESS {
     }
 }
 #[cfg(target_arch = "x86")]
-impl ::windows::core::TypeKind for IP6_ADDRESS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for IP6_ADDRESS {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(target_arch = "x86")]
 impl ::core::default::Default for IP6_ADDRESS {
@@ -4915,8 +4901,8 @@ impl ::core::fmt::Debug for MDNS_QUERY_HANDLE {
         f.debug_struct("MDNS_QUERY_HANDLE").field("nameBuf", &self.nameBuf).field("wType", &self.wType).field("pSubscription", &self.pSubscription).field("pWnfCallbackParams", &self.pWnfCallbackParams).field("stateNameData", &self.stateNameData).finish()
     }
 }
-impl ::windows::core::TypeKind for MDNS_QUERY_HANDLE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MDNS_QUERY_HANDLE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for MDNS_QUERY_HANDLE {
     fn eq(&self, other: &Self) -> bool {
@@ -4935,7 +4921,7 @@ impl ::core::default::Default for MDNS_QUERY_HANDLE {
 pub struct MDNS_QUERY_REQUEST {
     pub Version: u32,
     pub ulRefCount: u32,
-    pub Query: ::windows::core::PCWSTR,
+    pub Query: ::windows_core::PCWSTR,
     pub QueryType: u16,
     pub QueryOptions: u64,
     pub InterfaceIndex: u32,
@@ -4959,8 +4945,8 @@ impl ::core::fmt::Debug for MDNS_QUERY_REQUEST {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for MDNS_QUERY_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MDNS_QUERY_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for MDNS_QUERY_REQUEST {
@@ -4973,7 +4959,7 @@ impl ::core::default::Default for MDNS_QUERY_REQUEST {
 #[cfg(feature = "Win32_Foundation")]
 pub struct _DnsRecordOptA {
     pub pNext: *mut DNS_RECORDA,
-    pub pName: ::windows::core::PSTR,
+    pub pName: ::windows_core::PSTR,
     pub wType: u16,
     pub wDataLength: u16,
     pub Flags: _DnsRecordOptA_1,
@@ -4991,8 +4977,8 @@ impl ::core::clone::Clone for _DnsRecordOptA {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for _DnsRecordOptA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for _DnsRecordOptA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for _DnsRecordOptA {
@@ -5016,8 +5002,8 @@ impl ::core::clone::Clone for _DnsRecordOptA_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for _DnsRecordOptA_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for _DnsRecordOptA_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for _DnsRecordOptA_0 {
@@ -5041,8 +5027,8 @@ impl ::core::clone::Clone for _DnsRecordOptA_1 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for _DnsRecordOptA_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for _DnsRecordOptA_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for _DnsRecordOptA_1 {
@@ -5065,5 +5051,3 @@ pub type PDNS_SERVICE_RESOLVE_COMPLETE = ::core::option::Option<unsafe extern "s
 #[doc = "*Required features: `\"Win32_NetworkManagement_Dns\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PMDNS_QUERY_CALLBACK = ::core::option::Option<unsafe extern "system" fn(pquerycontext: *const ::core::ffi::c_void, pqueryhandle: *mut MDNS_QUERY_HANDLE, pqueryresults: *mut DNS_QUERY_RESULT) -> ()>;
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

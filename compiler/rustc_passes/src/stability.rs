@@ -3,8 +3,8 @@
 
 use crate::errors;
 use rustc_attr::{
-    self as attr, rust_version_symbol, ConstStability, Stability, StabilityLevel, Unstable,
-    UnstableReason, VERSION_PLACEHOLDER,
+    self as attr, ConstStability, DeprecatedSince, Stability, StabilityLevel, StableSince,
+    Unstable, UnstableReason, VERSION_PLACEHOLDER,
 };
 use rustc_data_structures::fx::{FxHashMap, FxHashSet, FxIndexMap};
 use rustc_hir as hir;
@@ -24,8 +24,6 @@ use rustc_span::symbol::{sym, Symbol};
 use rustc_span::Span;
 use rustc_target::spec::abi::Abi;
 
-use std::cmp::Ordering;
-use std::iter;
 use std::mem::replace;
 use std::num::NonZeroU32;
 
@@ -198,10 +196,8 @@ impl<'a, 'tcx> Annotator<'a, 'tcx> {
             }
         }
 
-        if let Some((rustc_attr::Deprecation { is_since_rustc_version: true, .. }, span)) = &depr {
-            if stab.is_none() {
-                self.tcx.sess.emit_err(errors::DeprecatedAttribute { span: *span });
-            }
+        if let Some((depr, span)) = &depr && depr.is_since_rustc_version() && stab.is_none() {
+            self.tcx.sess.emit_err(errors::DeprecatedAttribute { span: *span });
         }
 
         if let Some((body_stab, _span)) = body_stab {
@@ -223,40 +219,25 @@ impl<'a, 'tcx> Annotator<'a, 'tcx> {
 
             // Check if deprecated_since < stable_since. If it is,
             // this is *almost surely* an accident.
-            if let (&Some(dep_since), &attr::Stable { since: stab_since, .. }) =
-                (&depr.as_ref().and_then(|(d, _)| d.since), &stab.level)
+            if let (
+                &Some(DeprecatedSince::RustcVersion(dep_since)),
+                &attr::Stable { since: stab_since, .. },
+            ) = (&depr.as_ref().map(|(d, _)| d.since), &stab.level)
             {
-                // Explicit version of iter::order::lt to handle parse errors properly
-                for (dep_v, stab_v) in
-                    iter::zip(dep_since.as_str().split('.'), stab_since.as_str().split('.'))
-                {
-                    match stab_v.parse::<u64>() {
-                        Err(_) => {
-                            self.tcx.sess.emit_err(errors::InvalidStability { span, item_sp });
-                            break;
+                match stab_since {
+                    StableSince::Current => {
+                        self.tcx.sess.emit_err(errors::CannotStabilizeDeprecated { span, item_sp });
+                    }
+                    StableSince::Version(stab_since) => {
+                        if dep_since < stab_since {
+                            self.tcx
+                                .sess
+                                .emit_err(errors::CannotStabilizeDeprecated { span, item_sp });
                         }
-                        Ok(stab_vp) => match dep_v.parse::<u64>() {
-                            Ok(dep_vp) => match dep_vp.cmp(&stab_vp) {
-                                Ordering::Less => {
-                                    self.tcx.sess.emit_err(errors::CannotStabilizeDeprecated {
-                                        span,
-                                        item_sp,
-                                    });
-                                    break;
-                                }
-                                Ordering::Equal => continue,
-                                Ordering::Greater => break,
-                            },
-                            Err(_) => {
-                                if dep_v != "TBD" {
-                                    self.tcx.sess.emit_err(errors::InvalidDeprecationVersion {
-                                        span,
-                                        item_sp,
-                                    });
-                                }
-                                break;
-                            }
-                        },
+                    }
+                    StableSince::Err => {
+                        // An error already reported. Assume the unparseable stabilization
+                        // version is older than the deprecation version.
                     }
                 }
             }
@@ -998,14 +979,17 @@ pub fn check_unused_or_stable_features(tcx: TyCtxt<'_>) {
         all_implications: &FxHashMap<Symbol, Symbol>,
     ) {
         for (feature, since) in defined_features {
-            if let Some(since) = since && let Some(span) = remaining_lib_features.get(&feature) {
+            if let Some(since) = since
+                && let Some(span) = remaining_lib_features.get(&feature)
+            {
                 // Warn if the user has enabled an already-stable lib feature.
                 if let Some(implies) = all_implications.get(&feature) {
-                    unnecessary_partially_stable_feature_lint(tcx, *span, *feature, *implies, *since);
+                    unnecessary_partially_stable_feature_lint(
+                        tcx, *span, *feature, *implies, *since,
+                    );
                 } else {
                     unnecessary_stable_feature_lint(tcx, *span, *feature, *since);
                 }
-
             }
             remaining_lib_features.remove(feature);
 
@@ -1106,7 +1090,7 @@ fn unnecessary_stable_feature_lint(
     mut since: Symbol,
 ) {
     if since.as_str() == VERSION_PLACEHOLDER {
-        since = rust_version_symbol();
+        since = sym::env_CFG_RELEASE;
     }
     tcx.emit_spanned_lint(
         lint::builtin::STABLE_FEATURES,

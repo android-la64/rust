@@ -17,6 +17,7 @@ use rustc_hir::def_id::{DefId, LocalDefId, LOCAL_CRATE};
 use rustc_metadata::rendered_const;
 use rustc_middle::mir;
 use rustc_middle::ty::{self, GenericArgKind, GenericArgsRef, TyCtxt};
+use rustc_middle::ty::{TypeVisitable, TypeVisitableExt};
 use rustc_span::symbol::{kw, sym, Symbol};
 use std::fmt::Write as _;
 use std::mem;
@@ -76,44 +77,119 @@ pub(crate) fn krate(cx: &mut DocContext<'_>) -> Crate {
 
 pub(crate) fn ty_args_to_args<'tcx>(
     cx: &mut DocContext<'tcx>,
-    args: ty::Binder<'tcx, &'tcx [ty::GenericArg<'tcx>]>,
+    ty_args: ty::Binder<'tcx, &'tcx [ty::GenericArg<'tcx>]>,
     has_self: bool,
-    container: Option<DefId>,
+    owner: DefId,
 ) -> Vec<GenericArg> {
-    let mut skip_first = has_self;
-    let mut ret_val =
-        Vec::with_capacity(args.skip_binder().len().saturating_sub(if skip_first { 1 } else { 0 }));
+    if ty_args.skip_binder().is_empty() {
+        // Fast path which avoids executing the query `generics_of`.
+        return Vec::new();
+    }
 
-    ret_val.extend(args.iter().enumerate().filter_map(|(index, kind)| {
-        match kind.skip_binder().unpack() {
-            GenericArgKind::Lifetime(lt) => {
-                Some(GenericArg::Lifetime(clean_middle_region(lt).unwrap_or(Lifetime::elided())))
+    let params = &cx.tcx.generics_of(owner).params;
+    let mut elision_has_failed_once_before = false;
+
+    let offset = if has_self { 1 } else { 0 };
+    let mut args = Vec::with_capacity(ty_args.skip_binder().len().saturating_sub(offset));
+
+    let ty_arg_to_arg = |(index, arg): (usize, &ty::GenericArg<'tcx>)| match arg.unpack() {
+        GenericArgKind::Lifetime(lt) => {
+            Some(GenericArg::Lifetime(clean_middle_region(lt).unwrap_or(Lifetime::elided())))
+        }
+        GenericArgKind::Type(_) if has_self && index == 0 => None,
+        GenericArgKind::Type(ty) => {
+            if !elision_has_failed_once_before
+                && let Some(default) = params[index].default_value(cx.tcx)
+            {
+                let default =
+                    ty_args.map_bound(|args| default.instantiate(cx.tcx, args).expect_ty());
+
+                if can_elide_generic_arg(ty_args.rebind(ty), default) {
+                    return None;
+                }
+
+                elision_has_failed_once_before = true;
             }
-            GenericArgKind::Type(_) if skip_first => {
-                skip_first = false;
-                None
-            }
-            GenericArgKind::Type(ty) => Some(GenericArg::Type(clean_middle_ty(
-                kind.rebind(ty),
+
+            Some(GenericArg::Type(clean_middle_ty(
+                ty_args.rebind(ty),
                 cx,
                 None,
-                container.map(|container| crate::clean::ContainerTy::Regular {
-                    ty: container,
-                    args,
+                Some(crate::clean::ContainerTy::Regular {
+                    ty: owner,
+                    args: ty_args,
                     has_self,
                     arg: index,
                 }),
-            ))),
-            // FIXME(effects): this relies on the host effect being called `host`, which users could also name
-            // their const generics.
-            // FIXME(effects): this causes `host = true` and `host = false` generics to also be emitted.
-            GenericArgKind::Const(ct) if let ty::ConstKind::Param(p) = ct.kind() && p.name == sym::host => None,
-            GenericArgKind::Const(ct) => {
-                Some(GenericArg::Const(Box::new(clean_middle_const(kind.rebind(ct), cx))))
-            }
+            )))
         }
-    }));
-    ret_val
+        GenericArgKind::Const(ct) => {
+            if let ty::GenericParamDefKind::Const { is_host_effect: true, .. } = params[index].kind
+            {
+                return None;
+            }
+
+            if !elision_has_failed_once_before
+                && let Some(default) = params[index].default_value(cx.tcx)
+            {
+                let default =
+                    ty_args.map_bound(|args| default.instantiate(cx.tcx, args).expect_const());
+
+                if can_elide_generic_arg(ty_args.rebind(ct), default) {
+                    return None;
+                }
+
+                elision_has_failed_once_before = true;
+            }
+
+            Some(GenericArg::Const(Box::new(clean_middle_const(ty_args.rebind(ct), cx))))
+        }
+    };
+
+    args.extend(ty_args.skip_binder().iter().enumerate().rev().filter_map(ty_arg_to_arg));
+    args.reverse();
+    args
+}
+
+/// Check if the generic argument `actual` coincides with the `default` and can therefore be elided.
+///
+/// This uses a very conservative approach for performance and correctness reasons, meaning for
+/// several classes of terms it claims that they cannot be elided even if they theoretically could.
+/// This is absolutely fine since it mostly concerns edge cases.
+fn can_elide_generic_arg<'tcx, Term>(
+    actual: ty::Binder<'tcx, Term>,
+    default: ty::Binder<'tcx, Term>,
+) -> bool
+where
+    Term: Eq + TypeVisitable<TyCtxt<'tcx>>,
+{
+    // In practice, we shouldn't have any inference variables at this point.
+    // However to be safe, we bail out if we do happen to stumble upon them.
+    if actual.has_infer() || default.has_infer() {
+        return false;
+    }
+
+    // Since we don't properly keep track of bound variables in rustdoc (yet), we don't attempt to
+    // make any sense out of escaping bound variables. We simply don't have enough context and it
+    // would be incorrect to try to do so anyway.
+    if actual.has_escaping_bound_vars() || default.has_escaping_bound_vars() {
+        return false;
+    }
+
+    // Theoretically we could now check if either term contains (non-escaping) late-bound regions or
+    // projections, relate the two using an `InferCtxt` and check if the resulting obligations hold.
+    // Having projections means that the terms can potentially be further normalized thereby possibly
+    // revealing that they are equal after all. Regarding late-bound regions, they could to be
+    // liberated allowing us to consider more types to be equal by ignoring the names of binders
+    // (e.g., `for<'a> TYPE<'a>` and `for<'b> TYPE<'b>`).
+    //
+    // However, we are mostly interested in “reeliding” generic args, i.e., eliding generic args that
+    // were originally elided by the user and later filled in by the compiler contrary to eliding
+    // arbitrary generic arguments if they happen to semantically coincide with the default (of course,
+    // we cannot possibly distinguish these two cases). Therefore and for performance reasons, it
+    // suffices to only perform a syntactic / structural check by comparing the memory addresses of
+    // the interned arguments.
+    actual.skip_binder() == default.skip_binder()
 }
 
 fn external_generic_args<'tcx>(
@@ -123,7 +199,7 @@ fn external_generic_args<'tcx>(
     bindings: ThinVec<TypeBinding>,
     ty_args: ty::Binder<'tcx, GenericArgsRef<'tcx>>,
 ) -> GenericArgs {
-    let args = ty_args_to_args(cx, ty_args.map_bound(|args| &args[..]), has_self, Some(did));
+    let args = ty_args_to_args(cx, ty_args.map_bound(|args| &args[..]), has_self, did);
 
     if cx.tcx.fn_trait_kind_from_def_id(did).is_some() {
         let ty = ty_args
@@ -279,7 +355,8 @@ pub(crate) fn print_const(cx: &DocContext<'_>, n: ty::Const<'_>) -> String {
 pub(crate) fn print_evaluated_const(
     tcx: TyCtxt<'_>,
     def_id: DefId,
-    underscores_and_type: bool,
+    with_underscores: bool,
+    with_type: bool,
 ) -> Option<String> {
     tcx.const_eval_poly(def_id).ok().and_then(|val| {
         let ty = tcx.type_of(def_id).instantiate_identity();
@@ -288,7 +365,7 @@ pub(crate) fn print_evaluated_const(
             (mir::ConstValue::Scalar(_), &ty::Adt(_, _)) => None,
             (mir::ConstValue::Scalar(_), _) => {
                 let const_ = mir::Const::from_value(val, ty);
-                Some(print_const_with_custom_print_scalar(tcx, const_, underscores_and_type))
+                Some(print_const_with_custom_print_scalar(tcx, const_, with_underscores, with_type))
             }
             _ => None,
         }
@@ -324,32 +401,37 @@ fn format_integer_with_underscore_sep(num: &str) -> String {
 fn print_const_with_custom_print_scalar<'tcx>(
     tcx: TyCtxt<'tcx>,
     ct: mir::Const<'tcx>,
-    underscores_and_type: bool,
+    with_underscores: bool,
+    with_type: bool,
 ) -> String {
     // Use a slightly different format for integer types which always shows the actual value.
     // For all other types, fallback to the original `pretty_print_const`.
     match (ct, ct.ty().kind()) {
         (mir::Const::Val(mir::ConstValue::Scalar(int), _), ty::Uint(ui)) => {
-            if underscores_and_type {
-                format!("{}{}", format_integer_with_underscore_sep(&int.to_string()), ui.name_str())
+            let mut output = if with_underscores {
+                format_integer_with_underscore_sep(&int.to_string())
             } else {
                 int.to_string()
+            };
+            if with_type {
+                output += ui.name_str();
             }
+            output
         }
         (mir::Const::Val(mir::ConstValue::Scalar(int), _), ty::Int(i)) => {
             let ty = ct.ty();
             let size = tcx.layout_of(ty::ParamEnv::empty().and(ty)).unwrap().size;
             let data = int.assert_bits(size);
             let sign_extended_data = size.sign_extend(data) as i128;
-            if underscores_and_type {
-                format!(
-                    "{}{}",
-                    format_integer_with_underscore_sep(&sign_extended_data.to_string()),
-                    i.name_str()
-                )
+            let mut output = if with_underscores {
+                format_integer_with_underscore_sep(&sign_extended_data.to_string())
             } else {
                 sign_extended_data.to_string()
+            };
+            if with_type {
+                output += i.name_str();
             }
+            output
         }
         _ => ct.to_string(),
     }
@@ -502,7 +584,7 @@ pub(crate) fn has_doc_flag(tcx: TyCtxt<'_>, did: DefId, flag: Symbol) -> bool {
 /// Set by `bootstrap::Builder::doc_rust_lang_org_channel` in order to keep tests passing on beta/stable.
 pub(crate) const DOC_RUST_LANG_ORG_CHANNEL: &str = env!("DOC_RUST_LANG_ORG_CHANNEL");
 pub(crate) static DOC_CHANNEL: Lazy<&'static str> =
-    Lazy::new(|| DOC_RUST_LANG_ORG_CHANNEL.rsplit("/").filter(|c| !c.is_empty()).next().unwrap());
+    Lazy::new(|| DOC_RUST_LANG_ORG_CHANNEL.rsplit('/').filter(|c| !c.is_empty()).next().unwrap());
 
 /// Render a sequence of macro arms in a format suitable for displaying to the user
 /// as part of an item declaration.

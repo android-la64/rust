@@ -13,6 +13,7 @@ pub fn cli() -> Command {
         )
         .arg(
             Arg::new("args")
+                .value_name("ARGS")
                 .help("Arguments for the test binary")
                 .num_args(0..)
                 .last(true),
@@ -42,9 +43,9 @@ pub fn cli() -> Command {
             "Test only the specified example",
             "Test all examples",
             "Test only the specified test target",
-            "Test all tests",
+            "Test all test targets",
             "Test only the specified bench target",
-            "Test all benches",
+            "Test all bench targets",
             "Test all targets (does not include doctests)",
         )
         .arg_features()

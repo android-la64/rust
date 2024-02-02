@@ -6,9 +6,8 @@ use crate::ops::{CompileFilter, CompileOptions, NewOptions, Packages, VersionCon
 use crate::util::important_paths::find_root_manifest_for_wd;
 use crate::util::interning::InternedString;
 use crate::util::is_rustup;
-use crate::util::restricted_names::is_glob_pattern;
-use crate::util::toml::{StringOrVec, TomlProfile};
-use crate::util::validate_package_name;
+use crate::util::restricted_names;
+use crate::util::toml::schema::StringOrVec;
 use crate::util::{
     print_available_benches, print_available_binaries, print_available_examples,
     print_available_packages, print_available_tests,
@@ -64,9 +63,19 @@ pub trait CommandExt: Sized {
         all: &'static str,
         exclude: &'static str,
     ) -> Self {
+        let unsupported_short_arg = {
+            let value_parser = UnknownArgumentValueParser::suggest_arg("--exclude");
+            Arg::new("unsupported-short-exclude-flag")
+                .help("")
+                .short('x')
+                .value_parser(value_parser)
+                .action(ArgAction::SetTrue)
+                .hide(true)
+        };
         self.arg_package_spec_simple(package)
             ._arg(flag("workspace", all).help_heading(heading::PACKAGE_SELECTION))
             ._arg(multi_opt("exclude", "SPEC", exclude).help_heading(heading::PACKAGE_SELECTION))
+            ._arg(unsupported_short_arg)
     }
 
     fn arg_package_spec_simple(self, package: &'static str) -> Self {
@@ -232,10 +241,20 @@ pub trait CommandExt: Sized {
     }
 
     fn arg_target_triple(self, target: &'static str) -> Self {
+        let unsupported_short_arg = {
+            let value_parser = UnknownArgumentValueParser::suggest_arg("--target");
+            Arg::new("unsupported-short-target-flag")
+                .help("")
+                .short('t')
+                .value_parser(value_parser)
+                .action(ArgAction::SetTrue)
+                .hide(true)
+        };
         self._arg(
             optional_multi_opt("target", "TRIPLE", target)
                 .help_heading(heading::COMPILATION_OPTIONS),
         )
+        ._arg(unsupported_short_arg)
     }
 
     fn arg_target_dir(self) -> Self {
@@ -247,6 +266,20 @@ pub trait CommandExt: Sized {
     }
 
     fn arg_manifest_path(self) -> Self {
+        // We use `--manifest-path` instead of `--path`.
+        let unsupported_path_arg = {
+            let value_parser = UnknownArgumentValueParser::suggest_arg("--manifest-path");
+            flag("unsupported-path-flag", "")
+                .long("path")
+                .value_parser(value_parser)
+                .hide(true)
+        };
+        self.arg_manifest_path_without_unsupported_path_tip()
+            ._arg(unsupported_path_arg)
+    }
+
+    // `cargo add` has a `--path` flag to install a crate from a local path.
+    fn arg_manifest_path_without_unsupported_path_tip(self) -> Self {
         self._arg(
             opt("manifest-path", "Path to Cargo.toml")
                 .value_name("PATH")
@@ -338,7 +371,7 @@ pub trait CommandExt: Sized {
                 .value_parser(value_parser)
                 .hide(true)
         };
-        self._arg(flag("quiet", "Do not print cargo log messages").short('q'))
+        self.arg_quiet_without_unknown_silent_arg_tip()
             ._arg(unsupported_silent_arg)
     }
 
@@ -356,6 +389,27 @@ pub trait CommandExt: Sized {
             .require_equals(true)
             .help_heading(heading::COMPILATION_OPTIONS),
         )
+    }
+
+    fn arg_out_dir(self) -> Self {
+        let unsupported_short_arg = {
+            let value_parser = UnknownArgumentValueParser::suggest_arg("--out-dir");
+            Arg::new("unsupported-short-out-dir-flag")
+                .help("")
+                .short('O')
+                .value_parser(value_parser)
+                .action(ArgAction::SetTrue)
+                .hide(true)
+        };
+        self._arg(
+            opt(
+                "out-dir",
+                "Copy final artifacts to this directory (unstable)",
+            )
+            .value_name("PATH")
+            .help_heading(heading::COMPILATION_OPTIONS),
+        )
+        ._arg(unsupported_short_arg)
     }
 }
 
@@ -552,7 +606,7 @@ Run `{cmd}` to see possible targets."
                 bail!("profile `doc` is reserved and not allowed to be explicitly specified")
             }
             (_, _, Some(name)) => {
-                TomlProfile::validate_name(name)?;
+                restricted_names::validate_profile_name(name)?;
                 name
             }
         };
@@ -746,7 +800,7 @@ Run `{cmd}` to see possible targets."
     ) -> CargoResult<CompileOptions> {
         let mut compile_opts = self.compile_options(config, mode, workspace, profile_checking)?;
         let spec = self._values_of("package");
-        if spec.iter().any(is_glob_pattern) {
+        if spec.iter().any(restricted_names::is_glob_pattern) {
             anyhow::bail!("Glob patterns on package selection are not supported.")
         }
         compile_opts.spec = Packages::Packages(spec);
@@ -780,7 +834,7 @@ Run `{cmd}` to see possible targets."
             (None, None) => config.default_registry()?.map(RegistryOrIndex::Registry),
             (None, Some(i)) => Some(RegistryOrIndex::Index(i.into_url()?)),
             (Some(r), None) => {
-                validate_package_name(r, "registry name", "")?;
+                restricted_names::validate_package_name(r, "registry name", "")?;
                 Some(RegistryOrIndex::Registry(r.to_string()))
             }
             (Some(_), Some(_)) => {
@@ -795,7 +849,7 @@ Run `{cmd}` to see possible targets."
         match self._value_of("registry").map(|s| s.to_string()) {
             None => config.default_registry(),
             Some(registry) => {
-                validate_package_name(&registry, "registry name", "")?;
+                restricted_names::validate_package_name(&registry, "registry name", "")?;
                 Ok(Some(registry))
             }
         }

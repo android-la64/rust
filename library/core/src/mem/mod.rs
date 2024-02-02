@@ -647,7 +647,8 @@ pub const fn needs_drop<T: ?Sized>() -> bool {
 #[allow(deprecated)]
 #[rustc_diagnostic_item = "mem_zeroed"]
 #[track_caller]
-pub unsafe fn zeroed<T>() -> T {
+#[rustc_const_stable(feature = "const_mem_zeroed", since = "1.75.0")]
+pub const unsafe fn zeroed<T>() -> T {
     // SAFETY: the caller must guarantee that an all-zero value is valid for `T`.
     unsafe {
         intrinsics::assert_zero_valid::<T>();
@@ -723,15 +724,12 @@ pub unsafe fn uninitialized<T>() -> T {
 #[inline]
 #[stable(feature = "rust1", since = "1.0.0")]
 #[rustc_const_unstable(feature = "const_swap", issue = "83163")]
+#[rustc_diagnostic_item = "mem_swap"]
 pub const fn swap<T>(x: &mut T, y: &mut T) {
     // NOTE(eddyb) SPIR-V's Logical addressing model doesn't allow for arbitrary
     // reinterpretation of values as (chunkable) byte arrays, and the loop in the
     // block optimization in `swap_slice` is hard to rewrite back
     // into the (unoptimized) direct swapping implementation, so we disable it.
-    // FIXME(eddyb) the block optimization also prevents MIR optimizations from
-    // understanding `mem::replace`, `Option::take`, etc. - a better overall
-    // solution might be to make `ptr::swap_nonoverlapping` into an intrinsic, which
-    // a backend can choose to implement using the block optimization, or not.
     #[cfg(not(any(target_arch = "spirv")))]
     {
         // For types that are larger multiples of their alignment, the simple way
@@ -768,11 +766,14 @@ pub(crate) const fn swap_simple<T>(x: &mut T, y: &mut T) {
     // And LLVM actually optimizes it to 3×memcpy if called with
     // a type larger than it's willing to keep in a register.
     // Having typed reads and writes in MIR here is also good as
-    // it lets MIRI and CTFE understand them better, including things
+    // it lets Miri and CTFE understand them better, including things
     // like enforcing type validity for them.
     // Importantly, read+copy_nonoverlapping+write introduces confusing
     // asymmetry to the behaviour where one value went through read+write
     // whereas the other was copied over by the intrinsic (see #94371).
+    // Furthermore, using only read+write here benefits limited backends
+    // such as SPIR-V that work on an underlying *typed* view of memory,
+    // and thus have trouble with Rust's untyped memory operations.
 
     // SAFETY: exclusive references are always valid to read/write,
     // including being aligned, and nothing here panics so it's drop-safe.
@@ -909,6 +910,10 @@ pub fn take<T: Default>(dest: &mut T) -> T {
 #[rustc_const_unstable(feature = "const_replace", issue = "83164")]
 #[cfg_attr(not(test), rustc_diagnostic_item = "mem_replace")]
 pub const fn replace<T>(dest: &mut T, src: T) -> T {
+    // It may be tempting to use `swap` to avoid `unsafe` here. Don't!
+    // The compiler optimizes the implementation below to two `memcpy`s
+    // while `swap` would require at least three. See PR#83022 for details.
+
     // SAFETY: We read from `dest` but directly write `src` into it afterwards,
     // such that the old value is not duplicated. Nothing is dropped and
     // nothing here can panic.
@@ -930,7 +935,7 @@ pub const fn replace<T>(dest: &mut T, src: T) -> T {
 /// This function is not magic; it is literally defined as
 ///
 /// ```
-/// pub fn drop<T>(_x: T) { }
+/// pub fn drop<T>(_x: T) {}
 /// ```
 ///
 /// Because `_x` is moved into the function, it is automatically dropped before
@@ -1050,6 +1055,7 @@ pub const fn copy<T: Copy>(x: &T) -> T {
 /// ```
 #[inline]
 #[must_use]
+#[track_caller]
 #[stable(feature = "rust1", since = "1.0.0")]
 #[rustc_const_stable(feature = "const_transmute_copy", since = "1.74.0")]
 pub const unsafe fn transmute_copy<Src, Dst>(src: &Src) -> Dst {
@@ -1204,7 +1210,7 @@ impl<T> fmt::Debug for Discriminant<T> {
 /// // assert_eq!(0, unsafe { std::mem::transmute::<_, u8>(std::mem::discriminant(&unit_like)) });
 /// ```
 #[stable(feature = "discriminant_value", since = "1.21.0")]
-#[rustc_const_unstable(feature = "const_discriminant", issue = "69821")]
+#[rustc_const_stable(feature = "const_discriminant", since = "1.75.0")]
 #[cfg_attr(not(test), rustc_diagnostic_item = "mem_discriminant")]
 #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
 pub const fn discriminant<T>(v: &T) -> Discriminant<T> {
@@ -1290,16 +1296,71 @@ impl<T> SizedTypeProperties for T {}
 
 /// Expands to the offset in bytes of a field from the beginning of the given type.
 ///
-/// Only structs, unions and tuples are supported.
+/// Structs, enums, unions and tuples are supported.
 ///
-/// Nested field accesses may be used, but not array indexes like in `C`'s `offsetof`.
+/// Nested field accesses may be used, but not array indexes.
 ///
-/// Note that the output of this macro is not stable, except for `#[repr(C)]` types.
+/// Enum variants may be traversed as if they were fields. Variants themselves do
+/// not have an offset.
+///
+/// Visibility is respected - all types and fields must be visible to the call site:
+///
+/// ```
+/// #![feature(offset_of)]
+///
+/// mod nested {
+///     #[repr(C)]
+///     pub struct Struct {
+///         private: u8,
+///     }
+/// }
+///
+/// // assert_eq!(mem::offset_of!(nested::Struct, private), 0);
+/// // ^^^ error[E0616]: field `private` of struct `Struct` is private
+/// ```
+///
+/// Note that type layout is, in general, [subject to change and
+/// platform-specific](https://doc.rust-lang.org/reference/type-layout.html). If
+/// layout stability is required, consider using an [explicit `repr` attribute].
+///
+/// Rust guarantees that the offset of a given field within a given type will not
+/// change over the lifetime of the program. However, two different compilations of
+/// the same program may result in different layouts. Also, even within a single
+/// program execution, no guarantees are made about types which are *similar* but
+/// not *identical*, e.g.:
+///
+/// ```
+/// #![feature(offset_of)]
+///
+/// struct Wrapper<T, U>(T, U);
+///
+/// type A = Wrapper<u8, u8>;
+/// type B = Wrapper<u8, i8>;
+///
+/// // Not necessarily identical even though `u8` and `i8` have the same layout!
+/// // assert!(mem::offset_of!(A, 1), mem::offset_of!(B, 1));
+///
+/// #[repr(transparent)]
+/// struct U8(u8);
+///
+/// type C = Wrapper<u8, U8>;
+///
+/// // Not necessarily identical even though `u8` and `U8` have the same layout!
+/// // assert!(mem::offset_of!(A, 1), mem::offset_of!(C, 1));
+///
+/// struct Empty<T>(core::marker::PhantomData<T>);
+///
+/// // Not necessarily identical even though `PhantomData` always has the same layout!
+/// // assert!(mem::offset_of!(Empty<u8>, 0), mem::offset_of!(Empty<i8>, 0));
+/// ```
+///
+/// [explicit `repr` attribute]: https://doc.rust-lang.org/reference/type-layout.html#representations
 ///
 /// # Examples
 ///
 /// ```
 /// #![feature(offset_of)]
+/// # #![cfg_attr(not(bootstrap), feature(offset_of_enum))]
 ///
 /// use std::mem;
 /// #[repr(C)]
@@ -1322,6 +1383,20 @@ impl<T> SizedTypeProperties for T {}
 /// struct NestedB(u8);
 ///
 /// assert_eq!(mem::offset_of!(NestedA, b.0), 0);
+///
+/// #[repr(u8)]
+/// enum Enum {
+///     A(u8, u16),
+///     B { one: u8, two: u16 },
+/// }
+///
+/// # #[cfg(not(bootstrap))]
+/// assert_eq!(mem::offset_of!(Enum, A.0), 1);
+/// # #[cfg(not(bootstrap))]
+/// assert_eq!(mem::offset_of!(Enum, B.two), 2);
+///
+/// # #[cfg(not(bootstrap))]
+/// assert_eq!(mem::offset_of!(Option<&u8>, Some.0), 0);
 /// ```
 #[unstable(feature = "offset_of", issue = "106655")]
 #[allow_internal_unstable(builtin_syntax, hint_must_use)]

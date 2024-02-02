@@ -4,7 +4,7 @@ use clippy_utils::source::snippet;
 use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir::def::{DefKind, Res};
-use rustc_hir::{AsyncGeneratorKind, Block, Body, Expr, ExprKind, GeneratorKind, LangItem, MatchSource, QPath};
+use rustc_hir::{Block, Body, CoroutineKind, CoroutineSource, Expr, ExprKind, LangItem, MatchSource, QPath};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 
@@ -16,7 +16,7 @@ declare_clippy_lint! {
     /// There's no reason to use `?` to short-circuit when execution of the body will end there anyway.
     ///
     /// ### Example
-    /// ```rust
+    /// ```no_run
     /// struct TO {
     ///     magic: Option<usize>,
     /// }
@@ -35,7 +35,7 @@ declare_clippy_lint! {
     ///
     /// ```
     /// Use instead:
-    /// ```rust
+    /// ```no_run
     /// struct TO {
     ///     magic: Option<usize>,
     /// }
@@ -87,7 +87,7 @@ impl LateLintPass<'_> for NeedlessQuestionMark {
     }
 
     fn check_body(&mut self, cx: &LateContext<'_>, body: &'_ Body<'_>) {
-        if let Some(GeneratorKind::Async(AsyncGeneratorKind::Fn)) = body.generator_kind {
+        if let Some(CoroutineKind::Async(CoroutineSource::Fn)) = body.coroutine_kind {
             if let ExprKind::Block(
                 Block {
                     expr:
@@ -125,7 +125,7 @@ fn check(cx: &LateContext<'_>, expr: &Expr<'_>) {
         if let ExprKind::Match(inner_expr_with_q, _, MatchSource::TryDesugar(_)) = &arg.kind;
         if let ExprKind::Call(called, [inner_expr]) = &inner_expr_with_q.kind;
         if let ExprKind::Path(QPath::LangItem(LangItem::TryTraitBranch, ..)) = &called.kind;
-        if expr.span.ctxt() == inner_expr.span.ctxt();
+        if expr.span.eq_ctxt(inner_expr.span);
         let expr_ty = cx.typeck_results().expr_ty(expr);
         let inner_ty = cx.typeck_results().expr_ty(inner_expr);
         if expr_ty == inner_ty;

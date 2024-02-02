@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-diff"
-version = "0.36.0"
+version = "0.37.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -47,10 +47,10 @@ optional = true
 default-features = false
 
 [dependencies.gix-hash]
-version = "^0.13.0"
+version = "^0.13.1"
 
 [dependencies.gix-object]
-version = "^0.37.0"
+version = "^0.38.0"
 
 [dependencies.imara-diff]
 version = "0.1.3"

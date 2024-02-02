@@ -13,7 +13,7 @@ use log::trace;
 
 use rustc_data_structures::fx::FxHashMap;
 use rustc_middle::ty::TyCtxt;
-use rustc_target::abi::{Align, Size};
+use rustc_target::abi::Size;
 
 use crate::shims::os_str::bytes_to_os_str;
 use crate::*;
@@ -63,7 +63,7 @@ pub trait FileDescriptor: std::fmt::Debug + Any {
 
     fn dup(&mut self) -> io::Result<Box<dyn FileDescriptor>>;
 
-    fn is_tty(&self) -> bool {
+    fn is_tty(&self, _communicate_allowed: bool) -> bool {
         false
     }
 
@@ -156,8 +156,8 @@ impl FileDescriptor for FileHandle {
         Some(self.file.as_raw_fd())
     }
 
-    fn is_tty(&self) -> bool {
-        self.file.is_terminal()
+    fn is_tty(&self, communicate_allowed: bool) -> bool {
+        communicate_allowed && self.file.is_terminal()
     }
 }
 
@@ -188,8 +188,8 @@ impl FileDescriptor for io::Stdin {
         Some(libc::STDIN_FILENO)
     }
 
-    fn is_tty(&self) -> bool {
-        self.is_terminal()
+    fn is_tty(&self, communicate_allowed: bool) -> bool {
+        communicate_allowed && self.is_terminal()
     }
 }
 
@@ -225,8 +225,8 @@ impl FileDescriptor for io::Stdout {
         Some(libc::STDOUT_FILENO)
     }
 
-    fn is_tty(&self) -> bool {
-        self.is_terminal()
+    fn is_tty(&self, communicate_allowed: bool) -> bool {
+        communicate_allowed && self.is_terminal()
     }
 }
 
@@ -255,8 +255,8 @@ impl FileDescriptor for io::Stderr {
         Some(libc::STDERR_FILENO)
     }
 
-    fn is_tty(&self) -> bool {
-        self.is_terminal()
+    fn is_tty(&self, communicate_allowed: bool) -> bool {
+        communicate_allowed && self.is_terminal()
     }
 }
 
@@ -756,12 +756,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         trace!("Reading from FD {}, size {}", fd, count);
 
         // Check that the *entire* buffer is actually valid memory.
-        this.check_ptr_access_align(
-            buf,
-            Size::from_bytes(count),
-            Align::ONE,
-            CheckInAllocMsg::MemoryAccessTest,
-        )?;
+        this.check_ptr_access(buf, Size::from_bytes(count), CheckInAllocMsg::MemoryAccessTest)?;
 
         // We cap the number of read bytes to the largest value that we are able to fit in both the
         // host's and target's `isize`. This saves us from having to handle overflows later.
@@ -810,12 +805,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         // Isolation check is done via `FileDescriptor` trait.
 
         // Check that the *entire* buffer is actually valid memory.
-        this.check_ptr_access_align(
-            buf,
-            Size::from_bytes(count),
-            Align::ONE,
-            CheckInAllocMsg::MemoryAccessTest,
-        )?;
+        this.check_ptr_access(buf, Size::from_bytes(count), CheckInAllocMsg::MemoryAccessTest)?;
 
         // We cap the number of written bytes to the largest value that we are able to fit in both the
         // host's and target's `isize`. This saves us from having to handle overflows later.
@@ -1370,7 +1360,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
                         ("d_reclen", size.into()),
                         ("d_type", file_type.into()),
                     ],
-                    &MPlaceTy::from_aligned_ptr(entry, dirent64_layout),
+                    &this.ptr_to_mplace(entry, dirent64_layout),
                 )?;
 
                 let name_ptr = entry.offset(Size::from_bytes(d_name_offset), this)?;
@@ -1721,15 +1711,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         let this = self.eval_context_mut();
         // "returns 1 if fd is an open file descriptor referring to a terminal;
         // otherwise 0 is returned, and errno is set to indicate the error"
-        if matches!(this.machine.isolated_op, IsolatedOp::Allow) {
-            let fd = this.read_scalar(miri_fd)?.to_i32()?;
-            if this.machine.file_handler.handles.get(&fd).map(|fd| fd.is_tty()) == Some(true) {
+        let fd = this.read_scalar(miri_fd)?.to_i32()?;
+        let error = if let Some(fd) = this.machine.file_handler.handles.get(&fd) {
+            if fd.is_tty(this.machine.communicate()) {
                 return Ok(Scalar::from_i32(1));
+            } else {
+                this.eval_libc("ENOTTY")
             }
-        }
-        // Fallback when the FD was not found or isolation is enabled.
-        let enotty = this.eval_libc("ENOTTY");
-        this.set_last_error(enotty)?;
+        } else {
+            // FD does not exist
+            this.eval_libc("EBADF")
+        };
+        this.set_last_error(error)?;
         Ok(Scalar::from_i32(0))
     }
 

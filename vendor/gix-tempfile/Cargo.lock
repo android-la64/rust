@@ -89,9 +89,9 @@ dependencies = [
 
 [[package]]
 name = "gix-features"
-version = "0.35.0"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b9ff423ae4983f762659040d13dd7a5defbd54b6a04ac3cc7347741cec828cd"
+checksum = "51f4365ba17c4f218d7fd9ec102b8d2d3cb0ca200a835e81151ace7778aec827"
 dependencies = [
  "gix-hash",
  "gix-trace",
@@ -100,18 +100,18 @@ dependencies = [
 
 [[package]]
 name = "gix-fs"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09815faba62fe9b32d918b75a554686c98e43f7d48c43a80df58eb718e5c6635"
+checksum = "8cd171c0cae97cd0dc57e7b4601cb1ebf596450e263ef3c02be9107272c877bd"
 dependencies = [
  "gix-features",
 ]
 
 [[package]]
 name = "gix-hash"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ccf425543779cddaa4a7c62aba3fa9d90ea135b160be0a72dd93c063121ad4a"
+checksum = "1884c7b41ea0875217c1be9ce91322f90bde433e91d374d0e1276073a51ccc60"
 dependencies = [
  "faster-hex",
  "thiserror",
@@ -119,7 +119,7 @@ dependencies = [
 
 [[package]]
 name = "gix-tempfile"
-version = "10.0.0"
+version = "11.0.0"
 dependencies = [
  "dashmap",
  "document-features",

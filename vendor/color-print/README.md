@@ -1,6 +1,6 @@
 # color-print
 
-Colorize and stylize strings at compile-time, by using an HTML-like syntax.
+Colorize and stylize strings for terminal at compile-time, by using an HTML-like syntax.
 
 This library provides the following macros:
 
@@ -12,22 +12,21 @@ This library provides the following macros:
 
 `cformat!()`, `cprint!()`, and `cprintln!()` have the same syntax as `format!()`,
 `print!()` and `println!()` respectively, but they accept an additional syntax inside the
-format string: HTML-like tags which add terminal colors/styles at compile-time.
-
-*Note*: these tags are commonly named "*color tags*" in the documentation below.
+format string: HTML-like tags which add ANSI colors/styles at compile-time.
 
 `cstr!()` only transforms the given string literal into another string literal, without
 formatting anything else than the colors tag.
 
-`untagged!()` removes all the color tags found in the given string literal.
+`untagged!()` removes all the tags found in the given string literal.
 
 ### What does it do ?
 
-By default, the provided macros will replace the color tags found in the format string by ANSI
+By default, the provided macros will replace the tags found in the format string by ANSI
 hexadecimal escape codes. E.g.:
 
 ```rust
 cprintln!("HELLO <green>WORLD</green>")
+cprintln!("HELLO <green>WORLD</>"); // Alternative, shorter syntax
 ```
 
 will be replaced by:
@@ -44,7 +43,7 @@ each kind of styling/colorizing (see below for more detail).
 
 ### Pros
 
-* Styling is processed at compile-time, so the runtime payload is quite inexistant (unless the
+* Styling is processed at compile-time, so the runtime payload is  inexistant (unless the
   feature `terminfo` is activated);
 * Nested tags are well handled, e.g. `"<green>...<blue>...</blue>...</green>"`;
 * Some optimizations are performed to avoid redundant ANSI sequences, because these
@@ -52,16 +51,12 @@ each kind of styling/colorizing (see below for more detail).
 * Almost every tag has a short name, so colorizing can be done quickly: `"my <b>blue</> word"`;
 * Each provided macro can be used exactly in the same way as the standard `format!`-like
   macros; e.g., positional arguments and named arguments can be used as usual;
-* Fine-grained error handling.
+* Supports 16, 256 and 16M colors;
+* Fine-grained error handling (errors will be given at compile-time).
 
 ### Cons
 
-* Many CLI programs detect on runtime if they are actually piped to another command or not, and
-  decide to colorize their output based on this information. As `color-print` formats strings at
-  compile-time, this is not possible to do that easily;
-* Not compatible with non-ANSI Windows terminals (and not tested at all on Windows, feedbacks
-  are welcome);
-* Not tested on Mac, feedbacks are welcome.
+* Not compatible with non-ANSI terminals.
 
 ## Introduction
 
@@ -74,8 +69,9 @@ cprintln!("Hello <green>world</green>!");
 
 ### Closing a tag more simply: the `</>` tag
 
-Basically, tags must be closed by giving exactly  the same colors/styles of the matching open
-tag (with a slash `/` at the beginning). But it can be tedious!
+Basically, tags must be closed by giving *exactly* the same colors/styles as their matching
+open tag (with a slash `/` at the beginning), e.g: `<blue,bold>...</blue,bold>`. But it can be
+tedious!
 
 So, it is also possible to close the last open tag simply with `</>`:
 
@@ -85,7 +81,7 @@ cprintln!("Hello <green>world</>!");
 
 ### Combining colors and styles
 
-Multiple styles and color(s) can be combined into a single tag by separating them with the `,`
+Multiple styles and colors can be combined into a single tag by separating them with the `,`
 comma character:
 
 ```rust
@@ -94,13 +90,14 @@ cprintln!("This a <green,bold>green and bold text</green,bold>.");
 cprintln!("This a <green,bold>green and bold text</>.");
 ```
 
-Of course, combining multiple foreground colors or multiple background colors into the same tag
-is useless (in such a case, only the last one is taken into account).
-
 ### Nesting tags
 
-Any tag can be nested with any other, as long as the closing tags match correctly (following
-the basic rules of nesting for HTML tags):
+Any tag can be nested with any other.
+
+*Note*: The closing tags must match correctly (following the basic rules of nesting for HTML
+tags), but it can always be simplified by using the tag `</>`.
+
+Example of nested tags:
 
 ```rust
 cprintln!("<green>This is green, <bold>then green and bold</bold>, then green again</green>");
@@ -124,7 +121,8 @@ cprintln!("<green><bold>Hello</></>");
 
 ### How to display the chars `<` and `>` verbatim
 
-As for `{` and `}`, the chars `<` and `>` have to be doubled in order to display them verbatim:
+As for `{` and `}` in standard format strings, the chars `<` and `>` have to be doubled in
+order to display them verbatim:
 
 ```rust
 cprintln!("This is an angle bracket character: <<, and here is another one: >>");
@@ -133,22 +131,22 @@ cprintln!("This is an angle bracket character: <<, and here is another one: >>")
 ## Optimization: no redundant ANSI codes
 
 The expanded format string will only contain the *needed* ANSI codes. This is done by making a
-diff of the different style attributes, each time a color tag is encountered, instead of
-mechanically adding the ANSI codes.
+diff of the different style attributes, each time a tag is encountered, instead of mechanically
+adding the ANSI codes.
 
 E.g., several nested `<bold>` tags will only produce one bold ANSI sequence:
 
 ```rust
-cprintln!("<bold><bold>A <bold,blue>B C D</> E</></>")
+cprintln!("<bold><bold> A <bold,blue> B </> C </></>")
 ```
 
 will be replaced by:
 
 ```rust
-println!("\u{1b}[1mA \u{1b}[34mB C D\u{1b}[39m E\u{1b}[22m")
-//        ^-------^  ^--------^     ^--------^  ^--------^
-//          bold        blue           color       bold
-//                                     reset       reset
+println!("\u{1b}[1m A \u{1b}[34m B \u{1b}[39m C \u{1b}[22m")
+//        ^-------^   ^--------^   ^--------^   ^--------^
+//          bold         blue         color        bold
+//                                    reset        reset
 ```
 
 ## The feature `terminfo`
@@ -175,38 +173,37 @@ This has one pro and several cons:
 `lazy_static`: https://crates.io/crates/lazy_static
 `terminfo`: https://crates.io/crates/terminfo
 
-## Naming rules of the color tags:
+## Naming rules of the tags:
 
-Each color/style tag has at least a long name, like `<magenta>` or `<underline>`.
+Each tag has at least a **long name**, like `<magenta>` or `<underline>`.
 
 The tags directly relative to *colors* (like `<red>`, `<bg:blue>`, `<bg:bright-green>`..., as
 opposed to *style* tags like `<bold>`, `<italics>`...) have some common naming rules:
 
- * Each color tag has four variants:
+ * Each tag has four variants:
    - `<mycolor>`: the normal, foreground color;
    - `<bright-mycolor>` or `<mycolor!>`: the bright, foreground color;
-   - `<bg:mycolor>`: the normal, background color;
+   - `<bg:mycolor>`, `<MYCOLOR>`: the normal, background color;
    - `<bg:bright-mycolor>`, `<bg:mycolor!>`, `<BRIGHT-MYCOLOR>` or `<MYCOLOR!>`: the bright,
      background color;
- * Each color tag has a *shortcut*, with a base letter for each color (example with the `x`
-   letter):
+ * Each tag has a *shortcut*, with a base letter for each color; example with the `x` letter:
    - `<x>`: the normal, foreground color;
    - `<x!>`: the bright, foreground color;
-   - `<bg:x>` or `<X>`: the normal, background color;
-   - `<bg:x!>` or `<X!>`: the bright, background color;
- * Except for the color `<black>`, each color's shortcut letter is simply the first letter of
-   its name, e.g. `<y>` is the shortcut for `<yellow>`;
- * Each color's tag which is uppercase is a background color;
- * Each tag which has a trailing exclamation point `!` is a bright color;
+   - `<bg:x>`, `<X>`: the normal, background color;
+   - `<bg:x!>`, `<X!>`: the bright, background color;
+ * Each color's shortcut letter is simply the **first letter of its name** (excepted for `<k>`
+   which is the shortcut for `<black>`), e.g. `<y>` is the shortcut for `<yellow>`;
+ * Each color's tag which is uppercase is a **background color**;
+ * Each tag which has a trailing exclamation point `!` is a **bright color**;
 
-## List of accepted color/style tags:
+## List of accepted tags:
 
 The two first columns show which styles are supported, respectively with the default crate
 features (ANSI column), and with the feature `terminfo` being activated.
 
 | ANSI | Terminfo | Shortcuts | Long names              | Aliases                                         |
 | ---- | -------- | --------- | ----------------------- | ----------------------------------------------- |
-| X    | X        | `<s>`     | `<bold>`                | `<em>` `<strong>`                               |
+| X    | X        | `<s>`     | `<strong>`              | `<em>` `<bold>`                                 |
 | X    | X        |           | `<dim>`                 |                                                 |
 | X    | X        | `<u>`     | `<underline>`           |                                                 |
 | X    |          |           | `<strike>`              |                                                 |

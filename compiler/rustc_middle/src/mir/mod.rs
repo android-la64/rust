@@ -2,7 +2,7 @@
 //!
 //! [rustc dev guide]: https://rustc-dev-guide.rust-lang.org/mir/index.html
 
-use crate::mir::interpret::{AllocRange, ConstAllocation, ErrorHandled, Scalar};
+use crate::mir::interpret::{AllocRange, ConstAllocation, Scalar};
 use crate::mir::visit::MirVisitable;
 use crate::ty::codec::{TyDecoder, TyEncoder};
 use crate::ty::fold::{FallibleTypeFolder, TypeFoldable};
@@ -17,7 +17,7 @@ use rustc_data_structures::captures::Captures;
 use rustc_errors::{DiagnosticArgValue, DiagnosticMessage, ErrorGuaranteed, IntoDiagnosticArg};
 use rustc_hir::def::{CtorKind, Namespace};
 use rustc_hir::def_id::{DefId, CRATE_DEF_ID};
-use rustc_hir::{self, GeneratorKind, ImplicitSelfKind};
+use rustc_hir::{self, CoroutineKind, ImplicitSelfKind};
 use rustc_hir::{self as hir, HirId};
 use rustc_session::Session;
 use rustc_target::abi::{FieldIdx, VariantIdx};
@@ -246,19 +246,19 @@ impl<'tcx> MirSource<'tcx> {
 }
 
 #[derive(Clone, TyEncodable, TyDecodable, Debug, HashStable, TypeFoldable, TypeVisitable)]
-pub struct GeneratorInfo<'tcx> {
-    /// The yield type of the function, if it is a generator.
+pub struct CoroutineInfo<'tcx> {
+    /// The yield type of the function, if it is a coroutine.
     pub yield_ty: Option<Ty<'tcx>>,
 
-    /// Generator drop glue.
-    pub generator_drop: Option<Body<'tcx>>,
+    /// Coroutine drop glue.
+    pub coroutine_drop: Option<Body<'tcx>>,
 
-    /// The layout of a generator. Produced by the state transformation.
-    pub generator_layout: Option<GeneratorLayout<'tcx>>,
+    /// The layout of a coroutine. Produced by the state transformation.
+    pub coroutine_layout: Option<CoroutineLayout<'tcx>>,
 
-    /// If this is a generator then record the type of source expression that caused this generator
+    /// If this is a coroutine then record the type of source expression that caused this coroutine
     /// to be created.
-    pub generator_kind: GeneratorKind,
+    pub coroutine_kind: CoroutineKind,
 }
 
 /// The lowered representation of a single function.
@@ -284,7 +284,7 @@ pub struct Body<'tcx> {
     /// and used for debuginfo. Indexed by a `SourceScope`.
     pub source_scopes: IndexVec<SourceScope, SourceScopeData<'tcx>>,
 
-    pub generator: Option<Box<GeneratorInfo<'tcx>>>,
+    pub coroutine: Option<Box<CoroutineInfo<'tcx>>>,
 
     /// Declarations of locals.
     ///
@@ -345,6 +345,14 @@ pub struct Body<'tcx> {
     pub injection_phase: Option<MirPhase>,
 
     pub tainted_by_errors: Option<ErrorGuaranteed>,
+
+    /// Per-function coverage information added by the `InstrumentCoverage`
+    /// pass, to be used in conjunction with the coverage statements injected
+    /// into this body's blocks.
+    ///
+    /// If `-Cinstrument-coverage` is not active, or if an individual function
+    /// is not eligible for coverage, then this should always be `None`.
+    pub function_coverage_info: Option<Box<coverage::FunctionCoverageInfo>>,
 }
 
 impl<'tcx> Body<'tcx> {
@@ -357,7 +365,7 @@ impl<'tcx> Body<'tcx> {
         arg_count: usize,
         var_debug_info: Vec<VarDebugInfo<'tcx>>,
         span: Span,
-        generator_kind: Option<GeneratorKind>,
+        coroutine_kind: Option<CoroutineKind>,
         tainted_by_errors: Option<ErrorGuaranteed>,
     ) -> Self {
         // We need `arg_count` locals, and one for the return place.
@@ -374,12 +382,12 @@ impl<'tcx> Body<'tcx> {
             source,
             basic_blocks: BasicBlocks::new(basic_blocks),
             source_scopes,
-            generator: generator_kind.map(|generator_kind| {
-                Box::new(GeneratorInfo {
+            coroutine: coroutine_kind.map(|coroutine_kind| {
+                Box::new(CoroutineInfo {
                     yield_ty: None,
-                    generator_drop: None,
-                    generator_layout: None,
-                    generator_kind,
+                    coroutine_drop: None,
+                    coroutine_layout: None,
+                    coroutine_kind,
                 })
             }),
             local_decls,
@@ -392,6 +400,7 @@ impl<'tcx> Body<'tcx> {
             is_polymorphic: false,
             injection_phase: None,
             tainted_by_errors,
+            function_coverage_info: None,
         };
         body.is_polymorphic = body.has_non_region_param();
         body
@@ -409,7 +418,7 @@ impl<'tcx> Body<'tcx> {
             source: MirSource::item(CRATE_DEF_ID.to_def_id()),
             basic_blocks: BasicBlocks::new(basic_blocks),
             source_scopes: IndexVec::new(),
-            generator: None,
+            coroutine: None,
             local_decls: IndexVec::new(),
             user_type_annotations: IndexVec::new(),
             arg_count: 0,
@@ -420,6 +429,7 @@ impl<'tcx> Body<'tcx> {
             is_polymorphic: false,
             injection_phase: None,
             tainted_by_errors: None,
+            function_coverage_info: None,
         };
         body.is_polymorphic = body.has_non_region_param();
         body
@@ -538,22 +548,22 @@ impl<'tcx> Body<'tcx> {
 
     #[inline]
     pub fn yield_ty(&self) -> Option<Ty<'tcx>> {
-        self.generator.as_ref().and_then(|generator| generator.yield_ty)
+        self.coroutine.as_ref().and_then(|coroutine| coroutine.yield_ty)
     }
 
     #[inline]
-    pub fn generator_layout(&self) -> Option<&GeneratorLayout<'tcx>> {
-        self.generator.as_ref().and_then(|generator| generator.generator_layout.as_ref())
+    pub fn coroutine_layout(&self) -> Option<&CoroutineLayout<'tcx>> {
+        self.coroutine.as_ref().and_then(|coroutine| coroutine.coroutine_layout.as_ref())
     }
 
     #[inline]
-    pub fn generator_drop(&self) -> Option<&Body<'tcx>> {
-        self.generator.as_ref().and_then(|generator| generator.generator_drop.as_ref())
+    pub fn coroutine_drop(&self) -> Option<&Body<'tcx>> {
+        self.coroutine.as_ref().and_then(|coroutine| coroutine.coroutine_drop.as_ref())
     }
 
     #[inline]
-    pub fn generator_kind(&self) -> Option<GeneratorKind> {
-        self.generator.as_ref().map(|generator| generator.generator_kind)
+    pub fn coroutine_kind(&self) -> Option<CoroutineKind> {
+        self.coroutine.as_ref().map(|coroutine| coroutine.coroutine_kind)
     }
 
     #[inline]
@@ -569,32 +579,38 @@ impl<'tcx> Body<'tcx> {
         self.injection_phase.is_some()
     }
 
-    /// *Must* be called once the full substitution for this body is known, to ensure that the body
-    /// is indeed fit for code generation or consumption more generally.
-    ///
-    /// Sadly there's no nice way to represent an "arbitrary normalizer", so we take one for
-    /// constants specifically. (`Option<GenericArgsRef>` could be used for that, but the fact
-    /// that `Instance::args_for_mir_body` is private and instead instance exposes normalization
-    /// functions makes it seem like exposing the generic args is not the intended strategy.)
-    ///
-    /// Also sadly, CTFE doesn't even know whether it runs on MIR that is already polymorphic or still monomorphic,
-    /// so we cannot just immediately ICE on TooGeneric.
-    ///
-    /// Returns Ok(()) if everything went fine, and `Err` if a problem occurred and got reported.
-    pub fn post_mono_checks(
+    /// For a `Location` in this scope, determine what the "caller location" at that point is. This
+    /// is interesting because of inlining: the `#[track_caller]` attribute of inlined functions
+    /// must be honored. Falls back to the `tracked_caller` value for `#[track_caller]` functions,
+    /// or the function's scope.
+    pub fn caller_location_span<T>(
         &self,
+        mut source_info: SourceInfo,
+        caller_location: Option<T>,
         tcx: TyCtxt<'tcx>,
-        param_env: ty::ParamEnv<'tcx>,
-        normalize_const: impl Fn(Const<'tcx>) -> Result<Const<'tcx>, ErrorHandled>,
-    ) -> Result<(), ErrorHandled> {
-        // For now, the only thing we have to check is is to ensure that all the constants used in
-        // the body successfully evaluate.
-        for &const_ in &self.required_consts {
-            let c = normalize_const(const_.const_)?;
-            c.eval(tcx, param_env, Some(const_.span))?;
+        from_span: impl FnOnce(Span) -> T,
+    ) -> T {
+        loop {
+            let scope_data = &self.source_scopes[source_info.scope];
+
+            if let Some((callee, callsite_span)) = scope_data.inlined {
+                // Stop inside the most nested non-`#[track_caller]` function,
+                // before ever reaching its caller (which is irrelevant).
+                if !callee.def.requires_caller_location(tcx) {
+                    return from_span(source_info.span);
+                }
+                source_info.span = callsite_span;
+            }
+
+            // Skip past all of the parents with `inlined: None`.
+            match scope_data.inlined_parent_scope {
+                Some(parent) => source_info.scope = parent,
+                None => break,
+            }
         }
 
-        Ok(())
+        // No inlined `SourceScope`s, or all of them were `#[track_caller]`.
+        caller_location.unwrap_or_else(|| from_span(source_info.span))
     }
 }
 
@@ -830,22 +846,6 @@ pub struct LocalDecl<'tcx> {
     // FIXME(matthewjasper) Don't store in this in `Body`
     pub local_info: ClearCrossCrate<Box<LocalInfo<'tcx>>>,
 
-    /// `true` if this is an internal local.
-    ///
-    /// These locals are not based on types in the source code and are only used
-    /// for a few desugarings at the moment.
-    ///
-    /// The generator transformation will sanity check the locals which are live
-    /// across a suspension point against the type components of the generator
-    /// which type checking knows are live across a suspension point. We need to
-    /// flag drop flags to avoid triggering this check as they are introduced
-    /// outside of type inference.
-    ///
-    /// This should be sound because the drop flags are fully algebraic, and
-    /// therefore don't affect the auto-trait or outlives properties of the
-    /// generator.
-    pub internal: bool,
-
     /// The type of this local.
     pub ty: Ty<'tcx>,
 
@@ -1058,7 +1058,7 @@ impl<'tcx> LocalDecl<'tcx> {
         self.source_info.span.desugaring_kind().is_some()
     }
 
-    /// Creates a new `LocalDecl` for a temporary: mutable, non-internal.
+    /// Creates a new `LocalDecl` for a temporary, mutable.
     #[inline]
     pub fn new(ty: Ty<'tcx>, span: Span) -> Self {
         Self::with_source_info(ty, SourceInfo::outermost(span))
@@ -1070,18 +1070,10 @@ impl<'tcx> LocalDecl<'tcx> {
         LocalDecl {
             mutability: Mutability::Mut,
             local_info: ClearCrossCrate::Set(Box::new(LocalInfo::Boring)),
-            internal: false,
             ty,
             user_ty: None,
             source_info,
         }
-    }
-
-    /// Converts `self` into same `LocalDecl` except tagged as internal.
-    #[inline]
-    pub fn internal(mut self) -> Self {
-        self.internal = true;
-        self
     }
 
     /// Converts `self` into same `LocalDecl` except tagged as immutable.
@@ -1610,6 +1602,23 @@ impl Location {
             self.statement_index <= other.statement_index
         } else {
             dominators.dominates(self.block, other.block)
+        }
+    }
+}
+
+/// `DefLocation` represents the location of a definition - either an argument or an assignment
+/// within MIR body.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum DefLocation {
+    Argument,
+    Body(Location),
+}
+
+impl DefLocation {
+    pub fn dominates(self, location: Location, dominators: &Dominators<BasicBlock>) -> bool {
+        match self {
+            DefLocation::Argument => true,
+            DefLocation::Body(def) => def.successor_within_block().dominates(location, dominators),
         }
     }
 }

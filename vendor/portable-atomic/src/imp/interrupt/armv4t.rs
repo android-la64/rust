@@ -1,21 +1,26 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Refs: https://developer.arm.com/documentation/ddi0406/cb/System-Level-Architecture/The-System-Level-Programmers--Model/ARM-processor-modes-and-ARM-core-registers/Program-Status-Registers--PSRs-?lang=en
 //
 // Generated asm:
-// - armv5te https://godbolt.org/z/5arYrfzYc
+// - armv5te https://godbolt.org/z/Teh7WajMs
 
 #[cfg(not(portable_atomic_no_asm))]
 use core::arch::asm;
 
+// - 0x80 - I (IRQ mask) bit (1 << 7)
+// - 0x40 - F (FIQ mask) bit (1 << 6)
+// We disable only IRQs by default. See also https://github.com/taiki-e/portable-atomic/pull/28#issuecomment-1214146912.
 #[cfg(not(portable_atomic_disable_fiq))]
-macro_rules! if_disable_fiq {
-    ($tt:tt) => {
-        ""
+macro_rules! mask {
+    () => {
+        "0x80"
     };
 }
 #[cfg(portable_atomic_disable_fiq)]
-macro_rules! if_disable_fiq {
-    ($tt:tt) => {
-        $tt
+macro_rules! mask {
+    () => {
+        "0xC0" // 0x80 | 0x40
     };
 }
 
@@ -29,15 +34,13 @@ pub(super) fn disable() -> State {
     // SAFETY: reading CPSR and disabling interrupts are safe.
     // (see module-level comments of interrupt/mod.rs on the safety of using privileged instructions)
     unsafe {
-        // Do not use `nomem` and `readonly` because prevent subsequent memory accesses from being reordered before interrupts are disabled.
         asm!(
             "mrs {prev}, cpsr",
-            "orr {new}, {prev}, 0x80", // I (IRQ mask) bit (1 << 7)
-            // We disable only IRQs by default. See also https://github.com/taiki-e/portable-atomic/pull/28#issuecomment-1214146912.
-            if_disable_fiq!("orr {new}, {new}, 0x40"), // F (FIQ mask) bit (1 << 6)
+            concat!("orr {new}, {prev}, ", mask!()),
             "msr cpsr_c, {new}",
             prev = out(reg) cpsr,
             new = out(reg) _,
+            // Do not use `nomem` and `readonly` because prevent subsequent memory accesses from being reordered before interrupts are disabled.
             options(nostack, preserves_flags),
         );
     }
@@ -53,11 +56,14 @@ pub(super) fn disable() -> State {
 #[instruction_set(arm::a32)]
 pub(super) unsafe fn restore(cpsr: State) {
     // SAFETY: the caller must guarantee that the state was retrieved by the previous `disable`,
+    //
+    // This clobbers the control field mask byte of CPSR. See msp430.rs to safety on this.
+    // (preserves_flags is fine because we only clobber the I, F, T, and M bits of CPSR.)
+    //
+    // Refs: https://developer.arm.com/documentation/dui0473/m/arm-and-thumb-instructions/msr--general-purpose-register-to-psr-
     unsafe {
-        // This clobbers the entire CPSR. See msp430.rs to safety on this.
-        //
         // Do not use `nomem` and `readonly` because prevent preceding memory accesses from being reordered after interrupts are enabled.
-        asm!("msr cpsr_c, {0}", in(reg) cpsr, options(nostack));
+        asm!("msr cpsr_c, {0}", in(reg) cpsr, options(nostack, preserves_flags));
     }
 }
 
@@ -66,7 +72,7 @@ pub(super) unsafe fn restore(cpsr: State) {
 // have Data Memory Barrier).
 //
 // Generated asm:
-// - armv5te https://godbolt.org/z/a7zcs9hKa
+// - armv5te https://godbolt.org/z/bMxK7M8Ta
 pub(crate) mod atomic {
     #[cfg(not(portable_atomic_no_asm))]
     use core::arch::asm;

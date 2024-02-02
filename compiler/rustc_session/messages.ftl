@@ -5,9 +5,6 @@ session_cannot_enable_crt_static_linux = sanitizer is incompatible with statical
 
 session_cannot_mix_and_match_sanitizers = `-Zsanitizer={$first}` is incompatible with `-Zsanitizer={$second}`
 
-session_cgu_not_recorded =
-    CGU-reuse for `{$cgu_user_name}` is (mangled: `{$cgu_name}`) was not recorded
-
 session_cli_feature_diagnostic_help =
     add `-Zcrate-attr="feature({$feature})"` to the command-line options to enable
 
@@ -25,8 +22,6 @@ session_feature_diagnostic_for_issue =
 session_feature_diagnostic_help =
     add `#![feature({$feature})]` to the crate attributes to enable
 
-session_feature_gate_error = {$explain}
-
 session_file_is_not_writeable = output file {$file} is not writeable -- check its permissions
 
 session_file_write_fail = failed to write `{$path}` due to error `{$err}`
@@ -35,12 +30,6 @@ session_hexadecimal_float_literal_not_supported = hexadecimal float literal is n
 
 session_incompatible_linker_flavor = linker flavor `{$flavor}` is incompatible with the current target
     .note = compatible flavors are: {$compatible_list}
-
-session_incorrect_cgu_reuse_type =
-    CGU-reuse for `{$cgu_user_name}` is `{$actual_reuse}` but should be {$at_least ->
-    [one] {"at least "}
-    *[other] {""}
-    }`{$expected_reuse}`
 
 session_instrumentation_not_supported = {$us} instrumentation is not supported for this target
 

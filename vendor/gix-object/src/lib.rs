@@ -98,7 +98,7 @@ pub struct CommitRef<'a> {
     pub extra_headers: Vec<(&'a BStr, Cow<'a, BStr>)>,
 }
 
-/// Like [`CommitRef`][crate::CommitRef], but as `Iterator` to support (up to) entirely allocation free parsing.
+/// Like [`CommitRef`], but as `Iterator` to support (up to) entirely allocation free parsing.
 /// It's particularly useful to traverse the commit graph without ever allocating arrays for parents.
 #[derive(Copy, Clone)]
 pub struct CommitRefIter<'a> {
@@ -345,7 +345,7 @@ pub mod decode {
     /// ([`kind`](super::Kind), `size`, `consumed bytes`).
     ///
     /// `size` is the uncompressed size of the payload in bytes.
-    pub fn loose_header(input: &[u8]) -> Result<(super::Kind, usize, usize), LooseHeaderDecodeError> {
+    pub fn loose_header(input: &[u8]) -> Result<(super::Kind, u64, usize), LooseHeaderDecodeError> {
         use LooseHeaderDecodeError::*;
         let kind_end = input.find_byte(0x20).ok_or(InvalidHeader {
             message: "Expected '<type> <size>'",
@@ -364,13 +364,34 @@ pub mod decode {
     }
 }
 
-/// A standalone function to compute a hash of kind `hash_kind` for an object of `object_kind` and its `data`.
+/// A function to compute a hash of kind `hash_kind` for an object of `object_kind` and its `data`.
+#[doc(alias = "hash_object", alias = "git2")]
 pub fn compute_hash(hash_kind: gix_hash::Kind, object_kind: Kind, data: &[u8]) -> gix_hash::ObjectId {
-    let header = encode::loose_header(object_kind, data.len());
+    let header = encode::loose_header(object_kind, data.len() as u64);
 
     let mut hasher = gix_features::hash::hasher(hash_kind);
     hasher.update(&header);
     hasher.update(data);
 
     hasher.digest().into()
+}
+
+/// A function to compute a hash of kind `hash_kind` for an object of `object_kind` and its data read from `stream`
+/// which has to yield exactly `stream_len` bytes.
+/// Use `progress` to learn about progress in bytes processed and `should_interrupt` to be able to abort the operation
+/// if set to `true`.
+#[doc(alias = "hash_file", alias = "git2")]
+pub fn compute_stream_hash(
+    hash_kind: gix_hash::Kind,
+    object_kind: Kind,
+    stream: &mut dyn std::io::Read,
+    stream_len: u64,
+    progress: &mut dyn gix_features::progress::Progress,
+    should_interrupt: &std::sync::atomic::AtomicBool,
+) -> std::io::Result<gix_hash::ObjectId> {
+    let header = encode::loose_header(object_kind, stream_len);
+    let mut hasher = gix_features::hash::hasher(hash_kind);
+
+    hasher.update(&header);
+    gix_features::hash::bytes_with_hasher(stream, stream_len, hasher, progress, should_interrupt)
 }

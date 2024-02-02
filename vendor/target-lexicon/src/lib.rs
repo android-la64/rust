@@ -40,6 +40,7 @@ pub use self::triple::{CallingConvention, Endianness, PointerWidth, Triple};
 
 /// A simple wrapper around `Triple` that provides an implementation of
 /// `Default` which defaults to `Triple::host()`.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DefaultToHost(pub Triple);
 
 impl Default for DefaultToHost {
@@ -50,10 +51,58 @@ impl Default for DefaultToHost {
 
 /// A simple wrapper around `Triple` that provides an implementation of
 /// `Default` which defaults to `Triple::unknown()`.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DefaultToUnknown(pub Triple);
 
 impl Default for DefaultToUnknown {
     fn default() -> Self {
         Self(Triple::unknown())
     }
+}
+
+// For some reason, the below `serde` impls don't work when they're in the
+// `triple` module.
+
+#[cfg(feature = "serde_support")]
+impl serde::Serialize for Triple {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+#[cfg(feature = "serde_support")]
+impl<'de> serde::de::Deserialize<'de> for Triple {
+    fn deserialize<D: serde::de::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
+}
+
+#[cfg(feature = "serde_support")]
+#[test]
+fn test_serialize() {
+    let triples: Vec<Triple> = vec![
+        "x86_64-unknown-linux-gnu".parse().unwrap(),
+        "i686-pc-windows-gnu".parse().unwrap(),
+    ];
+
+    let json = serde_json::to_string(&triples).unwrap();
+    assert_eq!(
+        json,
+        r#"["x86_64-unknown-linux-gnu","i686-pc-windows-gnu"]"#
+    );
+}
+
+#[cfg(feature = "serde_support")]
+#[test]
+fn test_deserialize() {
+    let triples: Vec<Triple> = vec![
+        "x86_64-unknown-linux-gnu".parse().unwrap(),
+        "i686-pc-windows-gnu".parse().unwrap(),
+    ];
+
+    let vals: Vec<Triple> =
+        serde_json::from_str(r#"["x86_64-unknown-linux-gnu","i686-pc-windows-gnu"]"#).unwrap();
+
+    assert_eq!(vals, triples);
 }

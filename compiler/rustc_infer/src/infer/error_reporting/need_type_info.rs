@@ -27,7 +27,7 @@ use std::iter;
 
 pub enum TypeAnnotationNeeded {
     /// ```compile_fail,E0282
-    /// let x = "hello".chars().rev().collect();
+    /// let x;
     /// ```
     E0282,
     /// An implementation cannot be chosen unambiguously because of lack of information.
@@ -163,13 +163,13 @@ fn fmt_printer<'a, 'tcx>(infcx: &'a InferCtxt<'tcx>, ns: Namespace) -> FmtPrinte
         let ty_vars = infcx_inner.type_variables();
         let var_origin = ty_vars.var_origin(ty_vid);
         if let TypeVariableOriginKind::TypeParameterDefinition(name, def_id) = var_origin.kind
-            && name != kw::SelfUpper && !var_origin.span.from_expansion()
+            && name != kw::SelfUpper
+            && !var_origin.span.from_expansion()
         {
             let generics = infcx.tcx.generics_of(infcx.tcx.parent(def_id));
             let idx = generics.param_def_id_to_index(infcx.tcx, def_id).unwrap();
             let generic_param_def = generics.param_at(idx as usize, infcx.tcx);
-            if let ty::GenericParamDefKind::Type { synthetic: true, .. } = generic_param_def.kind
-            {
+            if let ty::GenericParamDefKind::Type { synthetic: true, .. } = generic_param_def.kind {
                 None
             } else {
                 Some(name)
@@ -200,12 +200,15 @@ fn ty_to_string<'tcx>(
     ty: Ty<'tcx>,
     called_method_def_id: Option<DefId>,
 ) -> String {
-    let printer = fmt_printer(infcx, Namespace::TypeNS);
+    let mut printer = fmt_printer(infcx, Namespace::TypeNS);
     let ty = infcx.resolve_vars_if_possible(ty);
     match (ty.kind(), called_method_def_id) {
         // We don't want the regular output for `fn`s because it includes its path in
         // invalid pseudo-syntax, we want the `fn`-pointer output instead.
-        (ty::FnDef(..), _) => ty.fn_sig(infcx.tcx).print(printer).unwrap().into_buffer(),
+        (ty::FnDef(..), _) => {
+            ty.fn_sig(infcx.tcx).print(&mut printer).unwrap();
+            printer.into_buffer()
+        }
         (_, Some(def_id))
             if ty.is_ty_or_numeric_infer()
                 && infcx.tcx.get_diagnostic_item(sym::iterator_collect_fn) == Some(def_id) =>
@@ -218,7 +221,10 @@ fn ty_to_string<'tcx>(
         //
         // We do have to hide the `extern "rust-call"` ABI in that case though,
         // which is too much of a bother for now.
-        _ => ty.print(printer).unwrap().into_buffer(),
+        _ => {
+            ty.print(&mut printer).unwrap();
+            printer.into_buffer()
+        }
     }
 }
 
@@ -285,8 +291,9 @@ impl<'tcx> InferCtxt<'tcx> {
                 if let Some(highlight) = highlight {
                     printer.region_highlight_mode = highlight;
                 }
+                ty.print(&mut printer).unwrap();
                 InferenceDiagnosticsData {
-                    name: ty.print(printer).unwrap().into_buffer(),
+                    name: printer.into_buffer(),
                     span: None,
                     kind: UnderspecifiedArgKind::Type { prefix: ty.prefix_string(self.tcx) },
                     parent: None,
@@ -312,8 +319,9 @@ impl<'tcx> InferCtxt<'tcx> {
                     if let Some(highlight) = highlight {
                         printer.region_highlight_mode = highlight;
                     }
+                    ct.print(&mut printer).unwrap();
                     InferenceDiagnosticsData {
-                        name: ct.print(printer).unwrap().into_buffer(),
+                        name: printer.into_buffer(),
                         span: Some(origin.span),
                         kind: UnderspecifiedArgKind::Const { is_parameter: false },
                         parent: None,
@@ -329,8 +337,9 @@ impl<'tcx> InferCtxt<'tcx> {
                     if let Some(highlight) = highlight {
                         printer.region_highlight_mode = highlight;
                     }
+                    ct.print(&mut printer).unwrap();
                     InferenceDiagnosticsData {
-                        name: ct.print(printer).unwrap().into_buffer(),
+                        name: printer.into_buffer(),
                         span: None,
                         kind: UnderspecifiedArgKind::Const { is_parameter: false },
                         parent: None,
@@ -487,7 +496,8 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                 {
                     "Vec<_>".to_string()
                 } else {
-                    fmt_printer(self, Namespace::TypeNS)
+                    let mut printer = fmt_printer(self, Namespace::TypeNS);
+                    printer
                         .comma_sep(generic_args.iter().copied().map(|arg| {
                             if arg.is_suggestable(self.tcx, true) {
                                 return arg;
@@ -512,8 +522,8 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                                     .into(),
                             }
                         }))
-                        .unwrap()
-                        .into_buffer()
+                        .unwrap();
+                    printer.into_buffer()
                 };
 
                 if !have_turbofish {
@@ -525,8 +535,9 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                 }
             }
             InferSourceKind::FullyQualifiedMethodCall { receiver, successor, args, def_id } => {
-                let printer = fmt_printer(self, Namespace::ValueNS);
-                let def_path = printer.print_def_path(def_id, args).unwrap().into_buffer();
+                let mut printer = fmt_printer(self, Namespace::ValueNS);
+                printer.print_def_path(def_id, args).unwrap();
+                let def_path = printer.into_buffer();
 
                 // We only care about whether we have to add `&` or `&mut ` for now.
                 // This is the case if the last adjustment is a borrow and the
@@ -792,8 +803,9 @@ impl<'a, 'tcx> FindInferSourceVisitor<'a, 'tcx> {
         let cost = self.source_cost(&new_source) + self.attempt;
         debug!(?cost);
         self.attempt += 1;
-        if let Some(InferSource { kind: InferSourceKind::GenericArg { def_id: did, ..}, .. }) = self.infer_source
-            && let InferSourceKind::LetBinding { ref ty, ref mut def_id, ..} = new_source.kind
+        if let Some(InferSource { kind: InferSourceKind::GenericArg { def_id: did, .. }, .. }) =
+            self.infer_source
+            && let InferSourceKind::LetBinding { ref ty, ref mut def_id, .. } = new_source.kind
             && ty.is_ty_or_numeric_infer()
         {
             // Customize the output so we talk about `let x: Vec<_> = iter.collect();` instead of
@@ -863,11 +875,11 @@ impl<'a, 'tcx> FindInferSourceVisitor<'a, 'tcx> {
                 GenericArgKind::Type(ty) => {
                     if matches!(
                         ty.kind(),
-                        ty::Alias(ty::Opaque, ..) | ty::Closure(..) | ty::Generator(..)
+                        ty::Alias(ty::Opaque, ..) | ty::Closure(..) | ty::Coroutine(..)
                     ) {
                         // Opaque types can't be named by the user right now.
                         //
-                        // Both the generic arguments of closures and generators can
+                        // Both the generic arguments of closures and coroutines can
                         // also not be named. We may want to only look into the closure
                         // signature in case it has no captures, as that can be represented
                         // using `fn(T) -> R`.
@@ -1242,7 +1254,7 @@ impl<'a, 'tcx> Visitor<'tcx> for FindInferSourceVisitor<'a, 'tcx> {
                     successor,
                     args,
                     def_id,
-                }
+                },
             })
         }
     }

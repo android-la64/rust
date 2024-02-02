@@ -21,7 +21,6 @@ use crate::machinst::{
 use crate::{trace, CodegenResult};
 use alloc::vec::Vec;
 use cranelift_control::ControlPlane;
-use regalloc2::{MachineEnv, PRegSet};
 use smallvec::{smallvec, SmallVec};
 use std::fmt::Debug;
 
@@ -153,9 +152,6 @@ pub trait LowerBackend {
 pub struct Lower<'func, I: VCodeInst> {
     /// The function to lower.
     f: &'func Function,
-
-    /// The set of allocatable registers.
-    allocatable: PRegSet,
 
     /// Lowered machine instructions.
     vcode: VCodeBuilder<I>,
@@ -329,7 +325,6 @@ impl<'func, I: VCodeInst> Lower<'func, I> {
     /// Prepare a new lowering context for the given IR function.
     pub fn new(
         f: &'func Function,
-        machine_env: &MachineEnv,
         abi: Callee<I::ABIMachineSpec>,
         emit_info: I::Info,
         block_order: BlockLoweringOrder,
@@ -434,7 +429,6 @@ impl<'func, I: VCodeInst> Lower<'func, I> {
 
         Ok(Lower {
             f,
-            allocatable: PRegSet::from(machine_env),
             vcode,
             vregs,
             value_regs,
@@ -655,7 +649,7 @@ impl<'func, I: VCodeInst> Lower<'func, I> {
             }
         }
 
-        let inst = self.abi().gen_ret(&self.sigs(), out_rets);
+        let inst = self.abi().gen_rets(out_rets);
         self.emit(inst);
     }
 
@@ -1075,11 +1069,17 @@ impl<'func, I: VCodeInst> Lower<'func, I> {
             }
 
             self.finish_bb();
+
+            // Check for any deferred vreg-temp allocation errors, and
+            // bubble one up at this time if it exists.
+            if let Some(e) = self.vregs.take_deferred_error() {
+                return Err(e);
+            }
         }
 
         // Now that we've emitted all instructions into the
         // VCodeBuilder, let's build the VCode.
-        let vcode = self.vcode.build(self.allocatable, self.vregs);
+        let vcode = self.vcode.build(self.vregs);
         trace!("built vcode: {:?}", vcode);
 
         Ok(vcode)
@@ -1120,10 +1120,15 @@ impl<'func, I: VCodeInst> Lower<'func, I> {
             &GlobalValueData::Symbol {
                 ref name,
                 ref offset,
+                colocated,
                 ..
             } => {
                 let offset = offset.bits();
-                let dist = gvdata.maybe_reloc_distance().unwrap();
+                let dist = if colocated {
+                    RelocDistance::Near
+                } else {
+                    RelocDistance::Far
+                };
                 Some((name, dist, offset))
             }
             _ => None,
@@ -1320,7 +1325,7 @@ impl<'func, I: VCodeInst> Lower<'func, I> {
 impl<'func, I: VCodeInst> Lower<'func, I> {
     /// Get a new temp.
     pub fn alloc_tmp(&mut self, ty: Type) -> ValueRegs<Writable<Reg>> {
-        writable_value_regs(self.vregs.alloc(ty).unwrap())
+        writable_value_regs(self.vregs.alloc_with_deferred_error(ty))
     }
 
     /// Emit a machine instruction.

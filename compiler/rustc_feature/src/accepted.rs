@@ -1,23 +1,20 @@
 //! List of the accepted feature gates.
 
-use super::{to_nonzero, Feature, State};
+use super::{to_nonzero, Feature};
 use rustc_span::symbol::sym;
 
 macro_rules! declare_features {
     ($(
         $(#[doc = $doc:tt])* (accepted, $feature:ident, $ver:expr, $issue:expr, None),
     )+) => {
-        /// Those language feature has since been Accepted (it was once Active)
+        /// Formerly unstable features that have now been accepted (stabilized).
         pub const ACCEPTED_FEATURES: &[Feature] = &[
-            $(
-                Feature {
-                    state: State::Accepted,
-                    name: sym::$feature,
-                    since: $ver,
-                    issue: to_nonzero($issue),
-                    edition: None,
-                }
-            ),+
+            $(Feature {
+                name: sym::$feature,
+                since: $ver,
+                issue: to_nonzero($issue),
+                edition: None,
+            }),+
         ];
     }
 }
@@ -67,6 +64,8 @@ declare_features! (
     (accepted, associated_types, "1.0.0", None, None),
     /// Allows free and inherent `async fn`s, `async` blocks, and `<expr>.await` expressions.
     (accepted, async_await, "1.39.0", Some(50547), None),
+    /// Allows async functions to be declared, implemented, and used in traits.
+    (accepted, async_fn_in_trait, "1.75.0", Some(91611), None),
     /// Allows all literals in attribute lists and values of key-value pairs.
     (accepted, attr_literals, "1.30.0", Some(34981), None),
     /// Allows overloading augmented assignment operations like `a += b`.
@@ -306,6 +305,8 @@ declare_features! (
     (accepted, repr_packed, "1.33.0", Some(33158), None),
     /// Allows `#[repr(transparent)]` attribute on newtype structs.
     (accepted, repr_transparent, "1.28.0", Some(43036), None),
+    /// Allows return-position `impl Trait` in traits.
+    (accepted, return_position_impl_trait_in_trait, "1.75.0", Some(91611), None),
     /// Allows code like `let x: &'static u32 = &42` to work (RFC 1414).
     (accepted, rvalue_static_promotion, "1.21.0", Some(38865), None),
     /// Allows `Self` in type definitions (RFC 2300).

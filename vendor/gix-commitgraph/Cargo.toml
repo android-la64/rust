@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-commitgraph"
-version = "0.21.0"
+version = "0.22.0"
 authors = [
     "Conor Davis <gitoxide@conor.fastmail.fm>",
     "Sebastian Thiel <sebastian.thiel@icloud.com>",
@@ -52,11 +52,11 @@ optional = true
 version = "^0.4.4"
 
 [dependencies.gix-features]
-version = "^0.35.0"
+version = "^0.36.0"
 features = ["rustsha1"]
 
 [dependencies.gix-hash]
-version = "^0.13.0"
+version = "^0.13.1"
 
 [dependencies.memmap2]
 version = "0.7.0"

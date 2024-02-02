@@ -3,9 +3,8 @@ use rustc_hir as hir;
 use rustc_hir::def::DefKind;
 use rustc_index::bit_set::BitSet;
 use rustc_middle::query::Providers;
-use rustc_middle::ty::{
-    self, EarlyBinder, Ty, TyCtxt, TypeSuperVisitable, TypeVisitable, TypeVisitor,
-};
+use rustc_middle::ty::{self, EarlyBinder, Ty, TyCtxt, TypeVisitor};
+use rustc_middle::ty::{ToPredicate, TypeSuperVisitable, TypeVisitable};
 use rustc_span::def_id::{DefId, LocalDefId, CRATE_DEF_ID};
 use rustc_span::DUMMY_SP;
 use rustc_trait_selection::traits;
@@ -15,13 +14,13 @@ fn sized_constraint_for_ty<'tcx>(
     adtdef: ty::AdtDef<'tcx>,
     ty: Ty<'tcx>,
 ) -> Vec<Ty<'tcx>> {
-    use rustc_type_ir::sty::TyKind::*;
+    use rustc_type_ir::TyKind::*;
 
     let result = match ty.kind() {
         Bool | Char | Int(..) | Uint(..) | Float(..) | RawPtr(..) | Ref(..) | FnDef(..)
-        | FnPtr(_) | Array(..) | Closure(..) | Generator(..) | Never => vec![],
+        | FnPtr(_) | Array(..) | Closure(..) | Coroutine(..) | Never => vec![],
 
-        Str | Dynamic(..) | Slice(_) | Foreign(..) | Error(_) | GeneratorWitness(..) => {
+        Str | Dynamic(..) | Slice(_) | Foreign(..) | Error(_) | CoroutineWitness(..) => {
             // these are never sized - return the target type
             vec![ty]
         }
@@ -185,9 +184,10 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for ImplTraitInTraitFinder<'_, 'tcx> {
 
     fn visit_ty(&mut self, ty: Ty<'tcx>) -> std::ops::ControlFlow<Self::BreakTy> {
         if let ty::Alias(ty::Projection, unshifted_alias_ty) = *ty.kind()
-            && let Some(ty::ImplTraitInTraitData::Trait { fn_def_id, .. }
-                    | ty::ImplTraitInTraitData::Impl { fn_def_id, .. })
-                = self.tcx.opt_rpitit_info(unshifted_alias_ty.def_id)
+            && let Some(
+                ty::ImplTraitInTraitData::Trait { fn_def_id, .. }
+                | ty::ImplTraitInTraitData::Impl { fn_def_id, .. },
+            ) = self.tcx.opt_rpitit_info(unshifted_alias_ty.def_id)
             && fn_def_id == self.fn_def_id
             && self.seen.insert(unshifted_alias_ty.def_id)
         {
@@ -203,7 +203,11 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for ImplTraitInTraitFinder<'_, 'tcx> {
                             "we shouldn't walk non-predicate binders with `impl Trait`...",
                         );
                     }
-                    ty::Region::new_late_bound(self.tcx, index.shifted_out_to_binder(self.depth), bv)
+                    ty::Region::new_late_bound(
+                        self.tcx,
+                        index.shifted_out_to_binder(self.depth),
+                        bv,
+                    )
                 } else {
                     re
                 }
@@ -212,12 +216,21 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for ImplTraitInTraitFinder<'_, 'tcx> {
             // If we're lowering to associated item, install the opaque type which is just
             // the `type_of` of the trait's associated item. If we're using the old lowering
             // strategy, then just reinterpret the associated type like an opaque :^)
-            let default_ty = self.tcx.type_of(shifted_alias_ty.def_id).instantiate(self.tcx, shifted_alias_ty.args);
+            let default_ty = self
+                .tcx
+                .type_of(shifted_alias_ty.def_id)
+                .instantiate(self.tcx, shifted_alias_ty.args);
 
-            self.predicates.push(ty::Clause::from_projection_clause(self.tcx, ty::Binder::bind_with_vars(
-                ty::ProjectionPredicate { projection_ty: shifted_alias_ty, term: default_ty.into() },
-                self.bound_vars,
-            )));
+            self.predicates.push(
+                ty::Binder::bind_with_vars(
+                    ty::ProjectionPredicate {
+                        projection_ty: shifted_alias_ty,
+                        term: default_ty.into(),
+                    },
+                    self.bound_vars,
+                )
+                .to_predicate(self.tcx),
+            );
 
             // We walk the *un-shifted* alias ty, because we're tracking the de bruijn
             // binder depth, and if we were to walk `shifted_alias_ty` instead, we'd

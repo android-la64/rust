@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "compiler_builtins"
-version = "0.1.101"
+version = "0.1.103"
 authors = ["Jorge Aparicio <japaricious@gmail.com>"]
 links = "compiler-rt"
 include = [

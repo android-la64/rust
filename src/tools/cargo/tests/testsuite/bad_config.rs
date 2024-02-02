@@ -373,7 +373,7 @@ Caused by:
   failed to clone into: [..]
 
 Caused by:
-  URLs need to specify the path to the repository
+  URL \"git://host.xz\" does not specify a path to a repository
 "
     } else {
         "\
@@ -1661,6 +1661,40 @@ note: Sources are not allowed to be defined multiple times.
     but that source is already defined by `[..]`
 note: Sources are not allowed to be defined multiple times.
 ",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn bad_trim_paths() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.0"
+
+                [profile.dev]
+                trim-paths = "split-debuginfo"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("check -Ztrim-paths")
+        .masquerade_as_nightly_cargo(&["trim-paths"])
+        .with_status(101)
+        .with_stderr(
+            r#"error: failed to parse manifest at `[..]`
+
+Caused by:
+  TOML parse error at line 7, column 30
+    |
+  7 |                 trim-paths = "split-debuginfo"
+    |                              ^^^^^^^^^^^^^^^^^
+  expected a boolean, "none", "diagnostics", "macro", "object", "all", or an array with these options
+"#,
         )
         .run();
 }

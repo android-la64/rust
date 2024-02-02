@@ -165,7 +165,10 @@ pub unsafe fn _mm_adds_epu16(a: __m128i, b: __m128i) -> __m128i {
 #[cfg_attr(test, assert_instr(pavgb))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_avg_epu8(a: __m128i, b: __m128i) -> __m128i {
-    transmute(pavgb(a.as_u8x16(), b.as_u8x16()))
+    let a = simd_cast::<_, u16x16>(a.as_u8x16());
+    let b = simd_cast::<_, u16x16>(b.as_u8x16());
+    let r = simd_shr(simd_add(simd_add(a, b), u16x16::splat(1)), u16x16::splat(1));
+    transmute(simd_cast::<_, u8x16>(r))
 }
 
 /// Averages packed unsigned 16-bit integers in `a` and `b`.
@@ -176,7 +179,10 @@ pub unsafe fn _mm_avg_epu8(a: __m128i, b: __m128i) -> __m128i {
 #[cfg_attr(test, assert_instr(pavgw))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_avg_epu16(a: __m128i, b: __m128i) -> __m128i {
-    transmute(pavgw(a.as_u16x8(), b.as_u16x8()))
+    let a = simd_cast::<_, u32x8>(a.as_u16x8());
+    let b = simd_cast::<_, u32x8>(b.as_u16x8());
+    let r = simd_shr(simd_add(simd_add(a, b), u32x8::splat(1)), u32x8::splat(1));
+    transmute(simd_cast::<_, u16x8>(r))
 }
 
 /// Multiplies and then horizontally add signed 16 bit integers in `a` and `b`.
@@ -261,7 +267,10 @@ pub unsafe fn _mm_min_epu8(a: __m128i, b: __m128i) -> __m128i {
 #[cfg_attr(test, assert_instr(pmulhw))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_mulhi_epi16(a: __m128i, b: __m128i) -> __m128i {
-    transmute(pmulhw(a.as_i16x8(), b.as_i16x8()))
+    let a = simd_cast::<_, i32x8>(a.as_i16x8());
+    let b = simd_cast::<_, i32x8>(b.as_i16x8());
+    let r = simd_shr(simd_mul(a, b), i32x8::splat(16));
+    transmute(simd_cast::<i32x8, i16x8>(r))
 }
 
 /// Multiplies the packed unsigned 16-bit integers in `a` and `b`.
@@ -275,7 +284,10 @@ pub unsafe fn _mm_mulhi_epi16(a: __m128i, b: __m128i) -> __m128i {
 #[cfg_attr(test, assert_instr(pmulhuw))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_mulhi_epu16(a: __m128i, b: __m128i) -> __m128i {
-    transmute(pmulhuw(a.as_u16x8(), b.as_u16x8()))
+    let a = simd_cast::<_, u32x8>(a.as_u16x8());
+    let b = simd_cast::<_, u32x8>(b.as_u16x8());
+    let r = simd_shr(simd_mul(a, b), u32x8::splat(16));
+    transmute(simd_cast::<u32x8, u16x8>(r))
 }
 
 /// Multiplies the packed 16-bit integers in `a` and `b`.
@@ -303,7 +315,10 @@ pub unsafe fn _mm_mullo_epi16(a: __m128i, b: __m128i) -> __m128i {
 #[cfg_attr(test, assert_instr(pmuludq))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_mul_epu32(a: __m128i, b: __m128i) -> __m128i {
-    transmute(pmuludq(a.as_u32x4(), b.as_u32x4()))
+    let a = a.as_u64x2();
+    let b = b.as_u64x2();
+    let mask = u64x2::splat(u32::MAX.into());
+    transmute(simd_mul(simd_and(a, mask), simd_and(b, mask)))
 }
 
 /// Sum the absolute differences of packed unsigned 8-bit integers.
@@ -952,7 +967,7 @@ pub unsafe fn _mm_cvtsi32_sd(a: __m128d, b: i32) -> __m128d {
 #[cfg_attr(test, assert_instr(cvtdq2ps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtepi32_ps(a: __m128i) -> __m128 {
-    cvtdq2ps(a.as_i32x4())
+    transmute(simd_cast::<_, f32x4>(a.as_i32x4()))
 }
 
 /// Converts packed single-precision (32-bit) floating-point elements in `a`
@@ -2240,7 +2255,9 @@ pub unsafe fn _mm_ucomineq_sd(a: __m128d, b: __m128d) -> i32 {
 #[cfg_attr(test, assert_instr(cvtpd2ps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtpd_ps(a: __m128d) -> __m128 {
-    cvtpd2ps(a)
+    let r = simd_cast::<_, f32x2>(a.as_f64x2());
+    let zero = f32x2::new(0.0, 0.0);
+    transmute::<f32x4, _>(simd_shuffle!(r, zero, [0, 1, 2, 3]))
 }
 
 /// Converts packed single-precision (32-bit) floating-point elements in `a` to
@@ -2253,7 +2270,8 @@ pub unsafe fn _mm_cvtpd_ps(a: __m128d) -> __m128 {
 #[cfg_attr(test, assert_instr(cvtps2pd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtps_pd(a: __m128) -> __m128d {
-    cvtps2pd(a)
+    let a = a.as_f32x4();
+    transmute(simd_cast::<f32x2, f64x2>(simd_shuffle!(a, a, [0, 1])))
 }
 
 /// Converts packed double-precision (64-bit) floating-point elements in `a` to
@@ -2432,7 +2450,10 @@ pub unsafe fn _mm_setzero_pd() -> __m128d {
 #[cfg_attr(test, assert_instr(movmskpd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_movemask_pd(a: __m128d) -> i32 {
-    movmskpd(a)
+    // Propagate the highest bit to the rest, because simd_bitmask
+    // requires all-1 or all-0.
+    let mask: i64x2 = simd_lt(transmute(a), i64x2::splat(0));
+    simd_bitmask::<i64x2, u8>(mask).into()
 }
 
 /// Loads 128-bits (composed of 2 packed double-precision (64-bit)
@@ -2826,18 +2847,8 @@ extern "C" {
     fn lfence();
     #[link_name = "llvm.x86.sse2.mfence"]
     fn mfence();
-    #[link_name = "llvm.x86.sse2.pavg.b"]
-    fn pavgb(a: u8x16, b: u8x16) -> u8x16;
-    #[link_name = "llvm.x86.sse2.pavg.w"]
-    fn pavgw(a: u16x8, b: u16x8) -> u16x8;
     #[link_name = "llvm.x86.sse2.pmadd.wd"]
     fn pmaddwd(a: i16x8, b: i16x8) -> i32x4;
-    #[link_name = "llvm.x86.sse2.pmulh.w"]
-    fn pmulhw(a: i16x8, b: i16x8) -> i16x8;
-    #[link_name = "llvm.x86.sse2.pmulhu.w"]
-    fn pmulhuw(a: u16x8, b: u16x8) -> u16x8;
-    #[link_name = "llvm.x86.sse2.pmulu.dq"]
-    fn pmuludq(a: u32x4, b: u32x4) -> u64x2;
     #[link_name = "llvm.x86.sse2.psad.bw"]
     fn psadbw(a: u8x16, b: u8x16) -> u64x2;
     #[link_name = "llvm.x86.sse2.psll.w"]
@@ -2856,8 +2867,6 @@ extern "C" {
     fn psrld(a: i32x4, count: i32x4) -> i32x4;
     #[link_name = "llvm.x86.sse2.psrl.q"]
     fn psrlq(a: i64x2, count: i64x2) -> i64x2;
-    #[link_name = "llvm.x86.sse2.cvtdq2ps"]
-    fn cvtdq2ps(a: i32x4) -> __m128;
     #[link_name = "llvm.x86.sse2.cvtps2dq"]
     fn cvtps2dq(a: __m128) -> i32x4;
     #[link_name = "llvm.x86.sse2.maskmov.dqu"]
@@ -2908,12 +2917,6 @@ extern "C" {
     fn ucomigesd(a: __m128d, b: __m128d) -> i32;
     #[link_name = "llvm.x86.sse2.ucomineq.sd"]
     fn ucomineqsd(a: __m128d, b: __m128d) -> i32;
-    #[link_name = "llvm.x86.sse2.movmsk.pd"]
-    fn movmskpd(a: __m128d) -> i32;
-    #[link_name = "llvm.x86.sse2.cvtpd2ps"]
-    fn cvtpd2ps(a: __m128d) -> __m128;
-    #[link_name = "llvm.x86.sse2.cvtps2pd"]
-    fn cvtps2pd(a: __m128) -> __m128d;
     #[link_name = "llvm.x86.sse2.cvtpd2dq"]
     fn cvtpd2dq(a: __m128d) -> i32x4;
     #[link_name = "llvm.x86.sse2.cvtsd2si"]
@@ -2956,11 +2959,15 @@ mod tests {
     }
 
     #[simd_test(enable = "sse2")]
+    // Miri cannot support this until it is clear how it fits in the Rust memory model
+    #[cfg_attr(miri, ignore)]
     unsafe fn test_mm_lfence() {
         _mm_lfence();
     }
 
     #[simd_test(enable = "sse2")]
+    // Miri cannot support this until it is clear how it fits in the Rust memory model
+    #[cfg_attr(miri, ignore)]
     unsafe fn test_mm_mfence() {
         _mm_mfence();
     }
@@ -3343,83 +3350,124 @@ mod tests {
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_slli_epi16() {
-        #[rustfmt::skip]
-        let a = _mm_setr_epi16(
-            0xFFFF as u16 as i16, 0x0FFF, 0x00FF, 0x000F, 0, 0, 0, 0,
-        );
+        let a = _mm_setr_epi16(0xCC, -0xCC, 0xDD, -0xDD, 0xEE, -0xEE, 0xFF, -0xFF);
         let r = _mm_slli_epi16::<4>(a);
-
-        #[rustfmt::skip]
-        let e = _mm_setr_epi16(
-            0xFFF0 as u16 as i16, 0xFFF0 as u16 as i16, 0x0FF0, 0x00F0,
-            0, 0, 0, 0,
+        assert_eq_m128i(
+            r,
+            _mm_setr_epi16(0xCC0, -0xCC0, 0xDD0, -0xDD0, 0xEE0, -0xEE0, 0xFF0, -0xFF0),
         );
-        assert_eq_m128i(r, e);
+        let r = _mm_slli_epi16::<16>(a);
+        assert_eq_m128i(r, _mm_set1_epi16(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_sll_epi16() {
-        let a = _mm_setr_epi16(0xFF, 0, 0, 0, 0, 0, 0, 0);
-        let r = _mm_sll_epi16(a, _mm_setr_epi16(4, 0, 0, 0, 0, 0, 0, 0));
-        assert_eq_m128i(r, _mm_setr_epi16(0xFF0, 0, 0, 0, 0, 0, 0, 0));
-        let r = _mm_sll_epi16(a, _mm_setr_epi16(0, 0, 0, 0, 4, 0, 0, 0));
-        assert_eq_m128i(r, _mm_setr_epi16(0xFF, 0, 0, 0, 0, 0, 0, 0));
+        let a = _mm_setr_epi16(0xCC, -0xCC, 0xDD, -0xDD, 0xEE, -0xEE, 0xFF, -0xFF);
+        let r = _mm_sll_epi16(a, _mm_set_epi64x(0, 4));
+        assert_eq_m128i(
+            r,
+            _mm_setr_epi16(0xCC0, -0xCC0, 0xDD0, -0xDD0, 0xEE0, -0xEE0, 0xFF0, -0xFF0),
+        );
+        let r = _mm_sll_epi16(a, _mm_set_epi64x(4, 0));
+        assert_eq_m128i(r, a);
+        let r = _mm_sll_epi16(a, _mm_set_epi64x(0, 16));
+        assert_eq_m128i(r, _mm_set1_epi16(0));
+        let r = _mm_sll_epi16(a, _mm_set_epi64x(0, i64::MAX));
+        assert_eq_m128i(r, _mm_set1_epi16(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_slli_epi32() {
-        let r = _mm_slli_epi32::<4>(_mm_set1_epi32(0xFFFF));
-        assert_eq_m128i(r, _mm_set1_epi32(0xFFFF0));
+        let a = _mm_setr_epi32(0xEEEE, -0xEEEE, 0xFFFF, -0xFFFF);
+        let r = _mm_slli_epi32::<4>(a);
+        assert_eq_m128i(r, _mm_setr_epi32(0xEEEE0, -0xEEEE0, 0xFFFF0, -0xFFFF0));
+        let r = _mm_slli_epi32::<32>(a);
+        assert_eq_m128i(r, _mm_set1_epi32(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_sll_epi32() {
-        let a = _mm_set1_epi32(0xFFFF);
-        let b = _mm_setr_epi32(4, 0, 0, 0);
-        let r = _mm_sll_epi32(a, b);
-        assert_eq_m128i(r, _mm_set1_epi32(0xFFFF0));
+        let a = _mm_setr_epi32(0xEEEE, -0xEEEE, 0xFFFF, -0xFFFF);
+        let r = _mm_sll_epi32(a, _mm_set_epi64x(0, 4));
+        assert_eq_m128i(r, _mm_setr_epi32(0xEEEE0, -0xEEEE0, 0xFFFF0, -0xFFFF0));
+        let r = _mm_sll_epi32(a, _mm_set_epi64x(4, 0));
+        assert_eq_m128i(r, a);
+        let r = _mm_sll_epi32(a, _mm_set_epi64x(0, 32));
+        assert_eq_m128i(r, _mm_set1_epi32(0));
+        let r = _mm_sll_epi32(a, _mm_set_epi64x(0, i64::MAX));
+        assert_eq_m128i(r, _mm_set1_epi32(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_slli_epi64() {
-        let r = _mm_slli_epi64::<4>(_mm_set1_epi64x(0xFFFFFFFF));
-        assert_eq_m128i(r, _mm_set1_epi64x(0xFFFFFFFF0));
+        let a = _mm_set_epi64x(0xFFFFFFFF, -0xFFFFFFFF);
+        let r = _mm_slli_epi64::<4>(a);
+        assert_eq_m128i(r, _mm_set_epi64x(0xFFFFFFFF0, -0xFFFFFFFF0));
+        let r = _mm_slli_epi64::<64>(a);
+        assert_eq_m128i(r, _mm_set1_epi64x(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_sll_epi64() {
-        let a = _mm_set1_epi64x(0xFFFFFFFF);
-        let b = _mm_setr_epi64x(4, 0);
-        let r = _mm_sll_epi64(a, b);
-        assert_eq_m128i(r, _mm_set1_epi64x(0xFFFFFFFF0));
+        let a = _mm_set_epi64x(0xFFFFFFFF, -0xFFFFFFFF);
+        let r = _mm_sll_epi64(a, _mm_set_epi64x(0, 4));
+        assert_eq_m128i(r, _mm_set_epi64x(0xFFFFFFFF0, -0xFFFFFFFF0));
+        let r = _mm_sll_epi64(a, _mm_set_epi64x(4, 0));
+        assert_eq_m128i(r, a);
+        let r = _mm_sll_epi64(a, _mm_set_epi64x(0, 64));
+        assert_eq_m128i(r, _mm_set1_epi64x(0));
+        let r = _mm_sll_epi64(a, _mm_set_epi64x(0, i64::MAX));
+        assert_eq_m128i(r, _mm_set1_epi64x(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_srai_epi16() {
-        let r = _mm_srai_epi16::<1>(_mm_set1_epi16(-1));
-        assert_eq_m128i(r, _mm_set1_epi16(-1));
+        let a = _mm_setr_epi16(0xCC, -0xCC, 0xDD, -0xDD, 0xEE, -0xEE, 0xFF, -0xFF);
+        let r = _mm_srai_epi16::<4>(a);
+        assert_eq_m128i(
+            r,
+            _mm_setr_epi16(0xC, -0xD, 0xD, -0xE, 0xE, -0xF, 0xF, -0x10),
+        );
+        let r = _mm_srai_epi16::<16>(a);
+        assert_eq_m128i(r, _mm_setr_epi16(0, -1, 0, -1, 0, -1, 0, -1));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_sra_epi16() {
-        let a = _mm_set1_epi16(-1);
-        let b = _mm_setr_epi16(1, 0, 0, 0, 0, 0, 0, 0);
-        let r = _mm_sra_epi16(a, b);
-        assert_eq_m128i(r, _mm_set1_epi16(-1));
+        let a = _mm_setr_epi16(0xCC, -0xCC, 0xDD, -0xDD, 0xEE, -0xEE, 0xFF, -0xFF);
+        let r = _mm_sra_epi16(a, _mm_set_epi64x(0, 4));
+        assert_eq_m128i(
+            r,
+            _mm_setr_epi16(0xC, -0xD, 0xD, -0xE, 0xE, -0xF, 0xF, -0x10),
+        );
+        let r = _mm_sra_epi16(a, _mm_set_epi64x(4, 0));
+        assert_eq_m128i(r, a);
+        let r = _mm_sra_epi16(a, _mm_set_epi64x(0, 16));
+        assert_eq_m128i(r, _mm_setr_epi16(0, -1, 0, -1, 0, -1, 0, -1));
+        let r = _mm_sra_epi16(a, _mm_set_epi64x(0, i64::MAX));
+        assert_eq_m128i(r, _mm_setr_epi16(0, -1, 0, -1, 0, -1, 0, -1));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_srai_epi32() {
-        let r = _mm_srai_epi32::<1>(_mm_set1_epi32(-1));
-        assert_eq_m128i(r, _mm_set1_epi32(-1));
+        let a = _mm_setr_epi32(0xEEEE, -0xEEEE, 0xFFFF, -0xFFFF);
+        let r = _mm_srai_epi32::<4>(a);
+        assert_eq_m128i(r, _mm_setr_epi32(0xEEE, -0xEEF, 0xFFF, -0x1000));
+        let r = _mm_srai_epi32::<32>(a);
+        assert_eq_m128i(r, _mm_setr_epi32(0, -1, 0, -1));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_sra_epi32() {
-        let a = _mm_set1_epi32(-1);
-        let b = _mm_setr_epi32(1, 0, 0, 0);
-        let r = _mm_sra_epi32(a, b);
-        assert_eq_m128i(r, _mm_set1_epi32(-1));
+        let a = _mm_setr_epi32(0xEEEE, -0xEEEE, 0xFFFF, -0xFFFF);
+        let r = _mm_sra_epi32(a, _mm_set_epi64x(0, 4));
+        assert_eq_m128i(r, _mm_setr_epi32(0xEEE, -0xEEF, 0xFFF, -0x1000));
+        let r = _mm_sra_epi32(a, _mm_set_epi64x(4, 0));
+        assert_eq_m128i(r, a);
+        let r = _mm_sra_epi32(a, _mm_set_epi64x(0, 32));
+        assert_eq_m128i(r, _mm_setr_epi32(0, -1, 0, -1));
+        let r = _mm_sra_epi32(a, _mm_set_epi64x(0, i64::MAX));
+        assert_eq_m128i(r, _mm_setr_epi32(0, -1, 0, -1));
     }
 
     #[simd_test(enable = "sse2")]
@@ -3453,53 +3501,74 @@ mod tests {
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_srli_epi16() {
-        #[rustfmt::skip]
-        let a = _mm_setr_epi16(
-            0xFFFF as u16 as i16, 0x0FFF, 0x00FF, 0x000F, 0, 0, 0, 0,
-        );
+        let a = _mm_setr_epi16(0xCC, -0xCC, 0xDD, -0xDD, 0xEE, -0xEE, 0xFF, -0xFF);
         let r = _mm_srli_epi16::<4>(a);
-        #[rustfmt::skip]
-        let e = _mm_setr_epi16(
-            0xFFF as u16 as i16, 0xFF as u16 as i16, 0xF, 0, 0, 0, 0, 0,
+        assert_eq_m128i(
+            r,
+            _mm_setr_epi16(0xC, 0xFF3, 0xD, 0xFF2, 0xE, 0xFF1, 0xF, 0xFF0),
         );
-        assert_eq_m128i(r, e);
+        let r = _mm_srli_epi16::<16>(a);
+        assert_eq_m128i(r, _mm_set1_epi16(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_srl_epi16() {
-        let a = _mm_setr_epi16(0xFF, 0, 0, 0, 0, 0, 0, 0);
-        let r = _mm_srl_epi16(a, _mm_setr_epi16(4, 0, 0, 0, 0, 0, 0, 0));
-        assert_eq_m128i(r, _mm_setr_epi16(0xF, 0, 0, 0, 0, 0, 0, 0));
-        let r = _mm_srl_epi16(a, _mm_setr_epi16(0, 0, 0, 0, 4, 0, 0, 0));
-        assert_eq_m128i(r, _mm_setr_epi16(0xFF, 0, 0, 0, 0, 0, 0, 0));
+        let a = _mm_setr_epi16(0xCC, -0xCC, 0xDD, -0xDD, 0xEE, -0xEE, 0xFF, -0xFF);
+        let r = _mm_srl_epi16(a, _mm_set_epi64x(0, 4));
+        assert_eq_m128i(
+            r,
+            _mm_setr_epi16(0xC, 0xFF3, 0xD, 0xFF2, 0xE, 0xFF1, 0xF, 0xFF0),
+        );
+        let r = _mm_srl_epi16(a, _mm_set_epi64x(4, 0));
+        assert_eq_m128i(r, a);
+        let r = _mm_srl_epi16(a, _mm_set_epi64x(0, 16));
+        assert_eq_m128i(r, _mm_set1_epi16(0));
+        let r = _mm_srl_epi16(a, _mm_set_epi64x(0, i64::MAX));
+        assert_eq_m128i(r, _mm_set1_epi16(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_srli_epi32() {
-        let r = _mm_srli_epi32::<4>(_mm_set1_epi32(0xFFFF));
-        assert_eq_m128i(r, _mm_set1_epi32(0xFFF));
+        let a = _mm_setr_epi32(0xEEEE, -0xEEEE, 0xFFFF, -0xFFFF);
+        let r = _mm_srli_epi32::<4>(a);
+        assert_eq_m128i(r, _mm_setr_epi32(0xEEE, 0xFFFF111, 0xFFF, 0xFFFF000));
+        let r = _mm_srli_epi32::<32>(a);
+        assert_eq_m128i(r, _mm_set1_epi32(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_srl_epi32() {
-        let a = _mm_set1_epi32(0xFFFF);
-        let b = _mm_setr_epi32(4, 0, 0, 0);
-        let r = _mm_srl_epi32(a, b);
-        assert_eq_m128i(r, _mm_set1_epi32(0xFFF));
+        let a = _mm_setr_epi32(0xEEEE, -0xEEEE, 0xFFFF, -0xFFFF);
+        let r = _mm_srl_epi32(a, _mm_set_epi64x(0, 4));
+        assert_eq_m128i(r, _mm_setr_epi32(0xEEE, 0xFFFF111, 0xFFF, 0xFFFF000));
+        let r = _mm_srl_epi32(a, _mm_set_epi64x(4, 0));
+        assert_eq_m128i(r, a);
+        let r = _mm_srl_epi32(a, _mm_set_epi64x(0, 32));
+        assert_eq_m128i(r, _mm_set1_epi32(0));
+        let r = _mm_srl_epi32(a, _mm_set_epi64x(0, i64::MAX));
+        assert_eq_m128i(r, _mm_set1_epi32(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_srli_epi64() {
-        let r = _mm_srli_epi64::<4>(_mm_set1_epi64x(0xFFFFFFFF));
-        assert_eq_m128i(r, _mm_set1_epi64x(0xFFFFFFF));
+        let a = _mm_set_epi64x(0xFFFFFFFF, -0xFFFFFFFF);
+        let r = _mm_srli_epi64::<4>(a);
+        assert_eq_m128i(r, _mm_set_epi64x(0xFFFFFFF, 0xFFFFFFFF0000000));
+        let r = _mm_srli_epi64::<64>(a);
+        assert_eq_m128i(r, _mm_set1_epi64x(0));
     }
 
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_srl_epi64() {
-        let a = _mm_set1_epi64x(0xFFFFFFFF);
-        let b = _mm_setr_epi64x(4, 0);
-        let r = _mm_srl_epi64(a, b);
-        assert_eq_m128i(r, _mm_set1_epi64x(0xFFFFFFF));
+        let a = _mm_set_epi64x(0xFFFFFFFF, -0xFFFFFFFF);
+        let r = _mm_srl_epi64(a, _mm_set_epi64x(0, 4));
+        assert_eq_m128i(r, _mm_set_epi64x(0xFFFFFFF, 0xFFFFFFFF0000000));
+        let r = _mm_srl_epi64(a, _mm_set_epi64x(4, 0));
+        assert_eq_m128i(r, a);
+        let r = _mm_srl_epi64(a, _mm_set_epi64x(0, 64));
+        assert_eq_m128i(r, _mm_set1_epi64x(0));
+        let r = _mm_srl_epi64(a, _mm_set_epi64x(0, i64::MAX));
+        assert_eq_m128i(r, _mm_set1_epi64x(0));
     }
 
     #[simd_test(enable = "sse2")]
@@ -3766,6 +3835,9 @@ mod tests {
     }
 
     #[simd_test(enable = "sse2")]
+    // Miri cannot support this until it is clear how it fits in the Rust memory model
+    // (non-temporal store)
+    #[cfg_attr(miri, ignore)]
     unsafe fn test_mm_maskmoveu_si128() {
         let a = _mm_set1_epi8(9);
         #[rustfmt::skip]
@@ -3804,6 +3876,9 @@ mod tests {
     }
 
     #[simd_test(enable = "sse2")]
+    // Miri cannot support this until it is clear how it fits in the Rust memory model
+    // (non-temporal store)
+    #[cfg_attr(miri, ignore)]
     unsafe fn test_mm_stream_si128() {
         let a = _mm_setr_epi32(1, 2, 3, 4);
         let mut r = _mm_undefined_si128();
@@ -3812,6 +3887,9 @@ mod tests {
     }
 
     #[simd_test(enable = "sse2")]
+    // Miri cannot support this until it is clear how it fits in the Rust memory model
+    // (non-temporal store)
+    #[cfg_attr(miri, ignore)]
     unsafe fn test_mm_stream_si32() {
         let a: i32 = 7;
         let mut mem = boxed::Box::<i32>::new(-1);
@@ -4055,6 +4133,17 @@ mod tests {
         let b = _mm_setr_pd(5.0, 10.0);
         let r = _mm_max_pd(a, b);
         assert_eq_m128d(r, _mm_setr_pd(5.0, 10.0));
+
+        // Check SSE(2)-specific semantics for -0.0 handling.
+        let a = _mm_setr_pd(-0.0, 0.0);
+        let b = _mm_setr_pd(0.0, 0.0);
+        let r1: [u8; 16] = transmute(_mm_max_pd(a, b));
+        let r2: [u8; 16] = transmute(_mm_max_pd(b, a));
+        let a: [u8; 16] = transmute(a);
+        let b: [u8; 16] = transmute(b);
+        assert_eq!(r1, b);
+        assert_eq!(r2, a);
+        assert_ne!(a, b); // sanity check that -0.0 is actually present
     }
 
     #[simd_test(enable = "sse2")]
@@ -4071,6 +4160,17 @@ mod tests {
         let b = _mm_setr_pd(5.0, 10.0);
         let r = _mm_min_pd(a, b);
         assert_eq_m128d(r, _mm_setr_pd(1.0, 2.0));
+
+        // Check SSE(2)-specific semantics for -0.0 handling.
+        let a = _mm_setr_pd(-0.0, 0.0);
+        let b = _mm_setr_pd(0.0, 0.0);
+        let r1: [u8; 16] = transmute(_mm_min_pd(a, b));
+        let r2: [u8; 16] = transmute(_mm_min_pd(b, a));
+        let a: [u8; 16] = transmute(a);
+        let b: [u8; 16] = transmute(b);
+        assert_eq!(r1, b);
+        assert_eq!(r2, a);
+        assert_ne!(a, b); // sanity check that -0.0 is actually present
     }
 
     #[simd_test(enable = "sse2")]
@@ -4158,7 +4258,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpeq_sd() {
         let (a, b) = (_mm_setr_pd(1.0, 2.0), _mm_setr_pd(1.0, 3.0));
-        let e = _mm_setr_epi64x(!0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(!0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpeq_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4166,7 +4266,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmplt_sd() {
         let (a, b) = (_mm_setr_pd(1.0, 2.0), _mm_setr_pd(5.0, 3.0));
-        let e = _mm_setr_epi64x(!0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(!0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmplt_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4174,7 +4274,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmple_sd() {
         let (a, b) = (_mm_setr_pd(1.0, 2.0), _mm_setr_pd(1.0, 3.0));
-        let e = _mm_setr_epi64x(!0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(!0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmple_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4182,7 +4282,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpgt_sd() {
         let (a, b) = (_mm_setr_pd(5.0, 2.0), _mm_setr_pd(1.0, 3.0));
-        let e = _mm_setr_epi64x(!0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(!0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpgt_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4190,7 +4290,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpge_sd() {
         let (a, b) = (_mm_setr_pd(1.0, 2.0), _mm_setr_pd(1.0, 3.0));
-        let e = _mm_setr_epi64x(!0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(!0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpge_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4198,7 +4298,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpord_sd() {
         let (a, b) = (_mm_setr_pd(NAN, 2.0), _mm_setr_pd(5.0, 3.0));
-        let e = _mm_setr_epi64x(0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpord_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4206,7 +4306,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpunord_sd() {
         let (a, b) = (_mm_setr_pd(NAN, 2.0), _mm_setr_pd(5.0, 3.0));
-        let e = _mm_setr_epi64x(!0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(!0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpunord_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4214,7 +4314,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpneq_sd() {
         let (a, b) = (_mm_setr_pd(1.0, 2.0), _mm_setr_pd(5.0, 3.0));
-        let e = _mm_setr_epi64x(!0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(!0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpneq_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4222,7 +4322,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpnlt_sd() {
         let (a, b) = (_mm_setr_pd(1.0, 2.0), _mm_setr_pd(5.0, 3.0));
-        let e = _mm_setr_epi64x(0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpnlt_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4230,7 +4330,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpnle_sd() {
         let (a, b) = (_mm_setr_pd(1.0, 2.0), _mm_setr_pd(1.0, 3.0));
-        let e = _mm_setr_epi64x(0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpnle_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4238,7 +4338,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpngt_sd() {
         let (a, b) = (_mm_setr_pd(5.0, 2.0), _mm_setr_pd(1.0, 3.0));
-        let e = _mm_setr_epi64x(0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpngt_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4246,7 +4346,7 @@ mod tests {
     #[simd_test(enable = "sse2")]
     unsafe fn test_mm_cmpnge_sd() {
         let (a, b) = (_mm_setr_pd(1.0, 2.0), _mm_setr_pd(1.0, 3.0));
-        let e = _mm_setr_epi64x(0, transmute(2.0f64));
+        let e = _mm_setr_epi64x(0, 2.0f64.to_bits() as i64);
         let r = transmute::<_, __m128i>(_mm_cmpnge_sd(a, b));
         assert_eq_m128i(r, e);
     }
@@ -4478,6 +4578,9 @@ mod tests {
     }
 
     #[simd_test(enable = "sse2")]
+    // Miri cannot support this until it is clear how it fits in the Rust memory model
+    // (non-temporal store)
+    #[cfg_attr(miri, ignore)]
     unsafe fn test_mm_stream_pd() {
         #[repr(align(128))]
         struct Memory {

@@ -1258,7 +1258,7 @@ impl<T, A: Allocator> Vec<T, A> {
     /// [`as_mut_ptr`]: Vec::as_mut_ptr
     /// [`as_ptr`]: Vec::as_ptr
     #[stable(feature = "vec_as_ptr", since = "1.37.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     #[inline]
     pub fn as_ptr(&self) -> *const T {
         // We shadow the slice method of the same name to avoid going through
@@ -1318,7 +1318,7 @@ impl<T, A: Allocator> Vec<T, A> {
     /// [`as_mut_ptr`]: Vec::as_mut_ptr
     /// [`as_ptr`]: Vec::as_ptr
     #[stable(feature = "vec_as_ptr", since = "1.37.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut T {
         // We shadow the slice method of the same name to avoid going through
@@ -1447,7 +1447,8 @@ impl<T, A: Allocator> Vec<T, A> {
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn swap_remove(&mut self, index: usize) -> T {
         #[cold]
-        #[inline(never)]
+        #[cfg_attr(not(feature = "panic_immediate_abort"), inline(never))]
+        #[track_caller]
         fn assert_failed(index: usize, len: usize) -> ! {
             panic!("swap_remove index (is {index}) should be < len (is {len})");
         }
@@ -1488,7 +1489,8 @@ impl<T, A: Allocator> Vec<T, A> {
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn insert(&mut self, index: usize, element: T) {
         #[cold]
-        #[inline(never)]
+        #[cfg_attr(not(feature = "panic_immediate_abort"), inline(never))]
+        #[track_caller]
         fn assert_failed(index: usize, len: usize) -> ! {
             panic!("insertion index (is {index}) should be <= len (is {len})");
         }
@@ -1549,7 +1551,7 @@ impl<T, A: Allocator> Vec<T, A> {
     #[track_caller]
     pub fn remove(&mut self, index: usize) -> T {
         #[cold]
-        #[inline(never)]
+        #[cfg_attr(not(feature = "panic_immediate_abort"), inline(never))]
         #[track_caller]
         fn assert_failed(index: usize, len: usize) -> ! {
             panic!("removal index (is {index}) should be < len (is {len})");
@@ -1956,6 +1958,7 @@ impl<T, A: Allocator> Vec<T, A> {
         } else {
             unsafe {
                 self.len -= 1;
+                core::intrinsics::assume(self.len < self.capacity());
                 Some(ptr::read(self.as_ptr().add(self.len())))
             }
         }
@@ -2147,7 +2150,8 @@ impl<T, A: Allocator> Vec<T, A> {
         A: Clone,
     {
         #[cold]
-        #[inline(never)]
+        #[cfg_attr(not(feature = "panic_immediate_abort"), inline(never))]
+        #[track_caller]
         fn assert_failed(at: usize, len: usize) -> ! {
             panic!("`at` split index (is {at}) should be <= len (is {len})");
         }

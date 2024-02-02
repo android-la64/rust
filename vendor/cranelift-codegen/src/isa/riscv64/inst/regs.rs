@@ -1,8 +1,6 @@
 //! Riscv64 ISA definitions: registers.
 //!
 
-use crate::settings;
-
 use crate::machinst::{Reg, Writable};
 
 use crate::machinst::RealReg;
@@ -10,7 +8,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use regalloc2::VReg;
-use regalloc2::{MachineEnv, PReg, RegClass};
+use regalloc2::{PReg, RegClass};
 
 // first argument of function call
 #[inline]
@@ -98,7 +96,7 @@ pub fn writable_link_reg() -> Writable<Reg> {
     Writable::from_reg(link_reg())
 }
 
-/// Get a reference to the frame pointer (x29).
+/// Get a reference to the frame pointer (x8).
 #[inline]
 pub fn fp_reg() -> Reg {
     x_reg(8)
@@ -133,49 +131,6 @@ pub fn spilltmp_reg2() -> Reg {
 #[inline]
 pub fn writable_spilltmp_reg2() -> Writable<Reg> {
     Writable::from_reg(spilltmp_reg2())
-}
-
-pub fn crate_reg_eviroment(_flags: &settings::Flags) -> MachineEnv {
-    let preferred_regs_by_class: [Vec<PReg>; 3] = {
-        let x_registers: Vec<PReg> = (5..=7)
-            .chain(10..=17)
-            .chain(28..=29)
-            .map(|i| PReg::new(i, RegClass::Int))
-            .collect();
-
-        let f_registers: Vec<PReg> = (0..=7)
-            .chain(10..=17)
-            .chain(28..=31)
-            .map(|i| PReg::new(i, RegClass::Float))
-            .collect();
-
-        let v_registers: Vec<PReg> = (0..=31).map(|i| PReg::new(i, RegClass::Vector)).collect();
-
-        [x_registers, f_registers, v_registers]
-    };
-
-    let non_preferred_regs_by_class: [Vec<PReg>; 3] = {
-        let x_registers: Vec<PReg> = (9..=9)
-            .chain(18..=27)
-            .map(|i| PReg::new(i, RegClass::Int))
-            .collect();
-
-        let f_registers: Vec<PReg> = (8..=9)
-            .chain(18..=27)
-            .map(|i| PReg::new(i, RegClass::Float))
-            .collect();
-
-        let v_registers = vec![];
-
-        [x_registers, f_registers, v_registers]
-    };
-
-    MachineEnv {
-        preferred_regs_by_class,
-        non_preferred_regs_by_class,
-        fixed_stack_slots: vec![],
-        scratch_by_class: [None, None, None],
-    }
 }
 
 #[inline]

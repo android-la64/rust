@@ -30,5 +30,3 @@ pub mod System;
 pub mod UI;
 #[cfg(feature = "Win32_Web")]
 pub mod Web;
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

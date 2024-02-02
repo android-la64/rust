@@ -5,10 +5,14 @@
 use crate::backend::{self, c};
 use crate::fd::{AsFd, BorrowedFd, OwnedFd};
 use crate::io::{self, IoSlice, IoSliceMut};
+#[cfg(linux_kernel)]
+use crate::net::UCred;
 
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
-use core::mem::{size_of, size_of_val, take};
+use core::mem::{align_of, size_of, size_of_val, take};
+#[cfg(linux_kernel)]
+use core::ptr::addr_of;
 use core::{ptr, slice};
 
 use super::{RecvFlags, SendFlags, SocketAddrAny, SocketAddrV4, SocketAddrV6};
@@ -22,6 +26,11 @@ macro_rules! cmsg_space {
             $len * ::core::mem::size_of::<$crate::fd::BorrowedFd<'static>>(),
         )
     };
+    (ScmCredentials($len:expr)) => {
+        $crate::net::__cmsg_space(
+            $len * ::core::mem::size_of::<$crate::net::UCred>(),
+        )
+    };
 
     // Combo Rules
     (($($($x:tt)*),+)) => {
@@ -33,8 +42,19 @@ macro_rules! cmsg_space {
 }
 
 #[doc(hidden)]
-pub fn __cmsg_space(len: usize) -> usize {
-    unsafe { c::CMSG_SPACE(len.try_into().expect("CMSG_SPACE size overflow")) as usize }
+pub const fn __cmsg_space(len: usize) -> usize {
+    // Add `align_of::<c::cmsghdr>()` so that we can align the user-provided
+    // `&[u8]` to the required alignment boundary.
+    let len = len + align_of::<c::cmsghdr>();
+
+    // Convert `len` to `u32` for `CMSG_SPACE`. This would be `try_into()` if
+    // we could call that in a `const fn`.
+    let converted_len = len as u32;
+    if converted_len as usize != len {
+        unreachable!(); // `CMSG_SPACE` size overflow
+    }
+
+    unsafe { c::CMSG_SPACE(converted_len) as usize }
 }
 
 /// Ancillary message for [`sendmsg`], [`sendmsg_v4`], [`sendmsg_v6`],
@@ -42,24 +62,23 @@ pub fn __cmsg_space(len: usize) -> usize {
 #[non_exhaustive]
 pub enum SendAncillaryMessage<'slice, 'fd> {
     /// Send file descriptors.
+    #[doc(alias = "SCM_RIGHTS")]
     ScmRights(&'slice [BorrowedFd<'fd>]),
+    /// Send process credentials.
+    #[cfg(linux_kernel)]
+    #[doc(alias = "SCM_CREDENTIAL")]
+    ScmCredentials(UCred),
 }
 
 impl SendAncillaryMessage<'_, '_> {
     /// Get the maximum size of an ancillary message.
     ///
     /// This can be helpful in determining the size of the buffer you allocate.
-    pub fn size(&self) -> usize {
-        let total_bytes = match self {
-            Self::ScmRights(slice) => size_of_val(*slice),
-        };
-
-        unsafe {
-            c::CMSG_SPACE(
-                total_bytes
-                    .try_into()
-                    .expect("size too large for CMSG_SPACE"),
-            ) as usize
+    pub const fn size(&self) -> usize {
+        match self {
+            Self::ScmRights(slice) => cmsg_space!(ScmRights(slice.len())),
+            #[cfg(linux_kernel)]
+            Self::ScmCredentials(_) => cmsg_space!(ScmCredentials(1)),
         }
     }
 }
@@ -68,10 +87,16 @@ impl SendAncillaryMessage<'_, '_> {
 #[non_exhaustive]
 pub enum RecvAncillaryMessage<'a> {
     /// Received file descriptors.
+    #[doc(alias = "SCM_RIGHTS")]
     ScmRights(AncillaryIter<'a, OwnedFd>),
+    /// Received process credentials.
+    #[cfg(linux_kernel)]
+    #[doc(alias = "SCM_CREDENTIALS")]
+    ScmCredentials(UCred),
 }
 
-/// Buffer for sending ancillary messages.
+/// Buffer for sending ancillary messages with [`sendmsg`], [`sendmsg_v4`],
+/// [`sendmsg_v6`], [`sendmsg_unix`], and [`sendmsg_any`].
 pub struct SendAncillaryBuffer<'buf, 'slice, 'fd> {
     /// Raw byte buffer for messages.
     buffer: &'buf mut [u8],
@@ -91,15 +116,20 @@ impl<'buf> From<&'buf mut [u8]> for SendAncillaryBuffer<'buf, '_, '_> {
 
 impl Default for SendAncillaryBuffer<'_, '_, '_> {
     fn default() -> Self {
-        Self::new(&mut [])
+        Self {
+            buffer: &mut [],
+            length: 0,
+            _phantom: PhantomData,
+        }
     }
 }
 
 impl<'buf, 'slice, 'fd> SendAncillaryBuffer<'buf, 'slice, 'fd> {
     /// Create a new, empty `SendAncillaryBuffer` from a raw byte buffer.
+    #[inline]
     pub fn new(buffer: &'buf mut [u8]) -> Self {
         Self {
-            buffer,
+            buffer: align_for_cmsghdr(buffer),
             length: 0,
             _phantom: PhantomData,
         }
@@ -137,6 +167,13 @@ impl<'buf, 'slice, 'fd> SendAncillaryBuffer<'buf, 'slice, 'fd> {
                 let fds_bytes =
                     unsafe { slice::from_raw_parts(fds.as_ptr().cast::<u8>(), size_of_val(fds)) };
                 self.push_ancillary(fds_bytes, c::SOL_SOCKET as _, c::SCM_RIGHTS as _)
+            }
+            #[cfg(linux_kernel)]
+            SendAncillaryMessage::ScmCredentials(ucred) => {
+                let ucred_bytes = unsafe {
+                    slice::from_raw_parts(addr_of!(ucred).cast::<u8>(), size_of_val(&ucred))
+                };
+                self.push_ancillary(ucred_bytes, c::SOL_SOCKET as _, c::SCM_CREDENTIALS as _)
             }
         }
     }
@@ -191,7 +228,8 @@ impl<'slice, 'fd> Extend<SendAncillaryMessage<'slice, 'fd>>
     }
 }
 
-/// Buffer for receiving ancillary messages.
+/// Buffer for receiving ancillary messages with [`recvmsg`].
+#[derive(Default)]
 pub struct RecvAncillaryBuffer<'buf> {
     /// Raw byte buffer for messages.
     buffer: &'buf mut [u8],
@@ -209,17 +247,12 @@ impl<'buf> From<&'buf mut [u8]> for RecvAncillaryBuffer<'buf> {
     }
 }
 
-impl Default for RecvAncillaryBuffer<'_> {
-    fn default() -> Self {
-        Self::new(&mut [])
-    }
-}
-
 impl<'buf> RecvAncillaryBuffer<'buf> {
     /// Create a new, empty `RecvAncillaryBuffer` from a raw byte buffer.
+    #[inline]
     pub fn new(buffer: &'buf mut [u8]) -> Self {
         Self {
-            buffer,
+            buffer: align_for_cmsghdr(buffer),
             read: 0,
             length: 0,
         }
@@ -274,7 +307,17 @@ impl Drop for RecvAncillaryBuffer<'_> {
     }
 }
 
-/// An iterator that drains messages from a `RecvAncillaryBuffer`.
+/// Return a slice of `buffer` starting at the first `cmsghdr` alignment
+/// boundary.
+#[inline]
+fn align_for_cmsghdr(buffer: &mut [u8]) -> &mut [u8] {
+    let align = align_of::<c::cmsghdr>();
+    let addr = buffer.as_ptr() as usize;
+    let adjusted = (addr + (align - 1)) & align.wrapping_neg();
+    &mut buffer[adjusted - addr..]
+}
+
+/// An iterator that drains messages from a [`RecvAncillaryBuffer`].
 pub struct AncillaryDrain<'buf> {
     /// Inner iterator over messages.
     messages: messages::Messages<'buf>,
@@ -287,14 +330,14 @@ pub struct AncillaryDrain<'buf> {
 }
 
 impl<'buf> AncillaryDrain<'buf> {
-    /// A closure that converts a message into a `RecvAncillaryMessage`.
+    /// A closure that converts a message into a [`RecvAncillaryMessage`].
     fn cvt_msg(
         read: &mut usize,
         length: &mut usize,
         msg: &c::cmsghdr,
     ) -> Option<RecvAncillaryMessage<'buf>> {
         unsafe {
-            // Advance the "read" pointer.
+            // Advance the `read` pointer.
             let msg_len = msg.cmsg_len as usize;
             *read += msg_len;
             *length -= msg_len;
@@ -314,6 +357,15 @@ impl<'buf> AncillaryDrain<'buf> {
                     let fds = AncillaryIter::new(payload);
 
                     Some(RecvAncillaryMessage::ScmRights(fds))
+                }
+                #[cfg(linux_kernel)]
+                (c::SOL_SOCKET, c::SCM_CREDENTIALS) => {
+                    if payload_len >= size_of::<UCred>() {
+                        let ucred = payload.as_ptr().cast::<UCred>().read_unaligned();
+                        Some(RecvAncillaryMessage::ScmCredentials(ucred))
+                    } else {
+                        None
+                    }
                 }
                 _ => None,
             }
@@ -693,7 +745,7 @@ mod messages {
 
     /// An iterator over the messages in an ancillary buffer.
     pub(super) struct Messages<'buf> {
-        /// The message header we're using to iterator over the messages.
+        /// The message header we're using to iterate over the messages.
         msghdr: c::msghdr,
 
         /// The current pointer to the next message header to return.

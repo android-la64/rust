@@ -25,7 +25,7 @@ use rustc_span::hygiene::MacroKind;
 use rustc_span::source_map::SourceMap;
 use rustc_span::symbol::{kw, sym, Ident, Symbol};
 use rustc_span::{BytePos, Span, SyntaxContext};
-use thin_vec::ThinVec;
+use thin_vec::{thin_vec, ThinVec};
 
 use crate::errors::{
     AddedMacroUse, ChangeImportBinding, ChangeImportBindingSuggestion, ConsiderAddingADerive,
@@ -187,7 +187,9 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             } else if let Some((span, msg, sugg, appl)) = suggestion {
                 err.span_suggestion_verbose(span, msg, sugg, appl);
                 err.emit();
-            } else if let [segment] = path.as_slice() && is_call {
+            } else if let [segment] = path.as_slice()
+                && is_call
+            {
                 err.stash(segment.ident.span, rustc_errors::StashKey::CallIntoMethod);
             } else {
                 err.emit();
@@ -1145,7 +1147,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
         namespace: Namespace,
         parent_scope: &ParentScope<'a>,
         start_module: Module<'a>,
-        crate_name: Ident,
+        crate_path: ThinVec<ast::PathSegment>,
         filter_fn: FilterFn,
     ) -> Vec<ImportSuggestion>
     where
@@ -1161,11 +1163,13 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             Some(x) => Some(x),
         } {
             let in_module_is_extern = !in_module.def_id().is_local();
-            // We have to visit module children in deterministic order to avoid
-            // instabilities in reported imports (#43552).
             in_module.for_each_child(self, |this, ident, ns, name_binding| {
                 // avoid non-importable candidates
                 if !name_binding.is_importable() {
+                    return;
+                }
+
+                if ident.name == kw::Underscore {
                     return;
                 }
 
@@ -1208,12 +1212,14 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                     let res = name_binding.res();
                     if filter_fn(res) {
                         // create the path
-                        let mut segms = path_segments.clone();
-                        if lookup_ident.span.at_least_rust_2018() {
+                        let mut segms = if lookup_ident.span.at_least_rust_2018() {
                             // crate-local absolute paths start with `crate::` in edition 2018
                             // FIXME: may also be stabilized for Rust 2015 (Issues #45477, #44660)
-                            segms.insert(0, ast::PathSegment::from_ident(crate_name));
-                        }
+                            crate_path.clone()
+                        } else {
+                            ThinVec::new()
+                        };
+                        segms.append(&mut path_segments.clone());
 
                         segms.push(ast::PathSegment::from_ident(ident));
                         let path = Path { span: name_binding.span, segments: segms, tokens: None };
@@ -1312,18 +1318,18 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
     where
         FilterFn: Fn(Res) -> bool,
     {
+        let crate_path = thin_vec![ast::PathSegment::from_ident(Ident::with_dummy_span(kw::Crate))];
         let mut suggestions = self.lookup_import_candidates_from_module(
             lookup_ident,
             namespace,
             parent_scope,
             self.graph_root,
-            Ident::with_dummy_span(kw::Crate),
+            crate_path,
             &filter_fn,
         );
 
         if lookup_ident.span.at_least_rust_2018() {
-            let extern_prelude_names = self.extern_prelude.clone();
-            for (ident, _) in extern_prelude_names.into_iter() {
+            for ident in self.extern_prelude.clone().into_keys() {
                 if ident.span.from_expansion() {
                     // Idents are adjusted to the root context before being
                     // resolved in the extern prelude, so reporting this to the
@@ -1334,13 +1340,43 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                 }
                 let crate_id = self.crate_loader(|c| c.maybe_process_path_extern(ident.name));
                 if let Some(crate_id) = crate_id {
-                    let crate_root = self.expect_module(crate_id.as_def_id());
+                    let crate_def_id = crate_id.as_def_id();
+                    let crate_root = self.expect_module(crate_def_id);
+
+                    // Check if there's already an item in scope with the same name as the crate.
+                    // If so, we have to disambiguate the potential import suggestions by making
+                    // the paths *global* (i.e., by prefixing them with `::`).
+                    let needs_disambiguation =
+                        self.resolutions(parent_scope.module).borrow().iter().any(
+                            |(key, name_resolution)| {
+                                if key.ns == TypeNS
+                                    && key.ident == ident
+                                    && let Some(binding) = name_resolution.borrow().binding
+                                {
+                                    match binding.res() {
+                                        // No disambiguation needed if the identically named item we
+                                        // found in scope actually refers to the crate in question.
+                                        Res::Def(_, def_id) => def_id != crate_def_id,
+                                        Res::PrimTy(_) => true,
+                                        _ => false,
+                                    }
+                                } else {
+                                    false
+                                }
+                            },
+                        );
+                    let mut crate_path = ThinVec::new();
+                    if needs_disambiguation {
+                        crate_path.push(ast::PathSegment::path_root(rustc_span::DUMMY_SP));
+                    }
+                    crate_path.push(ast::PathSegment::from_ident(ident));
+
                     suggestions.extend(self.lookup_import_candidates_from_module(
                         lookup_ident,
                         namespace,
                         parent_scope,
                         crate_root,
-                        ident,
+                        crate_path,
                         &filter_fn,
                     ));
                 }
@@ -1505,9 +1541,22 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                 ),
             );
         }
+
+        let (span, sugg, post) = if let SuggestionTarget::SimilarlyNamed = suggestion.target
+            && let Ok(snippet) = self.tcx.sess.source_map().span_to_snippet(span)
+            && let Some(span) = suggestion.span
+            && let Some(candidate) = suggestion.candidate.as_str().strip_prefix('_')
+            && snippet == candidate
+        {
+            // When the suggested binding change would be from `x` to `_x`, suggest changing the
+            // original binding definition instead. (#60164)
+            (span, snippet, ", consider changing it")
+        } else {
+            (span, suggestion.candidate.to_string(), "")
+        };
         let msg = match suggestion.target {
             SuggestionTarget::SimilarlyNamed => format!(
-                "{} {} with a similar name exists",
+                "{} {} with a similar name exists{post}",
                 suggestion.res.article(),
                 suggestion.res.descr()
             ),
@@ -1515,7 +1564,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                 format!("maybe you meant this {}", suggestion.res.descr())
             }
         };
-        err.span_suggestion(span, msg, suggestion.candidate, Applicability::MaybeIncorrect);
+        err.span_suggestion(span, msg, sugg, Applicability::MaybeIncorrect);
         true
     }
 
@@ -1686,7 +1735,9 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             non_exhaustive = Some(attr.span);
         } else if let Some(span) = ctor_fields_span {
             err.span_label(span, "a constructor is private if any of the fields is private");
-            if let Res::Def(_, d) = res && let Some(fields) = self.field_visibility_spans.get(&d) {
+            if let Res::Def(_, d) = res
+                && let Some(fields) = self.field_visibility_spans.get(&d)
+            {
                 err.multipart_suggestion_verbose(
                     format!(
                         "consider making the field{} publicly accessible",
@@ -1735,7 +1786,9 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             }
             // Final step in the import chain, point out if the ADT is `non_exhaustive`
             // which is probably why this privacy violation occurred.
-            if next_binding.is_none() && let Some(span) = non_exhaustive {
+            if next_binding.is_none()
+                && let Some(span) = non_exhaustive
+            {
                 note_span.push_span_label(
                     span,
                     "cannot be constructed because it is `#[non_exhaustive]`",
@@ -1842,7 +1895,8 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                         parent_scope,
                         None,
                         ignore_binding,
-                    ).ok()
+                    )
+                    .ok()
                 } else if let Some(ribs) = ribs
                     && let Some(TypeNS | ValueNS) = opt_ns
                 {
@@ -1866,7 +1920,8 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                         None,
                         false,
                         ignore_binding,
-                    ).ok()
+                    )
+                    .ok()
                 };
                 if let Some(binding) = binding {
                     let mut found = |what| {
@@ -2228,7 +2283,9 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
 
                 // Add the import to the start, with a `{` if required.
                 let start_point = source_map.start_point(after_crate_name);
-                if is_definitely_crate && let Ok(start_snippet) = source_map.span_to_snippet(start_point) {
+                if is_definitely_crate
+                    && let Ok(start_snippet) = source_map.span_to_snippet(start_point)
+                {
                     corrections.push((
                         start_point,
                         if has_nested {
@@ -2243,7 +2300,8 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
 
                     // Add a `};` to the end if nested, matching the `{` added at the start.
                     if !has_nested {
-                        corrections.push((source_map.end_point(after_crate_name), "};".to_string()));
+                        corrections
+                            .push((source_map.end_point(after_crate_name), "};".to_string()));
                     }
                 } else {
                     // If the root import is module-relative, add the import separately
@@ -2526,7 +2584,7 @@ fn show_candidates(
 
     candidates.iter().for_each(|c| {
         (if c.accessible { &mut accessible_path_strings } else { &mut inaccessible_path_strings })
-            .push((path_names_to_string(&c.path), c.descr, c.did, &c.note, c.via_import))
+            .push((pprust::path_to_string(&c.path), c.descr, c.did, &c.note, c.via_import))
     });
 
     // we want consistent results across executions, but candidates are produced
@@ -2582,7 +2640,13 @@ fn show_candidates(
             for candidate in &mut accessible_path_strings {
                 // produce an additional newline to separate the new use statement
                 // from the directly following item.
-                let additional_newline = if let FoundUse::No = found_use && let DiagnosticMode::Normal = mode { "\n" } else { "" };
+                let additional_newline = if let FoundUse::No = found_use
+                    && let DiagnosticMode::Normal = mode
+                {
+                    "\n"
+                } else {
+                    ""
+                };
                 candidate.0 =
                     format!("{add_use}{}{append}{trailing}{additional_newline}", &candidate.0);
             }

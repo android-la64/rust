@@ -556,7 +556,7 @@ impl<T: ?Sized> Cell<T> {
     #[inline]
     #[stable(feature = "cell_as_ptr", since = "1.12.0")]
     #[rustc_const_stable(feature = "const_cell_as_ptr", since = "1.32.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     pub const fn as_ptr(&self) -> *mut T {
         self.value.get()
     }
@@ -755,7 +755,7 @@ impl Display for BorrowMutError {
 }
 
 // This ensures the panicking code is outlined from `borrow_mut` for `RefCell`.
-#[inline(never)]
+#[cfg_attr(not(feature = "panic_immediate_abort"), inline(never))]
 #[track_caller]
 #[cold]
 fn panic_already_borrowed(err: BorrowMutError) -> ! {
@@ -763,7 +763,7 @@ fn panic_already_borrowed(err: BorrowMutError) -> ! {
 }
 
 // This ensures the panicking code is outlined from `borrow` for `RefCell`.
-#[inline(never)]
+#[cfg_attr(not(feature = "panic_immediate_abort"), inline(never))]
 #[track_caller]
 #[cold]
 fn panic_already_mutably_borrowed(err: BorrowError) -> ! {
@@ -1112,7 +1112,7 @@ impl<T: ?Sized> RefCell<T> {
     /// ```
     #[inline]
     #[stable(feature = "cell_as_ptr", since = "1.12.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     pub fn as_ptr(&self) -> *mut T {
         self.value.get()
     }
@@ -1423,6 +1423,7 @@ impl Clone for BorrowRef<'_> {
 /// See the [module-level documentation](self) for more.
 #[stable(feature = "rust1", since = "1.0.0")]
 #[must_not_suspend = "holding a Ref across suspend points can cause BorrowErrors"]
+#[rustc_diagnostic_item = "RefCellRef"]
 pub struct Ref<'b, T: ?Sized + 'b> {
     // NB: we use a pointer instead of `&'b T` to avoid `noalias` violations, because a
     // `Ref` argument doesn't hold immutability for its whole scope, only until it drops.
@@ -1804,6 +1805,7 @@ impl<'b> BorrowRefMut<'b> {
 /// See the [module-level documentation](self) for more.
 #[stable(feature = "rust1", since = "1.0.0")]
 #[must_not_suspend = "holding a RefMut across suspend points can cause BorrowErrors"]
+#[rustc_diagnostic_item = "RefCellRefMut"]
 pub struct RefMut<'b, T: ?Sized + 'b> {
     // NB: we use a pointer instead of `&'b mut T` to avoid `noalias` violations, because a
     // `RefMut` argument doesn't hold exclusivity for its whole scope, only until it drops.
@@ -2107,7 +2109,7 @@ impl<T: ?Sized> UnsafeCell<T> {
     #[inline(always)]
     #[stable(feature = "rust1", since = "1.0.0")]
     #[rustc_const_stable(feature = "const_unsafecell_get", since = "1.32.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     pub const fn get(&self) -> *mut T {
         // We can just cast the pointer from `UnsafeCell<T>` to `T` because of
         // #[repr(transparent)]. This exploits std's special status, there is
@@ -2251,7 +2253,7 @@ impl<T: ?Sized> SyncUnsafeCell<T> {
     /// when casting to `&mut T`, and ensure that there are no mutations
     /// or mutable aliases going on when casting to `&T`
     #[inline]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     pub const fn get(&self) -> *mut T {
         self.value.get()
     }

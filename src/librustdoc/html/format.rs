@@ -325,8 +325,7 @@ pub(crate) fn print_where_clause<'a, 'tcx: 'a>(
                         bounds_display.truncate(bounds_display.len() - " + ".len());
                         write!(f, "{}: {bounds_display}", lifetime.print())
                     }
-                    // FIXME(fmease): Render bound params.
-                    clean::WherePredicate::EqPredicate { lhs, rhs, bound_params: _ } => {
+                    clean::WherePredicate::EqPredicate { lhs, rhs } => {
                         if f.alternate() {
                             write!(f, "{:#} == {:#}", lhs.print(cx), rhs.print(cx))
                         } else {
@@ -848,7 +847,7 @@ fn resolved_path<'cx>(
 fn primitive_link(
     f: &mut fmt::Formatter<'_>,
     prim: clean::PrimitiveType,
-    name: &str,
+    name: fmt::Arguments<'_>,
     cx: &Context<'_>,
 ) -> fmt::Result {
     primitive_link_fragment(f, prim, name, "", cx)
@@ -857,7 +856,7 @@ fn primitive_link(
 fn primitive_link_fragment(
     f: &mut fmt::Formatter<'_>,
     prim: clean::PrimitiveType,
-    name: &str,
+    name: fmt::Arguments<'_>,
     fragment: &str,
     cx: &Context<'_>,
 ) -> fmt::Result {
@@ -908,7 +907,7 @@ fn primitive_link_fragment(
             None => {}
         }
     }
-    f.write_str(name)?;
+    std::fmt::Display::fmt(&name, f)?;
     if needs_termination {
         write!(f, "</a>")?;
     }
@@ -978,9 +977,11 @@ fn fmt_type<'cx>(
         }
         clean::Infer => write!(f, "_"),
         clean::Primitive(clean::PrimitiveType::Never) => {
-            primitive_link(f, PrimitiveType::Never, "!", cx)
+            primitive_link(f, PrimitiveType::Never, format_args!("!"), cx)
         }
-        clean::Primitive(prim) => primitive_link(f, prim, prim.as_sym().as_str(), cx),
+        clean::Primitive(prim) => {
+            primitive_link(f, prim, format_args!("{}", prim.as_sym().as_str()), cx)
+        }
         clean::BareFunction(ref decl) => {
             if f.alternate() {
                 write!(
@@ -999,16 +1000,16 @@ fn fmt_type<'cx>(
                     decl.unsafety.print_with_space(),
                     print_abi_with_space(decl.abi)
                 )?;
-                primitive_link(f, PrimitiveType::Fn, "fn", cx)?;
+                primitive_link(f, PrimitiveType::Fn, format_args!("fn"), cx)?;
                 write!(f, "{}", decl.decl.print(cx))
             }
         }
         clean::Tuple(ref typs) => {
             match &typs[..] {
-                &[] => primitive_link(f, PrimitiveType::Unit, "()", cx),
+                &[] => primitive_link(f, PrimitiveType::Unit, format_args!("()"), cx),
                 [one] => {
                     if let clean::Generic(name) = one {
-                        primitive_link(f, PrimitiveType::Tuple, &format!("({name},)"), cx)
+                        primitive_link(f, PrimitiveType::Tuple, format_args!("({name},)"), cx)
                     } else {
                         write!(f, "(")?;
                         // Carry `f.alternate()` into this display w/o branching manually.
@@ -1029,7 +1030,10 @@ fn fmt_type<'cx>(
                         primitive_link(
                             f,
                             PrimitiveType::Tuple,
-                            &format!("({})", generic_names.iter().map(|s| s.as_str()).join(", ")),
+                            format_args!(
+                                "({})",
+                                generic_names.iter().map(|s| s.as_str()).join(", ")
+                            ),
                             cx,
                         )
                     } else {
@@ -1048,7 +1052,7 @@ fn fmt_type<'cx>(
         }
         clean::Slice(ref t) => match **t {
             clean::Generic(name) => {
-                primitive_link(f, PrimitiveType::Slice, &format!("[{name}]"), cx)
+                primitive_link(f, PrimitiveType::Slice, format_args!("[{name}]"), cx)
             }
             _ => {
                 write!(f, "[")?;
@@ -1060,7 +1064,7 @@ fn fmt_type<'cx>(
             clean::Generic(name) if !f.alternate() => primitive_link(
                 f,
                 PrimitiveType::Array,
-                &format!("[{name}; {n}]", n = Escape(n)),
+                format_args!("[{name}; {n}]", n = Escape(n)),
                 cx,
             ),
             _ => {
@@ -1070,7 +1074,12 @@ fn fmt_type<'cx>(
                     write!(f, "; {n}")?;
                 } else {
                     write!(f, "; ")?;
-                    primitive_link(f, PrimitiveType::Array, &format!("{n}", n = Escape(n)), cx)?;
+                    primitive_link(
+                        f,
+                        PrimitiveType::Array,
+                        format_args!("{n}", n = Escape(n)),
+                        cx,
+                    )?;
                 }
                 write!(f, "]")
             }
@@ -1082,22 +1091,32 @@ fn fmt_type<'cx>(
             };
 
             if matches!(**t, clean::Generic(_)) || t.is_assoc_ty() {
-                let text = if f.alternate() {
-                    format!("*{m} {ty:#}", ty = t.print(cx))
+                let ty = t.print(cx);
+                if f.alternate() {
+                    primitive_link(
+                        f,
+                        clean::PrimitiveType::RawPointer,
+                        format_args!("*{m} {ty:#}"),
+                        cx,
+                    )
                 } else {
-                    format!("*{m} {ty}", ty = t.print(cx))
-                };
-                primitive_link(f, clean::PrimitiveType::RawPointer, &text, cx)
+                    primitive_link(
+                        f,
+                        clean::PrimitiveType::RawPointer,
+                        format_args!("*{m} {ty}"),
+                        cx,
+                    )
+                }
             } else {
-                primitive_link(f, clean::PrimitiveType::RawPointer, &format!("*{m} "), cx)?;
+                primitive_link(f, clean::PrimitiveType::RawPointer, format_args!("*{m} "), cx)?;
                 fmt::Display::fmt(&t.print(cx), f)
             }
         }
         clean::BorrowedRef { lifetime: ref l, mutability, type_: ref ty } => {
-            let lt = match l {
-                Some(l) => format!("{} ", l.print()),
-                _ => String::new(),
-            };
+            let lt = display_fn(|f| match l {
+                Some(l) => write!(f, "{} ", l.print()),
+                _ => Ok(()),
+            });
             let m = mutability.print_with_space();
             let amp = if f.alternate() { "&" } else { "&amp;" };
 
@@ -1105,7 +1124,7 @@ fn fmt_type<'cx>(
                 return primitive_link(
                     f,
                     PrimitiveType::Reference,
-                    &format!("{amp}{lt}{m}{name}"),
+                    format_args!("{amp}{lt}{m}{name}"),
                     cx,
                 );
             }
@@ -1255,7 +1274,7 @@ impl clean::Impl {
             {
                 // Hardcoded anchor library/core/src/primitive_docs.rs
                 // Link should match `# Trait implementations`
-                primitive_link_fragment(f, PrimitiveType::Tuple, &format!("({name}₁, {name}₂, …, {name}ₙ)"), "#trait-implementations-1", cx)?;
+                primitive_link_fragment(f, PrimitiveType::Tuple, format_args!("({name}₁, {name}₂, …, {name}ₙ)"), "#trait-implementations-1", cx)?;
             } else if let clean::BareFunction(bare_fn) = &self.for_ &&
                 let [clean::Argument { type_: clean::Type::Generic(name), .. }] = &bare_fn.decl.inputs.values[..] &&
                 (self.kind.is_fake_variadic() || self.kind.is_auto())
@@ -1282,7 +1301,7 @@ impl clean::Impl {
                 } else {
                     ""
                 };
-                primitive_link_fragment(f, PrimitiveType::Tuple, &format!("fn ({name}₁, {name}₂, …, {name}ₙ{ellipsis})"), "#trait-implementations-1", cx)?;
+                primitive_link_fragment(f, PrimitiveType::Tuple, format_args!("fn ({name}₁, {name}₂, …, {name}ₙ{ellipsis})"), "#trait-implementations-1", cx)?;
                 // Write output.
                 if !bare_fn.decl.output.is_unit() {
                     write!(f, " -> ")?;
@@ -1666,7 +1685,12 @@ impl clean::ImportSource {
                 }
                 let name = self.path.last();
                 if let hir::def::Res::PrimTy(p) = self.path.res {
-                    primitive_link(f, PrimitiveType::from(p), name.as_str(), cx)?;
+                    primitive_link(
+                        f,
+                        PrimitiveType::from(p),
+                        format_args!("{}", name.as_str()),
+                        cx,
+                    )?;
                 } else {
                     f.write_str(name.as_str())?;
                 }

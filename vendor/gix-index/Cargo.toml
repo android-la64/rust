@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-index"
-version = "0.25.0"
+version = "0.26.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -62,26 +62,26 @@ version = "0.2.15"
 version = "^0.2.7"
 
 [dependencies.gix-features]
-version = "^0.35.0"
+version = "^0.36.0"
 features = [
     "rustsha1",
     "progress",
 ]
 
 [dependencies.gix-fs]
-version = "^0.7.0"
+version = "^0.8.0"
 
 [dependencies.gix-hash]
-version = "^0.13.0"
+version = "^0.13.1"
 
 [dependencies.gix-lock]
-version = "^10.0.0"
+version = "^11.0.0"
 
 [dependencies.gix-object]
-version = "^0.37.0"
+version = "^0.38.0"
 
 [dependencies.gix-traverse]
-version = "^0.33.0"
+version = "^0.34.0"
 
 [dependencies.itoa]
 version = "1.0.3"

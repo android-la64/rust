@@ -122,10 +122,10 @@ impl GitRepo {
         if download_dir.exists() {
             let actual_hash = format!("{:016x}", hash_dir(&download_dir));
             if actual_hash == self.content_hash {
-                println!("[FRESH] {}", download_dir.display());
+                eprintln!("[FRESH] {}", download_dir.display());
                 return;
             } else {
-                println!(
+                eprintln!(
                     "Mismatched content hash for {download_dir}: {actual_hash} != {content_hash}. Downloading again.",
                     download_dir = download_dir.display(),
                     content_hash = self.content_hash,
@@ -143,6 +143,7 @@ impl GitRepo {
             RelPath::PATCHES.to_path(dirs).join(format!("{}-lock.toml", self.patch_name));
         let target_lockfile = download_dir.join("Cargo.lock");
         if source_lockfile.exists() {
+            assert!(!target_lockfile.exists());
             fs::copy(source_lockfile, target_lockfile).unwrap();
         } else {
             assert!(target_lockfile.exists());
@@ -150,7 +151,7 @@ impl GitRepo {
 
         let actual_hash = format!("{:016x}", hash_dir(&download_dir));
         if actual_hash != self.content_hash {
-            println!(
+            eprintln!(
                 "Download of {download_dir} failed with mismatched content hash: {actual_hash} != {content_hash}",
                 download_dir = download_dir.display(),
                 content_hash = self.content_hash,

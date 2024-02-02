@@ -52,8 +52,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
 
         let mut candidates = SelectionCandidateSet { vec: Vec::new(), ambiguous: false };
 
-        // The only way to prove a NotImplemented(T: Foo) predicate is via a negative impl.
-        // There are no compiler built-in rules for this.
+        // Negative trait predicates have different rules than positive trait predicates.
         if obligation.polarity() == ty::ImplPolarity::Negative {
             self.assemble_candidates_for_trait_alias(obligation, &mut candidates);
             self.assemble_candidates_from_impls(obligation, &mut candidates);
@@ -110,10 +109,12 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                     self.assemble_builtin_bound_candidates(clone_conditions, &mut candidates);
                 }
 
-                if lang_items.gen_trait() == Some(def_id) {
-                    self.assemble_generator_candidates(obligation, &mut candidates);
+                if lang_items.coroutine_trait() == Some(def_id) {
+                    self.assemble_coroutine_candidates(obligation, &mut candidates);
                 } else if lang_items.future_trait() == Some(def_id) {
                     self.assemble_future_candidates(obligation, &mut candidates);
+                } else if lang_items.iterator_trait() == Some(def_id) {
+                    self.assemble_iterator_candidates(obligation, &mut candidates);
                 }
 
                 self.assemble_closure_candidates(obligation, &mut candidates);
@@ -201,25 +202,25 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         Ok(())
     }
 
-    fn assemble_generator_candidates(
+    fn assemble_coroutine_candidates(
         &mut self,
         obligation: &PolyTraitObligation<'tcx>,
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
-        // Okay to skip binder because the args on generator types never
+        // Okay to skip binder because the args on coroutine types never
         // touch bound regions, they just capture the in-scope
         // type/region parameters.
         let self_ty = obligation.self_ty().skip_binder();
         match self_ty.kind() {
-            // async constructs get lowered to a special kind of generator that
-            // should *not* `impl Generator`.
-            ty::Generator(did, ..) if !self.tcx().generator_is_async(*did) => {
-                debug!(?self_ty, ?obligation, "assemble_generator_candidates",);
+            // `async`/`gen` constructs get lowered to a special kind of coroutine that
+            // should *not* `impl Coroutine`.
+            ty::Coroutine(did, ..) if self.tcx().is_general_coroutine(*did) => {
+                debug!(?self_ty, ?obligation, "assemble_coroutine_candidates",);
 
-                candidates.vec.push(GeneratorCandidate);
+                candidates.vec.push(CoroutineCandidate);
             }
             ty::Infer(ty::TyVar(_)) => {
-                debug!("assemble_generator_candidates: ambiguous self-type");
+                debug!("assemble_coroutine_candidates: ambiguous self-type");
                 candidates.ambiguous = true;
             }
             _ => {}
@@ -232,13 +233,30 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         let self_ty = obligation.self_ty().skip_binder();
-        if let ty::Generator(did, ..) = self_ty.kind() {
-            // async constructs get lowered to a special kind of generator that
+        if let ty::Coroutine(did, ..) = self_ty.kind() {
+            // async constructs get lowered to a special kind of coroutine that
             // should directly `impl Future`.
-            if self.tcx().generator_is_async(*did) {
+            if self.tcx().coroutine_is_async(*did) {
                 debug!(?self_ty, ?obligation, "assemble_future_candidates",);
 
                 candidates.vec.push(FutureCandidate);
+            }
+        }
+    }
+
+    fn assemble_iterator_candidates(
+        &mut self,
+        obligation: &PolyTraitObligation<'tcx>,
+        candidates: &mut SelectionCandidateSet<'tcx>,
+    ) {
+        let self_ty = obligation.self_ty().skip_binder();
+        if let ty::Coroutine(did, ..) = self_ty.kind() {
+            // gen constructs get lowered to a special kind of coroutine that
+            // should directly `impl Iterator`.
+            if self.tcx().coroutine_is_gen(*did) {
+                debug!(?self_ty, ?obligation, "assemble_iterator_candidates",);
+
+                candidates.vec.push(IteratorCandidate);
             }
         }
     }
@@ -435,8 +453,8 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 | ty::RawPtr(_)
                 | ty::Ref(_, _, _)
                 | ty::Closure(_, _)
-                | ty::Generator(_, _, _)
-                | ty::GeneratorWitness(..)
+                | ty::Coroutine(_, _, _)
+                | ty::CoroutineWitness(..)
                 | ty::Never
                 | ty::Tuple(_)
                 | ty::Error(_) => return true,
@@ -492,7 +510,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                     // this trait and type.
                 }
                 ty::Param(..)
-                | ty::Alias(ty::Projection | ty::Inherent, ..)
+                | ty::Alias(ty::Projection | ty::Inherent | ty::Weak, ..)
                 | ty::Placeholder(..)
                 | ty::Bound(..) => {
                     // In these cases, we don't know what the actual
@@ -513,16 +531,16 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                     // The auto impl might apply; we don't know.
                     candidates.ambiguous = true;
                 }
-                ty::Generator(_, _, movability)
+                ty::Coroutine(_, _, movability)
                     if self.tcx().lang_items().unpin_trait() == Some(def_id) =>
                 {
                     match movability {
                         hir::Movability::Static => {
-                            // Immovable generators are never `Unpin`, so
+                            // Immovable coroutines are never `Unpin`, so
                             // suppress the normal auto-impl candidate for it.
                         }
                         hir::Movability::Movable => {
-                            // Movable generators are always `Unpin`, so add an
+                            // Movable coroutines are always `Unpin`, so add an
                             // unconditional builtin candidate.
                             candidates.vec.push(BuiltinCandidate { has_nested: false });
                         }
@@ -536,20 +554,25 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                     );
                 }
 
-                ty::Alias(_, _)
-                    if candidates.vec.iter().any(|c| matches!(c, ProjectionCandidate(..))) =>
-                {
-                    // We do not generate an auto impl candidate for `impl Trait`s which already
-                    // reference our auto trait.
-                    //
-                    // For example during candidate assembly for `impl Send: Send`, we don't have
-                    // to look at the constituent types for this opaque types to figure out that this
-                    // trivially holds.
-                    //
-                    // Note that this is only sound as projection candidates of opaque types
-                    // are always applicable for auto traits.
+                ty::Alias(ty::Opaque, _) => {
+                    if candidates.vec.iter().any(|c| matches!(c, ProjectionCandidate(..))) {
+                        // We do not generate an auto impl candidate for `impl Trait`s which already
+                        // reference our auto trait.
+                        //
+                        // For example during candidate assembly for `impl Send: Send`, we don't have
+                        // to look at the constituent types for this opaque types to figure out that this
+                        // trivially holds.
+                        //
+                        // Note that this is only sound as projection candidates of opaque types
+                        // are always applicable for auto traits.
+                    } else if self.infcx.intercrate {
+                        // We do not emit auto trait candidates for opaque types in coherence.
+                        // Doing so can result in weird dependency cycles.
+                        candidates.ambiguous = true;
+                    } else {
+                        candidates.vec.push(AutoImplCandidate)
+                    }
                 }
-                ty::Alias(_, _) => candidates.vec.push(AutoImplCandidate),
 
                 ty::Bool
                 | ty::Char
@@ -565,10 +588,10 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 | ty::FnDef(..)
                 | ty::FnPtr(_)
                 | ty::Closure(_, _)
-                | ty::Generator(..)
+                | ty::Coroutine(..)
                 | ty::Never
                 | ty::Tuple(_)
-                | ty::GeneratorWitness(..) => {
+                | ty::CoroutineWitness(..) => {
                     // Only consider auto impls if there are no manual impls for the root of `self_ty`.
                     //
                     // For example, we only consider auto candidates for `&i32: Auto` if no explicit impl
@@ -605,15 +628,12 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         }
 
         self.infcx.probe(|_snapshot| {
-            if obligation.has_non_region_late_bound() {
-                return;
-            }
+            let poly_trait_predicate = self.infcx.resolve_vars_if_possible(obligation.predicate);
+            let placeholder_trait_predicate =
+                self.infcx.instantiate_binder_with_placeholders(poly_trait_predicate);
 
-            // The code below doesn't care about regions, and the
-            // self-ty here doesn't escape this probe, so just erase
-            // any LBR.
-            let self_ty = self.tcx().erase_late_bound_regions(obligation.self_ty());
-            let poly_trait_ref = match self_ty.kind() {
+            let self_ty = placeholder_trait_predicate.self_ty();
+            let principal_trait_ref = match self_ty.kind() {
                 ty::Dynamic(ref data, ..) => {
                     if data.auto_traits().any(|did| did == obligation.predicate.def_id()) {
                         debug!(
@@ -645,18 +665,14 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                 _ => return,
             };
 
-            debug!(?poly_trait_ref, "assemble_candidates_from_object_ty");
-
-            let poly_trait_predicate = self.infcx.resolve_vars_if_possible(obligation.predicate);
-            let placeholder_trait_predicate =
-                self.infcx.instantiate_binder_with_placeholders(poly_trait_predicate);
+            debug!(?principal_trait_ref, "assemble_candidates_from_object_ty");
 
             // Count only those upcast versions that match the trait-ref
             // we are looking for. Specifically, do not only check for the
             // correct trait, but also the correct type parameters.
             // For example, we may be trying to upcast `Foo` to `Bar<i32>`,
             // but `Foo` is declared as `trait Foo: Bar<u32>`.
-            let candidate_supertraits = util::supertraits(self.tcx(), poly_trait_ref)
+            let candidate_supertraits = util::supertraits(self.tcx(), principal_trait_ref)
                 .enumerate()
                 .filter(|&(_, upcast_trait_ref)| {
                     self.infcx.probe(|_| {
@@ -699,7 +715,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             let ty = traits::normalize_projection_type(
                 self,
                 param_env,
-                tcx.mk_alias_ty(tcx.lang_items().deref_target()?, trait_ref.args),
+                ty::AliasTy::new(tcx, tcx.lang_items().deref_target()?, trait_ref.args),
                 cause.clone(),
                 0,
                 // We're *intentionally* throwing these away,
@@ -942,9 +958,9 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             | ty::Array(..)
             | ty::Slice(_)
             | ty::Closure(..)
-            | ty::Generator(..)
+            | ty::Coroutine(..)
             | ty::Tuple(_)
-            | ty::GeneratorWitness(..) => {
+            | ty::CoroutineWitness(..) => {
                 // These are built-in, and cannot have a custom `impl const Destruct`.
                 candidates.vec.push(ConstDestructCandidate(None));
             }
@@ -1016,8 +1032,8 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             | ty::FnPtr(_)
             | ty::Dynamic(_, _, _)
             | ty::Closure(_, _)
-            | ty::Generator(_, _, _)
-            | ty::GeneratorWitness(..)
+            | ty::Coroutine(_, _, _)
+            | ty::CoroutineWitness(..)
             | ty::Never
             | ty::Alias(..)
             | ty::Param(_)
@@ -1059,6 +1075,7 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
         candidates: &mut SelectionCandidateSet<'tcx>,
     ) {
         let self_ty = self.infcx.shallow_resolve(obligation.self_ty());
+
         match self_ty.skip_binder().kind() {
             ty::FnPtr(_) => candidates.vec.push(BuiltinCandidate { has_nested: false }),
             ty::Bool
@@ -1077,8 +1094,8 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
             | ty::Placeholder(..)
             | ty::Dynamic(..)
             | ty::Closure(..)
-            | ty::Generator(..)
-            | ty::GeneratorWitness(..)
+            | ty::Coroutine(..)
+            | ty::CoroutineWitness(..)
             | ty::Never
             | ty::Tuple(..)
             | ty::Alias(..)

@@ -3,10 +3,12 @@ use crate::core::resolver::features::{CliFeatures, HasDevUnits};
 use crate::core::{PackageId, PackageIdSpec};
 use crate::core::{Resolve, SourceId, Workspace};
 use crate::ops;
+use crate::util::cache_lock::CacheLockMode;
 use crate::util::config::Config;
 use crate::util::style;
 use crate::util::CargoResult;
 use anstyle::Style;
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
 use tracing::debug;
 
@@ -48,7 +50,9 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
 
     // Updates often require a lot of modifications to the registry, so ensure
     // that we're synchronized against other Cargos.
-    let _lock = ws.config().acquire_package_cache_lock()?;
+    let _lock = ws
+        .config()
+        .acquire_package_cache_lock(CacheLockMode::DownloadExclusive)?;
 
     let max_rust_version = ws.rust_version();
 
@@ -101,14 +105,14 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
                         if pid.source_id().is_registry() {
                             pid.source_id().with_precise_registry_version(
                                 pid.name(),
-                                pid.version(),
+                                pid.version().clone(),
                                 precise,
                             )?
                         } else {
-                            pid.source_id().with_precise(Some(precise.to_string()))
+                            pid.source_id().with_git_precise(Some(precise.to_string()))
                         }
                     }
-                    None => pid.source_id().with_precise(None),
+                    None => pid.source_id().without_precise(),
                 });
             }
             if let Ok(unused_id) =
@@ -143,13 +147,17 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
                 format!(
                     "{} -> #{}",
                     removed[0],
-                    &added[0].source_id().precise().unwrap()[..8]
+                    &added[0].source_id().precise_git_fragment().unwrap()
                 )
             } else {
                 format!("{} -> v{}", removed[0], added[0].version())
             };
 
-            if removed[0].version() > added[0].version() {
+            // If versions differ only in build metadata, we call it an "update"
+            // regardless of whether the build metadata has gone up or down.
+            // This metadata is often stuff like git commit hashes, which are
+            // not meaningfully ordered.
+            if removed[0].version().cmp_precedence(added[0].version()) == Ordering::Greater {
                 print_change("Downgrading", msg, &style::WARN)?;
             } else {
                 print_change("Updating", msg, &style::GOOD)?;
@@ -222,7 +230,7 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
                     b[i..]
                         .iter()
                         .take_while(|b| a == b)
-                        .all(|b| a.source_id().precise() != b.source_id().precise())
+                        .all(|b| !a.source_id().has_same_precise_as(b.source_id()))
                 })
                 .cloned()
                 .collect()

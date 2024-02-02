@@ -58,6 +58,28 @@ fn simple() {
 }
 
 #[cargo_test]
+fn install_the_same_version_twice() {
+    pkg("foo", "0.0.1");
+
+    cargo_process("install foo foo")
+        .with_stderr(
+            "\
+[UPDATING] `[..]` index
+[DOWNLOADING] crates ...
+[DOWNLOADED] foo v0.0.1 (registry [..])
+[INSTALLING] foo v0.0.1
+[COMPILING] foo v0.0.1
+[FINISHED] release [optimized] target(s) in [..]
+[INSTALLING] [CWD]/home/.cargo/bin/foo[EXE]
+[INSTALLED] package `foo v0.0.1` (executable `foo[EXE]`)
+[WARNING] be sure to add `[..]` to your PATH to be able to run the installed binaries
+",
+        )
+        .run();
+    assert_has_installed_exe(cargo_home(), "foo");
+}
+
+#[cargo_test]
 fn toolchain() {
     pkg("foo", "0.0.1");
 
@@ -1614,7 +1636,7 @@ fn inline_version_without_name() {
     cargo_process("install @0.1.1")
         .with_status(1)
         .with_stderr(
-            "error: invalid value '@0.1.1' for '[crate]...': missing crate name before '@'
+            "error: invalid value '@0.1.1' for '[CRATE[@<VER>]]...': missing crate name before '@'
 
 For more information, try '--help'.
 ",
@@ -1844,7 +1866,9 @@ fn install_empty_argument() {
     cargo_process("install")
         .arg("")
         .with_status(1)
-        .with_stderr_contains("[ERROR] invalid value '' for '[crate]...': crate name is empty")
+        .with_stderr_contains(
+            "[ERROR] invalid value '' for '[CRATE[@<VER>]]...': crate name is empty",
+        )
         .run();
 }
 
@@ -2455,11 +2479,31 @@ error: unexpected argument '--release' found
 
   tip: `--release` is the default for `cargo install`; instead `--debug` is supported
 
-Usage: cargo[EXE] install [OPTIONS] [crate]...
+Usage: cargo[EXE] install [OPTIONS] [CRATE[@<VER>]]...
 
 For more information, try '--help'.
 ",
         )
         .with_status(1)
         .run();
+}
+
+#[cargo_test]
+fn install_incompat_msrv() {
+    Package::new("foo", "0.1.0")
+        .file("src/main.rs", "fn main() {}")
+        .rust_version("1.30")
+        .publish();
+    Package::new("foo", "0.2.0")
+        .file("src/main.rs", "fn main() {}")
+        .rust_version("1.9876.0")
+        .publish();
+
+    cargo_process("install foo")
+        .with_stderr("\
+[UPDATING] `dummy-registry` index
+[ERROR] cannot install package `foo 0.2.0`, it requires rustc 1.9876.0 or newer, while the currently active rustc version is [..]
+`foo 0.1.0` supports rustc 1.30
+")
+        .with_status(101).run();
 }

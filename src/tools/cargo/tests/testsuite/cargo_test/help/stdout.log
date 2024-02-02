@@ -1,10 +1,10 @@
 Execute all unit and integration tests and build examples of a local package
 
-Usage: cargo[EXE] test [OPTIONS] [TESTNAME] [-- [args]...]
+Usage: cargo[EXE] test [OPTIONS] [TESTNAME] [-- [ARGS]...]
 
 Arguments:
   [TESTNAME]  If specified, only run tests containing this string in their names
-  [args]...   Arguments for the test binary
+  [ARGS]...   Arguments for the test binary
 
 Options:
       --doc                     Test only this library's documentation
@@ -33,9 +33,9 @@ Target Selection:
       --bin [<NAME>]      Test only the specified binary
       --examples          Test all examples
       --example [<NAME>]  Test only the specified example
-      --tests             Test all tests
+      --tests             Test all test targets
       --test [<NAME>]     Test only the specified test target
-      --benches           Test all benches
+      --benches           Test all bench targets
       --bench [<NAME>]    Test only the specified bench target
       --all-targets       Test all targets (does not include doctests)
 

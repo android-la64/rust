@@ -322,7 +322,15 @@ impl TestProps {
                 );
 
                 if let Some(flags) = config.parse_name_value_directive(ln, COMPILE_FLAGS) {
-                    self.compile_flags.extend(flags.split_whitespace().map(|s| s.to_owned()));
+                    self.compile_flags.extend(
+                        flags
+                            .split("'")
+                            .enumerate()
+                            .flat_map(|(i, f)| {
+                                if i % 2 == 1 { vec![f] } else { f.split_whitespace().collect() }
+                            })
+                            .map(|s| s.to_owned()),
+                    );
                 }
                 if config.parse_name_value_directive(ln, INCORRECT_COMPILER_FLAGS).is_some() {
                     panic!("`compiler-flags` directive should be spelled `compile-flags`");
@@ -903,11 +911,11 @@ pub fn make_test_description<R: Read>(
     let mut should_fail = false;
 
     let extra_directives: &[&str] = match config.mode {
-        // The run-coverage tests are treated as having these extra directives,
+        // The coverage-run tests are treated as having these extra directives,
         // without needing to specify them manually in every test file.
         // (Some of the comments below have been copied over from
         // `tests/run-make/coverage-reports/Makefile`, which no longer exists.)
-        Mode::RunCoverage => {
+        Mode::CoverageRun => {
             &[
                 "needs-profiler-support",
                 // FIXME(mati865): MinGW GCC miscompiles compiler-rt profiling library but with Clang it works

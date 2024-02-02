@@ -30,7 +30,7 @@ Benchmarks are built with the `--test` option to `rustc` which creates a
 special executable by linking your code with libtest. The executable
 automatically runs all functions annotated with the `#[bench]` attribute.
 Cargo passes the `--bench` flag to the test harness to tell it to run
-only benchmarks.
+only benchmarks, regardless of whether the harness is libtest or a custom harness.
 
 The libtest harness may be disabled by setting `harness = false` in the target
 manifest settings, in which case your code will need to provide its own `main`
@@ -278,7 +278,7 @@ target artifacts are placed in a separate directory. See the
 
 <dt class="option-term" id="option-cargo-bench---profile"><a class="option-anchor" href="#option-cargo-bench---profile"></a><code>--profile</code> <em>name</em></dt>
 <dd class="option-desc">Benchmark with the given profile.
-See the <a href="../reference/profiles.html">the reference</a> for more details on profiles.</dd>
+See <a href="../reference/profiles.html">the reference</a> for more details on profiles.</dd>
 
 
 

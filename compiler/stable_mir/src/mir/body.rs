@@ -1,11 +1,69 @@
-use crate::ty::{AdtDef, ClosureDef, Const, GeneratorDef, GenericArgs, Movability, Region};
+use crate::ty::{AdtDef, ClosureDef, Const, CoroutineDef, GenericArgs, Movability, Region, Ty};
 use crate::Opaque;
-use crate::{ty::Ty, Span};
+use crate::Span;
 
+/// The SMIR representation of a single function.
 #[derive(Clone, Debug)]
 pub struct Body {
     pub blocks: Vec<BasicBlock>,
-    pub locals: Vec<Ty>,
+
+    // Declarations of locals within the function.
+    //
+    // The first local is the return value pointer, followed by `arg_count`
+    // locals for the function arguments, followed by any user-declared
+    // variables and temporaries.
+    pub(super) locals: LocalDecls,
+
+    // The number of arguments this function takes.
+    pub(super) arg_count: usize,
+}
+
+impl Body {
+    /// Constructs a `Body`.
+    ///
+    /// A constructor is required to build a `Body` from outside the crate
+    /// because the `arg_count` and `locals` fields are private.
+    pub fn new(blocks: Vec<BasicBlock>, locals: LocalDecls, arg_count: usize) -> Self {
+        // If locals doesn't contain enough entries, it can lead to panics in
+        // `ret_local`, `arg_locals`, and `inner_locals`.
+        assert!(
+            locals.len() > arg_count,
+            "A Body must contain at least a local for the return value and each of the function's arguments"
+        );
+        Self { blocks, locals, arg_count }
+    }
+
+    /// Return local that holds this function's return value.
+    pub fn ret_local(&self) -> &LocalDecl {
+        &self.locals[RETURN_LOCAL]
+    }
+
+    /// Locals in `self` that correspond to this function's arguments.
+    pub fn arg_locals(&self) -> &[LocalDecl] {
+        &self.locals[1..][..self.arg_count]
+    }
+
+    /// Inner locals for this function. These are the locals that are
+    /// neither the return local nor the argument locals.
+    pub fn inner_locals(&self) -> &[LocalDecl] {
+        &self.locals[self.arg_count + 1..]
+    }
+
+    /// Convenience function to get all the locals in this function.
+    ///
+    /// Locals are typically accessed via the more specific methods `ret_local`,
+    /// `arg_locals`, and `inner_locals`.
+    pub fn locals(&self) -> &[LocalDecl] {
+        &self.locals
+    }
+}
+
+type LocalDecls = Vec<LocalDecl>;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalDecl {
+    pub ty: Ty,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -14,8 +72,14 @@ pub struct BasicBlock {
     pub terminator: Terminator,
 }
 
-#[derive(Clone, Debug)]
-pub enum Terminator {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Terminator {
+    pub kind: TerminatorKind,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TerminatorKind {
     Goto {
         target: usize,
     },
@@ -47,7 +111,7 @@ pub enum Terminator {
         target: usize,
         unwind: UnwindAction,
     },
-    GeneratorDrop,
+    CoroutineDrop,
     InlineAsm {
         template: String,
         operands: Vec<InlineAsmOperand>,
@@ -58,7 +122,7 @@ pub enum Terminator {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InlineAsmOperand {
     pub in_value: Option<Operand>,
     pub out_place: Option<Place>,
@@ -67,7 +131,7 @@ pub struct InlineAsmOperand {
     pub raw_rpr: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UnwindAction {
     Continue,
     Unreachable,
@@ -75,19 +139,19 @@ pub enum UnwindAction {
     Cleanup(usize),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AssertMessage {
     BoundsCheck { len: Operand, index: Operand },
     Overflow(BinOp, Operand, Operand),
     OverflowNeg(Operand),
     DivisionByZero(Operand),
     RemainderByZero(Operand),
-    ResumedAfterReturn(GeneratorKind),
-    ResumedAfterPanic(GeneratorKind),
+    ResumedAfterReturn(CoroutineKind),
+    ResumedAfterPanic(CoroutineKind),
     MisalignedPointerDereference { required: Operand, found: Operand },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BinOp {
     Add,
     AddUnchecked,
@@ -113,20 +177,21 @@ pub enum BinOp {
     Offset,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UnOp {
     Not,
     Neg,
 }
 
-#[derive(Clone, Debug)]
-pub enum GeneratorKind {
-    Async(AsyncGeneratorKind),
-    Gen,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CoroutineKind {
+    Async(CoroutineSource),
+    Coroutine,
+    Gen(CoroutineSource),
 }
 
-#[derive(Clone, Debug)]
-pub enum AsyncGeneratorKind {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CoroutineSource {
     Block,
     Closure,
     Fn,
@@ -139,7 +204,7 @@ pub(crate) type LocalDefId = Opaque;
 pub(crate) type Coverage = Opaque;
 
 /// The FakeReadCause describes the type of pattern why a FakeRead statement exists.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FakeReadCause {
     ForMatchGuard,
     ForMatchedPlace(LocalDefId),
@@ -149,7 +214,7 @@ pub enum FakeReadCause {
 }
 
 /// Describes what kind of retag is to be performed
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum RetagKind {
     FnEntry,
     TwoPhase,
@@ -157,7 +222,7 @@ pub enum RetagKind {
     Default,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Variance {
     Covariant,
     Invariant,
@@ -165,21 +230,27 @@ pub enum Variance {
     Bivariant,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CopyNonOverlapping {
     pub src: Operand,
     pub dst: Operand,
     pub count: Operand,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NonDivergingIntrinsic {
     Assume(Operand),
     CopyNonOverlapping(CopyNonOverlapping),
 }
 
-#[derive(Clone, Debug)]
-pub enum Statement {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Statement {
+    pub kind: StatementKind,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum StatementKind {
     Assign(Place, Rvalue),
     FakeRead(FakeReadCause, Place),
     SetDiscriminant { place: Place, variant_index: VariantIdx },
@@ -195,7 +266,7 @@ pub enum Statement {
     Nop,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Rvalue {
     /// Creates a pointer with the indicated mutability to the place.
     ///
@@ -209,8 +280,8 @@ pub enum Rvalue {
     /// `dest = Foo { x: ..., y: ... }` from `dest.x = ...; dest.y = ...;` in the case that `Foo`
     /// has a destructor.
     ///
-    /// Disallowed after deaggregation for all aggregate kinds except `Array` and `Generator`. After
-    /// generator lowering, `Generator` aggregate kinds are disallowed too.
+    /// Disallowed after deaggregation for all aggregate kinds except `Array` and `Coroutine`. After
+    /// coroutine lowering, `Coroutine` aggregate kinds are disallowed too.
     Aggregate(AggregateKind, Vec<Operand>),
 
     /// * `Offset` has the same semantics as `<*const T>::offset`, except that the second
@@ -307,35 +378,38 @@ pub enum Rvalue {
     Use(Operand),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AggregateKind {
     Array(Ty),
     Tuple,
     Adt(AdtDef, VariantIdx, GenericArgs, Option<UserTypeAnnotationIndex>, Option<FieldIdx>),
     Closure(ClosureDef, GenericArgs),
-    Generator(GeneratorDef, GenericArgs, Movability),
+    Coroutine(CoroutineDef, GenericArgs, Movability),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Operand {
     Copy(Place),
     Move(Place),
     Constant(Constant),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Place {
     pub local: Local,
+    /// projection out of a place (access a field, deref a pointer, etc)
     pub projection: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UserTypeProjection {
     pub base: UserTypeAnnotationIndex,
     pub projection: String,
 }
 
 pub type Local = usize;
+
+pub const RETURN_LOCAL: Local = 0;
 
 type FieldIdx = usize;
 
@@ -344,20 +418,20 @@ pub type VariantIdx = usize;
 
 type UserTypeAnnotationIndex = usize;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Constant {
     pub span: Span,
     pub user_ty: Option<UserTypeAnnotationIndex>,
     pub literal: Const,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SwitchTarget {
     pub value: u128,
     pub target: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BorrowKind {
     /// Data must be immutable and is aliasable.
     Shared,
@@ -375,26 +449,26 @@ pub enum BorrowKind {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MutBorrowKind {
     Default,
     TwoPhaseBorrow,
     ClosureCapture,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Mutability {
     Not,
     Mut,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Safety {
     Unsafe,
     Normal,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PointerCoercion {
     /// Go from a fn-item type to a fn-pointer type.
     ReifyFnPointer,
@@ -421,7 +495,7 @@ pub enum PointerCoercion {
     Unsize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CastKind {
     PointerExposeAddress,
     PointerFromExposedAddress,
@@ -436,12 +510,34 @@ pub enum CastKind {
     Transmute,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NullOp {
     /// Returns the size of a value of that type.
     SizeOf,
     /// Returns the minimum alignment of a type.
     AlignOf,
     /// Returns the offset of a field.
-    OffsetOf(Vec<FieldIdx>),
+    OffsetOf(Vec<(VariantIdx, FieldIdx)>),
+}
+
+impl Operand {
+    pub fn ty(&self, locals: &[LocalDecl]) -> Ty {
+        match self {
+            Operand::Copy(place) | Operand::Move(place) => place.ty(locals),
+            Operand::Constant(c) => c.ty(),
+        }
+    }
+}
+
+impl Constant {
+    pub fn ty(&self) -> Ty {
+        self.literal.ty()
+    }
+}
+
+impl Place {
+    pub fn ty(&self, locals: &[LocalDecl]) -> Ty {
+        let _start_ty = locals[self.local].ty;
+        todo!("Implement projection")
+    }
 }

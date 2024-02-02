@@ -268,7 +268,11 @@ pub unsafe fn _mm256_mul_ps(a: __m256, b: __m256) -> __m256 {
 #[cfg_attr(test, assert_instr(vaddsubpd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_addsub_pd(a: __m256d, b: __m256d) -> __m256d {
-    addsubpd256(a, b)
+    let a = a.as_f64x4();
+    let b = b.as_f64x4();
+    let add = simd_add(a, b);
+    let sub = simd_sub(a, b);
+    simd_shuffle!(add, sub, [4, 1, 6, 3])
 }
 
 /// Alternatively adds and subtracts packed single-precision (32-bit)
@@ -280,7 +284,11 @@ pub unsafe fn _mm256_addsub_pd(a: __m256d, b: __m256d) -> __m256d {
 #[cfg_attr(test, assert_instr(vaddsubps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_addsub_ps(a: __m256, b: __m256) -> __m256 {
-    addsubps256(a, b)
+    let a = a.as_f32x8();
+    let b = b.as_f32x8();
+    let add = simd_add(a, b);
+    let sub = simd_sub(a, b);
+    simd_shuffle!(add, sub, [8, 1, 10, 3, 12, 5, 14, 7])
 }
 
 /// Subtracts packed double-precision (64-bit) floating-point elements in `b`
@@ -511,7 +519,8 @@ pub unsafe fn _mm256_blend_ps<const IMM8: i32>(a: __m256, b: __m256) -> __m256 {
 #[cfg_attr(test, assert_instr(vblendvpd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_blendv_pd(a: __m256d, b: __m256d, c: __m256d) -> __m256d {
-    vblendvpd(a, b, c)
+    let mask: i64x4 = simd_lt(transmute::<_, i64x4>(c), i64x4::splat(0));
+    transmute(simd_select(mask, b.as_f64x4(), a.as_f64x4()))
 }
 
 /// Blends packed single-precision (32-bit) floating-point elements from
@@ -523,7 +532,8 @@ pub unsafe fn _mm256_blendv_pd(a: __m256d, b: __m256d, c: __m256d) -> __m256d {
 #[cfg_attr(test, assert_instr(vblendvps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_blendv_ps(a: __m256, b: __m256, c: __m256) -> __m256 {
-    vblendvps(a, b, c)
+    let mask: i32x8 = simd_lt(transmute::<_, i32x8>(c), i32x8::splat(0));
+    transmute(simd_select(mask, b.as_f32x8(), a.as_f32x8()))
 }
 
 /// Conditionally multiplies the packed single-precision (32-bit) floating-point
@@ -2056,7 +2066,10 @@ pub unsafe fn _mm_testnzc_ps(a: __m128, b: __m128) -> i32 {
 #[cfg_attr(test, assert_instr(vmovmskpd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_movemask_pd(a: __m256d) -> i32 {
-    movmskpd256(a)
+    // Propagate the highest bit to the rest, because simd_bitmask
+    // requires all-1 or all-0.
+    let mask: i64x4 = simd_lt(transmute(a), i64x4::splat(0));
+    simd_bitmask::<i64x4, u8>(mask).into()
 }
 
 /// Sets each bit of the returned mask based on the most significant bit of the
@@ -2069,7 +2082,10 @@ pub unsafe fn _mm256_movemask_pd(a: __m256d) -> i32 {
 #[cfg_attr(test, assert_instr(vmovmskps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_movemask_ps(a: __m256) -> i32 {
-    movmskps256(a)
+    // Propagate the highest bit to the rest, because simd_bitmask
+    // requires all-1 or all-0.
+    let mask: i32x8 = simd_lt(transmute(a), i32x8::splat(0));
+    simd_bitmask::<i32x8, u8>(mask).into()
 }
 
 /// Returns vector of type __m256d with all elements set to zero.
@@ -2904,20 +2920,12 @@ pub unsafe fn _mm256_cvtss_f32(a: __m256) -> f32 {
 // LLVM intrinsics used in the above functions
 #[allow(improper_ctypes)]
 extern "C" {
-    #[link_name = "llvm.x86.avx.addsub.pd.256"]
-    fn addsubpd256(a: __m256d, b: __m256d) -> __m256d;
-    #[link_name = "llvm.x86.avx.addsub.ps.256"]
-    fn addsubps256(a: __m256, b: __m256) -> __m256;
     #[link_name = "llvm.x86.avx.round.pd.256"]
     fn roundpd256(a: __m256d, b: i32) -> __m256d;
     #[link_name = "llvm.x86.avx.round.ps.256"]
     fn roundps256(a: __m256, b: i32) -> __m256;
     #[link_name = "llvm.x86.avx.sqrt.ps.256"]
     fn sqrtps256(a: __m256) -> __m256;
-    #[link_name = "llvm.x86.avx.blendv.pd.256"]
-    fn vblendvpd(a: __m256d, b: __m256d, c: __m256d) -> __m256d;
-    #[link_name = "llvm.x86.avx.blendv.ps.256"]
-    fn vblendvps(a: __m256, b: __m256, c: __m256) -> __m256;
     #[link_name = "llvm.x86.avx.dp.ps.256"]
     fn vdpps(a: __m256, b: __m256, imm8: i32) -> __m256;
     #[link_name = "llvm.x86.avx.hadd.pd.256"]
@@ -3026,10 +3034,6 @@ extern "C" {
     fn vtestcps(a: __m128, b: __m128) -> i32;
     #[link_name = "llvm.x86.avx.vtestnzc.ps"]
     fn vtestnzcps(a: __m128, b: __m128) -> i32;
-    #[link_name = "llvm.x86.avx.movmsk.pd.256"]
-    fn movmskpd256(a: __m256d) -> i32;
-    #[link_name = "llvm.x86.avx.movmsk.ps.256"]
-    fn movmskps256(a: __m256) -> i32;
     #[link_name = "llvm.x86.avx.min.ps.256"]
     fn vminps(a: __m256, b: __m256) -> __m256;
     #[link_name = "llvm.x86.avx.max.ps.256"]

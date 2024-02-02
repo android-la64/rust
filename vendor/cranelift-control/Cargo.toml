@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-control"
-version = "0.98.0"
+version = "0.101.2"
 authors = ["The Cranelift Project Developers"]
 description = "White-box fuzz testing framework"
 readme = "README.md"

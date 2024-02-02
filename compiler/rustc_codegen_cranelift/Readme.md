@@ -8,7 +8,7 @@ If not please open an issue.
 ## Building and testing
 
 ```bash
-$ git clone https://github.com/bjorn3/rustc_codegen_cranelift
+$ git clone https://github.com/rust-lang/rustc_codegen_cranelift
 $ cd rustc_codegen_cranelift
 $ ./y.sh prepare
 $ ./y.sh build
@@ -29,7 +29,7 @@ Extract the `dist` directory in the archive anywhere you want.
 If you want to use `cargo clif build` instead of having to specify the full path to the `cargo-clif` executable, you can add the `bin` subdirectory of the extracted `dist` directory to your `PATH`.
 (tutorial [for Windows](https://stackoverflow.com/a/44272417), and [for Linux/MacOS](https://unix.stackexchange.com/questions/26047/how-to-correctly-add-a-path-to-path/26059#26059)).
 
-[releases]: https://github.com/bjorn3/rustc_codegen_cranelift/releases/tag/dev
+[releases]: https://github.com/rust-lang/rustc_codegen_cranelift/releases/tag/dev
 
 ## Usage
 
@@ -60,18 +60,14 @@ You need to do this steps to successfully compile and use the cranelift backend 
 2. Run `python x.py setup` and choose option for compiler (`b`).
 3. Build compiler and necessary tools: `python x.py build --stage=2 compiler library/std src/tools/rustdoc src/tools/rustfmt`
    * (Optional) You can also build cargo by adding `src/tools/cargo` to previous command.
-4. Copy exectutable files from `./build/host/stage2-tools/<your hostname triple>/release`
-to `./build/host/stage2/bin/`. Note that you would need to do this every time you rebuilt `rust` repository.
-5. Copy cargo from another toolchain: `cp $(rustup which cargo) .build/<your hostname triple>/stage2/bin/cargo`
-   * Another option is to build it at step 3 and copy with other executables at step 4.
-6. Link your new `rustc` to toolchain: `rustup toolchain link stage2 ./build/host/stage2/`.
-7. (Windows only) compile the build system: `rustc +stage2 -O build_system/main.rs -o y.exe`.
-8. You need to prefix every `./y.sh` (or `y` if you built `build_system/main.rs` as `y`) command by `rustup run stage2` to make cg_clif use your local changes in rustc.
-
+4. Copy cargo from a nightly toolchain: `cp $(rustup +nightly which cargo) ./build/host/stage2/bin/cargo`. Note that you would need to do this every time you rebuilt `rust` repository.
+5. Link your new `rustc` to toolchain: `rustup toolchain link stage2 ./build/host/stage2/`.
+6. (Windows only) compile the build system: `rustc +stage2 -O build_system/main.rs -o y.exe`.
+7. You need to prefix every `./y.sh` (or `y` if you built `build_system/main.rs` as `y`) command by `rustup run stage2` to make cg_clif use your local changes in rustc.
   * `rustup run stage2 ./y.sh prepare`
   * `rustup run stage2 ./y.sh build`
   * (Optional) run tests: `rustup run stage2 ./y.sh test`
-9. Now you can use your cg_clif build to compile other Rust programs, e.g. you can open any Rust crate and run commands like `$RustCheckoutDir/compiler/rustc_codegen_cranelift/dist/cargo-clif build --release`.
+8. Now you can use your cg_clif build to compile other Rust programs, e.g. you can open any Rust crate and run commands like `$RustCheckoutDir/compiler/rustc_codegen_cranelift/dist/cargo-clif build --release`.
 
 ## Configuration
 
@@ -80,9 +76,7 @@ configuration options.
 
 ## Not yet supported
 
-* Inline assembly ([no cranelift support](https://github.com/bytecodealliance/wasmtime/issues/1041))
-    * On UNIX there is support for invoking an external assembler for `global_asm!` and `asm!`.
-* SIMD ([tracked here](https://github.com/bjorn3/rustc_codegen_cranelift/issues/171), `std::simd` fully works, `std::arch` is partially supported)
+* SIMD ([tracked here](https://github.com/rust-lang/rustc_codegen_cranelift/issues/171), `std::simd` fully works, `std::arch` is partially supported)
 * Unwinding on panics ([no cranelift support](https://github.com/bytecodealliance/wasmtime/issues/1677), `-Cpanic=abort` is enabled by default)
 
 ## License

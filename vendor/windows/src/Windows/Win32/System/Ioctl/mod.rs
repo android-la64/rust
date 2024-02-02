@@ -1,9 +1,31 @@
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ABL_5_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(64i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ADR_1: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(90i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ADR_2: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(91i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const AIT1_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(38i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const AIT_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(89i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const AME_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(37i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const ASSERT_ALTERNATE: u32 = 9u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const ASSERT_PRIMARY: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const ATAPI_ID_CMD: u32 = 161u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const AVATAR_F2: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(78i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const AllElements: ELEMENT_TYPE = ELEMENT_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const AtaDataTypeIdentify: STORAGE_PROTOCOL_ATA_DATA_TYPE = STORAGE_PROTOCOL_ATA_DATA_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const AtaDataTypeLogPage: STORAGE_PROTOCOL_ATA_DATA_TYPE = STORAGE_PROTOCOL_ATA_DATA_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const AtaDataTypeUnknown: STORAGE_PROTOCOL_ATA_DATA_TYPE = STORAGE_PROTOCOL_ATA_DATA_TYPE(0i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const CAP_ATAPI_ID_CMD: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -13,7 +35,81 @@ pub const CAP_SMART_CMD: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const CDB_SIZE: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CD_R: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(52i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CD_ROM: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(51i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CD_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(53i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_BAR_CODE_SCANNER_INSTALLED: CHANGER_FEATURES = CHANGER_FEATURES(1u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_CARTRIDGE_MAGAZINE: CHANGER_FEATURES = CHANGER_FEATURES(256u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_CLEANER_ACCESS_NOT_VALID: CHANGER_FEATURES = CHANGER_FEATURES(262144u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_CLEANER_AUTODISMOUNT: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483652u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_CLEANER_OPS_NOT_SUPPORTED: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483712u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_CLEANER_SLOT: CHANGER_FEATURES = CHANGER_FEATURES(64u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_CLOSE_IEPORT: CHANGER_FEATURES = CHANGER_FEATURES(4u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_DEVICE_REINITIALIZE_CAPABLE: CHANGER_FEATURES = CHANGER_FEATURES(134217728u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_DRIVE_CLEANING_REQUIRED: CHANGER_FEATURES = CHANGER_FEATURES(65536u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_DRIVE_EMPTY_ON_DOOR_ACCESS: CHANGER_FEATURES = CHANGER_FEATURES(536870912u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_EXCHANGE_MEDIA: CHANGER_FEATURES = CHANGER_FEATURES(32u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_IEPORT_USER_CONTROL_CLOSE: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483904u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_IEPORT_USER_CONTROL_OPEN: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483776u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_INIT_ELEM_STAT_WITH_RANGE: CHANGER_FEATURES = CHANGER_FEATURES(2u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_KEYPAD_ENABLE_DISABLE: CHANGER_FEATURES = CHANGER_FEATURES(268435456u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_LOCK_UNLOCK: CHANGER_FEATURES = CHANGER_FEATURES(128u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_MEDIUM_FLIP: CHANGER_FEATURES = CHANGER_FEATURES(512u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_MOVE_EXTENDS_IEPORT: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147484160u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_MOVE_RETRACTS_IEPORT: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147484672u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_OPEN_IEPORT: CHANGER_FEATURES = CHANGER_FEATURES(8u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_POSITION_TO_ELEMENT: CHANGER_FEATURES = CHANGER_FEATURES(1024u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_PREDISMOUNT_ALIGN_TO_DRIVE: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483650u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_PREDISMOUNT_ALIGN_TO_SLOT: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483649u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_PREDISMOUNT_EJECT_REQUIRED: CHANGER_FEATURES = CHANGER_FEATURES(131072u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_PREMOUNT_EJECT_REQUIRED: CHANGER_FEATURES = CHANGER_FEATURES(524288u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_REPORT_IEPORT_STATE: CHANGER_FEATURES = CHANGER_FEATURES(2048u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const CHANGER_RESERVED_BIT: u32 = 2147483648u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_RTN_MEDIA_TO_ORIGINAL_ADDR: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483680u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_SERIAL_NUMBER_VALID: CHANGER_FEATURES = CHANGER_FEATURES(67108864u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_SLOTS_USE_TRAYS: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483664u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_STATUS_NON_VOLATILE: CHANGER_FEATURES = CHANGER_FEATURES(16u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_STORAGE_DRIVE: CHANGER_FEATURES = CHANGER_FEATURES(4096u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_STORAGE_IEPORT: CHANGER_FEATURES = CHANGER_FEATURES(8192u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_STORAGE_SLOT: CHANGER_FEATURES = CHANGER_FEATURES(16384u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_STORAGE_TRANSPORT: CHANGER_FEATURES = CHANGER_FEATURES(32768u32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const CHANGER_TO_DRIVE: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -22,6 +118,18 @@ pub const CHANGER_TO_IEPORT: u32 = 4u32;
 pub const CHANGER_TO_SLOT: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const CHANGER_TO_TRANSPORT: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_TRUE_EXCHANGE_CAPABLE: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483656u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_VOLUME_ASSERT: CHANGER_FEATURES = CHANGER_FEATURES(4194304u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_VOLUME_IDENTIFICATION: CHANGER_FEATURES = CHANGER_FEATURES(1048576u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_VOLUME_REPLACE: CHANGER_FEATURES = CHANGER_FEATURES(8388608u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_VOLUME_SEARCH: CHANGER_FEATURES = CHANGER_FEATURES(2097152u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CHANGER_VOLUME_UNDEFINE: CHANGER_FEATURES = CHANGER_FEATURES(16777216u32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const CHECKSUM_TYPE_CRC32: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -34,6 +142,8 @@ pub const CHECKSUM_TYPE_FIRST_UNUSED_TYPE: u32 = 4u32;
 pub const CHECKSUM_TYPE_NONE: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const CHECKSUM_TYPE_UNCHANGED: i32 = -1i32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CLEANER_CARTRIDGE: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(50i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const CONTAINER_ROOT_INFO_FLAG_BIND_DO_NOT_MAP_NAME: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -77,9 +187,71 @@ pub const CSV_QUERY_MDS_PATH_FLAG_STORAGE_ON_THIS_NODE_IS_CONNECTED: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const CSV_QUERY_MDS_PATH_V2_VERSION_1: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CYGNET_12_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(69i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ChangerDoor: ELEMENT_TYPE = ELEMENT_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ChangerDrive: ELEMENT_TYPE = ELEMENT_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ChangerIEPort: ELEMENT_TYPE = ELEMENT_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ChangerKeypad: ELEMENT_TYPE = ELEMENT_TYPE(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ChangerMaxElement: ELEMENT_TYPE = ELEMENT_TYPE(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ChangerSlot: ELEMENT_TYPE = ELEMENT_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ChangerTransport: ELEMENT_TYPE = ELEMENT_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlDisableCaching: CSV_CONTROL_OP = CSV_CONTROL_OP(19i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlEnableCaching: CSV_CONTROL_OP = CSV_CONTROL_OP(20i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlEnableUSNRangeModificationTracking: CSV_CONTROL_OP = CSV_CONTROL_OP(13i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlGetCsvFsMdsPathV2: CSV_CONTROL_OP = CSV_CONTROL_OP(18i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlMarkHandleLocalVolumeMount: CSV_CONTROL_OP = CSV_CONTROL_OP(14i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlQueryFileRevision: CSV_CONTROL_OP = CSV_CONTROL_OP(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlQueryFileRevisionFileId128: CSV_CONTROL_OP = CSV_CONTROL_OP(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlQueryMdsPath: CSV_CONTROL_OP = CSV_CONTROL_OP(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlQueryMdsPathNoPause: CSV_CONTROL_OP = CSV_CONTROL_OP(23i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlQueryRedirectState: CSV_CONTROL_OP = CSV_CONTROL_OP(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlQueryVolumeId: CSV_CONTROL_OP = CSV_CONTROL_OP(25i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlQueryVolumeRedirectState: CSV_CONTROL_OP = CSV_CONTROL_OP(10i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlSetVolumeId: CSV_CONTROL_OP = CSV_CONTROL_OP(24i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlStartForceDFO: CSV_CONTROL_OP = CSV_CONTROL_OP(21i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlStartRedirectFile: CSV_CONTROL_OP = CSV_CONTROL_OP(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlStopForceDFO: CSV_CONTROL_OP = CSV_CONTROL_OP(22i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlStopRedirectFile: CSV_CONTROL_OP = CSV_CONTROL_OP(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvControlUnmarkHandleLocalVolumeMount: CSV_CONTROL_OP = CSV_CONTROL_OP(15i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvFsDiskConnectivityAllNodes: CSVFS_DISK_CONNECTIVITY = CSVFS_DISK_CONNECTIVITY(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvFsDiskConnectivityMdsNodeOnly: CSVFS_DISK_CONNECTIVITY = CSVFS_DISK_CONNECTIVITY(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvFsDiskConnectivityNone: CSVFS_DISK_CONNECTIVITY = CSVFS_DISK_CONNECTIVITY(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const CsvFsDiskConnectivitySubsetOfNodes: CSVFS_DISK_CONNECTIVITY = CSVFS_DISK_CONNECTIVITY(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const DAX_ALLOC_ALIGNMENT_FLAG_FALLBACK_SPECIFIED: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const DAX_ALLOC_ALIGNMENT_FLAG_MANDATORY: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DDS_4mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(32i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const DDUMP_FLAG_DATA_READ_FROM_DEVICE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -128,28 +300,28 @@ pub const DEVICE_DSM_RANGE_ERROR_OUTPUT_V1: u32 = 1u32;
 pub const DEVICE_STORAGE_NO_ERRORS: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`, `\"Win32_Devices_Properties\"`*"]
 #[cfg(feature = "Win32_Devices_Properties")]
-pub const DEVPKEY_Storage_Disk_Number: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows::core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 5 };
+pub const DEVPKEY_Storage_Disk_Number: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows_core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 5 };
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`, `\"Win32_Devices_Properties\"`*"]
 #[cfg(feature = "Win32_Devices_Properties")]
-pub const DEVPKEY_Storage_Gpt_Name: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows::core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 9 };
+pub const DEVPKEY_Storage_Gpt_Name: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows_core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 9 };
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`, `\"Win32_Devices_Properties\"`*"]
 #[cfg(feature = "Win32_Devices_Properties")]
-pub const DEVPKEY_Storage_Gpt_Type: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows::core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 8 };
+pub const DEVPKEY_Storage_Gpt_Type: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows_core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 8 };
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`, `\"Win32_Devices_Properties\"`*"]
 #[cfg(feature = "Win32_Devices_Properties")]
-pub const DEVPKEY_Storage_Mbr_Type: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows::core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 7 };
+pub const DEVPKEY_Storage_Mbr_Type: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows_core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 7 };
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`, `\"Win32_Devices_Properties\"`*"]
 #[cfg(feature = "Win32_Devices_Properties")]
-pub const DEVPKEY_Storage_Partition_Number: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows::core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 6 };
+pub const DEVPKEY_Storage_Partition_Number: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows_core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 6 };
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`, `\"Win32_Devices_Properties\"`*"]
 #[cfg(feature = "Win32_Devices_Properties")]
-pub const DEVPKEY_Storage_Portable: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows::core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 2 };
+pub const DEVPKEY_Storage_Portable: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows_core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 2 };
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`, `\"Win32_Devices_Properties\"`*"]
 #[cfg(feature = "Win32_Devices_Properties")]
-pub const DEVPKEY_Storage_Removable_Media: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows::core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 3 };
+pub const DEVPKEY_Storage_Removable_Media: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows_core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 3 };
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`, `\"Win32_Devices_Properties\"`*"]
 #[cfg(feature = "Win32_Devices_Properties")]
-pub const DEVPKEY_Storage_System_Critical: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows::core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 4 };
+pub const DEVPKEY_Storage_System_Critical: super::super::Devices::Properties::DEVPROPKEY = super::super::Devices::Properties::DEVPROPKEY { fmtid: ::windows_core::GUID::from_u128(0x4d1ebee8_0803_4774_9842_b77db50265e9), pid: 4 };
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const DISABLE_SMART: u32 = 217u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -165,13 +337,187 @@ pub const DISK_LOGGING_START: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const DISK_LOGGING_STOP: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DLT: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(39i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DMI: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(48i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DST_L: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(82i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DST_M: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(81i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DST_S: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(80i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const DUPLICATE_EXTENTS_DATA_EX_ASYNC: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const DUPLICATE_EXTENTS_DATA_EX_SOURCE_ATOMIC: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DVD_R: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(55i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DVD_RAM: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(88i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DVD_ROM: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(54i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DVD_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(56i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DV_6mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(47i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DetectExInt13: DETECTION_TYPE = DETECTION_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DetectInt13: DETECTION_TYPE = DETECTION_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DetectNone: DETECTION_TYPE = DETECTION_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceCurrentInternalStatusData: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceCurrentInternalStatusDataHeader: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const DeviceDsmActionFlag_NonDestructive: u32 = 2147483648u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceInternalStatusDataRequestTypeUndefined: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemCHMError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemCHMMoveError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemCHMZeroError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemCalibrationError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemCartridgeEjectError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(11i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemCartridgeInsertError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemDoorOpen: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemDriveError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(13i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemGripperError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(12i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemHardware: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemNone: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemPositionError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemSensorError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(10i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceProblemTargetFailure: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceSavedInternalStatusData: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceSavedInternalStatusDataHeader: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceStatusDataSet1: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceStatusDataSet2: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceStatusDataSet3: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceStatusDataSet4: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceStatusDataSetMax: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DeviceStatusDataSetUndefined: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskHealthHealthy: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskHealthMax: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskHealthUnhealthy: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskHealthUnknown: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskHealthWarning: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonBackgroundOperation: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(12i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonComponent: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(10i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonConfiguration: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonDataPersistenceLossImminent: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(18i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonDeviceController: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonDisabledByPlatform: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(16i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonEnergySource: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonHealthCheck: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(14i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonInvalidFirmware: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(13i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonIo: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonLostData: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonLostDataPersistence: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(15i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonLostWritePersistence: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(17i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonMax: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(20i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonMedia: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonMediaController: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonNVDIMM_N: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(11i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonScsiSenseCode: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonThresholdExceeded: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonUnknown: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpReasonWritePersistenceLossImminent: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(19i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpStatusHardwareError: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpStatusInService: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpStatusMissing: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpStatusNone: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpStatusNotUsable: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpStatusOk: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpStatusPredictingFailure: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpStatusTransientError: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const DiskOpStatusUnknown: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const EFS_TRACKED_OFFSET_HEADER_FLAG: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_ACCESS: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(8u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_AVOLTAG: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(536870912u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_EXCEPT: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(4u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_EXENAB: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(16u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_FULL: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(1u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_ID_VALID: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(8192u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_IMPEXP: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(2u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_INENAB: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(32u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_INVERT: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(4194304u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_LUN_VALID: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(4096u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_NOT_BUS: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(32768u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_PRODUCT_DATA: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(64u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_PVOLTAG: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(268435456u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ELEMENT_STATUS_SVALID: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(8388608u32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const ENABLE_DISABLE_AUTOSAVE: u32 = 210u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -202,6 +548,60 @@ pub const ERROR_UNHANDLED_ERROR: u32 = 4294967295u32;
 pub const EXECUTE_OFFLINE_DIAGS: u32 = 212u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const EXTEND_IEPORT: u32 = 2u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const EqualPriority: DISK_CACHE_RETENTION_PRIORITY = DISK_CACHE_RETENTION_PRIORITY(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_120M_512: MEDIA_TYPE = MEDIA_TYPE(13i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_128Mb_512: MEDIA_TYPE = MEDIA_TYPE(20i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_1Pt23_1024: MEDIA_TYPE = MEDIA_TYPE(18i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_1Pt2_512: MEDIA_TYPE = MEDIA_TYPE(17i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_1Pt44_512: MEDIA_TYPE = MEDIA_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_200Mb_512: MEDIA_TYPE = MEDIA_TYPE(23i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_20Pt8_512: MEDIA_TYPE = MEDIA_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_230Mb_512: MEDIA_TYPE = MEDIA_TYPE(21i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_240M_512: MEDIA_TYPE = MEDIA_TYPE(24i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_2Pt88_512: MEDIA_TYPE = MEDIA_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_32M_512: MEDIA_TYPE = MEDIA_TYPE(25i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_640_512: MEDIA_TYPE = MEDIA_TYPE(14i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F3_720_512: MEDIA_TYPE = MEDIA_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F5_160_512: MEDIA_TYPE = MEDIA_TYPE(10i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F5_180_512: MEDIA_TYPE = MEDIA_TYPE(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F5_1Pt23_1024: MEDIA_TYPE = MEDIA_TYPE(19i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F5_1Pt2_512: MEDIA_TYPE = MEDIA_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F5_320_1024: MEDIA_TYPE = MEDIA_TYPE(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F5_320_512: MEDIA_TYPE = MEDIA_TYPE(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F5_360_512: MEDIA_TYPE = MEDIA_TYPE(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F5_640_512: MEDIA_TYPE = MEDIA_TYPE(15i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F5_720_512: MEDIA_TYPE = MEDIA_TYPE(16i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const F8_256_128: MEDIA_TYPE = MEDIA_TYPE(22i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FILESYSTEM_STATISTICS_TYPE_EXFAT: FILESYSTEM_STATISTICS_TYPE = FILESYSTEM_STATISTICS_TYPE(3u16);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FILESYSTEM_STATISTICS_TYPE_FAT: FILESYSTEM_STATISTICS_TYPE = FILESYSTEM_STATISTICS_TYPE(2u16);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FILESYSTEM_STATISTICS_TYPE_NTFS: FILESYSTEM_STATISTICS_TYPE = FILESYSTEM_STATISTICS_TYPE(1u16);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FILESYSTEM_STATISTICS_TYPE_REFS: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -505,6 +905,8 @@ pub const FILE_SPECIAL_ACCESS: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FILE_STORAGE_TIER_DESCRIPTION_LENGTH: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FILE_STORAGE_TIER_FLAG_NO_SEEK_PENALTY: FILE_STORAGE_TIER_FLAGS = FILE_STORAGE_TIER_FLAGS(131072u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FILE_STORAGE_TIER_FLAG_PARITY: u32 = 8388608u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FILE_STORAGE_TIER_FLAG_READ_CACHE: u32 = 4194304u32;
@@ -519,17 +921,31 @@ pub const FILE_TYPE_NOTIFICATION_FLAG_USAGE_BEGIN: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FILE_TYPE_NOTIFICATION_FLAG_USAGE_END: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FILE_TYPE_NOTIFICATION_GUID_CRASHDUMP_FILE: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x9d453eb7_d2a6_4dbd_a2e3_fbd0ed9109a9);
+pub const FILE_TYPE_NOTIFICATION_GUID_CRASHDUMP_FILE: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9d453eb7_d2a6_4dbd_a2e3_fbd0ed9109a9);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FILE_TYPE_NOTIFICATION_GUID_HIBERNATION_FILE: ::windows::core::GUID = ::windows::core::GUID::from_u128(0xb7624d64_b9a3_4cf8_8011_5b86c940e7b7);
+pub const FILE_TYPE_NOTIFICATION_GUID_HIBERNATION_FILE: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb7624d64_b9a3_4cf8_8011_5b86c940e7b7);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FILE_TYPE_NOTIFICATION_GUID_PAGE_FILE: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x0d0a64a1_38fc_4db8_9fe7_3f4352cd7c5c);
+pub const FILE_TYPE_NOTIFICATION_GUID_PAGE_FILE: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0d0a64a1_38fc_4db8_9fe7_3f4352cd7c5c);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FILE_WRITE_ACCESS: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FILE_ZERO_DATA_INFORMATION_FLAG_PRESERVE_CACHED_DATA: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FLAG_USN_TRACK_MODIFIED_RANGES_ENABLE: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FSBPIO_INFL_None: FS_BPIO_INFLAGS = FS_BPIO_INFLAGS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FSBPIO_INFL_SKIP_STORAGE_STACK_QUERY: FS_BPIO_INFLAGS = FS_BPIO_INFLAGS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FSBPIO_OUTFL_COMPATIBLE_STORAGE_DRIVER: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FSBPIO_OUTFL_FILTER_ATTACH_BLOCKED: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FSBPIO_OUTFL_None: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FSBPIO_OUTFL_STREAM_BYPASS_PAUSED: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FSBPIO_OUTFL_VOLUME_STACK_BYPASS_PAUSED: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(1i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FSCTL_ADD_OVERLAY: u32 = 623408u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -969,9 +1385,75 @@ pub const FSCTL_WRITE_USN_CLOSE_RECORD: u32 = 590063u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FSCTL_WRITE_USN_REASON: u32 = 590544u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FS_BPIO_OP_DISABLE: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FS_BPIO_OP_ENABLE: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FS_BPIO_OP_GET_INFO: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FS_BPIO_OP_MAX_OPERATION: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FS_BPIO_OP_QUERY: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FS_BPIO_OP_STREAM_PAUSE: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FS_BPIO_OP_STREAM_RESUME: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FS_BPIO_OP_VOLUME_STACK_PAUSE: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FS_BPIO_OP_VOLUME_STACK_RESUME: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FW_ISSUEID_NO_ISSUE: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const FW_ISSUEID_UNKNOWN: u32 = 4294967295u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileSnapStateInactive: DUPLICATE_EXTENTS_STATE = DUPLICATE_EXTENTS_STATE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileSnapStateSource: DUPLICATE_EXTENTS_STATE = DUPLICATE_EXTENTS_STATE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileSnapStateTarget: DUPLICATE_EXTENTS_STATE = DUPLICATE_EXTENTS_STATE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileStorageTierClassCapacity: FILE_STORAGE_TIER_CLASS = FILE_STORAGE_TIER_CLASS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileStorageTierClassMax: FILE_STORAGE_TIER_CLASS = FILE_STORAGE_TIER_CLASS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileStorageTierClassPerformance: FILE_STORAGE_TIER_CLASS = FILE_STORAGE_TIER_CLASS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileStorageTierClassUnspecified: FILE_STORAGE_TIER_CLASS = FILE_STORAGE_TIER_CLASS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileStorageTierMediaTypeDisk: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileStorageTierMediaTypeMax: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileStorageTierMediaTypeScm: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileStorageTierMediaTypeSsd: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FileStorageTierMediaTypeUnspecified: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FixedMedia: MEDIA_TYPE = MEDIA_TYPE(12i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactor1_8: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactor1_8Less: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactor2_5: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactor3_5: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactorDimm: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(10i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactorEmbedded: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactorM_2: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactorMemoryCard: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactorPCIeBoard: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactorUnknown: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const FormFactormSata: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(7i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const GET_VOLUME_BITMAP_FLAG_MASK_METADATA: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -979,61 +1461,93 @@ pub const GPT_ATTRIBUTE_LEGACY_BIOS_BOOTABLE: u64 = 4u64;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const GPT_ATTRIBUTE_NO_BLOCK_IO_PROTOCOL: u64 = 2u64;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const GPT_ATTRIBUTE_PLATFORM_REQUIRED: GPT_ATTRIBUTES = GPT_ATTRIBUTES(1u64);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const GPT_BASIC_DATA_ATTRIBUTE_DAX: u64 = 288230376151711744u64;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const GPT_BASIC_DATA_ATTRIBUTE_HIDDEN: GPT_ATTRIBUTES = GPT_ATTRIBUTES(4611686018427387904u64);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const GPT_BASIC_DATA_ATTRIBUTE_NO_DRIVE_LETTER: GPT_ATTRIBUTES = GPT_ATTRIBUTES(9223372036854775808u64);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const GPT_BASIC_DATA_ATTRIBUTE_OFFLINE: u64 = 576460752303423488u64;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const GPT_BASIC_DATA_ATTRIBUTE_READ_ONLY: GPT_ATTRIBUTES = GPT_ATTRIBUTES(1152921504606846976u64);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const GPT_BASIC_DATA_ATTRIBUTE_SERVICE: u64 = 144115188075855872u64;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const GPT_BASIC_DATA_ATTRIBUTE_SHADOW_COPY: GPT_ATTRIBUTES = GPT_ATTRIBUTES(2305843009213693952u64);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const GPT_SPACES_ATTRIBUTE_NO_METADATA: u64 = 9223372036854775808u64;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVICEDUMP_DRIVER_STORAGE_PORT: ::windows::core::GUID = ::windows::core::GUID::from_u128(0xda82441d_7142_4bc1_b844_0807c5a4b67f);
+pub const GUID_DEVICEDUMP_DRIVER_STORAGE_PORT: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xda82441d_7142_4bc1_b844_0807c5a4b67f);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVICEDUMP_STORAGE_DEVICE: ::windows::core::GUID = ::windows::core::GUID::from_u128(0xd8e2592f_1aab_4d56_a746_1f7585df40f4);
+pub const GUID_DEVICEDUMP_STORAGE_DEVICE: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd8e2592f_1aab_4d56_a746_1f7585df40f4);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_CDCHANGER: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x53f56312_b6bf_11d0_94f2_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_CDCHANGER: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x53f56312_b6bf_11d0_94f2_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_CDROM: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x53f56308_b6bf_11d0_94f2_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_CDROM: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x53f56308_b6bf_11d0_94f2_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_COMPORT: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x86e0d1e0_8089_11d0_9ce4_08003e301f73);
+pub const GUID_DEVINTERFACE_COMPORT: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x86e0d1e0_8089_11d0_9ce4_08003e301f73);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_DISK: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x53f56307_b6bf_11d0_94f2_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_DISK: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x53f56307_b6bf_11d0_94f2_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_FLOPPY: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x53f56311_b6bf_11d0_94f2_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_FLOPPY: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x53f56311_b6bf_11d0_94f2_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_HIDDEN_VOLUME: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x7f108a28_9833_4b3b_b780_2c6b5fa5c062);
+pub const GUID_DEVINTERFACE_HIDDEN_VOLUME: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7f108a28_9833_4b3b_b780_2c6b5fa5c062);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_MEDIUMCHANGER: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x53f56310_b6bf_11d0_94f2_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_MEDIUMCHANGER: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x53f56310_b6bf_11d0_94f2_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_PARTITION: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x53f5630a_b6bf_11d0_94f2_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_PARTITION: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x53f5630a_b6bf_11d0_94f2_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_SCM_PHYSICAL_DEVICE: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x4283609d_4dc2_43be_bbb4_4f15dfce2c61);
+pub const GUID_DEVINTERFACE_SCM_PHYSICAL_DEVICE: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4283609d_4dc2_43be_bbb4_4f15dfce2c61);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_SERENUM_BUS_ENUMERATOR: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x4d36e978_e325_11ce_bfc1_08002be10318);
+pub const GUID_DEVINTERFACE_SERENUM_BUS_ENUMERATOR: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4d36e978_e325_11ce_bfc1_08002be10318);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_SERVICE_VOLUME: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x6ead3d82_25ec_46bc_b7fd_c1f0df8f5037);
+pub const GUID_DEVINTERFACE_SERVICE_VOLUME: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6ead3d82_25ec_46bc_b7fd_c1f0df8f5037);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_SES: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x1790c9ec_47d5_4df3_b5af_9adf3cf23e48);
+pub const GUID_DEVINTERFACE_SES: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1790c9ec_47d5_4df3_b5af_9adf3cf23e48);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_STORAGEPORT: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x2accfe60_c130_11d2_b082_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_STORAGEPORT: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2accfe60_c130_11d2_b082_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_TAPE: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x53f5630b_b6bf_11d0_94f2_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_TAPE: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x53f5630b_b6bf_11d0_94f2_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_UNIFIED_ACCESS_RPMB: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x27447c21_bcc3_4d07_a05b_a3395bb4eee7);
+pub const GUID_DEVINTERFACE_UNIFIED_ACCESS_RPMB: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x27447c21_bcc3_4d07_a05b_a3395bb4eee7);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_VMLUN: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x6f416619_9f29_42a5_b20b_37e219ca02b0);
+pub const GUID_DEVINTERFACE_VMLUN: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6f416619_9f29_42a5_b20b_37e219ca02b0);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_VOLUME: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x53f5630d_b6bf_11d0_94f2_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_VOLUME: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x53f5630d_b6bf_11d0_94f2_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_WRITEONCEDISK: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x53f5630c_b6bf_11d0_94f2_00a0c91efb8b);
+pub const GUID_DEVINTERFACE_WRITEONCEDISK: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x53f5630c_b6bf_11d0_94f2_00a0c91efb8b);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_DEVINTERFACE_ZNSDISK: ::windows::core::GUID = ::windows::core::GUID::from_u128(0xb87941c5_ffdb_43c7_b6b1_20b632f0b109);
+pub const GUID_DEVINTERFACE_ZNSDISK: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb87941c5_ffdb_43c7_b6b1_20b632f0b109);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_SCM_PD_HEALTH_NOTIFICATION: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x9da2d386_72f5_4ee3_8155_eca0678e3b06);
+pub const GUID_SCM_PD_HEALTH_NOTIFICATION: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9da2d386_72f5_4ee3_8155_eca0678e3b06);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GUID_SCM_PD_PASSTHROUGH_INVDIMM: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x4309ac30_0d11_11e4_9191_0800200c9a66);
+pub const GUID_SCM_PD_PASSTHROUGH_INVDIMM: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4309ac30_0d11_11e4_9191_0800200c9a66);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const HIST_NO_OF_BUCKETS: u32 = 24u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const HITACHI_12_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(68i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const HealthStatusDisabled: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const HealthStatusFailed: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const HealthStatusNormal: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const HealthStatusThrottled: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const HealthStatusUnknown: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const HealthStatusWarning: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const IBM_3480: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(41i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const IBM_3490E: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(42i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const IBM_Magstar_3590: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(43i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const IBM_Magstar_MP: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(44i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const IDENTIFY_BUFFER_SIZE: u32 = 512u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1331,6 +1845,18 @@ pub const IOCTL_STORAGE_START_DATA_INTEGRITY_CHECK: u32 = 3004548u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const IOCTL_STORAGE_STOP_DATA_INTEGRITY_CHECK: u32 = 3004552u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const IOMEGA_JAZ: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(74i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const IOMEGA_ZIP: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(73i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const KODAK_14_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(70i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const KeepPrefetchedData: DISK_CACHE_RETENTION_PRIORITY = DISK_CACHE_RETENTION_PRIORITY(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const KeepReadData: DISK_CACHE_RETENTION_PRIORITY = DISK_CACHE_RETENTION_PRIORITY(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const LMRQuerySessionInfo: LMR_QUERY_INFO_CLASS = LMR_QUERY_INFO_CLASS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const LOCK_ELEMENT: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const LOCK_UNLOCK_DOOR: u32 = 2u32;
@@ -1354,6 +1880,10 @@ pub const LOOKUP_STREAM_FROM_CLUSTER_ENTRY_FLAG_FS_SYSTEM_FILE: u32 = 4u32;
 pub const LOOKUP_STREAM_FROM_CLUSTER_ENTRY_FLAG_PAGE_FILE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const LOOKUP_STREAM_FROM_CLUSTER_ENTRY_FLAG_TXF_SYSTEM_FILE: u32 = 8u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const LTO_Accelis: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(87i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const LTO_Ultrium: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(86i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const MARK_HANDLE_CLOUD_SYNC: u32 = 2048u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1419,6 +1949,34 @@ pub const METHOD_NEITHER: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const METHOD_OUT_DIRECT: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const MO_3_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(57i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const MO_5_LIMDOW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(60i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const MO_5_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(59i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const MO_5_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(58i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const MO_NFR_525: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(71i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const MP2_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(79i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const MP_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(36i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const MiniQic: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(33i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const NCTP: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(40i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const NIKON_12_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(72i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const NVMeDataTypeFeature: STORAGE_PROTOCOL_NVME_DATA_TYPE = STORAGE_PROTOCOL_NVME_DATA_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const NVMeDataTypeIdentify: STORAGE_PROTOCOL_NVME_DATA_TYPE = STORAGE_PROTOCOL_NVME_DATA_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const NVMeDataTypeLogPage: STORAGE_PROTOCOL_NVME_DATA_TYPE = STORAGE_PROTOCOL_NVME_DATA_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const NVMeDataTypeUnknown: STORAGE_PROTOCOL_NVME_DATA_TYPE = STORAGE_PROTOCOL_NVME_DATA_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const OBSOLETE_DISK_GET_WRITE_CACHE_STATE: u32 = 475356u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const OBSOLETE_IOCTL_STORAGE_RESET_BUS: u32 = 3002368u32;
@@ -1479,6 +2037,12 @@ pub const PARTITION_SPACES: u32 = 231u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const PARTITION_SPACES_DATA: u32 = 215u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PARTITION_STYLE_GPT: PARTITION_STYLE = PARTITION_STYLE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PARTITION_STYLE_MBR: PARTITION_STYLE = PARTITION_STYLE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PARTITION_STYLE_RAW: PARTITION_STYLE = PARTITION_STYLE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const PARTITION_SYSTEM: u32 = 239u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const PARTITION_UNIX: u32 = 99u32;
@@ -1492,6 +2056,12 @@ pub const PARTITION_XENIX_2: u32 = 3u32;
 pub const PARTITION_XINT13: u32 = 14u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const PARTITION_XINT13_EXTENDED: u32 = 15u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PC_5_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(62i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PC_5_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(61i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PD_5_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(63i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const PERSISTENT_VOLUME_STATE_BACKED_BY_WIM: u32 = 64u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1519,13 +2089,57 @@ pub const PERSISTENT_VOLUME_STATE_TXF_DISABLED: u32 = 256u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const PERSISTENT_VOLUME_STATE_VOLUME_SCRUB_DISABLED: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PHILIPS_12_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(67i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PINNACLE_APEX_5_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(65i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const PRODUCT_ID_LENGTH: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const PROJFS_PROTOCOL_VERSION: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PropertyExistsQuery: STORAGE_QUERY_TYPE = STORAGE_QUERY_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PropertyExistsSet: STORAGE_SET_TYPE = STORAGE_SET_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PropertyMaskQuery: STORAGE_QUERY_TYPE = STORAGE_QUERY_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PropertyQueryMaxDefined: STORAGE_QUERY_TYPE = STORAGE_QUERY_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PropertySetMaxDefined: STORAGE_SET_TYPE = STORAGE_SET_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PropertyStandardQuery: STORAGE_QUERY_TYPE = STORAGE_QUERY_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const PropertyStandardSet: STORAGE_SET_TYPE = STORAGE_SET_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ProtocolTypeAta: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ProtocolTypeMaxReserved: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(127i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ProtocolTypeNvme: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ProtocolTypeProprietary: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(126i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ProtocolTypeScsi: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ProtocolTypeSd: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ProtocolTypeUfs: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ProtocolTypeUnknown: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const QIC: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(35i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const QUERY_DEPENDENT_VOLUME_REQUEST_FLAG_GUEST_VOLUMES: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const QUERY_DEPENDENT_VOLUME_REQUEST_FLAG_HOST_VOLUMES: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const QUERY_FILE_LAYOUT_FILTER_TYPE_CLUSTERS: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const QUERY_FILE_LAYOUT_FILTER_TYPE_FILEID: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const QUERY_FILE_LAYOUT_FILTER_TYPE_NONE: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const QUERY_FILE_LAYOUT_FILTER_TYPE_STORAGE_RESERVE_ID: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(3i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const QUERY_FILE_LAYOUT_INCLUDE_EXTENTS: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1556,6 +2170,8 @@ pub const QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_EFS_ATTRIBUTE: u32 = 
 pub const QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_REPARSE_ATTRIBUTE: u32 = 16384u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_TXF_ATTRIBUTE: u32 = 512u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const QUERY_FILE_LAYOUT_NUM_FILTER_TYPES: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(4i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const QUERY_FILE_LAYOUT_REPARSE_DATA_INVALID: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1616,6 +2232,14 @@ pub const RETRACT_IEPORT: u32 = 3u32;
 pub const RETURN_SMART_STATUS: u32 = 218u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const REVISION_LENGTH: u32 = 4u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const RemovableMedia: MEDIA_TYPE = MEDIA_TYPE(11i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const RequestLocation: BIN_TYPES = BIN_TYPES(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const RequestSize: BIN_TYPES = BIN_TYPES(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SAIT: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(93i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const SAVE_ATTRIBUTE_VALUES: u32 = 211u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1741,11 +2365,23 @@ pub const SMART_SHORT_SELFTEST_OFFLINE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const SMART_WRITE_LOG: u32 = 214u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SONY_12_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(66i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SONY_D2: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(49i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SONY_DTF: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(46i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const SPACES_TRACKED_OFFSET_HEADER_FLAG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const SRB_TYPE_SCSI_REQUEST_BLOCK: u32 = 0u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const SRB_TYPE_STORAGE_REQUEST_BLOCK: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const STK_9840: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(85i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const STK_9940: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(92i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const STK_DATA_D3: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(45i32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const STORAGE_ADAPTER_SERIAL_NUMBER_V1_MAX_LENGTH: u32 = 128u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1769,7 +2405,7 @@ pub const STORAGE_COMPONENT_ROLE_DATA: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const STORAGE_COMPONENT_ROLE_TIERING: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const STORAGE_CRASH_TELEMETRY_REGKEY: ::windows::core::PCWSTR = ::windows::core::w!("\\Registry\\Machine\\System\\CurrentControlSet\\Control\\CrashControl\\StorageTelemetry");
+pub const STORAGE_CRASH_TELEMETRY_REGKEY: ::windows_core::PCWSTR = ::windows_core::w!("\\Registry\\Machine\\System\\CurrentControlSet\\Control\\CrashControl\\StorageTelemetry");
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const STORAGE_CRYPTO_CAPABILITY_VERSION_1: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1787,7 +2423,7 @@ pub const STORAGE_DEVICE_NUMA_NODE_UNKNOWN: u32 = 4294967295u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const STORAGE_DEVICE_POWER_CAP_VERSION_V1: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const STORAGE_DEVICE_TELEMETRY_REGKEY: ::windows::core::PCWSTR = ::windows::core::w!("\\Registry\\Machine\\System\\CurrentControlSet\\Control\\Storage\\StorageTelemetry");
+pub const STORAGE_DEVICE_TELEMETRY_REGKEY: ::windows_core::PCWSTR = ::windows_core::w!("\\Registry\\Machine\\System\\CurrentControlSet\\Control\\Storage\\StorageTelemetry");
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const STORAGE_DIAGNOSTIC_FLAG_ADAPTER_REQUEST: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1917,17 +2553,507 @@ pub const STREAM_LAYOUT_ENTRY_RESIDENT: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const STREAM_SET_ENCRYPTION: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SYQUEST_EZ135: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(75i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SYQUEST_EZFLYER: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(76i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SYQUEST_SYJET: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(77i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusFirmwareActivationState_Armed: SCM_BUS_FIRMWARE_ACTIVATION_STATE = SCM_BUS_FIRMWARE_ACTIVATION_STATE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusFirmwareActivationState_Busy: SCM_BUS_FIRMWARE_ACTIVATION_STATE = SCM_BUS_FIRMWARE_ACTIVATION_STATE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusFirmwareActivationState_Idle: SCM_BUS_FIRMWARE_ACTIVATION_STATE = SCM_BUS_FIRMWARE_ACTIVATION_STATE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusProperty_DedicatedMemoryInfo: SCM_BUS_PROPERTY_ID = SCM_BUS_PROPERTY_ID(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusProperty_DedicatedMemoryState: SCM_BUS_PROPERTY_ID = SCM_BUS_PROPERTY_ID(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusProperty_Max: SCM_BUS_PROPERTY_ID = SCM_BUS_PROPERTY_ID(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusProperty_RuntimeFwActivationInfo: SCM_BUS_PROPERTY_ID = SCM_BUS_PROPERTY_ID(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusQuery_Descriptor: SCM_BUS_QUERY_TYPE = SCM_BUS_QUERY_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusQuery_IsSupported: SCM_BUS_QUERY_TYPE = SCM_BUS_QUERY_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusQuery_Max: SCM_BUS_QUERY_TYPE = SCM_BUS_QUERY_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusSet_Descriptor: SCM_BUS_SET_TYPE = SCM_BUS_SET_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusSet_IsSupported: SCM_BUS_SET_TYPE = SCM_BUS_SET_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmBusSet_Max: SCM_BUS_SET_TYPE = SCM_BUS_SET_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdFirmwareActivationState_Armed: SCM_PD_FIRMWARE_ACTIVATION_STATE = SCM_PD_FIRMWARE_ACTIVATION_STATE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdFirmwareActivationState_Busy: SCM_PD_FIRMWARE_ACTIVATION_STATE = SCM_PD_FIRMWARE_ACTIVATION_STATE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdFirmwareActivationState_Idle: SCM_PD_FIRMWARE_ACTIVATION_STATE = SCM_PD_FIRMWARE_ACTIVATION_STATE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdLastFwActivaitonStatus_ActivationInProgress: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdLastFwActivaitonStatus_FwUnsupported: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdLastFwActivaitonStatus_Retry: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdLastFwActivaitonStatus_UnknownError: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdLastFwActivationStatus_ColdRebootRequired: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdLastFwActivationStatus_FwNotFound: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdLastFwActivationStatus_None: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPdLastFwActivationStatus_Success: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceHealth_Healthy: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceHealth_Max: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceHealth_Unhealthy: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceHealth_Unknown: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceHealth_Warning: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_BackgroundOperation: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_Component: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_Configuration: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_DataPersistenceLossImminent: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(17i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_DeviceController: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_DisabledByPlatform: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(13i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_EnergySource: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_ExcessiveTemperature: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(21i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_FatalError: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(16i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_HealthCheck: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(11i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_InternalFailure: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(22i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_InvalidFirmware: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(10i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_LostData: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_LostDataPersistence: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(12i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_LostWritePersistence: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(15i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_Max: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(23i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_Media: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_MediaController: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_MediaRemainingSpareBlock: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(19i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_PerformanceDegradation: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(20i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_PermanentError: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(14i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_ThresholdExceeded: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_Unknown: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpReason_WritePersistenceLossImminent: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(18i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpStatus_HardwareError: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpStatus_InService: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpStatus_Max: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpStatus_Missing: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpStatus_NotUsable: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpStatus_Ok: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpStatus_PredictingFailure: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpStatus_TransientError: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceOpStatus_Unknown: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_DeviceHandle: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_DeviceInfo: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_DeviceSpecificInfo: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_FirmwareInfo: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_FruIdString: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_LocationString: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_ManagementStatus: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_Max: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_RuntimeFwActivationArmState: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceProperty_RuntimeFwActivationInfo: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceQuery_Descriptor: SCM_PD_QUERY_TYPE = SCM_PD_QUERY_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceQuery_IsSupported: SCM_PD_QUERY_TYPE = SCM_PD_QUERY_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceQuery_Max: SCM_PD_QUERY_TYPE = SCM_PD_QUERY_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceReinit_ColdBootNeeded: SCM_PD_MEDIA_REINITIALIZATION_STATUS = SCM_PD_MEDIA_REINITIALIZATION_STATUS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceReinit_Max: SCM_PD_MEDIA_REINITIALIZATION_STATUS = SCM_PD_MEDIA_REINITIALIZATION_STATUS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceReinit_RebootNeeded: SCM_PD_MEDIA_REINITIALIZATION_STATUS = SCM_PD_MEDIA_REINITIALIZATION_STATUS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceReinit_Success: SCM_PD_MEDIA_REINITIALIZATION_STATUS = SCM_PD_MEDIA_REINITIALIZATION_STATUS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceSet_Descriptor: SCM_PD_SET_TYPE = SCM_PD_SET_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceSet_IsSupported: SCM_PD_SET_TYPE = SCM_PD_SET_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmPhysicalDeviceSet_Max: SCM_PD_SET_TYPE = SCM_PD_SET_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmRegionFlagLabel: SCM_REGION_FLAG = SCM_REGION_FLAG(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ScmRegionFlagNone: SCM_REGION_FLAG = SCM_REGION_FLAG(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ShrinkAbort: SHRINK_VOLUME_REQUEST_TYPES = SHRINK_VOLUME_REQUEST_TYPES(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ShrinkCommit: SHRINK_VOLUME_REQUEST_TYPES = SHRINK_VOLUME_REQUEST_TYPES(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ShrinkPrepare: SHRINK_VOLUME_REQUEST_TYPES = SHRINK_VOLUME_REQUEST_TYPES(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcActionPause: REFS_SMR_VOLUME_GC_ACTION = REFS_SMR_VOLUME_GC_ACTION(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcActionStart: REFS_SMR_VOLUME_GC_ACTION = REFS_SMR_VOLUME_GC_ACTION(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcActionStartFullSpeed: REFS_SMR_VOLUME_GC_ACTION = REFS_SMR_VOLUME_GC_ACTION(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcActionStop: REFS_SMR_VOLUME_GC_ACTION = REFS_SMR_VOLUME_GC_ACTION(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcMethodCompaction: REFS_SMR_VOLUME_GC_METHOD = REFS_SMR_VOLUME_GC_METHOD(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcMethodCompression: REFS_SMR_VOLUME_GC_METHOD = REFS_SMR_VOLUME_GC_METHOD(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcMethodRotation: REFS_SMR_VOLUME_GC_METHOD = REFS_SMR_VOLUME_GC_METHOD(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcStateActive: REFS_SMR_VOLUME_GC_STATE = REFS_SMR_VOLUME_GC_STATE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcStateActiveFullSpeed: REFS_SMR_VOLUME_GC_STATE = REFS_SMR_VOLUME_GC_STATE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcStateInactive: REFS_SMR_VOLUME_GC_STATE = REFS_SMR_VOLUME_GC_STATE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const SmrGcStatePaused: REFS_SMR_VOLUME_GC_STATE = REFS_SMR_VOLUME_GC_STATE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorAttributeMgmt_ClearAttribute: STORAGE_ATTRIBUTE_MGMT_ACTION = STORAGE_ATTRIBUTE_MGMT_ACTION(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorAttributeMgmt_ResetAttribute: STORAGE_ATTRIBUTE_MGMT_ACTION = STORAGE_ATTRIBUTE_MGMT_ACTION(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorAttributeMgmt_SetAttribute: STORAGE_ATTRIBUTE_MGMT_ACTION = STORAGE_ATTRIBUTE_MGMT_ACTION(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorRpmbAuthenticatedDeviceConfigRead: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorRpmbAuthenticatedDeviceConfigWrite: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorRpmbAuthenticatedRead: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorRpmbAuthenticatedWrite: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorRpmbProgramAuthKey: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorRpmbQueryWriteCounter: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorRpmbReadResultRequest: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageAccessAlignmentProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageAdapterCryptoProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(17i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageAdapterPhysicalTopologyProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(53i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageAdapterProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageAdapterProtocolSpecificProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(49i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageAdapterRpmbProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(16i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageAdapterSerialNumberProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(57i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageAdapterTemperatureProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(51i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeFlushLatency100NSMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(20i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeLoadUnloadCycleCount: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(12i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeLoadUnloadCycleCountMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(13i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeManufactureDate: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(21i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypePowerOnHours: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(17i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeReadErrorsCorrected: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeReadErrorsTotal: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeReadErrorsUncorrected: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeReadLatency100NSMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(18i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeStartStopCycleCount: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(10i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeStartStopCycleCountMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(11i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeTemperatureCelsius: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeTemperatureCelsiusMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeUnknown: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeWearPercentage: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(14i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeWearPercentageMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(16i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeWearPercentageWarning: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(15i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeWriteErrorsCorrected: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeWriteErrorsTotal: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeWriteErrorsUncorrected: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCounterTypeWriteLatency100NSMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(19i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoAlgorithmAESECB: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoAlgorithmBitlockerAESCBC: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoAlgorithmESSIVAESCBC: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoAlgorithmMax: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoAlgorithmUnknown: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoAlgorithmXTSAES: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoKeySize128Bits: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoKeySize192Bits: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoKeySize256Bits: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoKeySize512Bits: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageCryptoKeySizeUnknown: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceAttributesProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(55i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceCopyOffloadProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(13i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceDeviceTelemetryProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(10i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceEnduranceProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(62i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceIdProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceIoCapabilityProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(48i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceLBProvisioningProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(11i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceLedStateProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(63i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceLocationProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(58i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceManagementStatus: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(56i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceMediumProductType: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(15i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceNumaProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(59i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDevicePhysicalTopologyProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(54i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDevicePowerCapUnitsMilliwatts: STORAGE_DEVICE_POWER_CAP_UNITS = STORAGE_DEVICE_POWER_CAP_UNITS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDevicePowerCapUnitsPercent: STORAGE_DEVICE_POWER_CAP_UNITS = STORAGE_DEVICE_POWER_CAP_UNITS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDevicePowerProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(12i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceProtocolSpecificProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(50i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceResiliencyProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(14i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceSeekPenaltyProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceSelfEncryptionProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(64i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceTemperatureProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(52i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceTrimProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceUniqueIdProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceUnsafeShutdownCount: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(61i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceWriteAggregationProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(9i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceWriteCacheProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDeviceZonedDeviceProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(60i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDiagnosticLevelDefault: STORAGE_DIAGNOSTIC_LEVEL = STORAGE_DIAGNOSTIC_LEVEL(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDiagnosticLevelMax: STORAGE_DIAGNOSTIC_LEVEL = STORAGE_DIAGNOSTIC_LEVEL(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDiagnosticTargetTypeHbaFirmware: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDiagnosticTargetTypeMax: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDiagnosticTargetTypeMiniport: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDiagnosticTargetTypePort: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageDiagnosticTargetTypeUndefined: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageEncryptionTypeEDrive: STORAGE_ENCRYPTION_TYPE = STORAGE_ENCRYPTION_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageEncryptionTypeTcgOpal: STORAGE_ENCRYPTION_TYPE = STORAGE_ENCRYPTION_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageEncryptionTypeUnknown: STORAGE_ENCRYPTION_TYPE = STORAGE_ENCRYPTION_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageFruIdProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(65i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdAssocDevice: STORAGE_ASSOCIATION_TYPE = STORAGE_ASSOCIATION_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdAssocPort: STORAGE_ASSOCIATION_TYPE = STORAGE_ASSOCIATION_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdAssocTarget: STORAGE_ASSOCIATION_TYPE = STORAGE_ASSOCIATION_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdCodeSetAscii: STORAGE_IDENTIFIER_CODE_SET = STORAGE_IDENTIFIER_CODE_SET(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdCodeSetBinary: STORAGE_IDENTIFIER_CODE_SET = STORAGE_IDENTIFIER_CODE_SET(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdCodeSetReserved: STORAGE_IDENTIFIER_CODE_SET = STORAGE_IDENTIFIER_CODE_SET(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdCodeSetUtf8: STORAGE_IDENTIFIER_CODE_SET = STORAGE_IDENTIFIER_CODE_SET(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdNAAFormatIEEEERegisteredExtended: STORAGE_ID_NAA_FORMAT = STORAGE_ID_NAA_FORMAT(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdNAAFormatIEEEExtended: STORAGE_ID_NAA_FORMAT = STORAGE_ID_NAA_FORMAT(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdNAAFormatIEEERegistered: STORAGE_ID_NAA_FORMAT = STORAGE_ID_NAA_FORMAT(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdTypeEUI64: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdTypeFCPHName: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdTypeLogicalUnitGroup: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdTypeMD5LogicalUnitIdentifier: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdTypePortRelative: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdTypeScsiNameString: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(8i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdTypeTargetPortGroup: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdTypeVendorId: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageIdTypeVendorSpecific: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageMiniportProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePortCodeSetATAport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePortCodeSetReserved: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePortCodeSetSBP2port: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePortCodeSetSCSIport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePortCodeSetSDport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(7i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePortCodeSetSpaceport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePortCodeSetStorport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePortCodeSetUSBport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePowerupDeviceAttention: STORAGE_POWERUP_REASON_TYPE = STORAGE_POWERUP_REASON_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePowerupIO: STORAGE_POWERUP_REASON_TYPE = STORAGE_POWERUP_REASON_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StoragePowerupUnknown: STORAGE_POWERUP_REASON_TYPE = STORAGE_POWERUP_REASON_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageReserveIdHard: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageReserveIdMax: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageReserveIdNone: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageReserveIdSoft: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageReserveIdUpdateScratch: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageRpmbFrameTypeMax: STORAGE_RPMB_FRAME_TYPE = STORAGE_RPMB_FRAME_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageRpmbFrameTypeStandard: STORAGE_RPMB_FRAME_TYPE = STORAGE_RPMB_FRAME_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageRpmbFrameTypeUnknown: STORAGE_RPMB_FRAME_TYPE = STORAGE_RPMB_FRAME_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageSanitizeMethodBlockErase: STORAGE_SANITIZE_METHOD = STORAGE_SANITIZE_METHOD(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageSanitizeMethodCryptoErase: STORAGE_SANITIZE_METHOD = STORAGE_SANITIZE_METHOD(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageSanitizeMethodDefault: STORAGE_SANITIZE_METHOD = STORAGE_SANITIZE_METHOD(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageTierClassCapacity: STORAGE_TIER_CLASS = STORAGE_TIER_CLASS(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageTierClassMax: STORAGE_TIER_CLASS = STORAGE_TIER_CLASS(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageTierClassPerformance: STORAGE_TIER_CLASS = STORAGE_TIER_CLASS(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageTierClassUnspecified: STORAGE_TIER_CLASS = STORAGE_TIER_CLASS(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageTierMediaTypeDisk: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageTierMediaTypeMax: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageTierMediaTypeScm: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageTierMediaTypeSsd: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const StorageTierMediaTypeUnspecified: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const TAPE_RESET_STATISTICS: i32 = 2i32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const TAPE_RETURN_ENV_INFO: i32 = 1i32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const TAPE_RETURN_STATISTICS: i32 = 0i32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TCCollectionApplicationRequested: DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE = DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TCCollectionBugCheck: DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE = DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TCCollectionDeviceRequested: DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE = DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const TC_DEVICEDUMP_SUBSECTION_DESC_LENGTH: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TC_PUBLIC_DATA_TYPE_ATAGP: ::windows::core::PCSTR = ::windows::core::s!("ATAGPLogPages");
+pub const TC_PUBLIC_DATA_TYPE_ATAGP: ::windows_core::PCSTR = ::windows_core::s!("ATAGPLogPages");
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TC_PUBLIC_DATA_TYPE_ATASMART: ::windows::core::PCSTR = ::windows::core::s!("ATASMARTPages");
+pub const TC_PUBLIC_DATA_TYPE_ATASMART: ::windows_core::PCSTR = ::windows_core::s!("ATASMARTPages");
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const TC_PUBLIC_DEVICEDUMP_CONTENT_GPLOG: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -1944,6 +3070,40 @@ pub const TXFS_LIST_TRANSACTION_LOCKED_FILES_ENTRY_FLAG_DELETED: u32 = 2u32;
 pub const TXFS_LOGGING_MODE_FULL: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const TXFS_LOGGING_MODE_SIMPLE: u32 = 1u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_DO_NOT_RESET_RM_AT_NEXT_START: TXFS_RMF_LAGS = TXFS_RMF_LAGS(32768u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_ENFORCE_MINIMUM_SIZE: TXFS_RMF_LAGS = TXFS_RMF_LAGS(4096u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_GROW_LOG: TXFS_RMF_LAGS = TXFS_RMF_LAGS(1024u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_LOGGING_MODE: TXFS_RMF_LAGS = TXFS_RMF_LAGS(1u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_LOG_AUTO_SHRINK_PERCENTAGE: TXFS_RMF_LAGS = TXFS_RMF_LAGS(64u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_LOG_CONTAINER_COUNT_MAX: TXFS_RMF_LAGS = TXFS_RMF_LAGS(4u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_LOG_CONTAINER_COUNT_MIN: TXFS_RMF_LAGS = TXFS_RMF_LAGS(8u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_LOG_GROWTH_INCREMENT_NUM_CONTAINERS: TXFS_RMF_LAGS = TXFS_RMF_LAGS(16u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_LOG_GROWTH_INCREMENT_PERCENT: TXFS_RMF_LAGS = TXFS_RMF_LAGS(32u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_LOG_NO_CONTAINER_COUNT_MAX: TXFS_RMF_LAGS = TXFS_RMF_LAGS(128u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_LOG_NO_CONTAINER_COUNT_MIN: TXFS_RMF_LAGS = TXFS_RMF_LAGS(256u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_PREFER_AVAILABILITY: TXFS_RMF_LAGS = TXFS_RMF_LAGS(131072u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_PREFER_CONSISTENCY: TXFS_RMF_LAGS = TXFS_RMF_LAGS(65536u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_PRESERVE_CHANGES: TXFS_RMF_LAGS = TXFS_RMF_LAGS(8192u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_RENAME_RM: TXFS_RMF_LAGS = TXFS_RMF_LAGS(2u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_RESET_RM_AT_NEXT_START: TXFS_RMF_LAGS = TXFS_RMF_LAGS(16384u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const TXFS_RM_FLAG_SHRINK_LOG: TXFS_RMF_LAGS = TXFS_RMF_LAGS(2048u32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const TXFS_RM_STATE_ACTIVE: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -2003,6 +3163,8 @@ pub const TXFS_TRANSACTION_STATE_NOTACTIVE: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const TXFS_TRANSACTION_STATE_PREPARED: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const Travan: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(34i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const UNDEFINE_ALTERNATE: u32 = 13u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const UNDEFINE_PRIMARY: u32 = 12u32;
@@ -2012,6 +3174,10 @@ pub const UNLOCK_ELEMENT: u32 = 1u32;
 pub const UNRECOVERED_READS_VALID: u32 = 8u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const UNRECOVERED_WRITES_VALID: u32 = 2u32;
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const USN_DELETE_FLAG_DELETE: USN_DELETE_FLAGS = USN_DELETE_FLAGS(1u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const USN_DELETE_FLAG_NOTIFY: USN_DELETE_FLAGS = USN_DELETE_FLAGS(2u32);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const USN_DELETE_VALID_FLAGS: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -2065,6 +3231,30 @@ pub const USN_REASON_STREAM_CHANGE: u32 = 2097152u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const USN_REASON_TRANSACTED_CHANGE: u32 = 4194304u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const USN_SOURCE_AUXILIARY_DATA: USN_SOURCE_INFO_ID = USN_SOURCE_INFO_ID(2u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const USN_SOURCE_CLIENT_REPLICATION_MANAGEMENT: USN_SOURCE_INFO_ID = USN_SOURCE_INFO_ID(8u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const USN_SOURCE_DATA_MANAGEMENT: USN_SOURCE_INFO_ID = USN_SOURCE_INFO_ID(1u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const USN_SOURCE_REPLICATION_MANAGEMENT: USN_SOURCE_INFO_ID = USN_SOURCE_INFO_ID(4u32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const UfsDataTypeMax: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(6i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const UfsDataTypeQueryAttribute: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const UfsDataTypeQueryDescriptor: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const UfsDataTypeQueryDmeAttribute: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const UfsDataTypeQueryDmePeerAttribute: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(5i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const UfsDataTypeQueryFlag: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const UfsDataTypeUnknown: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const Unknown: MEDIA_TYPE = MEDIA_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const VALID_NTFT: u32 = 192u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const VENDOR_ID_LENGTH: u32 = 8u32;
@@ -2075,13 +3265,29 @@ pub const VOLUME_SESSION_OPEN: u32 = 4u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const VOLUME_UPGRADE_SCHEDULED: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const VXATape: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(94i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const VXATape_1: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(83i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const VXATape_2: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(84i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const VirtualStorageBehaviorCacheWriteBack: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const VirtualStorageBehaviorCacheWriteThrough: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const VirtualStorageBehaviorRestartIoProcessing: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const VirtualStorageBehaviorStopIoProcessing: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const VirtualStorageBehaviorUndefined: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const WIM_PROVIDER_CURRENT_VERSION: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const WIM_PROVIDER_EXTERNAL_FLAG_NOT_ACTIVE: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const WIM_PROVIDER_EXTERNAL_FLAG_SUSPENDED: u32 = 2u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WMI_DISK_GEOMETRY_GUID: ::windows::core::GUID = ::windows::core::GUID::from_u128(0x25007f51_57c2_11d1_a528_00a0c9062910);
+pub const WMI_DISK_GEOMETRY_GUID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x25007f51_57c2_11d1_a528_00a0c9062910);
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const WOF_CURRENT_VERSION: u32 = 1u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
@@ -2089,13 +3295,77 @@ pub const WOF_PROVIDER_CLOUD: u32 = 3u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub const WRITE_COMPRESSION_INFO_VALID: u32 = 16u32;
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheChangeUnknown: WRITE_CACHE_CHANGE = WRITE_CACHE_CHANGE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheChangeable: WRITE_CACHE_CHANGE = WRITE_CACHE_CHANGE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheDisabled: WRITE_CACHE_ENABLE = WRITE_CACHE_ENABLE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheEnableUnknown: WRITE_CACHE_ENABLE = WRITE_CACHE_ENABLE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheEnabled: WRITE_CACHE_ENABLE = WRITE_CACHE_ENABLE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheNotChangeable: WRITE_CACHE_CHANGE = WRITE_CACHE_CHANGE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheTypeNone: WRITE_CACHE_TYPE = WRITE_CACHE_TYPE(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheTypeUnknown: WRITE_CACHE_TYPE = WRITE_CACHE_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheTypeWriteBack: WRITE_CACHE_TYPE = WRITE_CACHE_TYPE(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteCacheTypeWriteThrough: WRITE_CACHE_TYPE = WRITE_CACHE_TYPE(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteThroughNotSupported: WRITE_THROUGH = WRITE_THROUGH(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteThroughSupported: WRITE_THROUGH = WRITE_THROUGH(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const WriteThroughUnknown: WRITE_THROUGH = WRITE_THROUGH(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneConditionClosed: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneConditionConventional: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneConditionEmpty: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneConditionExplicitlyOpened: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneConditionFull: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(14i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneConditionImplicitlyOpened: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneConditionOffline: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(15i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneConditionReadOnly: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(13i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneTypeConventional: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneTypeMax: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(4i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneTypeSequentialWritePreferred: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneTypeSequentialWriteRequired: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZoneTypeUnknown: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZonedDeviceTypeDeviceManaged: STORAGE_ZONED_DEVICE_TYPES = STORAGE_ZONED_DEVICE_TYPES(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZonedDeviceTypeHostAware: STORAGE_ZONED_DEVICE_TYPES = STORAGE_ZONED_DEVICE_TYPES(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZonedDeviceTypeHostManaged: STORAGE_ZONED_DEVICE_TYPES = STORAGE_ZONED_DEVICE_TYPES(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZonedDeviceTypeUnknown: STORAGE_ZONED_DEVICE_TYPES = STORAGE_ZONED_DEVICE_TYPES(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZonesAttributeTypeAndLengthMayDifferent: STORAGE_ZONES_ATTRIBUTES = STORAGE_ZONES_ATTRIBUTES(0i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZonesAttributeTypeMayDifferentLengthSame: STORAGE_ZONES_ATTRIBUTES = STORAGE_ZONES_ATTRIBUTES(3i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZonesAttributeTypeSameLastZoneLengthDifferent: STORAGE_ZONES_ATTRIBUTES = STORAGE_ZONES_ATTRIBUTES(2i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
+pub const ZonesAttributeTypeSameLengthSame: STORAGE_ZONES_ATTRIBUTES = STORAGE_ZONES_ATTRIBUTES(1i32);
+#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct BIN_TYPES(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const RequestSize: BIN_TYPES = BIN_TYPES(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const RequestLocation: BIN_TYPES = BIN_TYPES(1i32);
 impl ::core::marker::Copy for BIN_TYPES {}
 impl ::core::clone::Clone for BIN_TYPES {
     fn clone(&self) -> Self {
@@ -2107,8 +3377,8 @@ impl ::core::default::Default for BIN_TYPES {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for BIN_TYPES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for BIN_TYPES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for BIN_TYPES {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2119,34 +3389,6 @@ impl ::core::fmt::Debug for BIN_TYPES {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CHANGER_DEVICE_PROBLEM_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemNone: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemHardware: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemCHMError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemDoorOpen: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemCalibrationError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemTargetFailure: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemCHMMoveError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemCHMZeroError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemCartridgeInsertError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemPositionError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(9i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemSensorError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(10i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemCartridgeEjectError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(11i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemGripperError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(12i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceProblemDriveError: CHANGER_DEVICE_PROBLEM_TYPE = CHANGER_DEVICE_PROBLEM_TYPE(13i32);
 impl ::core::marker::Copy for CHANGER_DEVICE_PROBLEM_TYPE {}
 impl ::core::clone::Clone for CHANGER_DEVICE_PROBLEM_TYPE {
     fn clone(&self) -> Self {
@@ -2158,8 +3400,8 @@ impl ::core::default::Default for CHANGER_DEVICE_PROBLEM_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for CHANGER_DEVICE_PROBLEM_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_DEVICE_PROBLEM_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for CHANGER_DEVICE_PROBLEM_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2170,34 +3412,6 @@ impl ::core::fmt::Debug for CHANGER_DEVICE_PROBLEM_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CHANGER_ELEMENT_STATUS_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_ACCESS: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(8u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_AVOLTAG: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(536870912u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_EXCEPT: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(4u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_EXENAB: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(16u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_FULL: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(1u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_ID_VALID: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(8192u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_IMPEXP: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(2u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_INENAB: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(32u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_INVERT: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(4194304u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_LUN_VALID: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(4096u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_NOT_BUS: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(32768u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_PVOLTAG: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(268435456u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_SVALID: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(8388608u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ELEMENT_STATUS_PRODUCT_DATA: CHANGER_ELEMENT_STATUS_FLAGS = CHANGER_ELEMENT_STATUS_FLAGS(64u32);
 impl ::core::marker::Copy for CHANGER_ELEMENT_STATUS_FLAGS {}
 impl ::core::clone::Clone for CHANGER_ELEMENT_STATUS_FLAGS {
     fn clone(&self) -> Self {
@@ -2209,8 +3423,8 @@ impl ::core::default::Default for CHANGER_ELEMENT_STATUS_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for CHANGER_ELEMENT_STATUS_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_ELEMENT_STATUS_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for CHANGER_ELEMENT_STATUS_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2254,64 +3468,6 @@ impl ::core::ops::Not for CHANGER_ELEMENT_STATUS_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CHANGER_FEATURES(pub u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_BAR_CODE_SCANNER_INSTALLED: CHANGER_FEATURES = CHANGER_FEATURES(1u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_CARTRIDGE_MAGAZINE: CHANGER_FEATURES = CHANGER_FEATURES(256u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_CLEANER_ACCESS_NOT_VALID: CHANGER_FEATURES = CHANGER_FEATURES(262144u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_CLEANER_SLOT: CHANGER_FEATURES = CHANGER_FEATURES(64u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_CLOSE_IEPORT: CHANGER_FEATURES = CHANGER_FEATURES(4u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_DEVICE_REINITIALIZE_CAPABLE: CHANGER_FEATURES = CHANGER_FEATURES(134217728u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_DRIVE_CLEANING_REQUIRED: CHANGER_FEATURES = CHANGER_FEATURES(65536u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_DRIVE_EMPTY_ON_DOOR_ACCESS: CHANGER_FEATURES = CHANGER_FEATURES(536870912u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_EXCHANGE_MEDIA: CHANGER_FEATURES = CHANGER_FEATURES(32u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_INIT_ELEM_STAT_WITH_RANGE: CHANGER_FEATURES = CHANGER_FEATURES(2u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_KEYPAD_ENABLE_DISABLE: CHANGER_FEATURES = CHANGER_FEATURES(268435456u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_LOCK_UNLOCK: CHANGER_FEATURES = CHANGER_FEATURES(128u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_MEDIUM_FLIP: CHANGER_FEATURES = CHANGER_FEATURES(512u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_OPEN_IEPORT: CHANGER_FEATURES = CHANGER_FEATURES(8u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_POSITION_TO_ELEMENT: CHANGER_FEATURES = CHANGER_FEATURES(1024u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_PREDISMOUNT_EJECT_REQUIRED: CHANGER_FEATURES = CHANGER_FEATURES(131072u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_PREMOUNT_EJECT_REQUIRED: CHANGER_FEATURES = CHANGER_FEATURES(524288u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_REPORT_IEPORT_STATE: CHANGER_FEATURES = CHANGER_FEATURES(2048u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_SERIAL_NUMBER_VALID: CHANGER_FEATURES = CHANGER_FEATURES(67108864u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_STATUS_NON_VOLATILE: CHANGER_FEATURES = CHANGER_FEATURES(16u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_STORAGE_DRIVE: CHANGER_FEATURES = CHANGER_FEATURES(4096u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_STORAGE_IEPORT: CHANGER_FEATURES = CHANGER_FEATURES(8192u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_STORAGE_SLOT: CHANGER_FEATURES = CHANGER_FEATURES(16384u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_STORAGE_TRANSPORT: CHANGER_FEATURES = CHANGER_FEATURES(32768u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_VOLUME_ASSERT: CHANGER_FEATURES = CHANGER_FEATURES(4194304u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_VOLUME_IDENTIFICATION: CHANGER_FEATURES = CHANGER_FEATURES(1048576u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_VOLUME_REPLACE: CHANGER_FEATURES = CHANGER_FEATURES(8388608u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_VOLUME_SEARCH: CHANGER_FEATURES = CHANGER_FEATURES(2097152u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_VOLUME_UNDEFINE: CHANGER_FEATURES = CHANGER_FEATURES(16777216u32);
 impl ::core::marker::Copy for CHANGER_FEATURES {}
 impl ::core::clone::Clone for CHANGER_FEATURES {
     fn clone(&self) -> Self {
@@ -2323,8 +3479,8 @@ impl ::core::default::Default for CHANGER_FEATURES {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for CHANGER_FEATURES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_FEATURES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for CHANGER_FEATURES {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2368,14 +3524,6 @@ impl ::core::ops::Not for CHANGER_FEATURES {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CSVFS_DISK_CONNECTIVITY(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvFsDiskConnectivityNone: CSVFS_DISK_CONNECTIVITY = CSVFS_DISK_CONNECTIVITY(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvFsDiskConnectivityMdsNodeOnly: CSVFS_DISK_CONNECTIVITY = CSVFS_DISK_CONNECTIVITY(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvFsDiskConnectivitySubsetOfNodes: CSVFS_DISK_CONNECTIVITY = CSVFS_DISK_CONNECTIVITY(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvFsDiskConnectivityAllNodes: CSVFS_DISK_CONNECTIVITY = CSVFS_DISK_CONNECTIVITY(3i32);
 impl ::core::marker::Copy for CSVFS_DISK_CONNECTIVITY {}
 impl ::core::clone::Clone for CSVFS_DISK_CONNECTIVITY {
     fn clone(&self) -> Self {
@@ -2387,8 +3535,8 @@ impl ::core::default::Default for CSVFS_DISK_CONNECTIVITY {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for CSVFS_DISK_CONNECTIVITY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSVFS_DISK_CONNECTIVITY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for CSVFS_DISK_CONNECTIVITY {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2399,42 +3547,6 @@ impl ::core::fmt::Debug for CSVFS_DISK_CONNECTIVITY {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CSV_CONTROL_OP(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlStartRedirectFile: CSV_CONTROL_OP = CSV_CONTROL_OP(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlStopRedirectFile: CSV_CONTROL_OP = CSV_CONTROL_OP(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlQueryRedirectState: CSV_CONTROL_OP = CSV_CONTROL_OP(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlQueryFileRevision: CSV_CONTROL_OP = CSV_CONTROL_OP(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlQueryMdsPath: CSV_CONTROL_OP = CSV_CONTROL_OP(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlQueryFileRevisionFileId128: CSV_CONTROL_OP = CSV_CONTROL_OP(9i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlQueryVolumeRedirectState: CSV_CONTROL_OP = CSV_CONTROL_OP(10i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlEnableUSNRangeModificationTracking: CSV_CONTROL_OP = CSV_CONTROL_OP(13i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlMarkHandleLocalVolumeMount: CSV_CONTROL_OP = CSV_CONTROL_OP(14i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlUnmarkHandleLocalVolumeMount: CSV_CONTROL_OP = CSV_CONTROL_OP(15i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlGetCsvFsMdsPathV2: CSV_CONTROL_OP = CSV_CONTROL_OP(18i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlDisableCaching: CSV_CONTROL_OP = CSV_CONTROL_OP(19i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlEnableCaching: CSV_CONTROL_OP = CSV_CONTROL_OP(20i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlStartForceDFO: CSV_CONTROL_OP = CSV_CONTROL_OP(21i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlStopForceDFO: CSV_CONTROL_OP = CSV_CONTROL_OP(22i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlQueryMdsPathNoPause: CSV_CONTROL_OP = CSV_CONTROL_OP(23i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlSetVolumeId: CSV_CONTROL_OP = CSV_CONTROL_OP(24i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CsvControlQueryVolumeId: CSV_CONTROL_OP = CSV_CONTROL_OP(25i32);
 impl ::core::marker::Copy for CSV_CONTROL_OP {}
 impl ::core::clone::Clone for CSV_CONTROL_OP {
     fn clone(&self) -> Self {
@@ -2446,8 +3558,8 @@ impl ::core::default::Default for CSV_CONTROL_OP {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for CSV_CONTROL_OP {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_CONTROL_OP {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for CSV_CONTROL_OP {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2458,12 +3570,6 @@ impl ::core::fmt::Debug for CSV_CONTROL_OP {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DETECTION_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DetectNone: DETECTION_TYPE = DETECTION_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DetectInt13: DETECTION_TYPE = DETECTION_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DetectExInt13: DETECTION_TYPE = DETECTION_TYPE(2i32);
 impl ::core::marker::Copy for DETECTION_TYPE {}
 impl ::core::clone::Clone for DETECTION_TYPE {
     fn clone(&self) -> Self {
@@ -2475,8 +3581,8 @@ impl ::core::default::Default for DETECTION_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DETECTION_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DETECTION_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DETECTION_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2487,12 +3593,6 @@ impl ::core::fmt::Debug for DETECTION_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TCCollectionBugCheck: DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE = DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TCCollectionApplicationRequested: DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE = DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TCCollectionDeviceRequested: DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE = DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE(3i32);
 impl ::core::marker::Copy for DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE {}
 impl ::core::clone::Clone for DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE {
     fn clone(&self) -> Self {
@@ -2504,8 +3604,8 @@ impl ::core::default::Default for DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYP
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2516,16 +3616,6 @@ impl ::core::fmt::Debug for DEVICEDUMP_COLLECTION_TYPEIDE_NOTIFICATION_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceInternalStatusDataRequestTypeUndefined: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceCurrentInternalStatusDataHeader: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceCurrentInternalStatusData: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceSavedInternalStatusDataHeader: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceSavedInternalStatusData: DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE = DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE(4i32);
 impl ::core::marker::Copy for DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE {}
 impl ::core::clone::Clone for DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE {
     fn clone(&self) -> Self {
@@ -2537,8 +3627,8 @@ impl ::core::default::Default for DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2549,18 +3639,6 @@ impl ::core::fmt::Debug for DEVICE_INTERNAL_STATUS_DATA_REQUEST_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DEVICE_INTERNAL_STATUS_DATA_SET(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceStatusDataSetUndefined: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceStatusDataSet1: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceStatusDataSet2: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceStatusDataSet3: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceStatusDataSet4: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DeviceStatusDataSetMax: DEVICE_INTERNAL_STATUS_DATA_SET = DEVICE_INTERNAL_STATUS_DATA_SET(5i32);
 impl ::core::marker::Copy for DEVICE_INTERNAL_STATUS_DATA_SET {}
 impl ::core::clone::Clone for DEVICE_INTERNAL_STATUS_DATA_SET {
     fn clone(&self) -> Self {
@@ -2572,8 +3650,8 @@ impl ::core::default::Default for DEVICE_INTERNAL_STATUS_DATA_SET {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DEVICE_INTERNAL_STATUS_DATA_SET {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_INTERNAL_STATUS_DATA_SET {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DEVICE_INTERNAL_STATUS_DATA_SET {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2584,12 +3662,6 @@ impl ::core::fmt::Debug for DEVICE_INTERNAL_STATUS_DATA_SET {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DISK_CACHE_RETENTION_PRIORITY(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const EqualPriority: DISK_CACHE_RETENTION_PRIORITY = DISK_CACHE_RETENTION_PRIORITY(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const KeepPrefetchedData: DISK_CACHE_RETENTION_PRIORITY = DISK_CACHE_RETENTION_PRIORITY(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const KeepReadData: DISK_CACHE_RETENTION_PRIORITY = DISK_CACHE_RETENTION_PRIORITY(2i32);
 impl ::core::marker::Copy for DISK_CACHE_RETENTION_PRIORITY {}
 impl ::core::clone::Clone for DISK_CACHE_RETENTION_PRIORITY {
     fn clone(&self) -> Self {
@@ -2601,8 +3673,8 @@ impl ::core::default::Default for DISK_CACHE_RETENTION_PRIORITY {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DISK_CACHE_RETENTION_PRIORITY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_CACHE_RETENTION_PRIORITY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DISK_CACHE_RETENTION_PRIORITY {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2613,12 +3685,6 @@ impl ::core::fmt::Debug for DISK_CACHE_RETENTION_PRIORITY {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DUPLICATE_EXTENTS_STATE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileSnapStateInactive: DUPLICATE_EXTENTS_STATE = DUPLICATE_EXTENTS_STATE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileSnapStateSource: DUPLICATE_EXTENTS_STATE = DUPLICATE_EXTENTS_STATE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileSnapStateTarget: DUPLICATE_EXTENTS_STATE = DUPLICATE_EXTENTS_STATE(2i32);
 impl ::core::marker::Copy for DUPLICATE_EXTENTS_STATE {}
 impl ::core::clone::Clone for DUPLICATE_EXTENTS_STATE {
     fn clone(&self) -> Self {
@@ -2630,8 +3696,8 @@ impl ::core::default::Default for DUPLICATE_EXTENTS_STATE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for DUPLICATE_EXTENTS_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DUPLICATE_EXTENTS_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for DUPLICATE_EXTENTS_STATE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2642,22 +3708,6 @@ impl ::core::fmt::Debug for DUPLICATE_EXTENTS_STATE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ELEMENT_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const AllElements: ELEMENT_TYPE = ELEMENT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ChangerTransport: ELEMENT_TYPE = ELEMENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ChangerSlot: ELEMENT_TYPE = ELEMENT_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ChangerIEPort: ELEMENT_TYPE = ELEMENT_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ChangerDrive: ELEMENT_TYPE = ELEMENT_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ChangerDoor: ELEMENT_TYPE = ELEMENT_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ChangerKeypad: ELEMENT_TYPE = ELEMENT_TYPE(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ChangerMaxElement: ELEMENT_TYPE = ELEMENT_TYPE(7i32);
 impl ::core::marker::Copy for ELEMENT_TYPE {}
 impl ::core::clone::Clone for ELEMENT_TYPE {
     fn clone(&self) -> Self {
@@ -2669,8 +3719,8 @@ impl ::core::default::Default for ELEMENT_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for ELEMENT_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for ELEMENT_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for ELEMENT_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2681,12 +3731,6 @@ impl ::core::fmt::Debug for ELEMENT_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct FILESYSTEM_STATISTICS_TYPE(pub u16);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FILESYSTEM_STATISTICS_TYPE_EXFAT: FILESYSTEM_STATISTICS_TYPE = FILESYSTEM_STATISTICS_TYPE(3u16);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FILESYSTEM_STATISTICS_TYPE_FAT: FILESYSTEM_STATISTICS_TYPE = FILESYSTEM_STATISTICS_TYPE(2u16);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FILESYSTEM_STATISTICS_TYPE_NTFS: FILESYSTEM_STATISTICS_TYPE = FILESYSTEM_STATISTICS_TYPE(1u16);
 impl ::core::marker::Copy for FILESYSTEM_STATISTICS_TYPE {}
 impl ::core::clone::Clone for FILESYSTEM_STATISTICS_TYPE {
     fn clone(&self) -> Self {
@@ -2698,8 +3742,8 @@ impl ::core::default::Default for FILESYSTEM_STATISTICS_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for FILESYSTEM_STATISTICS_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILESYSTEM_STATISTICS_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for FILESYSTEM_STATISTICS_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2710,14 +3754,6 @@ impl ::core::fmt::Debug for FILESYSTEM_STATISTICS_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct FILE_STORAGE_TIER_CLASS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileStorageTierClassUnspecified: FILE_STORAGE_TIER_CLASS = FILE_STORAGE_TIER_CLASS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileStorageTierClassCapacity: FILE_STORAGE_TIER_CLASS = FILE_STORAGE_TIER_CLASS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileStorageTierClassPerformance: FILE_STORAGE_TIER_CLASS = FILE_STORAGE_TIER_CLASS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileStorageTierClassMax: FILE_STORAGE_TIER_CLASS = FILE_STORAGE_TIER_CLASS(3i32);
 impl ::core::marker::Copy for FILE_STORAGE_TIER_CLASS {}
 impl ::core::clone::Clone for FILE_STORAGE_TIER_CLASS {
     fn clone(&self) -> Self {
@@ -2729,8 +3765,8 @@ impl ::core::default::Default for FILE_STORAGE_TIER_CLASS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for FILE_STORAGE_TIER_CLASS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_STORAGE_TIER_CLASS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for FILE_STORAGE_TIER_CLASS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2741,8 +3777,6 @@ impl ::core::fmt::Debug for FILE_STORAGE_TIER_CLASS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct FILE_STORAGE_TIER_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FILE_STORAGE_TIER_FLAG_NO_SEEK_PENALTY: FILE_STORAGE_TIER_FLAGS = FILE_STORAGE_TIER_FLAGS(131072u32);
 impl ::core::marker::Copy for FILE_STORAGE_TIER_FLAGS {}
 impl ::core::clone::Clone for FILE_STORAGE_TIER_FLAGS {
     fn clone(&self) -> Self {
@@ -2754,8 +3788,8 @@ impl ::core::default::Default for FILE_STORAGE_TIER_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for FILE_STORAGE_TIER_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_STORAGE_TIER_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for FILE_STORAGE_TIER_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2799,16 +3833,6 @@ impl ::core::ops::Not for FILE_STORAGE_TIER_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct FILE_STORAGE_TIER_MEDIA_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileStorageTierMediaTypeUnspecified: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileStorageTierMediaTypeDisk: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileStorageTierMediaTypeSsd: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileStorageTierMediaTypeScm: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FileStorageTierMediaTypeMax: FILE_STORAGE_TIER_MEDIA_TYPE = FILE_STORAGE_TIER_MEDIA_TYPE(5i32);
 impl ::core::marker::Copy for FILE_STORAGE_TIER_MEDIA_TYPE {}
 impl ::core::clone::Clone for FILE_STORAGE_TIER_MEDIA_TYPE {
     fn clone(&self) -> Self {
@@ -2820,8 +3844,8 @@ impl ::core::default::Default for FILE_STORAGE_TIER_MEDIA_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for FILE_STORAGE_TIER_MEDIA_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_STORAGE_TIER_MEDIA_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for FILE_STORAGE_TIER_MEDIA_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2832,10 +3856,6 @@ impl ::core::fmt::Debug for FILE_STORAGE_TIER_MEDIA_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct FS_BPIO_INFLAGS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FSBPIO_INFL_None: FS_BPIO_INFLAGS = FS_BPIO_INFLAGS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FSBPIO_INFL_SKIP_STORAGE_STACK_QUERY: FS_BPIO_INFLAGS = FS_BPIO_INFLAGS(1i32);
 impl ::core::marker::Copy for FS_BPIO_INFLAGS {}
 impl ::core::clone::Clone for FS_BPIO_INFLAGS {
     fn clone(&self) -> Self {
@@ -2847,8 +3867,8 @@ impl ::core::default::Default for FS_BPIO_INFLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for FS_BPIO_INFLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FS_BPIO_INFLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for FS_BPIO_INFLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2892,24 +3912,6 @@ impl ::core::ops::Not for FS_BPIO_INFLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct FS_BPIO_OPERATIONS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FS_BPIO_OP_ENABLE: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FS_BPIO_OP_DISABLE: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FS_BPIO_OP_QUERY: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FS_BPIO_OP_VOLUME_STACK_PAUSE: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FS_BPIO_OP_VOLUME_STACK_RESUME: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FS_BPIO_OP_STREAM_PAUSE: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FS_BPIO_OP_STREAM_RESUME: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FS_BPIO_OP_GET_INFO: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FS_BPIO_OP_MAX_OPERATION: FS_BPIO_OPERATIONS = FS_BPIO_OPERATIONS(9i32);
 impl ::core::marker::Copy for FS_BPIO_OPERATIONS {}
 impl ::core::clone::Clone for FS_BPIO_OPERATIONS {
     fn clone(&self) -> Self {
@@ -2921,8 +3923,8 @@ impl ::core::default::Default for FS_BPIO_OPERATIONS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for FS_BPIO_OPERATIONS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FS_BPIO_OPERATIONS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for FS_BPIO_OPERATIONS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2933,16 +3935,6 @@ impl ::core::fmt::Debug for FS_BPIO_OPERATIONS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct FS_BPIO_OUTFLAGS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FSBPIO_OUTFL_None: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FSBPIO_OUTFL_VOLUME_STACK_BYPASS_PAUSED: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FSBPIO_OUTFL_STREAM_BYPASS_PAUSED: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FSBPIO_OUTFL_FILTER_ATTACH_BLOCKED: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FSBPIO_OUTFL_COMPATIBLE_STORAGE_DRIVER: FS_BPIO_OUTFLAGS = FS_BPIO_OUTFLAGS(8i32);
 impl ::core::marker::Copy for FS_BPIO_OUTFLAGS {}
 impl ::core::clone::Clone for FS_BPIO_OUTFLAGS {
     fn clone(&self) -> Self {
@@ -2954,8 +3946,8 @@ impl ::core::default::Default for FS_BPIO_OUTFLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for FS_BPIO_OUTFLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FS_BPIO_OUTFLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for FS_BPIO_OUTFLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -2999,28 +3991,6 @@ impl ::core::ops::Not for FS_BPIO_OUTFLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GET_CHANGER_PARAMETERS_FEATURES1(pub u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_CLEANER_AUTODISMOUNT: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483652u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_CLEANER_OPS_NOT_SUPPORTED: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483712u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_IEPORT_USER_CONTROL_CLOSE: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483904u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_IEPORT_USER_CONTROL_OPEN: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483776u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_MOVE_EXTENDS_IEPORT: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147484160u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_MOVE_RETRACTS_IEPORT: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147484672u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_PREDISMOUNT_ALIGN_TO_DRIVE: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483650u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_PREDISMOUNT_ALIGN_TO_SLOT: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483649u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_RTN_MEDIA_TO_ORIGINAL_ADDR: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483680u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_SLOTS_USE_TRAYS: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483664u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CHANGER_TRUE_EXCHANGE_CAPABLE: GET_CHANGER_PARAMETERS_FEATURES1 = GET_CHANGER_PARAMETERS_FEATURES1(2147483656u32);
 impl ::core::marker::Copy for GET_CHANGER_PARAMETERS_FEATURES1 {}
 impl ::core::clone::Clone for GET_CHANGER_PARAMETERS_FEATURES1 {
     fn clone(&self) -> Self {
@@ -3032,8 +4002,8 @@ impl ::core::default::Default for GET_CHANGER_PARAMETERS_FEATURES1 {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for GET_CHANGER_PARAMETERS_FEATURES1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GET_CHANGER_PARAMETERS_FEATURES1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for GET_CHANGER_PARAMETERS_FEATURES1 {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3077,16 +4047,6 @@ impl ::core::ops::Not for GET_CHANGER_PARAMETERS_FEATURES1 {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GPT_ATTRIBUTES(pub u64);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GPT_ATTRIBUTE_PLATFORM_REQUIRED: GPT_ATTRIBUTES = GPT_ATTRIBUTES(1u64);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GPT_BASIC_DATA_ATTRIBUTE_NO_DRIVE_LETTER: GPT_ATTRIBUTES = GPT_ATTRIBUTES(9223372036854775808u64);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GPT_BASIC_DATA_ATTRIBUTE_HIDDEN: GPT_ATTRIBUTES = GPT_ATTRIBUTES(4611686018427387904u64);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GPT_BASIC_DATA_ATTRIBUTE_SHADOW_COPY: GPT_ATTRIBUTES = GPT_ATTRIBUTES(2305843009213693952u64);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const GPT_BASIC_DATA_ATTRIBUTE_READ_ONLY: GPT_ATTRIBUTES = GPT_ATTRIBUTES(1152921504606846976u64);
 impl ::core::marker::Copy for GPT_ATTRIBUTES {}
 impl ::core::clone::Clone for GPT_ATTRIBUTES {
     fn clone(&self) -> Self {
@@ -3098,8 +4058,8 @@ impl ::core::default::Default for GPT_ATTRIBUTES {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for GPT_ATTRIBUTES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GPT_ATTRIBUTES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for GPT_ATTRIBUTES {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3143,8 +4103,6 @@ impl ::core::ops::Not for GPT_ATTRIBUTES {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct LMR_QUERY_INFO_CLASS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const LMRQuerySessionInfo: LMR_QUERY_INFO_CLASS = LMR_QUERY_INFO_CLASS(1i32);
 impl ::core::marker::Copy for LMR_QUERY_INFO_CLASS {}
 impl ::core::clone::Clone for LMR_QUERY_INFO_CLASS {
     fn clone(&self) -> Self {
@@ -3156,8 +4114,8 @@ impl ::core::default::Default for LMR_QUERY_INFO_CLASS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for LMR_QUERY_INFO_CLASS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LMR_QUERY_INFO_CLASS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for LMR_QUERY_INFO_CLASS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3168,58 +4126,6 @@ impl ::core::fmt::Debug for LMR_QUERY_INFO_CLASS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MEDIA_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const Unknown: MEDIA_TYPE = MEDIA_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F5_1Pt2_512: MEDIA_TYPE = MEDIA_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_1Pt44_512: MEDIA_TYPE = MEDIA_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_2Pt88_512: MEDIA_TYPE = MEDIA_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_20Pt8_512: MEDIA_TYPE = MEDIA_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_720_512: MEDIA_TYPE = MEDIA_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F5_360_512: MEDIA_TYPE = MEDIA_TYPE(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F5_320_512: MEDIA_TYPE = MEDIA_TYPE(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F5_320_1024: MEDIA_TYPE = MEDIA_TYPE(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F5_180_512: MEDIA_TYPE = MEDIA_TYPE(9i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F5_160_512: MEDIA_TYPE = MEDIA_TYPE(10i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const RemovableMedia: MEDIA_TYPE = MEDIA_TYPE(11i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FixedMedia: MEDIA_TYPE = MEDIA_TYPE(12i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_120M_512: MEDIA_TYPE = MEDIA_TYPE(13i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_640_512: MEDIA_TYPE = MEDIA_TYPE(14i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F5_640_512: MEDIA_TYPE = MEDIA_TYPE(15i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F5_720_512: MEDIA_TYPE = MEDIA_TYPE(16i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_1Pt2_512: MEDIA_TYPE = MEDIA_TYPE(17i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_1Pt23_1024: MEDIA_TYPE = MEDIA_TYPE(18i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F5_1Pt23_1024: MEDIA_TYPE = MEDIA_TYPE(19i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_128Mb_512: MEDIA_TYPE = MEDIA_TYPE(20i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_230Mb_512: MEDIA_TYPE = MEDIA_TYPE(21i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F8_256_128: MEDIA_TYPE = MEDIA_TYPE(22i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_200Mb_512: MEDIA_TYPE = MEDIA_TYPE(23i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_240M_512: MEDIA_TYPE = MEDIA_TYPE(24i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const F3_32M_512: MEDIA_TYPE = MEDIA_TYPE(25i32);
 impl ::core::marker::Copy for MEDIA_TYPE {}
 impl ::core::clone::Clone for MEDIA_TYPE {
     fn clone(&self) -> Self {
@@ -3231,8 +4137,8 @@ impl ::core::default::Default for MEDIA_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for MEDIA_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MEDIA_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for MEDIA_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3243,12 +4149,6 @@ impl ::core::fmt::Debug for MEDIA_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PARTITION_STYLE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PARTITION_STYLE_MBR: PARTITION_STYLE = PARTITION_STYLE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PARTITION_STYLE_GPT: PARTITION_STYLE = PARTITION_STYLE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PARTITION_STYLE_RAW: PARTITION_STYLE = PARTITION_STYLE(2i32);
 impl ::core::marker::Copy for PARTITION_STYLE {}
 impl ::core::clone::Clone for PARTITION_STYLE {
     fn clone(&self) -> Self {
@@ -3260,8 +4160,8 @@ impl ::core::default::Default for PARTITION_STYLE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for PARTITION_STYLE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PARTITION_STYLE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for PARTITION_STYLE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3272,16 +4172,6 @@ impl ::core::fmt::Debug for PARTITION_STYLE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct QUERY_FILE_LAYOUT_FILTER_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const QUERY_FILE_LAYOUT_FILTER_TYPE_NONE: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const QUERY_FILE_LAYOUT_FILTER_TYPE_CLUSTERS: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const QUERY_FILE_LAYOUT_FILTER_TYPE_FILEID: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const QUERY_FILE_LAYOUT_FILTER_TYPE_STORAGE_RESERVE_ID: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const QUERY_FILE_LAYOUT_NUM_FILTER_TYPES: QUERY_FILE_LAYOUT_FILTER_TYPE = QUERY_FILE_LAYOUT_FILTER_TYPE(4i32);
 impl ::core::marker::Copy for QUERY_FILE_LAYOUT_FILTER_TYPE {}
 impl ::core::clone::Clone for QUERY_FILE_LAYOUT_FILTER_TYPE {
     fn clone(&self) -> Self {
@@ -3293,8 +4183,8 @@ impl ::core::default::Default for QUERY_FILE_LAYOUT_FILTER_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for QUERY_FILE_LAYOUT_FILTER_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for QUERY_FILE_LAYOUT_FILTER_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for QUERY_FILE_LAYOUT_FILTER_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3305,14 +4195,6 @@ impl ::core::fmt::Debug for QUERY_FILE_LAYOUT_FILTER_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct REFS_SMR_VOLUME_GC_ACTION(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcActionStart: REFS_SMR_VOLUME_GC_ACTION = REFS_SMR_VOLUME_GC_ACTION(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcActionStartFullSpeed: REFS_SMR_VOLUME_GC_ACTION = REFS_SMR_VOLUME_GC_ACTION(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcActionPause: REFS_SMR_VOLUME_GC_ACTION = REFS_SMR_VOLUME_GC_ACTION(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcActionStop: REFS_SMR_VOLUME_GC_ACTION = REFS_SMR_VOLUME_GC_ACTION(4i32);
 impl ::core::marker::Copy for REFS_SMR_VOLUME_GC_ACTION {}
 impl ::core::clone::Clone for REFS_SMR_VOLUME_GC_ACTION {
     fn clone(&self) -> Self {
@@ -3324,8 +4206,8 @@ impl ::core::default::Default for REFS_SMR_VOLUME_GC_ACTION {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for REFS_SMR_VOLUME_GC_ACTION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REFS_SMR_VOLUME_GC_ACTION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for REFS_SMR_VOLUME_GC_ACTION {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3336,12 +4218,6 @@ impl ::core::fmt::Debug for REFS_SMR_VOLUME_GC_ACTION {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct REFS_SMR_VOLUME_GC_METHOD(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcMethodCompaction: REFS_SMR_VOLUME_GC_METHOD = REFS_SMR_VOLUME_GC_METHOD(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcMethodCompression: REFS_SMR_VOLUME_GC_METHOD = REFS_SMR_VOLUME_GC_METHOD(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcMethodRotation: REFS_SMR_VOLUME_GC_METHOD = REFS_SMR_VOLUME_GC_METHOD(3i32);
 impl ::core::marker::Copy for REFS_SMR_VOLUME_GC_METHOD {}
 impl ::core::clone::Clone for REFS_SMR_VOLUME_GC_METHOD {
     fn clone(&self) -> Self {
@@ -3353,8 +4229,8 @@ impl ::core::default::Default for REFS_SMR_VOLUME_GC_METHOD {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for REFS_SMR_VOLUME_GC_METHOD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REFS_SMR_VOLUME_GC_METHOD {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for REFS_SMR_VOLUME_GC_METHOD {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3365,14 +4241,6 @@ impl ::core::fmt::Debug for REFS_SMR_VOLUME_GC_METHOD {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct REFS_SMR_VOLUME_GC_STATE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcStateInactive: REFS_SMR_VOLUME_GC_STATE = REFS_SMR_VOLUME_GC_STATE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcStatePaused: REFS_SMR_VOLUME_GC_STATE = REFS_SMR_VOLUME_GC_STATE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcStateActive: REFS_SMR_VOLUME_GC_STATE = REFS_SMR_VOLUME_GC_STATE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SmrGcStateActiveFullSpeed: REFS_SMR_VOLUME_GC_STATE = REFS_SMR_VOLUME_GC_STATE(3i32);
 impl ::core::marker::Copy for REFS_SMR_VOLUME_GC_STATE {}
 impl ::core::clone::Clone for REFS_SMR_VOLUME_GC_STATE {
     fn clone(&self) -> Self {
@@ -3384,8 +4252,8 @@ impl ::core::default::Default for REFS_SMR_VOLUME_GC_STATE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for REFS_SMR_VOLUME_GC_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REFS_SMR_VOLUME_GC_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for REFS_SMR_VOLUME_GC_STATE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3396,12 +4264,6 @@ impl ::core::fmt::Debug for REFS_SMR_VOLUME_GC_STATE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_BUS_FIRMWARE_ACTIVATION_STATE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusFirmwareActivationState_Idle: SCM_BUS_FIRMWARE_ACTIVATION_STATE = SCM_BUS_FIRMWARE_ACTIVATION_STATE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusFirmwareActivationState_Armed: SCM_BUS_FIRMWARE_ACTIVATION_STATE = SCM_BUS_FIRMWARE_ACTIVATION_STATE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusFirmwareActivationState_Busy: SCM_BUS_FIRMWARE_ACTIVATION_STATE = SCM_BUS_FIRMWARE_ACTIVATION_STATE(2i32);
 impl ::core::marker::Copy for SCM_BUS_FIRMWARE_ACTIVATION_STATE {}
 impl ::core::clone::Clone for SCM_BUS_FIRMWARE_ACTIVATION_STATE {
     fn clone(&self) -> Self {
@@ -3413,8 +4275,8 @@ impl ::core::default::Default for SCM_BUS_FIRMWARE_ACTIVATION_STATE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_BUS_FIRMWARE_ACTIVATION_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_FIRMWARE_ACTIVATION_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_BUS_FIRMWARE_ACTIVATION_STATE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3425,14 +4287,6 @@ impl ::core::fmt::Debug for SCM_BUS_FIRMWARE_ACTIVATION_STATE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_BUS_PROPERTY_ID(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusProperty_RuntimeFwActivationInfo: SCM_BUS_PROPERTY_ID = SCM_BUS_PROPERTY_ID(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusProperty_DedicatedMemoryInfo: SCM_BUS_PROPERTY_ID = SCM_BUS_PROPERTY_ID(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusProperty_DedicatedMemoryState: SCM_BUS_PROPERTY_ID = SCM_BUS_PROPERTY_ID(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusProperty_Max: SCM_BUS_PROPERTY_ID = SCM_BUS_PROPERTY_ID(3i32);
 impl ::core::marker::Copy for SCM_BUS_PROPERTY_ID {}
 impl ::core::clone::Clone for SCM_BUS_PROPERTY_ID {
     fn clone(&self) -> Self {
@@ -3444,8 +4298,8 @@ impl ::core::default::Default for SCM_BUS_PROPERTY_ID {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_BUS_PROPERTY_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_PROPERTY_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_BUS_PROPERTY_ID {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3456,12 +4310,6 @@ impl ::core::fmt::Debug for SCM_BUS_PROPERTY_ID {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_BUS_QUERY_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusQuery_Descriptor: SCM_BUS_QUERY_TYPE = SCM_BUS_QUERY_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusQuery_IsSupported: SCM_BUS_QUERY_TYPE = SCM_BUS_QUERY_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusQuery_Max: SCM_BUS_QUERY_TYPE = SCM_BUS_QUERY_TYPE(2i32);
 impl ::core::marker::Copy for SCM_BUS_QUERY_TYPE {}
 impl ::core::clone::Clone for SCM_BUS_QUERY_TYPE {
     fn clone(&self) -> Self {
@@ -3473,8 +4321,8 @@ impl ::core::default::Default for SCM_BUS_QUERY_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_BUS_QUERY_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_QUERY_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_BUS_QUERY_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3485,12 +4333,6 @@ impl ::core::fmt::Debug for SCM_BUS_QUERY_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_BUS_SET_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusSet_Descriptor: SCM_BUS_SET_TYPE = SCM_BUS_SET_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusSet_IsSupported: SCM_BUS_SET_TYPE = SCM_BUS_SET_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmBusSet_Max: SCM_BUS_SET_TYPE = SCM_BUS_SET_TYPE(2i32);
 impl ::core::marker::Copy for SCM_BUS_SET_TYPE {}
 impl ::core::clone::Clone for SCM_BUS_SET_TYPE {
     fn clone(&self) -> Self {
@@ -3502,8 +4344,8 @@ impl ::core::default::Default for SCM_BUS_SET_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_BUS_SET_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_SET_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_BUS_SET_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3514,12 +4356,6 @@ impl ::core::fmt::Debug for SCM_BUS_SET_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_PD_FIRMWARE_ACTIVATION_STATE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdFirmwareActivationState_Idle: SCM_PD_FIRMWARE_ACTIVATION_STATE = SCM_PD_FIRMWARE_ACTIVATION_STATE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdFirmwareActivationState_Armed: SCM_PD_FIRMWARE_ACTIVATION_STATE = SCM_PD_FIRMWARE_ACTIVATION_STATE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdFirmwareActivationState_Busy: SCM_PD_FIRMWARE_ACTIVATION_STATE = SCM_PD_FIRMWARE_ACTIVATION_STATE(2i32);
 impl ::core::marker::Copy for SCM_PD_FIRMWARE_ACTIVATION_STATE {}
 impl ::core::clone::Clone for SCM_PD_FIRMWARE_ACTIVATION_STATE {
     fn clone(&self) -> Self {
@@ -3531,8 +4367,8 @@ impl ::core::default::Default for SCM_PD_FIRMWARE_ACTIVATION_STATE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_FIRMWARE_ACTIVATION_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_FIRMWARE_ACTIVATION_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_PD_FIRMWARE_ACTIVATION_STATE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3543,16 +4379,6 @@ impl ::core::fmt::Debug for SCM_PD_FIRMWARE_ACTIVATION_STATE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_PD_HEALTH_STATUS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceHealth_Unknown: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceHealth_Unhealthy: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceHealth_Warning: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceHealth_Healthy: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceHealth_Max: SCM_PD_HEALTH_STATUS = SCM_PD_HEALTH_STATUS(4i32);
 impl ::core::marker::Copy for SCM_PD_HEALTH_STATUS {}
 impl ::core::clone::Clone for SCM_PD_HEALTH_STATUS {
     fn clone(&self) -> Self {
@@ -3564,8 +4390,8 @@ impl ::core::default::Default for SCM_PD_HEALTH_STATUS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_HEALTH_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_HEALTH_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_PD_HEALTH_STATUS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3576,22 +4402,6 @@ impl ::core::fmt::Debug for SCM_PD_HEALTH_STATUS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_PD_LAST_FW_ACTIVATION_STATUS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdLastFwActivationStatus_None: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdLastFwActivationStatus_Success: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdLastFwActivationStatus_FwNotFound: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdLastFwActivationStatus_ColdRebootRequired: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdLastFwActivaitonStatus_ActivationInProgress: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdLastFwActivaitonStatus_Retry: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdLastFwActivaitonStatus_FwUnsupported: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPdLastFwActivaitonStatus_UnknownError: SCM_PD_LAST_FW_ACTIVATION_STATUS = SCM_PD_LAST_FW_ACTIVATION_STATUS(7i32);
 impl ::core::marker::Copy for SCM_PD_LAST_FW_ACTIVATION_STATUS {}
 impl ::core::clone::Clone for SCM_PD_LAST_FW_ACTIVATION_STATUS {
     fn clone(&self) -> Self {
@@ -3603,8 +4413,8 @@ impl ::core::default::Default for SCM_PD_LAST_FW_ACTIVATION_STATUS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_LAST_FW_ACTIVATION_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_LAST_FW_ACTIVATION_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_PD_LAST_FW_ACTIVATION_STATUS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3615,14 +4425,6 @@ impl ::core::fmt::Debug for SCM_PD_LAST_FW_ACTIVATION_STATUS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_PD_MEDIA_REINITIALIZATION_STATUS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceReinit_Success: SCM_PD_MEDIA_REINITIALIZATION_STATUS = SCM_PD_MEDIA_REINITIALIZATION_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceReinit_RebootNeeded: SCM_PD_MEDIA_REINITIALIZATION_STATUS = SCM_PD_MEDIA_REINITIALIZATION_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceReinit_ColdBootNeeded: SCM_PD_MEDIA_REINITIALIZATION_STATUS = SCM_PD_MEDIA_REINITIALIZATION_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceReinit_Max: SCM_PD_MEDIA_REINITIALIZATION_STATUS = SCM_PD_MEDIA_REINITIALIZATION_STATUS(3i32);
 impl ::core::marker::Copy for SCM_PD_MEDIA_REINITIALIZATION_STATUS {}
 impl ::core::clone::Clone for SCM_PD_MEDIA_REINITIALIZATION_STATUS {
     fn clone(&self) -> Self {
@@ -3634,8 +4436,8 @@ impl ::core::default::Default for SCM_PD_MEDIA_REINITIALIZATION_STATUS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_MEDIA_REINITIALIZATION_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_MEDIA_REINITIALIZATION_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_PD_MEDIA_REINITIALIZATION_STATUS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3646,24 +4448,6 @@ impl ::core::fmt::Debug for SCM_PD_MEDIA_REINITIALIZATION_STATUS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_PD_OPERATIONAL_STATUS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpStatus_Unknown: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpStatus_Ok: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpStatus_PredictingFailure: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpStatus_InService: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpStatus_HardwareError: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpStatus_NotUsable: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpStatus_TransientError: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpStatus_Missing: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpStatus_Max: SCM_PD_OPERATIONAL_STATUS = SCM_PD_OPERATIONAL_STATUS(8i32);
 impl ::core::marker::Copy for SCM_PD_OPERATIONAL_STATUS {}
 impl ::core::clone::Clone for SCM_PD_OPERATIONAL_STATUS {
     fn clone(&self) -> Self {
@@ -3675,8 +4459,8 @@ impl ::core::default::Default for SCM_PD_OPERATIONAL_STATUS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_OPERATIONAL_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_OPERATIONAL_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_PD_OPERATIONAL_STATUS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3687,54 +4471,6 @@ impl ::core::fmt::Debug for SCM_PD_OPERATIONAL_STATUS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_PD_OPERATIONAL_STATUS_REASON(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_Unknown: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_Media: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_ThresholdExceeded: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_LostData: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_EnergySource: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_Configuration: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_DeviceController: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_MediaController: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_Component: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_BackgroundOperation: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(9i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_InvalidFirmware: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(10i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_HealthCheck: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(11i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_LostDataPersistence: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(12i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_DisabledByPlatform: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(13i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_PermanentError: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(14i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_LostWritePersistence: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(15i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_FatalError: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(16i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_DataPersistenceLossImminent: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(17i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_WritePersistenceLossImminent: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(18i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_MediaRemainingSpareBlock: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(19i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_PerformanceDegradation: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(20i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_ExcessiveTemperature: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(21i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_InternalFailure: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(22i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceOpReason_Max: SCM_PD_OPERATIONAL_STATUS_REASON = SCM_PD_OPERATIONAL_STATUS_REASON(23i32);
 impl ::core::marker::Copy for SCM_PD_OPERATIONAL_STATUS_REASON {}
 impl ::core::clone::Clone for SCM_PD_OPERATIONAL_STATUS_REASON {
     fn clone(&self) -> Self {
@@ -3746,8 +4482,8 @@ impl ::core::default::Default for SCM_PD_OPERATIONAL_STATUS_REASON {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_OPERATIONAL_STATUS_REASON {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_OPERATIONAL_STATUS_REASON {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_PD_OPERATIONAL_STATUS_REASON {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3758,26 +4494,6 @@ impl ::core::fmt::Debug for SCM_PD_OPERATIONAL_STATUS_REASON {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_PD_PROPERTY_ID(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_DeviceInfo: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_ManagementStatus: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_FirmwareInfo: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_LocationString: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_DeviceSpecificInfo: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_DeviceHandle: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_FruIdString: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_RuntimeFwActivationInfo: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_RuntimeFwActivationArmState: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceProperty_Max: SCM_PD_PROPERTY_ID = SCM_PD_PROPERTY_ID(9i32);
 impl ::core::marker::Copy for SCM_PD_PROPERTY_ID {}
 impl ::core::clone::Clone for SCM_PD_PROPERTY_ID {
     fn clone(&self) -> Self {
@@ -3789,8 +4505,8 @@ impl ::core::default::Default for SCM_PD_PROPERTY_ID {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_PROPERTY_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_PROPERTY_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_PD_PROPERTY_ID {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3801,12 +4517,6 @@ impl ::core::fmt::Debug for SCM_PD_PROPERTY_ID {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_PD_QUERY_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceQuery_Descriptor: SCM_PD_QUERY_TYPE = SCM_PD_QUERY_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceQuery_IsSupported: SCM_PD_QUERY_TYPE = SCM_PD_QUERY_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceQuery_Max: SCM_PD_QUERY_TYPE = SCM_PD_QUERY_TYPE(2i32);
 impl ::core::marker::Copy for SCM_PD_QUERY_TYPE {}
 impl ::core::clone::Clone for SCM_PD_QUERY_TYPE {
     fn clone(&self) -> Self {
@@ -3818,8 +4528,8 @@ impl ::core::default::Default for SCM_PD_QUERY_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_QUERY_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_QUERY_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_PD_QUERY_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3830,12 +4540,6 @@ impl ::core::fmt::Debug for SCM_PD_QUERY_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_PD_SET_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceSet_Descriptor: SCM_PD_SET_TYPE = SCM_PD_SET_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceSet_IsSupported: SCM_PD_SET_TYPE = SCM_PD_SET_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmPhysicalDeviceSet_Max: SCM_PD_SET_TYPE = SCM_PD_SET_TYPE(2i32);
 impl ::core::marker::Copy for SCM_PD_SET_TYPE {}
 impl ::core::clone::Clone for SCM_PD_SET_TYPE {
     fn clone(&self) -> Self {
@@ -3847,8 +4551,8 @@ impl ::core::default::Default for SCM_PD_SET_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_SET_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_SET_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_PD_SET_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3859,10 +4563,6 @@ impl ::core::fmt::Debug for SCM_PD_SET_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SCM_REGION_FLAG(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmRegionFlagNone: SCM_REGION_FLAG = SCM_REGION_FLAG(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ScmRegionFlagLabel: SCM_REGION_FLAG = SCM_REGION_FLAG(1i32);
 impl ::core::marker::Copy for SCM_REGION_FLAG {}
 impl ::core::clone::Clone for SCM_REGION_FLAG {
     fn clone(&self) -> Self {
@@ -3874,8 +4574,8 @@ impl ::core::default::Default for SCM_REGION_FLAG {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SCM_REGION_FLAG {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_REGION_FLAG {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SCM_REGION_FLAG {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3886,12 +4586,6 @@ impl ::core::fmt::Debug for SCM_REGION_FLAG {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SHRINK_VOLUME_REQUEST_TYPES(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ShrinkPrepare: SHRINK_VOLUME_REQUEST_TYPES = SHRINK_VOLUME_REQUEST_TYPES(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ShrinkCommit: SHRINK_VOLUME_REQUEST_TYPES = SHRINK_VOLUME_REQUEST_TYPES(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ShrinkAbort: SHRINK_VOLUME_REQUEST_TYPES = SHRINK_VOLUME_REQUEST_TYPES(3i32);
 impl ::core::marker::Copy for SHRINK_VOLUME_REQUEST_TYPES {}
 impl ::core::clone::Clone for SHRINK_VOLUME_REQUEST_TYPES {
     fn clone(&self) -> Self {
@@ -3903,8 +4597,8 @@ impl ::core::default::Default for SHRINK_VOLUME_REQUEST_TYPES {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for SHRINK_VOLUME_REQUEST_TYPES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SHRINK_VOLUME_REQUEST_TYPES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for SHRINK_VOLUME_REQUEST_TYPES {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3915,12 +4609,6 @@ impl ::core::fmt::Debug for SHRINK_VOLUME_REQUEST_TYPES {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_ASSOCIATION_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdAssocDevice: STORAGE_ASSOCIATION_TYPE = STORAGE_ASSOCIATION_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdAssocPort: STORAGE_ASSOCIATION_TYPE = STORAGE_ASSOCIATION_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdAssocTarget: STORAGE_ASSOCIATION_TYPE = STORAGE_ASSOCIATION_TYPE(2i32);
 impl ::core::marker::Copy for STORAGE_ASSOCIATION_TYPE {}
 impl ::core::clone::Clone for STORAGE_ASSOCIATION_TYPE {
     fn clone(&self) -> Self {
@@ -3932,8 +4620,8 @@ impl ::core::default::Default for STORAGE_ASSOCIATION_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ASSOCIATION_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ASSOCIATION_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_ASSOCIATION_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3944,12 +4632,6 @@ impl ::core::fmt::Debug for STORAGE_ASSOCIATION_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_ATTRIBUTE_MGMT_ACTION(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorAttributeMgmt_ClearAttribute: STORAGE_ATTRIBUTE_MGMT_ACTION = STORAGE_ATTRIBUTE_MGMT_ACTION(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorAttributeMgmt_SetAttribute: STORAGE_ATTRIBUTE_MGMT_ACTION = STORAGE_ATTRIBUTE_MGMT_ACTION(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorAttributeMgmt_ResetAttribute: STORAGE_ATTRIBUTE_MGMT_ACTION = STORAGE_ATTRIBUTE_MGMT_ACTION(2i32);
 impl ::core::marker::Copy for STORAGE_ATTRIBUTE_MGMT_ACTION {}
 impl ::core::clone::Clone for STORAGE_ATTRIBUTE_MGMT_ACTION {
     fn clone(&self) -> Self {
@@ -3961,8 +4643,8 @@ impl ::core::default::Default for STORAGE_ATTRIBUTE_MGMT_ACTION {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ATTRIBUTE_MGMT_ACTION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ATTRIBUTE_MGMT_ACTION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_ATTRIBUTE_MGMT_ACTION {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -3973,18 +4655,6 @@ impl ::core::fmt::Debug for STORAGE_ATTRIBUTE_MGMT_ACTION {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_COMPONENT_HEALTH_STATUS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const HealthStatusUnknown: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const HealthStatusNormal: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const HealthStatusThrottled: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const HealthStatusWarning: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const HealthStatusDisabled: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const HealthStatusFailed: STORAGE_COMPONENT_HEALTH_STATUS = STORAGE_COMPONENT_HEALTH_STATUS(5i32);
 impl ::core::marker::Copy for STORAGE_COMPONENT_HEALTH_STATUS {}
 impl ::core::clone::Clone for STORAGE_COMPONENT_HEALTH_STATUS {
     fn clone(&self) -> Self {
@@ -3996,8 +4666,8 @@ impl ::core::default::Default for STORAGE_COMPONENT_HEALTH_STATUS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_COMPONENT_HEALTH_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_COMPONENT_HEALTH_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_COMPONENT_HEALTH_STATUS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4008,50 +4678,6 @@ impl ::core::fmt::Debug for STORAGE_COMPONENT_HEALTH_STATUS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_COUNTER_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeUnknown: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeTemperatureCelsius: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeTemperatureCelsiusMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeReadErrorsTotal: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeReadErrorsCorrected: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeReadErrorsUncorrected: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeWriteErrorsTotal: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeWriteErrorsCorrected: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeWriteErrorsUncorrected: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeManufactureDate: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(9i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeStartStopCycleCount: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(10i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeStartStopCycleCountMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(11i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeLoadUnloadCycleCount: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(12i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeLoadUnloadCycleCountMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(13i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeWearPercentage: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(14i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeWearPercentageWarning: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(15i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeWearPercentageMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(16i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypePowerOnHours: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(17i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeReadLatency100NSMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(18i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeWriteLatency100NSMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(19i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeFlushLatency100NSMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(20i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCounterTypeMax: STORAGE_COUNTER_TYPE = STORAGE_COUNTER_TYPE(21i32);
 impl ::core::marker::Copy for STORAGE_COUNTER_TYPE {}
 impl ::core::clone::Clone for STORAGE_COUNTER_TYPE {
     fn clone(&self) -> Self {
@@ -4063,8 +4689,8 @@ impl ::core::default::Default for STORAGE_COUNTER_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_COUNTER_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_COUNTER_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_COUNTER_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4075,18 +4701,6 @@ impl ::core::fmt::Debug for STORAGE_COUNTER_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_CRYPTO_ALGORITHM_ID(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoAlgorithmUnknown: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoAlgorithmXTSAES: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoAlgorithmBitlockerAESCBC: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoAlgorithmAESECB: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoAlgorithmESSIVAESCBC: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoAlgorithmMax: STORAGE_CRYPTO_ALGORITHM_ID = STORAGE_CRYPTO_ALGORITHM_ID(5i32);
 impl ::core::marker::Copy for STORAGE_CRYPTO_ALGORITHM_ID {}
 impl ::core::clone::Clone for STORAGE_CRYPTO_ALGORITHM_ID {
     fn clone(&self) -> Self {
@@ -4098,8 +4712,8 @@ impl ::core::default::Default for STORAGE_CRYPTO_ALGORITHM_ID {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_CRYPTO_ALGORITHM_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_CRYPTO_ALGORITHM_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_CRYPTO_ALGORITHM_ID {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4110,16 +4724,6 @@ impl ::core::fmt::Debug for STORAGE_CRYPTO_ALGORITHM_ID {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_CRYPTO_KEY_SIZE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoKeySizeUnknown: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoKeySize128Bits: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoKeySize192Bits: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoKeySize256Bits: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageCryptoKeySize512Bits: STORAGE_CRYPTO_KEY_SIZE = STORAGE_CRYPTO_KEY_SIZE(4i32);
 impl ::core::marker::Copy for STORAGE_CRYPTO_KEY_SIZE {}
 impl ::core::clone::Clone for STORAGE_CRYPTO_KEY_SIZE {
     fn clone(&self) -> Self {
@@ -4131,8 +4735,8 @@ impl ::core::default::Default for STORAGE_CRYPTO_KEY_SIZE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_CRYPTO_KEY_SIZE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_CRYPTO_KEY_SIZE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_CRYPTO_KEY_SIZE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4143,28 +4747,6 @@ impl ::core::fmt::Debug for STORAGE_CRYPTO_KEY_SIZE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_DEVICE_FORM_FACTOR(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactorUnknown: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactor3_5: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactor2_5: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactor1_8: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactor1_8Less: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactorEmbedded: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactorMemoryCard: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactormSata: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactorM_2: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactorPCIeBoard: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(9i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const FormFactorDimm: STORAGE_DEVICE_FORM_FACTOR = STORAGE_DEVICE_FORM_FACTOR(10i32);
 impl ::core::marker::Copy for STORAGE_DEVICE_FORM_FACTOR {}
 impl ::core::clone::Clone for STORAGE_DEVICE_FORM_FACTOR {
     fn clone(&self) -> Self {
@@ -4176,8 +4758,8 @@ impl ::core::default::Default for STORAGE_DEVICE_FORM_FACTOR {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_FORM_FACTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_FORM_FACTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_DEVICE_FORM_FACTOR {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4188,10 +4770,6 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_FORM_FACTOR {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_DEVICE_POWER_CAP_UNITS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDevicePowerCapUnitsPercent: STORAGE_DEVICE_POWER_CAP_UNITS = STORAGE_DEVICE_POWER_CAP_UNITS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDevicePowerCapUnitsMilliwatts: STORAGE_DEVICE_POWER_CAP_UNITS = STORAGE_DEVICE_POWER_CAP_UNITS(1i32);
 impl ::core::marker::Copy for STORAGE_DEVICE_POWER_CAP_UNITS {}
 impl ::core::clone::Clone for STORAGE_DEVICE_POWER_CAP_UNITS {
     fn clone(&self) -> Self {
@@ -4203,8 +4781,8 @@ impl ::core::default::Default for STORAGE_DEVICE_POWER_CAP_UNITS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_POWER_CAP_UNITS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_POWER_CAP_UNITS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_DEVICE_POWER_CAP_UNITS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4215,10 +4793,6 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_POWER_CAP_UNITS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_DIAGNOSTIC_LEVEL(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDiagnosticLevelDefault: STORAGE_DIAGNOSTIC_LEVEL = STORAGE_DIAGNOSTIC_LEVEL(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDiagnosticLevelMax: STORAGE_DIAGNOSTIC_LEVEL = STORAGE_DIAGNOSTIC_LEVEL(1i32);
 impl ::core::marker::Copy for STORAGE_DIAGNOSTIC_LEVEL {}
 impl ::core::clone::Clone for STORAGE_DIAGNOSTIC_LEVEL {
     fn clone(&self) -> Self {
@@ -4230,8 +4804,8 @@ impl ::core::default::Default for STORAGE_DIAGNOSTIC_LEVEL {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DIAGNOSTIC_LEVEL {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DIAGNOSTIC_LEVEL {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_DIAGNOSTIC_LEVEL {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4242,16 +4816,6 @@ impl ::core::fmt::Debug for STORAGE_DIAGNOSTIC_LEVEL {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_DIAGNOSTIC_TARGET_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDiagnosticTargetTypeUndefined: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDiagnosticTargetTypePort: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDiagnosticTargetTypeMiniport: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDiagnosticTargetTypeHbaFirmware: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDiagnosticTargetTypeMax: STORAGE_DIAGNOSTIC_TARGET_TYPE = STORAGE_DIAGNOSTIC_TARGET_TYPE(4i32);
 impl ::core::marker::Copy for STORAGE_DIAGNOSTIC_TARGET_TYPE {}
 impl ::core::clone::Clone for STORAGE_DIAGNOSTIC_TARGET_TYPE {
     fn clone(&self) -> Self {
@@ -4263,8 +4827,8 @@ impl ::core::default::Default for STORAGE_DIAGNOSTIC_TARGET_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DIAGNOSTIC_TARGET_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DIAGNOSTIC_TARGET_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_DIAGNOSTIC_TARGET_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4275,16 +4839,6 @@ impl ::core::fmt::Debug for STORAGE_DIAGNOSTIC_TARGET_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_DISK_HEALTH_STATUS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskHealthUnknown: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskHealthUnhealthy: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskHealthWarning: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskHealthHealthy: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskHealthMax: STORAGE_DISK_HEALTH_STATUS = STORAGE_DISK_HEALTH_STATUS(4i32);
 impl ::core::marker::Copy for STORAGE_DISK_HEALTH_STATUS {}
 impl ::core::clone::Clone for STORAGE_DISK_HEALTH_STATUS {
     fn clone(&self) -> Self {
@@ -4296,8 +4850,8 @@ impl ::core::default::Default for STORAGE_DISK_HEALTH_STATUS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DISK_HEALTH_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DISK_HEALTH_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_DISK_HEALTH_STATUS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4308,24 +4862,6 @@ impl ::core::fmt::Debug for STORAGE_DISK_HEALTH_STATUS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_DISK_OPERATIONAL_STATUS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpStatusNone: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpStatusUnknown: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpStatusOk: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpStatusPredictingFailure: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpStatusInService: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpStatusHardwareError: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpStatusNotUsable: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpStatusTransientError: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpStatusMissing: STORAGE_DISK_OPERATIONAL_STATUS = STORAGE_DISK_OPERATIONAL_STATUS(8i32);
 impl ::core::marker::Copy for STORAGE_DISK_OPERATIONAL_STATUS {}
 impl ::core::clone::Clone for STORAGE_DISK_OPERATIONAL_STATUS {
     fn clone(&self) -> Self {
@@ -4337,8 +4873,8 @@ impl ::core::default::Default for STORAGE_DISK_OPERATIONAL_STATUS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DISK_OPERATIONAL_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DISK_OPERATIONAL_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_DISK_OPERATIONAL_STATUS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4349,12 +4885,6 @@ impl ::core::fmt::Debug for STORAGE_DISK_OPERATIONAL_STATUS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_ENCRYPTION_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageEncryptionTypeUnknown: STORAGE_ENCRYPTION_TYPE = STORAGE_ENCRYPTION_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageEncryptionTypeEDrive: STORAGE_ENCRYPTION_TYPE = STORAGE_ENCRYPTION_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageEncryptionTypeTcgOpal: STORAGE_ENCRYPTION_TYPE = STORAGE_ENCRYPTION_TYPE(2i32);
 impl ::core::marker::Copy for STORAGE_ENCRYPTION_TYPE {}
 impl ::core::clone::Clone for STORAGE_ENCRYPTION_TYPE {
     fn clone(&self) -> Self {
@@ -4366,8 +4896,8 @@ impl ::core::default::Default for STORAGE_ENCRYPTION_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ENCRYPTION_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ENCRYPTION_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_ENCRYPTION_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4378,14 +4908,6 @@ impl ::core::fmt::Debug for STORAGE_ENCRYPTION_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_IDENTIFIER_CODE_SET(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdCodeSetReserved: STORAGE_IDENTIFIER_CODE_SET = STORAGE_IDENTIFIER_CODE_SET(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdCodeSetBinary: STORAGE_IDENTIFIER_CODE_SET = STORAGE_IDENTIFIER_CODE_SET(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdCodeSetAscii: STORAGE_IDENTIFIER_CODE_SET = STORAGE_IDENTIFIER_CODE_SET(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdCodeSetUtf8: STORAGE_IDENTIFIER_CODE_SET = STORAGE_IDENTIFIER_CODE_SET(3i32);
 impl ::core::marker::Copy for STORAGE_IDENTIFIER_CODE_SET {}
 impl ::core::clone::Clone for STORAGE_IDENTIFIER_CODE_SET {
     fn clone(&self) -> Self {
@@ -4397,8 +4919,8 @@ impl ::core::default::Default for STORAGE_IDENTIFIER_CODE_SET {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_IDENTIFIER_CODE_SET {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_IDENTIFIER_CODE_SET {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_IDENTIFIER_CODE_SET {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4409,24 +4931,6 @@ impl ::core::fmt::Debug for STORAGE_IDENTIFIER_CODE_SET {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_IDENTIFIER_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdTypeVendorSpecific: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdTypeVendorId: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdTypeEUI64: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdTypeFCPHName: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdTypePortRelative: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdTypeTargetPortGroup: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdTypeLogicalUnitGroup: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdTypeMD5LogicalUnitIdentifier: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdTypeScsiNameString: STORAGE_IDENTIFIER_TYPE = STORAGE_IDENTIFIER_TYPE(8i32);
 impl ::core::marker::Copy for STORAGE_IDENTIFIER_TYPE {}
 impl ::core::clone::Clone for STORAGE_IDENTIFIER_TYPE {
     fn clone(&self) -> Self {
@@ -4438,8 +4942,8 @@ impl ::core::default::Default for STORAGE_IDENTIFIER_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_IDENTIFIER_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_IDENTIFIER_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_IDENTIFIER_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4450,12 +4954,6 @@ impl ::core::fmt::Debug for STORAGE_IDENTIFIER_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_ID_NAA_FORMAT(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdNAAFormatIEEEExtended: STORAGE_ID_NAA_FORMAT = STORAGE_ID_NAA_FORMAT(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdNAAFormatIEEERegistered: STORAGE_ID_NAA_FORMAT = STORAGE_ID_NAA_FORMAT(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageIdNAAFormatIEEEERegisteredExtended: STORAGE_ID_NAA_FORMAT = STORAGE_ID_NAA_FORMAT(5i32);
 impl ::core::marker::Copy for STORAGE_ID_NAA_FORMAT {}
 impl ::core::clone::Clone for STORAGE_ID_NAA_FORMAT {
     fn clone(&self) -> Self {
@@ -4467,8 +4965,8 @@ impl ::core::default::Default for STORAGE_ID_NAA_FORMAT {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ID_NAA_FORMAT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ID_NAA_FORMAT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_ID_NAA_FORMAT {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4479,132 +4977,6 @@ impl ::core::fmt::Debug for STORAGE_ID_NAA_FORMAT {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_MEDIA_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DDS_4mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(32i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const MiniQic: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(33i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const Travan: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(34i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const QIC: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(35i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const MP_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(36i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const AME_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(37i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const AIT1_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(38i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DLT: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(39i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const NCTP: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(40i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const IBM_3480: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(41i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const IBM_3490E: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(42i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const IBM_Magstar_3590: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(43i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const IBM_Magstar_MP: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(44i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const STK_DATA_D3: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(45i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SONY_DTF: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(46i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DV_6mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(47i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DMI: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(48i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SONY_D2: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(49i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CLEANER_CARTRIDGE: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(50i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CD_ROM: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(51i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CD_R: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(52i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CD_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(53i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DVD_ROM: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(54i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DVD_R: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(55i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DVD_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(56i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const MO_3_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(57i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const MO_5_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(58i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const MO_5_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(59i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const MO_5_LIMDOW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(60i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PC_5_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(61i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PC_5_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(62i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PD_5_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(63i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ABL_5_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(64i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PINNACLE_APEX_5_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(65i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SONY_12_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(66i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PHILIPS_12_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(67i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const HITACHI_12_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(68i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const CYGNET_12_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(69i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const KODAK_14_WO: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(70i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const MO_NFR_525: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(71i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const NIKON_12_RW: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(72i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const IOMEGA_ZIP: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(73i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const IOMEGA_JAZ: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(74i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SYQUEST_EZ135: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(75i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SYQUEST_EZFLYER: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(76i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SYQUEST_SYJET: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(77i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const AVATAR_F2: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(78i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const MP2_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(79i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DST_S: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(80i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DST_M: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(81i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DST_L: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(82i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const VXATape_1: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(83i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const VXATape_2: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(84i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const STK_9840: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(85i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const LTO_Ultrium: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(86i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const LTO_Accelis: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(87i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DVD_RAM: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(88i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const AIT_8mm: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(89i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ADR_1: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(90i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ADR_2: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(91i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const STK_9940: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(92i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const SAIT: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(93i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const VXATape: STORAGE_MEDIA_TYPE = STORAGE_MEDIA_TYPE(94i32);
 impl ::core::marker::Copy for STORAGE_MEDIA_TYPE {}
 impl ::core::clone::Clone for STORAGE_MEDIA_TYPE {
     fn clone(&self) -> Self {
@@ -4616,8 +4988,8 @@ impl ::core::default::Default for STORAGE_MEDIA_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_MEDIA_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_MEDIA_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_MEDIA_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4628,48 +5000,6 @@ impl ::core::fmt::Debug for STORAGE_MEDIA_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_OPERATIONAL_STATUS_REASON(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonUnknown: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonScsiSenseCode: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonMedia: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonIo: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonThresholdExceeded: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonLostData: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonEnergySource: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonConfiguration: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonDeviceController: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonMediaController: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(9i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonComponent: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(10i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonNVDIMM_N: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(11i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonBackgroundOperation: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(12i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonInvalidFirmware: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(13i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonHealthCheck: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(14i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonLostDataPersistence: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(15i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonDisabledByPlatform: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(16i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonLostWritePersistence: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(17i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonDataPersistenceLossImminent: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(18i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonWritePersistenceLossImminent: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(19i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const DiskOpReasonMax: STORAGE_OPERATIONAL_STATUS_REASON = STORAGE_OPERATIONAL_STATUS_REASON(20i32);
 impl ::core::marker::Copy for STORAGE_OPERATIONAL_STATUS_REASON {}
 impl ::core::clone::Clone for STORAGE_OPERATIONAL_STATUS_REASON {
     fn clone(&self) -> Self {
@@ -4681,8 +5011,8 @@ impl ::core::default::Default for STORAGE_OPERATIONAL_STATUS_REASON {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OPERATIONAL_STATUS_REASON {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OPERATIONAL_STATUS_REASON {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_OPERATIONAL_STATUS_REASON {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4693,22 +5023,6 @@ impl ::core::fmt::Debug for STORAGE_OPERATIONAL_STATUS_REASON {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_PORT_CODE_SET(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePortCodeSetReserved: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePortCodeSetStorport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePortCodeSetSCSIport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePortCodeSetSpaceport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePortCodeSetATAport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePortCodeSetUSBport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePortCodeSetSBP2port: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePortCodeSetSDport: STORAGE_PORT_CODE_SET = STORAGE_PORT_CODE_SET(7i32);
 impl ::core::marker::Copy for STORAGE_PORT_CODE_SET {}
 impl ::core::clone::Clone for STORAGE_PORT_CODE_SET {
     fn clone(&self) -> Self {
@@ -4720,8 +5034,8 @@ impl ::core::default::Default for STORAGE_PORT_CODE_SET {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PORT_CODE_SET {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PORT_CODE_SET {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_PORT_CODE_SET {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4732,12 +5046,6 @@ impl ::core::fmt::Debug for STORAGE_PORT_CODE_SET {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_POWERUP_REASON_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePowerupUnknown: STORAGE_POWERUP_REASON_TYPE = STORAGE_POWERUP_REASON_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePowerupIO: STORAGE_POWERUP_REASON_TYPE = STORAGE_POWERUP_REASON_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StoragePowerupDeviceAttention: STORAGE_POWERUP_REASON_TYPE = STORAGE_POWERUP_REASON_TYPE(2i32);
 impl ::core::marker::Copy for STORAGE_POWERUP_REASON_TYPE {}
 impl ::core::clone::Clone for STORAGE_POWERUP_REASON_TYPE {
     fn clone(&self) -> Self {
@@ -4749,8 +5057,8 @@ impl ::core::default::Default for STORAGE_POWERUP_REASON_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_POWERUP_REASON_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_POWERUP_REASON_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_POWERUP_REASON_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4761,78 +5069,6 @@ impl ::core::fmt::Debug for STORAGE_POWERUP_REASON_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_PROPERTY_ID(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageAdapterProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceIdProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceUniqueIdProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceWriteCacheProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageMiniportProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageAccessAlignmentProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceSeekPenaltyProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(7i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceTrimProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(8i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceWriteAggregationProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(9i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceDeviceTelemetryProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(10i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceLBProvisioningProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(11i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDevicePowerProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(12i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceCopyOffloadProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(13i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceResiliencyProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(14i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceMediumProductType: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(15i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageAdapterRpmbProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(16i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageAdapterCryptoProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(17i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceIoCapabilityProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(48i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageAdapterProtocolSpecificProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(49i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceProtocolSpecificProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(50i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageAdapterTemperatureProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(51i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceTemperatureProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(52i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageAdapterPhysicalTopologyProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(53i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDevicePhysicalTopologyProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(54i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceAttributesProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(55i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceManagementStatus: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(56i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageAdapterSerialNumberProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(57i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceLocationProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(58i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceNumaProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(59i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceZonedDeviceProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(60i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceUnsafeShutdownCount: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(61i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceEnduranceProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(62i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceLedStateProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(63i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageDeviceSelfEncryptionProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(64i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageFruIdProperty: STORAGE_PROPERTY_ID = STORAGE_PROPERTY_ID(65i32);
 impl ::core::marker::Copy for STORAGE_PROPERTY_ID {}
 impl ::core::clone::Clone for STORAGE_PROPERTY_ID {
     fn clone(&self) -> Self {
@@ -4844,8 +5080,8 @@ impl ::core::default::Default for STORAGE_PROPERTY_ID {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROPERTY_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROPERTY_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_PROPERTY_ID {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4856,12 +5092,6 @@ impl ::core::fmt::Debug for STORAGE_PROPERTY_ID {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_PROTOCOL_ATA_DATA_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const AtaDataTypeUnknown: STORAGE_PROTOCOL_ATA_DATA_TYPE = STORAGE_PROTOCOL_ATA_DATA_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const AtaDataTypeIdentify: STORAGE_PROTOCOL_ATA_DATA_TYPE = STORAGE_PROTOCOL_ATA_DATA_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const AtaDataTypeLogPage: STORAGE_PROTOCOL_ATA_DATA_TYPE = STORAGE_PROTOCOL_ATA_DATA_TYPE(2i32);
 impl ::core::marker::Copy for STORAGE_PROTOCOL_ATA_DATA_TYPE {}
 impl ::core::clone::Clone for STORAGE_PROTOCOL_ATA_DATA_TYPE {
     fn clone(&self) -> Self {
@@ -4873,8 +5103,8 @@ impl ::core::default::Default for STORAGE_PROTOCOL_ATA_DATA_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_ATA_DATA_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_ATA_DATA_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_PROTOCOL_ATA_DATA_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4885,14 +5115,6 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_ATA_DATA_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_PROTOCOL_NVME_DATA_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const NVMeDataTypeUnknown: STORAGE_PROTOCOL_NVME_DATA_TYPE = STORAGE_PROTOCOL_NVME_DATA_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const NVMeDataTypeIdentify: STORAGE_PROTOCOL_NVME_DATA_TYPE = STORAGE_PROTOCOL_NVME_DATA_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const NVMeDataTypeLogPage: STORAGE_PROTOCOL_NVME_DATA_TYPE = STORAGE_PROTOCOL_NVME_DATA_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const NVMeDataTypeFeature: STORAGE_PROTOCOL_NVME_DATA_TYPE = STORAGE_PROTOCOL_NVME_DATA_TYPE(3i32);
 impl ::core::marker::Copy for STORAGE_PROTOCOL_NVME_DATA_TYPE {}
 impl ::core::clone::Clone for STORAGE_PROTOCOL_NVME_DATA_TYPE {
     fn clone(&self) -> Self {
@@ -4904,8 +5126,8 @@ impl ::core::default::Default for STORAGE_PROTOCOL_NVME_DATA_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_NVME_DATA_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_NVME_DATA_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_PROTOCOL_NVME_DATA_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4916,22 +5138,6 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_NVME_DATA_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_PROTOCOL_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ProtocolTypeUnknown: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ProtocolTypeScsi: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ProtocolTypeAta: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ProtocolTypeNvme: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ProtocolTypeSd: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ProtocolTypeUfs: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ProtocolTypeProprietary: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(126i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ProtocolTypeMaxReserved: STORAGE_PROTOCOL_TYPE = STORAGE_PROTOCOL_TYPE(127i32);
 impl ::core::marker::Copy for STORAGE_PROTOCOL_TYPE {}
 impl ::core::clone::Clone for STORAGE_PROTOCOL_TYPE {
     fn clone(&self) -> Self {
@@ -4943,8 +5149,8 @@ impl ::core::default::Default for STORAGE_PROTOCOL_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_PROTOCOL_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4955,20 +5161,6 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_PROTOCOL_UFS_DATA_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const UfsDataTypeUnknown: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const UfsDataTypeQueryDescriptor: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const UfsDataTypeQueryAttribute: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const UfsDataTypeQueryFlag: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const UfsDataTypeQueryDmeAttribute: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const UfsDataTypeQueryDmePeerAttribute: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const UfsDataTypeMax: STORAGE_PROTOCOL_UFS_DATA_TYPE = STORAGE_PROTOCOL_UFS_DATA_TYPE(6i32);
 impl ::core::marker::Copy for STORAGE_PROTOCOL_UFS_DATA_TYPE {}
 impl ::core::clone::Clone for STORAGE_PROTOCOL_UFS_DATA_TYPE {
     fn clone(&self) -> Self {
@@ -4980,8 +5172,8 @@ impl ::core::default::Default for STORAGE_PROTOCOL_UFS_DATA_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_UFS_DATA_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_UFS_DATA_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_PROTOCOL_UFS_DATA_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -4992,14 +5184,6 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_UFS_DATA_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_QUERY_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PropertyStandardQuery: STORAGE_QUERY_TYPE = STORAGE_QUERY_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PropertyExistsQuery: STORAGE_QUERY_TYPE = STORAGE_QUERY_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PropertyMaskQuery: STORAGE_QUERY_TYPE = STORAGE_QUERY_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PropertyQueryMaxDefined: STORAGE_QUERY_TYPE = STORAGE_QUERY_TYPE(3i32);
 impl ::core::marker::Copy for STORAGE_QUERY_TYPE {}
 impl ::core::clone::Clone for STORAGE_QUERY_TYPE {
     fn clone(&self) -> Self {
@@ -5011,8 +5195,8 @@ impl ::core::default::Default for STORAGE_QUERY_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_QUERY_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_QUERY_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_QUERY_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5023,16 +5207,6 @@ impl ::core::fmt::Debug for STORAGE_QUERY_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_RESERVE_ID(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageReserveIdNone: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageReserveIdHard: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageReserveIdSoft: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageReserveIdUpdateScratch: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageReserveIdMax: STORAGE_RESERVE_ID = STORAGE_RESERVE_ID(4i32);
 impl ::core::marker::Copy for STORAGE_RESERVE_ID {}
 impl ::core::clone::Clone for STORAGE_RESERVE_ID {
     fn clone(&self) -> Self {
@@ -5044,8 +5218,8 @@ impl ::core::default::Default for STORAGE_RESERVE_ID {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_RESERVE_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_RESERVE_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_RESERVE_ID {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5056,20 +5230,6 @@ impl ::core::fmt::Debug for STORAGE_RESERVE_ID {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_RPMB_COMMAND_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorRpmbProgramAuthKey: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorRpmbQueryWriteCounter: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorRpmbAuthenticatedWrite: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorRpmbAuthenticatedRead: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorRpmbReadResultRequest: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorRpmbAuthenticatedDeviceConfigWrite: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(6i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorRpmbAuthenticatedDeviceConfigRead: STORAGE_RPMB_COMMAND_TYPE = STORAGE_RPMB_COMMAND_TYPE(7i32);
 impl ::core::marker::Copy for STORAGE_RPMB_COMMAND_TYPE {}
 impl ::core::clone::Clone for STORAGE_RPMB_COMMAND_TYPE {
     fn clone(&self) -> Self {
@@ -5081,8 +5241,8 @@ impl ::core::default::Default for STORAGE_RPMB_COMMAND_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_RPMB_COMMAND_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_RPMB_COMMAND_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_RPMB_COMMAND_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5093,12 +5253,6 @@ impl ::core::fmt::Debug for STORAGE_RPMB_COMMAND_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_RPMB_FRAME_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageRpmbFrameTypeUnknown: STORAGE_RPMB_FRAME_TYPE = STORAGE_RPMB_FRAME_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageRpmbFrameTypeStandard: STORAGE_RPMB_FRAME_TYPE = STORAGE_RPMB_FRAME_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageRpmbFrameTypeMax: STORAGE_RPMB_FRAME_TYPE = STORAGE_RPMB_FRAME_TYPE(2i32);
 impl ::core::marker::Copy for STORAGE_RPMB_FRAME_TYPE {}
 impl ::core::clone::Clone for STORAGE_RPMB_FRAME_TYPE {
     fn clone(&self) -> Self {
@@ -5110,8 +5264,8 @@ impl ::core::default::Default for STORAGE_RPMB_FRAME_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_RPMB_FRAME_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_RPMB_FRAME_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_RPMB_FRAME_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5122,12 +5276,6 @@ impl ::core::fmt::Debug for STORAGE_RPMB_FRAME_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_SANITIZE_METHOD(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageSanitizeMethodDefault: STORAGE_SANITIZE_METHOD = STORAGE_SANITIZE_METHOD(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageSanitizeMethodBlockErase: STORAGE_SANITIZE_METHOD = STORAGE_SANITIZE_METHOD(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageSanitizeMethodCryptoErase: STORAGE_SANITIZE_METHOD = STORAGE_SANITIZE_METHOD(2i32);
 impl ::core::marker::Copy for STORAGE_SANITIZE_METHOD {}
 impl ::core::clone::Clone for STORAGE_SANITIZE_METHOD {
     fn clone(&self) -> Self {
@@ -5139,8 +5287,8 @@ impl ::core::default::Default for STORAGE_SANITIZE_METHOD {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_SANITIZE_METHOD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_SANITIZE_METHOD {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_SANITIZE_METHOD {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5151,12 +5299,6 @@ impl ::core::fmt::Debug for STORAGE_SANITIZE_METHOD {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_SET_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PropertyStandardSet: STORAGE_SET_TYPE = STORAGE_SET_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PropertyExistsSet: STORAGE_SET_TYPE = STORAGE_SET_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const PropertySetMaxDefined: STORAGE_SET_TYPE = STORAGE_SET_TYPE(2i32);
 impl ::core::marker::Copy for STORAGE_SET_TYPE {}
 impl ::core::clone::Clone for STORAGE_SET_TYPE {
     fn clone(&self) -> Self {
@@ -5168,8 +5310,8 @@ impl ::core::default::Default for STORAGE_SET_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_SET_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_SET_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_SET_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5180,14 +5322,6 @@ impl ::core::fmt::Debug for STORAGE_SET_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_TIER_CLASS(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageTierClassUnspecified: STORAGE_TIER_CLASS = STORAGE_TIER_CLASS(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageTierClassCapacity: STORAGE_TIER_CLASS = STORAGE_TIER_CLASS(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageTierClassPerformance: STORAGE_TIER_CLASS = STORAGE_TIER_CLASS(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageTierClassMax: STORAGE_TIER_CLASS = STORAGE_TIER_CLASS(3i32);
 impl ::core::marker::Copy for STORAGE_TIER_CLASS {}
 impl ::core::clone::Clone for STORAGE_TIER_CLASS {
     fn clone(&self) -> Self {
@@ -5199,8 +5333,8 @@ impl ::core::default::Default for STORAGE_TIER_CLASS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_TIER_CLASS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_TIER_CLASS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_TIER_CLASS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5211,16 +5345,6 @@ impl ::core::fmt::Debug for STORAGE_TIER_CLASS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_TIER_MEDIA_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageTierMediaTypeUnspecified: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageTierMediaTypeDisk: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageTierMediaTypeSsd: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageTierMediaTypeScm: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const StorageTierMediaTypeMax: STORAGE_TIER_MEDIA_TYPE = STORAGE_TIER_MEDIA_TYPE(5i32);
 impl ::core::marker::Copy for STORAGE_TIER_MEDIA_TYPE {}
 impl ::core::clone::Clone for STORAGE_TIER_MEDIA_TYPE {
     fn clone(&self) -> Self {
@@ -5232,8 +5356,8 @@ impl ::core::default::Default for STORAGE_TIER_MEDIA_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_TIER_MEDIA_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_TIER_MEDIA_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_TIER_MEDIA_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5244,14 +5368,6 @@ impl ::core::fmt::Debug for STORAGE_TIER_MEDIA_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_ZONED_DEVICE_TYPES(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZonedDeviceTypeUnknown: STORAGE_ZONED_DEVICE_TYPES = STORAGE_ZONED_DEVICE_TYPES(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZonedDeviceTypeHostManaged: STORAGE_ZONED_DEVICE_TYPES = STORAGE_ZONED_DEVICE_TYPES(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZonedDeviceTypeHostAware: STORAGE_ZONED_DEVICE_TYPES = STORAGE_ZONED_DEVICE_TYPES(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZonedDeviceTypeDeviceManaged: STORAGE_ZONED_DEVICE_TYPES = STORAGE_ZONED_DEVICE_TYPES(3i32);
 impl ::core::marker::Copy for STORAGE_ZONED_DEVICE_TYPES {}
 impl ::core::clone::Clone for STORAGE_ZONED_DEVICE_TYPES {
     fn clone(&self) -> Self {
@@ -5263,8 +5379,8 @@ impl ::core::default::Default for STORAGE_ZONED_DEVICE_TYPES {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ZONED_DEVICE_TYPES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONED_DEVICE_TYPES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_ZONED_DEVICE_TYPES {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5275,14 +5391,6 @@ impl ::core::fmt::Debug for STORAGE_ZONED_DEVICE_TYPES {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_ZONES_ATTRIBUTES(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZonesAttributeTypeAndLengthMayDifferent: STORAGE_ZONES_ATTRIBUTES = STORAGE_ZONES_ATTRIBUTES(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZonesAttributeTypeSameLengthSame: STORAGE_ZONES_ATTRIBUTES = STORAGE_ZONES_ATTRIBUTES(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZonesAttributeTypeSameLastZoneLengthDifferent: STORAGE_ZONES_ATTRIBUTES = STORAGE_ZONES_ATTRIBUTES(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZonesAttributeTypeMayDifferentLengthSame: STORAGE_ZONES_ATTRIBUTES = STORAGE_ZONES_ATTRIBUTES(3i32);
 impl ::core::marker::Copy for STORAGE_ZONES_ATTRIBUTES {}
 impl ::core::clone::Clone for STORAGE_ZONES_ATTRIBUTES {
     fn clone(&self) -> Self {
@@ -5294,8 +5402,8 @@ impl ::core::default::Default for STORAGE_ZONES_ATTRIBUTES {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ZONES_ATTRIBUTES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONES_ATTRIBUTES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_ZONES_ATTRIBUTES {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5306,22 +5414,6 @@ impl ::core::fmt::Debug for STORAGE_ZONES_ATTRIBUTES {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_ZONE_CONDITION(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneConditionConventional: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneConditionEmpty: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneConditionImplicitlyOpened: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneConditionExplicitlyOpened: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneConditionClosed: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(4i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneConditionReadOnly: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(13i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneConditionFull: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(14i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneConditionOffline: STORAGE_ZONE_CONDITION = STORAGE_ZONE_CONDITION(15i32);
 impl ::core::marker::Copy for STORAGE_ZONE_CONDITION {}
 impl ::core::clone::Clone for STORAGE_ZONE_CONDITION {
     fn clone(&self) -> Self {
@@ -5333,8 +5425,8 @@ impl ::core::default::Default for STORAGE_ZONE_CONDITION {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ZONE_CONDITION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONE_CONDITION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_ZONE_CONDITION {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5345,16 +5437,6 @@ impl ::core::fmt::Debug for STORAGE_ZONE_CONDITION {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct STORAGE_ZONE_TYPES(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneTypeUnknown: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneTypeConventional: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneTypeSequentialWriteRequired: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneTypeSequentialWritePreferred: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const ZoneTypeMax: STORAGE_ZONE_TYPES = STORAGE_ZONE_TYPES(4i32);
 impl ::core::marker::Copy for STORAGE_ZONE_TYPES {}
 impl ::core::clone::Clone for STORAGE_ZONE_TYPES {
     fn clone(&self) -> Self {
@@ -5366,8 +5448,8 @@ impl ::core::default::Default for STORAGE_ZONE_TYPES {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ZONE_TYPES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONE_TYPES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for STORAGE_ZONE_TYPES {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5378,40 +5460,6 @@ impl ::core::fmt::Debug for STORAGE_ZONE_TYPES {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct TXFS_RMF_LAGS(pub u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_LOGGING_MODE: TXFS_RMF_LAGS = TXFS_RMF_LAGS(1u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_RENAME_RM: TXFS_RMF_LAGS = TXFS_RMF_LAGS(2u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_LOG_CONTAINER_COUNT_MAX: TXFS_RMF_LAGS = TXFS_RMF_LAGS(4u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_LOG_CONTAINER_COUNT_MIN: TXFS_RMF_LAGS = TXFS_RMF_LAGS(8u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_LOG_GROWTH_INCREMENT_NUM_CONTAINERS: TXFS_RMF_LAGS = TXFS_RMF_LAGS(16u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_LOG_GROWTH_INCREMENT_PERCENT: TXFS_RMF_LAGS = TXFS_RMF_LAGS(32u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_LOG_AUTO_SHRINK_PERCENTAGE: TXFS_RMF_LAGS = TXFS_RMF_LAGS(64u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_LOG_NO_CONTAINER_COUNT_MAX: TXFS_RMF_LAGS = TXFS_RMF_LAGS(128u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_LOG_NO_CONTAINER_COUNT_MIN: TXFS_RMF_LAGS = TXFS_RMF_LAGS(256u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_GROW_LOG: TXFS_RMF_LAGS = TXFS_RMF_LAGS(1024u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_SHRINK_LOG: TXFS_RMF_LAGS = TXFS_RMF_LAGS(2048u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_ENFORCE_MINIMUM_SIZE: TXFS_RMF_LAGS = TXFS_RMF_LAGS(4096u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_PRESERVE_CHANGES: TXFS_RMF_LAGS = TXFS_RMF_LAGS(8192u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_RESET_RM_AT_NEXT_START: TXFS_RMF_LAGS = TXFS_RMF_LAGS(16384u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_DO_NOT_RESET_RM_AT_NEXT_START: TXFS_RMF_LAGS = TXFS_RMF_LAGS(32768u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_PREFER_CONSISTENCY: TXFS_RMF_LAGS = TXFS_RMF_LAGS(65536u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const TXFS_RM_FLAG_PREFER_AVAILABILITY: TXFS_RMF_LAGS = TXFS_RMF_LAGS(131072u32);
 impl ::core::marker::Copy for TXFS_RMF_LAGS {}
 impl ::core::clone::Clone for TXFS_RMF_LAGS {
     fn clone(&self) -> Self {
@@ -5423,8 +5471,8 @@ impl ::core::default::Default for TXFS_RMF_LAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for TXFS_RMF_LAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_RMF_LAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for TXFS_RMF_LAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5468,10 +5516,6 @@ impl ::core::ops::Not for TXFS_RMF_LAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct USN_DELETE_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const USN_DELETE_FLAG_DELETE: USN_DELETE_FLAGS = USN_DELETE_FLAGS(1u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const USN_DELETE_FLAG_NOTIFY: USN_DELETE_FLAGS = USN_DELETE_FLAGS(2u32);
 impl ::core::marker::Copy for USN_DELETE_FLAGS {}
 impl ::core::clone::Clone for USN_DELETE_FLAGS {
     fn clone(&self) -> Self {
@@ -5483,8 +5527,8 @@ impl ::core::default::Default for USN_DELETE_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for USN_DELETE_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_DELETE_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for USN_DELETE_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5528,14 +5572,6 @@ impl ::core::ops::Not for USN_DELETE_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct USN_SOURCE_INFO_ID(pub u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const USN_SOURCE_AUXILIARY_DATA: USN_SOURCE_INFO_ID = USN_SOURCE_INFO_ID(2u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const USN_SOURCE_DATA_MANAGEMENT: USN_SOURCE_INFO_ID = USN_SOURCE_INFO_ID(1u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const USN_SOURCE_REPLICATION_MANAGEMENT: USN_SOURCE_INFO_ID = USN_SOURCE_INFO_ID(4u32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const USN_SOURCE_CLIENT_REPLICATION_MANAGEMENT: USN_SOURCE_INFO_ID = USN_SOURCE_INFO_ID(8u32);
 impl ::core::marker::Copy for USN_SOURCE_INFO_ID {}
 impl ::core::clone::Clone for USN_SOURCE_INFO_ID {
     fn clone(&self) -> Self {
@@ -5547,8 +5583,8 @@ impl ::core::default::Default for USN_SOURCE_INFO_ID {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for USN_SOURCE_INFO_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_SOURCE_INFO_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for USN_SOURCE_INFO_ID {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5559,16 +5595,6 @@ impl ::core::fmt::Debug for USN_SOURCE_INFO_ID {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct VIRTUAL_STORAGE_BEHAVIOR_CODE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const VirtualStorageBehaviorUndefined: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const VirtualStorageBehaviorCacheWriteThrough: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const VirtualStorageBehaviorCacheWriteBack: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const VirtualStorageBehaviorStopIoProcessing: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(3i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const VirtualStorageBehaviorRestartIoProcessing: VIRTUAL_STORAGE_BEHAVIOR_CODE = VIRTUAL_STORAGE_BEHAVIOR_CODE(4i32);
 impl ::core::marker::Copy for VIRTUAL_STORAGE_BEHAVIOR_CODE {}
 impl ::core::clone::Clone for VIRTUAL_STORAGE_BEHAVIOR_CODE {
     fn clone(&self) -> Self {
@@ -5580,8 +5606,8 @@ impl ::core::default::Default for VIRTUAL_STORAGE_BEHAVIOR_CODE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for VIRTUAL_STORAGE_BEHAVIOR_CODE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VIRTUAL_STORAGE_BEHAVIOR_CODE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for VIRTUAL_STORAGE_BEHAVIOR_CODE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5592,12 +5618,6 @@ impl ::core::fmt::Debug for VIRTUAL_STORAGE_BEHAVIOR_CODE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WRITE_CACHE_CHANGE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheChangeUnknown: WRITE_CACHE_CHANGE = WRITE_CACHE_CHANGE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheNotChangeable: WRITE_CACHE_CHANGE = WRITE_CACHE_CHANGE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheChangeable: WRITE_CACHE_CHANGE = WRITE_CACHE_CHANGE(2i32);
 impl ::core::marker::Copy for WRITE_CACHE_CHANGE {}
 impl ::core::clone::Clone for WRITE_CACHE_CHANGE {
     fn clone(&self) -> Self {
@@ -5609,8 +5629,8 @@ impl ::core::default::Default for WRITE_CACHE_CHANGE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for WRITE_CACHE_CHANGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WRITE_CACHE_CHANGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for WRITE_CACHE_CHANGE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5621,12 +5641,6 @@ impl ::core::fmt::Debug for WRITE_CACHE_CHANGE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WRITE_CACHE_ENABLE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheEnableUnknown: WRITE_CACHE_ENABLE = WRITE_CACHE_ENABLE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheDisabled: WRITE_CACHE_ENABLE = WRITE_CACHE_ENABLE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheEnabled: WRITE_CACHE_ENABLE = WRITE_CACHE_ENABLE(2i32);
 impl ::core::marker::Copy for WRITE_CACHE_ENABLE {}
 impl ::core::clone::Clone for WRITE_CACHE_ENABLE {
     fn clone(&self) -> Self {
@@ -5638,8 +5652,8 @@ impl ::core::default::Default for WRITE_CACHE_ENABLE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for WRITE_CACHE_ENABLE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WRITE_CACHE_ENABLE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for WRITE_CACHE_ENABLE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5650,14 +5664,6 @@ impl ::core::fmt::Debug for WRITE_CACHE_ENABLE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WRITE_CACHE_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheTypeUnknown: WRITE_CACHE_TYPE = WRITE_CACHE_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheTypeNone: WRITE_CACHE_TYPE = WRITE_CACHE_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheTypeWriteBack: WRITE_CACHE_TYPE = WRITE_CACHE_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteCacheTypeWriteThrough: WRITE_CACHE_TYPE = WRITE_CACHE_TYPE(3i32);
 impl ::core::marker::Copy for WRITE_CACHE_TYPE {}
 impl ::core::clone::Clone for WRITE_CACHE_TYPE {
     fn clone(&self) -> Self {
@@ -5669,8 +5675,8 @@ impl ::core::default::Default for WRITE_CACHE_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for WRITE_CACHE_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WRITE_CACHE_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for WRITE_CACHE_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5681,12 +5687,6 @@ impl ::core::fmt::Debug for WRITE_CACHE_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WRITE_THROUGH(pub i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteThroughUnknown: WRITE_THROUGH = WRITE_THROUGH(0i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteThroughNotSupported: WRITE_THROUGH = WRITE_THROUGH(1i32);
-#[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
-pub const WriteThroughSupported: WRITE_THROUGH = WRITE_THROUGH(2i32);
 impl ::core::marker::Copy for WRITE_THROUGH {}
 impl ::core::clone::Clone for WRITE_THROUGH {
     fn clone(&self) -> Self {
@@ -5698,8 +5698,8 @@ impl ::core::default::Default for WRITE_THROUGH {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for WRITE_THROUGH {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WRITE_THROUGH {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for WRITE_THROUGH {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -5727,8 +5727,8 @@ impl ::core::fmt::Debug for ASYNC_DUPLICATE_EXTENTS_STATUS {
         f.debug_struct("ASYNC_DUPLICATE_EXTENTS_STATUS").field("Version", &self.Version).field("State", &self.State).field("SourceFileOffset", &self.SourceFileOffset).field("TargetFileOffset", &self.TargetFileOffset).field("ByteCount", &self.ByteCount).field("BytesDuplicated", &self.BytesDuplicated).finish()
     }
 }
-impl ::windows::core::TypeKind for ASYNC_DUPLICATE_EXTENTS_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for ASYNC_DUPLICATE_EXTENTS_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for ASYNC_DUPLICATE_EXTENTS_STATUS {
     fn eq(&self, other: &Self) -> bool {
@@ -5758,8 +5758,8 @@ impl ::core::fmt::Debug for BIN_COUNT {
         f.debug_struct("BIN_COUNT").field("BinRange", &self.BinRange).field("BinCount", &self.BinCount).finish()
     }
 }
-impl ::windows::core::TypeKind for BIN_COUNT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for BIN_COUNT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for BIN_COUNT {
     fn eq(&self, other: &Self) -> bool {
@@ -5789,8 +5789,8 @@ impl ::core::fmt::Debug for BIN_RANGE {
         f.debug_struct("BIN_RANGE").field("StartValue", &self.StartValue).field("Length", &self.Length).finish()
     }
 }
-impl ::windows::core::TypeKind for BIN_RANGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for BIN_RANGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for BIN_RANGE {
     fn eq(&self, other: &Self) -> bool {
@@ -5820,8 +5820,8 @@ impl ::core::fmt::Debug for BIN_RESULTS {
         f.debug_struct("BIN_RESULTS").field("NumberOfBins", &self.NumberOfBins).field("BinCounts", &self.BinCounts).finish()
     }
 }
-impl ::windows::core::TypeKind for BIN_RESULTS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for BIN_RESULTS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for BIN_RESULTS {
     fn eq(&self, other: &Self) -> bool {
@@ -5851,8 +5851,8 @@ impl ::core::fmt::Debug for BOOT_AREA_INFO {
         f.debug_struct("BOOT_AREA_INFO").field("BootSectorCount", &self.BootSectorCount).field("BootSectors", &self.BootSectors).finish()
     }
 }
-impl ::windows::core::TypeKind for BOOT_AREA_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for BOOT_AREA_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for BOOT_AREA_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -5881,8 +5881,8 @@ impl ::core::fmt::Debug for BOOT_AREA_INFO_0 {
         f.debug_struct("BOOT_AREA_INFO_0").field("Offset", &self.Offset).finish()
     }
 }
-impl ::windows::core::TypeKind for BOOT_AREA_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for BOOT_AREA_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for BOOT_AREA_INFO_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -5912,8 +5912,8 @@ impl ::core::fmt::Debug for BULK_SECURITY_TEST_DATA {
         f.debug_struct("BULK_SECURITY_TEST_DATA").field("DesiredAccess", &self.DesiredAccess).field("SecurityIds", &self.SecurityIds).finish()
     }
 }
-impl ::windows::core::TypeKind for BULK_SECURITY_TEST_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for BULK_SECURITY_TEST_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for BULK_SECURITY_TEST_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -5943,8 +5943,8 @@ impl ::core::fmt::Debug for CHANGER_ELEMENT {
         f.debug_struct("CHANGER_ELEMENT").field("ElementType", &self.ElementType).field("ElementAddress", &self.ElementAddress).finish()
     }
 }
-impl ::windows::core::TypeKind for CHANGER_ELEMENT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_ELEMENT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CHANGER_ELEMENT {
     fn eq(&self, other: &Self) -> bool {
@@ -5974,8 +5974,8 @@ impl ::core::fmt::Debug for CHANGER_ELEMENT_LIST {
         f.debug_struct("CHANGER_ELEMENT_LIST").field("Element", &self.Element).field("NumberOfElements", &self.NumberOfElements).finish()
     }
 }
-impl ::windows::core::TypeKind for CHANGER_ELEMENT_LIST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_ELEMENT_LIST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CHANGER_ELEMENT_LIST {
     fn eq(&self, other: &Self) -> bool {
@@ -6012,8 +6012,8 @@ impl ::core::fmt::Debug for CHANGER_ELEMENT_STATUS {
         f.debug_struct("CHANGER_ELEMENT_STATUS").field("Element", &self.Element).field("SrcElementAddress", &self.SrcElementAddress).field("Flags", &self.Flags).field("ExceptionCode", &self.ExceptionCode).field("TargetId", &self.TargetId).field("Lun", &self.Lun).field("Reserved", &self.Reserved).field("PrimaryVolumeID", &self.PrimaryVolumeID).field("AlternateVolumeID", &self.AlternateVolumeID).finish()
     }
 }
-impl ::windows::core::TypeKind for CHANGER_ELEMENT_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_ELEMENT_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CHANGER_ELEMENT_STATUS {
     fn eq(&self, other: &Self) -> bool {
@@ -6066,8 +6066,8 @@ impl ::core::fmt::Debug for CHANGER_ELEMENT_STATUS_EX {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for CHANGER_ELEMENT_STATUS_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_ELEMENT_STATUS_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CHANGER_ELEMENT_STATUS_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -6106,8 +6106,8 @@ impl ::core::fmt::Debug for CHANGER_EXCHANGE_MEDIUM {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for CHANGER_EXCHANGE_MEDIUM {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_EXCHANGE_MEDIUM {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for CHANGER_EXCHANGE_MEDIUM {
@@ -6145,8 +6145,8 @@ impl ::core::fmt::Debug for CHANGER_INITIALIZE_ELEMENT_STATUS {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for CHANGER_INITIALIZE_ELEMENT_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_INITIALIZE_ELEMENT_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for CHANGER_INITIALIZE_ELEMENT_STATUS {
@@ -6186,8 +6186,8 @@ impl ::core::fmt::Debug for CHANGER_MOVE_MEDIUM {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for CHANGER_MOVE_MEDIUM {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_MOVE_MEDIUM {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for CHANGER_MOVE_MEDIUM {
@@ -6223,8 +6223,8 @@ impl ::core::fmt::Debug for CHANGER_PRODUCT_DATA {
         f.debug_struct("CHANGER_PRODUCT_DATA").field("VendorId", &self.VendorId).field("ProductId", &self.ProductId).field("Revision", &self.Revision).field("SerialNumber", &self.SerialNumber).field("DeviceType", &self.DeviceType).finish()
     }
 }
-impl ::windows::core::TypeKind for CHANGER_PRODUCT_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_PRODUCT_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CHANGER_PRODUCT_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -6259,8 +6259,8 @@ impl ::core::fmt::Debug for CHANGER_READ_ELEMENT_STATUS {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for CHANGER_READ_ELEMENT_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_READ_ELEMENT_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for CHANGER_READ_ELEMENT_STATUS {
@@ -6294,8 +6294,8 @@ impl ::core::fmt::Debug for CHANGER_SEND_VOLUME_TAG_INFORMATION {
         f.debug_struct("CHANGER_SEND_VOLUME_TAG_INFORMATION").field("StartingElement", &self.StartingElement).field("ActionCode", &self.ActionCode).field("VolumeIDTemplate", &self.VolumeIDTemplate).finish()
     }
 }
-impl ::windows::core::TypeKind for CHANGER_SEND_VOLUME_TAG_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_SEND_VOLUME_TAG_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CHANGER_SEND_VOLUME_TAG_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -6325,8 +6325,8 @@ impl ::core::fmt::Debug for CHANGER_SET_ACCESS {
         f.debug_struct("CHANGER_SET_ACCESS").field("Element", &self.Element).field("Control", &self.Control).finish()
     }
 }
-impl ::windows::core::TypeKind for CHANGER_SET_ACCESS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_SET_ACCESS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CHANGER_SET_ACCESS {
     fn eq(&self, other: &Self) -> bool {
@@ -6362,8 +6362,8 @@ impl ::core::fmt::Debug for CHANGER_SET_POSITION {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for CHANGER_SET_POSITION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CHANGER_SET_POSITION {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for CHANGER_SET_POSITION {
@@ -6396,8 +6396,8 @@ impl ::core::fmt::Debug for CLASS_MEDIA_CHANGE_CONTEXT {
         f.debug_struct("CLASS_MEDIA_CHANGE_CONTEXT").field("MediaChangeCount", &self.MediaChangeCount).field("NewState", &self.NewState).finish()
     }
 }
-impl ::windows::core::TypeKind for CLASS_MEDIA_CHANGE_CONTEXT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CLASS_MEDIA_CHANGE_CONTEXT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CLASS_MEDIA_CHANGE_CONTEXT {
     fn eq(&self, other: &Self) -> bool {
@@ -6427,8 +6427,8 @@ impl ::core::fmt::Debug for CLUSTER_RANGE {
         f.debug_struct("CLUSTER_RANGE").field("StartingCluster", &self.StartingCluster).field("ClusterCount", &self.ClusterCount).finish()
     }
 }
-impl ::windows::core::TypeKind for CLUSTER_RANGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CLUSTER_RANGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CLUSTER_RANGE {
     fn eq(&self, other: &Self) -> bool {
@@ -6457,8 +6457,8 @@ impl ::core::fmt::Debug for CONTAINER_ROOT_INFO_INPUT {
         f.debug_struct("CONTAINER_ROOT_INFO_INPUT").field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for CONTAINER_ROOT_INFO_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CONTAINER_ROOT_INFO_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CONTAINER_ROOT_INFO_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -6488,8 +6488,8 @@ impl ::core::fmt::Debug for CONTAINER_ROOT_INFO_OUTPUT {
         f.debug_struct("CONTAINER_ROOT_INFO_OUTPUT").field("ContainerRootIdLength", &self.ContainerRootIdLength).field("ContainerRootId", &self.ContainerRootId).finish()
     }
 }
-impl ::windows::core::TypeKind for CONTAINER_ROOT_INFO_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CONTAINER_ROOT_INFO_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CONTAINER_ROOT_INFO_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -6518,8 +6518,8 @@ impl ::core::fmt::Debug for CONTAINER_VOLUME_STATE {
         f.debug_struct("CONTAINER_VOLUME_STATE").field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for CONTAINER_VOLUME_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CONTAINER_VOLUME_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CONTAINER_VOLUME_STATE {
     fn eq(&self, other: &Self) -> bool {
@@ -6544,8 +6544,8 @@ impl ::core::clone::Clone for CREATE_DISK {
         *self
     }
 }
-impl ::windows::core::TypeKind for CREATE_DISK {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CREATE_DISK {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for CREATE_DISK {
     fn default() -> Self {
@@ -6564,8 +6564,8 @@ impl ::core::clone::Clone for CREATE_DISK_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for CREATE_DISK_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CREATE_DISK_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for CREATE_DISK_0 {
     fn default() -> Self {
@@ -6575,7 +6575,7 @@ impl ::core::default::Default for CREATE_DISK_0 {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct CREATE_DISK_GPT {
-    pub DiskId: ::windows::core::GUID,
+    pub DiskId: ::windows_core::GUID,
     pub MaxPartitionCount: u32,
 }
 impl ::core::marker::Copy for CREATE_DISK_GPT {}
@@ -6589,8 +6589,8 @@ impl ::core::fmt::Debug for CREATE_DISK_GPT {
         f.debug_struct("CREATE_DISK_GPT").field("DiskId", &self.DiskId).field("MaxPartitionCount", &self.MaxPartitionCount).finish()
     }
 }
-impl ::windows::core::TypeKind for CREATE_DISK_GPT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CREATE_DISK_GPT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CREATE_DISK_GPT {
     fn eq(&self, other: &Self) -> bool {
@@ -6619,8 +6619,8 @@ impl ::core::fmt::Debug for CREATE_DISK_MBR {
         f.debug_struct("CREATE_DISK_MBR").field("Signature", &self.Signature).finish()
     }
 }
-impl ::windows::core::TypeKind for CREATE_DISK_MBR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CREATE_DISK_MBR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CREATE_DISK_MBR {
     fn eq(&self, other: &Self) -> bool {
@@ -6650,8 +6650,8 @@ impl ::core::fmt::Debug for CREATE_USN_JOURNAL_DATA {
         f.debug_struct("CREATE_USN_JOURNAL_DATA").field("MaximumSize", &self.MaximumSize).field("AllocationDelta", &self.AllocationDelta).finish()
     }
 }
-impl ::windows::core::TypeKind for CREATE_USN_JOURNAL_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CREATE_USN_JOURNAL_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CREATE_USN_JOURNAL_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -6681,8 +6681,8 @@ impl ::core::fmt::Debug for CSV_CONTROL_PARAM {
         f.debug_struct("CSV_CONTROL_PARAM").field("Operation", &self.Operation).field("Unused", &self.Unused).finish()
     }
 }
-impl ::windows::core::TypeKind for CSV_CONTROL_PARAM {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_CONTROL_PARAM {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CSV_CONTROL_PARAM {
     fn eq(&self, other: &Self) -> bool {
@@ -6716,8 +6716,8 @@ impl ::core::fmt::Debug for CSV_IS_OWNED_BY_CSVFS {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for CSV_IS_OWNED_BY_CSVFS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_IS_OWNED_BY_CSVFS {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for CSV_IS_OWNED_BY_CSVFS {
@@ -6749,8 +6749,8 @@ impl ::core::fmt::Debug for CSV_MGMT_LOCK {
         f.debug_struct("CSV_MGMT_LOCK").field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for CSV_MGMT_LOCK {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_MGMT_LOCK {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CSV_MGMT_LOCK {
     fn eq(&self, other: &Self) -> bool {
@@ -6782,8 +6782,8 @@ impl ::core::fmt::Debug for CSV_NAMESPACE_INFO {
         f.debug_struct("CSV_NAMESPACE_INFO").field("Version", &self.Version).field("DeviceNumber", &self.DeviceNumber).field("StartingOffset", &self.StartingOffset).field("SectorSize", &self.SectorSize).finish()
     }
 }
-impl ::windows::core::TypeKind for CSV_NAMESPACE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_NAMESPACE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CSV_NAMESPACE_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -6813,8 +6813,8 @@ impl ::core::fmt::Debug for CSV_QUERY_FILE_REVISION {
         f.debug_struct("CSV_QUERY_FILE_REVISION").field("FileId", &self.FileId).field("FileRevision", &self.FileRevision).finish()
     }
 }
-impl ::windows::core::TypeKind for CSV_QUERY_FILE_REVISION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_QUERY_FILE_REVISION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CSV_QUERY_FILE_REVISION {
     fn eq(&self, other: &Self) -> bool {
@@ -6849,8 +6849,8 @@ impl ::core::fmt::Debug for CSV_QUERY_FILE_REVISION_FILE_ID_128 {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for CSV_QUERY_FILE_REVISION_FILE_ID_128 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_QUERY_FILE_REVISION_FILE_ID_128 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::cmp::PartialEq for CSV_QUERY_FILE_REVISION_FILE_ID_128 {
@@ -6885,8 +6885,8 @@ impl ::core::fmt::Debug for CSV_QUERY_MDS_PATH {
         f.debug_struct("CSV_QUERY_MDS_PATH").field("MdsNodeId", &self.MdsNodeId).field("DsNodeId", &self.DsNodeId).field("PathLength", &self.PathLength).field("Path", &self.Path).finish()
     }
 }
-impl ::windows::core::TypeKind for CSV_QUERY_MDS_PATH {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_QUERY_MDS_PATH {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CSV_QUERY_MDS_PATH {
     fn eq(&self, other: &Self) -> bool {
@@ -6908,7 +6908,7 @@ pub struct CSV_QUERY_MDS_PATH_V2 {
     pub DsNodeId: u32,
     pub Flags: u32,
     pub DiskConnectivity: CSVFS_DISK_CONNECTIVITY,
-    pub VolumeId: ::windows::core::GUID,
+    pub VolumeId: ::windows_core::GUID,
     pub IpAddressOffset: u32,
     pub IpAddressLength: u32,
     pub PathOffset: u32,
@@ -6925,8 +6925,8 @@ impl ::core::fmt::Debug for CSV_QUERY_MDS_PATH_V2 {
         f.debug_struct("CSV_QUERY_MDS_PATH_V2").field("Version", &self.Version).field("RequiredSize", &self.RequiredSize).field("MdsNodeId", &self.MdsNodeId).field("DsNodeId", &self.DsNodeId).field("Flags", &self.Flags).field("DiskConnectivity", &self.DiskConnectivity).field("VolumeId", &self.VolumeId).field("IpAddressOffset", &self.IpAddressOffset).field("IpAddressLength", &self.IpAddressLength).field("PathOffset", &self.PathOffset).field("PathLength", &self.PathLength).finish()
     }
 }
-impl ::windows::core::TypeKind for CSV_QUERY_MDS_PATH_V2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_QUERY_MDS_PATH_V2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CSV_QUERY_MDS_PATH_V2 {
     fn eq(&self, other: &Self) -> bool {
@@ -6962,8 +6962,8 @@ impl ::core::fmt::Debug for CSV_QUERY_REDIRECT_STATE {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for CSV_QUERY_REDIRECT_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_QUERY_REDIRECT_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for CSV_QUERY_REDIRECT_STATE {
@@ -6997,8 +6997,8 @@ impl ::core::fmt::Debug for CSV_QUERY_VETO_FILE_DIRECT_IO_OUTPUT {
         f.debug_struct("CSV_QUERY_VETO_FILE_DIRECT_IO_OUTPUT").field("VetoedFromAltitudeIntegral", &self.VetoedFromAltitudeIntegral).field("VetoedFromAltitudeDecimal", &self.VetoedFromAltitudeDecimal).field("Reason", &self.Reason).finish()
     }
 }
-impl ::windows::core::TypeKind for CSV_QUERY_VETO_FILE_DIRECT_IO_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_QUERY_VETO_FILE_DIRECT_IO_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CSV_QUERY_VETO_FILE_DIRECT_IO_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -7014,7 +7014,7 @@ impl ::core::default::Default for CSV_QUERY_VETO_FILE_DIRECT_IO_OUTPUT {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct CSV_QUERY_VOLUME_ID {
-    pub VolumeId: ::windows::core::GUID,
+    pub VolumeId: ::windows_core::GUID,
 }
 impl ::core::marker::Copy for CSV_QUERY_VOLUME_ID {}
 impl ::core::clone::Clone for CSV_QUERY_VOLUME_ID {
@@ -7027,8 +7027,8 @@ impl ::core::fmt::Debug for CSV_QUERY_VOLUME_ID {
         f.debug_struct("CSV_QUERY_VOLUME_ID").field("VolumeId", &self.VolumeId).finish()
     }
 }
-impl ::windows::core::TypeKind for CSV_QUERY_VOLUME_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_QUERY_VOLUME_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CSV_QUERY_VOLUME_ID {
     fn eq(&self, other: &Self) -> bool {
@@ -7066,8 +7066,8 @@ impl ::core::fmt::Debug for CSV_QUERY_VOLUME_REDIRECT_STATE {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for CSV_QUERY_VOLUME_REDIRECT_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_QUERY_VOLUME_REDIRECT_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for CSV_QUERY_VOLUME_REDIRECT_STATE {
@@ -7086,7 +7086,7 @@ impl ::core::default::Default for CSV_QUERY_VOLUME_REDIRECT_STATE {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct CSV_SET_VOLUME_ID {
-    pub VolumeId: ::windows::core::GUID,
+    pub VolumeId: ::windows_core::GUID,
 }
 impl ::core::marker::Copy for CSV_SET_VOLUME_ID {}
 impl ::core::clone::Clone for CSV_SET_VOLUME_ID {
@@ -7099,8 +7099,8 @@ impl ::core::fmt::Debug for CSV_SET_VOLUME_ID {
         f.debug_struct("CSV_SET_VOLUME_ID").field("VolumeId", &self.VolumeId).finish()
     }
 }
-impl ::windows::core::TypeKind for CSV_SET_VOLUME_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for CSV_SET_VOLUME_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for CSV_SET_VOLUME_ID {
     fn eq(&self, other: &Self) -> bool {
@@ -7134,8 +7134,8 @@ impl ::core::fmt::Debug for DECRYPTION_STATUS_BUFFER {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DECRYPTION_STATUS_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DECRYPTION_STATUS_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DECRYPTION_STATUS_BUFFER {
@@ -7168,8 +7168,8 @@ impl ::core::fmt::Debug for DELETE_USN_JOURNAL_DATA {
         f.debug_struct("DELETE_USN_JOURNAL_DATA").field("UsnJournalID", &self.UsnJournalID).field("DeleteFlags", &self.DeleteFlags).finish()
     }
 }
-impl ::windows::core::TypeKind for DELETE_USN_JOURNAL_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DELETE_USN_JOURNAL_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DELETE_USN_JOURNAL_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -7195,8 +7195,8 @@ impl ::core::clone::Clone for DEVICEDUMP_PRIVATE_SUBSECTION {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_PRIVATE_SUBSECTION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_PRIVATE_SUBSECTION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_PRIVATE_SUBSECTION {
     fn default() -> Self {
@@ -7217,8 +7217,8 @@ impl ::core::clone::Clone for DEVICEDUMP_PUBLIC_SUBSECTION {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_PUBLIC_SUBSECTION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_PUBLIC_SUBSECTION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_PUBLIC_SUBSECTION {
     fn default() -> Self {
@@ -7241,8 +7241,8 @@ impl ::core::fmt::Debug for DEVICEDUMP_RESTRICTED_SUBSECTION {
         f.debug_struct("DEVICEDUMP_RESTRICTED_SUBSECTION").field("bData", &self.bData).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_RESTRICTED_SUBSECTION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_RESTRICTED_SUBSECTION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICEDUMP_RESTRICTED_SUBSECTION {
     fn eq(&self, other: &Self) -> bool {
@@ -7258,7 +7258,7 @@ impl ::core::default::Default for DEVICEDUMP_RESTRICTED_SUBSECTION {
 #[repr(C, packed(1))]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct DEVICEDUMP_SECTION_HEADER {
-    pub guidDeviceDataId: ::windows::core::GUID,
+    pub guidDeviceDataId: ::windows_core::GUID,
     pub sOrganizationID: [u8; 16],
     pub dwFirmwareRevision: u32,
     pub sModelNumber: [u8; 32],
@@ -7274,8 +7274,8 @@ impl ::core::clone::Clone for DEVICEDUMP_SECTION_HEADER {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_SECTION_HEADER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_SECTION_HEADER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_SECTION_HEADER {
     fn default() -> Self {
@@ -7299,8 +7299,8 @@ impl ::core::clone::Clone for DEVICEDUMP_STORAGEDEVICE_DATA {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_STORAGEDEVICE_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_STORAGEDEVICE_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_STORAGEDEVICE_DATA {
     fn default() -> Self {
@@ -7322,8 +7322,8 @@ impl ::core::clone::Clone for DEVICEDUMP_STORAGESTACK_PUBLIC_DUMP {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_DUMP {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_DUMP {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_STORAGESTACK_PUBLIC_DUMP {
     fn default() -> Self {
@@ -7347,8 +7347,8 @@ impl ::core::clone::Clone for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD {
     fn default() -> Self {
@@ -7368,8 +7368,8 @@ impl ::core::clone::Clone for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0 {
     fn default() -> Self {
@@ -7387,8 +7387,8 @@ impl ::core::clone::Clone for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_0 {
     fn default() -> Self {
@@ -7406,8 +7406,8 @@ impl ::core::clone::Clone for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_1 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_1 {
     fn default() -> Self {
@@ -7425,8 +7425,8 @@ impl ::core::clone::Clone for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_2 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_STORAGESTACK_PUBLIC_STATE_RECORD_0_2 {
     fn default() -> Self {
@@ -7446,8 +7446,8 @@ impl ::core::clone::Clone for DEVICEDUMP_STRUCTURE_VERSION {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_STRUCTURE_VERSION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_STRUCTURE_VERSION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_STRUCTURE_VERSION {
     fn default() -> Self {
@@ -7467,8 +7467,8 @@ impl ::core::clone::Clone for DEVICEDUMP_SUBSECTION_POINTER {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICEDUMP_SUBSECTION_POINTER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICEDUMP_SUBSECTION_POINTER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICEDUMP_SUBSECTION_POINTER {
     fn default() -> Self {
@@ -7513,8 +7513,8 @@ impl ::core::fmt::Debug for DEVICE_COPY_OFFLOAD_DESCRIPTOR {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_COPY_OFFLOAD_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_COPY_OFFLOAD_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_COPY_OFFLOAD_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -7546,8 +7546,8 @@ impl ::core::fmt::Debug for DEVICE_DATA_SET_LBP_STATE_PARAMETERS {
         f.debug_struct("DEVICE_DATA_SET_LBP_STATE_PARAMETERS").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("OutputVersion", &self.OutputVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DATA_SET_LBP_STATE_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DATA_SET_LBP_STATE_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DATA_SET_LBP_STATE_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -7582,8 +7582,8 @@ impl ::core::fmt::Debug for DEVICE_DATA_SET_LB_PROVISIONING_STATE {
         f.debug_struct("DEVICE_DATA_SET_LB_PROVISIONING_STATE").field("Size", &self.Size).field("Version", &self.Version).field("SlabSizeInBytes", &self.SlabSizeInBytes).field("SlabOffsetDeltaInBytes", &self.SlabOffsetDeltaInBytes).field("SlabAllocationBitMapBitCount", &self.SlabAllocationBitMapBitCount).field("SlabAllocationBitMapLength", &self.SlabAllocationBitMapLength).field("SlabAllocationBitMap", &self.SlabAllocationBitMap).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DATA_SET_LB_PROVISIONING_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DATA_SET_LB_PROVISIONING_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DATA_SET_LB_PROVISIONING_STATE {
     fn eq(&self, other: &Self) -> bool {
@@ -7618,8 +7618,8 @@ impl ::core::fmt::Debug for DEVICE_DATA_SET_LB_PROVISIONING_STATE_V2 {
         f.debug_struct("DEVICE_DATA_SET_LB_PROVISIONING_STATE_V2").field("Size", &self.Size).field("Version", &self.Version).field("SlabSizeInBytes", &self.SlabSizeInBytes).field("SlabOffsetDeltaInBytes", &self.SlabOffsetDeltaInBytes).field("SlabAllocationBitMapBitCount", &self.SlabAllocationBitMapBitCount).field("SlabAllocationBitMapLength", &self.SlabAllocationBitMapLength).field("SlabAllocationBitMap", &self.SlabAllocationBitMap).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DATA_SET_LB_PROVISIONING_STATE_V2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DATA_SET_LB_PROVISIONING_STATE_V2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DATA_SET_LB_PROVISIONING_STATE_V2 {
     fn eq(&self, other: &Self) -> bool {
@@ -7649,8 +7649,8 @@ impl ::core::fmt::Debug for DEVICE_DATA_SET_RANGE {
         f.debug_struct("DEVICE_DATA_SET_RANGE").field("StartingOffset", &self.StartingOffset).field("LengthInBytes", &self.LengthInBytes).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DATA_SET_RANGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DATA_SET_RANGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DATA_SET_RANGE {
     fn eq(&self, other: &Self) -> bool {
@@ -7679,8 +7679,8 @@ impl ::core::fmt::Debug for DEVICE_DATA_SET_REPAIR_OUTPUT {
         f.debug_struct("DEVICE_DATA_SET_REPAIR_OUTPUT").field("ParityExtent", &self.ParityExtent).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DATA_SET_REPAIR_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DATA_SET_REPAIR_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DATA_SET_REPAIR_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -7711,8 +7711,8 @@ impl ::core::fmt::Debug for DEVICE_DATA_SET_REPAIR_PARAMETERS {
         f.debug_struct("DEVICE_DATA_SET_REPAIR_PARAMETERS").field("NumberOfRepairCopies", &self.NumberOfRepairCopies).field("SourceCopy", &self.SourceCopy).field("RepairCopies", &self.RepairCopies).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DATA_SET_REPAIR_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DATA_SET_REPAIR_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DATA_SET_REPAIR_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -7745,8 +7745,8 @@ impl ::core::fmt::Debug for DEVICE_DATA_SET_SCRUB_EX_OUTPUT {
         f.debug_struct("DEVICE_DATA_SET_SCRUB_EX_OUTPUT").field("BytesProcessed", &self.BytesProcessed).field("BytesRepaired", &self.BytesRepaired).field("BytesFailed", &self.BytesFailed).field("ParityExtent", &self.ParityExtent).field("BytesScrubbed", &self.BytesScrubbed).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DATA_SET_SCRUB_EX_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DATA_SET_SCRUB_EX_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DATA_SET_SCRUB_EX_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -7777,8 +7777,8 @@ impl ::core::fmt::Debug for DEVICE_DATA_SET_SCRUB_OUTPUT {
         f.debug_struct("DEVICE_DATA_SET_SCRUB_OUTPUT").field("BytesProcessed", &self.BytesProcessed).field("BytesRepaired", &self.BytesRepaired).field("BytesFailed", &self.BytesFailed).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DATA_SET_SCRUB_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DATA_SET_SCRUB_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DATA_SET_SCRUB_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -7808,8 +7808,8 @@ impl ::core::fmt::Debug for DEVICE_DATA_SET_TOPOLOGY_ID_QUERY_OUTPUT {
         f.debug_struct("DEVICE_DATA_SET_TOPOLOGY_ID_QUERY_OUTPUT").field("TopologyRangeBytes", &self.TopologyRangeBytes).field("TopologyId", &self.TopologyId).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DATA_SET_TOPOLOGY_ID_QUERY_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DATA_SET_TOPOLOGY_ID_QUERY_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DATA_SET_TOPOLOGY_ID_QUERY_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -7826,7 +7826,7 @@ impl ::core::default::Default for DEVICE_DATA_SET_TOPOLOGY_ID_QUERY_OUTPUT {
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct DEVICE_DSM_CONVERSION_OUTPUT {
     pub Version: u32,
-    pub Source: ::windows::core::GUID,
+    pub Source: ::windows_core::GUID,
 }
 impl ::core::marker::Copy for DEVICE_DSM_CONVERSION_OUTPUT {}
 impl ::core::clone::Clone for DEVICE_DSM_CONVERSION_OUTPUT {
@@ -7839,8 +7839,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_CONVERSION_OUTPUT {
         f.debug_struct("DEVICE_DSM_CONVERSION_OUTPUT").field("Version", &self.Version).field("Source", &self.Source).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_CONVERSION_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_CONVERSION_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_CONVERSION_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -7880,8 +7880,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_DEFINITION {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DEVICE_DSM_DEFINITION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_DEFINITION {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DEVICE_DSM_DEFINITION {
@@ -7914,8 +7914,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_FREE_SPACE_OUTPUT {
         f.debug_struct("DEVICE_DSM_FREE_SPACE_OUTPUT").field("Version", &self.Version).field("FreeSpace", &self.FreeSpace).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_FREE_SPACE_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_FREE_SPACE_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_FREE_SPACE_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -7948,8 +7948,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_LOST_QUERY_OUTPUT {
         f.debug_struct("DEVICE_DSM_LOST_QUERY_OUTPUT").field("Version", &self.Version).field("Size", &self.Size).field("Alignment", &self.Alignment).field("NumberOfBits", &self.NumberOfBits).field("BitMap", &self.BitMap).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_LOST_QUERY_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_LOST_QUERY_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_LOST_QUERY_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -7979,8 +7979,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_LOST_QUERY_PARAMETERS {
         f.debug_struct("DEVICE_DSM_LOST_QUERY_PARAMETERS").field("Version", &self.Version).field("Granularity", &self.Granularity).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_LOST_QUERY_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_LOST_QUERY_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_LOST_QUERY_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -7999,7 +7999,7 @@ pub struct DEVICE_DSM_NOTIFICATION_PARAMETERS {
     pub Size: u32,
     pub Flags: u32,
     pub NumFileTypeIDs: u32,
-    pub FileTypeID: [::windows::core::GUID; 1],
+    pub FileTypeID: [::windows_core::GUID; 1],
 }
 impl ::core::marker::Copy for DEVICE_DSM_NOTIFICATION_PARAMETERS {}
 impl ::core::clone::Clone for DEVICE_DSM_NOTIFICATION_PARAMETERS {
@@ -8012,8 +8012,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_NOTIFICATION_PARAMETERS {
         f.debug_struct("DEVICE_DSM_NOTIFICATION_PARAMETERS").field("Size", &self.Size).field("Flags", &self.Flags).field("NumFileTypeIDs", &self.NumFileTypeIDs).field("FileTypeID", &self.FileTypeID).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_NOTIFICATION_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_NOTIFICATION_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_NOTIFICATION_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -8044,8 +8044,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_NVCACHE_CHANGE_PRIORITY_PARAMETERS {
         f.debug_struct("DEVICE_DSM_NVCACHE_CHANGE_PRIORITY_PARAMETERS").field("Size", &self.Size).field("TargetPriority", &self.TargetPriority).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_NVCACHE_CHANGE_PRIORITY_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_NVCACHE_CHANGE_PRIORITY_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_NVCACHE_CHANGE_PRIORITY_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -8076,8 +8076,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_OFFLOAD_READ_PARAMETERS {
         f.debug_struct("DEVICE_DSM_OFFLOAD_READ_PARAMETERS").field("Flags", &self.Flags).field("TimeToLive", &self.TimeToLive).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_OFFLOAD_READ_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_OFFLOAD_READ_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_OFFLOAD_READ_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -8104,8 +8104,8 @@ impl ::core::clone::Clone for DEVICE_DSM_OFFLOAD_WRITE_PARAMETERS {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_OFFLOAD_WRITE_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_OFFLOAD_WRITE_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICE_DSM_OFFLOAD_WRITE_PARAMETERS {
     fn default() -> Self {
@@ -8132,8 +8132,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_PHYSICAL_ADDRESSES_OUTPUT {
         f.debug_struct("DEVICE_DSM_PHYSICAL_ADDRESSES_OUTPUT").field("Version", &self.Version).field("Flags", &self.Flags).field("TotalNumberOfRanges", &self.TotalNumberOfRanges).field("NumberOfRangesReturned", &self.NumberOfRangesReturned).field("Ranges", &self.Ranges).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_PHYSICAL_ADDRESSES_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_PHYSICAL_ADDRESSES_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_PHYSICAL_ADDRESSES_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -8161,8 +8161,8 @@ impl ::core::clone::Clone for DEVICE_DSM_RANGE_ERROR_INFO {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_RANGE_ERROR_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_RANGE_ERROR_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICE_DSM_RANGE_ERROR_INFO {
     fn default() -> Self {
@@ -8194,8 +8194,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_REPORT_ZONES_DATA {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DEVICE_DSM_REPORT_ZONES_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_REPORT_ZONES_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DEVICE_DSM_REPORT_ZONES_DATA {
@@ -8230,8 +8230,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_REPORT_ZONES_PARAMETERS {
         f.debug_struct("DEVICE_DSM_REPORT_ZONES_PARAMETERS").field("Size", &self.Size).field("ReportOption", &self.ReportOption).field("Partial", &self.Partial).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_REPORT_ZONES_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_REPORT_ZONES_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_REPORT_ZONES_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -8251,7 +8251,7 @@ pub struct DEVICE_DSM_TIERING_QUERY_INPUT {
     pub Size: u32,
     pub Flags: u32,
     pub NumberOfTierIds: u32,
-    pub TierIds: [::windows::core::GUID; 1],
+    pub TierIds: [::windows_core::GUID; 1],
 }
 impl ::core::marker::Copy for DEVICE_DSM_TIERING_QUERY_INPUT {}
 impl ::core::clone::Clone for DEVICE_DSM_TIERING_QUERY_INPUT {
@@ -8264,8 +8264,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_TIERING_QUERY_INPUT {
         f.debug_struct("DEVICE_DSM_TIERING_QUERY_INPUT").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("NumberOfTierIds", &self.NumberOfTierIds).field("TierIds", &self.TierIds).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_TIERING_QUERY_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_TIERING_QUERY_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_TIERING_QUERY_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -8301,8 +8301,8 @@ impl ::core::fmt::Debug for DEVICE_DSM_TIERING_QUERY_OUTPUT {
         f.debug_struct("DEVICE_DSM_TIERING_QUERY_OUTPUT").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("Reserved", &self.Reserved).field("Alignment", &self.Alignment).field("TotalNumberOfRegions", &self.TotalNumberOfRegions).field("NumberOfRegionsReturned", &self.NumberOfRegionsReturned).field("Regions", &self.Regions).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_DSM_TIERING_QUERY_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_DSM_TIERING_QUERY_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_DSM_TIERING_QUERY_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -8355,8 +8355,8 @@ impl ::core::fmt::Debug for DEVICE_INTERNAL_STATUS_DATA {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_INTERNAL_STATUS_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_INTERNAL_STATUS_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_INTERNAL_STATUS_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -8392,8 +8392,8 @@ impl ::core::fmt::Debug for DEVICE_LB_PROVISIONING_DESCRIPTOR {
         f.debug_struct("DEVICE_LB_PROVISIONING_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("_bitfield", &self._bitfield).field("Reserved1", &self.Reserved1).field("OptimalUnmapGranularity", &self.OptimalUnmapGranularity).field("UnmapGranularityAlignment", &self.UnmapGranularityAlignment).field("MaxUnmapLbaCount", &self.MaxUnmapLbaCount).field("MaxUnmapBlockDescriptorCount", &self.MaxUnmapBlockDescriptorCount).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_LB_PROVISIONING_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_LB_PROVISIONING_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_LB_PROVISIONING_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -8421,8 +8421,8 @@ impl ::core::clone::Clone for DEVICE_LOCATION {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICE_LOCATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_LOCATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICE_LOCATION {
     fn default() -> Self {
@@ -8441,8 +8441,8 @@ impl ::core::clone::Clone for DEVICE_LOCATION_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICE_LOCATION_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_LOCATION_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICE_LOCATION_0 {
     fn default() -> Self {
@@ -8466,8 +8466,8 @@ impl ::core::fmt::Debug for DEVICE_LOCATION_0_0 {
         f.debug_struct("DEVICE_LOCATION_0_0").field("Channel", &self.Channel).field("Device", &self.Device).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_LOCATION_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_LOCATION_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_LOCATION_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -8497,8 +8497,8 @@ impl ::core::fmt::Debug for DEVICE_LOCATION_0_1 {
         f.debug_struct("DEVICE_LOCATION_0_1").field("Target", &self.Target).field("Lun", &self.Lun).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_LOCATION_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_LOCATION_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_LOCATION_0_1 {
     fn eq(&self, other: &Self) -> bool {
@@ -8533,8 +8533,8 @@ impl ::core::fmt::Debug for DEVICE_MANAGE_DATA_SET_ATTRIBUTES {
         f.debug_struct("DEVICE_MANAGE_DATA_SET_ATTRIBUTES").field("Size", &self.Size).field("Action", &self.Action).field("Flags", &self.Flags).field("ParameterBlockOffset", &self.ParameterBlockOffset).field("ParameterBlockLength", &self.ParameterBlockLength).field("DataSetRangesOffset", &self.DataSetRangesOffset).field("DataSetRangesLength", &self.DataSetRangesLength).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_MANAGE_DATA_SET_ATTRIBUTES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_MANAGE_DATA_SET_ATTRIBUTES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_MANAGE_DATA_SET_ATTRIBUTES {
     fn eq(&self, other: &Self) -> bool {
@@ -8571,8 +8571,8 @@ impl ::core::fmt::Debug for DEVICE_MANAGE_DATA_SET_ATTRIBUTES_OUTPUT {
         f.debug_struct("DEVICE_MANAGE_DATA_SET_ATTRIBUTES_OUTPUT").field("Size", &self.Size).field("Action", &self.Action).field("Flags", &self.Flags).field("OperationStatus", &self.OperationStatus).field("ExtendedError", &self.ExtendedError).field("TargetDetailedError", &self.TargetDetailedError).field("ReservedStatus", &self.ReservedStatus).field("OutputBlockOffset", &self.OutputBlockOffset).field("OutputBlockLength", &self.OutputBlockLength).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_MANAGE_DATA_SET_ATTRIBUTES_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_MANAGE_DATA_SET_ATTRIBUTES_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_MANAGE_DATA_SET_ATTRIBUTES_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -8600,8 +8600,8 @@ impl ::core::clone::Clone for DEVICE_MEDIA_INFO {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for DEVICE_MEDIA_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_MEDIA_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::default::Default for DEVICE_MEDIA_INFO {
@@ -8626,8 +8626,8 @@ impl ::core::clone::Clone for DEVICE_MEDIA_INFO_0 {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for DEVICE_MEDIA_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_MEDIA_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::default::Default for DEVICE_MEDIA_INFO_0 {
@@ -8662,8 +8662,8 @@ impl ::core::fmt::Debug for DEVICE_MEDIA_INFO_0_0 {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for DEVICE_MEDIA_INFO_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_MEDIA_INFO_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::cmp::PartialEq for DEVICE_MEDIA_INFO_0_0 {
@@ -8706,8 +8706,8 @@ impl ::core::fmt::Debug for DEVICE_MEDIA_INFO_0_1 {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for DEVICE_MEDIA_INFO_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_MEDIA_INFO_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::cmp::PartialEq for DEVICE_MEDIA_INFO_0_1 {
@@ -8742,8 +8742,8 @@ impl ::core::clone::Clone for DEVICE_MEDIA_INFO_0_2 {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for DEVICE_MEDIA_INFO_0_2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_MEDIA_INFO_0_2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::default::Default for DEVICE_MEDIA_INFO_0_2 {
@@ -8766,8 +8766,8 @@ impl ::core::clone::Clone for DEVICE_MEDIA_INFO_0_2_0 {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for DEVICE_MEDIA_INFO_0_2_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_MEDIA_INFO_0_2_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::default::Default for DEVICE_MEDIA_INFO_0_2_0 {
@@ -8797,8 +8797,8 @@ impl ::core::fmt::Debug for DEVICE_MEDIA_INFO_0_2_0_0 {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for DEVICE_MEDIA_INFO_0_2_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_MEDIA_INFO_0_2_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::cmp::PartialEq for DEVICE_MEDIA_INFO_0_2_0_0 {
@@ -8855,8 +8855,8 @@ impl ::core::fmt::Debug for DEVICE_POWER_DESCRIPTOR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DEVICE_POWER_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_POWER_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DEVICE_POWER_DESCRIPTOR {
@@ -8895,8 +8895,8 @@ impl ::core::fmt::Debug for DEVICE_SEEK_PENALTY_DESCRIPTOR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DEVICE_SEEK_PENALTY_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_SEEK_PENALTY_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DEVICE_SEEK_PENALTY_DESCRIPTOR {
@@ -8929,8 +8929,8 @@ impl ::core::fmt::Debug for DEVICE_STORAGE_ADDRESS_RANGE {
         f.debug_struct("DEVICE_STORAGE_ADDRESS_RANGE").field("StartAddress", &self.StartAddress).field("LengthInBytes", &self.LengthInBytes).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_STORAGE_ADDRESS_RANGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_STORAGE_ADDRESS_RANGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_STORAGE_ADDRESS_RANGE {
     fn eq(&self, other: &Self) -> bool {
@@ -8956,8 +8956,8 @@ impl ::core::clone::Clone for DEVICE_STORAGE_RANGE_ATTRIBUTES {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICE_STORAGE_RANGE_ATTRIBUTES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_STORAGE_RANGE_ATTRIBUTES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICE_STORAGE_RANGE_ATTRIBUTES {
     fn default() -> Self {
@@ -8976,8 +8976,8 @@ impl ::core::clone::Clone for DEVICE_STORAGE_RANGE_ATTRIBUTES_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DEVICE_STORAGE_RANGE_ATTRIBUTES_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_STORAGE_RANGE_ATTRIBUTES_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DEVICE_STORAGE_RANGE_ATTRIBUTES_0 {
     fn default() -> Self {
@@ -9000,8 +9000,8 @@ impl ::core::fmt::Debug for DEVICE_STORAGE_RANGE_ATTRIBUTES_0_0 {
         f.debug_struct("DEVICE_STORAGE_RANGE_ATTRIBUTES_0_0").field("_bitfield", &self._bitfield).finish()
     }
 }
-impl ::windows::core::TypeKind for DEVICE_STORAGE_RANGE_ATTRIBUTES_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_STORAGE_RANGE_ATTRIBUTES_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DEVICE_STORAGE_RANGE_ATTRIBUTES_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -9037,8 +9037,8 @@ impl ::core::fmt::Debug for DEVICE_TRIM_DESCRIPTOR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DEVICE_TRIM_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_TRIM_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DEVICE_TRIM_DESCRIPTOR {
@@ -9077,8 +9077,8 @@ impl ::core::fmt::Debug for DEVICE_WRITE_AGGREGATION_DESCRIPTOR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DEVICE_WRITE_AGGREGATION_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DEVICE_WRITE_AGGREGATION_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DEVICE_WRITE_AGGREGATION_DESCRIPTOR {
@@ -9116,8 +9116,8 @@ impl ::core::clone::Clone for DISK_CACHE_INFORMATION {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DISK_CACHE_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_CACHE_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DISK_CACHE_INFORMATION {
@@ -9141,8 +9141,8 @@ impl ::core::clone::Clone for DISK_CACHE_INFORMATION_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DISK_CACHE_INFORMATION_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_CACHE_INFORMATION_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DISK_CACHE_INFORMATION_0 {
@@ -9172,8 +9172,8 @@ impl ::core::fmt::Debug for DISK_CACHE_INFORMATION_0_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DISK_CACHE_INFORMATION_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_CACHE_INFORMATION_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DISK_CACHE_INFORMATION_0_0 {
@@ -9212,8 +9212,8 @@ impl ::core::fmt::Debug for DISK_CACHE_INFORMATION_0_1 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DISK_CACHE_INFORMATION_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_CACHE_INFORMATION_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DISK_CACHE_INFORMATION_0_1 {
@@ -9246,8 +9246,8 @@ impl ::core::fmt::Debug for DISK_CONTROLLER_NUMBER {
         f.debug_struct("DISK_CONTROLLER_NUMBER").field("ControllerNumber", &self.ControllerNumber).field("DiskNumber", &self.DiskNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_CONTROLLER_NUMBER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_CONTROLLER_NUMBER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_CONTROLLER_NUMBER {
     fn eq(&self, other: &Self) -> bool {
@@ -9273,8 +9273,8 @@ impl ::core::clone::Clone for DISK_DETECTION_INFO {
         *self
     }
 }
-impl ::windows::core::TypeKind for DISK_DETECTION_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_DETECTION_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DISK_DETECTION_INFO {
     fn default() -> Self {
@@ -9292,8 +9292,8 @@ impl ::core::clone::Clone for DISK_DETECTION_INFO_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DISK_DETECTION_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_DETECTION_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DISK_DETECTION_INFO_0 {
     fn default() -> Self {
@@ -9317,8 +9317,8 @@ impl ::core::fmt::Debug for DISK_DETECTION_INFO_0_0 {
         f.debug_struct("DISK_DETECTION_INFO_0_0").field("Int13", &self.Int13).field("ExInt13", &self.ExInt13).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_DETECTION_INFO_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_DETECTION_INFO_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_DETECTION_INFO_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -9349,8 +9349,8 @@ impl ::core::fmt::Debug for DISK_EXTENT {
         f.debug_struct("DISK_EXTENT").field("DiskNumber", &self.DiskNumber).field("StartingOffset", &self.StartingOffset).field("ExtentLength", &self.ExtentLength).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_EXTENT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_EXTENT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_EXTENT {
     fn eq(&self, other: &Self) -> bool {
@@ -9386,8 +9386,8 @@ impl ::core::fmt::Debug for DISK_EX_INT13_INFO {
         f.debug_struct("DISK_EX_INT13_INFO").field("ExBufferSize", &self.ExBufferSize).field("ExFlags", &self.ExFlags).field("ExCylinders", &self.ExCylinders).field("ExHeads", &self.ExHeads).field("ExSectorsPerTrack", &self.ExSectorsPerTrack).field("ExSectorsPerDrive", &self.ExSectorsPerDrive).field("ExSectorSize", &self.ExSectorSize).field("ExReserved", &self.ExReserved).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_EX_INT13_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_EX_INT13_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_EX_INT13_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -9420,8 +9420,8 @@ impl ::core::fmt::Debug for DISK_GEOMETRY {
         f.debug_struct("DISK_GEOMETRY").field("Cylinders", &self.Cylinders).field("MediaType", &self.MediaType).field("TracksPerCylinder", &self.TracksPerCylinder).field("SectorsPerTrack", &self.SectorsPerTrack).field("BytesPerSector", &self.BytesPerSector).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_GEOMETRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_GEOMETRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_GEOMETRY {
     fn eq(&self, other: &Self) -> bool {
@@ -9452,8 +9452,8 @@ impl ::core::fmt::Debug for DISK_GEOMETRY_EX {
         f.debug_struct("DISK_GEOMETRY_EX").field("Geometry", &self.Geometry).field("DiskSize", &self.DiskSize).field("Data", &self.Data).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_GEOMETRY_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_GEOMETRY_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_GEOMETRY_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -9483,8 +9483,8 @@ impl ::core::fmt::Debug for DISK_GROW_PARTITION {
         f.debug_struct("DISK_GROW_PARTITION").field("PartitionNumber", &self.PartitionNumber).field("BytesToGrow", &self.BytesToGrow).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_GROW_PARTITION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_GROW_PARTITION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_GROW_PARTITION {
     fn eq(&self, other: &Self) -> bool {
@@ -9523,8 +9523,8 @@ impl ::core::fmt::Debug for DISK_HISTOGRAM {
         f.debug_struct("DISK_HISTOGRAM").field("DiskSize", &self.DiskSize).field("Start", &self.Start).field("End", &self.End).field("Average", &self.Average).field("AverageRead", &self.AverageRead).field("AverageWrite", &self.AverageWrite).field("Granularity", &self.Granularity).field("Size", &self.Size).field("ReadCount", &self.ReadCount).field("WriteCount", &self.WriteCount).field("Histogram", &self.Histogram).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_HISTOGRAM {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_HISTOGRAM {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_HISTOGRAM {
     fn eq(&self, other: &Self) -> bool {
@@ -9557,8 +9557,8 @@ impl ::core::fmt::Debug for DISK_INT13_INFO {
         f.debug_struct("DISK_INT13_INFO").field("DriveSelect", &self.DriveSelect).field("MaxCylinders", &self.MaxCylinders).field("SectorsPerTrack", &self.SectorsPerTrack).field("MaxHeads", &self.MaxHeads).field("NumberDrives", &self.NumberDrives).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_INT13_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_INT13_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_INT13_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -9589,8 +9589,8 @@ impl ::core::fmt::Debug for DISK_LOGGING {
         f.debug_struct("DISK_LOGGING").field("Function", &self.Function).field("BufferAddress", &self.BufferAddress).field("BufferSize", &self.BufferSize).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_LOGGING {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_LOGGING {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_LOGGING {
     fn eq(&self, other: &Self) -> bool {
@@ -9616,8 +9616,8 @@ impl ::core::clone::Clone for DISK_PARTITION_INFO {
         *self
     }
 }
-impl ::windows::core::TypeKind for DISK_PARTITION_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_PARTITION_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DISK_PARTITION_INFO {
     fn default() -> Self {
@@ -9636,8 +9636,8 @@ impl ::core::clone::Clone for DISK_PARTITION_INFO_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for DISK_PARTITION_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_PARTITION_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DISK_PARTITION_INFO_0 {
     fn default() -> Self {
@@ -9647,7 +9647,7 @@ impl ::core::default::Default for DISK_PARTITION_INFO_0 {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct DISK_PARTITION_INFO_0_0 {
-    pub DiskId: ::windows::core::GUID,
+    pub DiskId: ::windows_core::GUID,
 }
 impl ::core::marker::Copy for DISK_PARTITION_INFO_0_0 {}
 impl ::core::clone::Clone for DISK_PARTITION_INFO_0_0 {
@@ -9660,8 +9660,8 @@ impl ::core::fmt::Debug for DISK_PARTITION_INFO_0_0 {
         f.debug_struct("DISK_PARTITION_INFO_0_0").field("DiskId", &self.DiskId).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_PARTITION_INFO_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_PARTITION_INFO_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_PARTITION_INFO_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -9691,8 +9691,8 @@ impl ::core::fmt::Debug for DISK_PARTITION_INFO_0_1 {
         f.debug_struct("DISK_PARTITION_INFO_0_1").field("Signature", &self.Signature).field("CheckSum", &self.CheckSum).finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_PARTITION_INFO_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_PARTITION_INFO_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_PARTITION_INFO_0_1 {
     fn eq(&self, other: &Self) -> bool {
@@ -9745,8 +9745,8 @@ impl ::core::fmt::Debug for DISK_PERFORMANCE {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for DISK_PERFORMANCE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_PERFORMANCE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DISK_PERFORMANCE {
     fn eq(&self, other: &Self) -> bool {
@@ -9786,8 +9786,8 @@ impl ::core::fmt::Debug for DISK_RECORD {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DISK_RECORD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DISK_RECORD {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DISK_RECORD {
@@ -9817,8 +9817,8 @@ impl ::core::clone::Clone for DRIVERSTATUS {
         *self
     }
 }
-impl ::windows::core::TypeKind for DRIVERSTATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DRIVERSTATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for DRIVERSTATUS {
     fn default() -> Self {
@@ -9848,8 +9848,8 @@ impl ::core::fmt::Debug for DRIVE_LAYOUT_INFORMATION {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DRIVE_LAYOUT_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DRIVE_LAYOUT_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DRIVE_LAYOUT_INFORMATION {
@@ -9883,8 +9883,8 @@ impl ::core::clone::Clone for DRIVE_LAYOUT_INFORMATION_EX {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DRIVE_LAYOUT_INFORMATION_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DRIVE_LAYOUT_INFORMATION_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DRIVE_LAYOUT_INFORMATION_EX {
@@ -9908,8 +9908,8 @@ impl ::core::clone::Clone for DRIVE_LAYOUT_INFORMATION_EX_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DRIVE_LAYOUT_INFORMATION_EX_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DRIVE_LAYOUT_INFORMATION_EX_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for DRIVE_LAYOUT_INFORMATION_EX_0 {
@@ -9920,7 +9920,7 @@ impl ::core::default::Default for DRIVE_LAYOUT_INFORMATION_EX_0 {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct DRIVE_LAYOUT_INFORMATION_GPT {
-    pub DiskId: ::windows::core::GUID,
+    pub DiskId: ::windows_core::GUID,
     pub StartingUsableOffset: i64,
     pub UsableLength: i64,
     pub MaxPartitionCount: u32,
@@ -9936,8 +9936,8 @@ impl ::core::fmt::Debug for DRIVE_LAYOUT_INFORMATION_GPT {
         f.debug_struct("DRIVE_LAYOUT_INFORMATION_GPT").field("DiskId", &self.DiskId).field("StartingUsableOffset", &self.StartingUsableOffset).field("UsableLength", &self.UsableLength).field("MaxPartitionCount", &self.MaxPartitionCount).finish()
     }
 }
-impl ::windows::core::TypeKind for DRIVE_LAYOUT_INFORMATION_GPT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DRIVE_LAYOUT_INFORMATION_GPT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DRIVE_LAYOUT_INFORMATION_GPT {
     fn eq(&self, other: &Self) -> bool {
@@ -9967,8 +9967,8 @@ impl ::core::fmt::Debug for DRIVE_LAYOUT_INFORMATION_MBR {
         f.debug_struct("DRIVE_LAYOUT_INFORMATION_MBR").field("Signature", &self.Signature).field("CheckSum", &self.CheckSum).finish()
     }
 }
-impl ::windows::core::TypeKind for DRIVE_LAYOUT_INFORMATION_MBR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DRIVE_LAYOUT_INFORMATION_MBR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for DRIVE_LAYOUT_INFORMATION_MBR {
     fn eq(&self, other: &Self) -> bool {
@@ -10005,8 +10005,8 @@ impl ::core::fmt::Debug for DUPLICATE_EXTENTS_DATA {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DUPLICATE_EXTENTS_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DUPLICATE_EXTENTS_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DUPLICATE_EXTENTS_DATA {
@@ -10046,8 +10046,8 @@ impl ::core::fmt::Debug for DUPLICATE_EXTENTS_DATA32 {
     }
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::windows::core::TypeKind for DUPLICATE_EXTENTS_DATA32 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DUPLICATE_EXTENTS_DATA32 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 impl ::core::cmp::PartialEq for DUPLICATE_EXTENTS_DATA32 {
@@ -10089,8 +10089,8 @@ impl ::core::fmt::Debug for DUPLICATE_EXTENTS_DATA_EX {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for DUPLICATE_EXTENTS_DATA_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DUPLICATE_EXTENTS_DATA_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for DUPLICATE_EXTENTS_DATA_EX {
@@ -10132,8 +10132,8 @@ impl ::core::fmt::Debug for DUPLICATE_EXTENTS_DATA_EX32 {
     }
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::windows::core::TypeKind for DUPLICATE_EXTENTS_DATA_EX32 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for DUPLICATE_EXTENTS_DATA_EX32 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 impl ::core::cmp::PartialEq for DUPLICATE_EXTENTS_DATA_EX32 {
@@ -10187,8 +10187,8 @@ impl ::core::fmt::Debug for ENCRYPTED_DATA_INFO {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for ENCRYPTED_DATA_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for ENCRYPTED_DATA_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for ENCRYPTED_DATA_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -10218,8 +10218,8 @@ impl ::core::fmt::Debug for ENCRYPTION_BUFFER {
         f.debug_struct("ENCRYPTION_BUFFER").field("EncryptionOperation", &self.EncryptionOperation).field("Private", &self.Private).finish()
     }
 }
-impl ::windows::core::TypeKind for ENCRYPTION_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for ENCRYPTION_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for ENCRYPTION_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -10254,8 +10254,8 @@ impl ::core::fmt::Debug for ENCRYPTION_KEY_CTRL_INPUT {
         f.debug_struct("ENCRYPTION_KEY_CTRL_INPUT").field("HeaderSize", &self.HeaderSize).field("StructureSize", &self.StructureSize).field("KeyOffset", &self.KeyOffset).field("KeySize", &self.KeySize).field("DplLock", &self.DplLock).field("DplUserId", &self.DplUserId).field("DplCredentialId", &self.DplCredentialId).finish()
     }
 }
-impl ::windows::core::TypeKind for ENCRYPTION_KEY_CTRL_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for ENCRYPTION_KEY_CTRL_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for ENCRYPTION_KEY_CTRL_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -10302,8 +10302,8 @@ impl ::core::fmt::Debug for EXFAT_STATISTICS {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for EXFAT_STATISTICS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for EXFAT_STATISTICS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for EXFAT_STATISTICS {
     fn eq(&self, other: &Self) -> bool {
@@ -10335,8 +10335,8 @@ impl ::core::fmt::Debug for EXTENDED_ENCRYPTED_DATA_INFO {
         f.debug_struct("EXTENDED_ENCRYPTED_DATA_INFO").field("ExtendedCode", &self.ExtendedCode).field("Length", &self.Length).field("Flags", &self.Flags).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for EXTENDED_ENCRYPTED_DATA_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for EXTENDED_ENCRYPTED_DATA_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for EXTENDED_ENCRYPTED_DATA_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -10383,8 +10383,8 @@ impl ::core::fmt::Debug for FAT_STATISTICS {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for FAT_STATISTICS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FAT_STATISTICS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FAT_STATISTICS {
     fn eq(&self, other: &Self) -> bool {
@@ -10443,8 +10443,8 @@ impl ::core::fmt::Debug for FILESYSTEM_STATISTICS {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for FILESYSTEM_STATISTICS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILESYSTEM_STATISTICS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILESYSTEM_STATISTICS {
     fn eq(&self, other: &Self) -> bool {
@@ -10503,8 +10503,8 @@ impl ::core::fmt::Debug for FILESYSTEM_STATISTICS_EX {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for FILESYSTEM_STATISTICS_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILESYSTEM_STATISTICS_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILESYSTEM_STATISTICS_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -10534,8 +10534,8 @@ impl ::core::fmt::Debug for FILE_ALLOCATED_RANGE_BUFFER {
         f.debug_struct("FILE_ALLOCATED_RANGE_BUFFER").field("FileOffset", &self.FileOffset).field("Length", &self.Length).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_ALLOCATED_RANGE_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_ALLOCATED_RANGE_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_ALLOCATED_RANGE_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -10565,8 +10565,8 @@ impl ::core::fmt::Debug for FILE_DESIRED_STORAGE_CLASS_INFORMATION {
         f.debug_struct("FILE_DESIRED_STORAGE_CLASS_INFORMATION").field("Class", &self.Class).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_DESIRED_STORAGE_CLASS_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_DESIRED_STORAGE_CLASS_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_DESIRED_STORAGE_CLASS_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -10598,8 +10598,8 @@ impl ::core::fmt::Debug for FILE_FS_PERSISTENT_VOLUME_INFORMATION {
         f.debug_struct("FILE_FS_PERSISTENT_VOLUME_INFORMATION").field("VolumeFlags", &self.VolumeFlags).field("FlagMask", &self.FlagMask).field("Version", &self.Version).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_FS_PERSISTENT_VOLUME_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_FS_PERSISTENT_VOLUME_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_FS_PERSISTENT_VOLUME_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -10631,8 +10631,8 @@ impl ::core::fmt::Debug for FILE_INITIATE_REPAIR_OUTPUT_BUFFER {
         f.debug_struct("FILE_INITIATE_REPAIR_OUTPUT_BUFFER").field("Hint1", &self.Hint1).field("Hint2", &self.Hint2).field("Clsn", &self.Clsn).field("Status", &self.Status).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_INITIATE_REPAIR_OUTPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_INITIATE_REPAIR_OUTPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_INITIATE_REPAIR_OUTPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -10669,8 +10669,8 @@ impl ::core::fmt::Debug for FILE_LAYOUT_ENTRY {
         f.debug_struct("FILE_LAYOUT_ENTRY").field("Version", &self.Version).field("NextFileOffset", &self.NextFileOffset).field("Flags", &self.Flags).field("FileAttributes", &self.FileAttributes).field("FileReferenceNumber", &self.FileReferenceNumber).field("FirstNameOffset", &self.FirstNameOffset).field("FirstStreamOffset", &self.FirstStreamOffset).field("ExtraInfoOffset", &self.ExtraInfoOffset).field("ExtraInfoLength", &self.ExtraInfoLength).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_LAYOUT_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_LAYOUT_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_LAYOUT_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -10703,8 +10703,8 @@ impl ::core::fmt::Debug for FILE_LAYOUT_INFO_ENTRY {
         f.debug_struct("FILE_LAYOUT_INFO_ENTRY").field("BasicInformation", &self.BasicInformation).field("OwnerId", &self.OwnerId).field("SecurityId", &self.SecurityId).field("Usn", &self.Usn).field("StorageReserveId", &self.StorageReserveId).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_LAYOUT_INFO_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_LAYOUT_INFO_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_LAYOUT_INFO_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -10737,8 +10737,8 @@ impl ::core::fmt::Debug for FILE_LAYOUT_INFO_ENTRY_0 {
         f.debug_struct("FILE_LAYOUT_INFO_ENTRY_0").field("CreationTime", &self.CreationTime).field("LastAccessTime", &self.LastAccessTime).field("LastWriteTime", &self.LastWriteTime).field("ChangeTime", &self.ChangeTime).field("FileAttributes", &self.FileAttributes).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_LAYOUT_INFO_ENTRY_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_LAYOUT_INFO_ENTRY_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_LAYOUT_INFO_ENTRY_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -10772,8 +10772,8 @@ impl ::core::fmt::Debug for FILE_LAYOUT_NAME_ENTRY {
         f.debug_struct("FILE_LAYOUT_NAME_ENTRY").field("NextNameOffset", &self.NextNameOffset).field("Flags", &self.Flags).field("ParentFileReferenceNumber", &self.ParentFileReferenceNumber).field("FileNameLength", &self.FileNameLength).field("Reserved", &self.Reserved).field("FileName", &self.FileName).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_LAYOUT_NAME_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_LAYOUT_NAME_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_LAYOUT_NAME_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -10804,8 +10804,8 @@ impl ::core::fmt::Debug for FILE_LEVEL_TRIM {
         f.debug_struct("FILE_LEVEL_TRIM").field("Key", &self.Key).field("NumRanges", &self.NumRanges).field("Ranges", &self.Ranges).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_LEVEL_TRIM {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_LEVEL_TRIM {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_LEVEL_TRIM {
     fn eq(&self, other: &Self) -> bool {
@@ -10834,8 +10834,8 @@ impl ::core::fmt::Debug for FILE_LEVEL_TRIM_OUTPUT {
         f.debug_struct("FILE_LEVEL_TRIM_OUTPUT").field("NumRangesProcessed", &self.NumRangesProcessed).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_LEVEL_TRIM_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_LEVEL_TRIM_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_LEVEL_TRIM_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -10865,8 +10865,8 @@ impl ::core::fmt::Debug for FILE_LEVEL_TRIM_RANGE {
         f.debug_struct("FILE_LEVEL_TRIM_RANGE").field("Offset", &self.Offset).field("Length", &self.Length).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_LEVEL_TRIM_RANGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_LEVEL_TRIM_RANGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_LEVEL_TRIM_RANGE {
     fn eq(&self, other: &Self) -> bool {
@@ -10900,8 +10900,8 @@ impl ::core::fmt::Debug for FILE_MAKE_COMPATIBLE_BUFFER {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for FILE_MAKE_COMPATIBLE_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_MAKE_COMPATIBLE_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for FILE_MAKE_COMPATIBLE_BUFFER {
@@ -10929,8 +10929,8 @@ impl ::core::clone::Clone for FILE_OBJECTID_BUFFER {
         *self
     }
 }
-impl ::windows::core::TypeKind for FILE_OBJECTID_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_OBJECTID_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for FILE_OBJECTID_BUFFER {
     fn default() -> Self {
@@ -10949,8 +10949,8 @@ impl ::core::clone::Clone for FILE_OBJECTID_BUFFER_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for FILE_OBJECTID_BUFFER_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_OBJECTID_BUFFER_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for FILE_OBJECTID_BUFFER_0 {
     fn default() -> Self {
@@ -10975,8 +10975,8 @@ impl ::core::fmt::Debug for FILE_OBJECTID_BUFFER_0_0 {
         f.debug_struct("FILE_OBJECTID_BUFFER_0_0").field("BirthVolumeId", &self.BirthVolumeId).field("BirthObjectId", &self.BirthObjectId).field("DomainId", &self.DomainId).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_OBJECTID_BUFFER_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_OBJECTID_BUFFER_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_OBJECTID_BUFFER_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -11007,8 +11007,8 @@ impl ::core::fmt::Debug for FILE_PREFETCH {
         f.debug_struct("FILE_PREFETCH").field("Type", &self.Type).field("Count", &self.Count).field("Prefetch", &self.Prefetch).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_PREFETCH {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_PREFETCH {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_PREFETCH {
     fn eq(&self, other: &Self) -> bool {
@@ -11040,8 +11040,8 @@ impl ::core::fmt::Debug for FILE_PREFETCH_EX {
         f.debug_struct("FILE_PREFETCH_EX").field("Type", &self.Type).field("Count", &self.Count).field("Context", &self.Context).field("Prefetch", &self.Prefetch).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_PREFETCH_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_PREFETCH_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_PREFETCH_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -11071,8 +11071,8 @@ impl ::core::fmt::Debug for FILE_PROVIDER_EXTERNAL_INFO_V0 {
         f.debug_struct("FILE_PROVIDER_EXTERNAL_INFO_V0").field("Version", &self.Version).field("Algorithm", &self.Algorithm).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_PROVIDER_EXTERNAL_INFO_V0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_PROVIDER_EXTERNAL_INFO_V0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_PROVIDER_EXTERNAL_INFO_V0 {
     fn eq(&self, other: &Self) -> bool {
@@ -11103,8 +11103,8 @@ impl ::core::fmt::Debug for FILE_PROVIDER_EXTERNAL_INFO_V1 {
         f.debug_struct("FILE_PROVIDER_EXTERNAL_INFO_V1").field("Version", &self.Version).field("Algorithm", &self.Algorithm).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_PROVIDER_EXTERNAL_INFO_V1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_PROVIDER_EXTERNAL_INFO_V1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_PROVIDER_EXTERNAL_INFO_V1 {
     fn eq(&self, other: &Self) -> bool {
@@ -11155,8 +11155,8 @@ impl ::core::fmt::Debug for FILE_QUERY_ON_DISK_VOL_INFO_BUFFER {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_QUERY_ON_DISK_VOL_INFO_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_QUERY_ON_DISK_VOL_INFO_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_QUERY_ON_DISK_VOL_INFO_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -11193,8 +11193,8 @@ impl ::core::fmt::Debug for FILE_QUERY_SPARING_BUFFER {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for FILE_QUERY_SPARING_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_QUERY_SPARING_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for FILE_QUERY_SPARING_BUFFER {
@@ -11227,8 +11227,8 @@ impl ::core::fmt::Debug for FILE_REFERENCE_RANGE {
         f.debug_struct("FILE_REFERENCE_RANGE").field("StartingFileReferenceNumber", &self.StartingFileReferenceNumber).field("EndingFileReferenceNumber", &self.EndingFileReferenceNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_REFERENCE_RANGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_REFERENCE_RANGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_REFERENCE_RANGE {
     fn eq(&self, other: &Self) -> bool {
@@ -11260,8 +11260,8 @@ impl ::core::fmt::Debug for FILE_REGION_INFO {
         f.debug_struct("FILE_REGION_INFO").field("FileOffset", &self.FileOffset).field("Length", &self.Length).field("Usage", &self.Usage).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_REGION_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_REGION_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_REGION_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -11292,8 +11292,8 @@ impl ::core::fmt::Debug for FILE_REGION_INPUT {
         f.debug_struct("FILE_REGION_INPUT").field("FileOffset", &self.FileOffset).field("Length", &self.Length).field("DesiredUsage", &self.DesiredUsage).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_REGION_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_REGION_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_REGION_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -11326,8 +11326,8 @@ impl ::core::fmt::Debug for FILE_REGION_OUTPUT {
         f.debug_struct("FILE_REGION_OUTPUT").field("Flags", &self.Flags).field("TotalRegionEntryCount", &self.TotalRegionEntryCount).field("RegionEntryCount", &self.RegionEntryCount).field("Reserved", &self.Reserved).field("Region", &self.Region).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_REGION_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_REGION_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_REGION_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -11361,8 +11361,8 @@ impl ::core::fmt::Debug for FILE_SET_DEFECT_MGMT_BUFFER {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for FILE_SET_DEFECT_MGMT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_SET_DEFECT_MGMT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for FILE_SET_DEFECT_MGMT_BUFFER {
@@ -11399,8 +11399,8 @@ impl ::core::fmt::Debug for FILE_SET_SPARSE_BUFFER {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for FILE_SET_SPARSE_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_SET_SPARSE_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for FILE_SET_SPARSE_BUFFER {
@@ -11419,7 +11419,7 @@ impl ::core::default::Default for FILE_SET_SPARSE_BUFFER {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct FILE_STORAGE_TIER {
-    pub Id: ::windows::core::GUID,
+    pub Id: ::windows_core::GUID,
     pub Name: [u16; 256],
     pub Description: [u16; 256],
     pub Flags: u64,
@@ -11438,8 +11438,8 @@ impl ::core::fmt::Debug for FILE_STORAGE_TIER {
         f.debug_struct("FILE_STORAGE_TIER").field("Id", &self.Id).field("Name", &self.Name).field("Description", &self.Description).field("Flags", &self.Flags).field("ProvisionedCapacity", &self.ProvisionedCapacity).field("MediaType", &self.MediaType).field("Class", &self.Class).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_STORAGE_TIER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_STORAGE_TIER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_STORAGE_TIER {
     fn eq(&self, other: &Self) -> bool {
@@ -11455,7 +11455,7 @@ impl ::core::default::Default for FILE_STORAGE_TIER {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct FILE_STORAGE_TIER_REGION {
-    pub TierId: ::windows::core::GUID,
+    pub TierId: ::windows_core::GUID,
     pub Offset: u64,
     pub Length: u64,
 }
@@ -11470,8 +11470,8 @@ impl ::core::fmt::Debug for FILE_STORAGE_TIER_REGION {
         f.debug_struct("FILE_STORAGE_TIER_REGION").field("TierId", &self.TierId).field("Offset", &self.Offset).field("Length", &self.Length).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_STORAGE_TIER_REGION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_STORAGE_TIER_REGION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_STORAGE_TIER_REGION {
     fn eq(&self, other: &Self) -> bool {
@@ -11500,8 +11500,8 @@ impl ::core::fmt::Debug for FILE_SYSTEM_RECOGNITION_INFORMATION {
         f.debug_struct("FILE_SYSTEM_RECOGNITION_INFORMATION").field("FileSystem", &self.FileSystem).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_SYSTEM_RECOGNITION_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_SYSTEM_RECOGNITION_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_SYSTEM_RECOGNITION_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -11519,7 +11519,7 @@ impl ::core::default::Default for FILE_SYSTEM_RECOGNITION_INFORMATION {
 pub struct FILE_TYPE_NOTIFICATION_INPUT {
     pub Flags: u32,
     pub NumFileTypeIDs: u32,
-    pub FileTypeID: [::windows::core::GUID; 1],
+    pub FileTypeID: [::windows_core::GUID; 1],
 }
 impl ::core::marker::Copy for FILE_TYPE_NOTIFICATION_INPUT {}
 impl ::core::clone::Clone for FILE_TYPE_NOTIFICATION_INPUT {
@@ -11532,8 +11532,8 @@ impl ::core::fmt::Debug for FILE_TYPE_NOTIFICATION_INPUT {
         f.debug_struct("FILE_TYPE_NOTIFICATION_INPUT").field("Flags", &self.Flags).field("NumFileTypeIDs", &self.NumFileTypeIDs).field("FileTypeID", &self.FileTypeID).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_TYPE_NOTIFICATION_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_TYPE_NOTIFICATION_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_TYPE_NOTIFICATION_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -11563,8 +11563,8 @@ impl ::core::fmt::Debug for FILE_ZERO_DATA_INFORMATION {
         f.debug_struct("FILE_ZERO_DATA_INFORMATION").field("FileOffset", &self.FileOffset).field("BeyondFinalZero", &self.BeyondFinalZero).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_ZERO_DATA_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_ZERO_DATA_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_ZERO_DATA_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -11595,8 +11595,8 @@ impl ::core::fmt::Debug for FILE_ZERO_DATA_INFORMATION_EX {
         f.debug_struct("FILE_ZERO_DATA_INFORMATION_EX").field("FileOffset", &self.FileOffset).field("BeyondFinalZero", &self.BeyondFinalZero).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for FILE_ZERO_DATA_INFORMATION_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FILE_ZERO_DATA_INFORMATION_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FILE_ZERO_DATA_INFORMATION_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -11631,8 +11631,8 @@ impl ::core::fmt::Debug for FIND_BY_SID_DATA {
     }
 }
 #[cfg(feature = "Win32_Security")]
-impl ::windows::core::TypeKind for FIND_BY_SID_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FIND_BY_SID_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Security")]
 impl ::core::cmp::PartialEq for FIND_BY_SID_DATA {
@@ -11667,8 +11667,8 @@ impl ::core::fmt::Debug for FIND_BY_SID_OUTPUT {
         f.debug_struct("FIND_BY_SID_OUTPUT").field("NextEntryOffset", &self.NextEntryOffset).field("FileIndex", &self.FileIndex).field("FileNameLength", &self.FileNameLength).field("FileName", &self.FileName).finish()
     }
 }
-impl ::windows::core::TypeKind for FIND_BY_SID_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FIND_BY_SID_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FIND_BY_SID_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -11704,8 +11704,8 @@ impl ::core::fmt::Debug for FORMAT_EX_PARAMETERS {
         f.debug_struct("FORMAT_EX_PARAMETERS").field("MediaType", &self.MediaType).field("StartCylinderNumber", &self.StartCylinderNumber).field("EndCylinderNumber", &self.EndCylinderNumber).field("StartHeadNumber", &self.StartHeadNumber).field("EndHeadNumber", &self.EndHeadNumber).field("FormatGapLength", &self.FormatGapLength).field("SectorsPerTrack", &self.SectorsPerTrack).field("SectorNumber", &self.SectorNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for FORMAT_EX_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FORMAT_EX_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FORMAT_EX_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -11738,8 +11738,8 @@ impl ::core::fmt::Debug for FORMAT_PARAMETERS {
         f.debug_struct("FORMAT_PARAMETERS").field("MediaType", &self.MediaType).field("StartCylinderNumber", &self.StartCylinderNumber).field("EndCylinderNumber", &self.EndCylinderNumber).field("StartHeadNumber", &self.StartHeadNumber).field("EndHeadNumber", &self.EndHeadNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for FORMAT_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FORMAT_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FORMAT_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -11772,8 +11772,8 @@ impl ::core::fmt::Debug for FSCTL_GET_INTEGRITY_INFORMATION_BUFFER {
         f.debug_struct("FSCTL_GET_INTEGRITY_INFORMATION_BUFFER").field("ChecksumAlgorithm", &self.ChecksumAlgorithm).field("Reserved", &self.Reserved).field("Flags", &self.Flags).field("ChecksumChunkSizeInBytes", &self.ChecksumChunkSizeInBytes).field("ClusterSizeInBytes", &self.ClusterSizeInBytes).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_GET_INTEGRITY_INFORMATION_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_GET_INTEGRITY_INFORMATION_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_GET_INTEGRITY_INFORMATION_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -11807,8 +11807,8 @@ impl ::core::fmt::Debug for FSCTL_OFFLOAD_READ_INPUT {
         f.debug_struct("FSCTL_OFFLOAD_READ_INPUT").field("Size", &self.Size).field("Flags", &self.Flags).field("TokenTimeToLive", &self.TokenTimeToLive).field("Reserved", &self.Reserved).field("FileOffset", &self.FileOffset).field("CopyLength", &self.CopyLength).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_OFFLOAD_READ_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_OFFLOAD_READ_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_OFFLOAD_READ_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -11840,8 +11840,8 @@ impl ::core::fmt::Debug for FSCTL_OFFLOAD_READ_OUTPUT {
         f.debug_struct("FSCTL_OFFLOAD_READ_OUTPUT").field("Size", &self.Size).field("Flags", &self.Flags).field("TransferLength", &self.TransferLength).field("Token", &self.Token).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_OFFLOAD_READ_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_OFFLOAD_READ_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_OFFLOAD_READ_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -11875,8 +11875,8 @@ impl ::core::fmt::Debug for FSCTL_OFFLOAD_WRITE_INPUT {
         f.debug_struct("FSCTL_OFFLOAD_WRITE_INPUT").field("Size", &self.Size).field("Flags", &self.Flags).field("FileOffset", &self.FileOffset).field("CopyLength", &self.CopyLength).field("TransferOffset", &self.TransferOffset).field("Token", &self.Token).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_OFFLOAD_WRITE_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_OFFLOAD_WRITE_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_OFFLOAD_WRITE_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -11907,8 +11907,8 @@ impl ::core::fmt::Debug for FSCTL_OFFLOAD_WRITE_OUTPUT {
         f.debug_struct("FSCTL_OFFLOAD_WRITE_OUTPUT").field("Size", &self.Size).field("Flags", &self.Flags).field("LengthWritten", &self.LengthWritten).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_OFFLOAD_WRITE_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_OFFLOAD_WRITE_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_OFFLOAD_WRITE_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -11937,8 +11937,8 @@ impl ::core::fmt::Debug for FSCTL_QUERY_FAT_BPB_BUFFER {
         f.debug_struct("FSCTL_QUERY_FAT_BPB_BUFFER").field("First0x24BytesOfBootSector", &self.First0x24BytesOfBootSector).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_QUERY_FAT_BPB_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_QUERY_FAT_BPB_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_QUERY_FAT_BPB_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -11958,7 +11958,7 @@ pub struct FSCTL_QUERY_REGION_INFO_INPUT {
     pub Size: u32,
     pub Flags: u32,
     pub NumberOfTierIds: u32,
-    pub TierIds: [::windows::core::GUID; 1],
+    pub TierIds: [::windows_core::GUID; 1],
 }
 impl ::core::marker::Copy for FSCTL_QUERY_REGION_INFO_INPUT {}
 impl ::core::clone::Clone for FSCTL_QUERY_REGION_INFO_INPUT {
@@ -11971,8 +11971,8 @@ impl ::core::fmt::Debug for FSCTL_QUERY_REGION_INFO_INPUT {
         f.debug_struct("FSCTL_QUERY_REGION_INFO_INPUT").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("NumberOfTierIds", &self.NumberOfTierIds).field("TierIds", &self.TierIds).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_QUERY_REGION_INFO_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_QUERY_REGION_INFO_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_QUERY_REGION_INFO_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -12008,8 +12008,8 @@ impl ::core::fmt::Debug for FSCTL_QUERY_REGION_INFO_OUTPUT {
         f.debug_struct("FSCTL_QUERY_REGION_INFO_OUTPUT").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("Reserved", &self.Reserved).field("Alignment", &self.Alignment).field("TotalNumberOfRegions", &self.TotalNumberOfRegions).field("NumberOfRegionsReturned", &self.NumberOfRegionsReturned).field("Regions", &self.Regions).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_QUERY_REGION_INFO_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_QUERY_REGION_INFO_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_QUERY_REGION_INFO_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -12043,8 +12043,8 @@ impl ::core::fmt::Debug for FSCTL_QUERY_STORAGE_CLASSES_OUTPUT {
         f.debug_struct("FSCTL_QUERY_STORAGE_CLASSES_OUTPUT").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("TotalNumberOfTiers", &self.TotalNumberOfTiers).field("NumberOfTiersReturned", &self.NumberOfTiersReturned).field("Tiers", &self.Tiers).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_QUERY_STORAGE_CLASSES_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_QUERY_STORAGE_CLASSES_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_QUERY_STORAGE_CLASSES_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -12075,8 +12075,8 @@ impl ::core::fmt::Debug for FSCTL_SET_INTEGRITY_INFORMATION_BUFFER {
         f.debug_struct("FSCTL_SET_INTEGRITY_INFORMATION_BUFFER").field("ChecksumAlgorithm", &self.ChecksumAlgorithm).field("Reserved", &self.Reserved).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_SET_INTEGRITY_INFORMATION_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_SET_INTEGRITY_INFORMATION_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_SET_INTEGRITY_INFORMATION_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -12110,8 +12110,8 @@ impl ::core::fmt::Debug for FSCTL_SET_INTEGRITY_INFORMATION_BUFFER_EX {
         f.debug_struct("FSCTL_SET_INTEGRITY_INFORMATION_BUFFER_EX").field("EnableIntegrity", &self.EnableIntegrity).field("KeepIntegrityStateUnchanged", &self.KeepIntegrityStateUnchanged).field("Reserved", &self.Reserved).field("Flags", &self.Flags).field("Version", &self.Version).field("Reserved2", &self.Reserved2).finish()
     }
 }
-impl ::windows::core::TypeKind for FSCTL_SET_INTEGRITY_INFORMATION_BUFFER_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FSCTL_SET_INTEGRITY_INFORMATION_BUFFER_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FSCTL_SET_INTEGRITY_INFORMATION_BUFFER_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -12142,8 +12142,8 @@ impl ::core::fmt::Debug for FS_BPIO_INFO {
         f.debug_struct("FS_BPIO_INFO").field("ActiveBypassIoCount", &self.ActiveBypassIoCount).field("StorageDriverNameLen", &self.StorageDriverNameLen).field("StorageDriverName", &self.StorageDriverName).finish()
     }
 }
-impl ::windows::core::TypeKind for FS_BPIO_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FS_BPIO_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FS_BPIO_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -12175,8 +12175,8 @@ impl ::core::fmt::Debug for FS_BPIO_INPUT {
         f.debug_struct("FS_BPIO_INPUT").field("Operation", &self.Operation).field("InFlags", &self.InFlags).field("Reserved1", &self.Reserved1).field("Reserved2", &self.Reserved2).finish()
     }
 }
-impl ::windows::core::TypeKind for FS_BPIO_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FS_BPIO_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FS_BPIO_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -12204,8 +12204,8 @@ impl ::core::clone::Clone for FS_BPIO_OUTPUT {
         *self
     }
 }
-impl ::windows::core::TypeKind for FS_BPIO_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FS_BPIO_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for FS_BPIO_OUTPUT {
     fn default() -> Self {
@@ -12227,8 +12227,8 @@ impl ::core::clone::Clone for FS_BPIO_OUTPUT_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for FS_BPIO_OUTPUT_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FS_BPIO_OUTPUT_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for FS_BPIO_OUTPUT_0 {
     fn default() -> Self {
@@ -12255,8 +12255,8 @@ impl ::core::fmt::Debug for FS_BPIO_RESULTS {
         f.debug_struct("FS_BPIO_RESULTS").field("OpStatus", &self.OpStatus).field("FailingDriverNameLen", &self.FailingDriverNameLen).field("FailingDriverName", &self.FailingDriverName).field("FailureReasonLen", &self.FailureReasonLen).field("FailureReason", &self.FailureReason).finish()
     }
 }
-impl ::windows::core::TypeKind for FS_BPIO_RESULTS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for FS_BPIO_RESULTS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for FS_BPIO_RESULTS {
     fn eq(&self, other: &Self) -> bool {
@@ -12285,8 +12285,8 @@ impl ::core::clone::Clone for GETVERSIONINPARAMS {
         *self
     }
 }
-impl ::windows::core::TypeKind for GETVERSIONINPARAMS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GETVERSIONINPARAMS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for GETVERSIONINPARAMS {
     fn default() -> Self {
@@ -12365,8 +12365,8 @@ impl ::core::fmt::Debug for GET_CHANGER_PARAMETERS {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for GET_CHANGER_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GET_CHANGER_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for GET_CHANGER_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -12425,8 +12425,8 @@ impl ::core::fmt::Debug for GET_DEVICE_INTERNAL_STATUS_DATA_REQUEST {
         f.debug_struct("GET_DEVICE_INTERNAL_STATUS_DATA_REQUEST").field("Version", &self.Version).field("Size", &self.Size).field("RequestDataType", &self.RequestDataType).field("RequestDataSet", &self.RequestDataSet).finish()
     }
 }
-impl ::windows::core::TypeKind for GET_DEVICE_INTERNAL_STATUS_DATA_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GET_DEVICE_INTERNAL_STATUS_DATA_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for GET_DEVICE_INTERNAL_STATUS_DATA_REQUEST {
     fn eq(&self, other: &Self) -> bool {
@@ -12457,8 +12457,8 @@ impl ::core::fmt::Debug for GET_DISK_ATTRIBUTES {
         f.debug_struct("GET_DISK_ATTRIBUTES").field("Version", &self.Version).field("Reserved1", &self.Reserved1).field("Attributes", &self.Attributes).finish()
     }
 }
-impl ::windows::core::TypeKind for GET_DISK_ATTRIBUTES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GET_DISK_ATTRIBUTES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for GET_DISK_ATTRIBUTES {
     fn eq(&self, other: &Self) -> bool {
@@ -12488,8 +12488,8 @@ impl ::core::fmt::Debug for GET_FILTER_FILE_IDENTIFIER_INPUT {
         f.debug_struct("GET_FILTER_FILE_IDENTIFIER_INPUT").field("AltitudeLength", &self.AltitudeLength).field("Altitude", &self.Altitude).finish()
     }
 }
-impl ::windows::core::TypeKind for GET_FILTER_FILE_IDENTIFIER_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GET_FILTER_FILE_IDENTIFIER_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for GET_FILTER_FILE_IDENTIFIER_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -12519,8 +12519,8 @@ impl ::core::fmt::Debug for GET_FILTER_FILE_IDENTIFIER_OUTPUT {
         f.debug_struct("GET_FILTER_FILE_IDENTIFIER_OUTPUT").field("FilterFileIdentifierLength", &self.FilterFileIdentifierLength).field("FilterFileIdentifier", &self.FilterFileIdentifier).finish()
     }
 }
-impl ::windows::core::TypeKind for GET_FILTER_FILE_IDENTIFIER_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GET_FILTER_FILE_IDENTIFIER_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for GET_FILTER_FILE_IDENTIFIER_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -12549,8 +12549,8 @@ impl ::core::fmt::Debug for GET_LENGTH_INFORMATION {
         f.debug_struct("GET_LENGTH_INFORMATION").field("Length", &self.Length).finish()
     }
 }
-impl ::windows::core::TypeKind for GET_LENGTH_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GET_LENGTH_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for GET_LENGTH_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -12580,8 +12580,8 @@ impl ::core::clone::Clone for GET_MEDIA_TYPES {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for GET_MEDIA_TYPES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GET_MEDIA_TYPES {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::default::Default for GET_MEDIA_TYPES {
@@ -12601,8 +12601,8 @@ impl ::core::clone::Clone for GP_LOG_PAGE_DESCRIPTOR {
         *self
     }
 }
-impl ::windows::core::TypeKind for GP_LOG_PAGE_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for GP_LOG_PAGE_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for GP_LOG_PAGE_DESCRIPTOR {
     fn default() -> Self {
@@ -12626,8 +12626,8 @@ impl ::core::fmt::Debug for HISTOGRAM_BUCKET {
         f.debug_struct("HISTOGRAM_BUCKET").field("Reads", &self.Reads).field("Writes", &self.Writes).finish()
     }
 }
-impl ::windows::core::TypeKind for HISTOGRAM_BUCKET {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for HISTOGRAM_BUCKET {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for HISTOGRAM_BUCKET {
     fn eq(&self, other: &Self) -> bool {
@@ -12663,8 +12663,8 @@ impl ::core::fmt::Debug for IDEREGS {
         f.debug_struct("IDEREGS").field("bFeaturesReg", &self.bFeaturesReg).field("bSectorCountReg", &self.bSectorCountReg).field("bSectorNumberReg", &self.bSectorNumberReg).field("bCylLowReg", &self.bCylLowReg).field("bCylHighReg", &self.bCylHighReg).field("bDriveHeadReg", &self.bDriveHeadReg).field("bCommandReg", &self.bCommandReg).field("bReserved", &self.bReserved).finish()
     }
 }
-impl ::windows::core::TypeKind for IDEREGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for IDEREGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for IDEREGS {
     fn eq(&self, other: &Self) -> bool {
@@ -12695,8 +12695,8 @@ impl ::core::fmt::Debug for IO_IRP_EXT_TRACK_OFFSET_HEADER {
         f.debug_struct("IO_IRP_EXT_TRACK_OFFSET_HEADER").field("Validation", &self.Validation).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for IO_IRP_EXT_TRACK_OFFSET_HEADER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for IO_IRP_EXT_TRACK_OFFSET_HEADER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for IO_IRP_EXT_TRACK_OFFSET_HEADER {
     fn default() -> Self {
@@ -12719,8 +12719,8 @@ impl ::core::fmt::Debug for LMR_QUERY_INFO_PARAM {
         f.debug_struct("LMR_QUERY_INFO_PARAM").field("Operation", &self.Operation).finish()
     }
 }
-impl ::windows::core::TypeKind for LMR_QUERY_INFO_PARAM {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LMR_QUERY_INFO_PARAM {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LMR_QUERY_INFO_PARAM {
     fn eq(&self, other: &Self) -> bool {
@@ -12749,8 +12749,8 @@ impl ::core::fmt::Debug for LMR_QUERY_SESSION_INFO {
         f.debug_struct("LMR_QUERY_SESSION_INFO").field("SessionId", &self.SessionId).finish()
     }
 }
-impl ::windows::core::TypeKind for LMR_QUERY_SESSION_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LMR_QUERY_SESSION_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LMR_QUERY_SESSION_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -12783,8 +12783,8 @@ impl ::core::fmt::Debug for LOOKUP_STREAM_FROM_CLUSTER_ENTRY {
         f.debug_struct("LOOKUP_STREAM_FROM_CLUSTER_ENTRY").field("OffsetToNext", &self.OffsetToNext).field("Flags", &self.Flags).field("Reserved", &self.Reserved).field("Cluster", &self.Cluster).field("FileName", &self.FileName).finish()
     }
 }
-impl ::windows::core::TypeKind for LOOKUP_STREAM_FROM_CLUSTER_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LOOKUP_STREAM_FROM_CLUSTER_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LOOKUP_STREAM_FROM_CLUSTER_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -12815,8 +12815,8 @@ impl ::core::fmt::Debug for LOOKUP_STREAM_FROM_CLUSTER_INPUT {
         f.debug_struct("LOOKUP_STREAM_FROM_CLUSTER_INPUT").field("Flags", &self.Flags).field("NumberOfClusters", &self.NumberOfClusters).field("Cluster", &self.Cluster).finish()
     }
 }
-impl ::windows::core::TypeKind for LOOKUP_STREAM_FROM_CLUSTER_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LOOKUP_STREAM_FROM_CLUSTER_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LOOKUP_STREAM_FROM_CLUSTER_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -12847,8 +12847,8 @@ impl ::core::fmt::Debug for LOOKUP_STREAM_FROM_CLUSTER_OUTPUT {
         f.debug_struct("LOOKUP_STREAM_FROM_CLUSTER_OUTPUT").field("Offset", &self.Offset).field("NumberOfMatches", &self.NumberOfMatches).field("BufferSizeRequired", &self.BufferSizeRequired).finish()
     }
 }
-impl ::windows::core::TypeKind for LOOKUP_STREAM_FROM_CLUSTER_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for LOOKUP_STREAM_FROM_CLUSTER_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for LOOKUP_STREAM_FROM_CLUSTER_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -12878,8 +12878,8 @@ impl ::core::clone::Clone for MARK_HANDLE_INFO {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for MARK_HANDLE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MARK_HANDLE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for MARK_HANDLE_INFO {
@@ -12903,8 +12903,8 @@ impl ::core::clone::Clone for MARK_HANDLE_INFO_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for MARK_HANDLE_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MARK_HANDLE_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for MARK_HANDLE_INFO_0 {
@@ -12929,8 +12929,8 @@ impl ::core::clone::Clone for MARK_HANDLE_INFO32 {
     }
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::windows::core::TypeKind for MARK_HANDLE_INFO32 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MARK_HANDLE_INFO32 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 impl ::core::default::Default for MARK_HANDLE_INFO32 {
@@ -12954,8 +12954,8 @@ impl ::core::clone::Clone for MARK_HANDLE_INFO32_0 {
     }
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::windows::core::TypeKind for MARK_HANDLE_INFO32_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MARK_HANDLE_INFO32_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 impl ::core::default::Default for MARK_HANDLE_INFO32_0 {
@@ -12981,8 +12981,8 @@ impl ::core::fmt::Debug for MFT_ENUM_DATA_V0 {
         f.debug_struct("MFT_ENUM_DATA_V0").field("StartFileReferenceNumber", &self.StartFileReferenceNumber).field("LowUsn", &self.LowUsn).field("HighUsn", &self.HighUsn).finish()
     }
 }
-impl ::windows::core::TypeKind for MFT_ENUM_DATA_V0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MFT_ENUM_DATA_V0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for MFT_ENUM_DATA_V0 {
     fn eq(&self, other: &Self) -> bool {
@@ -13015,8 +13015,8 @@ impl ::core::fmt::Debug for MFT_ENUM_DATA_V1 {
         f.debug_struct("MFT_ENUM_DATA_V1").field("StartFileReferenceNumber", &self.StartFileReferenceNumber).field("LowUsn", &self.LowUsn).field("HighUsn", &self.HighUsn).field("MinMajorVersion", &self.MinMajorVersion).field("MaxMajorVersion", &self.MaxMajorVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for MFT_ENUM_DATA_V1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MFT_ENUM_DATA_V1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for MFT_ENUM_DATA_V1 {
     fn eq(&self, other: &Self) -> bool {
@@ -13053,8 +13053,8 @@ impl ::core::fmt::Debug for MOVE_FILE_DATA {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for MOVE_FILE_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MOVE_FILE_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for MOVE_FILE_DATA {
@@ -13094,8 +13094,8 @@ impl ::core::fmt::Debug for MOVE_FILE_DATA32 {
     }
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
-impl ::windows::core::TypeKind for MOVE_FILE_DATA32 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MOVE_FILE_DATA32 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 impl ::core::cmp::PartialEq for MOVE_FILE_DATA32 {
@@ -13134,8 +13134,8 @@ impl ::core::fmt::Debug for MOVE_FILE_RECORD_DATA {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for MOVE_FILE_RECORD_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for MOVE_FILE_RECORD_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for MOVE_FILE_RECORD_DATA {
@@ -13187,8 +13187,8 @@ impl ::core::fmt::Debug for NTFS_EXTENDED_VOLUME_DATA {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_EXTENDED_VOLUME_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_EXTENDED_VOLUME_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_EXTENDED_VOLUME_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -13217,8 +13217,8 @@ impl ::core::fmt::Debug for NTFS_FILE_RECORD_INPUT_BUFFER {
         f.debug_struct("NTFS_FILE_RECORD_INPUT_BUFFER").field("FileReferenceNumber", &self.FileReferenceNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_FILE_RECORD_INPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_FILE_RECORD_INPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_FILE_RECORD_INPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -13249,8 +13249,8 @@ impl ::core::fmt::Debug for NTFS_FILE_RECORD_OUTPUT_BUFFER {
         f.debug_struct("NTFS_FILE_RECORD_OUTPUT_BUFFER").field("FileReferenceNumber", &self.FileReferenceNumber).field("FileRecordLength", &self.FileRecordLength).field("FileRecordBuffer", &self.FileRecordBuffer).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_FILE_RECORD_OUTPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_FILE_RECORD_OUTPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_FILE_RECORD_OUTPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -13371,8 +13371,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS {
     fn eq(&self, other: &Self) -> bool {
@@ -13455,8 +13455,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_0 {
         f.debug_struct("NTFS_STATISTICS_0").field("Calls", &self.Calls).field("Clusters", &self.Clusters).field("Hints", &self.Hints).field("RunsReturned", &self.RunsReturned).field("HintsHonored", &self.HintsHonored).field("HintsClusters", &self.HintsClusters).field("Cache", &self.Cache).field("CacheClusters", &self.CacheClusters).field("CacheMiss", &self.CacheMiss).field("CacheMissClusters", &self.CacheMissClusters).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -13487,8 +13487,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_1 {
         f.debug_struct("NTFS_STATISTICS_1").field("Write", &self.Write).field("Create", &self.Create).field("SetInfo", &self.SetInfo).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_1 {
     fn eq(&self, other: &Self) -> bool {
@@ -13520,8 +13520,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_2 {
         f.debug_struct("NTFS_STATISTICS_2").field("Write", &self.Write).field("Create", &self.Create).field("SetInfo", &self.SetInfo).field("Flush", &self.Flush).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_2 {
     fn eq(&self, other: &Self) -> bool {
@@ -13553,8 +13553,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_3 {
         f.debug_struct("NTFS_STATISTICS_3").field("Write", &self.Write).field("Create", &self.Create).field("SetInfo", &self.SetInfo).field("Flush", &self.Flush).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_3 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_3 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_3 {
     fn eq(&self, other: &Self) -> bool {
@@ -13586,8 +13586,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_4 {
         f.debug_struct("NTFS_STATISTICS_4").field("Write", &self.Write).field("Create", &self.Create).field("SetInfo", &self.SetInfo).field("Flush", &self.Flush).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_4 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_4 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_4 {
     fn eq(&self, other: &Self) -> bool {
@@ -13730,8 +13730,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_EX {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -13825,8 +13825,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_EX_0 {
         f.debug_struct("NTFS_STATISTICS_EX_0").field("Calls", &self.Calls).field("RunsReturned", &self.RunsReturned).field("Hints", &self.Hints).field("HintsHonored", &self.HintsHonored).field("Cache", &self.Cache).field("CacheMiss", &self.CacheMiss).field("Clusters", &self.Clusters).field("HintsClusters", &self.HintsClusters).field("CacheClusters", &self.CacheClusters).field("CacheMissClusters", &self.CacheMissClusters).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_EX_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_EX_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_EX_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -13858,8 +13858,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_EX_1 {
         f.debug_struct("NTFS_STATISTICS_EX_1").field("Write", &self.Write).field("Create", &self.Create).field("SetInfo", &self.SetInfo).field("Flush", &self.Flush).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_EX_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_EX_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_EX_1 {
     fn eq(&self, other: &Self) -> bool {
@@ -13891,8 +13891,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_EX_2 {
         f.debug_struct("NTFS_STATISTICS_EX_2").field("Write", &self.Write).field("Create", &self.Create).field("SetInfo", &self.SetInfo).field("Flush", &self.Flush).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_EX_2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_EX_2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_EX_2 {
     fn eq(&self, other: &Self) -> bool {
@@ -13924,8 +13924,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_EX_3 {
         f.debug_struct("NTFS_STATISTICS_EX_3").field("Write", &self.Write).field("Create", &self.Create).field("SetInfo", &self.SetInfo).field("Flush", &self.Flush).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_EX_3 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_EX_3 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_EX_3 {
     fn eq(&self, other: &Self) -> bool {
@@ -13957,8 +13957,8 @@ impl ::core::fmt::Debug for NTFS_STATISTICS_EX_4 {
         f.debug_struct("NTFS_STATISTICS_EX_4").field("Write", &self.Write).field("Create", &self.Create).field("SetInfo", &self.SetInfo).field("Flush", &self.Flush).finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_STATISTICS_EX_4 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_STATISTICS_EX_4 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_STATISTICS_EX_4 {
     fn eq(&self, other: &Self) -> bool {
@@ -14015,8 +14015,8 @@ impl ::core::fmt::Debug for NTFS_VOLUME_DATA_BUFFER {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for NTFS_VOLUME_DATA_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for NTFS_VOLUME_DATA_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for NTFS_VOLUME_DATA_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -14057,8 +14057,8 @@ impl ::core::fmt::Debug for PARTITION_INFORMATION {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for PARTITION_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PARTITION_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for PARTITION_INFORMATION {
@@ -14095,8 +14095,8 @@ impl ::core::clone::Clone for PARTITION_INFORMATION_EX {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for PARTITION_INFORMATION_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PARTITION_INFORMATION_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for PARTITION_INFORMATION_EX {
@@ -14120,8 +14120,8 @@ impl ::core::clone::Clone for PARTITION_INFORMATION_EX_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for PARTITION_INFORMATION_EX_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PARTITION_INFORMATION_EX_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for PARTITION_INFORMATION_EX_0 {
@@ -14132,8 +14132,8 @@ impl ::core::default::Default for PARTITION_INFORMATION_EX_0 {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct PARTITION_INFORMATION_GPT {
-    pub PartitionType: ::windows::core::GUID,
-    pub PartitionId: ::windows::core::GUID,
+    pub PartitionType: ::windows_core::GUID,
+    pub PartitionId: ::windows_core::GUID,
     pub Attributes: GPT_ATTRIBUTES,
     pub Name: [u16; 36],
 }
@@ -14148,8 +14148,8 @@ impl ::core::fmt::Debug for PARTITION_INFORMATION_GPT {
         f.debug_struct("PARTITION_INFORMATION_GPT").field("PartitionType", &self.PartitionType).field("PartitionId", &self.PartitionId).field("Attributes", &self.Attributes).field("Name", &self.Name).finish()
     }
 }
-impl ::windows::core::TypeKind for PARTITION_INFORMATION_GPT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PARTITION_INFORMATION_GPT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PARTITION_INFORMATION_GPT {
     fn eq(&self, other: &Self) -> bool {
@@ -14170,7 +14170,7 @@ pub struct PARTITION_INFORMATION_MBR {
     pub BootIndicator: super::super::Foundation::BOOLEAN,
     pub RecognizedPartition: super::super::Foundation::BOOLEAN,
     pub HiddenSectors: u32,
-    pub PartitionId: ::windows::core::GUID,
+    pub PartitionId: ::windows_core::GUID,
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::marker::Copy for PARTITION_INFORMATION_MBR {}
@@ -14187,8 +14187,8 @@ impl ::core::fmt::Debug for PARTITION_INFORMATION_MBR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for PARTITION_INFORMATION_MBR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PARTITION_INFORMATION_MBR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for PARTITION_INFORMATION_MBR {
@@ -14221,8 +14221,8 @@ impl ::core::fmt::Debug for PATHNAME_BUFFER {
         f.debug_struct("PATHNAME_BUFFER").field("PathNameLength", &self.PathNameLength).field("Name", &self.Name).finish()
     }
 }
-impl ::windows::core::TypeKind for PATHNAME_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PATHNAME_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PATHNAME_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -14253,8 +14253,8 @@ impl ::core::fmt::Debug for PERF_BIN {
         f.debug_struct("PERF_BIN").field("NumberOfBins", &self.NumberOfBins).field("TypeOfBin", &self.TypeOfBin).field("BinsRanges", &self.BinsRanges).finish()
     }
 }
-impl ::windows::core::TypeKind for PERF_BIN {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PERF_BIN {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PERF_BIN {
     fn eq(&self, other: &Self) -> bool {
@@ -14280,8 +14280,8 @@ impl ::core::clone::Clone for PERSISTENT_RESERVE_COMMAND {
         *self
     }
 }
-impl ::windows::core::TypeKind for PERSISTENT_RESERVE_COMMAND {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PERSISTENT_RESERVE_COMMAND {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for PERSISTENT_RESERVE_COMMAND {
     fn default() -> Self {
@@ -14300,8 +14300,8 @@ impl ::core::clone::Clone for PERSISTENT_RESERVE_COMMAND_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for PERSISTENT_RESERVE_COMMAND_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PERSISTENT_RESERVE_COMMAND_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for PERSISTENT_RESERVE_COMMAND_0 {
     fn default() -> Self {
@@ -14325,8 +14325,8 @@ impl ::core::fmt::Debug for PERSISTENT_RESERVE_COMMAND_0_0 {
         f.debug_struct("PERSISTENT_RESERVE_COMMAND_0_0").field("_bitfield", &self._bitfield).field("AllocationLength", &self.AllocationLength).finish()
     }
 }
-impl ::windows::core::TypeKind for PERSISTENT_RESERVE_COMMAND_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PERSISTENT_RESERVE_COMMAND_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PERSISTENT_RESERVE_COMMAND_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -14357,8 +14357,8 @@ impl ::core::fmt::Debug for PERSISTENT_RESERVE_COMMAND_0_1 {
         f.debug_struct("PERSISTENT_RESERVE_COMMAND_0_1").field("_bitfield1", &self._bitfield1).field("_bitfield2", &self._bitfield2).field("ParameterList", &self.ParameterList).finish()
     }
 }
-impl ::windows::core::TypeKind for PERSISTENT_RESERVE_COMMAND_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PERSISTENT_RESERVE_COMMAND_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PERSISTENT_RESERVE_COMMAND_0_1 {
     fn eq(&self, other: &Self) -> bool {
@@ -14393,8 +14393,8 @@ impl ::core::fmt::Debug for PHYSICAL_ELEMENT_STATUS {
         f.debug_struct("PHYSICAL_ELEMENT_STATUS").field("Version", &self.Version).field("Size", &self.Size).field("DescriptorCount", &self.DescriptorCount).field("ReturnedDescriptorCount", &self.ReturnedDescriptorCount).field("ElementIdentifierBeingDepoped", &self.ElementIdentifierBeingDepoped).field("Reserved", &self.Reserved).field("Descriptors", &self.Descriptors).finish()
     }
 }
-impl ::windows::core::TypeKind for PHYSICAL_ELEMENT_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PHYSICAL_ELEMENT_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PHYSICAL_ELEMENT_STATUS {
     fn eq(&self, other: &Self) -> bool {
@@ -14430,8 +14430,8 @@ impl ::core::fmt::Debug for PHYSICAL_ELEMENT_STATUS_DESCRIPTOR {
         f.debug_struct("PHYSICAL_ELEMENT_STATUS_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("ElementIdentifier", &self.ElementIdentifier).field("PhysicalElementType", &self.PhysicalElementType).field("PhysicalElementHealth", &self.PhysicalElementHealth).field("Reserved1", &self.Reserved1).field("AssociatedCapacity", &self.AssociatedCapacity).field("Reserved2", &self.Reserved2).finish()
     }
 }
-impl ::windows::core::TypeKind for PHYSICAL_ELEMENT_STATUS_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PHYSICAL_ELEMENT_STATUS_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PHYSICAL_ELEMENT_STATUS_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -14465,8 +14465,8 @@ impl ::core::fmt::Debug for PHYSICAL_ELEMENT_STATUS_REQUEST {
         f.debug_struct("PHYSICAL_ELEMENT_STATUS_REQUEST").field("Version", &self.Version).field("Size", &self.Size).field("StartingElement", &self.StartingElement).field("Filter", &self.Filter).field("ReportType", &self.ReportType).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for PHYSICAL_ELEMENT_STATUS_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PHYSICAL_ELEMENT_STATUS_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PHYSICAL_ELEMENT_STATUS_REQUEST {
     fn eq(&self, other: &Self) -> bool {
@@ -14497,8 +14497,8 @@ impl ::core::fmt::Debug for PLEX_READ_DATA_REQUEST {
         f.debug_struct("PLEX_READ_DATA_REQUEST").field("ByteOffset", &self.ByteOffset).field("ByteLength", &self.ByteLength).field("PlexNumber", &self.PlexNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for PLEX_READ_DATA_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PLEX_READ_DATA_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for PLEX_READ_DATA_REQUEST {
     fn eq(&self, other: &Self) -> bool {
@@ -14532,8 +14532,8 @@ impl ::core::fmt::Debug for PREVENT_MEDIA_REMOVAL {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for PREVENT_MEDIA_REMOVAL {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for PREVENT_MEDIA_REMOVAL {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for PREVENT_MEDIA_REMOVAL {
@@ -14567,8 +14567,8 @@ impl ::core::fmt::Debug for QUERY_BAD_RANGES_INPUT {
         f.debug_struct("QUERY_BAD_RANGES_INPUT").field("Flags", &self.Flags).field("NumRanges", &self.NumRanges).field("Ranges", &self.Ranges).finish()
     }
 }
-impl ::windows::core::TypeKind for QUERY_BAD_RANGES_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for QUERY_BAD_RANGES_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for QUERY_BAD_RANGES_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -14598,8 +14598,8 @@ impl ::core::fmt::Debug for QUERY_BAD_RANGES_INPUT_RANGE {
         f.debug_struct("QUERY_BAD_RANGES_INPUT_RANGE").field("StartOffset", &self.StartOffset).field("LengthInBytes", &self.LengthInBytes).finish()
     }
 }
-impl ::windows::core::TypeKind for QUERY_BAD_RANGES_INPUT_RANGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for QUERY_BAD_RANGES_INPUT_RANGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for QUERY_BAD_RANGES_INPUT_RANGE {
     fn eq(&self, other: &Self) -> bool {
@@ -14631,8 +14631,8 @@ impl ::core::fmt::Debug for QUERY_BAD_RANGES_OUTPUT {
         f.debug_struct("QUERY_BAD_RANGES_OUTPUT").field("Flags", &self.Flags).field("NumBadRanges", &self.NumBadRanges).field("NextOffsetToLookUp", &self.NextOffsetToLookUp).field("BadRanges", &self.BadRanges).finish()
     }
 }
-impl ::windows::core::TypeKind for QUERY_BAD_RANGES_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for QUERY_BAD_RANGES_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for QUERY_BAD_RANGES_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -14664,8 +14664,8 @@ impl ::core::fmt::Debug for QUERY_BAD_RANGES_OUTPUT_RANGE {
         f.debug_struct("QUERY_BAD_RANGES_OUTPUT_RANGE").field("Flags", &self.Flags).field("Reserved", &self.Reserved).field("StartOffset", &self.StartOffset).field("LengthInBytes", &self.LengthInBytes).finish()
     }
 }
-impl ::windows::core::TypeKind for QUERY_BAD_RANGES_OUTPUT_RANGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for QUERY_BAD_RANGES_OUTPUT_RANGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for QUERY_BAD_RANGES_OUTPUT_RANGE {
     fn eq(&self, other: &Self) -> bool {
@@ -14693,8 +14693,8 @@ impl ::core::clone::Clone for QUERY_FILE_LAYOUT_INPUT {
         *self
     }
 }
-impl ::windows::core::TypeKind for QUERY_FILE_LAYOUT_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for QUERY_FILE_LAYOUT_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for QUERY_FILE_LAYOUT_INPUT {
     fn default() -> Self {
@@ -14713,8 +14713,8 @@ impl ::core::clone::Clone for QUERY_FILE_LAYOUT_INPUT_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for QUERY_FILE_LAYOUT_INPUT_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for QUERY_FILE_LAYOUT_INPUT_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for QUERY_FILE_LAYOUT_INPUT_0 {
     fn default() -> Self {
@@ -14734,8 +14734,8 @@ impl ::core::clone::Clone for QUERY_FILE_LAYOUT_INPUT_1 {
         *self
     }
 }
-impl ::windows::core::TypeKind for QUERY_FILE_LAYOUT_INPUT_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for QUERY_FILE_LAYOUT_INPUT_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for QUERY_FILE_LAYOUT_INPUT_1 {
     fn default() -> Self {
@@ -14761,8 +14761,8 @@ impl ::core::fmt::Debug for QUERY_FILE_LAYOUT_OUTPUT {
         f.debug_struct("QUERY_FILE_LAYOUT_OUTPUT").field("FileEntryCount", &self.FileEntryCount).field("FirstFileOffset", &self.FirstFileOffset).field("Flags", &self.Flags).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for QUERY_FILE_LAYOUT_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for QUERY_FILE_LAYOUT_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for QUERY_FILE_LAYOUT_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -14792,8 +14792,8 @@ impl ::core::fmt::Debug for READ_ELEMENT_ADDRESS_INFO {
         f.debug_struct("READ_ELEMENT_ADDRESS_INFO").field("NumberOfElements", &self.NumberOfElements).field("ElementStatus", &self.ElementStatus).finish()
     }
 }
-impl ::windows::core::TypeKind for READ_ELEMENT_ADDRESS_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for READ_ELEMENT_ADDRESS_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for READ_ELEMENT_ADDRESS_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -14823,8 +14823,8 @@ impl ::core::fmt::Debug for READ_FILE_USN_DATA {
         f.debug_struct("READ_FILE_USN_DATA").field("MinMajorVersion", &self.MinMajorVersion).field("MaxMajorVersion", &self.MaxMajorVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for READ_FILE_USN_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for READ_FILE_USN_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for READ_FILE_USN_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -14858,8 +14858,8 @@ impl ::core::fmt::Debug for READ_USN_JOURNAL_DATA_V0 {
         f.debug_struct("READ_USN_JOURNAL_DATA_V0").field("StartUsn", &self.StartUsn).field("ReasonMask", &self.ReasonMask).field("ReturnOnlyOnClose", &self.ReturnOnlyOnClose).field("Timeout", &self.Timeout).field("BytesToWaitFor", &self.BytesToWaitFor).field("UsnJournalID", &self.UsnJournalID).finish()
     }
 }
-impl ::windows::core::TypeKind for READ_USN_JOURNAL_DATA_V0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for READ_USN_JOURNAL_DATA_V0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for READ_USN_JOURNAL_DATA_V0 {
     fn eq(&self, other: &Self) -> bool {
@@ -14895,8 +14895,8 @@ impl ::core::fmt::Debug for READ_USN_JOURNAL_DATA_V1 {
         f.debug_struct("READ_USN_JOURNAL_DATA_V1").field("StartUsn", &self.StartUsn).field("ReasonMask", &self.ReasonMask).field("ReturnOnlyOnClose", &self.ReturnOnlyOnClose).field("Timeout", &self.Timeout).field("BytesToWaitFor", &self.BytesToWaitFor).field("UsnJournalID", &self.UsnJournalID).field("MinMajorVersion", &self.MinMajorVersion).field("MaxMajorVersion", &self.MaxMajorVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for READ_USN_JOURNAL_DATA_V1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for READ_USN_JOURNAL_DATA_V1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for READ_USN_JOURNAL_DATA_V1 {
     fn eq(&self, other: &Self) -> bool {
@@ -14927,8 +14927,8 @@ impl ::core::fmt::Debug for REASSIGN_BLOCKS {
         f.debug_struct("REASSIGN_BLOCKS").field("Reserved", &self.Reserved).field("Count", &self.Count).field("BlockNumber", &self.BlockNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for REASSIGN_BLOCKS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REASSIGN_BLOCKS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REASSIGN_BLOCKS {
     fn eq(&self, other: &Self) -> bool {
@@ -14954,8 +14954,8 @@ impl ::core::clone::Clone for REASSIGN_BLOCKS_EX {
         *self
     }
 }
-impl ::windows::core::TypeKind for REASSIGN_BLOCKS_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REASSIGN_BLOCKS_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for REASSIGN_BLOCKS_EX {
     fn default() -> Self {
@@ -14984,8 +14984,8 @@ impl ::core::fmt::Debug for REFS_SMR_VOLUME_GC_PARAMETERS {
         f.debug_struct("REFS_SMR_VOLUME_GC_PARAMETERS").field("Version", &self.Version).field("Flags", &self.Flags).field("Action", &self.Action).field("Method", &self.Method).field("IoGranularity", &self.IoGranularity).field("CompressionFormat", &self.CompressionFormat).field("Unused", &self.Unused).finish()
     }
 }
-impl ::windows::core::TypeKind for REFS_SMR_VOLUME_GC_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REFS_SMR_VOLUME_GC_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REFS_SMR_VOLUME_GC_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -15036,8 +15036,8 @@ impl ::core::fmt::Debug for REFS_SMR_VOLUME_INFO_OUTPUT {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for REFS_SMR_VOLUME_INFO_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REFS_SMR_VOLUME_INFO_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REFS_SMR_VOLUME_INFO_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -15098,8 +15098,8 @@ impl ::core::fmt::Debug for REFS_VOLUME_DATA_BUFFER {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for REFS_VOLUME_DATA_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REFS_VOLUME_DATA_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REFS_VOLUME_DATA_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -15147,8 +15147,8 @@ impl ::core::fmt::Debug for REMOVE_ELEMENT_AND_TRUNCATE_REQUEST {
         f.debug_struct("REMOVE_ELEMENT_AND_TRUNCATE_REQUEST").field("Version", &self.Version).field("Size", &self.Size).field("RequestCapacity", &self.RequestCapacity).field("ElementIdentifier", &self.ElementIdentifier).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for REMOVE_ELEMENT_AND_TRUNCATE_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REMOVE_ELEMENT_AND_TRUNCATE_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REMOVE_ELEMENT_AND_TRUNCATE_REQUEST {
     fn eq(&self, other: &Self) -> bool {
@@ -15183,8 +15183,8 @@ impl ::core::fmt::Debug for REPAIR_COPIES_INPUT {
         f.debug_struct("REPAIR_COPIES_INPUT").field("Size", &self.Size).field("Flags", &self.Flags).field("FileOffset", &self.FileOffset).field("Length", &self.Length).field("SourceCopy", &self.SourceCopy).field("NumberOfRepairCopies", &self.NumberOfRepairCopies).field("RepairCopies", &self.RepairCopies).finish()
     }
 }
-impl ::windows::core::TypeKind for REPAIR_COPIES_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REPAIR_COPIES_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REPAIR_COPIES_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -15215,8 +15215,8 @@ impl ::core::fmt::Debug for REPAIR_COPIES_OUTPUT {
         f.debug_struct("REPAIR_COPIES_OUTPUT").field("Size", &self.Size).field("Status", &self.Status).field("ResumeFileOffset", &self.ResumeFileOffset).finish()
     }
 }
-impl ::windows::core::TypeKind for REPAIR_COPIES_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REPAIR_COPIES_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REPAIR_COPIES_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -15248,8 +15248,8 @@ impl ::core::fmt::Debug for REQUEST_OPLOCK_INPUT_BUFFER {
         f.debug_struct("REQUEST_OPLOCK_INPUT_BUFFER").field("StructureVersion", &self.StructureVersion).field("StructureLength", &self.StructureLength).field("RequestedOplockLevel", &self.RequestedOplockLevel).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for REQUEST_OPLOCK_INPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REQUEST_OPLOCK_INPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REQUEST_OPLOCK_INPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -15284,8 +15284,8 @@ impl ::core::fmt::Debug for REQUEST_OPLOCK_OUTPUT_BUFFER {
         f.debug_struct("REQUEST_OPLOCK_OUTPUT_BUFFER").field("StructureVersion", &self.StructureVersion).field("StructureLength", &self.StructureLength).field("OriginalOplockLevel", &self.OriginalOplockLevel).field("NewOplockLevel", &self.NewOplockLevel).field("Flags", &self.Flags).field("AccessMode", &self.AccessMode).field("ShareMode", &self.ShareMode).finish()
     }
 }
-impl ::windows::core::TypeKind for REQUEST_OPLOCK_OUTPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REQUEST_OPLOCK_OUTPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REQUEST_OPLOCK_OUTPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -15315,8 +15315,8 @@ impl ::core::fmt::Debug for REQUEST_RAW_ENCRYPTED_DATA {
         f.debug_struct("REQUEST_RAW_ENCRYPTED_DATA").field("FileOffset", &self.FileOffset).field("Length", &self.Length).finish()
     }
 }
-impl ::windows::core::TypeKind for REQUEST_RAW_ENCRYPTED_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for REQUEST_RAW_ENCRYPTED_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for REQUEST_RAW_ENCRYPTED_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -15347,8 +15347,8 @@ impl ::core::fmt::Debug for RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER {
         f.debug_struct("RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER").field("ExtentCount", &self.ExtentCount).field("StartingVcn", &self.StartingVcn).field("Extents", &self.Extents).finish()
     }
 }
-impl ::windows::core::TypeKind for RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -15379,8 +15379,8 @@ impl ::core::fmt::Debug for RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER_0 {
         f.debug_struct("RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER_0").field("NextVcn", &self.NextVcn).field("Lcn", &self.Lcn).field("ReferenceCount", &self.ReferenceCount).finish()
     }
 }
-impl ::windows::core::TypeKind for RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RETRIEVAL_POINTERS_AND_REFCOUNT_BUFFER_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -15411,8 +15411,8 @@ impl ::core::fmt::Debug for RETRIEVAL_POINTERS_BUFFER {
         f.debug_struct("RETRIEVAL_POINTERS_BUFFER").field("ExtentCount", &self.ExtentCount).field("StartingVcn", &self.StartingVcn).field("Extents", &self.Extents).finish()
     }
 }
-impl ::windows::core::TypeKind for RETRIEVAL_POINTERS_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RETRIEVAL_POINTERS_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RETRIEVAL_POINTERS_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -15442,8 +15442,8 @@ impl ::core::fmt::Debug for RETRIEVAL_POINTERS_BUFFER_0 {
         f.debug_struct("RETRIEVAL_POINTERS_BUFFER_0").field("NextVcn", &self.NextVcn).field("Lcn", &self.Lcn).finish()
     }
 }
-impl ::windows::core::TypeKind for RETRIEVAL_POINTERS_BUFFER_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RETRIEVAL_POINTERS_BUFFER_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RETRIEVAL_POINTERS_BUFFER_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -15472,8 +15472,8 @@ impl ::core::fmt::Debug for RETRIEVAL_POINTER_BASE {
         f.debug_struct("RETRIEVAL_POINTER_BASE").field("FileAreaOffset", &self.FileAreaOffset).finish()
     }
 }
-impl ::windows::core::TypeKind for RETRIEVAL_POINTER_BASE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RETRIEVAL_POINTER_BASE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RETRIEVAL_POINTER_BASE {
     fn eq(&self, other: &Self) -> bool {
@@ -15502,8 +15502,8 @@ impl ::core::fmt::Debug for RETRIEVAL_POINTER_COUNT {
         f.debug_struct("RETRIEVAL_POINTER_COUNT").field("ExtentCount", &self.ExtentCount).finish()
     }
 }
-impl ::windows::core::TypeKind for RETRIEVAL_POINTER_COUNT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RETRIEVAL_POINTER_COUNT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RETRIEVAL_POINTER_COUNT {
     fn eq(&self, other: &Self) -> bool {
@@ -15535,8 +15535,8 @@ impl ::core::fmt::Debug for SCM_BUS_DEDICATED_MEMORY_DEVICES_INFO {
         f.debug_struct("SCM_BUS_DEDICATED_MEMORY_DEVICES_INFO").field("Version", &self.Version).field("Size", &self.Size).field("DeviceCount", &self.DeviceCount).field("Devices", &self.Devices).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_BUS_DEDICATED_MEMORY_DEVICES_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_DEDICATED_MEMORY_DEVICES_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_BUS_DEDICATED_MEMORY_DEVICES_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -15552,7 +15552,7 @@ impl ::core::default::Default for SCM_BUS_DEDICATED_MEMORY_DEVICES_INFO {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO {
-    pub DeviceGuid: ::windows::core::GUID,
+    pub DeviceGuid: ::windows_core::GUID,
     pub DeviceNumber: u32,
     pub Flags: SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO_0,
     pub DeviceSize: u64,
@@ -15568,8 +15568,8 @@ impl ::core::fmt::Debug for SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO {
         f.debug_struct("SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO").field("DeviceGuid", &self.DeviceGuid).field("DeviceNumber", &self.DeviceNumber).field("Flags", &self.Flags).field("DeviceSize", &self.DeviceSize).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -15598,8 +15598,8 @@ impl ::core::fmt::Debug for SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO_0 {
         f.debug_struct("SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO_0").field("_bitfield", &self._bitfield).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_BUS_DEDICATED_MEMORY_DEVICE_INFO_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -15633,8 +15633,8 @@ impl ::core::fmt::Debug for SCM_BUS_DEDICATED_MEMORY_STATE {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for SCM_BUS_DEDICATED_MEMORY_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_DEDICATED_MEMORY_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for SCM_BUS_DEDICATED_MEMORY_STATE {
@@ -15670,8 +15670,8 @@ impl ::core::fmt::Debug for SCM_BUS_PROPERTY_QUERY {
         f.debug_struct("SCM_BUS_PROPERTY_QUERY").field("Version", &self.Version).field("Size", &self.Size).field("PropertyId", &self.PropertyId).field("QueryType", &self.QueryType).field("AdditionalParameters", &self.AdditionalParameters).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_BUS_PROPERTY_QUERY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_PROPERTY_QUERY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_BUS_PROPERTY_QUERY {
     fn eq(&self, other: &Self) -> bool {
@@ -15704,8 +15704,8 @@ impl ::core::fmt::Debug for SCM_BUS_PROPERTY_SET {
         f.debug_struct("SCM_BUS_PROPERTY_SET").field("Version", &self.Version).field("Size", &self.Size).field("PropertyId", &self.PropertyId).field("SetType", &self.SetType).field("AdditionalParameters", &self.AdditionalParameters).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_BUS_PROPERTY_SET {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_PROPERTY_SET {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_BUS_PROPERTY_SET {
     fn eq(&self, other: &Self) -> bool {
@@ -15757,8 +15757,8 @@ impl ::core::fmt::Debug for SCM_BUS_RUNTIME_FW_ACTIVATION_INFO {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for SCM_BUS_RUNTIME_FW_ACTIVATION_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_RUNTIME_FW_ACTIVATION_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for SCM_BUS_RUNTIME_FW_ACTIVATION_INFO {
@@ -15795,8 +15795,8 @@ impl ::core::fmt::Debug for SCM_BUS_RUNTIME_FW_ACTIVATION_INFO_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for SCM_BUS_RUNTIME_FW_ACTIVATION_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_BUS_RUNTIME_FW_ACTIVATION_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for SCM_BUS_RUNTIME_FW_ACTIVATION_INFO_0 {
@@ -15816,7 +15816,7 @@ impl ::core::default::Default for SCM_BUS_RUNTIME_FW_ACTIVATION_INFO_0 {
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct SCM_INTERLEAVED_PD_INFO {
     pub DeviceHandle: u32,
-    pub DeviceGuid: ::windows::core::GUID,
+    pub DeviceGuid: ::windows_core::GUID,
 }
 impl ::core::marker::Copy for SCM_INTERLEAVED_PD_INFO {}
 impl ::core::clone::Clone for SCM_INTERLEAVED_PD_INFO {
@@ -15829,8 +15829,8 @@ impl ::core::fmt::Debug for SCM_INTERLEAVED_PD_INFO {
         f.debug_struct("SCM_INTERLEAVED_PD_INFO").field("DeviceHandle", &self.DeviceHandle).field("DeviceGuid", &self.DeviceGuid).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_INTERLEAVED_PD_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_INTERLEAVED_PD_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_INTERLEAVED_PD_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -15862,8 +15862,8 @@ impl ::core::fmt::Debug for SCM_LD_INTERLEAVE_SET_INFO {
         f.debug_struct("SCM_LD_INTERLEAVE_SET_INFO").field("Version", &self.Version).field("Size", &self.Size).field("InterleaveSetSize", &self.InterleaveSetSize).field("InterleaveSet", &self.InterleaveSet).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_LD_INTERLEAVE_SET_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_LD_INTERLEAVE_SET_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_LD_INTERLEAVE_SET_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -15895,8 +15895,8 @@ impl ::core::fmt::Debug for SCM_LOGICAL_DEVICES {
         f.debug_struct("SCM_LOGICAL_DEVICES").field("Version", &self.Version).field("Size", &self.Size).field("DeviceCount", &self.DeviceCount).field("Devices", &self.Devices).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_LOGICAL_DEVICES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_LOGICAL_DEVICES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_LOGICAL_DEVICES {
     fn eq(&self, other: &Self) -> bool {
@@ -15914,7 +15914,7 @@ impl ::core::default::Default for SCM_LOGICAL_DEVICES {
 pub struct SCM_LOGICAL_DEVICE_INSTANCE {
     pub Version: u32,
     pub Size: u32,
-    pub DeviceGuid: ::windows::core::GUID,
+    pub DeviceGuid: ::windows_core::GUID,
     pub SymbolicLink: [u16; 256],
 }
 impl ::core::marker::Copy for SCM_LOGICAL_DEVICE_INSTANCE {}
@@ -15928,8 +15928,8 @@ impl ::core::fmt::Debug for SCM_LOGICAL_DEVICE_INSTANCE {
         f.debug_struct("SCM_LOGICAL_DEVICE_INSTANCE").field("Version", &self.Version).field("Size", &self.Size).field("DeviceGuid", &self.DeviceGuid).field("SymbolicLink", &self.SymbolicLink).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_LOGICAL_DEVICE_INSTANCE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_LOGICAL_DEVICE_INSTANCE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_LOGICAL_DEVICE_INSTANCE {
     fn eq(&self, other: &Self) -> bool {
@@ -15959,8 +15959,8 @@ impl ::core::fmt::Debug for SCM_PD_DESCRIPTOR_HEADER {
         f.debug_struct("SCM_PD_DESCRIPTOR_HEADER").field("Version", &self.Version).field("Size", &self.Size).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_DESCRIPTOR_HEADER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_DESCRIPTOR_HEADER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_DESCRIPTOR_HEADER {
     fn eq(&self, other: &Self) -> bool {
@@ -15978,7 +15978,7 @@ impl ::core::default::Default for SCM_PD_DESCRIPTOR_HEADER {
 pub struct SCM_PD_DEVICE_HANDLE {
     pub Version: u32,
     pub Size: u32,
-    pub DeviceGuid: ::windows::core::GUID,
+    pub DeviceGuid: ::windows_core::GUID,
     pub DeviceHandle: u32,
 }
 impl ::core::marker::Copy for SCM_PD_DEVICE_HANDLE {}
@@ -15992,8 +15992,8 @@ impl ::core::fmt::Debug for SCM_PD_DEVICE_HANDLE {
         f.debug_struct("SCM_PD_DEVICE_HANDLE").field("Version", &self.Version).field("Size", &self.Size).field("DeviceGuid", &self.DeviceGuid).field("DeviceHandle", &self.DeviceHandle).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_DEVICE_HANDLE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_DEVICE_HANDLE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_DEVICE_HANDLE {
     fn eq(&self, other: &Self) -> bool {
@@ -16011,7 +16011,7 @@ impl ::core::default::Default for SCM_PD_DEVICE_HANDLE {
 pub struct SCM_PD_DEVICE_INFO {
     pub Version: u32,
     pub Size: u32,
-    pub DeviceGuid: ::windows::core::GUID,
+    pub DeviceGuid: ::windows_core::GUID,
     pub UnsafeShutdownCount: u32,
     pub PersistentMemorySizeInBytes: u64,
     pub VolatileMemorySizeInBytes: u64,
@@ -16066,8 +16066,8 @@ impl ::core::fmt::Debug for SCM_PD_DEVICE_INFO {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_DEVICE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_DEVICE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_DEVICE_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -16120,8 +16120,8 @@ impl ::core::fmt::Debug for SCM_PD_DEVICE_SPECIFIC_INFO {
         f.debug_struct("SCM_PD_DEVICE_SPECIFIC_INFO").field("Version", &self.Version).field("Size", &self.Size).field("NumberOfProperties", &self.NumberOfProperties).field("DeviceSpecificProperties", &self.DeviceSpecificProperties).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_DEVICE_SPECIFIC_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_DEVICE_SPECIFIC_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_DEVICE_SPECIFIC_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -16151,8 +16151,8 @@ impl ::core::fmt::Debug for SCM_PD_DEVICE_SPECIFIC_PROPERTY {
         f.debug_struct("SCM_PD_DEVICE_SPECIFIC_PROPERTY").field("Name", &self.Name).field("Value", &self.Value).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_DEVICE_SPECIFIC_PROPERTY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_DEVICE_SPECIFIC_PROPERTY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_DEVICE_SPECIFIC_PROPERTY {
     fn eq(&self, other: &Self) -> bool {
@@ -16184,8 +16184,8 @@ impl ::core::fmt::Debug for SCM_PD_FIRMWARE_ACTIVATE {
         f.debug_struct("SCM_PD_FIRMWARE_ACTIVATE").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("Slot", &self.Slot).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_FIRMWARE_ACTIVATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_FIRMWARE_ACTIVATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_FIRMWARE_ACTIVATE {
     fn eq(&self, other: &Self) -> bool {
@@ -16221,8 +16221,8 @@ impl ::core::fmt::Debug for SCM_PD_FIRMWARE_DOWNLOAD {
         f.debug_struct("SCM_PD_FIRMWARE_DOWNLOAD").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("Slot", &self.Slot).field("Reserved", &self.Reserved).field("Offset", &self.Offset).field("FirmwareImageSizeInBytes", &self.FirmwareImageSizeInBytes).field("FirmwareImage", &self.FirmwareImage).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_FIRMWARE_DOWNLOAD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_FIRMWARE_DOWNLOAD {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_FIRMWARE_DOWNLOAD {
     fn eq(&self, other: &Self) -> bool {
@@ -16256,8 +16256,8 @@ impl ::core::fmt::Debug for SCM_PD_FIRMWARE_INFO {
         f.debug_struct("SCM_PD_FIRMWARE_INFO").field("Version", &self.Version).field("Size", &self.Size).field("ActiveSlot", &self.ActiveSlot).field("NextActiveSlot", &self.NextActiveSlot).field("SlotCount", &self.SlotCount).field("Slots", &self.Slots).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_FIRMWARE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_FIRMWARE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_FIRMWARE_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -16291,8 +16291,8 @@ impl ::core::fmt::Debug for SCM_PD_FIRMWARE_SLOT_INFO {
         f.debug_struct("SCM_PD_FIRMWARE_SLOT_INFO").field("Version", &self.Version).field("Size", &self.Size).field("SlotNumber", &self.SlotNumber).field("_bitfield", &self._bitfield).field("Reserved1", &self.Reserved1).field("Revision", &self.Revision).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_FIRMWARE_SLOT_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_FIRMWARE_SLOT_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_FIRMWARE_SLOT_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -16324,8 +16324,8 @@ impl ::core::fmt::Debug for SCM_PD_FRU_ID_STRING {
         f.debug_struct("SCM_PD_FRU_ID_STRING").field("Version", &self.Version).field("Size", &self.Size).field("IdentifierSize", &self.IdentifierSize).field("Identifier", &self.Identifier).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_FRU_ID_STRING {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_FRU_ID_STRING {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_FRU_ID_STRING {
     fn eq(&self, other: &Self) -> bool {
@@ -16341,7 +16341,7 @@ impl ::core::default::Default for SCM_PD_FRU_ID_STRING {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct SCM_PD_HEALTH_NOTIFICATION_DATA {
-    pub DeviceGuid: ::windows::core::GUID,
+    pub DeviceGuid: ::windows_core::GUID,
 }
 impl ::core::marker::Copy for SCM_PD_HEALTH_NOTIFICATION_DATA {}
 impl ::core::clone::Clone for SCM_PD_HEALTH_NOTIFICATION_DATA {
@@ -16354,8 +16354,8 @@ impl ::core::fmt::Debug for SCM_PD_HEALTH_NOTIFICATION_DATA {
         f.debug_struct("SCM_PD_HEALTH_NOTIFICATION_DATA").field("DeviceGuid", &self.DeviceGuid).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_HEALTH_NOTIFICATION_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_HEALTH_NOTIFICATION_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_HEALTH_NOTIFICATION_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -16386,8 +16386,8 @@ impl ::core::fmt::Debug for SCM_PD_LOCATION_STRING {
         f.debug_struct("SCM_PD_LOCATION_STRING").field("Version", &self.Version).field("Size", &self.Size).field("Location", &self.Location).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_LOCATION_STRING {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_LOCATION_STRING {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_LOCATION_STRING {
     fn eq(&self, other: &Self) -> bool {
@@ -16422,8 +16422,8 @@ impl ::core::fmt::Debug for SCM_PD_MANAGEMENT_STATUS {
         f.debug_struct("SCM_PD_MANAGEMENT_STATUS").field("Version", &self.Version).field("Size", &self.Size).field("Health", &self.Health).field("NumberOfOperationalStatus", &self.NumberOfOperationalStatus).field("NumberOfAdditionalReasons", &self.NumberOfAdditionalReasons).field("OperationalStatus", &self.OperationalStatus).field("AdditionalReasons", &self.AdditionalReasons).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_MANAGEMENT_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_MANAGEMENT_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_MANAGEMENT_STATUS {
     fn eq(&self, other: &Self) -> bool {
@@ -16441,7 +16441,7 @@ impl ::core::default::Default for SCM_PD_MANAGEMENT_STATUS {
 pub struct SCM_PD_PASSTHROUGH_INPUT {
     pub Version: u32,
     pub Size: u32,
-    pub ProtocolGuid: ::windows::core::GUID,
+    pub ProtocolGuid: ::windows_core::GUID,
     pub DataSize: u32,
     pub Data: [u8; 1],
 }
@@ -16456,8 +16456,8 @@ impl ::core::fmt::Debug for SCM_PD_PASSTHROUGH_INPUT {
         f.debug_struct("SCM_PD_PASSTHROUGH_INPUT").field("Version", &self.Version).field("Size", &self.Size).field("ProtocolGuid", &self.ProtocolGuid).field("DataSize", &self.DataSize).field("Data", &self.Data).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_PASSTHROUGH_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_PASSTHROUGH_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_PASSTHROUGH_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -16488,8 +16488,8 @@ impl ::core::fmt::Debug for SCM_PD_PASSTHROUGH_INVDIMM_INPUT {
         f.debug_struct("SCM_PD_PASSTHROUGH_INVDIMM_INPUT").field("Opcode", &self.Opcode).field("OpcodeParametersLength", &self.OpcodeParametersLength).field("OpcodeParameters", &self.OpcodeParameters).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_PASSTHROUGH_INVDIMM_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_PASSTHROUGH_INVDIMM_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_PASSTHROUGH_INVDIMM_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -16521,8 +16521,8 @@ impl ::core::fmt::Debug for SCM_PD_PASSTHROUGH_INVDIMM_OUTPUT {
         f.debug_struct("SCM_PD_PASSTHROUGH_INVDIMM_OUTPUT").field("GeneralStatus", &self.GeneralStatus).field("ExtendedStatus", &self.ExtendedStatus).field("OutputDataLength", &self.OutputDataLength).field("OutputData", &self.OutputData).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_PASSTHROUGH_INVDIMM_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_PASSTHROUGH_INVDIMM_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_PASSTHROUGH_INVDIMM_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -16540,7 +16540,7 @@ impl ::core::default::Default for SCM_PD_PASSTHROUGH_INVDIMM_OUTPUT {
 pub struct SCM_PD_PASSTHROUGH_OUTPUT {
     pub Version: u32,
     pub Size: u32,
-    pub ProtocolGuid: ::windows::core::GUID,
+    pub ProtocolGuid: ::windows_core::GUID,
     pub DataSize: u32,
     pub Data: [u8; 1],
 }
@@ -16555,8 +16555,8 @@ impl ::core::fmt::Debug for SCM_PD_PASSTHROUGH_OUTPUT {
         f.debug_struct("SCM_PD_PASSTHROUGH_OUTPUT").field("Version", &self.Version).field("Size", &self.Size).field("ProtocolGuid", &self.ProtocolGuid).field("DataSize", &self.DataSize).field("Data", &self.Data).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_PASSTHROUGH_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_PASSTHROUGH_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_PASSTHROUGH_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -16589,8 +16589,8 @@ impl ::core::fmt::Debug for SCM_PD_PROPERTY_QUERY {
         f.debug_struct("SCM_PD_PROPERTY_QUERY").field("Version", &self.Version).field("Size", &self.Size).field("PropertyId", &self.PropertyId).field("QueryType", &self.QueryType).field("AdditionalParameters", &self.AdditionalParameters).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_PROPERTY_QUERY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_PROPERTY_QUERY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_PROPERTY_QUERY {
     fn eq(&self, other: &Self) -> bool {
@@ -16623,8 +16623,8 @@ impl ::core::fmt::Debug for SCM_PD_PROPERTY_SET {
         f.debug_struct("SCM_PD_PROPERTY_SET").field("Version", &self.Version).field("Size", &self.Size).field("PropertyId", &self.PropertyId).field("SetType", &self.SetType).field("AdditionalParameters", &self.AdditionalParameters).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_PROPERTY_SET {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_PROPERTY_SET {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_PROPERTY_SET {
     fn eq(&self, other: &Self) -> bool {
@@ -16655,8 +16655,8 @@ impl ::core::fmt::Debug for SCM_PD_REINITIALIZE_MEDIA_INPUT {
         f.debug_struct("SCM_PD_REINITIALIZE_MEDIA_INPUT").field("Version", &self.Version).field("Size", &self.Size).field("Options", &self.Options).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_REINITIALIZE_MEDIA_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_REINITIALIZE_MEDIA_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_REINITIALIZE_MEDIA_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -16685,8 +16685,8 @@ impl ::core::fmt::Debug for SCM_PD_REINITIALIZE_MEDIA_INPUT_0 {
         f.debug_struct("SCM_PD_REINITIALIZE_MEDIA_INPUT_0").field("_bitfield", &self._bitfield).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_REINITIALIZE_MEDIA_INPUT_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_REINITIALIZE_MEDIA_INPUT_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_REINITIALIZE_MEDIA_INPUT_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -16717,8 +16717,8 @@ impl ::core::fmt::Debug for SCM_PD_REINITIALIZE_MEDIA_OUTPUT {
         f.debug_struct("SCM_PD_REINITIALIZE_MEDIA_OUTPUT").field("Version", &self.Version).field("Size", &self.Size).field("Status", &self.Status).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_REINITIALIZE_MEDIA_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_REINITIALIZE_MEDIA_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_REINITIALIZE_MEDIA_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -16752,8 +16752,8 @@ impl ::core::fmt::Debug for SCM_PD_RUNTIME_FW_ACTIVATION_ARM_STATE {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for SCM_PD_RUNTIME_FW_ACTIVATION_ARM_STATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_RUNTIME_FW_ACTIVATION_ARM_STATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for SCM_PD_RUNTIME_FW_ACTIVATION_ARM_STATE {
@@ -16788,8 +16788,8 @@ impl ::core::fmt::Debug for SCM_PD_RUNTIME_FW_ACTIVATION_INFO {
         f.debug_struct("SCM_PD_RUNTIME_FW_ACTIVATION_INFO").field("Version", &self.Version).field("Size", &self.Size).field("LastFirmwareActivationStatus", &self.LastFirmwareActivationStatus).field("FirmwareActivationState", &self.FirmwareActivationState).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PD_RUNTIME_FW_ACTIVATION_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PD_RUNTIME_FW_ACTIVATION_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PD_RUNTIME_FW_ACTIVATION_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -16821,8 +16821,8 @@ impl ::core::fmt::Debug for SCM_PHYSICAL_DEVICES {
         f.debug_struct("SCM_PHYSICAL_DEVICES").field("Version", &self.Version).field("Size", &self.Size).field("DeviceCount", &self.DeviceCount).field("Devices", &self.Devices).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PHYSICAL_DEVICES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PHYSICAL_DEVICES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PHYSICAL_DEVICES {
     fn eq(&self, other: &Self) -> bool {
@@ -16854,8 +16854,8 @@ impl ::core::fmt::Debug for SCM_PHYSICAL_DEVICE_INSTANCE {
         f.debug_struct("SCM_PHYSICAL_DEVICE_INSTANCE").field("Version", &self.Version).field("Size", &self.Size).field("NfitHandle", &self.NfitHandle).field("SymbolicLink", &self.SymbolicLink).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_PHYSICAL_DEVICE_INSTANCE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_PHYSICAL_DEVICE_INSTANCE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_PHYSICAL_DEVICE_INSTANCE {
     fn eq(&self, other: &Self) -> bool {
@@ -16875,8 +16875,8 @@ pub struct SCM_REGION {
     pub Size: u32,
     pub Flags: u32,
     pub NfitHandle: u32,
-    pub LogicalDeviceGuid: ::windows::core::GUID,
-    pub AddressRangeType: ::windows::core::GUID,
+    pub LogicalDeviceGuid: ::windows_core::GUID,
+    pub AddressRangeType: ::windows_core::GUID,
     pub AssociatedId: u32,
     pub Length: u64,
     pub StartingDPA: u64,
@@ -16908,8 +16908,8 @@ impl ::core::fmt::Debug for SCM_REGION {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_REGION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_REGION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_REGION {
     fn eq(&self, other: &Self) -> bool {
@@ -16941,8 +16941,8 @@ impl ::core::fmt::Debug for SCM_REGIONS {
         f.debug_struct("SCM_REGIONS").field("Version", &self.Version).field("Size", &self.Size).field("RegionCount", &self.RegionCount).field("Regions", &self.Regions).finish()
     }
 }
-impl ::windows::core::TypeKind for SCM_REGIONS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SCM_REGIONS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SCM_REGIONS {
     fn eq(&self, other: &Self) -> bool {
@@ -16974,8 +16974,8 @@ impl ::core::fmt::Debug for SD_CHANGE_MACHINE_SID_INPUT {
         f.debug_struct("SD_CHANGE_MACHINE_SID_INPUT").field("CurrentMachineSIDOffset", &self.CurrentMachineSIDOffset).field("CurrentMachineSIDLength", &self.CurrentMachineSIDLength).field("NewMachineSIDOffset", &self.NewMachineSIDOffset).field("NewMachineSIDLength", &self.NewMachineSIDLength).finish()
     }
 }
-impl ::windows::core::TypeKind for SD_CHANGE_MACHINE_SID_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_CHANGE_MACHINE_SID_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SD_CHANGE_MACHINE_SID_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17010,8 +17010,8 @@ impl ::core::fmt::Debug for SD_CHANGE_MACHINE_SID_OUTPUT {
         f.debug_struct("SD_CHANGE_MACHINE_SID_OUTPUT").field("NumSDChangedSuccess", &self.NumSDChangedSuccess).field("NumSDChangedFail", &self.NumSDChangedFail).field("NumSDUnused", &self.NumSDUnused).field("NumSDTotal", &self.NumSDTotal).field("NumMftSDChangedSuccess", &self.NumMftSDChangedSuccess).field("NumMftSDChangedFail", &self.NumMftSDChangedFail).field("NumMftSDTotal", &self.NumMftSDTotal).finish()
     }
 }
-impl ::windows::core::TypeKind for SD_CHANGE_MACHINE_SID_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_CHANGE_MACHINE_SID_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SD_CHANGE_MACHINE_SID_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17044,8 +17044,8 @@ impl ::core::fmt::Debug for SD_ENUM_SDS_ENTRY {
         f.debug_struct("SD_ENUM_SDS_ENTRY").field("Hash", &self.Hash).field("SecurityId", &self.SecurityId).field("Offset", &self.Offset).field("Length", &self.Length).field("Descriptor", &self.Descriptor).finish()
     }
 }
-impl ::windows::core::TypeKind for SD_ENUM_SDS_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_ENUM_SDS_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SD_ENUM_SDS_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -17075,8 +17075,8 @@ impl ::core::fmt::Debug for SD_ENUM_SDS_INPUT {
         f.debug_struct("SD_ENUM_SDS_INPUT").field("StartingOffset", &self.StartingOffset).field("MaxSDEntriesToReturn", &self.MaxSDEntriesToReturn).finish()
     }
 }
-impl ::windows::core::TypeKind for SD_ENUM_SDS_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_ENUM_SDS_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SD_ENUM_SDS_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17108,8 +17108,8 @@ impl ::core::fmt::Debug for SD_ENUM_SDS_OUTPUT {
         f.debug_struct("SD_ENUM_SDS_OUTPUT").field("NextOffset", &self.NextOffset).field("NumSDEntriesReturned", &self.NumSDEntriesReturned).field("NumSDBytesReturned", &self.NumSDBytesReturned).field("SDEntry", &self.SDEntry).finish()
     }
 }
-impl ::windows::core::TypeKind for SD_ENUM_SDS_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_ENUM_SDS_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SD_ENUM_SDS_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17135,8 +17135,8 @@ impl ::core::clone::Clone for SD_GLOBAL_CHANGE_INPUT {
         *self
     }
 }
-impl ::windows::core::TypeKind for SD_GLOBAL_CHANGE_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_GLOBAL_CHANGE_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for SD_GLOBAL_CHANGE_INPUT {
     fn default() -> Self {
@@ -17156,8 +17156,8 @@ impl ::core::clone::Clone for SD_GLOBAL_CHANGE_INPUT_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for SD_GLOBAL_CHANGE_INPUT_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_GLOBAL_CHANGE_INPUT_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for SD_GLOBAL_CHANGE_INPUT_0 {
     fn default() -> Self {
@@ -17177,8 +17177,8 @@ impl ::core::clone::Clone for SD_GLOBAL_CHANGE_OUTPUT {
         *self
     }
 }
-impl ::windows::core::TypeKind for SD_GLOBAL_CHANGE_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_GLOBAL_CHANGE_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for SD_GLOBAL_CHANGE_OUTPUT {
     fn default() -> Self {
@@ -17198,8 +17198,8 @@ impl ::core::clone::Clone for SD_GLOBAL_CHANGE_OUTPUT_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for SD_GLOBAL_CHANGE_OUTPUT_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_GLOBAL_CHANGE_OUTPUT_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for SD_GLOBAL_CHANGE_OUTPUT_0 {
     fn default() -> Self {
@@ -17222,8 +17222,8 @@ impl ::core::fmt::Debug for SD_QUERY_STATS_INPUT {
         f.debug_struct("SD_QUERY_STATS_INPUT").field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for SD_QUERY_STATS_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_QUERY_STATS_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SD_QUERY_STATS_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17259,8 +17259,8 @@ impl ::core::fmt::Debug for SD_QUERY_STATS_OUTPUT {
         f.debug_struct("SD_QUERY_STATS_OUTPUT").field("SdsStreamSize", &self.SdsStreamSize).field("SdsAllocationSize", &self.SdsAllocationSize).field("SiiStreamSize", &self.SiiStreamSize).field("SiiAllocationSize", &self.SiiAllocationSize).field("SdhStreamSize", &self.SdhStreamSize).field("SdhAllocationSize", &self.SdhAllocationSize).field("NumSDTotal", &self.NumSDTotal).field("NumSDUnused", &self.NumSDUnused).finish()
     }
 }
-impl ::windows::core::TypeKind for SD_QUERY_STATS_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SD_QUERY_STATS_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SD_QUERY_STATS_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17289,8 +17289,8 @@ impl ::core::clone::Clone for SENDCMDINPARAMS {
         *self
     }
 }
-impl ::windows::core::TypeKind for SENDCMDINPARAMS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SENDCMDINPARAMS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for SENDCMDINPARAMS {
     fn default() -> Self {
@@ -17310,8 +17310,8 @@ impl ::core::clone::Clone for SENDCMDOUTPARAMS {
         *self
     }
 }
-impl ::windows::core::TypeKind for SENDCMDOUTPARAMS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SENDCMDOUTPARAMS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for SENDCMDOUTPARAMS {
     fn default() -> Self {
@@ -17337,8 +17337,8 @@ impl ::core::fmt::Debug for SET_DAX_ALLOC_ALIGNMENT_HINT_INPUT {
         f.debug_struct("SET_DAX_ALLOC_ALIGNMENT_HINT_INPUT").field("Flags", &self.Flags).field("AlignmentShift", &self.AlignmentShift).field("FileOffsetToAlign", &self.FileOffsetToAlign).field("FallbackAlignmentShift", &self.FallbackAlignmentShift).finish()
     }
 }
-impl ::windows::core::TypeKind for SET_DAX_ALLOC_ALIGNMENT_HINT_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SET_DAX_ALLOC_ALIGNMENT_HINT_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SET_DAX_ALLOC_ALIGNMENT_HINT_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17377,8 +17377,8 @@ impl ::core::fmt::Debug for SET_DISK_ATTRIBUTES {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for SET_DISK_ATTRIBUTES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SET_DISK_ATTRIBUTES {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for SET_DISK_ATTRIBUTES {
@@ -17410,8 +17410,8 @@ impl ::core::fmt::Debug for SET_PARTITION_INFORMATION {
         f.debug_struct("SET_PARTITION_INFORMATION").field("PartitionType", &self.PartitionType).finish()
     }
 }
-impl ::windows::core::TypeKind for SET_PARTITION_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SET_PARTITION_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SET_PARTITION_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -17436,8 +17436,8 @@ impl ::core::clone::Clone for SET_PARTITION_INFORMATION_EX {
         *self
     }
 }
-impl ::windows::core::TypeKind for SET_PARTITION_INFORMATION_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SET_PARTITION_INFORMATION_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for SET_PARTITION_INFORMATION_EX {
     fn default() -> Self {
@@ -17456,8 +17456,8 @@ impl ::core::clone::Clone for SET_PARTITION_INFORMATION_EX_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for SET_PARTITION_INFORMATION_EX_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SET_PARTITION_INFORMATION_EX_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for SET_PARTITION_INFORMATION_EX_0 {
     fn default() -> Self {
@@ -17480,8 +17480,8 @@ impl ::core::fmt::Debug for SET_PURGE_FAILURE_MODE_INPUT {
         f.debug_struct("SET_PURGE_FAILURE_MODE_INPUT").field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for SET_PURGE_FAILURE_MODE_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SET_PURGE_FAILURE_MODE_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SET_PURGE_FAILURE_MODE_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17512,8 +17512,8 @@ impl ::core::fmt::Debug for SHRINK_VOLUME_INFORMATION {
         f.debug_struct("SHRINK_VOLUME_INFORMATION").field("ShrinkRequestType", &self.ShrinkRequestType).field("Flags", &self.Flags).field("NewNumberOfSectors", &self.NewNumberOfSectors).finish()
     }
 }
-impl ::windows::core::TypeKind for SHRINK_VOLUME_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SHRINK_VOLUME_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SHRINK_VOLUME_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -17545,8 +17545,8 @@ impl ::core::fmt::Debug for SI_COPYFILE {
         f.debug_struct("SI_COPYFILE").field("SourceFileNameLength", &self.SourceFileNameLength).field("DestinationFileNameLength", &self.DestinationFileNameLength).field("Flags", &self.Flags).field("FileNameBuffer", &self.FileNameBuffer).finish()
     }
 }
-impl ::windows::core::TypeKind for SI_COPYFILE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SI_COPYFILE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SI_COPYFILE {
     fn eq(&self, other: &Self) -> bool {
@@ -17575,8 +17575,8 @@ impl ::core::fmt::Debug for SMB_SHARE_FLUSH_AND_PURGE_INPUT {
         f.debug_struct("SMB_SHARE_FLUSH_AND_PURGE_INPUT").field("Version", &self.Version).finish()
     }
 }
-impl ::windows::core::TypeKind for SMB_SHARE_FLUSH_AND_PURGE_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SMB_SHARE_FLUSH_AND_PURGE_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SMB_SHARE_FLUSH_AND_PURGE_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17605,8 +17605,8 @@ impl ::core::fmt::Debug for SMB_SHARE_FLUSH_AND_PURGE_OUTPUT {
         f.debug_struct("SMB_SHARE_FLUSH_AND_PURGE_OUTPUT").field("cEntriesPurged", &self.cEntriesPurged).finish()
     }
 }
-impl ::windows::core::TypeKind for SMB_SHARE_FLUSH_AND_PURGE_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for SMB_SHARE_FLUSH_AND_PURGE_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for SMB_SHARE_FLUSH_AND_PURGE_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17635,8 +17635,8 @@ impl ::core::fmt::Debug for STARTING_LCN_INPUT_BUFFER {
         f.debug_struct("STARTING_LCN_INPUT_BUFFER").field("StartingLcn", &self.StartingLcn).finish()
     }
 }
-impl ::windows::core::TypeKind for STARTING_LCN_INPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STARTING_LCN_INPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STARTING_LCN_INPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -17666,8 +17666,8 @@ impl ::core::fmt::Debug for STARTING_LCN_INPUT_BUFFER_EX {
         f.debug_struct("STARTING_LCN_INPUT_BUFFER_EX").field("StartingLcn", &self.StartingLcn).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for STARTING_LCN_INPUT_BUFFER_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STARTING_LCN_INPUT_BUFFER_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STARTING_LCN_INPUT_BUFFER_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -17696,8 +17696,8 @@ impl ::core::fmt::Debug for STARTING_VCN_INPUT_BUFFER {
         f.debug_struct("STARTING_VCN_INPUT_BUFFER").field("StartingVcn", &self.StartingVcn).finish()
     }
 }
-impl ::windows::core::TypeKind for STARTING_VCN_INPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STARTING_VCN_INPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STARTING_VCN_INPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -17732,8 +17732,8 @@ impl ::core::fmt::Debug for STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR {
         f.debug_struct("STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("BytesPerCacheLine", &self.BytesPerCacheLine).field("BytesOffsetForCacheAlignment", &self.BytesOffsetForCacheAlignment).field("BytesPerLogicalSector", &self.BytesPerLogicalSector).field("BytesPerPhysicalSector", &self.BytesPerPhysicalSector).field("BytesOffsetForSectorAlignment", &self.BytesOffsetForSectorAlignment).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_ACCESS_ALIGNMENT_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -17795,8 +17795,8 @@ impl ::core::fmt::Debug for STORAGE_ADAPTER_DESCRIPTOR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_ADAPTER_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ADAPTER_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_ADAPTER_DESCRIPTOR {
@@ -17830,8 +17830,8 @@ impl ::core::fmt::Debug for STORAGE_ADAPTER_SERIAL_NUMBER {
         f.debug_struct("STORAGE_ADAPTER_SERIAL_NUMBER").field("Version", &self.Version).field("Size", &self.Size).field("SerialNumber", &self.SerialNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ADAPTER_SERIAL_NUMBER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ADAPTER_SERIAL_NUMBER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_ADAPTER_SERIAL_NUMBER {
     fn eq(&self, other: &Self) -> bool {
@@ -17872,8 +17872,8 @@ impl ::core::fmt::Debug for STORAGE_ALLOCATE_BC_STREAM_INPUT {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_ALLOCATE_BC_STREAM_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ALLOCATE_BC_STREAM_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_ALLOCATE_BC_STREAM_INPUT {
@@ -17906,8 +17906,8 @@ impl ::core::fmt::Debug for STORAGE_ALLOCATE_BC_STREAM_OUTPUT {
         f.debug_struct("STORAGE_ALLOCATE_BC_STREAM_OUTPUT").field("RequestSize", &self.RequestSize).field("NumOutStandingRequests", &self.NumOutStandingRequests).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ALLOCATE_BC_STREAM_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ALLOCATE_BC_STREAM_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_ALLOCATE_BC_STREAM_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -17939,8 +17939,8 @@ impl ::core::fmt::Debug for STORAGE_ATTRIBUTE_MGMT {
         f.debug_struct("STORAGE_ATTRIBUTE_MGMT").field("Version", &self.Version).field("Size", &self.Size).field("Action", &self.Action).field("Attribute", &self.Attribute).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ATTRIBUTE_MGMT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ATTRIBUTE_MGMT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_ATTRIBUTE_MGMT {
     fn eq(&self, other: &Self) -> bool {
@@ -17973,8 +17973,8 @@ impl ::core::fmt::Debug for STORAGE_BREAK_RESERVATION_REQUEST {
         f.debug_struct("STORAGE_BREAK_RESERVATION_REQUEST").field("Length", &self.Length).field("_unused", &self._unused).field("PathId", &self.PathId).field("TargetId", &self.TargetId).field("Lun", &self.Lun).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_BREAK_RESERVATION_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_BREAK_RESERVATION_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_BREAK_RESERVATION_REQUEST {
     fn eq(&self, other: &Self) -> bool {
@@ -18003,8 +18003,8 @@ impl ::core::fmt::Debug for STORAGE_BUS_RESET_REQUEST {
         f.debug_struct("STORAGE_BUS_RESET_REQUEST").field("PathId", &self.PathId).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_BUS_RESET_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_BUS_RESET_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_BUS_RESET_REQUEST {
     fn eq(&self, other: &Self) -> bool {
@@ -18029,8 +18029,8 @@ impl ::core::clone::Clone for STORAGE_COUNTER {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_COUNTER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_COUNTER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_COUNTER {
     fn default() -> Self {
@@ -18049,8 +18049,8 @@ impl ::core::clone::Clone for STORAGE_COUNTER_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_COUNTER_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_COUNTER_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_COUNTER_0 {
     fn default() -> Self {
@@ -18074,8 +18074,8 @@ impl ::core::fmt::Debug for STORAGE_COUNTER_0_0 {
         f.debug_struct("STORAGE_COUNTER_0_0").field("Week", &self.Week).field("Year", &self.Year).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_COUNTER_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_COUNTER_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_COUNTER_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -18102,8 +18102,8 @@ impl ::core::clone::Clone for STORAGE_COUNTERS {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_COUNTERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_COUNTERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_COUNTERS {
     fn default() -> Self {
@@ -18131,8 +18131,8 @@ impl ::core::fmt::Debug for STORAGE_CRYPTO_CAPABILITY {
         f.debug_struct("STORAGE_CRYPTO_CAPABILITY").field("Version", &self.Version).field("Size", &self.Size).field("CryptoCapabilityIndex", &self.CryptoCapabilityIndex).field("AlgorithmId", &self.AlgorithmId).field("KeySize", &self.KeySize).field("DataUnitSizeBitmask", &self.DataUnitSizeBitmask).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_CRYPTO_CAPABILITY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_CRYPTO_CAPABILITY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_CRYPTO_CAPABILITY {
     fn eq(&self, other: &Self) -> bool {
@@ -18165,8 +18165,8 @@ impl ::core::fmt::Debug for STORAGE_CRYPTO_DESCRIPTOR {
         f.debug_struct("STORAGE_CRYPTO_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("NumKeysSupported", &self.NumKeysSupported).field("NumCryptoCapabilities", &self.NumCryptoCapabilities).field("CryptoCapabilities", &self.CryptoCapabilities).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_CRYPTO_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_CRYPTO_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_CRYPTO_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -18196,8 +18196,8 @@ impl ::core::fmt::Debug for STORAGE_DESCRIPTOR_HEADER {
         f.debug_struct("STORAGE_DESCRIPTOR_HEADER").field("Version", &self.Version).field("Size", &self.Size).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DESCRIPTOR_HEADER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DESCRIPTOR_HEADER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DESCRIPTOR_HEADER {
     fn eq(&self, other: &Self) -> bool {
@@ -18228,8 +18228,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_ATTRIBUTES_DESCRIPTOR {
         f.debug_struct("STORAGE_DEVICE_ATTRIBUTES_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("Attributes", &self.Attributes).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_ATTRIBUTES_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_ATTRIBUTES_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_ATTRIBUTES_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -18289,8 +18289,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_DESCRIPTOR {
     }
 }
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Storage_FileSystem"))]
-impl ::windows::core::TypeKind for STORAGE_DEVICE_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Storage_FileSystem"))]
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_DESCRIPTOR {
@@ -18312,7 +18312,7 @@ pub struct STORAGE_DEVICE_FAULT_DOMAIN_DESCRIPTOR {
     pub Version: u32,
     pub Size: u32,
     pub NumberOfFaultDomains: u32,
-    pub FaultDomainIds: [::windows::core::GUID; 1],
+    pub FaultDomainIds: [::windows_core::GUID; 1],
 }
 impl ::core::marker::Copy for STORAGE_DEVICE_FAULT_DOMAIN_DESCRIPTOR {}
 impl ::core::clone::Clone for STORAGE_DEVICE_FAULT_DOMAIN_DESCRIPTOR {
@@ -18325,8 +18325,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_FAULT_DOMAIN_DESCRIPTOR {
         f.debug_struct("STORAGE_DEVICE_FAULT_DOMAIN_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("NumberOfFaultDomains", &self.NumberOfFaultDomains).field("FaultDomainIds", &self.FaultDomainIds).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_FAULT_DOMAIN_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_FAULT_DOMAIN_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_FAULT_DOMAIN_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -18358,8 +18358,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_ID_DESCRIPTOR {
         f.debug_struct("STORAGE_DEVICE_ID_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("NumberOfIdentifiers", &self.NumberOfIdentifiers).field("Identifiers", &self.Identifiers).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_ID_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_ID_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_ID_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -18391,8 +18391,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_IO_CAPABILITY_DESCRIPTOR {
         f.debug_struct("STORAGE_DEVICE_IO_CAPABILITY_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("LunMaxIoCount", &self.LunMaxIoCount).field("AdapterMaxIoCount", &self.AdapterMaxIoCount).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_IO_CAPABILITY_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_IO_CAPABILITY_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_IO_CAPABILITY_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -18423,8 +18423,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_LED_STATE_DESCRIPTOR {
         f.debug_struct("STORAGE_DEVICE_LED_STATE_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("State", &self.State).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_LED_STATE_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_LED_STATE_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_LED_STATE_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -18451,8 +18451,8 @@ impl ::core::clone::Clone for STORAGE_DEVICE_LOCATION_DESCRIPTOR {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_LOCATION_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_LOCATION_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_DEVICE_LOCATION_DESCRIPTOR {
     fn default() -> Self {
@@ -18476,8 +18476,8 @@ impl ::core::clone::Clone for STORAGE_DEVICE_MANAGEMENT_STATUS {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_MANAGEMENT_STATUS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_MANAGEMENT_STATUS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_DEVICE_MANAGEMENT_STATUS {
     fn default() -> Self {
@@ -18502,8 +18502,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_NUMA_PROPERTY {
         f.debug_struct("STORAGE_DEVICE_NUMA_PROPERTY").field("Version", &self.Version).field("Size", &self.Size).field("NumaNode", &self.NumaNode).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_NUMA_PROPERTY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_NUMA_PROPERTY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_NUMA_PROPERTY {
     fn eq(&self, other: &Self) -> bool {
@@ -18534,8 +18534,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_NUMBER {
         f.debug_struct("STORAGE_DEVICE_NUMBER").field("DeviceType", &self.DeviceType).field("DeviceNumber", &self.DeviceNumber).field("PartitionNumber", &self.PartitionNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_NUMBER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_NUMBER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_NUMBER {
     fn eq(&self, other: &Self) -> bool {
@@ -18567,8 +18567,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_NUMBERS {
         f.debug_struct("STORAGE_DEVICE_NUMBERS").field("Version", &self.Version).field("Size", &self.Size).field("NumberOfDevices", &self.NumberOfDevices).field("Devices", &self.Devices).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_NUMBERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_NUMBERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_NUMBERS {
     fn eq(&self, other: &Self) -> bool {
@@ -18589,7 +18589,7 @@ pub struct STORAGE_DEVICE_NUMBER_EX {
     pub Flags: u32,
     pub DeviceType: u32,
     pub DeviceNumber: u32,
-    pub DeviceGuid: ::windows::core::GUID,
+    pub DeviceGuid: ::windows_core::GUID,
     pub PartitionNumber: u32,
 }
 impl ::core::marker::Copy for STORAGE_DEVICE_NUMBER_EX {}
@@ -18603,8 +18603,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_NUMBER_EX {
         f.debug_struct("STORAGE_DEVICE_NUMBER_EX").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("DeviceType", &self.DeviceType).field("DeviceNumber", &self.DeviceNumber).field("DeviceGuid", &self.DeviceGuid).field("PartitionNumber", &self.PartitionNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_NUMBER_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_NUMBER_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_NUMBER_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -18636,8 +18636,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_POWER_CAP {
         f.debug_struct("STORAGE_DEVICE_POWER_CAP").field("Version", &self.Version).field("Size", &self.Size).field("Units", &self.Units).field("MaxPower", &self.MaxPower).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_POWER_CAP {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_POWER_CAP {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_POWER_CAP {
     fn eq(&self, other: &Self) -> bool {
@@ -18673,8 +18673,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_RESILIENCY_DESCRIPTOR {
         f.debug_struct("STORAGE_DEVICE_RESILIENCY_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("NameOffset", &self.NameOffset).field("NumberOfLogicalCopies", &self.NumberOfLogicalCopies).field("NumberOfPhysicalCopies", &self.NumberOfPhysicalCopies).field("PhysicalDiskRedundancy", &self.PhysicalDiskRedundancy).field("NumberOfColumns", &self.NumberOfColumns).field("Interleave", &self.Interleave).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_RESILIENCY_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_RESILIENCY_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_RESILIENCY_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -18710,8 +18710,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_SELF_ENCRYPTION_PROPERTY {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_DEVICE_SELF_ENCRYPTION_PROPERTY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_SELF_ENCRYPTION_PROPERTY {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_SELF_ENCRYPTION_PROPERTY {
@@ -18751,8 +18751,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_SELF_ENCRYPTION_PROPERTY_V2 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_DEVICE_SELF_ENCRYPTION_PROPERTY_V2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_SELF_ENCRYPTION_PROPERTY_V2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_SELF_ENCRYPTION_PROPERTY_V2 {
@@ -18789,8 +18789,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_TIERING_DESCRIPTOR {
         f.debug_struct("STORAGE_DEVICE_TIERING_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("TotalNumberOfTiers", &self.TotalNumberOfTiers).field("NumberOfTiersReturned", &self.NumberOfTiersReturned).field("Tiers", &self.Tiers).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_TIERING_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_TIERING_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_TIERING_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -18821,8 +18821,8 @@ impl ::core::fmt::Debug for STORAGE_DEVICE_UNSAFE_SHUTDOWN_COUNT {
         f.debug_struct("STORAGE_DEVICE_UNSAFE_SHUTDOWN_COUNT").field("Version", &self.Version).field("Size", &self.Size).field("UnsafeShutdownCount", &self.UnsafeShutdownCount).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DEVICE_UNSAFE_SHUTDOWN_COUNT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DEVICE_UNSAFE_SHUTDOWN_COUNT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DEVICE_UNSAFE_SHUTDOWN_COUNT {
     fn eq(&self, other: &Self) -> bool {
@@ -18840,7 +18840,7 @@ impl ::core::default::Default for STORAGE_DEVICE_UNSAFE_SHUTDOWN_COUNT {
 pub struct STORAGE_DIAGNOSTIC_DATA {
     pub Version: u32,
     pub Size: u32,
-    pub ProviderId: ::windows::core::GUID,
+    pub ProviderId: ::windows_core::GUID,
     pub BufferSize: u32,
     pub Reserved: u32,
     pub DiagnosticDataBuffer: [u8; 1],
@@ -18856,8 +18856,8 @@ impl ::core::fmt::Debug for STORAGE_DIAGNOSTIC_DATA {
         f.debug_struct("STORAGE_DIAGNOSTIC_DATA").field("Version", &self.Version).field("Size", &self.Size).field("ProviderId", &self.ProviderId).field("BufferSize", &self.BufferSize).field("Reserved", &self.Reserved).field("DiagnosticDataBuffer", &self.DiagnosticDataBuffer).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DIAGNOSTIC_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DIAGNOSTIC_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DIAGNOSTIC_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -18890,8 +18890,8 @@ impl ::core::fmt::Debug for STORAGE_DIAGNOSTIC_REQUEST {
         f.debug_struct("STORAGE_DIAGNOSTIC_REQUEST").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("TargetType", &self.TargetType).field("Level", &self.Level).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_DIAGNOSTIC_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_DIAGNOSTIC_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_DIAGNOSTIC_REQUEST {
     fn eq(&self, other: &Self) -> bool {
@@ -18922,8 +18922,8 @@ impl ::core::fmt::Debug for STORAGE_EVENT_NOTIFICATION {
         f.debug_struct("STORAGE_EVENT_NOTIFICATION").field("Version", &self.Version).field("Size", &self.Size).field("Events", &self.Events).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_EVENT_NOTIFICATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_EVENT_NOTIFICATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_EVENT_NOTIFICATION {
     fn eq(&self, other: &Self) -> bool {
@@ -18961,8 +18961,8 @@ impl ::core::fmt::Debug for STORAGE_FAILURE_PREDICTION_CONFIG {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_FAILURE_PREDICTION_CONFIG {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_FAILURE_PREDICTION_CONFIG {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_FAILURE_PREDICTION_CONFIG {
@@ -18997,8 +18997,8 @@ impl ::core::fmt::Debug for STORAGE_FRU_ID_DESCRIPTOR {
         f.debug_struct("STORAGE_FRU_ID_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("IdentifierSize", &self.IdentifierSize).field("Identifier", &self.Identifier).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_FRU_ID_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_FRU_ID_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_FRU_ID_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -19032,8 +19032,8 @@ impl ::core::fmt::Debug for STORAGE_GET_BC_PROPERTIES_OUTPUT {
         f.debug_struct("STORAGE_GET_BC_PROPERTIES_OUTPUT").field("MaximumRequestsPerPeriod", &self.MaximumRequestsPerPeriod).field("MinimumPeriod", &self.MinimumPeriod).field("MaximumRequestSize", &self.MaximumRequestSize).field("EstimatedTimePerRequest", &self.EstimatedTimePerRequest).field("NumOutStandingRequests", &self.NumOutStandingRequests).field("RequestSize", &self.RequestSize).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_GET_BC_PROPERTIES_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_GET_BC_PROPERTIES_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_GET_BC_PROPERTIES_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -19071,8 +19071,8 @@ impl ::core::fmt::Debug for STORAGE_HOTPLUG_INFO {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_HOTPLUG_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HOTPLUG_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_HOTPLUG_INFO {
@@ -19106,8 +19106,8 @@ impl ::core::fmt::Debug for STORAGE_HW_ENDURANCE_DATA_DESCRIPTOR {
         f.debug_struct("STORAGE_HW_ENDURANCE_DATA_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("EnduranceInfo", &self.EnduranceInfo).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_HW_ENDURANCE_DATA_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HW_ENDURANCE_DATA_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_HW_ENDURANCE_DATA_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -19141,8 +19141,8 @@ impl ::core::fmt::Debug for STORAGE_HW_ENDURANCE_INFO {
         f.debug_struct("STORAGE_HW_ENDURANCE_INFO").field("ValidFields", &self.ValidFields).field("GroupId", &self.GroupId).field("Flags", &self.Flags).field("LifePercentage", &self.LifePercentage).field("BytesReadCount", &self.BytesReadCount).field("ByteWriteCount", &self.ByteWriteCount).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_HW_ENDURANCE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HW_ENDURANCE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_HW_ENDURANCE_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -19171,8 +19171,8 @@ impl ::core::fmt::Debug for STORAGE_HW_ENDURANCE_INFO_0 {
         f.debug_struct("STORAGE_HW_ENDURANCE_INFO_0").field("_bitfield", &self._bitfield).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_HW_ENDURANCE_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HW_ENDURANCE_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_HW_ENDURANCE_INFO_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -19205,8 +19205,8 @@ impl ::core::fmt::Debug for STORAGE_HW_FIRMWARE_ACTIVATE {
         f.debug_struct("STORAGE_HW_FIRMWARE_ACTIVATE").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("Slot", &self.Slot).field("Reserved0", &self.Reserved0).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_HW_FIRMWARE_ACTIVATE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HW_FIRMWARE_ACTIVATE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_HW_FIRMWARE_ACTIVATE {
     fn eq(&self, other: &Self) -> bool {
@@ -19242,8 +19242,8 @@ impl ::core::fmt::Debug for STORAGE_HW_FIRMWARE_DOWNLOAD {
         f.debug_struct("STORAGE_HW_FIRMWARE_DOWNLOAD").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("Slot", &self.Slot).field("Reserved", &self.Reserved).field("Offset", &self.Offset).field("BufferSize", &self.BufferSize).field("ImageBuffer", &self.ImageBuffer).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_HW_FIRMWARE_DOWNLOAD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HW_FIRMWARE_DOWNLOAD {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_HW_FIRMWARE_DOWNLOAD {
     fn eq(&self, other: &Self) -> bool {
@@ -19281,8 +19281,8 @@ impl ::core::fmt::Debug for STORAGE_HW_FIRMWARE_DOWNLOAD_V2 {
         f.debug_struct("STORAGE_HW_FIRMWARE_DOWNLOAD_V2").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("Slot", &self.Slot).field("Reserved", &self.Reserved).field("Offset", &self.Offset).field("BufferSize", &self.BufferSize).field("ImageSize", &self.ImageSize).field("Reserved2", &self.Reserved2).field("ImageBuffer", &self.ImageBuffer).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_HW_FIRMWARE_DOWNLOAD_V2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HW_FIRMWARE_DOWNLOAD_V2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_HW_FIRMWARE_DOWNLOAD_V2 {
     fn eq(&self, other: &Self) -> bool {
@@ -19338,8 +19338,8 @@ impl ::core::fmt::Debug for STORAGE_HW_FIRMWARE_INFO {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_HW_FIRMWARE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HW_FIRMWARE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_HW_FIRMWARE_INFO {
@@ -19374,8 +19374,8 @@ impl ::core::fmt::Debug for STORAGE_HW_FIRMWARE_INFO_QUERY {
         f.debug_struct("STORAGE_HW_FIRMWARE_INFO_QUERY").field("Version", &self.Version).field("Size", &self.Size).field("Flags", &self.Flags).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_HW_FIRMWARE_INFO_QUERY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HW_FIRMWARE_INFO_QUERY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_HW_FIRMWARE_INFO_QUERY {
     fn eq(&self, other: &Self) -> bool {
@@ -19409,8 +19409,8 @@ impl ::core::fmt::Debug for STORAGE_HW_FIRMWARE_SLOT_INFO {
         f.debug_struct("STORAGE_HW_FIRMWARE_SLOT_INFO").field("Version", &self.Version).field("Size", &self.Size).field("SlotNumber", &self.SlotNumber).field("_bitfield", &self._bitfield).field("Reserved1", &self.Reserved1).field("Revision", &self.Revision).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_HW_FIRMWARE_SLOT_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_HW_FIRMWARE_SLOT_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_HW_FIRMWARE_SLOT_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -19444,8 +19444,8 @@ impl ::core::fmt::Debug for STORAGE_IDENTIFIER {
         f.debug_struct("STORAGE_IDENTIFIER").field("CodeSet", &self.CodeSet).field("Type", &self.Type).field("IdentifierSize", &self.IdentifierSize).field("NextOffset", &self.NextOffset).field("Association", &self.Association).field("Identifier", &self.Identifier).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_IDENTIFIER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_IDENTIFIER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_IDENTIFIER {
     fn eq(&self, other: &Self) -> bool {
@@ -19477,8 +19477,8 @@ impl ::core::fmt::Debug for STORAGE_IDLE_POWER {
         f.debug_struct("STORAGE_IDLE_POWER").field("Version", &self.Version).field("Size", &self.Size).field("_bitfield", &self._bitfield).field("D3IdleTimeout", &self.D3IdleTimeout).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_IDLE_POWER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_IDLE_POWER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_IDLE_POWER {
     fn eq(&self, other: &Self) -> bool {
@@ -19509,8 +19509,8 @@ impl ::core::fmt::Debug for STORAGE_IDLE_POWERUP_REASON {
         f.debug_struct("STORAGE_IDLE_POWERUP_REASON").field("Version", &self.Version).field("Size", &self.Size).field("PowerupReason", &self.PowerupReason).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_IDLE_POWERUP_REASON {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_IDLE_POWERUP_REASON {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_IDLE_POWERUP_REASON {
     fn eq(&self, other: &Self) -> bool {
@@ -19546,8 +19546,8 @@ impl ::core::fmt::Debug for STORAGE_LB_PROVISIONING_MAP_RESOURCES {
         f.debug_struct("STORAGE_LB_PROVISIONING_MAP_RESOURCES").field("Size", &self.Size).field("Version", &self.Version).field("_bitfield1", &self._bitfield1).field("Reserved1", &self.Reserved1).field("_bitfield2", &self._bitfield2).field("Reserved3", &self.Reserved3).field("AvailableMappingResources", &self.AvailableMappingResources).field("UsedMappingResources", &self.UsedMappingResources).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_LB_PROVISIONING_MAP_RESOURCES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_LB_PROVISIONING_MAP_RESOURCES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_LB_PROVISIONING_MAP_RESOURCES {
     fn eq(&self, other: &Self) -> bool {
@@ -19578,8 +19578,8 @@ impl ::core::fmt::Debug for STORAGE_MEDIA_SERIAL_NUMBER_DATA {
         f.debug_struct("STORAGE_MEDIA_SERIAL_NUMBER_DATA").field("Reserved", &self.Reserved).field("SerialNumberLength", &self.SerialNumberLength).field("SerialNumber", &self.SerialNumber).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_MEDIA_SERIAL_NUMBER_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_MEDIA_SERIAL_NUMBER_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_MEDIA_SERIAL_NUMBER_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -19610,8 +19610,8 @@ impl ::core::fmt::Debug for STORAGE_MEDIUM_PRODUCT_TYPE_DESCRIPTOR {
         f.debug_struct("STORAGE_MEDIUM_PRODUCT_TYPE_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("MediumProductType", &self.MediumProductType).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_MEDIUM_PRODUCT_TYPE_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_MEDIUM_PRODUCT_TYPE_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_MEDIUM_PRODUCT_TYPE_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -19648,8 +19648,8 @@ impl ::core::clone::Clone for STORAGE_MINIPORT_DESCRIPTOR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_MINIPORT_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_MINIPORT_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for STORAGE_MINIPORT_DESCRIPTOR {
@@ -19673,8 +19673,8 @@ impl ::core::clone::Clone for STORAGE_MINIPORT_DESCRIPTOR_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_MINIPORT_DESCRIPTOR_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_MINIPORT_DESCRIPTOR_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for STORAGE_MINIPORT_DESCRIPTOR_0 {
@@ -19703,8 +19703,8 @@ impl ::core::fmt::Debug for STORAGE_MINIPORT_DESCRIPTOR_0_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_MINIPORT_DESCRIPTOR_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_MINIPORT_DESCRIPTOR_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_MINIPORT_DESCRIPTOR_0_0 {
@@ -19735,8 +19735,8 @@ impl ::core::clone::Clone for STORAGE_OFFLOAD_READ_OUTPUT {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OFFLOAD_READ_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OFFLOAD_READ_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_OFFLOAD_READ_OUTPUT {
     fn default() -> Self {
@@ -19757,8 +19757,8 @@ impl ::core::clone::Clone for STORAGE_OFFLOAD_TOKEN {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OFFLOAD_TOKEN {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OFFLOAD_TOKEN {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_OFFLOAD_TOKEN {
     fn default() -> Self {
@@ -19777,8 +19777,8 @@ impl ::core::clone::Clone for STORAGE_OFFLOAD_TOKEN_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OFFLOAD_TOKEN_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OFFLOAD_TOKEN_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_OFFLOAD_TOKEN_0 {
     fn default() -> Self {
@@ -19801,8 +19801,8 @@ impl ::core::fmt::Debug for STORAGE_OFFLOAD_TOKEN_0_0 {
         f.debug_struct("STORAGE_OFFLOAD_TOKEN_0_0").field("Reserved2", &self.Reserved2).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OFFLOAD_TOKEN_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OFFLOAD_TOKEN_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_OFFLOAD_TOKEN_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -19833,8 +19833,8 @@ impl ::core::fmt::Debug for STORAGE_OFFLOAD_WRITE_OUTPUT {
         f.debug_struct("STORAGE_OFFLOAD_WRITE_OUTPUT").field("OffloadWriteFlags", &self.OffloadWriteFlags).field("Reserved", &self.Reserved).field("LengthCopied", &self.LengthCopied).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OFFLOAD_WRITE_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OFFLOAD_WRITE_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_OFFLOAD_WRITE_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -19861,8 +19861,8 @@ impl ::core::clone::Clone for STORAGE_OPERATIONAL_REASON {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OPERATIONAL_REASON {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OPERATIONAL_REASON {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_OPERATIONAL_REASON {
     fn default() -> Self {
@@ -19882,8 +19882,8 @@ impl ::core::clone::Clone for STORAGE_OPERATIONAL_REASON_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OPERATIONAL_REASON_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OPERATIONAL_REASON_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_OPERATIONAL_REASON_0 {
     fn default() -> Self {
@@ -19908,8 +19908,8 @@ impl ::core::fmt::Debug for STORAGE_OPERATIONAL_REASON_0_0 {
         f.debug_struct("STORAGE_OPERATIONAL_REASON_0_0").field("CriticalHealth", &self.CriticalHealth).field("ModuleHealth", &self.ModuleHealth).field("ErrorThresholdStatus", &self.ErrorThresholdStatus).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OPERATIONAL_REASON_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OPERATIONAL_REASON_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_OPERATIONAL_REASON_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -19941,8 +19941,8 @@ impl ::core::fmt::Debug for STORAGE_OPERATIONAL_REASON_0_1 {
         f.debug_struct("STORAGE_OPERATIONAL_REASON_0_1").field("SenseKey", &self.SenseKey).field("ASC", &self.ASC).field("ASCQ", &self.ASCQ).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_OPERATIONAL_REASON_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_OPERATIONAL_REASON_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_OPERATIONAL_REASON_0_1 {
     fn eq(&self, other: &Self) -> bool {
@@ -19980,8 +19980,8 @@ impl ::core::clone::Clone for STORAGE_PHYSICAL_ADAPTER_DATA {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_PHYSICAL_ADAPTER_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PHYSICAL_ADAPTER_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for STORAGE_PHYSICAL_ADAPTER_DATA {
@@ -20011,8 +20011,8 @@ impl ::core::clone::Clone for STORAGE_PHYSICAL_DEVICE_DATA {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PHYSICAL_DEVICE_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PHYSICAL_DEVICE_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_PHYSICAL_DEVICE_DATA {
     fn default() -> Self {
@@ -20042,8 +20042,8 @@ impl ::core::fmt::Debug for STORAGE_PHYSICAL_NODE_DATA {
         f.debug_struct("STORAGE_PHYSICAL_NODE_DATA").field("NodeId", &self.NodeId).field("AdapterCount", &self.AdapterCount).field("AdapterDataLength", &self.AdapterDataLength).field("AdapterDataOffset", &self.AdapterDataOffset).field("DeviceCount", &self.DeviceCount).field("DeviceDataLength", &self.DeviceDataLength).field("DeviceDataOffset", &self.DeviceDataOffset).field("Reserved", &self.Reserved).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PHYSICAL_NODE_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PHYSICAL_NODE_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PHYSICAL_NODE_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -20076,8 +20076,8 @@ impl ::core::fmt::Debug for STORAGE_PHYSICAL_TOPOLOGY_DESCRIPTOR {
         f.debug_struct("STORAGE_PHYSICAL_TOPOLOGY_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("NodeCount", &self.NodeCount).field("Reserved", &self.Reserved).field("Node", &self.Node).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PHYSICAL_TOPOLOGY_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PHYSICAL_TOPOLOGY_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PHYSICAL_TOPOLOGY_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -20107,8 +20107,8 @@ impl ::core::fmt::Debug for STORAGE_PREDICT_FAILURE {
         f.debug_struct("STORAGE_PREDICT_FAILURE").field("PredictFailure", &self.PredictFailure).field("VendorSpecific", &self.VendorSpecific).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PREDICT_FAILURE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PREDICT_FAILURE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PREDICT_FAILURE {
     fn eq(&self, other: &Self) -> bool {
@@ -20137,8 +20137,8 @@ impl ::core::fmt::Debug for STORAGE_PRIORITY_HINT_SUPPORT {
         f.debug_struct("STORAGE_PRIORITY_HINT_SUPPORT").field("SupportFlags", &self.SupportFlags).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PRIORITY_HINT_SUPPORT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PRIORITY_HINT_SUPPORT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PRIORITY_HINT_SUPPORT {
     fn eq(&self, other: &Self) -> bool {
@@ -20169,8 +20169,8 @@ impl ::core::fmt::Debug for STORAGE_PROPERTY_QUERY {
         f.debug_struct("STORAGE_PROPERTY_QUERY").field("PropertyId", &self.PropertyId).field("QueryType", &self.QueryType).field("AdditionalParameters", &self.AdditionalParameters).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROPERTY_QUERY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROPERTY_QUERY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PROPERTY_QUERY {
     fn eq(&self, other: &Self) -> bool {
@@ -20201,8 +20201,8 @@ impl ::core::fmt::Debug for STORAGE_PROPERTY_SET {
         f.debug_struct("STORAGE_PROPERTY_SET").field("PropertyId", &self.PropertyId).field("SetType", &self.SetType).field("AdditionalParameters", &self.AdditionalParameters).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROPERTY_SET {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROPERTY_SET {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PROPERTY_SET {
     fn eq(&self, other: &Self) -> bool {
@@ -20269,8 +20269,8 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_COMMAND {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_COMMAND {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_COMMAND {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PROTOCOL_COMMAND {
     fn eq(&self, other: &Self) -> bool {
@@ -20319,8 +20319,8 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_DATA_DESCRIPTOR {
         f.debug_struct("STORAGE_PROTOCOL_DATA_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("ProtocolSpecificData", &self.ProtocolSpecificData).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_DATA_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_DATA_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PROTOCOL_DATA_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -20351,8 +20351,8 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_DATA_DESCRIPTOR_EXT {
         f.debug_struct("STORAGE_PROTOCOL_DATA_DESCRIPTOR_EXT").field("Version", &self.Version).field("Size", &self.Size).field("ProtocolSpecificData", &self.ProtocolSpecificData).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_DATA_DESCRIPTOR_EXT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_DATA_DESCRIPTOR_EXT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PROTOCOL_DATA_DESCRIPTOR_EXT {
     fn eq(&self, other: &Self) -> bool {
@@ -20377,8 +20377,8 @@ impl ::core::clone::Clone for STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE {
     fn default() -> Self {
@@ -20401,8 +20401,8 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE_0 {
         f.debug_struct("STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE_0").field("_bitfield", &self._bitfield).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PROTOCOL_DATA_SUBVALUE_GET_LOG_PAGE_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -20451,8 +20451,8 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_SPECIFIC_DATA {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_SPECIFIC_DATA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_SPECIFIC_DATA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PROTOCOL_SPECIFIC_DATA {
     fn eq(&self, other: &Self) -> bool {
@@ -20505,8 +20505,8 @@ impl ::core::fmt::Debug for STORAGE_PROTOCOL_SPECIFIC_DATA_EXT {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_PROTOCOL_SPECIFIC_DATA_EXT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_PROTOCOL_SPECIFIC_DATA_EXT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_PROTOCOL_SPECIFIC_DATA_EXT {
     fn eq(&self, other: &Self) -> bool {
@@ -20543,8 +20543,8 @@ impl ::core::fmt::Debug for STORAGE_QUERY_DEPENDENT_VOLUME_LEV1_ENTRY {
     }
 }
 #[cfg(feature = "Win32_Storage_Vhd")]
-impl ::windows::core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_LEV1_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_LEV1_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_Vhd")]
 impl ::core::cmp::PartialEq for STORAGE_QUERY_DEPENDENT_VOLUME_LEV1_ENTRY {
@@ -20607,8 +20607,8 @@ impl ::core::fmt::Debug for STORAGE_QUERY_DEPENDENT_VOLUME_LEV2_ENTRY {
     }
 }
 #[cfg(feature = "Win32_Storage_Vhd")]
-impl ::windows::core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_LEV2_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_LEV2_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_Vhd")]
 impl ::core::cmp::PartialEq for STORAGE_QUERY_DEPENDENT_VOLUME_LEV2_ENTRY {
@@ -20641,8 +20641,8 @@ impl ::core::fmt::Debug for STORAGE_QUERY_DEPENDENT_VOLUME_REQUEST {
         f.debug_struct("STORAGE_QUERY_DEPENDENT_VOLUME_REQUEST").field("RequestLevel", &self.RequestLevel).field("RequestFlags", &self.RequestFlags).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_REQUEST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_REQUEST {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_QUERY_DEPENDENT_VOLUME_REQUEST {
     fn eq(&self, other: &Self) -> bool {
@@ -20672,8 +20672,8 @@ impl ::core::clone::Clone for STORAGE_QUERY_DEPENDENT_VOLUME_RESPONSE {
     }
 }
 #[cfg(feature = "Win32_Storage_Vhd")]
-impl ::windows::core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_RESPONSE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_RESPONSE {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_Vhd")]
 impl ::core::default::Default for STORAGE_QUERY_DEPENDENT_VOLUME_RESPONSE {
@@ -20697,8 +20697,8 @@ impl ::core::clone::Clone for STORAGE_QUERY_DEPENDENT_VOLUME_RESPONSE_0 {
     }
 }
 #[cfg(feature = "Win32_Storage_Vhd")]
-impl ::windows::core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_RESPONSE_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_QUERY_DEPENDENT_VOLUME_RESPONSE_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_Vhd")]
 impl ::core::default::Default for STORAGE_QUERY_DEPENDENT_VOLUME_RESPONSE_0 {
@@ -20726,8 +20726,8 @@ impl ::core::fmt::Debug for STORAGE_READ_CAPACITY {
         f.debug_struct("STORAGE_READ_CAPACITY").field("Version", &self.Version).field("Size", &self.Size).field("BlockLength", &self.BlockLength).field("NumberOfBlocks", &self.NumberOfBlocks).field("DiskLength", &self.DiskLength).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_READ_CAPACITY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_READ_CAPACITY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_READ_CAPACITY {
     fn eq(&self, other: &Self) -> bool {
@@ -20759,8 +20759,8 @@ impl ::core::fmt::Debug for STORAGE_REINITIALIZE_MEDIA {
         f.debug_struct("STORAGE_REINITIALIZE_MEDIA").field("Version", &self.Version).field("Size", &self.Size).field("TimeoutInSeconds", &self.TimeoutInSeconds).field("SanitizeOption", &self.SanitizeOption).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_REINITIALIZE_MEDIA {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_REINITIALIZE_MEDIA {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_REINITIALIZE_MEDIA {
     fn eq(&self, other: &Self) -> bool {
@@ -20789,8 +20789,8 @@ impl ::core::fmt::Debug for STORAGE_REINITIALIZE_MEDIA_0 {
         f.debug_struct("STORAGE_REINITIALIZE_MEDIA_0").field("_bitfield", &self._bitfield).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_REINITIALIZE_MEDIA_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_REINITIALIZE_MEDIA_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_REINITIALIZE_MEDIA_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -20827,8 +20827,8 @@ impl ::core::fmt::Debug for STORAGE_RPMB_DATA_FRAME {
         f.debug_struct("STORAGE_RPMB_DATA_FRAME").field("Stuff", &self.Stuff).field("KeyOrMAC", &self.KeyOrMAC).field("Data", &self.Data).field("Nonce", &self.Nonce).field("WriteCounter", &self.WriteCounter).field("Address", &self.Address).field("BlockCount", &self.BlockCount).field("OperationResult", &self.OperationResult).field("RequestOrResponseType", &self.RequestOrResponseType).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_RPMB_DATA_FRAME {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_RPMB_DATA_FRAME {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_RPMB_DATA_FRAME {
     fn eq(&self, other: &Self) -> bool {
@@ -20861,8 +20861,8 @@ impl ::core::fmt::Debug for STORAGE_RPMB_DESCRIPTOR {
         f.debug_struct("STORAGE_RPMB_DESCRIPTOR").field("Version", &self.Version).field("Size", &self.Size).field("SizeInBytes", &self.SizeInBytes).field("MaxReliableWriteSizeInBytes", &self.MaxReliableWriteSizeInBytes).field("FrameFormat", &self.FrameFormat).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_RPMB_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_RPMB_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_RPMB_DESCRIPTOR {
     fn eq(&self, other: &Self) -> bool {
@@ -20887,8 +20887,8 @@ impl ::core::clone::Clone for STORAGE_SPEC_VERSION {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_SPEC_VERSION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_SPEC_VERSION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_SPEC_VERSION {
     fn default() -> Self {
@@ -20907,8 +20907,8 @@ impl ::core::clone::Clone for STORAGE_SPEC_VERSION_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_SPEC_VERSION_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_SPEC_VERSION_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_SPEC_VERSION_0 {
     fn default() -> Self {
@@ -20927,8 +20927,8 @@ impl ::core::clone::Clone for STORAGE_SPEC_VERSION_0_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for STORAGE_SPEC_VERSION_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_SPEC_VERSION_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STORAGE_SPEC_VERSION_0_0 {
     fn default() -> Self {
@@ -20952,8 +20952,8 @@ impl ::core::fmt::Debug for STORAGE_SPEC_VERSION_0_0_0 {
         f.debug_struct("STORAGE_SPEC_VERSION_0_0_0").field("SubMinor", &self.SubMinor).field("Minor", &self.Minor).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_SPEC_VERSION_0_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_SPEC_VERSION_0_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_SPEC_VERSION_0_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -20994,8 +20994,8 @@ impl ::core::fmt::Debug for STORAGE_TEMPERATURE_DATA_DESCRIPTOR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_TEMPERATURE_DATA_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_TEMPERATURE_DATA_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_TEMPERATURE_DATA_DESCRIPTOR {
@@ -21040,8 +21040,8 @@ impl ::core::fmt::Debug for STORAGE_TEMPERATURE_INFO {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_TEMPERATURE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_TEMPERATURE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_TEMPERATURE_INFO {
@@ -21084,8 +21084,8 @@ impl ::core::fmt::Debug for STORAGE_TEMPERATURE_THRESHOLD {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_TEMPERATURE_THRESHOLD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_TEMPERATURE_THRESHOLD {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_TEMPERATURE_THRESHOLD {
@@ -21104,7 +21104,7 @@ impl ::core::default::Default for STORAGE_TEMPERATURE_THRESHOLD {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct STORAGE_TIER {
-    pub Id: ::windows::core::GUID,
+    pub Id: ::windows_core::GUID,
     pub Name: [u16; 256],
     pub Description: [u16; 256],
     pub Flags: u64,
@@ -21123,8 +21123,8 @@ impl ::core::fmt::Debug for STORAGE_TIER {
         f.debug_struct("STORAGE_TIER").field("Id", &self.Id).field("Name", &self.Name).field("Description", &self.Description).field("Flags", &self.Flags).field("ProvisionedCapacity", &self.ProvisionedCapacity).field("MediaType", &self.MediaType).field("Class", &self.Class).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_TIER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_TIER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_TIER {
     fn eq(&self, other: &Self) -> bool {
@@ -21140,7 +21140,7 @@ impl ::core::default::Default for STORAGE_TIER {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct STORAGE_TIER_REGION {
-    pub TierId: ::windows::core::GUID,
+    pub TierId: ::windows_core::GUID,
     pub Offset: u64,
     pub Length: u64,
 }
@@ -21155,8 +21155,8 @@ impl ::core::fmt::Debug for STORAGE_TIER_REGION {
         f.debug_struct("STORAGE_TIER_REGION").field("TierId", &self.TierId).field("Offset", &self.Offset).field("Length", &self.Length).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_TIER_REGION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_TIER_REGION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_TIER_REGION {
     fn eq(&self, other: &Self) -> bool {
@@ -21208,8 +21208,8 @@ impl ::core::fmt::Debug for STORAGE_WRITE_CACHE_PROPERTY {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_WRITE_CACHE_PROPERTY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_WRITE_CACHE_PROPERTY {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_WRITE_CACHE_PROPERTY {
@@ -21246,8 +21246,8 @@ impl ::core::clone::Clone for STORAGE_ZONED_DEVICE_DESCRIPTOR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_ZONED_DEVICE_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONED_DEVICE_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for STORAGE_ZONED_DEVICE_DESCRIPTOR {
@@ -21271,8 +21271,8 @@ impl ::core::clone::Clone for STORAGE_ZONED_DEVICE_DESCRIPTOR_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_ZONED_DEVICE_DESCRIPTOR_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONED_DEVICE_DESCRIPTOR_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for STORAGE_ZONED_DEVICE_DESCRIPTOR_0 {
@@ -21302,8 +21302,8 @@ impl ::core::fmt::Debug for STORAGE_ZONED_DEVICE_DESCRIPTOR_0_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_ZONED_DEVICE_DESCRIPTOR_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONED_DEVICE_DESCRIPTOR_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_ZONED_DEVICE_DESCRIPTOR_0_0 {
@@ -21342,8 +21342,8 @@ impl ::core::fmt::Debug for STORAGE_ZONED_DEVICE_DESCRIPTOR_0_1 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_ZONED_DEVICE_DESCRIPTOR_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONED_DEVICE_DESCRIPTOR_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_ZONED_DEVICE_DESCRIPTOR_0_1 {
@@ -21386,8 +21386,8 @@ impl ::core::fmt::Debug for STORAGE_ZONE_DESCRIPTOR {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for STORAGE_ZONE_DESCRIPTOR {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONE_DESCRIPTOR {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for STORAGE_ZONE_DESCRIPTOR {
@@ -21421,8 +21421,8 @@ impl ::core::fmt::Debug for STORAGE_ZONE_GROUP {
         f.debug_struct("STORAGE_ZONE_GROUP").field("ZoneCount", &self.ZoneCount).field("ZoneType", &self.ZoneType).field("ZoneSize", &self.ZoneSize).finish()
     }
 }
-impl ::windows::core::TypeKind for STORAGE_ZONE_GROUP {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STORAGE_ZONE_GROUP {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STORAGE_ZONE_GROUP {
     fn eq(&self, other: &Self) -> bool {
@@ -21452,8 +21452,8 @@ impl ::core::fmt::Debug for STREAMS_ASSOCIATE_ID_INPUT_BUFFER {
         f.debug_struct("STREAMS_ASSOCIATE_ID_INPUT_BUFFER").field("Flags", &self.Flags).field("StreamId", &self.StreamId).finish()
     }
 }
-impl ::windows::core::TypeKind for STREAMS_ASSOCIATE_ID_INPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAMS_ASSOCIATE_ID_INPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STREAMS_ASSOCIATE_ID_INPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -21482,8 +21482,8 @@ impl ::core::fmt::Debug for STREAMS_QUERY_ID_OUTPUT_BUFFER {
         f.debug_struct("STREAMS_QUERY_ID_OUTPUT_BUFFER").field("StreamId", &self.StreamId).finish()
     }
 }
-impl ::windows::core::TypeKind for STREAMS_QUERY_ID_OUTPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAMS_QUERY_ID_OUTPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STREAMS_QUERY_ID_OUTPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -21515,8 +21515,8 @@ impl ::core::fmt::Debug for STREAMS_QUERY_PARAMETERS_OUTPUT_BUFFER {
         f.debug_struct("STREAMS_QUERY_PARAMETERS_OUTPUT_BUFFER").field("OptimalWriteSize", &self.OptimalWriteSize).field("StreamGranularitySize", &self.StreamGranularitySize).field("StreamIdMin", &self.StreamIdMin).field("StreamIdMax", &self.StreamIdMax).finish()
     }
 }
-impl ::windows::core::TypeKind for STREAMS_QUERY_PARAMETERS_OUTPUT_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAMS_QUERY_PARAMETERS_OUTPUT_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STREAMS_QUERY_PARAMETERS_OUTPUT_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -21541,8 +21541,8 @@ impl ::core::clone::Clone for STREAM_EXTENT_ENTRY {
         *self
     }
 }
-impl ::windows::core::TypeKind for STREAM_EXTENT_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAM_EXTENT_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STREAM_EXTENT_ENTRY {
     fn default() -> Self {
@@ -21560,8 +21560,8 @@ impl ::core::clone::Clone for STREAM_EXTENT_ENTRY_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for STREAM_EXTENT_ENTRY_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAM_EXTENT_ENTRY_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STREAM_EXTENT_ENTRY_0 {
     fn default() -> Self {
@@ -21581,8 +21581,8 @@ impl ::core::clone::Clone for STREAM_INFORMATION_ENTRY {
         *self
     }
 }
-impl ::windows::core::TypeKind for STREAM_INFORMATION_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAM_INFORMATION_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STREAM_INFORMATION_ENTRY {
     fn default() -> Self {
@@ -21603,8 +21603,8 @@ impl ::core::clone::Clone for STREAM_INFORMATION_ENTRY_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for STREAM_INFORMATION_ENTRY_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAM_INFORMATION_ENTRY_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for STREAM_INFORMATION_ENTRY_0 {
     fn default() -> Self {
@@ -21630,8 +21630,8 @@ impl ::core::fmt::Debug for STREAM_INFORMATION_ENTRY_0_0 {
         f.debug_struct("STREAM_INFORMATION_ENTRY_0_0").field("Length", &self.Length).field("Flags", &self.Flags).field("Reserved", &self.Reserved).field("Vdl", &self.Vdl).finish()
     }
 }
-impl ::windows::core::TypeKind for STREAM_INFORMATION_ENTRY_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAM_INFORMATION_ENTRY_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STREAM_INFORMATION_ENTRY_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -21661,8 +21661,8 @@ impl ::core::fmt::Debug for STREAM_INFORMATION_ENTRY_0_1 {
         f.debug_struct("STREAM_INFORMATION_ENTRY_0_1").field("Class", &self.Class).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for STREAM_INFORMATION_ENTRY_0_1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAM_INFORMATION_ENTRY_0_1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STREAM_INFORMATION_ENTRY_0_1 {
     fn eq(&self, other: &Self) -> bool {
@@ -21694,8 +21694,8 @@ impl ::core::fmt::Debug for STREAM_INFORMATION_ENTRY_0_2 {
         f.debug_struct("STREAM_INFORMATION_ENTRY_0_2").field("Length", &self.Length).field("Flags", &self.Flags).field("EaSize", &self.EaSize).field("EaInformationOffset", &self.EaInformationOffset).finish()
     }
 }
-impl ::windows::core::TypeKind for STREAM_INFORMATION_ENTRY_0_2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAM_INFORMATION_ENTRY_0_2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STREAM_INFORMATION_ENTRY_0_2 {
     fn eq(&self, other: &Self) -> bool {
@@ -21727,8 +21727,8 @@ impl ::core::fmt::Debug for STREAM_INFORMATION_ENTRY_0_3 {
         f.debug_struct("STREAM_INFORMATION_ENTRY_0_3").field("Length", &self.Length).field("Flags", &self.Flags).field("ReparseDataSize", &self.ReparseDataSize).field("ReparseDataOffset", &self.ReparseDataOffset).finish()
     }
 }
-impl ::windows::core::TypeKind for STREAM_INFORMATION_ENTRY_0_3 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAM_INFORMATION_ENTRY_0_3 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STREAM_INFORMATION_ENTRY_0_3 {
     fn eq(&self, other: &Self) -> bool {
@@ -21779,8 +21779,8 @@ impl ::core::fmt::Debug for STREAM_LAYOUT_ENTRY {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for STREAM_LAYOUT_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for STREAM_LAYOUT_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for STREAM_LAYOUT_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -21809,8 +21809,8 @@ impl ::core::fmt::Debug for TAPE_GET_STATISTICS {
         f.debug_struct("TAPE_GET_STATISTICS").field("Operation", &self.Operation).finish()
     }
 }
-impl ::windows::core::TypeKind for TAPE_GET_STATISTICS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TAPE_GET_STATISTICS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TAPE_GET_STATISTICS {
     fn eq(&self, other: &Self) -> bool {
@@ -21846,8 +21846,8 @@ impl ::core::fmt::Debug for TAPE_STATISTICS {
         f.debug_struct("TAPE_STATISTICS").field("Version", &self.Version).field("Flags", &self.Flags).field("RecoveredWrites", &self.RecoveredWrites).field("UnrecoveredWrites", &self.UnrecoveredWrites).field("RecoveredReads", &self.RecoveredReads).field("UnrecoveredReads", &self.UnrecoveredReads).field("CompressionRatioReads", &self.CompressionRatioReads).field("CompressionRatioWrites", &self.CompressionRatioWrites).finish()
     }
 }
-impl ::windows::core::TypeKind for TAPE_STATISTICS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TAPE_STATISTICS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TAPE_STATISTICS {
     fn eq(&self, other: &Self) -> bool {
@@ -21879,8 +21879,8 @@ impl ::core::fmt::Debug for TXFS_CREATE_MINIVERSION_INFO {
         f.debug_struct("TXFS_CREATE_MINIVERSION_INFO").field("StructureVersion", &self.StructureVersion).field("StructureLength", &self.StructureLength).field("BaseVersion", &self.BaseVersion).field("MiniVersion", &self.MiniVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_CREATE_MINIVERSION_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_CREATE_MINIVERSION_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_CREATE_MINIVERSION_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -21897,7 +21897,7 @@ impl ::core::default::Default for TXFS_CREATE_MINIVERSION_INFO {
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct TXFS_GET_METADATA_INFO_OUT {
     pub TxfFileId: TXFS_GET_METADATA_INFO_OUT_0,
-    pub LockingTransaction: ::windows::core::GUID,
+    pub LockingTransaction: ::windows_core::GUID,
     pub LastLsn: u64,
     pub TransactionState: u32,
 }
@@ -21912,8 +21912,8 @@ impl ::core::fmt::Debug for TXFS_GET_METADATA_INFO_OUT {
         f.debug_struct("TXFS_GET_METADATA_INFO_OUT").field("TxfFileId", &self.TxfFileId).field("LockingTransaction", &self.LockingTransaction).field("LastLsn", &self.LastLsn).field("TransactionState", &self.TransactionState).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_GET_METADATA_INFO_OUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_GET_METADATA_INFO_OUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_GET_METADATA_INFO_OUT {
     fn eq(&self, other: &Self) -> bool {
@@ -21943,8 +21943,8 @@ impl ::core::fmt::Debug for TXFS_GET_METADATA_INFO_OUT_0 {
         f.debug_struct("TXFS_GET_METADATA_INFO_OUT_0").field("LowPart", &self.LowPart).field("HighPart", &self.HighPart).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_GET_METADATA_INFO_OUT_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_GET_METADATA_INFO_OUT_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_GET_METADATA_INFO_OUT_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -21977,8 +21977,8 @@ impl ::core::fmt::Debug for TXFS_GET_TRANSACTED_VERSION {
         f.debug_struct("TXFS_GET_TRANSACTED_VERSION").field("ThisBaseVersion", &self.ThisBaseVersion).field("LatestVersion", &self.LatestVersion).field("ThisMiniVersion", &self.ThisMiniVersion).field("FirstMiniVersion", &self.FirstMiniVersion).field("LatestMiniVersion", &self.LatestMiniVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_GET_TRANSACTED_VERSION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_GET_TRANSACTED_VERSION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_GET_TRANSACTED_VERSION {
     fn eq(&self, other: &Self) -> bool {
@@ -22008,8 +22008,8 @@ impl ::core::fmt::Debug for TXFS_LIST_TRANSACTIONS {
         f.debug_struct("TXFS_LIST_TRANSACTIONS").field("NumberOfTransactions", &self.NumberOfTransactions).field("BufferSizeRequired", &self.BufferSizeRequired).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_LIST_TRANSACTIONS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_LIST_TRANSACTIONS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_LIST_TRANSACTIONS {
     fn eq(&self, other: &Self) -> bool {
@@ -22025,7 +22025,7 @@ impl ::core::default::Default for TXFS_LIST_TRANSACTIONS {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct TXFS_LIST_TRANSACTIONS_ENTRY {
-    pub TransactionId: ::windows::core::GUID,
+    pub TransactionId: ::windows_core::GUID,
     pub TransactionState: u32,
     pub Reserved1: u32,
     pub Reserved2: u32,
@@ -22042,8 +22042,8 @@ impl ::core::fmt::Debug for TXFS_LIST_TRANSACTIONS_ENTRY {
         f.debug_struct("TXFS_LIST_TRANSACTIONS_ENTRY").field("TransactionId", &self.TransactionId).field("TransactionState", &self.TransactionState).field("Reserved1", &self.Reserved1).field("Reserved2", &self.Reserved2).field("Reserved3", &self.Reserved3).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_LIST_TRANSACTIONS_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_LIST_TRANSACTIONS_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_LIST_TRANSACTIONS_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -22059,7 +22059,7 @@ impl ::core::default::Default for TXFS_LIST_TRANSACTIONS_ENTRY {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct TXFS_LIST_TRANSACTION_LOCKED_FILES {
-    pub KtmTransaction: ::windows::core::GUID,
+    pub KtmTransaction: ::windows_core::GUID,
     pub NumberOfFiles: u64,
     pub BufferSizeRequired: u64,
     pub Offset: u64,
@@ -22075,8 +22075,8 @@ impl ::core::fmt::Debug for TXFS_LIST_TRANSACTION_LOCKED_FILES {
         f.debug_struct("TXFS_LIST_TRANSACTION_LOCKED_FILES").field("KtmTransaction", &self.KtmTransaction).field("NumberOfFiles", &self.NumberOfFiles).field("BufferSizeRequired", &self.BufferSizeRequired).field("Offset", &self.Offset).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_LIST_TRANSACTION_LOCKED_FILES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_LIST_TRANSACTION_LOCKED_FILES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_LIST_TRANSACTION_LOCKED_FILES {
     fn eq(&self, other: &Self) -> bool {
@@ -22111,8 +22111,8 @@ impl ::core::fmt::Debug for TXFS_LIST_TRANSACTION_LOCKED_FILES_ENTRY {
         f.debug_struct("TXFS_LIST_TRANSACTION_LOCKED_FILES_ENTRY").field("Offset", &self.Offset).field("NameFlags", &self.NameFlags).field("FileId", &self.FileId).field("Reserved1", &self.Reserved1).field("Reserved2", &self.Reserved2).field("Reserved3", &self.Reserved3).field("FileName", &self.FileName).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_LIST_TRANSACTION_LOCKED_FILES_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_LIST_TRANSACTION_LOCKED_FILES_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_LIST_TRANSACTION_LOCKED_FILES_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -22148,8 +22148,8 @@ impl ::core::fmt::Debug for TXFS_MODIFY_RM {
         f.debug_struct("TXFS_MODIFY_RM").field("Flags", &self.Flags).field("LogContainerCountMax", &self.LogContainerCountMax).field("LogContainerCountMin", &self.LogContainerCountMin).field("LogContainerCount", &self.LogContainerCount).field("LogGrowthIncrement", &self.LogGrowthIncrement).field("LogAutoShrinkPercentage", &self.LogAutoShrinkPercentage).field("Reserved", &self.Reserved).field("LoggingMode", &self.LoggingMode).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_MODIFY_RM {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_MODIFY_RM {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_MODIFY_RM {
     fn eq(&self, other: &Self) -> bool {
@@ -22189,7 +22189,7 @@ pub struct TXFS_QUERY_RM_INFORMATION {
     pub TwoPCCount: u64,
     pub NumberLogFileFull: u64,
     pub OldestTransactionAge: u64,
-    pub RMName: ::windows::core::GUID,
+    pub RMName: ::windows_core::GUID,
     pub TmLogPathOffset: u32,
 }
 impl ::core::marker::Copy for TXFS_QUERY_RM_INFORMATION {}
@@ -22230,8 +22230,8 @@ impl ::core::fmt::Debug for TXFS_QUERY_RM_INFORMATION {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_QUERY_RM_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_QUERY_RM_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_QUERY_RM_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -22280,8 +22280,8 @@ impl ::core::clone::Clone for TXFS_READ_BACKUP_INFORMATION_OUT {
         *self
     }
 }
-impl ::windows::core::TypeKind for TXFS_READ_BACKUP_INFORMATION_OUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_READ_BACKUP_INFORMATION_OUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for TXFS_READ_BACKUP_INFORMATION_OUT {
     fn default() -> Self {
@@ -22300,8 +22300,8 @@ impl ::core::clone::Clone for TXFS_READ_BACKUP_INFORMATION_OUT_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for TXFS_READ_BACKUP_INFORMATION_OUT_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_READ_BACKUP_INFORMATION_OUT_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for TXFS_READ_BACKUP_INFORMATION_OUT_0 {
     fn default() -> Self {
@@ -22327,8 +22327,8 @@ impl ::core::fmt::Debug for TXFS_ROLLFORWARD_REDO_INFORMATION {
         f.debug_struct("TXFS_ROLLFORWARD_REDO_INFORMATION").field("LastVirtualClock", &self.LastVirtualClock).field("LastRedoLsn", &self.LastRedoLsn).field("HighestRecoveryLsn", &self.HighestRecoveryLsn).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_ROLLFORWARD_REDO_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_ROLLFORWARD_REDO_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_ROLLFORWARD_REDO_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -22364,8 +22364,8 @@ impl ::core::fmt::Debug for TXFS_SAVEPOINT_INFORMATION {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for TXFS_SAVEPOINT_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_SAVEPOINT_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for TXFS_SAVEPOINT_INFORMATION {
@@ -22421,8 +22421,8 @@ impl ::core::fmt::Debug for TXFS_START_RM_INFORMATION {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_START_RM_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_START_RM_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_START_RM_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -22456,8 +22456,8 @@ impl ::core::fmt::Debug for TXFS_TRANSACTION_ACTIVE_INFO {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for TXFS_TRANSACTION_ACTIVE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_TRANSACTION_ACTIVE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for TXFS_TRANSACTION_ACTIVE_INFO {
@@ -22489,8 +22489,8 @@ impl ::core::fmt::Debug for TXFS_WRITE_BACKUP_INFORMATION {
         f.debug_struct("TXFS_WRITE_BACKUP_INFORMATION").field("Buffer", &self.Buffer).finish()
     }
 }
-impl ::windows::core::TypeKind for TXFS_WRITE_BACKUP_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for TXFS_WRITE_BACKUP_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for TXFS_WRITE_BACKUP_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -22525,8 +22525,8 @@ impl ::core::fmt::Debug for USN_JOURNAL_DATA_V0 {
         f.debug_struct("USN_JOURNAL_DATA_V0").field("UsnJournalID", &self.UsnJournalID).field("FirstUsn", &self.FirstUsn).field("NextUsn", &self.NextUsn).field("LowestValidUsn", &self.LowestValidUsn).field("MaxUsn", &self.MaxUsn).field("MaximumSize", &self.MaximumSize).field("AllocationDelta", &self.AllocationDelta).finish()
     }
 }
-impl ::windows::core::TypeKind for USN_JOURNAL_DATA_V0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_JOURNAL_DATA_V0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for USN_JOURNAL_DATA_V0 {
     fn eq(&self, other: &Self) -> bool {
@@ -22563,8 +22563,8 @@ impl ::core::fmt::Debug for USN_JOURNAL_DATA_V1 {
         f.debug_struct("USN_JOURNAL_DATA_V1").field("UsnJournalID", &self.UsnJournalID).field("FirstUsn", &self.FirstUsn).field("NextUsn", &self.NextUsn).field("LowestValidUsn", &self.LowestValidUsn).field("MaxUsn", &self.MaxUsn).field("MaximumSize", &self.MaximumSize).field("AllocationDelta", &self.AllocationDelta).field("MinSupportedMajorVersion", &self.MinSupportedMajorVersion).field("MaxSupportedMajorVersion", &self.MaxSupportedMajorVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for USN_JOURNAL_DATA_V1 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_JOURNAL_DATA_V1 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for USN_JOURNAL_DATA_V1 {
     fn eq(&self, other: &Self) -> bool {
@@ -22617,8 +22617,8 @@ impl ::core::fmt::Debug for USN_JOURNAL_DATA_V2 {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for USN_JOURNAL_DATA_V2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_JOURNAL_DATA_V2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for USN_JOURNAL_DATA_V2 {
     fn eq(&self, other: &Self) -> bool {
@@ -22647,8 +22647,8 @@ impl ::core::fmt::Debug for USN_RANGE_TRACK_OUTPUT {
         f.debug_struct("USN_RANGE_TRACK_OUTPUT").field("Usn", &self.Usn).finish()
     }
 }
-impl ::windows::core::TypeKind for USN_RANGE_TRACK_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_RANGE_TRACK_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for USN_RANGE_TRACK_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -22679,8 +22679,8 @@ impl ::core::fmt::Debug for USN_RECORD_COMMON_HEADER {
         f.debug_struct("USN_RECORD_COMMON_HEADER").field("RecordLength", &self.RecordLength).field("MajorVersion", &self.MajorVersion).field("MinorVersion", &self.MinorVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for USN_RECORD_COMMON_HEADER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_RECORD_COMMON_HEADER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for USN_RECORD_COMMON_HEADER {
     fn eq(&self, other: &Self) -> bool {
@@ -22710,8 +22710,8 @@ impl ::core::fmt::Debug for USN_RECORD_EXTENT {
         f.debug_struct("USN_RECORD_EXTENT").field("Offset", &self.Offset).field("Length", &self.Length).finish()
     }
 }
-impl ::windows::core::TypeKind for USN_RECORD_EXTENT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_RECORD_EXTENT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for USN_RECORD_EXTENT {
     fn eq(&self, other: &Self) -> bool {
@@ -22742,8 +22742,8 @@ impl ::core::clone::Clone for USN_RECORD_UNION {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for USN_RECORD_UNION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_RECORD_UNION {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::default::Default for USN_RECORD_UNION {
@@ -22795,8 +22795,8 @@ impl ::core::fmt::Debug for USN_RECORD_V2 {
             .finish()
     }
 }
-impl ::windows::core::TypeKind for USN_RECORD_V2 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_RECORD_V2 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for USN_RECORD_V2 {
     fn eq(&self, other: &Self) -> bool {
@@ -22858,8 +22858,8 @@ impl ::core::fmt::Debug for USN_RECORD_V3 {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for USN_RECORD_V3 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_RECORD_V3 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::cmp::PartialEq for USN_RECORD_V3 {
@@ -22905,8 +22905,8 @@ impl ::core::fmt::Debug for USN_RECORD_V4 {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for USN_RECORD_V4 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_RECORD_V4 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::cmp::PartialEq for USN_RECORD_V4 {
@@ -22941,8 +22941,8 @@ impl ::core::fmt::Debug for USN_TRACK_MODIFIED_RANGES {
         f.debug_struct("USN_TRACK_MODIFIED_RANGES").field("Flags", &self.Flags).field("Unused", &self.Unused).field("ChunkSize", &self.ChunkSize).field("FileSizeThreshold", &self.FileSizeThreshold).finish()
     }
 }
-impl ::windows::core::TypeKind for USN_TRACK_MODIFIED_RANGES {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for USN_TRACK_MODIFIED_RANGES {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for USN_TRACK_MODIFIED_RANGES {
     fn eq(&self, other: &Self) -> bool {
@@ -22972,8 +22972,8 @@ impl ::core::fmt::Debug for VERIFY_INFORMATION {
         f.debug_struct("VERIFY_INFORMATION").field("StartingOffset", &self.StartingOffset).field("Length", &self.Length).finish()
     }
 }
-impl ::windows::core::TypeKind for VERIFY_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VERIFY_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VERIFY_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -23003,8 +23003,8 @@ impl ::core::fmt::Debug for VIRTUALIZATION_INSTANCE_INFO_INPUT {
         f.debug_struct("VIRTUALIZATION_INSTANCE_INFO_INPUT").field("NumberOfWorkerThreads", &self.NumberOfWorkerThreads).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for VIRTUALIZATION_INSTANCE_INFO_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VIRTUALIZATION_INSTANCE_INFO_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VIRTUALIZATION_INSTANCE_INFO_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -23037,8 +23037,8 @@ impl ::core::fmt::Debug for VIRTUALIZATION_INSTANCE_INFO_INPUT_EX {
         f.debug_struct("VIRTUALIZATION_INSTANCE_INFO_INPUT_EX").field("HeaderSize", &self.HeaderSize).field("Flags", &self.Flags).field("NotificationInfoSize", &self.NotificationInfoSize).field("NotificationInfoOffset", &self.NotificationInfoOffset).field("ProviderMajorVersion", &self.ProviderMajorVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for VIRTUALIZATION_INSTANCE_INFO_INPUT_EX {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VIRTUALIZATION_INSTANCE_INFO_INPUT_EX {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VIRTUALIZATION_INSTANCE_INFO_INPUT_EX {
     fn eq(&self, other: &Self) -> bool {
@@ -23054,7 +23054,7 @@ impl ::core::default::Default for VIRTUALIZATION_INSTANCE_INFO_INPUT_EX {
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub struct VIRTUALIZATION_INSTANCE_INFO_OUTPUT {
-    pub VirtualizationInstanceID: ::windows::core::GUID,
+    pub VirtualizationInstanceID: ::windows_core::GUID,
 }
 impl ::core::marker::Copy for VIRTUALIZATION_INSTANCE_INFO_OUTPUT {}
 impl ::core::clone::Clone for VIRTUALIZATION_INSTANCE_INFO_OUTPUT {
@@ -23067,8 +23067,8 @@ impl ::core::fmt::Debug for VIRTUALIZATION_INSTANCE_INFO_OUTPUT {
         f.debug_struct("VIRTUALIZATION_INSTANCE_INFO_OUTPUT").field("VirtualizationInstanceID", &self.VirtualizationInstanceID).finish()
     }
 }
-impl ::windows::core::TypeKind for VIRTUALIZATION_INSTANCE_INFO_OUTPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VIRTUALIZATION_INSTANCE_INFO_OUTPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VIRTUALIZATION_INSTANCE_INFO_OUTPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -23098,8 +23098,8 @@ impl ::core::fmt::Debug for VIRTUAL_STORAGE_SET_BEHAVIOR_INPUT {
         f.debug_struct("VIRTUAL_STORAGE_SET_BEHAVIOR_INPUT").field("Size", &self.Size).field("BehaviorCode", &self.BehaviorCode).finish()
     }
 }
-impl ::windows::core::TypeKind for VIRTUAL_STORAGE_SET_BEHAVIOR_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VIRTUAL_STORAGE_SET_BEHAVIOR_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VIRTUAL_STORAGE_SET_BEHAVIOR_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -23130,8 +23130,8 @@ impl ::core::fmt::Debug for VOLUME_BITMAP_BUFFER {
         f.debug_struct("VOLUME_BITMAP_BUFFER").field("StartingLcn", &self.StartingLcn).field("BitmapSize", &self.BitmapSize).field("Buffer", &self.Buffer).finish()
     }
 }
-impl ::windows::core::TypeKind for VOLUME_BITMAP_BUFFER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VOLUME_BITMAP_BUFFER {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VOLUME_BITMAP_BUFFER {
     fn eq(&self, other: &Self) -> bool {
@@ -23161,8 +23161,8 @@ impl ::core::fmt::Debug for VOLUME_DISK_EXTENTS {
         f.debug_struct("VOLUME_DISK_EXTENTS").field("NumberOfDiskExtents", &self.NumberOfDiskExtents).field("Extents", &self.Extents).finish()
     }
 }
-impl ::windows::core::TypeKind for VOLUME_DISK_EXTENTS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VOLUME_DISK_EXTENTS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VOLUME_DISK_EXTENTS {
     fn eq(&self, other: &Self) -> bool {
@@ -23191,8 +23191,8 @@ impl ::core::fmt::Debug for VOLUME_GET_GPT_ATTRIBUTES_INFORMATION {
         f.debug_struct("VOLUME_GET_GPT_ATTRIBUTES_INFORMATION").field("GptAttributes", &self.GptAttributes).finish()
     }
 }
-impl ::windows::core::TypeKind for VOLUME_GET_GPT_ATTRIBUTES_INFORMATION {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for VOLUME_GET_GPT_ATTRIBUTES_INFORMATION {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for VOLUME_GET_GPT_ATTRIBUTES_INFORMATION {
     fn eq(&self, other: &Self) -> bool {
@@ -23224,8 +23224,8 @@ impl ::core::fmt::Debug for WIM_PROVIDER_ADD_OVERLAY_INPUT {
         f.debug_struct("WIM_PROVIDER_ADD_OVERLAY_INPUT").field("WimType", &self.WimType).field("WimIndex", &self.WimIndex).field("WimFileNameOffset", &self.WimFileNameOffset).field("WimFileNameLength", &self.WimFileNameLength).finish()
     }
 }
-impl ::windows::core::TypeKind for WIM_PROVIDER_ADD_OVERLAY_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WIM_PROVIDER_ADD_OVERLAY_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for WIM_PROVIDER_ADD_OVERLAY_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -23257,8 +23257,8 @@ impl ::core::fmt::Debug for WIM_PROVIDER_EXTERNAL_INFO {
         f.debug_struct("WIM_PROVIDER_EXTERNAL_INFO").field("Version", &self.Version).field("Flags", &self.Flags).field("DataSourceId", &self.DataSourceId).field("ResourceHash", &self.ResourceHash).finish()
     }
 }
-impl ::windows::core::TypeKind for WIM_PROVIDER_EXTERNAL_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WIM_PROVIDER_EXTERNAL_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for WIM_PROVIDER_EXTERNAL_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -23276,7 +23276,7 @@ impl ::core::default::Default for WIM_PROVIDER_EXTERNAL_INFO {
 pub struct WIM_PROVIDER_OVERLAY_ENTRY {
     pub NextEntryOffset: u32,
     pub DataSourceId: i64,
-    pub WimGuid: ::windows::core::GUID,
+    pub WimGuid: ::windows_core::GUID,
     pub WimFileNameOffset: u32,
     pub WimType: u32,
     pub WimIndex: u32,
@@ -23293,8 +23293,8 @@ impl ::core::fmt::Debug for WIM_PROVIDER_OVERLAY_ENTRY {
         f.debug_struct("WIM_PROVIDER_OVERLAY_ENTRY").field("NextEntryOffset", &self.NextEntryOffset).field("DataSourceId", &self.DataSourceId).field("WimGuid", &self.WimGuid).field("WimFileNameOffset", &self.WimFileNameOffset).field("WimType", &self.WimType).field("WimIndex", &self.WimIndex).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for WIM_PROVIDER_OVERLAY_ENTRY {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WIM_PROVIDER_OVERLAY_ENTRY {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for WIM_PROVIDER_OVERLAY_ENTRY {
     fn eq(&self, other: &Self) -> bool {
@@ -23323,8 +23323,8 @@ impl ::core::fmt::Debug for WIM_PROVIDER_REMOVE_OVERLAY_INPUT {
         f.debug_struct("WIM_PROVIDER_REMOVE_OVERLAY_INPUT").field("DataSourceId", &self.DataSourceId).finish()
     }
 }
-impl ::windows::core::TypeKind for WIM_PROVIDER_REMOVE_OVERLAY_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WIM_PROVIDER_REMOVE_OVERLAY_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for WIM_PROVIDER_REMOVE_OVERLAY_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -23353,8 +23353,8 @@ impl ::core::fmt::Debug for WIM_PROVIDER_SUSPEND_OVERLAY_INPUT {
         f.debug_struct("WIM_PROVIDER_SUSPEND_OVERLAY_INPUT").field("DataSourceId", &self.DataSourceId).finish()
     }
 }
-impl ::windows::core::TypeKind for WIM_PROVIDER_SUSPEND_OVERLAY_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WIM_PROVIDER_SUSPEND_OVERLAY_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for WIM_PROVIDER_SUSPEND_OVERLAY_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -23385,8 +23385,8 @@ impl ::core::fmt::Debug for WIM_PROVIDER_UPDATE_OVERLAY_INPUT {
         f.debug_struct("WIM_PROVIDER_UPDATE_OVERLAY_INPUT").field("DataSourceId", &self.DataSourceId).field("WimFileNameOffset", &self.WimFileNameOffset).field("WimFileNameLength", &self.WimFileNameLength).finish()
     }
 }
-impl ::windows::core::TypeKind for WIM_PROVIDER_UPDATE_OVERLAY_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WIM_PROVIDER_UPDATE_OVERLAY_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for WIM_PROVIDER_UPDATE_OVERLAY_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -23420,8 +23420,8 @@ impl ::core::fmt::Debug for WOF_EXTERNAL_FILE_ID {
     }
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
-impl ::windows::core::TypeKind for WOF_EXTERNAL_FILE_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WOF_EXTERNAL_FILE_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Storage_FileSystem")]
 impl ::core::cmp::PartialEq for WOF_EXTERNAL_FILE_ID {
@@ -23454,8 +23454,8 @@ impl ::core::fmt::Debug for WOF_EXTERNAL_INFO {
         f.debug_struct("WOF_EXTERNAL_INFO").field("Version", &self.Version).field("Provider", &self.Provider).finish()
     }
 }
-impl ::windows::core::TypeKind for WOF_EXTERNAL_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WOF_EXTERNAL_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for WOF_EXTERNAL_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -23484,8 +23484,8 @@ impl ::core::fmt::Debug for WOF_VERSION_INFO {
         f.debug_struct("WOF_VERSION_INFO").field("WofVersion", &self.WofVersion).finish()
     }
 }
-impl ::windows::core::TypeKind for WOF_VERSION_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WOF_VERSION_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for WOF_VERSION_INFO {
     fn eq(&self, other: &Self) -> bool {
@@ -23515,8 +23515,8 @@ impl ::core::fmt::Debug for WRITE_USN_REASON_INPUT {
         f.debug_struct("WRITE_USN_REASON_INPUT").field("Flags", &self.Flags).field("UsnReasonToWrite", &self.UsnReasonToWrite).finish()
     }
 }
-impl ::windows::core::TypeKind for WRITE_USN_REASON_INPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for WRITE_USN_REASON_INPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for WRITE_USN_REASON_INPUT {
     fn eq(&self, other: &Self) -> bool {
@@ -23531,5 +23531,3 @@ impl ::core::default::Default for WRITE_USN_REASON_INPUT {
 }
 #[doc = "*Required features: `\"Win32_System_Ioctl\"`*"]
 pub type PIO_IRP_EXT_PROCESS_TRACKED_OFFSET_CALLBACK = ::core::option::Option<unsafe extern "system" fn(sourcecontext: *const IO_IRP_EXT_TRACK_OFFSET_HEADER, targetcontext: *mut IO_IRP_EXT_TRACK_OFFSET_HEADER, relativeoffset: i64) -> ()>;
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

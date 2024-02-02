@@ -1,7 +1,7 @@
-use rustc_apfloat::Float;
+use rustc_apfloat::{Float, FloatConvert};
 use rustc_middle::mir;
 use rustc_middle::mir::interpret::{InterpResult, Scalar};
-use rustc_middle::ty::layout::TyAndLayout;
+use rustc_middle::ty::layout::{LayoutOf, TyAndLayout};
 use rustc_middle::ty::{self, FloatTy, Ty};
 use rustc_span::symbol::sym;
 use rustc_target::abi::Abi;
@@ -104,7 +104,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         (ImmTy::from_bool(res, *self.tcx), false)
     }
 
-    fn binary_float_op<F: Float + Into<Scalar<M::Provenance>>>(
+    fn binary_float_op<F: Float + FloatConvert<F> + Into<Scalar<M::Provenance>>>(
         &self,
         bin_op: mir::BinOp,
         layout: TyAndLayout<'tcx>,
@@ -113,6 +113,11 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
     ) -> (ImmTy<'tcx, M::Provenance>, bool) {
         use rustc_middle::mir::BinOp::*;
 
+        // Performs appropriate non-deterministic adjustments of NaN results.
+        let adjust_nan = |f: F| -> F {
+            if f.is_nan() { M::generate_nan(self, &[l, r]) } else { f }
+        };
+
         let val = match bin_op {
             Eq => ImmTy::from_bool(l == r, *self.tcx),
             Ne => ImmTy::from_bool(l != r, *self.tcx),
@@ -120,11 +125,11 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
             Le => ImmTy::from_bool(l <= r, *self.tcx),
             Gt => ImmTy::from_bool(l > r, *self.tcx),
             Ge => ImmTy::from_bool(l >= r, *self.tcx),
-            Add => ImmTy::from_scalar((l + r).value.into(), layout),
-            Sub => ImmTy::from_scalar((l - r).value.into(), layout),
-            Mul => ImmTy::from_scalar((l * r).value.into(), layout),
-            Div => ImmTy::from_scalar((l / r).value.into(), layout),
-            Rem => ImmTy::from_scalar((l % r).value.into(), layout),
+            Add => ImmTy::from_scalar(adjust_nan((l + r).value).into(), layout),
+            Sub => ImmTy::from_scalar(adjust_nan((l - r).value).into(), layout),
+            Mul => ImmTy::from_scalar(adjust_nan((l * r).value).into(), layout),
+            Div => ImmTy::from_scalar(adjust_nan((l / r).value).into(), layout),
+            Rem => ImmTy::from_scalar(adjust_nan((l % r).value).into(), layout),
             _ => span_bug!(self.cur_span(), "invalid float op: `{:?}`", bin_op),
         };
         (val, false)
@@ -332,7 +337,15 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                 let offset_count = right.to_scalar().to_target_isize(self)?;
                 let pointee_ty = left.layout.ty.builtin_deref(true).unwrap().ty;
 
-                let offset_ptr = self.ptr_offset_inbounds(ptr, pointee_ty, offset_count)?;
+                // We cannot overflow i64 as a type's size must be <= isize::MAX.
+                let pointee_size = i64::try_from(self.layout_of(pointee_ty)?.size.bytes()).unwrap();
+                // The computed offset, in bytes, must not overflow an isize.
+                // `checked_mul` enforces a too small bound, but no actual allocation can be big enough for
+                // the difference to be noticeable.
+                let offset_bytes =
+                    offset_count.checked_mul(pointee_size).ok_or(err_ub!(PointerArithOverflow))?;
+
+                let offset_ptr = self.ptr_offset_inbounds(ptr, offset_bytes)?;
                 Ok((
                     ImmTy::from_scalar(Scalar::from_maybe_pointer(offset_ptr, self), left.layout),
                     false,
@@ -456,6 +469,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                 Ok((ImmTy::from_bool(res, *self.tcx), false))
             }
             ty::Float(fty) => {
+                // No NaN adjustment here, `-` is a bitwise operation!
                 let res = match (un_op, fty) {
                     (Neg, FloatTy::F32) => Scalar::from_f32(-val.to_f32()?),
                     (Neg, FloatTy::F64) => Scalar::from_f64(-val.to_f64()?),

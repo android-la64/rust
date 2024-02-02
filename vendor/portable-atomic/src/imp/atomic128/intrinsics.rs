@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Atomic{I,U}128 implementation without inline assembly.
 //
 // Note: This module is currently only enabled on Miri and ThreadSanitizer which
@@ -10,19 +12,18 @@
 // implementation with inline assembly.
 //
 // Note:
-// - This currently always needs nightly compilers. On x86_64, the stabilization
-//   of `core::arch::x86_64::cmpxchg16b` has been recently merged to stdarch:
-//   https://github.com/rust-lang/stdarch/pull/1358
+// - This currently needs Rust 1.70 on x86_64, otherwise nightly compilers.
 // - On powerpc64, this requires LLVM 15+ and pwr8+ (quadword-atomics LLVM target feature):
 //   https://github.com/llvm/llvm-project/commit/549e118e93c666914a1045fde38a2cac33e1e445
-// - On aarch64 big-endian, LLVM (as of 15) generates broken code.
-//   (on cfg(miri)/cfg(sanitize) it is fine though)
-// - On s390x, LLVM (as of 16) generates libcalls for operations other than load/store/cmpxchg:
+// - On aarch64 big-endian, LLVM (as of 17) generates broken code. (wrong result in stress test)
+//   (on cfg(miri)/cfg(sanitize) it may be fine though)
+// - On s390x, LLVM (as of 17) generates libcalls for operations other than load/store/cmpxchg:
 //   https://godbolt.org/z/5a5T4hxMh
-//   https://github.com/llvm/llvm-project/blob/2cc0c0de802178dc7e5408497e2ec53b6c9728fa/llvm/test/CodeGen/SystemZ/atomicrmw-ops-i128.ll
+//   https://github.com/llvm/llvm-project/blob/llvmorg-17.0.0-rc2/llvm/test/CodeGen/SystemZ/atomicrmw-ops-i128.ll
 //   https://reviews.llvm.org/D146425
-// - On powerpc64, LLVM (as of 16) doesn't support 128-bit atomic min/max:
-//   https://godbolt.org/z/3rebKcbdf
+// - On powerpc64, LLVM (as of 17) doesn't support 128-bit atomic min/max:
+//   https://github.com/llvm/llvm-project/issues/68390
+// - On powerpc64le, LLVM (as of 17) generates broken code. (wrong result from fetch_add)
 //
 // Refs: https://github.com/rust-lang/rust/blob/1.70.0/library/core/src/sync/atomic.rs
 
@@ -130,10 +131,12 @@ unsafe fn atomic_compare_exchange(
             // SAFETY: the caller must guarantee that `dst` is valid for both writes and
             // reads, 16-byte aligned (required by CMPXCHG16B), that there are no
             // concurrent non-atomic operations, and that the CPU supports CMPXCHG16B.
-            let res = unsafe { core::arch::x86_64::cmpxchg16b(dst, old, new, success, failure) };
-            (res, res == old)
+            let prev = unsafe { core::arch::x86_64::cmpxchg16b(dst, old, new, success, failure) };
+            (prev, prev == old)
         }
-        #[cfg(portable_atomic_no_cmpxchg16b_intrinsic_stronger_failure_ordering)]
+        // The stronger failure ordering in cmpxchg16b_intrinsic is actually supported
+        // before stabilization, but we do not have a specific cfg for it.
+        #[cfg(portable_atomic_unstable_cmpxchg16b_intrinsic)]
         let success = crate::utils::upgrade_success_ordering(success, failure);
         #[cfg(target_feature = "cmpxchg16b")]
         // SAFETY: the caller must guarantee that `dst` is valid for both writes and
@@ -236,22 +239,22 @@ where
     unsafe {
         // This is a private function and all instances of `f` only operate on the value
         // loaded, so there is no need to synchronize the first load/failed CAS.
-        let mut old = atomic_load(dst, Ordering::Relaxed);
+        let mut prev = atomic_load(dst, Ordering::Relaxed);
         loop {
-            let next = f(old);
-            match atomic_compare_exchange_weak(dst, old, next, order, Ordering::Relaxed) {
+            let next = f(prev);
+            match atomic_compare_exchange_weak(dst, prev, next, order, Ordering::Relaxed) {
                 Ok(x) => return x,
-                Err(x) => old = x,
+                Err(x) => prev = x,
             }
         }
     }
 }
 
 // On x86_64, we use core::arch::x86_64::cmpxchg16b instead of core::intrinsics.
-// On s390x, LLVM (as of 16) generates libcalls for operations other than load/store/cmpxchg: https://godbolt.org/z/5a5T4hxMh
+// On s390x, LLVM generates libcalls for operations other than load/store/cmpxchg (see also module-level comment).
 #[cfg(any(target_arch = "x86_64", target_arch = "s390x"))]
 atomic_rmw_by_atomic_update!();
-// On powerpc64, LLVM (as of 16) doesn't support 128-bit atomic min/max: https://godbolt.org/z/3rebKcbdf
+// On powerpc64, LLVM doesn't support 128-bit atomic min/max (see also module-level comment).
 #[cfg(target_arch = "powerpc64")]
 atomic_rmw_by_atomic_update!(cmp);
 
@@ -378,6 +381,7 @@ unsafe fn atomic_xor(dst: *mut u128, val: u128, order: Ordering) -> u128 {
 #[inline]
 #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
 unsafe fn atomic_max(dst: *mut u128, val: u128, order: Ordering) -> i128 {
+    #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
     // SAFETY: the caller must uphold the safety contract.
     unsafe {
         match order {
@@ -395,6 +399,7 @@ unsafe fn atomic_max(dst: *mut u128, val: u128, order: Ordering) -> i128 {
 #[inline]
 #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
 unsafe fn atomic_min(dst: *mut u128, val: u128, order: Ordering) -> i128 {
+    #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
     // SAFETY: the caller must uphold the safety contract.
     unsafe {
         match order {
@@ -447,7 +452,7 @@ unsafe fn atomic_umin(dst: *mut u128, val: u128, order: Ordering) -> u128 {
 #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
 unsafe fn atomic_not(dst: *mut u128, order: Ordering) -> u128 {
     // SAFETY: the caller must uphold the safety contract.
-    unsafe { atomic_xor(dst, core::u128::MAX, order) }
+    unsafe { atomic_xor(dst, u128::MAX, order) }
 }
 
 #[cfg(not(any(target_arch = "x86_64", target_arch = "s390x")))]

@@ -49,8 +49,8 @@ pub use crate::isa::call_conv::CallConv;
 use crate::flowgraph;
 use crate::ir::{self, Function, Type};
 #[cfg(feature = "unwind")]
-use crate::isa::unwind::systemv::RegisterMappingError;
-use crate::machinst::{CompiledCode, CompiledCodeStencil, TextSectionBuilder, UnwindInfoKind};
+use crate::isa::unwind::{systemv::RegisterMappingError, UnwindInfoKind};
+use crate::machinst::{CompiledCode, CompiledCodeStencil, TextSectionBuilder};
 use crate::settings;
 use crate::settings::SetResult;
 use crate::CodegenResult;
@@ -253,9 +253,6 @@ pub trait TargetIsa: fmt::Display + Send + Sync {
 
     /// Get the ISA-independent flags that were used to make this trait object.
     fn flags(&self) -> &settings::Flags;
-
-    /// Get the ISA-dependent MachineEnv for managing register allocation.
-    fn machine_env(&self) -> &regalloc2::MachineEnv;
 
     /// Get the ISA-dependent flag values that were used to make this trait object.
     fn isa_flags(&self) -> Vec<settings::Value>;

@@ -128,13 +128,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             | ty::Uint(..)
             | ty::Float(_)
             | ty::Array(..)
-            | ty::GeneratorWitness(..)
+            | ty::CoroutineWitness(..)
             | ty::RawPtr(_)
             | ty::Ref(..)
             | ty::FnDef(..)
             | ty::FnPtr(..)
             | ty::Closure(..)
-            | ty::Generator(..)
+            | ty::Coroutine(..)
             | ty::Adt(..)
             | ty::Never
             | ty::Dynamic(_, _, ty::DynStar)
@@ -373,50 +373,49 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                 let mut sugg_mutref = false;
                 if let ty::Ref(reg, cast_ty, mutbl) = *self.cast_ty.kind() {
                     if let ty::RawPtr(TypeAndMut { ty: expr_ty, .. }) = *self.expr_ty.kind()
-                        && fcx
-                            .can_coerce(
-                                Ty::new_ref(fcx.tcx,
-                                    fcx.tcx.lifetimes.re_erased,
-                                    TypeAndMut { ty: expr_ty, mutbl },
-                                ),
-                                self.cast_ty,
-                            )
+                        && fcx.can_coerce(
+                            Ty::new_ref(
+                                fcx.tcx,
+                                fcx.tcx.lifetimes.re_erased,
+                                TypeAndMut { ty: expr_ty, mutbl },
+                            ),
+                            self.cast_ty,
+                        )
                     {
                         sugg = Some((format!("&{}*", mutbl.prefix_str()), cast_ty == expr_ty));
                     } else if let ty::Ref(expr_reg, expr_ty, expr_mutbl) = *self.expr_ty.kind()
                         && expr_mutbl == Mutability::Not
                         && mutbl == Mutability::Mut
-                        && fcx
-                            .can_coerce(
-                                Ty::new_ref(fcx.tcx,
-                                    expr_reg,
-                                    TypeAndMut { ty: expr_ty, mutbl: Mutability::Mut },
-                                ),
-                                self.cast_ty,
-                            )
+                        && fcx.can_coerce(
+                            Ty::new_ref(
+                                fcx.tcx,
+                                expr_reg,
+                                TypeAndMut { ty: expr_ty, mutbl: Mutability::Mut },
+                            ),
+                            self.cast_ty,
+                        )
                     {
                         sugg_mutref = true;
                     }
 
                     if !sugg_mutref
                         && sugg == None
-                        && fcx
-                            .can_coerce(
-                                Ty::new_ref(fcx.tcx,reg, TypeAndMut { ty: self.expr_ty, mutbl }),
-                                self.cast_ty,
-                            )
+                        && fcx.can_coerce(
+                            Ty::new_ref(fcx.tcx, reg, TypeAndMut { ty: self.expr_ty, mutbl }),
+                            self.cast_ty,
+                        )
                     {
                         sugg = Some((format!("&{}", mutbl.prefix_str()), false));
                     }
                 } else if let ty::RawPtr(TypeAndMut { mutbl, .. }) = *self.cast_ty.kind()
-                    && fcx
-                        .can_coerce(
-                            Ty::new_ref(fcx.tcx,
-                                fcx.tcx.lifetimes.re_erased,
-                                TypeAndMut { ty: self.expr_ty, mutbl },
-                            ),
-                            self.cast_ty,
-                        )
+                    && fcx.can_coerce(
+                        Ty::new_ref(
+                            fcx.tcx,
+                            fcx.tcx.lifetimes.re_erased,
+                            TypeAndMut { ty: self.expr_ty, mutbl },
+                        ),
+                        self.cast_ty,
+                    )
                 {
                     sugg = Some((format!("&{}", mutbl.prefix_str()), false));
                 }
@@ -661,9 +660,21 @@ impl<'a, 'tcx> CastCheck<'tcx> {
         } else {
             match self.try_coercion_cast(fcx) {
                 Ok(()) => {
-                    self.trivial_cast_lint(fcx);
-                    debug!(" -> CoercionCast");
-                    fcx.typeck_results.borrow_mut().set_coercion_cast(self.expr.hir_id.local_id);
+                    if self.expr_ty.is_unsafe_ptr() && self.cast_ty.is_unsafe_ptr() {
+                        // When casting a raw pointer to another raw pointer, we cannot convert the cast into
+                        // a coercion because the pointee types might only differ in regions, which HIR typeck
+                        // cannot distinguish. This would cause us to erroneously discard a cast which will
+                        // lead to a borrowck error like #113257.
+                        // We still did a coercion above to unify inference variables for `ptr as _` casts.
+                        // This does cause us to miss some trivial casts in the trival cast lint.
+                        debug!(" -> PointerCast");
+                    } else {
+                        self.trivial_cast_lint(fcx);
+                        debug!(" -> CoercionCast");
+                        fcx.typeck_results
+                            .borrow_mut()
+                            .set_coercion_cast(self.expr.hir_id.local_id);
+                    }
                 }
                 Err(_) => {
                     match self.do_check(fcx) {
@@ -942,10 +953,7 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                 lint::builtin::CENUM_IMPL_DROP_CAST,
                 self.expr.hir_id,
                 self.span,
-                errors::CastEnumDrop {
-                    expr_ty,
-                    cast_ty,
-                }
+                errors::CastEnumDrop { expr_ty, cast_ty },
             );
         }
     }

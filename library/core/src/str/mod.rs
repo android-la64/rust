@@ -81,6 +81,7 @@ use iter::{MatchesInternal, SplitNInternal};
 #[cold]
 #[track_caller]
 #[rustc_allow_const_fn_unstable(const_eval_select)]
+#[cfg(not(feature = "panic_immediate_abort"))]
 const fn slice_error_fail(s: &str, begin: usize, end: usize) -> ! {
     // SAFETY: panics for both branches
     unsafe {
@@ -90,6 +91,11 @@ const fn slice_error_fail(s: &str, begin: usize, end: usize) -> ! {
             slice_error_fail_rt,
         )
     }
+}
+
+#[cfg(feature = "panic_immediate_abort")]
+const fn slice_error_fail(s: &str, begin: usize, end: usize) -> ! {
+    slice_error_fail_ct(s, begin, end)
 }
 
 #[track_caller]
@@ -386,7 +392,7 @@ impl str {
     /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
     #[rustc_const_stable(feature = "rustc_str_as_ptr", since = "1.32.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     #[must_use]
     #[inline(always)]
     pub const fn as_ptr(&self) -> *const u8 {
@@ -402,7 +408,7 @@ impl str {
     /// It is your responsibility to make sure that the string slice only gets
     /// modified in a way that it remains valid UTF-8.
     #[stable(feature = "str_as_mut_ptr", since = "1.36.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     #[must_use]
     #[inline(always)]
     pub fn as_mut_ptr(&mut self) -> *mut u8 {
@@ -808,7 +814,7 @@ impl str {
     /// assert_eq!(Some((0, 'y')), char_indices.next()); // not (0, 'y̆')
     /// assert_eq!(Some((1, '\u{0306}')), char_indices.next());
     ///
-    /// // note the 3 here - the last character took up two bytes
+    /// // note the 3 here - the previous character took up two bytes
     /// assert_eq!(Some((3, 'e')), char_indices.next());
     /// assert_eq!(Some((4, 's')), char_indices.next());
     ///

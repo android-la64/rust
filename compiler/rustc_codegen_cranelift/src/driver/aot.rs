@@ -6,18 +6,18 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
+use cranelift_object::{ObjectBuilder, ObjectModule};
+use rustc_codegen_ssa::assert_module_sources::CguReuse;
 use rustc_codegen_ssa::back::metadata::create_compressed_metadata_file;
+use rustc_codegen_ssa::base::determine_cgu_reuse;
 use rustc_codegen_ssa::{CodegenResults, CompiledModule, CrateInfo, ModuleKind};
 use rustc_data_structures::profiling::SelfProfilerRef;
 use rustc_data_structures::stable_hasher::{HashStable, StableHasher};
 use rustc_metadata::EncodedMetadata;
 use rustc_middle::dep_graph::{WorkProduct, WorkProductId};
 use rustc_middle::mir::mono::{CodegenUnit, MonoItem};
-use rustc_session::cgu_reuse_tracker::CguReuse;
 use rustc_session::config::{DebugInfo, OutputFilenames, OutputType};
 use rustc_session::Session;
-
-use cranelift_object::{ObjectBuilder, ObjectModule};
 
 use crate::concurrency_limiter::{ConcurrencyLimiter, ConcurrencyLimiterToken};
 use crate::global_asm::GlobalAsmConfig;
@@ -361,12 +361,26 @@ pub(crate) fn run_aot(
     metadata: EncodedMetadata,
     need_metadata_module: bool,
 ) -> Box<OngoingCodegen> {
+    // FIXME handle `-Ctarget-cpu=native`
+    let target_cpu = match tcx.sess.opts.cg.target_cpu {
+        Some(ref name) => name,
+        None => tcx.sess.target.cpu.as_ref(),
+    }
+    .to_owned();
+
     let cgus = if tcx.sess.opts.output_types.should_codegen() {
         tcx.collect_and_partition_mono_items(()).1
     } else {
         // If only `--emit metadata` is used, we shouldn't perform any codegen.
         // Also `tcx.collect_and_partition_mono_items` may panic in that case.
-        &[]
+        return Box::new(OngoingCodegen {
+            modules: vec![],
+            allocator_module: None,
+            metadata_module: None,
+            metadata,
+            crate_info: CrateInfo::new(tcx, target_cpu),
+            concurrency_limiter: ConcurrencyLimiter::new(tcx.sess, 0),
+        });
     };
 
     if tcx.dep_graph.is_fully_enabled() {
@@ -375,20 +389,28 @@ pub(crate) fn run_aot(
         }
     }
 
+    // Calculate the CGU reuse
+    let cgu_reuse = tcx.sess.time("find_cgu_reuse", || {
+        cgus.iter().map(|cgu| determine_cgu_reuse(tcx, &cgu)).collect::<Vec<_>>()
+    });
+
+    rustc_codegen_ssa::assert_module_sources::assert_module_sources(tcx, &|cgu_reuse_tracker| {
+        for (i, cgu) in cgus.iter().enumerate() {
+            let cgu_reuse = cgu_reuse[i];
+            cgu_reuse_tracker.set_actual_reuse(cgu.name().as_str(), cgu_reuse);
+        }
+    });
+
     let global_asm_config = Arc::new(crate::global_asm::GlobalAsmConfig::new(tcx));
 
     let mut concurrency_limiter = ConcurrencyLimiter::new(tcx.sess, cgus.len());
 
     let modules = tcx.sess.time("codegen mono items", || {
         cgus.iter()
-            .map(|cgu| {
-                let cgu_reuse = if backend_config.disable_incr_cache {
-                    CguReuse::No
-                } else {
-                    determine_cgu_reuse(tcx, cgu)
-                };
-                tcx.sess.cgu_reuse_tracker.set_actual_reuse(cgu.name().as_str(), cgu_reuse);
-
+            .enumerate()
+            .map(|(i, cgu)| {
+                let cgu_reuse =
+                    if backend_config.disable_incr_cache { CguReuse::No } else { cgu_reuse[i] };
                 match cgu_reuse {
                     CguReuse::No => {
                         let dep_node = cgu.codegen_dep_node(tcx);
@@ -407,8 +429,7 @@ pub(crate) fn run_aot(
                             )
                             .0
                     }
-                    CguReuse::PreLto => unreachable!(),
-                    CguReuse::PostLto => {
+                    CguReuse::PreLto | CguReuse::PostLto => {
                         concurrency_limiter.job_already_done();
                         OngoingModuleCodegen::Sync(reuse_workproduct_for_cgu(tcx, cgu))
                     }
@@ -474,13 +495,6 @@ pub(crate) fn run_aot(
         None
     };
 
-    // FIXME handle `-Ctarget-cpu=native`
-    let target_cpu = match tcx.sess.opts.cg.target_cpu {
-        Some(ref name) => name,
-        None => tcx.sess.target.cpu.as_ref(),
-    }
-    .to_owned();
-
     Box::new(OngoingCodegen {
         modules,
         allocator_module,
@@ -489,33 +503,4 @@ pub(crate) fn run_aot(
         crate_info: CrateInfo::new(tcx, target_cpu),
         concurrency_limiter,
     })
-}
-
-// Adapted from https://github.com/rust-lang/rust/blob/303d8aff6092709edd4dbd35b1c88e9aa40bf6d8/src/librustc_codegen_ssa/base.rs#L922-L953
-fn determine_cgu_reuse<'tcx>(tcx: TyCtxt<'tcx>, cgu: &CodegenUnit<'tcx>) -> CguReuse {
-    if !tcx.dep_graph.is_fully_enabled() {
-        return CguReuse::No;
-    }
-
-    let work_product_id = &cgu.work_product_id();
-    if tcx.dep_graph.previous_work_product(work_product_id).is_none() {
-        // We don't have anything cached for this CGU. This can happen
-        // if the CGU did not exist in the previous session.
-        return CguReuse::No;
-    }
-
-    // Try to mark the CGU as green. If it we can do so, it means that nothing
-    // affecting the LLVM module has changed and we can re-use a cached version.
-    // If we compile with any kind of LTO, this means we can re-use the bitcode
-    // of the Pre-LTO stage (possibly also the Post-LTO version but we'll only
-    // know that later). If we are not doing LTO, there is only one optimized
-    // version of each module, so we re-use that.
-    let dep_node = cgu.codegen_dep_node(tcx);
-    assert!(
-        !tcx.dep_graph.dep_node_exists(&dep_node),
-        "CompileCodegenUnit dep-node for CGU `{}` already exists before marking.",
-        cgu.name()
-    );
-
-    if tcx.try_mark_green(&dep_node) { CguReuse::PostLto } else { CguReuse::No }
 }

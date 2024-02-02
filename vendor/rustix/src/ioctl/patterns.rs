@@ -6,6 +6,7 @@ use crate::backend::c;
 use crate::io::Result;
 
 use core::marker::PhantomData;
+use core::ptr::addr_of_mut;
 use core::{fmt, mem};
 
 /// Implements an `ioctl` with no real arguments.
@@ -49,7 +50,7 @@ unsafe impl<Opcode: CompileTimeOpcode> Ioctl for NoArg<Opcode> {
     }
 }
 
-/// Implements the traditional "getter" pattern for `ioctl`s.
+/// Implements the traditional “getter” pattern for `ioctl`s.
 ///
 /// Some `ioctl`s just read data into the userspace. As this is a popular
 /// pattern this structure implements it.
@@ -144,7 +145,7 @@ unsafe impl<Opcode: CompileTimeOpcode, Input> Ioctl for Setter<Opcode, Input> {
     const OPCODE: self::Opcode = Opcode::OPCODE;
 
     fn as_ptr(&mut self) -> *mut c::c_void {
-        &mut self.input as *mut Input as *mut c::c_void
+        addr_of_mut!(self.input).cast::<c::c_void>()
     }
 
     unsafe fn output_from_ptr(_: IoctlOutput, _: *mut c::c_void) -> Result<Self::Output> {
@@ -166,6 +167,8 @@ impl<const OPCODE: RawOpcode> CompileTimeOpcode for BadOpcode<OPCODE> {
 }
 
 /// Provides a read code at compile time.
+///
+/// This corresponds to the C macro `_IOR(GROUP, NUM, Data)`.
 #[cfg(any(linux_kernel, bsd))]
 pub struct ReadOpcode<const GROUP: u8, const NUM: u8, Data>(Data);
 
@@ -175,6 +178,8 @@ impl<const GROUP: u8, const NUM: u8, Data> CompileTimeOpcode for ReadOpcode<GROU
 }
 
 /// Provides a write code at compile time.
+///
+/// This corresponds to the C macro `_IOW(GROUP, NUM, Data)`.
 #[cfg(any(linux_kernel, bsd))]
 pub struct WriteOpcode<const GROUP: u8, const NUM: u8, Data>(Data);
 
@@ -184,6 +189,8 @@ impl<const GROUP: u8, const NUM: u8, Data> CompileTimeOpcode for WriteOpcode<GRO
 }
 
 /// Provides a read/write code at compile time.
+///
+/// This corresponds to the C macro `_IOWR(GROUP, NUM, Data)`.
 #[cfg(any(linux_kernel, bsd))]
 pub struct ReadWriteOpcode<const GROUP: u8, const NUM: u8, Data>(Data);
 
@@ -193,6 +200,9 @@ impl<const GROUP: u8, const NUM: u8, Data> CompileTimeOpcode for ReadWriteOpcode
 }
 
 /// Provides a `None` code at compile time.
+///
+/// This corresponds to the C macro `_IO(GROUP, NUM)` when `Data` is zero
+/// sized.
 #[cfg(any(linux_kernel, bsd))]
 pub struct NoneOpcode<const GROUP: u8, const NUM: u8, Data>(Data);
 

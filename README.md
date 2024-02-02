@@ -11,6 +11,20 @@ standard library, and documentation.
 If you wish to _contribute_ to the compiler, you should read
 [CONTRIBUTING.md](CONTRIBUTING.md) instead.
 
+<details>
+<summary>Table of content</summary>
+
+- [Quick Start](#quick-start)
+- [Installing from Source](#installing-from-source)
+- [Building Documentation](#building-documentation)
+- [Notes](#notes)
+- [Getting Help](#getting-help)
+- [Contributing](#contributing)
+- [License](#license)
+- [Trademark](#trademark)
+
+</details>
+
 ## Quick Start
 
 Read ["Installation"] from [The Book].
@@ -116,7 +130,7 @@ See [the rustc-dev-guide for more info][sysllvm].
 #### Configure and Make
 
 This project provides a configure script and makefile (the latter of which just
-invokes `x.py`). `./configure` is the recommended way to programatically
+invokes `x.py`). `./configure` is the recommended way to programmatically
 generate a `config.toml`. `make` is not recommended (we suggest using `x.py`
 directly), but it is supported and we try not to break it unnecessarily.
 

@@ -987,45 +987,6 @@ declare_lint! {
 }
 
 declare_lint! {
-    /// The `invalid_alignment` lint detects dereferences of misaligned pointers during
-    /// constant evaluation.
-    ///
-    /// ### Example
-    ///
-    /// ```rust,compile_fail
-    /// #![feature(const_mut_refs)]
-    /// const FOO: () = unsafe {
-    ///     let x = &[0_u8; 4];
-    ///     let y = x.as_ptr().cast::<u32>();
-    ///     let mut z = 123;
-    ///     y.copy_to_nonoverlapping(&mut z, 1); // the address of a `u8` array is unknown
-    ///     // and thus we don't know if it is aligned enough for copying a `u32`.
-    /// };
-    /// ```
-    ///
-    /// {{produces}}
-    ///
-    /// ### Explanation
-    ///
-    /// The compiler allowed dereferencing raw pointers irrespective of alignment
-    /// during const eval due to the const evaluator at the time not making it easy
-    /// or cheap to check. Now that it is both, this is not accepted anymore.
-    ///
-    /// Since it was undefined behaviour to begin with, this breakage does not violate
-    /// Rust's stability guarantees. Using undefined behaviour can cause arbitrary
-    /// behaviour, including failure to build.
-    ///
-    /// [future-incompatible]: ../index.md#future-incompatible-lints
-    pub INVALID_ALIGNMENT,
-    Deny,
-    "raw pointers must be aligned before dereferencing",
-    @future_incompatible = FutureIncompatibleInfo {
-        reason: FutureIncompatibilityReason::FutureReleaseErrorReportInDeps,
-        reference: "issue #68585 <https://github.com/rust-lang/rust/issues/104616>",
-    };
-}
-
-declare_lint! {
     /// The `exported_private_dependencies` lint detects private dependencies
     /// that are exposed in a public interface.
     ///
@@ -2256,15 +2217,16 @@ declare_lint! {
     ///
     /// ### Explanation
     ///
-    /// Previous versions of Rust allowed function pointers and wide raw pointers in patterns.
+    /// Previous versions of Rust allowed function pointers and all raw pointers in patterns.
     /// While these work in many cases as expected by users, it is possible that due to
     /// optimizations pointers are "not equal to themselves" or pointers to different functions
     /// compare as equal during runtime. This is because LLVM optimizations can deduplicate
     /// functions if their bodies are the same, thus also making pointers to these functions point
     /// to the same location. Additionally functions may get duplicated if they are instantiated
-    /// in different crates and not deduplicated again via LTO.
+    /// in different crates and not deduplicated again via LTO. Pointer identity for memory
+    /// created by `const` is similarly unreliable.
     pub POINTER_STRUCTURAL_MATCH,
-    Allow,
+    Warn,
     "pointers are not structural-match",
     @future_incompatible = FutureIncompatibleInfo {
         reason: FutureIncompatibilityReason::FutureReleaseErrorDontReportInDeps,
@@ -3430,7 +3392,6 @@ declare_lint_pass! {
         INDIRECT_STRUCTURAL_MATCH,
         INEFFECTIVE_UNSTABLE_TRAIT_IMPL,
         INLINE_NO_SANITIZE,
-        INVALID_ALIGNMENT,
         INVALID_DOC_ATTRIBUTES,
         INVALID_MACRO_EXPORT_ARGUMENTS,
         INVALID_TYPE_PARAM_DEFAULT,
@@ -3993,8 +3954,13 @@ declare_lint! {
 }
 
 declare_lint! {
-    /// The `non_exhaustive_omitted_patterns` lint detects when a wildcard (`_` or `..`) in a
-    /// pattern for a `#[non_exhaustive]` struct or enum is reachable.
+    /// The `non_exhaustive_omitted_patterns` lint aims to help consumers of a `#[non_exhaustive]`
+    /// struct or enum who want to match all of its fields/variants explicitly.
+    ///
+    /// The `#[non_exhaustive]` annotation forces matches to use wildcards, so exhaustiveness
+    /// checking cannot be used to ensure that all fields/variants are matched explicitly. To remedy
+    /// this, this allow-by-default lint warns the user when a match mentions some but not all of
+    /// the fields/variants of a `#[non_exhaustive]` struct or enum.
     ///
     /// ### Example
     ///
@@ -4008,9 +3974,9 @@ declare_lint! {
     ///
     /// // in crate B
     /// #![feature(non_exhaustive_omitted_patterns_lint)]
+    /// #[warn(non_exhaustive_omitted_patterns)]
     /// match Bar::A {
     ///     Bar::A => {},
-    ///     #[warn(non_exhaustive_omitted_patterns)]
     ///     _ => {},
     /// }
     /// ```
@@ -4018,29 +3984,32 @@ declare_lint! {
     /// This will produce:
     ///
     /// ```text
-    /// warning: reachable patterns not covered of non exhaustive enum
+    /// warning: some variants are not matched explicitly
     ///    --> $DIR/reachable-patterns.rs:70:9
     ///    |
-    /// LL |         _ => {}
-    ///    |         ^ pattern `B` not covered
+    /// LL |         match Bar::A {
+    ///    |               ^ pattern `Bar::B` not covered
     ///    |
     ///  note: the lint level is defined here
     ///   --> $DIR/reachable-patterns.rs:69:16
     ///    |
     /// LL |         #[warn(non_exhaustive_omitted_patterns)]
     ///    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ///    = help: ensure that all possible cases are being handled by adding the suggested match arms
+    ///    = help: ensure that all variants are matched explicitly by adding the suggested match arms
     ///    = note: the matched value is of type `Bar` and the `non_exhaustive_omitted_patterns` attribute was found
     /// ```
     ///
+    /// Warning: setting this to `deny` will make upstream non-breaking changes (adding fields or
+    /// variants to a `#[non_exhaustive]` struct or enum) break your crate. This goes against
+    /// expected semver behavior.
+    ///
     /// ### Explanation
     ///
-    /// Structs and enums tagged with `#[non_exhaustive]` force the user to add a
-    /// (potentially redundant) wildcard when pattern-matching, to allow for future
-    /// addition of fields or variants. The `non_exhaustive_omitted_patterns` lint
-    /// detects when such a wildcard happens to actually catch some fields/variants.
-    /// In other words, when the match without the wildcard would not be exhaustive.
-    /// This lets the user be informed if new fields/variants were added.
+    /// Structs and enums tagged with `#[non_exhaustive]` force the user to add a (potentially
+    /// redundant) wildcard when pattern-matching, to allow for future addition of fields or
+    /// variants. The `non_exhaustive_omitted_patterns` lint detects when such a wildcard happens to
+    /// actually catch some fields/variants. In other words, when the match without the wildcard
+    /// would not be exhaustive. This lets the user be informed if new fields/variants were added.
     pub NON_EXHAUSTIVE_OMITTED_PATTERNS,
     Allow,
     "detect when patterns of types marked `non_exhaustive` are missed",
@@ -4489,11 +4458,11 @@ declare_lint! {
     /// on itself), the blanket impl is not considered to hold for `u8`. This will
     /// change in a future release.
     pub COINDUCTIVE_OVERLAP_IN_COHERENCE,
-    Warn,
+    Deny,
     "impls that are not considered to overlap may be considered to \
     overlap in the future",
     @future_incompatible = FutureIncompatibleInfo {
-        reason: FutureIncompatibilityReason::FutureReleaseErrorDontReportInDeps,
+        reason: FutureIncompatibilityReason::FutureReleaseErrorReportInDeps,
         reference: "issue #114040 <https://github.com/rust-lang/rust/issues/114040>",
     };
 }
@@ -4574,7 +4543,6 @@ declare_lint! {
     /// ### Example
     ///
     /// ```rust,compile_fail
-    /// #![feature(return_position_impl_trait_in_trait)]
     /// #![deny(refining_impl_trait)]
     ///
     /// use std::fmt::Display;

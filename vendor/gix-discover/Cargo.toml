@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-discover"
-version = "0.25.0"
+version = "0.26.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -36,13 +36,13 @@ features = [
 default-features = false
 
 [dependencies.gix-hash]
-version = "^0.13.0"
+version = "^0.13.1"
 
 [dependencies.gix-path]
 version = "^0.10.0"
 
 [dependencies.gix-ref]
-version = "^0.37.0"
+version = "^0.38.0"
 
 [dependencies.gix-sec]
 version = "^0.10.0"

@@ -62,8 +62,8 @@ pub struct RustCallIncorrectArgs {
 }
 
 #[derive(Diagnostic)]
-#[diag(hir_typeck_yield_expr_outside_of_generator, code = "E0627")]
-pub struct YieldExprOutsideOfGenerator {
+#[diag(hir_typeck_yield_expr_outside_of_coroutine, code = "E0627")]
+pub struct YieldExprOutsideOfCoroutine {
     #[primary_span]
     pub span: Span,
 }
@@ -110,7 +110,7 @@ pub struct AddressOfTemporaryTaken {
 pub enum AddReturnTypeSuggestion {
     #[suggestion(
         hir_typeck_add_return_type_add,
-        code = "-> {found} ",
+        code = " -> {found}",
         applicability = "machine-applicable"
     )]
     Add {
@@ -120,7 +120,7 @@ pub enum AddReturnTypeSuggestion {
     },
     #[suggestion(
         hir_typeck_add_return_type_missing_here,
-        code = "-> _ ",
+        code = " -> _",
         applicability = "has-placeholders"
     )]
     MissingHere {

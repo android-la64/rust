@@ -1707,3 +1707,89 @@ fn test_file_times() {
         assert_eq!(metadata.created().unwrap(), created);
     }
 }
+
+#[test]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "watchos"))]
+fn test_file_times_pre_epoch_with_nanos() {
+    #[cfg(target_os = "ios")]
+    use crate::os::ios::fs::FileTimesExt;
+    #[cfg(target_os = "macos")]
+    use crate::os::macos::fs::FileTimesExt;
+    #[cfg(target_os = "tvos")]
+    use crate::os::tvos::fs::FileTimesExt;
+    #[cfg(target_os = "watchos")]
+    use crate::os::watchos::fs::FileTimesExt;
+
+    let tmp = tmpdir();
+    let file = File::create(tmp.join("foo")).unwrap();
+
+    for (accessed, modified, created) in [
+        // The first round is to set filetimes to something we know works, but this time
+        // it's validated with nanoseconds as well which probe the numeric boundary.
+        (
+            SystemTime::UNIX_EPOCH + Duration::new(12345, 1),
+            SystemTime::UNIX_EPOCH + Duration::new(54321, 100_000_000),
+            SystemTime::UNIX_EPOCH + Duration::new(32123, 999_999_999),
+        ),
+        // The second rounds uses pre-epoch dates along with nanoseconds that probe
+        // the numeric boundary.
+        (
+            SystemTime::UNIX_EPOCH - Duration::new(1, 1),
+            SystemTime::UNIX_EPOCH - Duration::new(60, 100_000_000),
+            SystemTime::UNIX_EPOCH - Duration::new(3600, 999_999_999),
+        ),
+    ] {
+        let mut times = FileTimes::new();
+        times = times.set_accessed(accessed).set_modified(modified).set_created(created);
+        file.set_times(times).unwrap();
+
+        let metadata = file.metadata().unwrap();
+        assert_eq!(metadata.accessed().unwrap(), accessed);
+        assert_eq!(metadata.modified().unwrap(), modified);
+        assert_eq!(metadata.created().unwrap(), created);
+    }
+}
+
+#[test]
+#[cfg(windows)]
+fn windows_unix_socket_exists() {
+    use crate::sys::{c, net};
+    use crate::{mem, ptr};
+
+    let tmp = tmpdir();
+    let socket_path = tmp.join("socket");
+
+    // std doesn't currently support Unix sockets on Windows so manually create one here.
+    net::init();
+    unsafe {
+        let socket = c::WSASocketW(
+            c::AF_UNIX as i32,
+            c::SOCK_STREAM,
+            0,
+            ptr::null_mut(),
+            0,
+            c::WSA_FLAG_OVERLAPPED | c::WSA_FLAG_NO_HANDLE_INHERIT,
+        );
+        // AF_UNIX is not supported on earlier versions of Windows,
+        // so skip this test if it's unsupported and we're not in CI.
+        if socket == c::INVALID_SOCKET {
+            let error = c::WSAGetLastError();
+            if env::var_os("CI").is_none() && error == c::WSAEAFNOSUPPORT {
+                return;
+            } else {
+                panic!("Creating AF_UNIX socket failed (OS error {error})");
+            }
+        }
+        let mut addr = c::SOCKADDR_UN { sun_family: c::AF_UNIX, sun_path: mem::zeroed() };
+        let bytes = socket_path.as_os_str().as_encoded_bytes();
+        addr.sun_path[..bytes.len()].copy_from_slice(bytes);
+        let len = mem::size_of_val(&addr) as i32;
+        let result = c::bind(socket, ptr::addr_of!(addr).cast::<c::SOCKADDR>(), len);
+        c::closesocket(socket);
+        assert_eq!(result, 0);
+    }
+    // Make sure all ways of testing a file exist work for a Unix socket.
+    assert_eq!(socket_path.exists(), true);
+    assert_eq!(socket_path.try_exists().unwrap(), true);
+    assert_eq!(socket_path.metadata().is_ok(), true);
+}

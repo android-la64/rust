@@ -449,7 +449,7 @@ pub fn get_vec_init_kind<'tcx>(cx: &LateContext<'tcx>, expr: &'tcx Expr<'tcx>) -
                 } else if name.ident.name == symbol::kw::Default {
                     return Some(VecInitKind::Default);
                 } else if name.ident.name.as_str() == "with_capacity" {
-                    let arg = args.get(0)?;
+                    let arg = args.first()?;
                     return match constant_simple(cx, cx.typeck_results(), arg) {
                         Some(Constant::Int(num)) => Some(VecInitKind::WithConstCapacity(num)),
                         _ => Some(VecInitKind::WithExprCapacity(arg.hir_id)),
@@ -457,7 +457,7 @@ pub fn get_vec_init_kind<'tcx>(cx: &LateContext<'tcx>, expr: &'tcx Expr<'tcx>) -
                 };
             },
             ExprKind::Path(QPath::Resolved(_, path))
-                if match_def_path(cx, path.res.opt_def_id()?, &paths::DEFAULT_TRAIT_METHOD)
+                if cx.tcx.is_diagnostic_item(sym::default_fn, path.res.opt_def_id()?)
                     && is_type_diagnostic_item(cx, cx.typeck_results().expr_ty(expr), sym::Vec) =>
             {
                 return Some(VecInitKind::Default);

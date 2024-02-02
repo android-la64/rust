@@ -392,6 +392,104 @@ fn update_precise() {
 }
 
 #[cargo_test]
+fn update_precise_mismatched() {
+    Package::new("serde", "1.2.0").publish();
+    Package::new("serde", "1.2.1").publish();
+    Package::new("serde", "1.6.0").publish();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "bar"
+                version = "0.0.1"
+                authors = []
+
+                [dependencies]
+                serde = "~1.2"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("check").run();
+
+    // `1.6.0` does not match `"~1.2"`
+    p.cargo("update serde:1.2 --precise 1.6.0")
+        .with_stderr(
+            "\
+[UPDATING] `[..]` index
+[ERROR] failed to select a version for the requirement `serde = \"~1.2\"`
+candidate versions found which didn't match: 1.6.0
+location searched: `[..]` index (which is replacing registry `crates-io`)
+required by package `bar v0.0.1 ([..]/foo)`
+perhaps a crate was updated and forgotten to be re-vendored?
+",
+        )
+        .with_status(101)
+        .run();
+
+    // `1.9.0` does not exist
+    p.cargo("update serde:1.2 --precise 1.9.0")
+        // This terrible error message has been the same for a long time. A fix is more than welcome!
+        .with_stderr(
+            "\
+[UPDATING] `[..]` index
+[ERROR] no matching package named `serde` found
+location searched: registry `crates-io`
+required by package `bar v0.0.1 ([..]/foo)`
+",
+        )
+        .with_status(101)
+        .run();
+}
+
+#[cargo_test]
+fn update_precise_build_metadata() {
+    Package::new("serde", "0.0.1+first").publish();
+    Package::new("serde", "0.0.1+second").publish();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.0"
+
+                [dependencies]
+                serde = "0.0.1"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("generate-lockfile").run();
+    p.cargo("update serde --precise 0.0.1+first").run();
+
+    p.cargo("update serde --precise 0.0.1+second")
+        .with_stderr(
+            "\
+[UPDATING] `[..]` index
+[UPDATING] serde v0.0.1+first -> v0.0.1+second
+",
+        )
+        .run();
+
+    // This is not considered "Downgrading". Build metadata are not assumed to
+    // be ordered.
+    p.cargo("update serde --precise 0.0.1+first")
+        .with_stderr(
+            "\
+[UPDATING] `[..]` index
+[UPDATING] serde v0.0.1+second -> v0.0.1+first
+",
+        )
+        .run();
+}
+
+#[cargo_test]
 fn update_precise_do_not_force_update_deps() {
     Package::new("log", "0.1.0").publish();
     Package::new("serde", "0.2.1").dep("log", "0.1").publish();

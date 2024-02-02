@@ -3,7 +3,6 @@
 //! [1]: https://doc.rust-lang.org/nightly/cargo/reference/registry-web-api.html#search
 
 use std::cmp;
-use std::iter::repeat;
 
 use anyhow::Context as _;
 use url::Url;
@@ -35,7 +34,7 @@ pub fn search(
         .map(|krate| format!("{} = \"{}\"", krate.name, krate.max_version))
         .collect::<Vec<String>>();
 
-    let description_margin = names.iter().map(|s| s.len() + 4).max().unwrap_or_default();
+    let description_margin = names.iter().map(|s| s.len()).max().unwrap_or_default() + 4;
 
     let description_length = cmp::max(80, 128 - description_margin);
 
@@ -46,34 +45,32 @@ pub fn search(
             .map(|desc| truncate_with_ellipsis(&desc.replace("\n", " "), description_length))
     });
 
+    let mut shell = config.shell();
+    let stdout = shell.out();
+    let good = style::GOOD.render();
+    let reset = anstyle::Reset.render();
+
     for (name, description) in names.into_iter().zip(descriptions) {
         let line = match description {
-            Some(desc) => {
-                let space = repeat(' ')
-                    .take(description_margin - name.len())
-                    .collect::<String>();
-                name + &space + "# " + &desc
-            }
+            Some(desc) => format!("{name: <description_margin$}# {desc}"),
             None => name,
         };
         let mut fragments = line.split(query).peekable();
         while let Some(fragment) = fragments.next() {
-            let _ = config.shell().write_stdout(fragment, &style::NOP);
+            let _ = write!(stdout, "{fragment}");
             if fragments.peek().is_some() {
-                let _ = config.shell().write_stdout(query, &style::GOOD);
+                let _ = write!(stdout, "{good}{query}{reset}");
             }
         }
-        let _ = config.shell().write_stdout("\n", &style::NOP);
+        let _ = writeln!(stdout);
     }
 
     let search_max_limit = 100;
     if total_crates > limit && limit < search_max_limit {
-        let _ = config.shell().write_stdout(
-            format_args!(
-                "... and {} crates more (use --limit N to see more)\n",
-                total_crates - limit
-            ),
-            &style::NOP,
+        let _ = writeln!(
+            stdout,
+            "... and {} crates more (use --limit N to see more)",
+            total_crates - limit
         );
     } else if total_crates > limit && limit >= search_max_limit {
         let extra = if source_ids.original.is_crates_io() {
@@ -82,9 +79,11 @@ pub fn search(
         } else {
             String::new()
         };
-        let _ = config.shell().write_stdout(
-            format_args!("... and {} crates more{}\n", total_crates - limit, extra),
-            &style::NOP,
+        let _ = writeln!(
+            stdout,
+            "... and {} crates more{}",
+            total_crates - limit,
+            extra
         );
     }
 

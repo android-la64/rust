@@ -790,8 +790,7 @@ pub unsafe fn _mm_ucomineq_ss(a: __m128, b: __m128) -> i32 {
 ///
 /// The result is rounded according to the current rounding mode. If the result
 /// cannot be represented as a 32 bit integer the result will be `0x8000_0000`
-/// (`i32::MIN`) or an invalid operation floating point exception if
-/// unmasked (see [`_mm_setcsr`](fn._mm_setcsr.html)).
+/// (`i32::MIN`).
 ///
 /// This corresponds to the `CVTSS2SI` instruction (with 32 bit output).
 ///
@@ -821,8 +820,7 @@ pub unsafe fn _mm_cvt_ss2si(a: __m128) -> i32 {
 ///
 /// The result is rounded always using truncation (round towards zero). If the
 /// result cannot be represented as a 32 bit integer the result will be
-/// `0x8000_0000` (`i32::MIN`) or an invalid operation floating point
-/// exception if unmasked (see [`_mm_setcsr`](fn._mm_setcsr.html)).
+/// `0x8000_0000` (`i32::MIN`).
 ///
 /// This corresponds to the `CVTTSS2SI` instruction (with 32 bit output).
 ///
@@ -1083,7 +1081,10 @@ pub unsafe fn _mm_movelh_ps(a: __m128, b: __m128) -> __m128 {
 #[cfg_attr(test, assert_instr(movmskps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_movemask_ps(a: __m128) -> i32 {
-    movmskps(a)
+    // Propagate the highest bit to the rest, because simd_bitmask
+    // requires all-1 or all-0.
+    let mask: i32x4 = simd_lt(transmute(a), i32x4::splat(0));
+    simd_bitmask::<i32x4, u8>(mask).into()
 }
 
 /// Construct a `__m128` with the lowest element read from `p` and the other
@@ -1365,6 +1366,15 @@ pub unsafe fn _mm_sfence() {
 
 /// Gets the unsigned 32-bit value of the MXCSR control and status register.
 ///
+/// Note that Rust makes no guarantees whatsoever about the contents of this register: Rust
+/// floating-point operations may or may not result in this register getting updated with exception
+/// state, and the register can change between two invocations of this function even when no
+/// floating-point operations appear in the source code (since floating-point operations appearing
+/// earlier or later can be reordered).
+///
+/// If you need to perform some floating-point operations and check whether they raised an
+/// exception, use an inline assembly block for the entire sequence of operations.
+///
 /// For more info see [`_mm_setcsr`](fn._mm_setcsr.html)
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_getcsr)
@@ -1372,6 +1382,10 @@ pub unsafe fn _mm_sfence() {
 #[target_feature(enable = "sse")]
 #[cfg_attr(test, assert_instr(stmxcsr))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_getcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _mm_getcsr() -> u32 {
     let mut result = 0_i32;
     stmxcsr(&mut result as *mut _ as *mut i8);
@@ -1400,6 +1414,16 @@ pub unsafe fn _mm_getcsr() -> u32 {
 ///
 /// * The *denormals-are-zero mode flag* turns all numbers which would be
 /// denormalized (exponent bits are all zeros) into zeros.
+///
+/// Note that modifying the masking flags, rounding mode, or denormals-are-zero mode flags leads to
+/// **immediate Undefined Behavior**: Rust assumes that these are always in their default state and
+/// will optimize accordingly. This even applies when the register is altered and later reset to its
+/// original value without any floating-point operations appearing in the source code between those
+/// operations (since floating-point operations appearing earlier or later can be reordered).
+///
+/// If you need to perform some floating-point operations under a different masking flags, rounding
+/// mode, or denormals-are-zero mode, use an inline assembly block and make sure to restore the
+/// original MXCSR register state before the end of the block.
 ///
 /// ## Exception Flags
 ///
@@ -1509,6 +1533,10 @@ pub unsafe fn _mm_getcsr() -> u32 {
 #[target_feature(enable = "sse")]
 #[cfg_attr(test, assert_instr(ldmxcsr))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_setcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _mm_setcsr(val: u32) {
     ldmxcsr(&val as *const _ as *const i8);
 }
@@ -1588,9 +1616,14 @@ pub const _MM_FLUSH_ZERO_OFF: u32 = 0x0000;
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_MM_GET_EXCEPTION_MASK)
 #[inline]
+#[allow(deprecated)] // Deprecated function implemented on top of deprecated function
 #[allow(non_snake_case)]
 #[target_feature(enable = "sse")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_getcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _MM_GET_EXCEPTION_MASK() -> u32 {
     _mm_getcsr() & _MM_MASK_MASK
 }
@@ -1599,9 +1632,14 @@ pub unsafe fn _MM_GET_EXCEPTION_MASK() -> u32 {
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_MM_GET_EXCEPTION_STATE)
 #[inline]
+#[allow(deprecated)] // Deprecated function implemented on top of deprecated function
 #[allow(non_snake_case)]
 #[target_feature(enable = "sse")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_getcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _MM_GET_EXCEPTION_STATE() -> u32 {
     _mm_getcsr() & _MM_EXCEPT_MASK
 }
@@ -1610,9 +1648,14 @@ pub unsafe fn _MM_GET_EXCEPTION_STATE() -> u32 {
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_MM_GET_FLUSH_ZERO_MODE)
 #[inline]
+#[allow(deprecated)] // Deprecated function implemented on top of deprecated function
 #[allow(non_snake_case)]
 #[target_feature(enable = "sse")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_getcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _MM_GET_FLUSH_ZERO_MODE() -> u32 {
     _mm_getcsr() & _MM_FLUSH_ZERO_MASK
 }
@@ -1621,9 +1664,14 @@ pub unsafe fn _MM_GET_FLUSH_ZERO_MODE() -> u32 {
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_MM_GET_ROUNDING_MODE)
 #[inline]
+#[allow(deprecated)] // Deprecated function implemented on top of deprecated function
 #[allow(non_snake_case)]
 #[target_feature(enable = "sse")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_getcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _MM_GET_ROUNDING_MODE() -> u32 {
     _mm_getcsr() & _MM_ROUND_MASK
 }
@@ -1632,9 +1680,14 @@ pub unsafe fn _MM_GET_ROUNDING_MODE() -> u32 {
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_MM_SET_EXCEPTION_MASK)
 #[inline]
+#[allow(deprecated)] // Deprecated function implemented on top of deprecated function
 #[allow(non_snake_case)]
 #[target_feature(enable = "sse")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_setcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _MM_SET_EXCEPTION_MASK(x: u32) {
     _mm_setcsr((_mm_getcsr() & !_MM_MASK_MASK) | x)
 }
@@ -1643,9 +1696,14 @@ pub unsafe fn _MM_SET_EXCEPTION_MASK(x: u32) {
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_MM_SET_EXCEPTION_STATE)
 #[inline]
+#[allow(deprecated)] // Deprecated function implemented on top of deprecated function
 #[allow(non_snake_case)]
 #[target_feature(enable = "sse")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_setcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _MM_SET_EXCEPTION_STATE(x: u32) {
     _mm_setcsr((_mm_getcsr() & !_MM_EXCEPT_MASK) | x)
 }
@@ -1654,9 +1712,14 @@ pub unsafe fn _MM_SET_EXCEPTION_STATE(x: u32) {
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_MM_SET_FLUSH_ZERO_MODE)
 #[inline]
+#[allow(deprecated)] // Deprecated function implemented on top of deprecated function
 #[allow(non_snake_case)]
 #[target_feature(enable = "sse")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_setcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _MM_SET_FLUSH_ZERO_MODE(x: u32) {
     let val = (_mm_getcsr() & !_MM_FLUSH_ZERO_MASK) | x;
     // println!("setting csr={:x}", val);
@@ -1667,9 +1730,14 @@ pub unsafe fn _MM_SET_FLUSH_ZERO_MODE(x: u32) {
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_MM_SET_ROUNDING_MODE)
 #[inline]
+#[allow(deprecated)] // Deprecated function implemented on top of deprecated function
 #[allow(non_snake_case)]
 #[target_feature(enable = "sse")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
+#[deprecated(
+    since = "1.75.0",
+    note = "see `_mm_setcsr` documentation - use inline assembly instead"
+)]
 pub unsafe fn _MM_SET_ROUNDING_MODE(x: u32) {
     _mm_setcsr((_mm_getcsr() & !_MM_ROUND_MASK) | x)
 }
@@ -1820,8 +1888,6 @@ extern "C" {
     fn maxss(a: __m128, b: __m128) -> __m128;
     #[link_name = "llvm.x86.sse.max.ps"]
     fn maxps(a: __m128, b: __m128) -> __m128;
-    #[link_name = "llvm.x86.sse.movmsk.ps"]
-    fn movmskps(a: __m128) -> i32;
     #[link_name = "llvm.x86.sse.cmp.ps"]
     fn cmpps(a: __m128, b: __m128, imm8: i8) -> __m128;
     #[link_name = "llvm.x86.sse.comieq.ss"]
@@ -1974,7 +2040,11 @@ mod tests {
         let a = _mm_setr_ps(4.0, 13.0, 16.0, 100.0);
         let r = _mm_rcp_ss(a);
         let e = _mm_setr_ps(0.24993896, 13.0, 16.0, 100.0);
-        assert_eq_m128(r, e);
+        let rel_err = 0.00048828125;
+        assert_approx_eq!(get_m128(r, 0), get_m128(e, 0), 2. * rel_err);
+        for i in 1..4 {
+            assert_eq!(get_m128(r, i), get_m128(e, i));
+        }
     }
 
     #[simd_test(enable = "sse")]
@@ -2055,6 +2125,17 @@ mod tests {
         let b = _mm_setr_ps(-100.0, 20.0, 0.0, -5.0);
         let r = _mm_max_ps(a, b);
         assert_eq_m128(r, _mm_setr_ps(-1.0, 20.0, 0.0, -5.0));
+
+        // Check SSE-specific semantics for -0.0 handling.
+        let a = _mm_setr_ps(-0.0, 0.0, 0.0, 0.0);
+        let b = _mm_setr_ps(0.0, 0.0, 0.0, 0.0);
+        let r1: [u8; 16] = transmute(_mm_max_ps(a, b));
+        let r2: [u8; 16] = transmute(_mm_max_ps(b, a));
+        let a: [u8; 16] = transmute(a);
+        let b: [u8; 16] = transmute(b);
+        assert_eq!(r1, b);
+        assert_eq!(r2, a);
+        assert_ne!(a, b); // sanity check that -0.0 is actually present
     }
 
     #[simd_test(enable = "sse")]
@@ -2098,12 +2179,12 @@ mod tests {
         let a = _mm_setr_ps(1.0, 2.0, 3.0, 4.0);
         let b = _mm_setr_ps(-1.0, 5.0, 6.0, 7.0);
         let r: u32x4 = transmute(_mm_cmpeq_ss(a, b));
-        let e: u32x4 = transmute(_mm_setr_ps(transmute(0u32), 2.0, 3.0, 4.0));
+        let e: u32x4 = transmute(_mm_setr_ps(f32::from_bits(0), 2.0, 3.0, 4.0));
         assert_eq!(r, e);
 
         let b2 = _mm_setr_ps(1.0, 5.0, 6.0, 7.0);
         let r2: u32x4 = transmute(_mm_cmpeq_ss(a, b2));
-        let e2: u32x4 = transmute(_mm_setr_ps(transmute(0xffffffffu32), 2.0, 3.0, 4.0));
+        let e2: u32x4 = transmute(_mm_setr_ps(f32::from_bits(0xffffffff), 2.0, 3.0, 4.0));
         assert_eq!(r2, e2);
     }
 
@@ -2119,15 +2200,15 @@ mod tests {
         let d1 = !0u32; // a.extract(0) < d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmplt_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmplt_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmplt_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2143,15 +2224,15 @@ mod tests {
         let d1 = !0u32; // a.extract(0) <= d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmple_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmple_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmple_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2167,15 +2248,15 @@ mod tests {
         let d1 = 0u32; // a.extract(0) > d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmpgt_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmpgt_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmpgt_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2191,15 +2272,15 @@ mod tests {
         let d1 = 0u32; // a.extract(0) >= d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmpge_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmpge_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmpge_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2215,15 +2296,15 @@ mod tests {
         let d1 = !0u32; // a.extract(0) != d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmpneq_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmpneq_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmpneq_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2244,15 +2325,15 @@ mod tests {
         let d1 = 0u32; // a.extract(0) >= d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmpnlt_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmpnlt_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmpnlt_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2273,15 +2354,15 @@ mod tests {
         let d1 = 0u32; // a.extract(0) > d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmpnle_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmpnle_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmpnle_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2302,15 +2383,15 @@ mod tests {
         let d1 = !0u32; // a.extract(0) <= d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmpngt_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmpngt_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmpngt_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2331,15 +2412,15 @@ mod tests {
         let d1 = !0u32; // a.extract(0) < d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmpnge_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmpnge_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmpnge_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2355,15 +2436,15 @@ mod tests {
         let d1 = !0u32; // a.extract(0) ord d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmpord_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmpord_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmpord_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2379,15 +2460,15 @@ mod tests {
         let d1 = 0u32; // a.extract(0) unord d.extract(0)
 
         let rb: u32x4 = transmute(_mm_cmpunord_ss(a, b));
-        let eb: u32x4 = transmute(_mm_setr_ps(transmute(b1), 2.0, 3.0, 4.0));
+        let eb: u32x4 = transmute(_mm_setr_ps(f32::from_bits(b1), 2.0, 3.0, 4.0));
         assert_eq!(rb, eb);
 
         let rc: u32x4 = transmute(_mm_cmpunord_ss(a, c));
-        let ec: u32x4 = transmute(_mm_setr_ps(transmute(c1), 2.0, 3.0, 4.0));
+        let ec: u32x4 = transmute(_mm_setr_ps(f32::from_bits(c1), 2.0, 3.0, 4.0));
         assert_eq!(rc, ec);
 
         let rd: u32x4 = transmute(_mm_cmpunord_ss(a, d));
-        let ed: u32x4 = transmute(_mm_setr_ps(transmute(d1), 2.0, 3.0, 4.0));
+        let ed: u32x4 = transmute(_mm_setr_ps(f32::from_bits(d1), 2.0, 3.0, 4.0));
         assert_eq!(rd, ed);
     }
 
@@ -2766,7 +2847,9 @@ mod tests {
         }
     }
 
+    #[allow(deprecated)] // FIXME: This test uses deprecated CSR access functions
     #[simd_test(enable = "sse")]
+    #[cfg_attr(miri, ignore)] // Uses _mm_setcsr, which is not supported by Miri
     unsafe fn test_mm_comieq_ss_vs_ucomieq_ss() {
         // If one of the arguments is a quiet NaN `comieq_ss` should signal an
         // Invalid Operation Exception while `ucomieq_ss` should not.
@@ -3072,7 +3155,7 @@ mod tests {
         let mut p = vals.as_mut_ptr();
 
         if (p as usize) & 0xf != 0 {
-            ofs = ((16 - (p as usize)) & 0xf) >> 2;
+            ofs = (16 - ((p as usize) & 0xf)) >> 2;
             p = p.add(ofs);
         }
 
@@ -3098,7 +3181,7 @@ mod tests {
 
         // Align p to 16-byte boundary
         if (p as usize) & 0xf != 0 {
-            ofs = ((16 - (p as usize)) & 0xf) >> 2;
+            ofs = (16 - ((p as usize) & 0xf)) >> 2;
             p = p.add(ofs);
         }
 
@@ -3124,7 +3207,7 @@ mod tests {
 
         // Align p to 16-byte boundary
         if (p as usize) & 0xf != 0 {
-            ofs = ((16 - (p as usize)) & 0xf) >> 2;
+            ofs = (16 - ((p as usize) & 0xf)) >> 2;
             p = p.add(ofs);
         }
 
@@ -3186,11 +3269,15 @@ mod tests {
     }
 
     #[simd_test(enable = "sse")]
+    // Miri cannot support this until it is clear how it fits in the Rust memory model
+    #[cfg_attr(miri, ignore)]
     unsafe fn test_mm_sfence() {
         _mm_sfence();
     }
 
+    #[allow(deprecated)] // FIXME: This tests functions that are immediate UB
     #[simd_test(enable = "sse")]
+    #[cfg_attr(miri, ignore)] // Miri does not support accesing the CSR
     unsafe fn test_mm_getcsr_setcsr_1() {
         let saved_csr = _mm_getcsr();
 
@@ -3206,7 +3293,9 @@ mod tests {
         assert_eq_m128(r, exp); // first component is a denormalized f32
     }
 
+    #[allow(deprecated)] // FIXME: This tests functions that are immediate UB
     #[simd_test(enable = "sse")]
+    #[cfg_attr(miri, ignore)] // Miri does not support accesing the CSR
     unsafe fn test_mm_getcsr_setcsr_2() {
         // Same as _mm_setcsr_1 test, but with opposite flag value.
 
@@ -3224,7 +3313,9 @@ mod tests {
         assert_eq_m128(r, exp); // first component is a denormalized f32
     }
 
+    #[allow(deprecated)] // FIXME: This tests functions that are immediate UB
     #[simd_test(enable = "sse")]
+    #[cfg_attr(miri, ignore)] // Miri does not support accesing the CSR
     unsafe fn test_mm_getcsr_setcsr_underflow() {
         _MM_SET_EXCEPTION_STATE(0);
 
@@ -3263,6 +3354,9 @@ mod tests {
     }
 
     #[simd_test(enable = "sse")]
+    // Miri cannot support this until it is clear how it fits in the Rust memory model
+    // (non-temporal store)
+    #[cfg_attr(miri, ignore)]
     unsafe fn test_mm_stream_ps() {
         let a = _mm_set1_ps(7.0);
         let mut mem = Memory { data: [-1.0; 4] };

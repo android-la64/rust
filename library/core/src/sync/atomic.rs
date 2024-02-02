@@ -4,25 +4,11 @@
 //! threads, and are the building blocks of other concurrent
 //! types.
 //!
-//! Rust atomics currently follow the same rules as [C++20 atomics][cpp], specifically `atomic_ref`.
-//! Basically, creating a *shared reference* to one of the Rust atomic types corresponds to creating
-//! an `atomic_ref` in C++; the `atomic_ref` is destroyed when the lifetime of the shared reference
-//! ends. (A Rust atomic type that is exclusively owned or behind a mutable reference does *not*
-//! correspond to an "atomic object" in C++, since it can be accessed via non-atomic operations.)
-//!
 //! This module defines atomic versions of a select number of primitive
 //! types, including [`AtomicBool`], [`AtomicIsize`], [`AtomicUsize`],
 //! [`AtomicI8`], [`AtomicU16`], etc.
 //! Atomic types present operations that, when used correctly, synchronize
 //! updates between threads.
-//!
-//! Each method takes an [`Ordering`] which represents the strength of
-//! the memory barrier for that operation. These orderings are the
-//! same as the [C++20 atomic orderings][1]. For more information see the [nomicon][2].
-//!
-//! [cpp]: https://en.cppreference.com/w/cpp/atomic
-//! [1]: https://en.cppreference.com/w/cpp/atomic/memory_order
-//! [2]: ../../../nomicon/atomics.html
 //!
 //! Atomic variables are safe to share between threads (they implement [`Sync`])
 //! but they do not themselves provide the mechanism for sharing and follow the
@@ -35,6 +21,75 @@
 //! Atomic types may be stored in static variables, initialized using
 //! the constant initializers like [`AtomicBool::new`]. Atomic statics
 //! are often used for lazy global initialization.
+//!
+//! ## Memory model for atomic accesses
+//!
+//! Rust atomics currently follow the same rules as [C++20 atomics][cpp], specifically `atomic_ref`.
+//! Basically, creating a *shared reference* to one of the Rust atomic types corresponds to creating
+//! an `atomic_ref` in C++; the `atomic_ref` is destroyed when the lifetime of the shared reference
+//! ends. (A Rust atomic type that is exclusively owned or behind a mutable reference does *not*
+//! correspond to an "atomic object" in C++, since it can be accessed via non-atomic operations.)
+//!
+//! [cpp]: https://en.cppreference.com/w/cpp/atomic
+//!
+//! Each method takes an [`Ordering`] which represents the strength of
+//! the memory barrier for that operation. These orderings are the
+//! same as the [C++20 atomic orderings][1]. For more information see the [nomicon][2].
+//!
+//! [1]: https://en.cppreference.com/w/cpp/atomic/memory_order
+//! [2]: ../../../nomicon/atomics.html
+//!
+//! Since C++ does not support mixing atomic and non-atomic accesses, or non-synchronized
+//! different-sized accesses to the same data, Rust does not support those operations either.
+//! Note that both of those restrictions only apply if the accesses are non-synchronized.
+//!
+//! ```rust,no_run undefined_behavior
+//! use std::sync::atomic::{AtomicU16, AtomicU8, Ordering};
+//! use std::mem::transmute;
+//! use std::thread;
+//!
+//! let atomic = AtomicU16::new(0);
+//!
+//! thread::scope(|s| {
+//!     // This is UB: mixing atomic and non-atomic accesses
+//!     s.spawn(|| atomic.store(1, Ordering::Relaxed));
+//!     s.spawn(|| unsafe { atomic.as_ptr().write(2) });
+//! });
+//!
+//! thread::scope(|s| {
+//!     // This is UB: even reads are not allowed to be mixed
+//!     s.spawn(|| atomic.load(Ordering::Relaxed));
+//!     s.spawn(|| unsafe { atomic.as_ptr().read() });
+//! });
+//!
+//! thread::scope(|s| {
+//!     // This is fine, `join` synchronizes the code in a way such that atomic
+//!     // and non-atomic accesses can't happen "at the same time"
+//!     let handle = s.spawn(|| atomic.store(1, Ordering::Relaxed));
+//!     handle.join().unwrap();
+//!     s.spawn(|| unsafe { atomic.as_ptr().write(2) });
+//! });
+//!
+//! thread::scope(|s| {
+//!     // This is UB: using different-sized atomic accesses to the same data
+//!     s.spawn(|| atomic.store(1, Ordering::Relaxed));
+//!     s.spawn(|| unsafe {
+//!         let differently_sized = transmute::<&AtomicU16, &AtomicU8>(&atomic);
+//!         differently_sized.store(2, Ordering::Relaxed);
+//!     });
+//! });
+//!
+//! thread::scope(|s| {
+//!     // This is fine, `join` synchronizes the code in a way such that
+//!     // differently-sized accesses can't happen "at the same time"
+//!     let handle = s.spawn(|| atomic.store(1, Ordering::Relaxed));
+//!     handle.join().unwrap();
+//!     s.spawn(|| unsafe {
+//!         let differently_sized = transmute::<&AtomicU16, &AtomicU8>(&atomic);
+//!         differently_sized.store(2, Ordering::Relaxed);
+//!     });
+//! });
+//! ```
 //!
 //! # Portability
 //!
@@ -78,6 +133,40 @@
 //! "128", and "ptr" for pointer-sized atomics.
 //!
 //! [lock-free]: https://en.wikipedia.org/wiki/Non-blocking_algorithm
+//!
+//! # Atomic accesses to read-only memory
+//!
+//! In general, *all* atomic accesses on read-only memory are Undefined Behavior. For instance, attempting
+//! to do a `compare_exchange` that will definitely fail (making it conceptually a read-only
+//! operation) can still cause a page fault if the underlying memory page is mapped read-only. Since
+//! atomic `load`s might be implemented using compare-exchange operations, even a `load` can fault
+//! on read-only memory.
+//!
+//! For the purpose of this section, "read-only memory" is defined as memory that is read-only in
+//! the underlying target, i.e., the pages are mapped with a read-only flag and any attempt to write
+//! will cause a page fault. In particular, an `&u128` reference that points to memory that is
+//! read-write mapped is *not* considered to point to "read-only memory". In Rust, almost all memory
+//! is read-write; the only exceptions are memory created by `const` items or `static` items without
+//! interior mutability, and memory that was specifically marked as read-only by the operating
+//! system via platform-specific APIs.
+//!
+//! As an exception from the general rule stated above, "sufficiently small" atomic loads with
+//! `Ordering::Relaxed` are implemented in a way that works on read-only memory, and are hence not
+//! Undefined Behavior. The exact size limit for what makes a load "sufficiently small" varies
+//! depending on the target:
+//!
+//! | `target_arch` | Size limit |
+//! |---------------|---------|
+//! | `x86`, `arm`, `mips`, `mips32r6`, `powerpc`, `riscv32`, `sparc`, `hexagon` | 4 bytes |
+//! | `x86_64`, `aarch64`, `loongarch64`, `mips64`, `mips64r6`, `powerpc64`, `riscv64`, `sparc64`, `s390x` | 8 bytes |
+//!
+//! Atomics loads that are larger than this limit as well as atomic loads with ordering other
+//! than `Relaxed`, as well as *all* atomic loads on targets not listed in the table, might still be
+//! read-only under certain conditions, but that is not a stable guarantee and should not be relied
+//! upon.
+//!
+//! If you need to do an acquire load on read-only memory, you can do a relaxed load followed by an
+//! acquire fence instead.
 //!
 //! # Examples
 //!
@@ -319,7 +408,7 @@ impl AtomicBool {
     /// # Examples
     ///
     /// ```
-    /// #![feature(atomic_from_ptr, pointer_is_aligned)]
+    /// #![feature(pointer_is_aligned)]
     /// use std::sync::atomic::{self, AtomicBool};
     /// use std::mem::align_of;
     ///
@@ -346,13 +435,17 @@ impl AtomicBool {
     ///
     /// # Safety
     ///
-    /// * `ptr` must be aligned to `align_of::<AtomicBool>()` (note that on some platforms this can be bigger than `align_of::<bool>()`).
+    /// * `ptr` must be aligned to `align_of::<AtomicBool>()` (note that on some platforms this can
+    ///   be bigger than `align_of::<bool>()`).
     /// * `ptr` must be [valid] for both reads and writes for the whole lifetime `'a`.
-    /// * The value behind `ptr` must not be accessed through non-atomic operations for the whole lifetime `'a`.
+    /// * You must adhere to the [Memory model for atomic accesses]. In particular, it is not
+    ///   allowed to mix atomic and non-atomic accesses, or atomic accesses of different sizes,
+    ///   without synchronization.
     ///
     /// [valid]: crate::ptr#safety
-    #[unstable(feature = "atomic_from_ptr", issue = "108652")]
-    #[rustc_const_unstable(feature = "atomic_from_ptr", issue = "108652")]
+    /// [Memory model for atomic accesses]: self#memory-model-for-atomic-accesses
+    #[stable(feature = "atomic_from_ptr", since = "1.75.0")]
+    #[rustc_const_unstable(feature = "const_atomic_from_ptr", issue = "108652")]
     pub const unsafe fn from_ptr<'a>(ptr: *mut bool) -> &'a AtomicBool {
         // SAFETY: guaranteed by the caller
         unsafe { &*ptr.cast() }
@@ -1018,7 +1111,7 @@ impl AtomicBool {
     #[inline]
     #[stable(feature = "atomic_as_ptr", since = "1.70.0")]
     #[rustc_const_stable(feature = "atomic_as_ptr", since = "1.70.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     pub const fn as_ptr(&self) -> *mut bool {
         self.v.get().cast()
     }
@@ -1113,7 +1206,7 @@ impl<T> AtomicPtr<T> {
     /// # Examples
     ///
     /// ```
-    /// #![feature(atomic_from_ptr, pointer_is_aligned)]
+    /// #![feature(pointer_is_aligned)]
     /// use std::sync::atomic::{self, AtomicPtr};
     /// use std::mem::align_of;
     ///
@@ -1140,13 +1233,17 @@ impl<T> AtomicPtr<T> {
     ///
     /// # Safety
     ///
-    /// * `ptr` must be aligned to `align_of::<AtomicPtr<T>>()` (note that on some platforms this can be bigger than `align_of::<*mut T>()`).
+    /// * `ptr` must be aligned to `align_of::<AtomicPtr<T>>()` (note that on some platforms this
+    ///   can be bigger than `align_of::<*mut T>()`).
     /// * `ptr` must be [valid] for both reads and writes for the whole lifetime `'a`.
-    /// * The value behind `ptr` must not be accessed through non-atomic operations for the whole lifetime `'a`.
+    /// * You must adhere to the [Memory model for atomic accesses]. In particular, it is not
+    ///   allowed to mix atomic and non-atomic accesses, or atomic accesses of different sizes,
+    ///   without synchronization.
     ///
     /// [valid]: crate::ptr#safety
-    #[unstable(feature = "atomic_from_ptr", issue = "108652")]
-    #[rustc_const_unstable(feature = "atomic_from_ptr", issue = "108652")]
+    /// [Memory model for atomic accesses]: self#memory-model-for-atomic-accesses
+    #[stable(feature = "atomic_from_ptr", since = "1.75.0")]
+    #[rustc_const_unstable(feature = "const_atomic_from_ptr", issue = "108652")]
     pub const unsafe fn from_ptr<'a>(ptr: *mut *mut T) -> &'a AtomicPtr<T> {
         // SAFETY: guaranteed by the caller
         unsafe { &*ptr.cast() }
@@ -1954,7 +2051,7 @@ impl<T> AtomicPtr<T> {
     #[inline]
     #[stable(feature = "atomic_as_ptr", since = "1.70.0")]
     #[rustc_const_stable(feature = "atomic_as_ptr", since = "1.70.0")]
-    #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+    #[rustc_never_returns_null_ptr]
     pub const fn as_ptr(&self) -> *mut *mut T {
         self.p.get()
     }
@@ -2083,7 +2180,7 @@ macro_rules! atomic_int {
             /// # Examples
             ///
             /// ```
-            /// #![feature(atomic_from_ptr, pointer_is_aligned)]
+            /// #![feature(pointer_is_aligned)]
             #[doc = concat!($extra_feature, "use std::sync::atomic::{self, ", stringify!($atomic_type), "};")]
             /// use std::mem::align_of;
             ///
@@ -2111,14 +2208,18 @@ macro_rules! atomic_int {
             ///
             /// # Safety
             ///
-            /// * `ptr` must be aligned to `align_of::<AtomicBool>()` (note that on some platforms this can be bigger than `align_of::<bool>()`).
-            #[doc = concat!(" * `ptr` must be aligned to `align_of::<", stringify!($atomic_type), ">()` (note that on some platforms this can be bigger than `align_of::<", stringify!($int_type), ">()`).")]
+            #[doc = concat!(" * `ptr` must be aligned to \
+                `align_of::<", stringify!($atomic_type), ">()` (note that on some platforms this \
+                can be bigger than `align_of::<", stringify!($int_type), ">()`).")]
             /// * `ptr` must be [valid] for both reads and writes for the whole lifetime `'a`.
-            /// * The value behind `ptr` must not be accessed through non-atomic operations for the whole lifetime `'a`.
+            /// * You must adhere to the [Memory model for atomic accesses]. In particular, it is not
+            ///   allowed to mix atomic and non-atomic accesses, or atomic accesses of different sizes,
+            ///   without synchronization.
             ///
             /// [valid]: crate::ptr#safety
-            #[unstable(feature = "atomic_from_ptr", issue = "108652")]
-            #[rustc_const_unstable(feature = "atomic_from_ptr", issue = "108652")]
+            /// [Memory model for atomic accesses]: self#memory-model-for-atomic-accesses
+            #[stable(feature = "atomic_from_ptr", since = "1.75.0")]
+            #[rustc_const_unstable(feature = "const_atomic_from_ptr", issue = "108652")]
             pub const unsafe fn from_ptr<'a>(ptr: *mut $int_type) -> &'a $atomic_type {
                 // SAFETY: guaranteed by the caller
                 unsafe { &*ptr.cast() }
@@ -2893,7 +2994,7 @@ macro_rules! atomic_int {
             #[inline]
             #[stable(feature = "atomic_as_ptr", since = "1.70.0")]
             #[rustc_const_stable(feature = "atomic_as_ptr", since = "1.70.0")]
-            #[cfg_attr(not(bootstrap), rustc_never_returns_null_ptr)]
+            #[rustc_never_returns_null_ptr]
             pub const fn as_ptr(&self) -> *mut $int_type {
                 self.v.get()
             }

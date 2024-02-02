@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "bytecount"
-version = "0.6.3"
+version = "0.6.4"
 authors = [
     "Andre Bogus <bogusandre@gmail.de>",
     "Joshua Landau <joshua@landau.ws>",
@@ -40,10 +40,9 @@ harness = false
 [dependencies.packed_simd]
 version = "0.3.8"
 optional = true
-package = "packed_simd_2"
 
 [dev-dependencies.criterion]
-version = "0.3"
+version = "0.4"
 default-features = false
 
 [dev-dependencies.quickcheck]

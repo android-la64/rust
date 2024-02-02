@@ -36,7 +36,7 @@ pub enum InstanceDef<'tcx> {
     /// This includes:
     /// - `fn` items
     /// - closures
-    /// - generators
+    /// - coroutines
     Item(DefId),
 
     /// An intrinsic `fn` item (with `"rust-intrinsic"` or `"platform-intrinsic"` ABI).
@@ -245,16 +245,15 @@ impl<'tcx> InstanceDef<'tcx> {
             // drops of `Option::None` before LTO. We also respect the intent of
             // `#[inline]` on `Drop::drop` implementations.
             return ty.ty_adt_def().map_or(true, |adt_def| {
-                adt_def.destructor(tcx).map_or_else(
-                    || adt_def.is_enum(),
-                    |dtor| tcx.codegen_fn_attrs(dtor.did).requests_inline(),
-                )
+                adt_def
+                    .destructor(tcx)
+                    .map_or_else(|| adt_def.is_enum(), |dtor| tcx.cross_crate_inlinable(dtor.did))
             });
         }
         if let ty::InstanceDef::ThreadLocalShim(..) = *self {
             return false;
         }
-        tcx.codegen_fn_attrs(self.def_id()).requests_inline()
+        tcx.cross_crate_inlinable(self.def_id())
     }
 
     pub fn requires_caller_location(&self, tcx: TyCtxt<'_>) -> bool {
@@ -299,9 +298,9 @@ fn fmt_instance(
     ty::tls::with(|tcx| {
         let args = tcx.lift(instance.args).expect("could not lift for printing");
 
-        let s = FmtPrinter::new_with_limit(tcx, Namespace::ValueNS, type_length)
-            .print_def_path(instance.def_id(), args)?
-            .into_buffer();
+        let mut cx = FmtPrinter::new_with_limit(tcx, Namespace::ValueNS, type_length);
+        cx.print_def_path(instance.def_id(), args)?;
+        let s = cx.into_buffer();
         f.write_str(&s)
     })?;
 
@@ -617,12 +616,17 @@ impl<'tcx> Instance<'tcx> {
         v: EarlyBinder<T>,
     ) -> Result<T, NormalizationError<'tcx>>
     where
-        T: TypeFoldable<TyCtxt<'tcx>> + Clone,
+        T: TypeFoldable<TyCtxt<'tcx>>,
     {
         if let Some(args) = self.args_for_mir_body() {
             tcx.try_instantiate_and_normalize_erasing_regions(args, param_env, v)
         } else {
-            tcx.try_normalize_erasing_regions(param_env, v.skip_binder())
+            // We're using `instantiate_identity` as e.g.
+            // `FnPtrShim` is separately generated for every
+            // instantiation of the `FnDef`, so the MIR body
+            // is already instantiated. Any generic parameters it
+            // contains are generic parameters from the caller.
+            tcx.try_normalize_erasing_regions(param_env, v.instantiate_identity())
         }
     }
 
@@ -649,15 +653,15 @@ fn polymorphize<'tcx>(
     let unused = tcx.unused_generic_params(instance);
     debug!("polymorphize: unused={:?}", unused);
 
-    // If this is a closure or generator then we need to handle the case where another closure
+    // If this is a closure or coroutine then we need to handle the case where another closure
     // from the function is captured as an upvar and hasn't been polymorphized. In this case,
     // the unpolymorphized upvar closure would result in a polymorphized closure producing
     // multiple mono items (and eventually symbol clashes).
     let def_id = instance.def_id();
     let upvars_ty = if tcx.is_closure(def_id) {
         Some(args.as_closure().tupled_upvars_ty())
-    } else if tcx.type_of(def_id).skip_binder().is_generator() {
-        Some(args.as_generator().tupled_upvars_ty())
+    } else if tcx.type_of(def_id).skip_binder().is_coroutine() {
+        Some(args.as_coroutine().tupled_upvars_ty())
     } else {
         None
     };
@@ -685,13 +689,13 @@ fn polymorphize<'tcx>(
                         Ty::new_closure(self.tcx, def_id, polymorphized_args)
                     }
                 }
-                ty::Generator(def_id, args, movability) => {
+                ty::Coroutine(def_id, args, movability) => {
                     let polymorphized_args =
                         polymorphize(self.tcx, ty::InstanceDef::Item(def_id), args);
                     if args == polymorphized_args {
                         ty
                     } else {
-                        Ty::new_generator(self.tcx, def_id, polymorphized_args, movability)
+                        Ty::new_coroutine(self.tcx, def_id, polymorphized_args, movability)
                     }
                 }
                 _ => ty.super_fold_with(self),
@@ -711,7 +715,7 @@ fn polymorphize<'tcx>(
                 upvars_ty == Some(args[param.index as usize].expect_ty()) => {
                     // ..then double-check that polymorphization marked it used..
                     debug_assert!(!is_unused);
-                    // ..and polymorphize any closures/generators captured as upvars.
+                    // ..and polymorphize any closures/coroutines captured as upvars.
                     let upvars_ty = upvars_ty.unwrap();
                     let polymorphized_upvars_ty = upvars_ty.fold_with(
                         &mut PolymorphizationFolder { tcx });

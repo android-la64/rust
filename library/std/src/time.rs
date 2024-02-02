@@ -111,7 +111,7 @@ pub use core::time::TryFromFloatSecsError;
 /// |-----------|----------------------------------------------------------------------|
 /// | SGX       | [`insecure_time` usercall]. More information on [timekeeping in SGX] |
 /// | UNIX      | [clock_gettime (Monotonic Clock)]                                    |
-/// | Darwin    | [mach_absolute_time]                                                 |
+/// | Darwin    | [clock_gettime (Monotonic Clock)]                                    |
 /// | VXWorks   | [clock_gettime (Monotonic Clock)]                                    |
 /// | SOLID     | `get_tim`                                                            |
 /// | WASI      | [__wasi_clock_time_get (Monotonic Clock)]                            |
@@ -123,7 +123,6 @@ pub use core::time::TryFromFloatSecsError;
 /// [timekeeping in SGX]: https://edp.fortanix.com/docs/concepts/rust-std/#codestdtimecode
 /// [__wasi_clock_time_get (Monotonic Clock)]: https://github.com/WebAssembly/WASI/blob/main/legacy/preview1/docs.md#clock_time_get
 /// [clock_gettime (Monotonic Clock)]: https://linux.die.net/man/3/clock_gettime
-/// [mach_absolute_time]: https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/KernelProgramming/services/services.html
 ///
 /// **Disclaimer:** These system calls might change over time.
 ///
@@ -153,6 +152,7 @@ pub use core::time::TryFromFloatSecsError;
 ///
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[stable(feature = "time2", since = "1.8.0")]
+#[cfg_attr(not(test), rustc_diagnostic_item = "Instant")]
 pub struct Instant(time::Instant);
 
 /// A measurement of the system clock, useful for talking to
@@ -223,7 +223,7 @@ pub struct Instant(time::Instant);
 /// |-----------|----------------------------------------------------------------------|
 /// | SGX       | [`insecure_time` usercall]. More information on [timekeeping in SGX] |
 /// | UNIX      | [clock_gettime (Realtime Clock)]                                     |
-/// | Darwin    | [gettimeofday]                                                       |
+/// | Darwin    | [clock_gettime (Realtime Clock)]                                     |
 /// | VXWorks   | [clock_gettime (Realtime Clock)]                                     |
 /// | SOLID     | `SOLID_RTC_ReadTime`                                                 |
 /// | WASI      | [__wasi_clock_time_get (Realtime Clock)]                             |
@@ -232,7 +232,6 @@ pub struct Instant(time::Instant);
 /// [currently]: crate::io#platform-specific-behavior
 /// [`insecure_time` usercall]: https://edp.fortanix.com/docs/api/fortanix_sgx_abi/struct.Usercalls.html#method.insecure_time
 /// [timekeeping in SGX]: https://edp.fortanix.com/docs/concepts/rust-std/#codestdtimecode
-/// [gettimeofday]: https://man7.org/linux/man-pages/man2/gettimeofday.2.html
 /// [clock_gettime (Realtime Clock)]: https://linux.die.net/man/3/clock_gettime
 /// [__wasi_clock_time_get (Realtime Clock)]: https://github.com/WebAssembly/WASI/blob/main/legacy/preview1/docs.md#clock_time_get
 /// [GetSystemTimePreciseAsFileTime]: https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemtimepreciseasfiletime

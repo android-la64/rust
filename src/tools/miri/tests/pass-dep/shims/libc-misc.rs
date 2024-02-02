@@ -3,6 +3,7 @@
 #![feature(io_error_more)]
 
 use std::fs::{remove_file, File};
+use std::mem::transmute;
 use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
 
@@ -185,7 +186,7 @@ fn test_clocks() {
             unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC_COARSE, tp.as_mut_ptr()) };
         assert_eq!(is_error, 0);
     }
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[cfg(target_os = "macos")]
     {
         let is_error = unsafe { libc::clock_gettime(libc::CLOCK_UPTIME_RAW, tp.as_mut_ptr()) };
         assert_eq!(is_error, 0);
@@ -375,6 +376,18 @@ fn test_sigrt() {
     assert!(max - min >= 8)
 }
 
+fn test_dlsym() {
+    let addr = unsafe { libc::dlsym(libc::RTLD_DEFAULT, b"notasymbol\0".as_ptr().cast()) };
+    assert!(addr as usize == 0);
+
+    let addr = unsafe { libc::dlsym(libc::RTLD_DEFAULT, b"isatty\0".as_ptr().cast()) };
+    assert!(addr as usize != 0);
+    let isatty: extern "C" fn(i32) -> i32 = unsafe { transmute(addr) };
+    assert_eq!(isatty(999), 0);
+    let errno = std::io::Error::last_os_error().raw_os_error().unwrap();
+    assert_eq!(errno, libc::EBADF);
+}
+
 fn main() {
     test_posix_gettimeofday();
     test_posix_mkstemp();
@@ -387,6 +400,7 @@ fn main() {
 
     test_isatty();
     test_clocks();
+    test_dlsym();
 
     test_memcpy();
     test_strcpy();

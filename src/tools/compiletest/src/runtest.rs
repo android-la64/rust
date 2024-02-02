@@ -6,7 +6,7 @@ use crate::common::{Assembly, Incremental, JsDocTest, MirOpt, RunMake, RustdocJs
 use crate::common::{Codegen, CodegenUnits, DebugInfo, Debugger, Rustdoc};
 use crate::common::{CompareMode, FailMode, PassMode};
 use crate::common::{Config, TestPaths};
-use crate::common::{CoverageMap, Pretty, RunCoverage, RunPassValgrind};
+use crate::common::{CoverageMap, CoverageRun, Pretty, RunPassValgrind};
 use crate::common::{UI_COVERAGE, UI_COVERAGE_MAP, UI_RUN_STDERR, UI_RUN_STDOUT};
 use crate::compute_diff::{write_diff, write_filtered_diff};
 use crate::errors::{self, Error, ErrorKind};
@@ -15,6 +15,7 @@ use crate::json;
 use crate::read2::{read2_abbreviated, Truncated};
 use crate::util::{add_dylib_path, dylib_env_var, logv, PathBufExt};
 use crate::ColorConfig;
+use miropt_test_tools::{files_for_miropt_test, MiroptTest, MiroptTestFile};
 use regex::{Captures, Regex};
 use rustfix::{apply_suggestions, get_suggestions_from_json, Filter};
 
@@ -229,6 +230,7 @@ enum Emit {
     None,
     Metadata,
     LlvmIr,
+    Mir,
     Asm,
     LinkArgsAsm,
 }
@@ -255,7 +257,7 @@ impl<'test> TestCx<'test> {
             Assembly => self.run_assembly_test(),
             JsDocTest => self.run_js_doc_test(),
             CoverageMap => self.run_coverage_map_test(),
-            RunCoverage => self.run_coverage_test(),
+            CoverageRun => self.run_coverage_run_test(),
         }
     }
 
@@ -508,7 +510,7 @@ impl<'test> TestCx<'test> {
         }
     }
 
-    fn run_coverage_test(&self) {
+    fn run_coverage_run_test(&self) {
         let should_run = self.run_if_enabled();
         let proc_res = self.compile_test(should_run, Emit::None);
 
@@ -547,7 +549,7 @@ impl<'test> TestCx<'test> {
         let mut profraw_paths = vec![profraw_path];
         let mut bin_paths = vec![self.make_exe_name()];
 
-        if self.config.suite == "run-coverage-rustdoc" {
+        if self.config.suite == "coverage-run-rustdoc" {
             self.run_doctests_for_coverage(&mut profraw_paths, &mut bin_paths);
         }
 
@@ -2191,7 +2193,7 @@ impl<'test> TestCx<'test> {
             || self.is_vxworks_pure_static()
             || self.config.target.contains("bpf")
             || !self.config.target_cfg().dynamic_linking
-            || self.config.mode == RunCoverage
+            || matches!(self.config.mode, CoverageMap | CoverageRun)
         {
             // We primarily compile all auxiliary libraries as dynamic libraries
             // to avoid code size bloat and large binaries as much as possible
@@ -2335,17 +2337,14 @@ impl<'test> TestCx<'test> {
         rustc.arg("-Zsimulate-remapped-rust-src-base=/rustc/FAKE_PREFIX");
         rustc.arg("-Ztranslate-remapped-path-to-local-path=no");
 
-        // #[cfg(not(bootstrap))]: After beta bump, this should **always** run.
-        if !(self.config.stage_id.starts_with("stage1-") && self.config.suite == "ui-fulldeps") {
-            // Hide Cargo dependency sources from ui tests to make sure the error message doesn't
-            // change depending on whether $CARGO_HOME is remapped or not. If this is not present,
-            // when $CARGO_HOME is remapped the source won't be shown, and when it's not remapped the
-            // source will be shown, causing a blessing hell.
-            rustc.arg("-Z").arg(format!(
-                "ignore-directory-in-diagnostics-source-blocks={}",
-                home::cargo_home().expect("failed to find cargo home").to_str().unwrap()
-            ));
-        }
+        // Hide Cargo dependency sources from ui tests to make sure the error message doesn't
+        // change depending on whether $CARGO_HOME is remapped or not. If this is not present,
+        // when $CARGO_HOME is remapped the source won't be shown, and when it's not remapped the
+        // source will be shown, causing a blessing hell.
+        rustc.arg("-Z").arg(format!(
+            "ignore-directory-in-diagnostics-source-blocks={}",
+            home::cargo_home().expect("failed to find cargo home").to_str().unwrap()
+        ));
 
         // Optionally prevent default --sysroot if specified in test compile-flags.
         if !self.props.compile_flags.iter().any(|flag| flag.starts_with("--sysroot"))
@@ -2396,7 +2395,7 @@ impl<'test> TestCx<'test> {
                     }
                 }
                 DebugInfo => { /* debuginfo tests must be unoptimized */ }
-                CoverageMap | RunCoverage => {
+                CoverageMap | CoverageRun => {
                     // Coverage mappings and coverage reports are affected by
                     // optimization level, so they ignore the optimize-tests
                     // setting and set an optimization level in their mode's
@@ -2471,7 +2470,7 @@ impl<'test> TestCx<'test> {
             }
             CoverageMap => {
                 rustc.arg("-Cinstrument-coverage");
-                // These tests only compile to MIR, so they don't need the
+                // These tests only compile to LLVM IR, so they don't need the
                 // profiler runtime to be present.
                 rustc.arg("-Zno-profiler-runtime");
                 // Coverage mappings are sensitive to MIR optimizations, and
@@ -2479,12 +2478,12 @@ impl<'test> TestCx<'test> {
                 // by `compile-flags`.
                 rustc.arg("-Copt-level=2");
             }
-            RunCoverage => {
+            CoverageRun => {
                 rustc.arg("-Cinstrument-coverage");
                 // Coverage reports are sometimes sensitive to optimizations,
-                // and the current snapshots assume no optimization unless
+                // and the current snapshots assume `opt-level=2` unless
                 // overridden by `compile-flags`.
-                rustc.arg("-Copt-level=0");
+                rustc.arg("-Copt-level=2");
             }
             RunPassValgrind | Pretty | DebugInfo | Codegen | Rustdoc | RustdocJson | RunMake
             | CodegenUnits | JsDocTest | Assembly => {
@@ -2508,6 +2507,9 @@ impl<'test> TestCx<'test> {
             }
             Emit::LlvmIr => {
                 rustc.args(&["--emit", "llvm-ir"]);
+            }
+            Emit::Mir => {
+                rustc.args(&["--emit", "mir"]);
             }
             Emit::Asm => {
                 rustc.args(&["--emit", "asm"]);
@@ -2718,7 +2720,7 @@ impl<'test> TestCx<'test> {
     fn aux_output_dir_name(&self) -> PathBuf {
         self.output_base_dir()
             .join("auxiliary")
-            .with_extra_extension(self.config.mode.disambiguator())
+            .with_extra_extension(self.config.mode.aux_dir_disambiguator())
     }
 
     /// Generates a unique name for the test, such as `testname.revision.mode`.
@@ -3544,10 +3546,6 @@ impl<'test> TestCx<'test> {
             cmd.env("RUSTDOC", cwd.join(rustdoc));
         }
 
-        if let Some(ref rust_demangler) = self.config.rust_demangler_path {
-            cmd.env("RUST_DEMANGLER", cwd.join(rust_demangler));
-        }
-
         if let Some(ref node) = self.config.nodejs {
             cmd.env("NODE", node);
         }
@@ -3964,7 +3962,7 @@ impl<'test> TestCx<'test> {
             // And finally, compile the fixed code and make sure it both
             // succeeds and has no diagnostics.
             let rustc = self.make_compile_args(
-                &self.testpaths.file.with_extension(UI_FIXED),
+                &self.expected_output_path(UI_FIXED),
                 TargetLocation::ThisFile(self.make_exe_name()),
                 emit_metadata,
                 AllowUnused::No,
@@ -3987,14 +3985,20 @@ impl<'test> TestCx<'test> {
     fn run_mir_opt_test(&self) {
         let pm = self.pass_mode();
         let should_run = self.should_run(pm);
-        let emit_metadata = self.should_emit_metadata(pm);
-        let passes = self.get_passes();
 
-        let proc_res = self.compile_test_with_passes(should_run, emit_metadata, passes);
-        self.check_mir_dump();
+        let mut test_info = files_for_miropt_test(
+            &self.testpaths.file,
+            self.config.get_pointer_width(),
+            self.config.target_cfg().panic.for_miropt_test_tools(),
+        );
+
+        let passes = std::mem::take(&mut test_info.passes);
+
+        let proc_res = self.compile_test_with_passes(should_run, Emit::Mir, passes);
         if !proc_res.status.success() {
             self.fatal_proc_rec("compilation failed!", &proc_res);
         }
+        self.check_mir_dump(test_info);
 
         if let WillExecute::Yes = should_run {
             let proc_res = self.exec_compiled_test();
@@ -4005,37 +4009,12 @@ impl<'test> TestCx<'test> {
         }
     }
 
-    fn get_passes(&self) -> Vec<String> {
-        let files = miropt_test_tools::files_for_miropt_test(
-            &self.testpaths.file,
-            self.config.get_pointer_width(),
-            self.config.target_cfg().panic.for_miropt_test_tools(),
-        );
-
-        let mut out = Vec::new();
-
-        for miropt_test_tools::MiroptTestFiles {
-            from_file: _,
-            to_file: _,
-            expected_file: _,
-            passes,
-        } in files
-        {
-            out.extend(passes);
-        }
-        out
-    }
-
-    fn check_mir_dump(&self) {
+    fn check_mir_dump(&self, test_info: MiroptTest) {
         let test_dir = self.testpaths.file.parent().unwrap();
         let test_crate =
             self.testpaths.file.file_stem().unwrap().to_str().unwrap().replace("-", "_");
 
-        let suffix = miropt_test_tools::output_file_suffix(
-            &self.testpaths.file,
-            self.config.get_pointer_width(),
-            self.config.target_cfg().panic.for_miropt_test_tools(),
-        );
+        let MiroptTest { run_filecheck, suffix, files, passes: _ } = test_info;
 
         if self.config.bless {
             for e in
@@ -4050,14 +4029,7 @@ impl<'test> TestCx<'test> {
             }
         }
 
-        let files = miropt_test_tools::files_for_miropt_test(
-            &self.testpaths.file,
-            self.config.get_pointer_width(),
-            self.config.target_cfg().panic.for_miropt_test_tools(),
-        );
-        for miropt_test_tools::MiroptTestFiles { from_file, to_file, expected_file, passes: _ } in
-            files
-        {
+        for MiroptTestFile { from_file, to_file, expected_file } in files {
             let dumped_string = if let Some(after) = to_file {
                 self.diff_mir_files(from_file.into(), after.into())
             } else {
@@ -4096,6 +4068,14 @@ impl<'test> TestCx<'test> {
                         expected_file.display()
                     );
                 }
+            }
+        }
+
+        if run_filecheck {
+            let output_path = self.output_base_name().with_extension("mir");
+            let proc_res = self.verify_with_filecheck(&output_path);
+            if !proc_res.status.success() {
+                self.fatal_proc_rec("verification with 'FileCheck' failed", &proc_res);
             }
         }
     }
@@ -4259,6 +4239,39 @@ impl<'test> TestCx<'test> {
             // Normalize back references (see RFC 2603)
             normalized =
                 V0_BACK_REF_RE.replace_all(&normalized, V0_BACK_REF_PLACEHOLDER).into_owned();
+        }
+
+        // AllocId are numbered globally in a compilation session. This can lead to changes
+        // depending on the exact compilation flags and host architecture. Meanwhile, we want
+        // to keep them numbered, to see if the same id appears multiple times.
+        // So we remap to deterministic numbers that only depend on the subset of allocations
+        // that actually appear in the output.
+        // We use uppercase ALLOC to distinguish from the non-normalized version.
+        {
+            let mut seen_allocs = indexmap::IndexSet::new();
+
+            // The alloc-id appears in pretty-printed allocations.
+            let re = Regex::new(r"╾─*a(lloc)?([0-9]+)(\+0x[0-9]+)?─*╼").unwrap();
+            normalized = re
+                .replace_all(&normalized, |caps: &Captures<'_>| {
+                    // Renumber the captured index.
+                    let index = caps.get(2).unwrap().as_str().to_string();
+                    let (index, _) = seen_allocs.insert_full(index);
+                    let offset = caps.get(3).map_or("", |c| c.as_str());
+                    // Do not bother keeping it pretty, just make it deterministic.
+                    format!("╾ALLOC{index}{offset}╼")
+                })
+                .into_owned();
+
+            // The alloc-id appears in a sentence.
+            let re = Regex::new(r"\balloc([0-9]+)\b").unwrap();
+            normalized = re
+                .replace_all(&normalized, |caps: &Captures<'_>| {
+                    let index = caps.get(1).unwrap().as_str().to_string();
+                    let (index, _) = seen_allocs.insert_full(index);
+                    format!("ALLOC{index}")
+                })
+                .into_owned();
         }
 
         // Custom normalization rules

@@ -93,9 +93,7 @@ fn test_config(target: &str, path: &str, mode: Mode, with_dependencies: bool) ->
         ..Config::rustc(path)
     };
 
-    let use_std = env::var_os("MIRI_NO_STD").is_none();
-
-    if with_dependencies && use_std {
+    if with_dependencies {
         config.dependencies_crate_manifest_path =
             Some(Path::new("test_dependencies").join("Cargo.toml"));
         let mut builder_args = vec!["run".into()];
@@ -183,6 +181,7 @@ regexes! {
     r"0x[0-9a-fA-F]+[0-9a-fA-F]{2,2}" => "$$HEX",
     // erase specific alignments
     "alignment [0-9]+"               => "alignment ALIGN",
+    "[0-9]+ byte alignment but found [0-9]+" => "ALIGN byte alignment but found ALIGN",
     // erase thread caller ids
     r"call [0-9]+"                  => "call ID",
     // erase platform module paths

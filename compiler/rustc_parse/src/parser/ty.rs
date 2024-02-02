@@ -18,9 +18,8 @@ use rustc_ast::{
     TraitObjectSyntax, Ty, TyKind,
 };
 use rustc_errors::{Applicability, PResult};
-use rustc_span::source_map::Span;
 use rustc_span::symbol::{kw, sym, Ident};
-use rustc_span::Symbol;
+use rustc_span::{Span, Symbol};
 use thin_vec::{thin_vec, ThinVec};
 
 /// Any `?`, `!`, or `~const` modifiers that appear at the start of a bound.
@@ -247,7 +246,7 @@ impl<'a> Parser<'a> {
             )?;
             FnRetTy::Ty(ty)
         } else {
-            FnRetTy::Default(self.token.span.shrink_to_lo())
+            FnRetTy::Default(self.prev_token.span.shrink_to_hi())
         })
     }
 
@@ -893,13 +892,15 @@ impl<'a> Parser<'a> {
             // to recover from errors, not make more).
             let path = if self.may_recover() {
                 let (span, message, sugg, path, applicability) = match &ty.kind {
-                    TyKind::Ptr(..) | TyKind::Ref(..) if let TyKind::Path(_, path) = &ty.peel_refs().kind => {
+                    TyKind::Ptr(..) | TyKind::Ref(..)
+                        if let TyKind::Path(_, path) = &ty.peel_refs().kind =>
+                    {
                         (
                             ty.span.until(path.span),
                             "consider removing the indirection",
                             "",
                             path,
-                            Applicability::MaybeIncorrect
+                            Applicability::MaybeIncorrect,
                         )
                     }
                     TyKind::ImplTrait(_, bounds)
@@ -910,10 +911,10 @@ impl<'a> Parser<'a> {
                             "use the trait bounds directly",
                             "",
                             &tr.trait_ref.path,
-                            Applicability::MachineApplicable
+                            Applicability::MachineApplicable,
                         )
                     }
-                    _ => return Err(err)
+                    _ => return Err(err),
                 };
 
                 err.span_suggestion_verbose(span, message, sugg, applicability);
@@ -1027,7 +1028,8 @@ impl<'a> Parser<'a> {
                 args.into_iter()
                     .filter_map(|arg| {
                         if let ast::AngleBracketedArg::Arg(generic_arg) = arg
-                            && let ast::GenericArg::Lifetime(lifetime) = generic_arg {
+                            && let ast::GenericArg::Lifetime(lifetime) = generic_arg
+                        {
                             Some(lifetime)
                         } else {
                             None

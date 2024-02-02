@@ -12,8 +12,7 @@ use rustc_middle::mir;
 use rustc_middle::ty::{self, Ty};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 use rustc_span::def_id::LocalDefId;
-use rustc_span::source_map::{BytePos, Span};
-use rustc_span::sym;
+use rustc_span::{sym, BytePos, Span};
 
 macro_rules! unwrap_or_continue {
     ($x:expr) => {
@@ -37,7 +36,7 @@ declare_clippy_lint! {
     /// False-negatives: analysis performed by this lint is conservative and limited.
     ///
     /// ### Example
-    /// ```rust
+    /// ```no_run
     /// # use std::path::Path;
     /// # #[derive(Clone)]
     /// # struct Foo;
@@ -99,8 +98,8 @@ impl<'tcx> LateLintPass<'tcx> for RedundantClone {
                 unwrap_or_continue!(is_call_with_ref_arg(cx, mir, &terminator.kind));
 
             let from_borrow = match_def_path(cx, fn_def_id, &paths::CLONE_TRAIT_METHOD)
-                || match_def_path(cx, fn_def_id, &paths::TO_OWNED_METHOD)
-                || (match_def_path(cx, fn_def_id, &paths::TO_STRING_METHOD)
+                || cx.tcx.is_diagnostic_item(sym::to_owned_method, fn_def_id)
+                || (cx.tcx.is_diagnostic_item(sym::to_string_method, fn_def_id)
                     && is_type_lang_item(cx, arg_ty, LangItem::String));
 
             let from_deref = !from_borrow

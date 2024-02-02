@@ -431,6 +431,17 @@ pub(crate) struct ExpectedElseBlock {
 }
 
 #[derive(Diagnostic)]
+#[diag(parse_expected_struct_field)]
+pub(crate) struct ExpectedStructField {
+    #[primary_span]
+    #[label]
+    pub span: Span,
+    pub token: Token,
+    #[label(parse_ident_label)]
+    pub ident_span: Span,
+}
+
+#[derive(Diagnostic)]
 #[diag(parse_outer_attribute_not_allowed_on_if_else)]
 pub(crate) struct OuterAttributeNotAllowedOnIfElse {
     #[primary_span]
@@ -505,6 +516,14 @@ pub(crate) struct MissingCommaAfterMatchArm {
 #[diag(parse_catch_after_try)]
 #[help]
 pub(crate) struct CatchAfterTry {
+    #[primary_span]
+    pub span: Span,
+}
+
+#[derive(Diagnostic)]
+#[diag(parse_gen_fn)]
+#[help]
+pub(crate) struct GenFn {
     #[primary_span]
     pub span: Span,
 }
@@ -1359,6 +1378,34 @@ pub(crate) struct FnPtrWithGenericsSugg {
     pub for_param_list_exists: bool,
 }
 
+pub(crate) struct FnTraitMissingParen {
+    pub span: Span,
+    pub machine_applicable: bool,
+}
+
+impl AddToDiagnostic for FnTraitMissingParen {
+    fn add_to_diagnostic_with<F>(self, diag: &mut rustc_errors::Diagnostic, _: F)
+    where
+        F: Fn(
+            &mut rustc_errors::Diagnostic,
+            rustc_errors::SubdiagnosticMessage,
+        ) -> rustc_errors::SubdiagnosticMessage,
+    {
+        diag.span_label(self.span, crate::fluent_generated::parse_fn_trait_missing_paren);
+        let applicability = if self.machine_applicable {
+            Applicability::MachineApplicable
+        } else {
+            Applicability::MaybeIncorrect
+        };
+        diag.span_suggestion_short(
+            self.span.shrink_to_hi(),
+            crate::fluent_generated::parse_add_paren,
+            "()",
+            applicability,
+        );
+    }
+}
+
 #[derive(Diagnostic)]
 #[diag(parse_unexpected_if_with_if)]
 pub(crate) struct UnexpectedIfWithIf(
@@ -1530,6 +1577,14 @@ pub(crate) enum AmbiguousMissingKwForItemSub {
     },
     #[help(parse_help)]
     HelpMacro,
+}
+
+#[derive(Diagnostic)]
+#[diag(parse_missing_fn_params)]
+pub(crate) struct MissingFnParams {
+    #[primary_span]
+    #[suggestion(code = "()", applicability = "machine-applicable", style = "short")]
+    pub span: Span,
 }
 
 #[derive(Diagnostic)]

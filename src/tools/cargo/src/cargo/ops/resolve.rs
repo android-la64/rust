@@ -61,13 +61,14 @@ use crate::core::resolver::features::{
     CliFeatures, FeatureOpts, FeatureResolver, ForceAllTargets, RequestedFeatures, ResolvedFeatures,
 };
 use crate::core::resolver::{
-    self, HasDevUnits, Resolve, ResolveOpts, ResolveVersion, VersionPreferences,
+    self, HasDevUnits, Resolve, ResolveOpts, ResolveVersion, VersionOrdering, VersionPreferences,
 };
 use crate::core::summary::Summary;
 use crate::core::Feature;
 use crate::core::{GitReference, PackageId, PackageIdSpec, PackageSet, SourceId, Workspace};
 use crate::ops;
 use crate::sources::PathSource;
+use crate::util::cache_lock::CacheLockMode;
 use crate::util::errors::CargoResult;
 use crate::util::RustVersion;
 use crate::util::{profile, CanonicalUrl};
@@ -289,7 +290,9 @@ pub fn resolve_with_previous<'cfg>(
 ) -> CargoResult<Resolve> {
     // We only want one Cargo at a time resolving a crate graph since this can
     // involve a lot of frobbing of the global caches.
-    let _lock = ws.config().acquire_package_cache_lock()?;
+    let _lock = ws
+        .config()
+        .acquire_package_cache_lock(CacheLockMode::DownloadExclusive)?;
 
     // Here we place an artificial limitation that all non-registry sources
     // cannot be locked at more than one revision. This means that if a Git
@@ -318,6 +321,12 @@ pub fn resolve_with_previous<'cfg>(
     // While registering patches, we will record preferences for particular versions
     // of various packages.
     let mut version_prefs = VersionPreferences::default();
+    if ws.config().cli_unstable().minimal_versions {
+        version_prefs.version_ordering(VersionOrdering::MinimumVersionsFirst)
+    }
+    if ws.config().cli_unstable().msrv_policy {
+        version_prefs.max_rust_version(max_rust_version.cloned());
+    }
 
     // This is a set of PackageIds of `[patch]` entries, and some related locked PackageIds, for
     // which locking should be avoided (but which will be preferred when searching dependencies,
@@ -386,12 +395,8 @@ pub fn resolve_with_previous<'cfg>(
                         }) {
                             Some(id_using_default) => {
                                 let id_using_master = id_using_default.with_source_id(
-                                    dep.source_id().with_precise(
-                                        id_using_default
-                                            .source_id()
-                                            .precise()
-                                            .map(|s| s.to_string()),
-                                    ),
+                                    dep.source_id()
+                                        .with_precise_from(id_using_default.source_id()),
                                 );
 
                                 let mut locked_dep = dep.clone();
@@ -510,7 +515,6 @@ pub fn resolve_with_previous<'cfg>(
         ws.unstable_features()
             .require(Feature::public_dependency())
             .is_ok(),
-        max_rust_version,
     )?;
     let patches: Vec<_> = registry
         .patches()
@@ -793,7 +797,7 @@ fn master_branch_git_source(id: PackageId, resolve: &Resolve) -> Option<PackageI
             let new_source =
                 SourceId::for_git(source.url(), GitReference::Branch("master".to_string()))
                     .unwrap()
-                    .with_precise(source.precise().map(|s| s.to_string()));
+                    .with_precise_from(source);
             return Some(id.with_source_id(new_source));
         }
     }

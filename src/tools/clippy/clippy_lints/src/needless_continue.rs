@@ -55,7 +55,7 @@ declare_clippy_lint! {
     /// statement within the THEN block and omitting the else block completely.
     ///
     /// ### Example
-    /// ```rust
+    /// ```no_run
     /// # fn condition() -> bool { false }
     /// # fn update_condition() {}
     /// # let x = false;
@@ -72,7 +72,7 @@ declare_clippy_lint! {
     ///
     /// Could be rewritten as
     ///
-    /// ```rust
+    /// ```no_run
     /// # fn condition() -> bool { false }
     /// # fn update_condition() {}
     /// # let x = false;
@@ -87,7 +87,7 @@ declare_clippy_lint! {
     ///
     /// As another example, the following code
     ///
-    /// ```rust
+    /// ```no_run
     /// # fn waiting() -> bool { false }
     /// loop {
     ///     if waiting() {
@@ -100,7 +100,7 @@ declare_clippy_lint! {
     /// ```
     /// Could be rewritten as
     ///
-    /// ```rust
+    /// ```no_run
     /// # fn waiting() -> bool { false }
     /// loop {
     ///     if waiting() {
@@ -189,7 +189,7 @@ fn needless_continue_in_else(else_expr: &ast::Expr, label: Option<&ast::Label>) 
 }
 
 fn is_first_block_stmt_continue(block: &ast::Block, label: Option<&ast::Label>) -> bool {
-    block.stmts.get(0).map_or(false, |stmt| match stmt.kind {
+    block.stmts.first().map_or(false, |stmt| match stmt.kind {
         ast::StmtKind::Semi(ref e) | ast::StmtKind::Expr(ref e) => {
             if let ast::ExprKind::Continue(ref l) = e.kind {
                 compare_labels(label, l.as_ref())
@@ -408,7 +408,7 @@ fn check_and_warn(cx: &EarlyContext<'_>, expr: &ast::Expr) {
 /// till a non-whitespace character is found.  e.g., the string. If no closing `}` is present, the
 /// string will be preserved.
 ///
-/// ```rust
+/// ```no_run
 /// {
 ///     let x = 5;
 /// }
@@ -434,7 +434,7 @@ fn erode_from_back(s: &str) -> String {
 }
 
 fn span_of_first_expr_in_block(block: &ast::Block) -> Option<Span> {
-    block.stmts.get(0).map(|stmt| stmt.span)
+    block.stmts.first().map(|stmt| stmt.span)
 }
 
 #[cfg(test)]

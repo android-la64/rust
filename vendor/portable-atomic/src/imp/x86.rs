@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Atomic operations implementation on x86/x86_64.
 //
 // This module provides atomic operations not supported by LLVM or optimizes
@@ -6,12 +8,13 @@
 // Note: On Miri and ThreadSanitizer which do not support inline assembly, we don't use
 // this module and use CAS loop instead.
 //
+// Refs:
+// - x86 and amd64 instruction reference https://www.felixcloutier.com/x86
+//
 // Generated asm:
-// - x86_64 https://godbolt.org/z/8fve4YP1G
+// - x86_64 https://godbolt.org/z/d17eTs5Ec
 
-#[cfg(not(portable_atomic_no_asm))]
-use core::arch::asm;
-use core::sync::atomic::Ordering;
+use core::{arch::asm, sync::atomic::Ordering};
 
 use super::core_atomic::{
     AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicIsize, AtomicU16, AtomicU32, AtomicU64,
@@ -32,7 +35,7 @@ macro_rules! ptr_modifier {
 }
 
 macro_rules! atomic_int {
-    ($atomic_type:ident, $int_type:ident, $ptr_size:tt) => {
+    ($atomic_type:ident, $ptr_size:tt) => {
         impl $atomic_type {
             #[inline]
             pub(crate) fn not(&self, _order: Ordering) {
@@ -71,24 +74,24 @@ macro_rules! atomic_int {
     };
 }
 
-atomic_int!(AtomicI8, i8, "byte");
-atomic_int!(AtomicU8, u8, "byte");
-atomic_int!(AtomicI16, i16, "word");
-atomic_int!(AtomicU16, u16, "word");
-atomic_int!(AtomicI32, i32, "dword");
-atomic_int!(AtomicU32, u32, "dword");
+atomic_int!(AtomicI8, "byte");
+atomic_int!(AtomicU8, "byte");
+atomic_int!(AtomicI16, "word");
+atomic_int!(AtomicU16, "word");
+atomic_int!(AtomicI32, "dword");
+atomic_int!(AtomicU32, "dword");
 #[cfg(target_arch = "x86_64")]
-atomic_int!(AtomicI64, i64, "qword");
+atomic_int!(AtomicI64, "qword");
 #[cfg(target_arch = "x86_64")]
-atomic_int!(AtomicU64, u64, "qword");
+atomic_int!(AtomicU64, "qword");
 #[cfg(target_pointer_width = "32")]
-atomic_int!(AtomicIsize, isize, "dword");
+atomic_int!(AtomicIsize, "dword");
 #[cfg(target_pointer_width = "32")]
-atomic_int!(AtomicUsize, usize, "dword");
+atomic_int!(AtomicUsize, "dword");
 #[cfg(target_pointer_width = "64")]
-atomic_int!(AtomicIsize, isize, "qword");
+atomic_int!(AtomicIsize, "qword");
 #[cfg(target_pointer_width = "64")]
-atomic_int!(AtomicUsize, usize, "qword");
+atomic_int!(AtomicUsize, "qword");
 
 #[cfg(target_arch = "x86")]
 impl AtomicI64 {
@@ -116,11 +119,9 @@ impl AtomicU64 {
 macro_rules! atomic_bit_opts {
     ($atomic_type:ident, $int_type:ident, $val_modifier:tt, $ptr_size:tt) => {
         // LLVM 14 and older don't support generating `lock bt{s,r,c}`.
-        // https://godbolt.org/z/G1TMKza97
         // LLVM 15 only supports generating `lock bt{s,r,c}` for immediate bit offsets.
-        // https://godbolt.org/z/dzzhr81z6
-        // LLVM 16 can generate `lock bt{s,r,c}` for both immediate and register bit offsets.
-        // https://godbolt.org/z/7YTvsorn1
+        // LLVM 16+ can generate `lock bt{s,r,c}` for both immediate and register bit offsets.
+        // https://godbolt.org/z/TGhr5z4ds
         // So, use fetch_* based implementations on LLVM 16+, otherwise use asm based implementations.
         #[cfg(portable_atomic_llvm_16)]
         impl_default_bit_opts!($atomic_type, $int_type);
@@ -138,18 +139,18 @@ macro_rules! atomic_bit_opts {
                 //
                 // https://www.felixcloutier.com/x86/bts
                 unsafe {
-                    let out: u8;
+                    let r: u8;
                     // atomic RMW is always SeqCst.
                     asm!(
                         concat!("lock bts ", $ptr_size, " ptr [{dst", ptr_modifier!(), "}], {bit", $val_modifier, "}"),
-                        "setb {out}",
+                        "setb {r}",
                         dst = in(reg) dst,
                         bit = in(reg) (bit & (Self::BITS - 1)) as $int_type,
-                        out = out(reg_byte) out,
+                        r = out(reg_byte) r,
                         // Do not use `preserves_flags` because BTS modifies the CF flag.
                         options(nostack),
                     );
-                    out != 0
+                    r != 0
                 }
             }
             #[inline]
@@ -162,18 +163,18 @@ macro_rules! atomic_bit_opts {
                 //
                 // https://www.felixcloutier.com/x86/btr
                 unsafe {
-                    let out: u8;
+                    let r: u8;
                     // atomic RMW is always SeqCst.
                     asm!(
                         concat!("lock btr ", $ptr_size, " ptr [{dst", ptr_modifier!(), "}], {bit", $val_modifier, "}"),
-                        "setb {out}",
+                        "setb {r}",
                         dst = in(reg) dst,
                         bit = in(reg) (bit & (Self::BITS - 1)) as $int_type,
-                        out = out(reg_byte) out,
+                        r = out(reg_byte) r,
                         // Do not use `preserves_flags` because BTR modifies the CF flag.
                         options(nostack),
                     );
-                    out != 0
+                    r != 0
                 }
             }
             #[inline]
@@ -186,18 +187,18 @@ macro_rules! atomic_bit_opts {
                 //
                 // https://www.felixcloutier.com/x86/btc
                 unsafe {
-                    let out: u8;
+                    let r: u8;
                     // atomic RMW is always SeqCst.
                     asm!(
                         concat!("lock btc ", $ptr_size, " ptr [{dst", ptr_modifier!(), "}], {bit", $val_modifier, "}"),
-                        "setb {out}",
+                        "setb {r}",
                         dst = in(reg) dst,
                         bit = in(reg) (bit & (Self::BITS - 1)) as $int_type,
-                        out = out(reg_byte) out,
+                        r = out(reg_byte) r,
                         // Do not use `preserves_flags` because BTC modifies the CF flag.
                         options(nostack),
                     );
-                    out != 0
+                    r != 0
                 }
             }
         }

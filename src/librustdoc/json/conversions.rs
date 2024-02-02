@@ -7,6 +7,7 @@
 use std::fmt;
 
 use rustc_ast::ast;
+use rustc_attr::DeprecatedSince;
 use rustc_hir::{def::CtorKind, def::DefKind, def_id::DefId};
 use rustc_metadata::rendered_const;
 use rustc_middle::ty::{self, TyCtxt};
@@ -18,6 +19,7 @@ use rustdoc_json_types::*;
 
 use crate::clean::{self, ItemId};
 use crate::formats::item_type::ItemType;
+use crate::formats::FormatRenderer;
 use crate::json::JsonRenderer;
 use crate::passes::collect_intra_doc_links::UrlFragment;
 
@@ -41,7 +43,7 @@ impl JsonRenderer<'_> {
             })
             .collect();
         let docs = item.opt_doc_value();
-        let attrs = item.attributes(self.tcx, true);
+        let attrs = item.attributes(self.tcx, self.cache(), true);
         let span = item.span(self.tcx);
         let visibility = item.visibility(self.tcx);
         let clean::Item { name, item_id, .. } = item;
@@ -137,9 +139,14 @@ where
 }
 
 pub(crate) fn from_deprecation(deprecation: rustc_attr::Deprecation) -> Deprecation {
-    #[rustfmt::skip]
-    let rustc_attr::Deprecation { since, note, is_since_rustc_version: _, suggestion: _ } = deprecation;
-    Deprecation { since: since.map(|s| s.to_string()), note: note.map(|s| s.to_string()) }
+    let rustc_attr::Deprecation { since, note, suggestion: _ } = deprecation;
+    let since = match since {
+        DeprecatedSince::RustcVersion(version) => Some(version.to_string()),
+        DeprecatedSince::Future => Some("TBD".to_owned()),
+        DeprecatedSince::NonStandard(since) => Some(since.to_string()),
+        DeprecatedSince::Unspecified | DeprecatedSince::Err => None,
+    };
+    Deprecation { since, note: note.map(|s| s.to_string()) }
 }
 
 impl FromWithTcx<clean::GenericArgs> for GenericArgs {
@@ -176,7 +183,7 @@ impl FromWithTcx<clean::Constant> for Constant {
         let expr = constant.expr(tcx);
         let value = constant.value(tcx);
         let is_literal = constant.is_literal(tcx);
-        Constant { type_: constant.type_.into_tcx(tcx), expr, value, is_literal }
+        Constant { type_: (*constant.type_).into_tcx(tcx), expr, value, is_literal }
     }
 }
 
@@ -324,11 +331,11 @@ fn from_clean_item(item: clean::Item, tcx: TyCtxt<'_>) -> ItemEnum {
         }
         // FIXME(generic_const_items): Add support for generic associated consts.
         TyAssocConstItem(_generics, ty) => {
-            ItemEnum::AssocConst { type_: ty.into_tcx(tcx), default: None }
+            ItemEnum::AssocConst { type_: (*ty).into_tcx(tcx), default: None }
         }
         // FIXME(generic_const_items): Add support for generic associated consts.
         AssocConstItem(_generics, ty, default) => {
-            ItemEnum::AssocConst { type_: ty.into_tcx(tcx), default: Some(default.expr(tcx)) }
+            ItemEnum::AssocConst { type_: (*ty).into_tcx(tcx), default: Some(default.expr(tcx)) }
         }
         TyAssocTypeItem(g, b) => ItemEnum::AssocType {
             generics: g.into_tcx(tcx),
@@ -508,9 +515,8 @@ impl FromWithTcx<clean::WherePredicate> for WherePredicate {
                 lifetime: convert_lifetime(lifetime),
                 bounds: bounds.into_tcx(tcx),
             },
-            // FIXME(fmease): Convert bound parameters as well.
-            EqPredicate { lhs, rhs, bound_params: _ } => {
-                WherePredicate::EqPredicate { lhs: (*lhs).into_tcx(tcx), rhs: (*rhs).into_tcx(tcx) }
+            EqPredicate { lhs, rhs } => {
+                WherePredicate::EqPredicate { lhs: lhs.into_tcx(tcx), rhs: rhs.into_tcx(tcx) }
             }
         }
     }
@@ -747,7 +753,7 @@ impl FromWithTcx<clean::Discriminant> for Discriminant {
             // `rustc_middle` types, not `rustc_hir`, but because JSON never inlines
             // the expr is always some.
             expr: disr.expr(tcx).unwrap(),
-            value: disr.value(tcx),
+            value: disr.value(tcx, false),
         }
     }
 }

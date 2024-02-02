@@ -6,6 +6,10 @@ use super::*;
 use crate::ir::condcodes::CondCode;
 
 use crate::isa::riscv64::inst::{reg_name, reg_to_gpr_num};
+
+use crate::isa::riscv64::lower::isle::generated_code::{
+    COpcodeSpace, CaOp, CbOp, CiOp, CiwOp, CjOp, ClOp, CrOp, CsOp, CssOp, CsznOp, ZcbMemOp,
+};
 use crate::machinst::isle::WritableReg;
 
 use std::fmt::{Display, Formatter, Result};
@@ -161,6 +165,18 @@ impl AMode {
         }
     }
 
+    /// Retrieve a MachLabel that corresponds to this addressing mode, if it exists.
+    pub(crate) fn get_label_with_sink(&self, sink: &mut MachBuffer<Inst>) -> Option<MachLabel> {
+        match self {
+            &AMode::Const(addr) => Some(sink.get_label_for_constant(addr)),
+            &AMode::Label(label) => Some(label),
+            &AMode::RegOffset(..)
+            | &AMode::SPOffset(..)
+            | &AMode::FPOffset(..)
+            | &AMode::NominalSPOffset(..) => None,
+        }
+    }
+
     pub(crate) fn to_string_with_alloc(&self, allocs: &mut AllocationConsumer<'_>) -> String {
         format!("{}", self.clone().with_allocs(allocs))
     }
@@ -302,7 +318,7 @@ impl IntegerCompare {
 
     pub(crate) fn inverse(self) -> Self {
         Self {
-            kind: self.kind.inverse(),
+            kind: self.kind.complement(),
             ..self
         }
     }
@@ -444,43 +460,6 @@ impl FpuOPRR {
                 }
             }
             _ => unreachable!("from type:{}", from),
-        }
-    }
-
-    pub(crate) fn int_convert_2_float_op(from: Type, is_type_signed: bool, to: Type) -> Self {
-        let type_32 = from.bits() == 32;
-        match to {
-            F32 => {
-                if is_type_signed {
-                    if type_32 {
-                        Self::FcvtSw
-                    } else {
-                        Self::FcvtSL
-                    }
-                } else {
-                    if type_32 {
-                        Self::FcvtSwU
-                    } else {
-                        Self::FcvtSLU
-                    }
-                }
-            }
-            F64 => {
-                if is_type_signed {
-                    if type_32 {
-                        Self::FcvtDW
-                    } else {
-                        Self::FcvtDL
-                    }
-                } else {
-                    if type_32 {
-                        Self::FcvtDWU
-                    } else {
-                        Self::FcvtDLu
-                    }
-                }
-            }
-            _ => unreachable!("to type:{}", to),
         }
     }
 
@@ -1080,7 +1059,7 @@ impl AluOPRRI {
     }
 
     pub(crate) fn imm12(self, imm12: Imm12) -> u32 {
-        let x = imm12.as_u32();
+        let x = imm12.bits();
         if let Some(func) = self.option_funct6() {
             func << 6 | (x & 0b11_1111)
         } else if let Some(func) = self.option_funct7() {
@@ -1301,6 +1280,15 @@ impl LoadOP {
         }
     }
 
+    pub(crate) fn size(&self) -> i64 {
+        match self {
+            Self::Lb | Self::Lbu => 1,
+            Self::Lh | Self::Lhu => 2,
+            Self::Lw | Self::Lwu | Self::Flw => 4,
+            Self::Ld | Self::Fld => 8,
+        }
+    }
+
     pub(crate) fn op_code(self) -> u32 {
         match self {
             Self::Lb | Self::Lh | Self::Lw | Self::Lbu | Self::Lhu | Self::Lwu | Self::Ld => {
@@ -1347,6 +1335,16 @@ impl StoreOP {
             _ => unreachable!(),
         }
     }
+
+    pub(crate) fn size(&self) -> i64 {
+        match self {
+            Self::Sb => 1,
+            Self::Sh => 2,
+            Self::Sw | Self::Fsw => 4,
+            Self::Sd | Self::Fsd => 8,
+        }
+    }
+
     pub(crate) fn op_code(self) -> u32 {
         match self {
             Self::Sb | Self::Sh | Self::Sw | Self::Sd => 0b0100011,
@@ -1630,37 +1628,6 @@ impl AtomicOP {
     }
 }
 
-impl IntSelectOP {
-    #[inline]
-    pub(crate) fn from_ir_op(op: crate::ir::Opcode) -> Self {
-        match op {
-            crate::ir::Opcode::Smax => Self::Smax,
-            crate::ir::Opcode::Umax => Self::Umax,
-            crate::ir::Opcode::Smin => Self::Smin,
-            crate::ir::Opcode::Umin => Self::Umin,
-            _ => unreachable!(),
-        }
-    }
-    #[inline]
-    pub(crate) fn op_name(self) -> &'static str {
-        match self {
-            IntSelectOP::Smax => "smax",
-            IntSelectOP::Umax => "umax",
-            IntSelectOP::Smin => "smin",
-            IntSelectOP::Umin => "umin",
-        }
-    }
-    #[inline]
-    pub(crate) fn to_int_cc(self) -> IntCC {
-        match self {
-            IntSelectOP::Smax => IntCC::SignedGreaterThan,
-            IntSelectOP::Umax => IntCC::UnsignedGreaterThan,
-            IntSelectOP::Smin => IntCC::SignedLessThan,
-            IntSelectOP::Umin => IntCC::UnsignedLessThan,
-        }
-    }
-}
-
 ///Atomic Memory ordering.
 #[derive(Copy, Clone, Debug)]
 pub enum AMO {
@@ -1757,19 +1724,19 @@ impl FloatSelectOP {
     // move qnan bits into int register.
     pub(crate) fn snan_bits(self, rd: Writable<Reg>, ty: Type) -> SmallInstVec<Inst> {
         let mut insts = SmallInstVec::new();
-        insts.push(Inst::load_imm12(rd, Imm12::from_bits(-1)));
+        insts.push(Inst::load_imm12(rd, Imm12::from_i16(-1)));
         let x = if ty == F32 { 22 } else { 51 };
         insts.push(Inst::AluRRImm12 {
             alu_op: AluOPRRI::Srli,
             rd: rd,
             rs: rd.to_reg(),
-            imm12: Imm12::from_bits(x),
+            imm12: Imm12::from_i16(x),
         });
         insts.push(Inst::AluRRImm12 {
             alu_op: AluOPRRI::Slli,
             rd: rd,
             rs: rd.to_reg(),
-            imm12: Imm12::from_bits(x),
+            imm12: Imm12::from_i16(x),
         });
         insts
     }
@@ -1808,5 +1775,345 @@ pub(crate) fn f64_cvt_to_int_bounds(signed: bool, out_bits: u8) -> (f64, f64) {
         (false, 32) => (-1., 4294967296.0),
         (false, 64) => (-1., 18446744073709551616.0),
         _ => unreachable!(),
+    }
+}
+
+impl CsrRegOP {
+    pub(crate) fn funct3(self) -> u32 {
+        match self {
+            CsrRegOP::CsrRW => 0b001,
+            CsrRegOP::CsrRS => 0b010,
+            CsrRegOP::CsrRC => 0b011,
+        }
+    }
+
+    pub(crate) fn opcode(self) -> u32 {
+        0b1110011
+    }
+
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            CsrRegOP::CsrRW => "csrrw",
+            CsrRegOP::CsrRS => "csrrs",
+            CsrRegOP::CsrRC => "csrrc",
+        }
+    }
+}
+
+impl Display for CsrRegOP {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.name())
+    }
+}
+
+impl CsrImmOP {
+    pub(crate) fn funct3(self) -> u32 {
+        match self {
+            CsrImmOP::CsrRWI => 0b101,
+            CsrImmOP::CsrRSI => 0b110,
+            CsrImmOP::CsrRCI => 0b111,
+        }
+    }
+
+    pub(crate) fn opcode(self) -> u32 {
+        0b1110011
+    }
+
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            CsrImmOP::CsrRWI => "csrrwi",
+            CsrImmOP::CsrRSI => "csrrsi",
+            CsrImmOP::CsrRCI => "csrrci",
+        }
+    }
+}
+
+impl Display for CsrImmOP {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.name())
+    }
+}
+
+impl CSR {
+    pub(crate) fn bits(self) -> Imm12 {
+        Imm12::from_i16(match self {
+            CSR::Frm => 0x0002,
+        })
+    }
+
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            CSR::Frm => "frm",
+        }
+    }
+}
+
+impl Display for CSR {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.name())
+    }
+}
+
+impl COpcodeSpace {
+    pub fn bits(&self) -> u32 {
+        match self {
+            COpcodeSpace::C0 => 0b00,
+            COpcodeSpace::C1 => 0b01,
+            COpcodeSpace::C2 => 0b10,
+        }
+    }
+}
+
+impl CrOp {
+    pub fn funct4(&self) -> u32 {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            // `c.jr` has the same op/funct4 as C.MV, but RS2 is 0, which is illegal for mv.
+            CrOp::CMv | CrOp::CJr => 0b1000,
+            CrOp::CAdd | CrOp::CJalr | CrOp::CEbreak => 0b1001,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            CrOp::CMv | CrOp::CAdd | CrOp::CJr | CrOp::CJalr | CrOp::CEbreak => COpcodeSpace::C2,
+        }
+    }
+}
+
+impl CaOp {
+    pub fn funct2(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CaOp::CAnd => 0b11,
+            CaOp::COr => 0b10,
+            CaOp::CXor => 0b01,
+            CaOp::CSub => 0b00,
+            CaOp::CAddw => 0b01,
+            CaOp::CSubw => 0b00,
+            CaOp::CMul => 0b10,
+        }
+    }
+
+    pub fn funct6(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CaOp::CAnd | CaOp::COr | CaOp::CXor | CaOp::CSub => 0b100_011,
+            CaOp::CSubw | CaOp::CAddw | CaOp::CMul => 0b100_111,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            CaOp::CAnd
+            | CaOp::COr
+            | CaOp::CXor
+            | CaOp::CSub
+            | CaOp::CAddw
+            | CaOp::CSubw
+            | CaOp::CMul => COpcodeSpace::C1,
+        }
+    }
+}
+
+impl CjOp {
+    pub fn funct3(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CjOp::CJ => 0b101,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            CjOp::CJ => COpcodeSpace::C1,
+        }
+    }
+}
+
+impl CiOp {
+    pub fn funct3(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CiOp::CAddi | CiOp::CSlli => 0b000,
+            CiOp::CAddiw | CiOp::CFldsp => 0b001,
+            CiOp::CLi | CiOp::CLwsp => 0b010,
+            CiOp::CAddi16sp | CiOp::CLui | CiOp::CLdsp => 0b011,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            CiOp::CAddi | CiOp::CAddiw | CiOp::CAddi16sp | CiOp::CLi | CiOp::CLui => {
+                COpcodeSpace::C1
+            }
+            CiOp::CSlli | CiOp::CLwsp | CiOp::CLdsp | CiOp::CFldsp => COpcodeSpace::C2,
+        }
+    }
+}
+
+impl CiwOp {
+    pub fn funct3(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CiwOp::CAddi4spn => 0b000,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            CiwOp::CAddi4spn => COpcodeSpace::C0,
+        }
+    }
+}
+
+impl CbOp {
+    pub fn funct3(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CbOp::CSrli | CbOp::CSrai | CbOp::CAndi => 0b100,
+        }
+    }
+
+    pub fn funct2(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CbOp::CSrli => 0b00,
+            CbOp::CSrai => 0b01,
+            CbOp::CAndi => 0b10,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            CbOp::CSrli | CbOp::CSrai | CbOp::CAndi => COpcodeSpace::C1,
+        }
+    }
+}
+
+impl CssOp {
+    pub fn funct3(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CssOp::CFsdsp => 0b101,
+            CssOp::CSwsp => 0b110,
+            CssOp::CSdsp => 0b111,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            CssOp::CSwsp | CssOp::CSdsp | CssOp::CFsdsp => COpcodeSpace::C2,
+        }
+    }
+}
+
+impl CsOp {
+    pub fn funct3(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CsOp::CFsd => 0b101,
+            CsOp::CSw => 0b110,
+            CsOp::CSd => 0b111,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            CsOp::CSw | CsOp::CSd | CsOp::CFsd => COpcodeSpace::C0,
+        }
+    }
+}
+
+impl ClOp {
+    pub fn funct3(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            ClOp::CFld => 0b001,
+            ClOp::CLw => 0b010,
+            ClOp::CLd => 0b011,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            ClOp::CLw | ClOp::CLd | ClOp::CFld => COpcodeSpace::C0,
+        }
+    }
+}
+
+impl CsznOp {
+    pub fn funct6(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CsznOp::CNot
+            | CsznOp::CZextw
+            | CsznOp::CZextb
+            | CsznOp::CZexth
+            | CsznOp::CSextb
+            | CsznOp::CSexth => 0b100_111,
+        }
+    }
+
+    pub fn funct5(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            CsznOp::CNot => 0b11_101,
+            CsznOp::CZextb => 0b11_000,
+            CsznOp::CZexth => 0b11_010,
+            CsznOp::CZextw => 0b11_100,
+            CsznOp::CSextb => 0b11_001,
+            CsznOp::CSexth => 0b11_011,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            CsznOp::CNot
+            | CsznOp::CZextb
+            | CsznOp::CZexth
+            | CsznOp::CZextw
+            | CsznOp::CSextb
+            | CsznOp::CSexth => COpcodeSpace::C1,
+        }
+    }
+}
+
+impl ZcbMemOp {
+    pub fn funct6(&self) -> u32 {
+        // https://github.com/michaeljclark/riscv-meta/blob/master/opcodes
+        match self {
+            ZcbMemOp::CLbu => 0b100_000,
+            // These two opcodes are differentiated in the imm field of the instruction.
+            ZcbMemOp::CLhu | ZcbMemOp::CLh => 0b100_001,
+            ZcbMemOp::CSb => 0b100_010,
+            ZcbMemOp::CSh => 0b100_011,
+        }
+    }
+
+    pub fn imm_bits(&self) -> u8 {
+        match self {
+            ZcbMemOp::CLhu | ZcbMemOp::CLh | ZcbMemOp::CSh => 1,
+            ZcbMemOp::CLbu | ZcbMemOp::CSb => 2,
+        }
+    }
+
+    pub fn op(&self) -> COpcodeSpace {
+        // https://five-embeddev.com/riscv-isa-manual/latest/rvc-opcode-map.html#rvcopcodemap
+        match self {
+            ZcbMemOp::CLbu | ZcbMemOp::CLhu | ZcbMemOp::CLh | ZcbMemOp::CSb | ZcbMemOp::CSh => {
+                COpcodeSpace::C0
+            }
+        }
     }
 }

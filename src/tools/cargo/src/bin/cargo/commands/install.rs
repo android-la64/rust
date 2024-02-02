@@ -6,9 +6,9 @@ use anyhow::format_err;
 use cargo::core::{GitReference, SourceId, Workspace};
 use cargo::ops;
 use cargo::util::IntoUrl;
-use cargo::util::ToSemver;
-use cargo::util::VersionReqExt;
+use cargo::util_semver::VersionExt;
 use cargo::CargoResult;
+use itertools::Itertools;
 use semver::VersionReq;
 
 use cargo_util::paths;
@@ -16,7 +16,13 @@ use cargo_util::paths;
 pub fn cli() -> Command {
     subcommand("install")
         .about("Install a Rust binary. Default location is $HOME/.cargo/bin")
-        .arg(Arg::new("crate").value_parser(parse_crate).num_args(0..))
+        .arg(
+            Arg::new("crate")
+                .value_name("CRATE[@<VER>]")
+                .help("Select the package from the given source")
+                .value_parser(parse_crate)
+                .num_args(0..),
+        )
         .arg(
             opt("version", "Specify a version to install")
                 .alias("vers")
@@ -113,6 +119,7 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
         .get_many::<CrateVersion>("crate")
         .unwrap_or_default()
         .cloned()
+        .dedup_by(|x, y| x == y)
         .map(|(krate, local_version)| resolve_crate(krate, local_version, version))
         .collect::<crate::CargoResult<Vec<_>>>()?;
 
@@ -256,8 +263,8 @@ fn parse_semver_flag(v: &str) -> CargoResult<VersionReq> {
             ),
         }
     } else {
-        match v.to_semver() {
-            Ok(v) => Ok(VersionReq::exact(&v)),
+        match v.trim().parse::<semver::Version>() {
+            Ok(v) => Ok(v.to_exact_req()),
             Err(e) => {
                 let mut msg = e.to_string();
 

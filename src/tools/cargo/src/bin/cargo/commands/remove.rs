@@ -34,19 +34,19 @@ pub fn cli() -> clap::Command {
                 .conflicts_with("build")
                 .action(clap::ArgAction::SetTrue)
                 .group("section")
-                .help("Remove as development dependency"),
+                .help("Remove from dev-dependencies"),
             clap::Arg::new("build")
                 .long("build")
                 .conflicts_with("dev")
                 .action(clap::ArgAction::SetTrue)
                 .group("section")
-                .help("Remove as build dependency"),
+                .help("Remove from build-dependencies"),
             clap::Arg::new("target")
                 .long("target")
                 .num_args(1)
                 .value_name("TARGET")
                 .value_parser(clap::builder::NonEmptyStringValueParser::new())
-                .help("Remove as dependency from the given target platform"),
+                .help("Remove from target-dependencies"),
         ])
         .arg_package("Package to remove from")
         .arg_manifest_path()
@@ -270,7 +270,10 @@ fn gc_workspace(workspace: &Workspace<'_>) -> CargoResult<()> {
     }
 
     if is_modified {
-        cargo_util::paths::write(workspace.root_manifest(), manifest.to_string().as_bytes())?;
+        cargo_util::paths::write_atomic(
+            workspace.root_manifest(),
+            manifest.to_string().as_bytes(),
+        )?;
     }
 
     Ok(())
@@ -283,7 +286,7 @@ fn spec_has_match(
     config: &Config,
 ) -> CargoResult<bool> {
     for dep in dependencies {
-        if spec.name().as_str() != &dep.name {
+        if spec.name() != &dep.name {
             continue;
         }
 

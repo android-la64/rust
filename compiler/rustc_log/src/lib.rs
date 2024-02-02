@@ -23,10 +23,10 @@
 //! }
 //! ```
 //!
-//! Now `LOG=debug cargo run` will run your minimal main.rs and show
+//! Now `LOG=debug cargo +nightly run` will run your minimal main.rs and show
 //! rustc's debug logging. In a workflow like this, one might also add
 //! `std::env::set_var("LOG", "debug")` to the top of main so that `cargo
-//! run` by itself is sufficient to get logs.
+//! +nightly run` by itself is sufficient to get logs.
 //!
 //! The reason rustc_log is a tiny separate crate, as opposed to exposing the
 //! same things in rustc_driver only, is to enable the above workflow. If you
@@ -74,6 +74,11 @@ pub fn init_env_logger(env: &str) -> Result<(), Error> {
         Some(v) => &v != "0",
     };
 
+    let verbose_thread_ids = match env::var_os(String::from(env) + "_THREAD_IDS") {
+        None => false,
+        Some(v) => &v == "1",
+    };
+
     let layer = tracing_tree::HierarchicalLayer::default()
         .with_writer(io::stderr)
         .with_indent_lines(true)
@@ -81,9 +86,9 @@ pub fn init_env_logger(env: &str) -> Result<(), Error> {
         .with_targets(true)
         .with_verbose_exit(verbose_entry_exit)
         .with_verbose_entry(verbose_entry_exit)
-        .with_indent_amount(2);
-    #[cfg(all(parallel_compiler, debug_assertions))]
-    let layer = layer.with_thread_ids(true).with_thread_names(true);
+        .with_indent_amount(2)
+        .with_thread_ids(verbose_thread_ids)
+        .with_thread_names(verbose_thread_ids);
 
     let subscriber = tracing_subscriber::Registry::default().with(filter).with(layer);
     match env::var(format!("{env}_BACKTRACE")) {

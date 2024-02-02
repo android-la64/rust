@@ -134,9 +134,9 @@ where
 
             for component in components {
                 match *component.kind() {
-                    // The information required to determine whether a generator has drop is
+                    // The information required to determine whether a coroutine has drop is
                     // computed on MIR, while this very method is used to build MIR.
-                    // To avoid cycles, we consider that generators always require drop.
+                    // To avoid cycles, we consider that coroutines always require drop.
                     //
                     // HACK: Because we erase regions contained in the coroutine witness, we
                     // have to conservatively assume that every region captured by the
@@ -145,15 +145,15 @@ where
                     // for the coroutine witness and check whether any of the contained types
                     // need to be dropped, and only require the captured types to be live
                     // if they do.
-                    ty::Generator(_, args, _) => {
+                    ty::Coroutine(_, args, _) => {
                         if self.reveal_coroutine_witnesses {
-                            queue_type(self, args.as_generator().witness());
+                            queue_type(self, args.as_coroutine().witness());
                         } else {
                             return Some(Err(AlwaysRequiresDrop));
                         }
                     }
-                    ty::GeneratorWitness(def_id, args) => {
-                        if let Some(witness) = tcx.mir_generator_witnesses(def_id) {
+                    ty::CoroutineWitness(def_id, args) => {
+                        if let Some(witness) = tcx.mir_coroutine_witnesses(def_id) {
                             self.reveal_coroutine_witnesses = true;
                             for field_ty in &witness.field_tys {
                                 queue_type(

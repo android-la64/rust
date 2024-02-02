@@ -16,37 +16,37 @@ pub mod XboxController;
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DefRawInputProc(parawinput: &[*const RAWINPUT], cbsizeheader: u32) -> super::super::Foundation::LRESULT {
-    ::windows_targets::link ! ( "user32.dll""system" fn DefRawInputProc ( parawinput : *const *const RAWINPUT , ninput : i32 , cbsizeheader : u32 ) -> super::super::Foundation:: LRESULT );
+    ::windows_targets::link!("user32.dll" "system" fn DefRawInputProc(parawinput : *const *const RAWINPUT, ninput : i32, cbsizeheader : u32) -> super::super::Foundation:: LRESULT);
     DefRawInputProc(::core::mem::transmute(parawinput.as_ptr()), parawinput.len() as _, cbsizeheader)
 }
 #[doc = "*Required features: `\"Win32_UI_Input\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetCIMSSM(inputmessagesource: *mut INPUT_MESSAGE_SOURCE) -> super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetCIMSSM ( inputmessagesource : *mut INPUT_MESSAGE_SOURCE ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link!("user32.dll" "system" fn GetCIMSSM(inputmessagesource : *mut INPUT_MESSAGE_SOURCE) -> super::super::Foundation:: BOOL);
     GetCIMSSM(inputmessagesource)
 }
 #[doc = "*Required features: `\"Win32_UI_Input\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn GetCurrentInputMessageSource(inputmessagesource: *mut INPUT_MESSAGE_SOURCE) -> super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetCurrentInputMessageSource ( inputmessagesource : *mut INPUT_MESSAGE_SOURCE ) -> super::super::Foundation:: BOOL );
-    GetCurrentInputMessageSource(inputmessagesource)
+pub unsafe fn GetCurrentInputMessageSource(inputmessagesource: *mut INPUT_MESSAGE_SOURCE) -> ::windows_core::Result<()> {
+    ::windows_targets::link!("user32.dll" "system" fn GetCurrentInputMessageSource(inputmessagesource : *mut INPUT_MESSAGE_SOURCE) -> super::super::Foundation:: BOOL);
+    GetCurrentInputMessageSource(inputmessagesource).ok()
 }
 #[doc = "*Required features: `\"Win32_UI_Input\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetRawInputBuffer(pdata: ::core::option::Option<*mut RAWINPUT>, pcbsize: *mut u32, cbsizeheader: u32) -> u32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetRawInputBuffer ( pdata : *mut RAWINPUT , pcbsize : *mut u32 , cbsizeheader : u32 ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetRawInputBuffer(pdata : *mut RAWINPUT, pcbsize : *mut u32, cbsizeheader : u32) -> u32);
     GetRawInputBuffer(::core::mem::transmute(pdata.unwrap_or(::std::ptr::null_mut())), pcbsize, cbsizeheader)
 }
 #[doc = "*Required features: `\"Win32_UI_Input\"`*"]
 #[inline]
 pub unsafe fn GetRawInputData<P0>(hrawinput: P0, uicommand: RAW_INPUT_DATA_COMMAND_FLAGS, pdata: ::core::option::Option<*mut ::core::ffi::c_void>, pcbsize: *mut u32, cbsizeheader: u32) -> u32
 where
-    P0: ::windows::core::IntoParam<HRAWINPUT>,
+    P0: ::windows_core::IntoParam<HRAWINPUT>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetRawInputData ( hrawinput : HRAWINPUT , uicommand : RAW_INPUT_DATA_COMMAND_FLAGS , pdata : *mut ::core::ffi::c_void , pcbsize : *mut u32 , cbsizeheader : u32 ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetRawInputData(hrawinput : HRAWINPUT, uicommand : RAW_INPUT_DATA_COMMAND_FLAGS, pdata : *mut ::core::ffi::c_void, pcbsize : *mut u32, cbsizeheader : u32) -> u32);
     GetRawInputData(hrawinput.into_param().abi(), uicommand, ::core::mem::transmute(pdata.unwrap_or(::std::ptr::null_mut())), pcbsize, cbsizeheader)
 }
 #[doc = "*Required features: `\"Win32_UI_Input\"`, `\"Win32_Foundation\"`*"]
@@ -54,9 +54,9 @@ where
 #[inline]
 pub unsafe fn GetRawInputDeviceInfoA<P0>(hdevice: P0, uicommand: RAW_INPUT_DEVICE_INFO_COMMAND, pdata: ::core::option::Option<*mut ::core::ffi::c_void>, pcbsize: *mut u32) -> u32
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetRawInputDeviceInfoA ( hdevice : super::super::Foundation:: HANDLE , uicommand : RAW_INPUT_DEVICE_INFO_COMMAND , pdata : *mut ::core::ffi::c_void , pcbsize : *mut u32 ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetRawInputDeviceInfoA(hdevice : super::super::Foundation:: HANDLE, uicommand : RAW_INPUT_DEVICE_INFO_COMMAND, pdata : *mut ::core::ffi::c_void, pcbsize : *mut u32) -> u32);
     GetRawInputDeviceInfoA(hdevice.into_param().abi(), uicommand, ::core::mem::transmute(pdata.unwrap_or(::std::ptr::null_mut())), pcbsize)
 }
 #[doc = "*Required features: `\"Win32_UI_Input\"`, `\"Win32_Foundation\"`*"]
@@ -64,48 +64,92 @@ where
 #[inline]
 pub unsafe fn GetRawInputDeviceInfoW<P0>(hdevice: P0, uicommand: RAW_INPUT_DEVICE_INFO_COMMAND, pdata: ::core::option::Option<*mut ::core::ffi::c_void>, pcbsize: *mut u32) -> u32
 where
-    P0: ::windows::core::IntoParam<super::super::Foundation::HANDLE>,
+    P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetRawInputDeviceInfoW ( hdevice : super::super::Foundation:: HANDLE , uicommand : RAW_INPUT_DEVICE_INFO_COMMAND , pdata : *mut ::core::ffi::c_void , pcbsize : *mut u32 ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetRawInputDeviceInfoW(hdevice : super::super::Foundation:: HANDLE, uicommand : RAW_INPUT_DEVICE_INFO_COMMAND, pdata : *mut ::core::ffi::c_void, pcbsize : *mut u32) -> u32);
     GetRawInputDeviceInfoW(hdevice.into_param().abi(), uicommand, ::core::mem::transmute(pdata.unwrap_or(::std::ptr::null_mut())), pcbsize)
 }
 #[doc = "*Required features: `\"Win32_UI_Input\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetRawInputDeviceList(prawinputdevicelist: ::core::option::Option<*mut RAWINPUTDEVICELIST>, puinumdevices: *mut u32, cbsize: u32) -> u32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetRawInputDeviceList ( prawinputdevicelist : *mut RAWINPUTDEVICELIST , puinumdevices : *mut u32 , cbsize : u32 ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetRawInputDeviceList(prawinputdevicelist : *mut RAWINPUTDEVICELIST, puinumdevices : *mut u32, cbsize : u32) -> u32);
     GetRawInputDeviceList(::core::mem::transmute(prawinputdevicelist.unwrap_or(::std::ptr::null_mut())), puinumdevices, cbsize)
 }
 #[doc = "*Required features: `\"Win32_UI_Input\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetRegisteredRawInputDevices(prawinputdevices: ::core::option::Option<*mut RAWINPUTDEVICE>, puinumdevices: *mut u32, cbsize: u32) -> u32 {
-    ::windows_targets::link ! ( "user32.dll""system" fn GetRegisteredRawInputDevices ( prawinputdevices : *mut RAWINPUTDEVICE , puinumdevices : *mut u32 , cbsize : u32 ) -> u32 );
+    ::windows_targets::link!("user32.dll" "system" fn GetRegisteredRawInputDevices(prawinputdevices : *mut RAWINPUTDEVICE, puinumdevices : *mut u32, cbsize : u32) -> u32);
     GetRegisteredRawInputDevices(::core::mem::transmute(prawinputdevices.unwrap_or(::std::ptr::null_mut())), puinumdevices, cbsize)
 }
 #[doc = "*Required features: `\"Win32_UI_Input\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
-pub unsafe fn RegisterRawInputDevices(prawinputdevices: &[RAWINPUTDEVICE], cbsize: u32) -> super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "user32.dll""system" fn RegisterRawInputDevices ( prawinputdevices : *const RAWINPUTDEVICE , uinumdevices : u32 , cbsize : u32 ) -> super::super::Foundation:: BOOL );
-    RegisterRawInputDevices(::core::mem::transmute(prawinputdevices.as_ptr()), prawinputdevices.len() as _, cbsize)
+pub unsafe fn RegisterRawInputDevices(prawinputdevices: &[RAWINPUTDEVICE], cbsize: u32) -> ::windows_core::Result<()> {
+    ::windows_targets::link!("user32.dll" "system" fn RegisterRawInputDevices(prawinputdevices : *const RAWINPUTDEVICE, uinumdevices : u32, cbsize : u32) -> super::super::Foundation:: BOOL);
+    RegisterRawInputDevices(::core::mem::transmute(prawinputdevices.as_ptr()), prawinputdevices.len() as _, cbsize).ok()
 }
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-#[repr(transparent)]
-#[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
-pub struct INPUT_MESSAGE_DEVICE_TYPE(pub i32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const IMDT_UNAVAILABLE: INPUT_MESSAGE_DEVICE_TYPE = INPUT_MESSAGE_DEVICE_TYPE(0i32);
 #[doc = "*Required features: `\"Win32_UI_Input\"`*"]
 pub const IMDT_KEYBOARD: INPUT_MESSAGE_DEVICE_TYPE = INPUT_MESSAGE_DEVICE_TYPE(1i32);
 #[doc = "*Required features: `\"Win32_UI_Input\"`*"]
 pub const IMDT_MOUSE: INPUT_MESSAGE_DEVICE_TYPE = INPUT_MESSAGE_DEVICE_TYPE(2i32);
 #[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const IMDT_TOUCH: INPUT_MESSAGE_DEVICE_TYPE = INPUT_MESSAGE_DEVICE_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
 pub const IMDT_PEN: INPUT_MESSAGE_DEVICE_TYPE = INPUT_MESSAGE_DEVICE_TYPE(8i32);
 #[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const IMDT_TOUCH: INPUT_MESSAGE_DEVICE_TYPE = INPUT_MESSAGE_DEVICE_TYPE(4i32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
 pub const IMDT_TOUCHPAD: INPUT_MESSAGE_DEVICE_TYPE = INPUT_MESSAGE_DEVICE_TYPE(16i32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const IMDT_UNAVAILABLE: INPUT_MESSAGE_DEVICE_TYPE = INPUT_MESSAGE_DEVICE_TYPE(0i32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const IMO_HARDWARE: INPUT_MESSAGE_ORIGIN_ID = INPUT_MESSAGE_ORIGIN_ID(1i32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const IMO_INJECTED: INPUT_MESSAGE_ORIGIN_ID = INPUT_MESSAGE_ORIGIN_ID(2i32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const IMO_SYSTEM: INPUT_MESSAGE_ORIGIN_ID = INPUT_MESSAGE_ORIGIN_ID(4i32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const IMO_UNAVAILABLE: INPUT_MESSAGE_ORIGIN_ID = INPUT_MESSAGE_ORIGIN_ID(0i32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_APPKEYS: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(1024u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_CAPTUREMOUSE: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(512u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_DEVNOTIFY: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(8192u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_EXCLUDE: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(16u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_EXINPUTSINK: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(4096u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_INPUTSINK: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(256u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_NOHOTKEYS: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(512u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_NOLEGACY: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(48u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_PAGEONLY: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(32u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDEV_REMOVE: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDI_DEVICEINFO: RAW_INPUT_DEVICE_INFO_COMMAND = RAW_INPUT_DEVICE_INFO_COMMAND(536870923u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDI_DEVICENAME: RAW_INPUT_DEVICE_INFO_COMMAND = RAW_INPUT_DEVICE_INFO_COMMAND(536870919u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIDI_PREPARSEDDATA: RAW_INPUT_DEVICE_INFO_COMMAND = RAW_INPUT_DEVICE_INFO_COMMAND(536870917u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RID_HEADER: RAW_INPUT_DATA_COMMAND_FLAGS = RAW_INPUT_DATA_COMMAND_FLAGS(268435461u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RID_INPUT: RAW_INPUT_DATA_COMMAND_FLAGS = RAW_INPUT_DATA_COMMAND_FLAGS(268435459u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIM_TYPEHID: RID_DEVICE_INFO_TYPE = RID_DEVICE_INFO_TYPE(2u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIM_TYPEKEYBOARD: RID_DEVICE_INFO_TYPE = RID_DEVICE_INFO_TYPE(1u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+pub const RIM_TYPEMOUSE: RID_DEVICE_INFO_TYPE = RID_DEVICE_INFO_TYPE(0u32);
+#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
+#[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
+pub struct INPUT_MESSAGE_DEVICE_TYPE(pub i32);
 impl ::core::marker::Copy for INPUT_MESSAGE_DEVICE_TYPE {}
 impl ::core::clone::Clone for INPUT_MESSAGE_DEVICE_TYPE {
     fn clone(&self) -> Self {
@@ -117,8 +161,8 @@ impl ::core::default::Default for INPUT_MESSAGE_DEVICE_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for INPUT_MESSAGE_DEVICE_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for INPUT_MESSAGE_DEVICE_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for INPUT_MESSAGE_DEVICE_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -129,14 +173,6 @@ impl ::core::fmt::Debug for INPUT_MESSAGE_DEVICE_TYPE {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct INPUT_MESSAGE_ORIGIN_ID(pub i32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const IMO_UNAVAILABLE: INPUT_MESSAGE_ORIGIN_ID = INPUT_MESSAGE_ORIGIN_ID(0i32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const IMO_HARDWARE: INPUT_MESSAGE_ORIGIN_ID = INPUT_MESSAGE_ORIGIN_ID(1i32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const IMO_INJECTED: INPUT_MESSAGE_ORIGIN_ID = INPUT_MESSAGE_ORIGIN_ID(2i32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const IMO_SYSTEM: INPUT_MESSAGE_ORIGIN_ID = INPUT_MESSAGE_ORIGIN_ID(4i32);
 impl ::core::marker::Copy for INPUT_MESSAGE_ORIGIN_ID {}
 impl ::core::clone::Clone for INPUT_MESSAGE_ORIGIN_ID {
     fn clone(&self) -> Self {
@@ -148,8 +184,8 @@ impl ::core::default::Default for INPUT_MESSAGE_ORIGIN_ID {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for INPUT_MESSAGE_ORIGIN_ID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for INPUT_MESSAGE_ORIGIN_ID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for INPUT_MESSAGE_ORIGIN_ID {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -160,26 +196,6 @@ impl ::core::fmt::Debug for INPUT_MESSAGE_ORIGIN_ID {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RAWINPUTDEVICE_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_REMOVE: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_EXCLUDE: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(16u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_PAGEONLY: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(32u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_NOLEGACY: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(48u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_INPUTSINK: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(256u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_CAPTUREMOUSE: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(512u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_NOHOTKEYS: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(512u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_APPKEYS: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(1024u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_EXINPUTSINK: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(4096u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDEV_DEVNOTIFY: RAWINPUTDEVICE_FLAGS = RAWINPUTDEVICE_FLAGS(8192u32);
 impl ::core::marker::Copy for RAWINPUTDEVICE_FLAGS {}
 impl ::core::clone::Clone for RAWINPUTDEVICE_FLAGS {
     fn clone(&self) -> Self {
@@ -191,8 +207,8 @@ impl ::core::default::Default for RAWINPUTDEVICE_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for RAWINPUTDEVICE_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWINPUTDEVICE_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for RAWINPUTDEVICE_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -236,10 +252,6 @@ impl ::core::ops::Not for RAWINPUTDEVICE_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RAW_INPUT_DATA_COMMAND_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RID_HEADER: RAW_INPUT_DATA_COMMAND_FLAGS = RAW_INPUT_DATA_COMMAND_FLAGS(268435461u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RID_INPUT: RAW_INPUT_DATA_COMMAND_FLAGS = RAW_INPUT_DATA_COMMAND_FLAGS(268435459u32);
 impl ::core::marker::Copy for RAW_INPUT_DATA_COMMAND_FLAGS {}
 impl ::core::clone::Clone for RAW_INPUT_DATA_COMMAND_FLAGS {
     fn clone(&self) -> Self {
@@ -251,8 +263,8 @@ impl ::core::default::Default for RAW_INPUT_DATA_COMMAND_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for RAW_INPUT_DATA_COMMAND_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAW_INPUT_DATA_COMMAND_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for RAW_INPUT_DATA_COMMAND_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -263,12 +275,6 @@ impl ::core::fmt::Debug for RAW_INPUT_DATA_COMMAND_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RAW_INPUT_DEVICE_INFO_COMMAND(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDI_PREPARSEDDATA: RAW_INPUT_DEVICE_INFO_COMMAND = RAW_INPUT_DEVICE_INFO_COMMAND(536870917u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDI_DEVICENAME: RAW_INPUT_DEVICE_INFO_COMMAND = RAW_INPUT_DEVICE_INFO_COMMAND(536870919u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIDI_DEVICEINFO: RAW_INPUT_DEVICE_INFO_COMMAND = RAW_INPUT_DEVICE_INFO_COMMAND(536870923u32);
 impl ::core::marker::Copy for RAW_INPUT_DEVICE_INFO_COMMAND {}
 impl ::core::clone::Clone for RAW_INPUT_DEVICE_INFO_COMMAND {
     fn clone(&self) -> Self {
@@ -280,8 +286,8 @@ impl ::core::default::Default for RAW_INPUT_DEVICE_INFO_COMMAND {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for RAW_INPUT_DEVICE_INFO_COMMAND {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAW_INPUT_DEVICE_INFO_COMMAND {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for RAW_INPUT_DEVICE_INFO_COMMAND {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -292,12 +298,6 @@ impl ::core::fmt::Debug for RAW_INPUT_DEVICE_INFO_COMMAND {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RID_DEVICE_INFO_TYPE(pub u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIM_TYPEMOUSE: RID_DEVICE_INFO_TYPE = RID_DEVICE_INFO_TYPE(0u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIM_TYPEKEYBOARD: RID_DEVICE_INFO_TYPE = RID_DEVICE_INFO_TYPE(1u32);
-#[doc = "*Required features: `\"Win32_UI_Input\"`*"]
-pub const RIM_TYPEHID: RID_DEVICE_INFO_TYPE = RID_DEVICE_INFO_TYPE(2u32);
 impl ::core::marker::Copy for RID_DEVICE_INFO_TYPE {}
 impl ::core::clone::Clone for RID_DEVICE_INFO_TYPE {
     fn clone(&self) -> Self {
@@ -309,8 +309,8 @@ impl ::core::default::Default for RID_DEVICE_INFO_TYPE {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for RID_DEVICE_INFO_TYPE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RID_DEVICE_INFO_TYPE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for RID_DEVICE_INFO_TYPE {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -341,8 +341,8 @@ impl ::core::fmt::Debug for HRAWINPUT {
         f.debug_tuple("HRAWINPUT").field(&self.0).finish()
     }
 }
-impl ::windows::core::TypeKind for HRAWINPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for HRAWINPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[repr(C)]
 #[doc = "*Required features: `\"Win32_UI_Input\"`*"]
@@ -361,8 +361,8 @@ impl ::core::fmt::Debug for INPUT_MESSAGE_SOURCE {
         f.debug_struct("INPUT_MESSAGE_SOURCE").field("deviceType", &self.deviceType).field("originId", &self.originId).finish()
     }
 }
-impl ::windows::core::TypeKind for INPUT_MESSAGE_SOURCE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for INPUT_MESSAGE_SOURCE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for INPUT_MESSAGE_SOURCE {
     fn eq(&self, other: &Self) -> bool {
@@ -393,8 +393,8 @@ impl ::core::fmt::Debug for RAWHID {
         f.debug_struct("RAWHID").field("dwSizeHid", &self.dwSizeHid).field("dwCount", &self.dwCount).field("bRawData", &self.bRawData).finish()
     }
 }
-impl ::windows::core::TypeKind for RAWHID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWHID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RAWHID {
     fn eq(&self, other: &Self) -> bool {
@@ -423,8 +423,8 @@ impl ::core::clone::Clone for RAWINPUT {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for RAWINPUT {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWINPUT {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for RAWINPUT {
@@ -449,8 +449,8 @@ impl ::core::clone::Clone for RAWINPUT_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for RAWINPUT_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWINPUT_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for RAWINPUT_0 {
@@ -482,8 +482,8 @@ impl ::core::fmt::Debug for RAWINPUTDEVICE {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for RAWINPUTDEVICE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWINPUTDEVICE {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for RAWINPUTDEVICE {
@@ -521,8 +521,8 @@ impl ::core::fmt::Debug for RAWINPUTDEVICELIST {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for RAWINPUTDEVICELIST {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWINPUTDEVICELIST {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for RAWINPUTDEVICELIST {
@@ -562,8 +562,8 @@ impl ::core::fmt::Debug for RAWINPUTHEADER {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for RAWINPUTHEADER {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWINPUTHEADER {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for RAWINPUTHEADER {
@@ -600,8 +600,8 @@ impl ::core::fmt::Debug for RAWKEYBOARD {
         f.debug_struct("RAWKEYBOARD").field("MakeCode", &self.MakeCode).field("Flags", &self.Flags).field("Reserved", &self.Reserved).field("VKey", &self.VKey).field("Message", &self.Message).field("ExtraInformation", &self.ExtraInformation).finish()
     }
 }
-impl ::windows::core::TypeKind for RAWKEYBOARD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWKEYBOARD {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RAWKEYBOARD {
     fn eq(&self, other: &Self) -> bool {
@@ -630,8 +630,8 @@ impl ::core::clone::Clone for RAWMOUSE {
         *self
     }
 }
-impl ::windows::core::TypeKind for RAWMOUSE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWMOUSE {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for RAWMOUSE {
     fn default() -> Self {
@@ -650,8 +650,8 @@ impl ::core::clone::Clone for RAWMOUSE_0 {
         *self
     }
 }
-impl ::windows::core::TypeKind for RAWMOUSE_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWMOUSE_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::default::Default for RAWMOUSE_0 {
     fn default() -> Self {
@@ -675,8 +675,8 @@ impl ::core::fmt::Debug for RAWMOUSE_0_0 {
         f.debug_struct("RAWMOUSE_0_0").field("usButtonFlags", &self.usButtonFlags).field("usButtonData", &self.usButtonData).finish()
     }
 }
-impl ::windows::core::TypeKind for RAWMOUSE_0_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RAWMOUSE_0_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RAWMOUSE_0_0 {
     fn eq(&self, other: &Self) -> bool {
@@ -706,8 +706,8 @@ impl ::core::clone::Clone for RID_DEVICE_INFO {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for RID_DEVICE_INFO {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RID_DEVICE_INFO {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for RID_DEVICE_INFO {
@@ -732,8 +732,8 @@ impl ::core::clone::Clone for RID_DEVICE_INFO_0 {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for RID_DEVICE_INFO_0 {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RID_DEVICE_INFO_0 {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::default::Default for RID_DEVICE_INFO_0 {
@@ -761,8 +761,8 @@ impl ::core::fmt::Debug for RID_DEVICE_INFO_HID {
         f.debug_struct("RID_DEVICE_INFO_HID").field("dwVendorId", &self.dwVendorId).field("dwProductId", &self.dwProductId).field("dwVersionNumber", &self.dwVersionNumber).field("usUsagePage", &self.usUsagePage).field("usUsage", &self.usUsage).finish()
     }
 }
-impl ::windows::core::TypeKind for RID_DEVICE_INFO_HID {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RID_DEVICE_INFO_HID {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RID_DEVICE_INFO_HID {
     fn eq(&self, other: &Self) -> bool {
@@ -796,8 +796,8 @@ impl ::core::fmt::Debug for RID_DEVICE_INFO_KEYBOARD {
         f.debug_struct("RID_DEVICE_INFO_KEYBOARD").field("dwType", &self.dwType).field("dwSubType", &self.dwSubType).field("dwKeyboardMode", &self.dwKeyboardMode).field("dwNumberOfFunctionKeys", &self.dwNumberOfFunctionKeys).field("dwNumberOfIndicators", &self.dwNumberOfIndicators).field("dwNumberOfKeysTotal", &self.dwNumberOfKeysTotal).finish()
     }
 }
-impl ::windows::core::TypeKind for RID_DEVICE_INFO_KEYBOARD {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RID_DEVICE_INFO_KEYBOARD {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for RID_DEVICE_INFO_KEYBOARD {
     fn eq(&self, other: &Self) -> bool {
@@ -834,8 +834,8 @@ impl ::core::fmt::Debug for RID_DEVICE_INFO_MOUSE {
     }
 }
 #[cfg(feature = "Win32_Foundation")]
-impl ::windows::core::TypeKind for RID_DEVICE_INFO_MOUSE {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for RID_DEVICE_INFO_MOUSE {
+    type TypeKind = ::windows_core::CopyType;
 }
 #[cfg(feature = "Win32_Foundation")]
 impl ::core::cmp::PartialEq for RID_DEVICE_INFO_MOUSE {
@@ -851,5 +851,3 @@ impl ::core::default::Default for RID_DEVICE_INFO_MOUSE {
         unsafe { ::core::mem::zeroed() }
     }
 }
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

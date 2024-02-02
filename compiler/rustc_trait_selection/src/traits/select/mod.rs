@@ -38,6 +38,7 @@ use rustc_infer::traits::TraitObligation;
 use rustc_middle::dep_graph::dep_kinds;
 use rustc_middle::dep_graph::DepNodeIndex;
 use rustc_middle::mir::interpret::ErrorHandled;
+use rustc_middle::ty::_match::MatchAgainstFreshVars;
 use rustc_middle::ty::abstract_const::NotConstEvaluatable;
 use rustc_middle::ty::fold::BottomUpFolder;
 use rustc_middle::ty::relate::TypeRelation;
@@ -858,7 +859,8 @@ impl<'cx, 'tcx> SelectionContext<'cx, 'tcx> {
                                     subobligations,
                                 );
                                 if let Ok(eval_rslt) = res
-                                    && (eval_rslt == EvaluatedToOk || eval_rslt == EvaluatedToOkModuloRegions)
+                                    && (eval_rslt == EvaluatedToOk
+                                        || eval_rslt == EvaluatedToOkModuloRegions)
                                     && let Some(key) =
                                         ProjectionCacheKey::from_poly_projection_predicate(
                                             self, data,
@@ -1884,8 +1886,9 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
                 ImplCandidate(..)
                 | AutoImplCandidate
                 | ClosureCandidate { .. }
-                | GeneratorCandidate
+                | CoroutineCandidate
                 | FutureCandidate
+                | IteratorCandidate
                 | FnPointerCandidate { .. }
                 | BuiltinObjectCandidate
                 | BuiltinUnsizeCandidate
@@ -1912,8 +1915,9 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
                 ImplCandidate(_)
                 | AutoImplCandidate
                 | ClosureCandidate { .. }
-                | GeneratorCandidate
+                | CoroutineCandidate
                 | FutureCandidate
+                | IteratorCandidate
                 | FnPointerCandidate { .. }
                 | BuiltinObjectCandidate
                 | BuiltinUnsizeCandidate
@@ -1946,8 +1950,9 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
                 ImplCandidate(..)
                 | AutoImplCandidate
                 | ClosureCandidate { .. }
-                | GeneratorCandidate
+                | CoroutineCandidate
                 | FutureCandidate
+                | IteratorCandidate
                 | FnPointerCandidate { .. }
                 | BuiltinObjectCandidate
                 | BuiltinUnsizeCandidate
@@ -1960,8 +1965,9 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
                 ImplCandidate(..)
                 | AutoImplCandidate
                 | ClosureCandidate { .. }
-                | GeneratorCandidate
+                | CoroutineCandidate
                 | FutureCandidate
+                | IteratorCandidate
                 | FnPointerCandidate { .. }
                 | BuiltinObjectCandidate
                 | BuiltinUnsizeCandidate
@@ -2066,8 +2072,9 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
             (
                 ImplCandidate(_)
                 | ClosureCandidate { .. }
-                | GeneratorCandidate
+                | CoroutineCandidate
                 | FutureCandidate
+                | IteratorCandidate
                 | FnPointerCandidate { .. }
                 | BuiltinObjectCandidate
                 | BuiltinUnsizeCandidate
@@ -2076,8 +2083,9 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
                 | TraitAliasCandidate,
                 ImplCandidate(_)
                 | ClosureCandidate { .. }
-                | GeneratorCandidate
+                | CoroutineCandidate
                 | FutureCandidate
+                | IteratorCandidate
                 | FnPointerCandidate { .. }
                 | BuiltinObjectCandidate
                 | BuiltinUnsizeCandidate
@@ -2110,8 +2118,8 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
             | ty::RawPtr(..)
             | ty::Char
             | ty::Ref(..)
-            | ty::Generator(..)
-            | ty::GeneratorWitness(..)
+            | ty::Coroutine(..)
+            | ty::CoroutineWitness(..)
             | ty::Array(..)
             | ty::Closure(..)
             | ty::Never
@@ -2178,7 +2186,7 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
             ty::Dynamic(..)
             | ty::Str
             | ty::Slice(..)
-            | ty::Generator(_, _, hir::Movability::Static)
+            | ty::Coroutine(_, _, hir::Movability::Static)
             | ty::Foreign(..)
             | ty::Ref(_, _, hir::Mutability::Mut) => None,
 
@@ -2187,21 +2195,21 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
                 Where(obligation.predicate.rebind(tys.iter().collect()))
             }
 
-            ty::Generator(_, args, hir::Movability::Movable) => {
-                if self.tcx().features().generator_clone {
+            ty::Coroutine(_, args, hir::Movability::Movable) => {
+                if self.tcx().features().coroutine_clone {
                     let resolved_upvars =
-                        self.infcx.shallow_resolve(args.as_generator().tupled_upvars_ty());
+                        self.infcx.shallow_resolve(args.as_coroutine().tupled_upvars_ty());
                     let resolved_witness =
-                        self.infcx.shallow_resolve(args.as_generator().witness());
+                        self.infcx.shallow_resolve(args.as_coroutine().witness());
                     if resolved_upvars.is_ty_var() || resolved_witness.is_ty_var() {
                         // Not yet resolved.
                         Ambiguous
                     } else {
                         let all = args
-                            .as_generator()
+                            .as_coroutine()
                             .upvar_tys()
                             .iter()
-                            .chain([args.as_generator().witness()])
+                            .chain([args.as_coroutine().witness()])
                             .collect::<Vec<_>>();
                         Where(obligation.predicate.rebind(all))
                     }
@@ -2210,8 +2218,8 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
                 }
             }
 
-            ty::GeneratorWitness(def_id, ref args) => {
-                let hidden_types = bind_generator_hidden_types_above(
+            ty::CoroutineWitness(def_id, ref args) => {
+                let hidden_types = bind_coroutine_hidden_types_above(
                     self.infcx,
                     def_id,
                     args,
@@ -2309,14 +2317,14 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
                 t.rebind(vec![ty])
             }
 
-            ty::Generator(_, ref args, _) => {
-                let ty = self.infcx.shallow_resolve(args.as_generator().tupled_upvars_ty());
-                let witness = args.as_generator().witness();
+            ty::Coroutine(_, ref args, _) => {
+                let ty = self.infcx.shallow_resolve(args.as_coroutine().tupled_upvars_ty());
+                let witness = args.as_coroutine().witness();
                 t.rebind([ty].into_iter().chain(iter::once(witness)).collect())
             }
 
-            ty::GeneratorWitness(def_id, ref args) => {
-                bind_generator_hidden_types_above(self.infcx, def_id, args, t.bound_vars())
+            ty::CoroutineWitness(def_id, ref args) => {
+                bind_coroutine_hidden_types_above(self.infcx, def_id, args, t.bound_vars())
             }
 
             // For `PhantomData<T>`, we pass `T`.
@@ -2381,12 +2389,21 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
                         )
                     });
 
-                let obligation = Obligation::new(
-                    self.tcx(),
-                    cause.clone(),
-                    param_env,
-                    ty::TraitRef::new(self.tcx(), trait_def_id, [normalized_ty]),
-                );
+                let tcx = self.tcx();
+                let trait_ref = if tcx.generics_of(trait_def_id).params.len() == 1 {
+                    ty::TraitRef::new(tcx, trait_def_id, [normalized_ty])
+                } else {
+                    // If this is an ill-formed auto/built-in trait, then synthesize
+                    // new error args for the missing generics.
+                    let err_args = ty::GenericArgs::extend_with_error(
+                        tcx,
+                        trait_def_id,
+                        &[normalized_ty.into()],
+                    );
+                    ty::TraitRef::new(tcx, trait_def_id, err_args)
+                };
+
+                let obligation = Obligation::new(self.tcx(), cause.clone(), param_env, trait_ref);
                 obligations.push(obligation);
                 obligations
             })
@@ -2623,7 +2640,7 @@ impl<'tcx> SelectionContext<'_, 'tcx> {
         current: ty::PolyTraitPredicate<'tcx>,
         param_env: ty::ParamEnv<'tcx>,
     ) -> bool {
-        let mut matcher = ty::_match::Match::new(self.tcx(), param_env);
+        let mut matcher = MatchAgainstFreshVars::new(self.tcx(), param_env);
         matcher.relate(previous, current).is_ok()
     }
 
@@ -3052,12 +3069,12 @@ pub enum ProjectionMatchesProjection {
     No,
 }
 
-/// Replace all regions inside the generator interior with late bound regions.
+/// Replace all regions inside the coroutine interior with late bound regions.
 /// Note that each region slot in the types gets a new fresh late bound region, which means that
 /// none of the regions inside relate to any other, even if typeck had previously found constraints
 /// that would cause them to be related.
 #[instrument(level = "trace", skip(infcx), ret)]
-fn bind_generator_hidden_types_above<'tcx>(
+fn bind_coroutine_hidden_types_above<'tcx>(
     infcx: &InferCtxt<'tcx>,
     def_id: DefId,
     args: ty::GenericArgsRef<'tcx>,
@@ -3072,7 +3089,7 @@ fn bind_generator_hidden_types_above<'tcx>(
     let mut counter = num_bound_variables;
 
     let hidden_types: Vec<_> = tcx
-        .generator_hidden_types(def_id)
+        .coroutine_hidden_types(def_id)
         // Deduplicate tys to avoid repeated work.
         .filter(|bty| seen_tys.insert(*bty))
         .map(|mut bty| {
@@ -3096,9 +3113,6 @@ fn bind_generator_hidden_types_above<'tcx>(
             bty.instantiate(tcx, args)
         })
         .collect();
-    if considering_regions {
-        debug_assert!(!hidden_types.has_erased_regions());
-    }
     let bound_vars =
         tcx.mk_bound_variable_kinds_from_iter(bound_vars.iter().chain(
             (num_bound_variables..counter).map(|_| ty::BoundVariableKind::Region(ty::BrAnon)),

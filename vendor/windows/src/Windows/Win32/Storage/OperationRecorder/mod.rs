@@ -2,22 +2,24 @@
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn OperationEnd(operationendparams: *const OPERATION_END_PARAMETERS) -> super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "advapi32.dll""system" fn OperationEnd ( operationendparams : *const OPERATION_END_PARAMETERS ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link!("advapi32.dll" "system" fn OperationEnd(operationendparams : *const OPERATION_END_PARAMETERS) -> super::super::Foundation:: BOOL);
     OperationEnd(operationendparams)
 }
 #[doc = "*Required features: `\"Win32_Storage_OperationRecorder\"`, `\"Win32_Foundation\"`*"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn OperationStart(operationstartparams: *const OPERATION_START_PARAMETERS) -> super::super::Foundation::BOOL {
-    ::windows_targets::link ! ( "advapi32.dll""system" fn OperationStart ( operationstartparams : *const OPERATION_START_PARAMETERS ) -> super::super::Foundation:: BOOL );
+    ::windows_targets::link!("advapi32.dll" "system" fn OperationStart(operationstartparams : *const OPERATION_START_PARAMETERS) -> super::super::Foundation:: BOOL);
     OperationStart(operationstartparams)
 }
+#[doc = "*Required features: `\"Win32_Storage_OperationRecorder\"`*"]
+pub const OPERATION_END_DISCARD: OPERATION_END_PARAMETERS_FLAGS = OPERATION_END_PARAMETERS_FLAGS(1u32);
+#[doc = "*Required features: `\"Win32_Storage_OperationRecorder\"`*"]
+pub const OPERATION_START_TRACE_CURRENT_THREAD: OPERATION_START_FLAGS = OPERATION_START_FLAGS(1u32);
 #[doc = "*Required features: `\"Win32_Storage_OperationRecorder\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct OPERATION_END_PARAMETERS_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_Storage_OperationRecorder\"`*"]
-pub const OPERATION_END_DISCARD: OPERATION_END_PARAMETERS_FLAGS = OPERATION_END_PARAMETERS_FLAGS(1u32);
 impl ::core::marker::Copy for OPERATION_END_PARAMETERS_FLAGS {}
 impl ::core::clone::Clone for OPERATION_END_PARAMETERS_FLAGS {
     fn clone(&self) -> Self {
@@ -29,8 +31,8 @@ impl ::core::default::Default for OPERATION_END_PARAMETERS_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for OPERATION_END_PARAMETERS_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for OPERATION_END_PARAMETERS_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for OPERATION_END_PARAMETERS_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -74,8 +76,6 @@ impl ::core::ops::Not for OPERATION_END_PARAMETERS_FLAGS {
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct OPERATION_START_FLAGS(pub u32);
-#[doc = "*Required features: `\"Win32_Storage_OperationRecorder\"`*"]
-pub const OPERATION_START_TRACE_CURRENT_THREAD: OPERATION_START_FLAGS = OPERATION_START_FLAGS(1u32);
 impl ::core::marker::Copy for OPERATION_START_FLAGS {}
 impl ::core::clone::Clone for OPERATION_START_FLAGS {
     fn clone(&self) -> Self {
@@ -87,8 +87,8 @@ impl ::core::default::Default for OPERATION_START_FLAGS {
         Self(0)
     }
 }
-impl ::windows::core::TypeKind for OPERATION_START_FLAGS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for OPERATION_START_FLAGS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::fmt::Debug for OPERATION_START_FLAGS {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -146,8 +146,8 @@ impl ::core::fmt::Debug for OPERATION_END_PARAMETERS {
         f.debug_struct("OPERATION_END_PARAMETERS").field("Version", &self.Version).field("OperationId", &self.OperationId).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for OPERATION_END_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for OPERATION_END_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for OPERATION_END_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -178,8 +178,8 @@ impl ::core::fmt::Debug for OPERATION_START_PARAMETERS {
         f.debug_struct("OPERATION_START_PARAMETERS").field("Version", &self.Version).field("OperationId", &self.OperationId).field("Flags", &self.Flags).finish()
     }
 }
-impl ::windows::core::TypeKind for OPERATION_START_PARAMETERS {
-    type TypeKind = ::windows::core::CopyType;
+impl ::windows_core::TypeKind for OPERATION_START_PARAMETERS {
+    type TypeKind = ::windows_core::CopyType;
 }
 impl ::core::cmp::PartialEq for OPERATION_START_PARAMETERS {
     fn eq(&self, other: &Self) -> bool {
@@ -192,5 +192,3 @@ impl ::core::default::Default for OPERATION_START_PARAMETERS {
         unsafe { ::core::mem::zeroed() }
     }
 }
-#[cfg(feature = "implement")]
-::core::include!("impl.rs");

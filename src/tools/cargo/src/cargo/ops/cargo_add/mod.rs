@@ -23,6 +23,7 @@ use crate::core::Shell;
 use crate::core::Summary;
 use crate::core::Workspace;
 use crate::sources::source::QueryKind;
+use crate::util::cache_lock::CacheLockMode;
 use crate::util::style;
 use crate::util::toml_mut::dependency::Dependency;
 use crate::util::toml_mut::dependency::GitSource;
@@ -30,6 +31,7 @@ use crate::util::toml_mut::dependency::MaybeWorkspace;
 use crate::util::toml_mut::dependency::PathSource;
 use crate::util::toml_mut::dependency::Source;
 use crate::util::toml_mut::dependency::WorkspaceSource;
+use crate::util::toml_mut::is_sorted;
 use crate::util::toml_mut::manifest::DepTable;
 use crate::util::toml_mut::manifest::LocalManifest;
 use crate::util::RustVersion;
@@ -77,7 +79,9 @@ pub fn add(workspace: &Workspace<'_>, options: &AddOptions<'_>) -> CargoResult<(
     let mut registry = PackageRegistry::new(options.config)?;
 
     let deps = {
-        let _lock = options.config.acquire_package_cache_lock()?;
+        let _lock = options
+            .config
+            .acquire_package_cache_lock(CacheLockMode::DownloadExclusive)?;
         registry.lock_patches();
         options
             .dependencies
@@ -944,12 +948,17 @@ fn print_dep_table_msg(shell: &mut Shell, dep: &DependencyUI) -> CargoResult<()>
         return Ok(());
     }
 
+    let stderr = shell.err();
+    let good = style::GOOD.render();
+    let error = style::ERROR.render();
+    let reset = anstyle::Reset.render();
+
     let (activated, deactivated) = dep.features();
     if !activated.is_empty() || !deactivated.is_empty() {
         let prefix = format!("{:>13}", " ");
         let suffix = format_features_version_suffix(&dep);
 
-        shell.write_stderr(format_args!("{prefix}Features{suffix}:\n"), &style::NOP)?;
+        writeln!(stderr, "{prefix}Features{suffix}:")?;
 
         const MAX_FEATURE_PRINTS: usize = 30;
         let total_activated = activated.len();
@@ -957,28 +966,18 @@ fn print_dep_table_msg(shell: &mut Shell, dep: &DependencyUI) -> CargoResult<()>
 
         if total_activated <= MAX_FEATURE_PRINTS {
             for feat in activated {
-                shell.write_stderr(&prefix, &style::NOP)?;
-                shell.write_stderr('+', &style::GOOD)?;
-                shell.write_stderr(format_args!(" {feat}\n"), &style::NOP)?;
+                writeln!(stderr, "{prefix}{good}+{reset} {feat}")?;
             }
         } else {
-            shell.write_stderr(
-                format_args!("{prefix}{total_activated} activated features\n"),
-                &style::NOP,
-            )?;
+            writeln!(stderr, "{prefix}{total_activated} activated features")?;
         }
 
         if total_activated + total_deactivated <= MAX_FEATURE_PRINTS {
             for feat in deactivated {
-                shell.write_stderr(&prefix, &style::NOP)?;
-                shell.write_stderr('-', &style::ERROR)?;
-                shell.write_stderr(format_args!(" {feat}\n"), &style::NOP)?;
+                writeln!(stderr, "{prefix}{error}-{reset} {feat}")?;
             }
         } else {
-            shell.write_stderr(
-                format_args!("{prefix}{total_deactivated} deactivated features\n"),
-                &style::NOP,
-            )?;
+            writeln!(stderr, "{prefix}{total_deactivated} deactivated features")?;
         }
     }
 
@@ -1004,22 +1003,6 @@ fn format_features_version_suffix(dep: &DependencyUI) -> String {
     } else {
         "".to_owned()
     }
-}
-
-// Based on Iterator::is_sorted from nightly std; remove in favor of that when stabilized.
-fn is_sorted(mut it: impl Iterator<Item = impl PartialOrd>) -> bool {
-    let Some(mut last) = it.next() else {
-        return true;
-    };
-
-    for curr in it {
-        if curr < last {
-            return false;
-        }
-        last = curr;
-    }
-
-    true
 }
 
 fn find_workspace_dep(toml_key: &str, root_manifest: &Path) -> CargoResult<Dependency> {

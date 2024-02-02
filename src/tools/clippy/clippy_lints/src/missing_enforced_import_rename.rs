@@ -1,6 +1,6 @@
+use clippy_config::types::Rename;
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::source::snippet_opt;
-
 use rustc_data_structures::fx::FxHashMap;
 use rustc_errors::Applicability;
 use rustc_hir::def::Res;
@@ -10,12 +10,13 @@ use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_session::{declare_tool_lint, impl_lint_pass};
 use rustc_span::Symbol;
 
-use crate::utils::conf::Rename;
-
 declare_clippy_lint! {
     /// ### What it does
     /// Checks for imports that do not rename the item as specified
     /// in the `enforce-import-renames` config option.
+    ///
+    /// Note: Even though this lint is warn-by-default, it will only trigger if
+    /// import renames are defined in the clippy.toml file.
     ///
     /// ### Why is this bad?
     /// Consistency is important, if a project has defined import
@@ -38,7 +39,7 @@ declare_clippy_lint! {
     /// ```
     #[clippy::version = "1.55.0"]
     pub MISSING_ENFORCED_IMPORT_RENAMES,
-    restriction,
+    style,
     "enforce import renames"
 }
 

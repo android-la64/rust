@@ -193,10 +193,9 @@ impl<'cx, 'a> Context<'cx, 'a> {
     fn manage_cond_expr(&mut self, expr: &mut P<Expr>) {
         match &mut expr.kind {
             ExprKind::AddrOf(_, mutability, local_expr) => {
-                self.with_is_consumed_management(
-                    matches!(mutability, Mutability::Mut),
-                    |this| this.manage_cond_expr(local_expr)
-                );
+                self.with_is_consumed_management(matches!(mutability, Mutability::Mut), |this| {
+                    this.manage_cond_expr(local_expr)
+                });
             }
             ExprKind::Array(local_exprs) => {
                 for local_expr in local_exprs {
@@ -223,7 +222,7 @@ impl<'cx, 'a> Context<'cx, 'a> {
                     |this| {
                         this.manage_cond_expr(lhs);
                         this.manage_cond_expr(rhs);
-                    }
+                    },
                 );
             }
             ExprKind::Call(_, local_exprs) => {
@@ -285,10 +284,9 @@ impl<'cx, 'a> Context<'cx, 'a> {
                 }
             }
             ExprKind::Unary(un_op, local_expr) => {
-                self.with_is_consumed_management(
-                    matches!(un_op, UnOp::Neg | UnOp::Not),
-                    |this| this.manage_cond_expr(local_expr)
-                );
+                self.with_is_consumed_management(matches!(un_op, UnOp::Neg | UnOp::Not), |this| {
+                    this.manage_cond_expr(local_expr)
+                });
             }
             // Expressions that are not worth or can not be captured.
             //
@@ -296,7 +294,7 @@ impl<'cx, 'a> Context<'cx, 'a> {
             // sync with the `rfc-2011-nicer-assert-messages/all-expr-kinds.rs` test.
             ExprKind::Assign(_, _, _)
             | ExprKind::AssignOp(_, _, _)
-            | ExprKind::Async(_, _)
+            | ExprKind::Gen(_, _, _)
             | ExprKind::Await(_, _)
             | ExprKind::Block(_, _)
             | ExprKind::Break(_, _)

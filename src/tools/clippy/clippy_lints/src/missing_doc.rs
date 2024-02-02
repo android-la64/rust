@@ -16,8 +16,7 @@ use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_middle::ty::Visibility;
 use rustc_session::{declare_tool_lint, impl_lint_pass};
 use rustc_span::def_id::CRATE_DEF_ID;
-use rustc_span::source_map::Span;
-use rustc_span::sym;
+use rustc_span::{sym, Span};
 
 declare_clippy_lint! {
     /// ### What it does
@@ -67,7 +66,7 @@ impl MissingDoc {
         if_chain! {
             if let Some(meta) = meta;
             if let MetaItemKind::List(list) = meta.kind;
-            if let Some(meta) = list.get(0);
+            if let Some(meta) = list.first();
             if let Some(name) = meta.ident();
             then {
                 name.name == sym::include

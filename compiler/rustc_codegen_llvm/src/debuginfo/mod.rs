@@ -50,7 +50,6 @@ mod utils;
 
 pub use self::create_scope_map::compute_mir_scopes;
 pub use self::metadata::build_global_var_di_node;
-pub use self::metadata::extend_scope_to_file;
 
 #[allow(non_upper_case_globals)]
 const DW_TAG_auto_variable: c_uint = 0x100;
@@ -342,7 +341,7 @@ impl<'ll, 'tcx> DebugInfoMethods<'tcx> for CodegenCx<'ll, 'tcx> {
 
         // We look up the generics of the enclosing function and truncate the args
         // to their length in order to cut off extra stuff that might be in there for
-        // closures or generators.
+        // closures or coroutines.
         let generics = tcx.generics_of(enclosing_fn_def_id);
         let args = instance.args.truncate_to(tcx, generics);
 
@@ -537,7 +536,9 @@ impl<'ll, 'tcx> DebugInfoMethods<'tcx> for CodegenCx<'ll, 'tcx> {
 
                     // Only "class" methods are generally understood by LLVM,
                     // so avoid methods on other types (e.g., `<*mut T>::null`).
-                    if let ty::Adt(def, ..) = impl_self_ty.kind() && !def.is_box() {
+                    if let ty::Adt(def, ..) = impl_self_ty.kind()
+                        && !def.is_box()
+                    {
                         // Again, only create type information if full debuginfo is enabled
                         if cx.sess().opts.debuginfo == DebugInfo::Full && !impl_self_ty.has_param()
                         {

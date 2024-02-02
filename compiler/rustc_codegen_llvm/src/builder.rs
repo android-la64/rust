@@ -3,6 +3,7 @@ use crate::attributes;
 use crate::common::Funclet;
 use crate::context::CodegenCx;
 use crate::llvm::{self, AtomicOrdering, AtomicRmwBinOp, BasicBlock, False, True};
+use crate::llvm_util;
 use crate::type_::Type;
 use crate::type_of::LayoutLlvmExt;
 use crate::value::Value;
@@ -1225,9 +1226,16 @@ impl<'a, 'll, 'tcx> BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
         unsafe { llvm::LLVMBuildZExt(self.llbuilder, val, dest_ty, UNNAMED) }
     }
 
-    fn do_not_inline(&mut self, llret: &'ll Value) {
-        let noinline = llvm::AttributeKind::NoInline.create_attr(self.llcx);
-        attributes::apply_to_callsite(llret, llvm::AttributePlace::Function, &[noinline]);
+    fn apply_attrs_to_cleanup_callsite(&mut self, llret: &'ll Value) {
+        if llvm_util::get_version() < (17, 0, 2) {
+            // Work around https://github.com/llvm/llvm-project/issues/66984.
+            let noinline = llvm::AttributeKind::NoInline.create_attr(self.llcx);
+            attributes::apply_to_callsite(llret, llvm::AttributePlace::Function, &[noinline]);
+        } else {
+            // Cleanup is always the cold path.
+            let cold_inline = llvm::AttributeKind::Cold.create_attr(self.llcx);
+            attributes::apply_to_callsite(llret, llvm::AttributePlace::Function, &[cold_inline]);
+        }
     }
 }
 
@@ -1513,8 +1521,13 @@ impl<'a, 'll, 'tcx> Builder<'a, 'll, 'tcx> {
         llfn: &'ll Value,
     ) {
         let is_indirect_call = unsafe { llvm::LLVMRustIsNonGVFunctionPointerTy(llfn) };
-        if self.tcx.sess.is_sanitizer_cfi_enabled() && let Some(fn_abi) = fn_abi && is_indirect_call {
-            if let Some(fn_attrs) = fn_attrs && fn_attrs.no_sanitize.contains(SanitizerSet::CFI) {
+        if self.tcx.sess.is_sanitizer_cfi_enabled()
+            && let Some(fn_abi) = fn_abi
+            && is_indirect_call
+        {
+            if let Some(fn_attrs) = fn_attrs
+                && fn_attrs.no_sanitize.contains(SanitizerSet::CFI)
+            {
                 return;
             }
 
@@ -1551,25 +1564,29 @@ impl<'a, 'll, 'tcx> Builder<'a, 'll, 'tcx> {
         llfn: &'ll Value,
     ) -> Option<llvm::OperandBundleDef<'ll>> {
         let is_indirect_call = unsafe { llvm::LLVMRustIsNonGVFunctionPointerTy(llfn) };
-        let kcfi_bundle =
-            if self.tcx.sess.is_sanitizer_kcfi_enabled() && let Some(fn_abi) = fn_abi && is_indirect_call {
-                if let Some(fn_attrs) = fn_attrs && fn_attrs.no_sanitize.contains(SanitizerSet::KCFI) {
-                    return None;
-                }
+        let kcfi_bundle = if self.tcx.sess.is_sanitizer_kcfi_enabled()
+            && let Some(fn_abi) = fn_abi
+            && is_indirect_call
+        {
+            if let Some(fn_attrs) = fn_attrs
+                && fn_attrs.no_sanitize.contains(SanitizerSet::KCFI)
+            {
+                return None;
+            }
 
-                let mut options = TypeIdOptions::empty();
-                if self.tcx.sess.is_sanitizer_cfi_generalize_pointers_enabled() {
-                    options.insert(TypeIdOptions::GENERALIZE_POINTERS);
-                }
-                if self.tcx.sess.is_sanitizer_cfi_normalize_integers_enabled() {
-                    options.insert(TypeIdOptions::NORMALIZE_INTEGERS);
-                }
+            let mut options = TypeIdOptions::empty();
+            if self.tcx.sess.is_sanitizer_cfi_generalize_pointers_enabled() {
+                options.insert(TypeIdOptions::GENERALIZE_POINTERS);
+            }
+            if self.tcx.sess.is_sanitizer_cfi_normalize_integers_enabled() {
+                options.insert(TypeIdOptions::NORMALIZE_INTEGERS);
+            }
 
-                let kcfi_typeid = kcfi_typeid_for_fnabi(self.tcx, fn_abi, options);
-                Some(llvm::OperandBundleDef::new("kcfi", &[self.const_u32(kcfi_typeid)]))
-            } else {
-                None
-            };
+            let kcfi_typeid = kcfi_typeid_for_fnabi(self.tcx, fn_abi, options);
+            Some(llvm::OperandBundleDef::new("kcfi", &[self.const_u32(kcfi_typeid)]))
+        } else {
+            None
+        };
         kcfi_bundle
     }
 }

@@ -20,7 +20,8 @@ use writeable::Writeable;
 ///
 /// ```
 /// use icu::locid::{
-///     langid, subtags_language as language, subtags_region as region,
+///     langid,
+///     subtags::{language, region},
 /// };
 ///
 /// let li = langid!("en-US");
@@ -49,8 +50,8 @@ use writeable::Writeable;
 ///
 /// ```
 /// use icu::locid::{
-///     langid, subtags_language as language, subtags_region as region,
-///     subtags_script as script, subtags_variant as variant,
+///     langid,
+///     subtags::{language, region, script, variant},
 /// };
 ///
 /// let li = langid!("eN_latn_Us-Valencia");
@@ -257,7 +258,7 @@ impl LanguageIdentifier {
     /// Compare this `LanguageIdentifier` with a potentially unnormalized BCP-47 string.
     ///
     /// The return value is equivalent to what would happen if you first parsed the
-    /// BCP-47 string to a `LanguageIdentifier` and then performed a structucal comparison.
+    /// BCP-47 string to a `LanguageIdentifier` and then performed a structural comparison.
     ///
     /// # Examples
     ///
@@ -382,9 +383,7 @@ fn test_writeable() {
 /// # Examples
 ///
 /// ```
-/// use icu::locid::{
-///     langid, subtags_language as language, LanguageIdentifier,
-/// };
+/// use icu::locid::{langid, subtags::language, LanguageIdentifier};
 ///
 /// assert_eq!(LanguageIdentifier::from(language!("en")), langid!("en"));
 /// ```
@@ -400,7 +399,7 @@ impl From<subtags::Language> for LanguageIdentifier {
 /// # Examples
 ///
 /// ```
-/// use icu::locid::{langid, subtags_script as script, LanguageIdentifier};
+/// use icu::locid::{langid, subtags::script, LanguageIdentifier};
 ///
 /// assert_eq!(
 ///     LanguageIdentifier::from(Some(script!("latn"))),
@@ -419,7 +418,7 @@ impl From<Option<subtags::Script>> for LanguageIdentifier {
 /// # Examples
 ///
 /// ```
-/// use icu::locid::{langid, subtags_region as region, LanguageIdentifier};
+/// use icu::locid::{langid, subtags::region, LanguageIdentifier};
 ///
 /// assert_eq!(
 ///     LanguageIdentifier::from(Some(region!("US"))),
@@ -441,8 +440,9 @@ impl From<Option<subtags::Region>> for LanguageIdentifier {
 ///
 /// ```
 /// use icu::locid::{
-///     langid, subtags_language as language, subtags_region as region,
-///     subtags_script as script, LanguageIdentifier,
+///     langid,
+///     subtags::{language, region, script},
+///     LanguageIdentifier,
 /// };
 ///
 /// let lang = language!("en");
@@ -482,8 +482,8 @@ impl
 ///
 /// ```
 /// use icu::locid::{
-///     langid, subtags_language as language, subtags_region as region,
-///     subtags_script as script,
+///     langid,
+///     subtags::{language, region, script},
 /// };
 ///
 /// let lid = langid!("en-Latn-US");
