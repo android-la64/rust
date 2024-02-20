@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.59"
+rust-version = "1.70"
 name = "orion"
-version = "0.17.4"
+version = "0.17.6"
 authors = ["brycx <brycx@protonmail.com>"]
 exclude = [
     ".gitignore",
@@ -56,7 +56,7 @@ version = "1.1.1"
 optional = true
 
 [dependencies.fiat-crypto]
-version = "0.1.11"
+version = "0.2.1"
 default-features = false
 
 [dependencies.getrandom]
@@ -78,7 +78,7 @@ version = "1.1.0"
 default-features = false
 
 [dev-dependencies.criterion]
-version = "0.4.0"
+version = "0.5.0"
 
 [dev-dependencies.hex]
 version = "0.4.0"
@@ -99,6 +99,7 @@ version = "1.0.41"
 [features]
 alloc = []
 default = ["safe_api"]
+experimental = []
 safe_api = [
     "getrandom",
     "ct-codecs",

@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-odb"
-version = "0.54.0"
+version = "0.55.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
 ]
 autotests = false
 description = "Implements various git object databases"
@@ -29,10 +28,6 @@ repository = "https://github.com/Byron/gitoxide"
 features = [
     "document-features",
     "serde",
-]
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
 ]
 
 [lib]
@@ -46,10 +41,10 @@ version = "0.2.0"
 optional = true
 
 [dependencies.gix-date]
-version = "^0.8.0"
+version = "^0.8.1"
 
 [dependencies.gix-features]
-version = "^0.36.0"
+version = "^0.36.1"
 features = [
     "rustsha1",
     "walkdir",
@@ -58,20 +53,20 @@ features = [
 ]
 
 [dependencies.gix-hash]
-version = "^0.13.1"
+version = "^0.13.2"
 
 [dependencies.gix-object]
-version = "^0.38.0"
+version = "^0.39.0"
 
 [dependencies.gix-pack]
-version = "^0.44.0"
+version = "^0.45.0"
 default-features = false
 
 [dependencies.gix-path]
-version = "^0.10.0"
+version = "^0.10.1"
 
 [dependencies.gix-quote]
-version = "^0.4.7"
+version = "^0.4.8"
 
 [dependencies.parking_lot]
 version = "0.12.0"

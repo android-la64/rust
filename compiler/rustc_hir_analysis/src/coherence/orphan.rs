@@ -58,7 +58,7 @@ fn do_orphan_check_impl<'tcx>(
                 tr.path.span,
                 trait_ref,
                 impl_.self_ty.span,
-                &impl_.generics,
+                impl_.generics,
                 err,
             )?
         }
@@ -452,7 +452,13 @@ fn lint_auto_trait_impl<'tcx>(
     trait_ref: ty::TraitRef<'tcx>,
     impl_def_id: LocalDefId,
 ) {
-    assert_eq!(trait_ref.args.len(), 1);
+    if trait_ref.args.len() != 1 {
+        tcx.sess.dcx().span_delayed_bug(
+            tcx.def_span(impl_def_id),
+            "auto traits cannot have generic parameters",
+        );
+        return;
+    }
     let self_ty = trait_ref.self_ty();
     let (self_type_did, args) = match self_ty.kind() {
         ty::Adt(def, args) => (def.did(), args),
@@ -491,7 +497,7 @@ fn lint_auto_trait_impl<'tcx>(
 
     tcx.struct_span_lint_hir(
         lint::builtin::SUSPICIOUS_AUTO_TRAIT_IMPLS,
-        tcx.hir().local_def_id_to_hir_id(impl_def_id),
+        tcx.local_def_id_to_hir_id(impl_def_id),
         tcx.def_span(impl_def_id),
         DelayDm(|| {
             format!(
@@ -516,7 +522,7 @@ fn lint_auto_trait_impl<'tcx>(
                 format!(
                     "try using the same sequence of generic parameters as the {self_descr} definition",
                 ),
-            )
+            );
         },
     );
 }

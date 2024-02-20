@@ -7,7 +7,6 @@ use std::{
     path::PathBuf,
 };
 
-use gix_odb::FindExt;
 pub use gix_submodule::*;
 
 use crate::{bstr::BStr, repository::IndexPersistedOrInMemory, Repository, Submodule};
@@ -147,9 +146,7 @@ impl<'repo> Submodule<'repo> {
             &mut |relative_path, case, is_dir, out| {
                 attributes
                     .set_case(case)
-                    .at_entry(relative_path, Some(is_dir), |id, buf| {
-                        self.state.repo.objects.find_blob(id, buf)
-                    })
+                    .at_entry(relative_path, Some(is_dir), &self.state.repo.objects)
                     .map_or(false, |platform| platform.matching_attributes(out))
             }
         })?;
@@ -184,7 +181,7 @@ impl<'repo> Submodule<'repo> {
             .head_commit()?
             .tree()?
             .peel_to_entry_by_path(gix_path::from_bstr(path.as_ref()))?
-            .and_then(|entry| (entry.mode() == gix_object::tree::EntryMode::Commit).then_some(entry.inner.oid)))
+            .and_then(|entry| (entry.mode().is_commit()).then_some(entry.inner.oid)))
     }
 
     /// Return the path at which the repository of the submodule should be located.

@@ -4,7 +4,7 @@ use rustc_data_structures::fx::FxHashSet;
 use rustc_data_structures::fx::FxIndexMap;
 use rustc_data_structures::memmap::Mmap;
 use rustc_data_structures::temp_dir::MaybeTempDir;
-use rustc_errors::{ErrorGuaranteed, Handler};
+use rustc_errors::{DiagCtxt, ErrorGuaranteed};
 use rustc_fs_util::{fix_windows_verbatim_for_gcc, try_canonicalize};
 use rustc_hir::def_id::{CrateNum, LOCAL_CRATE};
 use rustc_metadata::find_native_static_library;
@@ -44,7 +44,7 @@ use tempfile::Builder as TempFileBuilder;
 use itertools::Itertools;
 use std::cell::OnceCell;
 use std::collections::BTreeSet;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::fs::{read, File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::ops::Deref;
@@ -52,10 +52,10 @@ use std::path::{Path, PathBuf};
 use std::process::{ExitStatus, Output, Stdio};
 use std::{env, fmt, fs, io, mem, str};
 
-pub fn ensure_removed(diag_handler: &Handler, path: &Path) {
+pub fn ensure_removed(dcx: &DiagCtxt, path: &Path) {
     if let Err(e) = fs::remove_file(path) {
         if e.kind() != io::ErrorKind::NotFound {
-            diag_handler.err(format!("failed to remove {}: {}", path.display(), e));
+            dcx.err(format!("failed to remove {}: {}", path.display(), e));
         }
     }
 }
@@ -143,7 +143,7 @@ pub fn link_binary<'a>(
                 }
             }
             if sess.opts.json_artifact_notifications {
-                sess.parse_sess.span_diagnostic.emit_artifact_notification(&out_filename, "link");
+                sess.dcx().emit_artifact_notification(&out_filename, "link");
             }
 
             if sess.prof.enabled() {
@@ -183,13 +183,13 @@ pub fn link_binary<'a>(
             |preserve_objects: bool, preserve_dwarf_objects: bool, module: &CompiledModule| {
                 if !preserve_objects {
                     if let Some(ref obj) = module.object {
-                        ensure_removed(sess.diagnostic(), obj);
+                        ensure_removed(sess.dcx(), obj);
                     }
                 }
 
                 if !preserve_dwarf_objects {
                     if let Some(ref dwo_obj) = module.dwarf_object {
-                        ensure_removed(sess.diagnostic(), dwo_obj);
+                        ensure_removed(sess.dcx(), dwo_obj);
                     }
                 }
             };
@@ -208,7 +208,7 @@ pub fn link_binary<'a>(
 
         // Remove the temporary files if output goes to stdout
         for temp in tempfiles_for_stdout_output {
-            ensure_removed(sess.diagnostic(), &temp);
+            ensure_removed(sess.dcx(), &temp);
         }
 
         // If no requested outputs require linking, then the object temporaries should
@@ -277,7 +277,7 @@ pub fn each_linked_rlib(
         let crate_name = info.crate_name[&cnum];
         let used_crate_source = &info.used_crate_source[&cnum];
         if let Some((path, _)) = &used_crate_source.rlib {
-            f(cnum, &path);
+            f(cnum, path);
         } else {
             if used_crate_source.rmeta.is_some() {
                 return Err(errors::LinkRlibError::OnlyRmetaFound { crate_name });
@@ -524,7 +524,7 @@ fn link_staticlib<'a>(
                 && !ignored_for_lto(sess, &codegen_results.crate_info, cnum);
 
             let native_libs = codegen_results.crate_info.native_libraries[&cnum].iter();
-            let relevant = native_libs.clone().filter(|lib| relevant_lib(sess, &lib));
+            let relevant = native_libs.clone().filter(|lib| relevant_lib(sess, lib));
             let relevant_libs: FxHashSet<_> = relevant.filter_map(|lib| lib.filename).collect();
 
             let bundled_libs: FxHashSet<_> = native_libs.filter_map(|lib| lib.filename).collect();
@@ -689,7 +689,7 @@ fn link_dwarf_object<'a>(
         // Adding an executable is primarily done to make `thorin` check that all the referenced
         // dwarf objects are found in the end.
         package.add_executable(
-            &executable_out_filename,
+            executable_out_filename,
             thorin::MissingReferencedObjectBehaviour::Skip,
         )?;
 
@@ -928,7 +928,7 @@ fn link_natively<'a>(
                     command: &cmd,
                     escaped_output,
                 };
-                sess.diagnostic().emit_err(err);
+                sess.dcx().emit_err(err);
                 // If MSVC's `link.exe` was expected but the return code
                 // is not a Microsoft LNK error then suggest a way to fix or
                 // install the Visual Studio build tools.
@@ -945,7 +945,7 @@ fn link_natively<'a>(
                     {
                         let is_vs_installed = windows_registry::find_vs_version().is_ok();
                         let has_linker = windows_registry::find_tool(
-                            &sess.opts.target_triple.triple(),
+                            sess.opts.target_triple.triple(),
                             "link.exe",
                         )
                         .is_some();
@@ -1038,14 +1038,14 @@ fn link_natively<'a>(
     if sess.target.is_like_osx {
         match (strip, crate_type) {
             (Strip::Debuginfo, _) => {
-                strip_symbols_with_external_utility(sess, "strip", &out_filename, Some("-S"))
+                strip_symbols_with_external_utility(sess, "strip", out_filename, Some("-S"))
             }
             // Per the manpage, `-x` is the maximum safe strip level for dynamic libraries. (#93988)
             (Strip::Symbols, CrateType::Dylib | CrateType::Cdylib | CrateType::ProcMacro) => {
-                strip_symbols_with_external_utility(sess, "strip", &out_filename, Some("-x"))
+                strip_symbols_with_external_utility(sess, "strip", out_filename, Some("-x"))
             }
             (Strip::Symbols, _) => {
-                strip_symbols_with_external_utility(sess, "strip", &out_filename, None)
+                strip_symbols_with_external_utility(sess, "strip", out_filename, None)
             }
             (Strip::None, _) => {}
         }
@@ -1059,7 +1059,7 @@ fn link_natively<'a>(
         match strip {
             // Always preserve the symbol table (-x).
             Strip::Debuginfo => {
-                strip_symbols_with_external_utility(sess, stripcmd, &out_filename, Some("-x"))
+                strip_symbols_with_external_utility(sess, stripcmd, out_filename, Some("-x"))
             }
             // Strip::Symbols is handled via the --strip-all linker option.
             Strip::Symbols => {}
@@ -1245,13 +1245,13 @@ fn link_sanitizer_runtime(sess: &Session, linker: &mut dyn Linker, name: &str) {
         // rpath to the library as well (the rpath should be absolute, see
         // PR #41352 for details).
         let filename = format!("rustc{channel}_rt.{name}");
-        let path = find_sanitizer_runtime(&sess, &filename);
+        let path = find_sanitizer_runtime(sess, &filename);
         let rpath = path.to_str().expect("non-utf8 component in path");
         linker.args(&["-Wl,-rpath", "-Xlinker", rpath]);
         linker.link_dylib(&filename, false, true);
     } else {
         let filename = format!("librustc{channel}_rt.{name}.a");
-        let path = find_sanitizer_runtime(&sess, &filename).join(&filename);
+        let path = find_sanitizer_runtime(sess, &filename).join(&filename);
         linker.link_whole_rlib(&path);
     }
 }
@@ -1477,7 +1477,7 @@ fn print_native_static_libs(
                 sess.emit_note(errors::StaticLibraryNativeArtifacts);
                 // Prefix for greppability
                 // Note: This must not be translated as tools are allowed to depend on this exact string.
-                sess.note_without_error(format!("native-static-libs: {}", &lib_args.join(" ")));
+                sess.note(format!("native-static-libs: {}", &lib_args.join(" ")));
             }
         }
     }
@@ -1685,7 +1685,7 @@ fn link_output_kind(sess: &Session, crate_type: CrateType) -> LinkOutputKind {
 
 // Returns true if linker is located within sysroot
 fn detect_self_contained_mingw(sess: &Session) -> bool {
-    let (linker, _) = linker_and_flavor(&sess);
+    let (linker, _) = linker_and_flavor(sess);
     // Assume `-C linker=rust-lld` as self-contained mode
     if linker == Path::new("rust-lld") {
         return true;
@@ -1737,7 +1737,7 @@ fn self_contained_components(sess: &Session, crate_type: CrateType) -> LinkSelfC
                 LinkSelfContainedDefault::InferredForMingw => {
                     sess.host == sess.target
                         && sess.target.vendor != "uwp"
-                        && detect_self_contained_mingw(&sess)
+                        && detect_self_contained_mingw(sess)
                 }
             }
         };
@@ -2243,9 +2243,9 @@ fn linker_with_args<'a>(
     // ------------ Late order-dependent options ------------
 
     // Doesn't really make sense.
-    // FIXME: In practice built-in target specs use this for arbitrary order-independent options,
-    // introduce a target spec option for order-independent linker options, migrate built-in specs
-    // to it and remove the option.
+    // FIXME: In practice built-in target specs use this for arbitrary order-independent options.
+    // Introduce a target spec option for order-independent linker options, migrate built-in specs
+    // to it and remove the option. Currently the last holdout is wasm32-unknown-emscripten.
     add_post_link_args(cmd, sess, flavor);
 
     Ok(cmd.take_cmd())
@@ -2378,6 +2378,11 @@ fn add_order_independent_options(
         cmd.control_flow_guard();
     }
 
+    // OBJECT-FILES-NO, AUDIT-ORDER
+    if sess.opts.unstable_opts.ehcont_guard {
+        cmd.ehcont_guard();
+    }
+
     add_rpath_args(cmd, sess, codegen_results, out_filename);
 }
 
@@ -2432,7 +2437,7 @@ fn add_native_libs_from_crate(
         // If rlib contains native libs as archives, unpack them to tmpdir.
         let rlib = &codegen_results.crate_info.used_crate_source[&cnum].rlib.as_ref().unwrap().0;
         archive_builder_builder
-            .extract_bundled_libs(rlib, tmpdir, &bundled_libs)
+            .extract_bundled_libs(rlib, tmpdir, bundled_libs)
             .unwrap_or_else(|e| sess.emit_fatal(e));
     }
 
@@ -2485,7 +2490,7 @@ fn add_native_libs_from_crate(
                             cmd.link_whole_staticlib(
                                 name,
                                 verbatim,
-                                &search_paths.get_or_init(|| archive_search_paths(sess)),
+                                search_paths.get_or_init(|| archive_search_paths(sess)),
                             );
                         } else {
                             cmd.link_staticlib(name, verbatim)
@@ -2522,7 +2527,7 @@ fn add_native_libs_from_crate(
             NativeLibKind::WasmImportModule => {}
             NativeLibKind::LinkArg => {
                 if link_static {
-                    cmd.arg(name);
+                    cmd.linker_arg(OsStr::new(name), verbatim);
                 }
             }
         }
@@ -2719,7 +2724,7 @@ fn rehome_sysroot_lib_dir<'a>(sess: &'a Session, lib_dir: &Path) -> PathBuf {
         // already had `fix_windows_verbatim_for_gcc()` applied if needed.
         sysroot_lib_path
     } else {
-        fix_windows_verbatim_for_gcc(&lib_dir)
+        fix_windows_verbatim_for_gcc(lib_dir)
     }
 }
 
@@ -2756,7 +2761,7 @@ fn add_static_crate<'a>(
     let mut link_upstream = |path: &Path| {
         let rlib_path = if let Some(dir) = path.parent() {
             let file_name = path.file_name().expect("rlib path has no file name path component");
-            rehome_sysroot_lib_dir(sess, &dir).join(file_name)
+            rehome_sysroot_lib_dir(sess, dir).join(file_name)
         } else {
             fix_windows_verbatim_for_gcc(path)
         };
@@ -2793,7 +2798,7 @@ fn add_static_crate<'a>(
                 let canonical = f.replace('-', "_");
 
                 let is_rust_object =
-                    canonical.starts_with(&canonical_name) && looks_like_rust_object_file(&f);
+                    canonical.starts_with(&canonical_name) && looks_like_rust_object_file(f);
 
                 // If we're performing LTO and this is a rust-generated object
                 // file, then we don't need the object file as it's part of the

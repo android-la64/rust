@@ -34,7 +34,7 @@ pub(super) fn failed_to_match_macro<'cx>(
     if try_success_result.is_ok() {
         // Nonterminal parser recovery might turn failed matches into successful ones,
         // but for that it must have emitted an error already
-        tracker.cx.sess.delay_span_bug(sp, "Macro matching returned a success on the second try");
+        tracker.cx.sess.span_delayed_bug(sp, "Macro matching returned a success on the second try");
     }
 
     if let Some(result) = tracker.result {
@@ -67,6 +67,12 @@ pub(super) fn failed_to_match_macro<'cx>(
         && (matches!(expected_token.kind, TokenKind::Interpolated(_))
             || matches!(token.kind, TokenKind::Interpolated(_)))
     {
+        if let TokenKind::Interpolated(node) = &expected_token.kind {
+            err.span_label(node.1, "");
+        }
+        if let TokenKind::Interpolated(node) = &token.kind {
+            err.span_label(node.1, "");
+        }
         err.note("captured metavariables except for `:tt`, `:ident` and `:lifetime` cannot be compared to other tokens");
         err.note("see <https://doc.rust-lang.org/nightly/reference/macros-by-example.html#forwarding-a-matched-fragment> for more information");
 
@@ -145,7 +151,7 @@ impl<'a, 'cx, 'matcher> Tracker<'matcher> for CollectTrackerAndEmitter<'a, 'cx, 
             Success(_) => {
                 // Nonterminal parser recovery might turn failed matches into successful ones,
                 // but for that it must have emitted an error already
-                self.cx.sess.delay_span_bug(
+                self.cx.sess.span_delayed_bug(
                     self.root_span,
                     "should not collect detailed info for successful macro match",
                 );

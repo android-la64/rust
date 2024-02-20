@@ -193,7 +193,18 @@ Connections
     If a request scheme is "https", then Secure attribute is
     set.  Otherwise, it  is not set.  If  <SECURE> is "yes",
     the  Secure attribute  is  always set.   If <SECURE>  is
-    "no", the Secure attribute is always omitted.
+    "no",   the   Secure   attribute  is   always   omitted.
+    "affinity-cookie-stickiness=<STICKINESS>"       controls
+    stickiness  of   this  affinity.   If   <STICKINESS>  is
+    "loose", removing or adding a backend server might break
+    the affinity  and the  request might  be forwarded  to a
+    different backend server.   If <STICKINESS> is "strict",
+    removing the designated  backend server breaks affinity,
+    but adding  new backend server does  not cause breakage.
+    If  the designated  backend server  becomes unavailable,
+    new backend server is chosen  as if the request does not
+    have  an  affinity  cookie.   <STICKINESS>  defaults  to
+    "loose".
 
     By default, name resolution of backend host name is done
     at  start  up,  or reloading  configuration.   If  "dns"
@@ -472,6 +483,14 @@ Performance
 
     Default: ``0``
 
+.. option:: --rlimit-memlock=<N>
+
+    Set maximum number of bytes of memory that may be locked
+    into  RAM.  If  0 is  given,  nghttpx does  not set  the
+    limit.
+
+    Default: ``0``
+
 .. option:: --backend-request-buffer=<SIZE>
 
     Set buffer size used to store backend request.
@@ -620,7 +639,7 @@ SSL/TLS
     This option  sets cipher suites for  TLSv1.2 or earlier.
     Use :option:`--tls13-ciphers` for TLSv1.3.
 
-    Default: ``ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256``
+    Default: ``ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384``
 
 .. option:: --tls13-ciphers=<SUITE>
 
@@ -629,7 +648,7 @@ SSL/TLS
     This  option  sets  cipher   suites  for  TLSv1.3.   Use
     :option:`--ciphers` for TLSv1.2 or earlier.
 
-    Default: ``TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256``
+    Default: ``TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256``
 
 .. option:: --client-ciphers=<SUITE>
 
@@ -638,7 +657,7 @@ SSL/TLS
     This option  sets cipher suites for  TLSv1.2 or earlier.
     Use :option:`--tls13-client-ciphers` for TLSv1.3.
 
-    Default: ``ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256``
+    Default: ``ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384``
 
 .. option:: --tls13-client-ciphers=<SUITE>
 
@@ -647,7 +666,7 @@ SSL/TLS
     This  option  sets  cipher   suites  for  TLSv1.3.   Use
     :option:`--tls13-client-ciphers` for TLSv1.2 or earlier.
 
-    Default: ``TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256``
+    Default: ``TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256``
 
 .. option:: --ecdh-curves=<LIST>
 
@@ -1018,6 +1037,11 @@ SSL/TLS
 
     Default: ``16K``
 
+.. option:: --tls-ktls
+
+    Enable   ktls.    For   server,  ktls   is   enable   if
+    :option:`--tls-session-cache-memcached` is not configured.
+
 
 HTTP/2
 ~~~~~~
@@ -1368,7 +1392,7 @@ HTTP
     advertised  in alt-svc  header  field  only in  HTTP/1.1
     frontend.   This option  can be  used multiple  times to
     specify multiple alternative services.
-    Example: :option:`--altsvc`\="h2,443,,,ma=3600; persist=1'
+    Example: :option:`--altsvc`\="h2,443,,,ma=3600; persist=1"
 
 .. option:: --http2-altsvc=<PROTOID,PORT[,HOST,[ORIGIN[,PARAMS]]]>
 
@@ -1453,6 +1477,15 @@ HTTP
     "redirect-if-not-tls" parameter in :option:`--backend` option.
 
     Default: ``443``
+
+.. option:: --require-http-scheme
+
+    Always require http or https scheme in HTTP request.  It
+    also  requires that  https scheme  must be  used for  an
+    encrypted  connection.  Otherwise,  http scheme  must be
+    used.   This   option  is   recommended  for   a  server
+    deployment which directly faces clients and the services
+    it provides only require http or https scheme.
 
 
 API
@@ -1554,6 +1587,31 @@ Process
     neverbleed  is used.   In the  single process  mode, the
     signal handling feature is disabled.
 
+.. option:: --max-worker-processes=<N>
+
+    The maximum number of  worker processes.  nghttpx spawns
+    new worker  process when  it reloads  its configuration.
+    The previous worker  process enters graceful termination
+    period and will terminate  when it finishes handling the
+    existing    connections.     However,    if    reloading
+    configurations  happen   very  frequently,   the  worker
+    processes might be piled up if they take a bit long time
+    to finish  the existing connections.  With  this option,
+    if  the number  of  worker processes  exceeds the  given
+    value,   the  oldest   worker   process  is   terminated
+    immediately.  Specifying 0 means no  limit and it is the
+    default behaviour.
+
+.. option:: --worker-process-grace-shutdown-period=<DURATION>
+
+    Maximum  period  for  a   worker  process  to  terminate
+    gracefully.  When  a worker  process enters  in graceful
+    shutdown   period  (e.g.,   when  nghttpx   reloads  its
+    configuration)  and  it  does not  finish  handling  the
+    existing connections in the given  period of time, it is
+    immediately terminated.  Specifying 0 means no limit and
+    it is the default behaviour.
+
 
 Scripting
 ~~~~~~~~~
@@ -1604,7 +1662,7 @@ HTTP/3 and QUIC
     frontend QUIC  connections.  A qlog file  is created per
     each QUIC  connection.  The  file name is  ISO8601 basic
     format, followed by "-", server Source Connection ID and
-    ".qlog".
+    ".sqlog".
 
 .. option:: --frontend-quic-require-token
 
@@ -1615,20 +1673,53 @@ HTTP/3 and QUIC
 .. option:: --frontend-quic-congestion-controller=<CC>
 
     Specify a congestion controller algorithm for a frontend
-    QUIC  connection.   <CC>  should be  either  "cubic"  or
-    "bbr".
+    QUIC connection.  <CC> should  be one of "cubic", "bbr",
+    and "bbr2".
 
     Default: ``cubic``
 
-.. option:: --frontend-quic-connection-id-encryption-key=<HEXSTRING>
+.. option:: --frontend-quic-secret-file=<PATH>
 
-    Specify  Connection ID  encryption key.   The encryption
-    key must  be 16  bytes, and  it must  be encoded  in hex
-    string  (which is  32 bytes  long).  If  this option  is
-    omitted, new key is generated.  In order to survive QUIC
-    connection in a configuration  reload event, old and new
-    configuration must  have this option and  share the same
-    key.
+    Path to file that contains secure random data to be used
+    as QUIC keying materials.  It is used to derive keys for
+    encrypting tokens and Connection IDs.  It is not used to
+    encrypt  QUIC  packets.  Each  line  of  this file  must
+    contain  exactly  136  bytes  hex-encoded  string  (when
+    decoded the byte string is  68 bytes long).  The first 2
+    bits of  decoded byte  string are  used to  identify the
+    keying material.  An  empty line or a  line which starts
+    '#'  is ignored.   The file  can contain  more than  one
+    keying materials.  Because the  identifier is 2 bits, at
+    most 4 keying materials are  read and the remaining data
+    is discarded.  The first keying  material in the file is
+    primarily  used for  encryption and  decryption for  new
+    connection.  The other ones are used to decrypt data for
+    the  existing connections.   Specifying multiple  keying
+    materials enables  key rotation.   Please note  that key
+    rotation  does  not  occur automatically.   User  should
+    update  files  or  change  options  values  and  restart
+    nghttpx gracefully.   If opening  or reading  given file
+    fails, all loaded keying  materials are discarded and it
+    is treated as if none of  this option is given.  If this
+    option is not  given or an error  occurred while opening
+    or  reading  a  file,  a keying  material  is  generated
+    internally on startup and reload.
+
+.. option:: --quic-server-id=<HEXSTRING>
+
+    Specify server  ID encoded in Connection  ID to identify
+    this  particular  server  instance.   Connection  ID  is
+    encrypted and  this part is  not visible in  public.  It
+    must be 4  bytes long and must be encoded  in hex string
+    (which is 8  bytes long).  If this option  is omitted, a
+    random   server  ID   is   generated   on  startup   and
+    configuration reload.
+
+.. option:: --frontend-quic-initial-rtt=<DURATION>
+
+    Specify the initial RTT of the frontend QUIC connection.
+
+    Default: ``333ms``
 
 .. option:: --no-quic-bpf
 

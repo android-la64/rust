@@ -38,7 +38,7 @@ fn entry_fn(tcx: TyCtxt<'_>, (): ()) -> Option<(DefId, EntryFnType)> {
     }
 
     // If the user wants no main function at all, then stop here.
-    if attr::contains_name(&tcx.hir().attrs(CRATE_HIR_ID), sym::no_main) {
+    if attr::contains_name(tcx.hir().attrs(CRATE_HIR_ID), sym::no_main) {
         return None;
     }
 
@@ -126,7 +126,7 @@ fn configure_main(tcx: TyCtxt<'_>, visitor: &EntryContext<'_>) -> Option<(DefId,
         {
             // non-local main imports are handled below
             if let Some(def_id) = def_id.as_local()
-                && matches!(tcx.hir().find_by_def_id(def_id), Some(Node::ForeignItem(_)))
+                && matches!(tcx.opt_hir_node_by_def_id(def_id), Some(Node::ForeignItem(_)))
             {
                 tcx.sess.emit_err(ExternMain { span: tcx.def_span(def_id) });
                 return None;

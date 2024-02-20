@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-native"
-version = "0.101.2"
+version = "0.102.0"
 authors = ["The Cranelift Project Developers"]
 description = "Support for targeting the host with Cranelift"
 documentation = "https://docs.rs/cranelift-native"
@@ -22,7 +22,7 @@ license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
 
 [dependencies.cranelift-codegen]
-version = "0.101.2"
+version = "0.102.0"
 features = [
     "std",
     "unwind",
@@ -30,7 +30,7 @@ features = [
 default-features = false
 
 [dependencies.target-lexicon]
-version = "0.12.3"
+version = "0.12.12"
 features = ["std"]
 default-features = false
 

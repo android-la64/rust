@@ -460,3 +460,21 @@ fn string_escapes() {
     assert_eq!(cmd!(sh, "\"\"\"asdf\"\"\"").to_string(), r##""""asdf""""##);
     assert_eq!(cmd!(sh, "\\\\").to_string(), r#"\\"#);
 }
+
+#[test]
+fn nonexistent_current_directory() {
+    let sh = setup();
+    sh.change_dir("nonexistent");
+    let err = cmd!(sh, "ls").run().unwrap_err();
+    let message = err.to_string();
+    if cfg!(unix) {
+        assert!(message.contains("nonexistent"), "{message}");
+        assert!(message.starts_with("failed to get current directory"));
+        assert!(message.ends_with("No such file or directory (os error 2)"));
+    } else {
+        assert_eq!(
+            message,
+            "io error when running command `ls`: The directory name is invalid. (os error 267)"
+        );
+    }
+}

@@ -9,10 +9,10 @@
 //! * multiple loose objects and pack locations as gathered from `alternates` files.
 //! ## Feature Flags
 #![cfg_attr(
-    feature = "document-features",
-    cfg_attr(doc, doc = ::document_features::document_features!())
+    all(doc, feature = "document-features"),
+    doc = ::document_features::document_features!()
 )]
-#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
+#![cfg_attr(all(doc, feature = "document-features"), feature(doc_cfg, doc_auto_cfg))]
 #![deny(missing_docs, rust_2018_idioms, unsafe_code)]
 
 use std::{
@@ -74,7 +74,7 @@ pub mod find;
 /// An object database equivalent to `/dev/null`, dropping all objects stored into it.
 mod traits;
 
-pub use traits::{Find, FindExt, Header, HeaderExt, Write};
+pub use traits::{Header, HeaderExt, Write};
 
 ///
 pub mod write {

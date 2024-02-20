@@ -185,6 +185,10 @@ The `rust-version` may be ignored using the `--ignore-rust-version` option.
 Setting the `rust-version` key in `[package]` will affect all targets/crates in
 the package, including test suites, benchmarks, binaries, examples, etc.
 
+To find the minimum `rust-version` compatible with your project, you can use third-party tools like [`cargo-msrv`](https://crates.io/crates/cargo-msrv).
+
+When used on packages that get published, we recommend [verifying the `rust-version`](../guide/continuous-integration.md#verifying-rust-version).
+
 ### The `description` field
 
 The description is a short blurb about the package. [crates.io] will display
@@ -551,7 +555,7 @@ This is short-hand for:
 unsafe_code = { level = "forbid", priority = 0 }
 ```
 
-`level` corresponds to the lint levels in `rustc`:
+`level` corresponds to the [lint levels](https://doc.rust-lang.org/rustc/lints/levels.html) in `rustc`:
 - `forbid`
 - `deny`
 - `warn`
@@ -575,6 +579,11 @@ unsafe_code = "forbid"
 [lints.clippy]
 enum_glob_use = "deny"
 ```
+
+Generally, these will only affect local development of the current package.
+Cargo only applies these to the current package and not to dependencies.
+As for dependents, Cargo suppresses lints from non-path dependencies with features like
+[`--cap-lints`](../../rustc/lints/levels.html#capping-lints).
 
 ## The `[badges]` section
 

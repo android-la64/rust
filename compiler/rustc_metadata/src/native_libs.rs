@@ -160,6 +160,18 @@ impl<'tcx> Collector<'tcx> {
                                 }
                                 NativeLibKind::RawDylib
                             }
+                            "link-arg" => {
+                                if !features.link_arg_attribute {
+                                    feature_err(
+                                        &sess.parse_sess,
+                                        sym::link_arg_attribute,
+                                        span,
+                                        "link kind `link-arg` is unstable",
+                                    )
+                                    .emit();
+                                }
+                                NativeLibKind::LinkArg
+                            }
                             kind => {
                                 sess.emit_err(errors::UnknownLinkKind { span, kind });
                                 continue;
@@ -470,7 +482,7 @@ impl<'tcx> Collector<'tcx> {
     }
 
     fn i686_arg_list_size(&self, item: DefId) -> usize {
-        let argument_types: &List<Ty<'_>> = self.tcx.erase_late_bound_regions(
+        let argument_types: &List<Ty<'_>> = self.tcx.instantiate_bound_regions_with_erased(
             self.tcx
                 .type_of(item)
                 .instantiate_identity()

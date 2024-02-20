@@ -1,24 +1,24 @@
 use super::*;
 
 pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
-    if writer.reader.type_def_kind(def) != TypeKind::Interface || (!writer.implement && writer.reader.has_attribute(def, "ExclusiveToAttribute")) {
+    if def.kind() != TypeKind::Interface || (!writer.implement && def.has_attribute("ExclusiveToAttribute")) {
         return quote! {};
     }
 
-    let generics = &type_def_generics(writer.reader, def);
-    let type_ident = to_ident(writer.reader.type_def_name(def));
+    let generics = &type_def_generics(def);
+    let type_ident = to_ident(def.name());
     let impl_ident = type_ident.join("_Impl");
     let vtbl_ident = type_ident.join("_Vtbl");
     let implvtbl_ident = impl_ident.join("Vtbl");
     let constraints = writer.generic_constraints(generics);
     let generic_names = writer.generic_names(generics);
     let named_phantoms = writer.generic_named_phantoms(generics);
-    let cfg = type_def_cfg_impl(writer.reader, def, generics);
+    let cfg = type_def_cfg_impl(def, generics);
     let doc = writer.cfg_doc(&cfg);
     let features = writer.cfg_features(&cfg);
     let mut requires = quote! {};
     let type_ident = quote! { #type_ident<#generic_names> };
-    let vtables = type_def_vtables(writer.reader, def);
+    let vtables = type_def_vtables(def);
     let has_unknown_base = matches!(vtables.first(), Some(Type::IUnknown));
 
     fn gen_required_trait(writer: &Writer, def: TypeDef, generics: &[Type]) -> TokenStream {
@@ -28,7 +28,7 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
         }
     }
 
-    let mut matches = quote! { iid == &<#type_ident as ::windows_core::ComInterface>::IID };
+    let mut matches = quote! { *iid == <#type_ident as ::windows_core::ComInterface>::IID };
 
     if let Some(Type::TypeDef(def, _)) = vtables.last() {
         requires.combine(&gen_required_trait(writer, *def, &[]))
@@ -39,14 +39,14 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
             let name = writer.type_def_name(*def, generics);
 
             matches.combine(&quote! {
-                || iid == &<#name as ::windows_core::ComInterface>::IID
+                || *iid == <#name as ::windows_core::ComInterface>::IID
             })
         }
     }
 
-    if writer.reader.type_def_flags(def).contains(TypeAttributes::WindowsRuntime) {
+    if def.flags().contains(TypeAttributes::WindowsRuntime) {
         // TODO: this awkward wrapping of TypeDefs needs fixing
-        for interface in type_interfaces(writer.reader, &Type::TypeDef(def, generics.to_vec())) {
+        for interface in type_interfaces(&Type::TypeDef(def, generics.to_vec())) {
             if let Type::TypeDef(def, generics) = interface.ty {
                 requires.combine(&gen_required_trait(writer, def, &generics));
             }
@@ -56,26 +56,26 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
     let runtime_name = writer.runtime_name_trait(def, generics, &type_ident, &constraints, &features);
 
     let mut method_names = MethodNames::new();
-    method_names.add_vtable_types(writer, def);
+    method_names.add_vtable_types(def);
 
-    let method_traits = writer.reader.type_def_methods(def).map(|method| {
-        let name = method_names.add(writer, method);
+    let method_traits = def.methods().map(|method| {
+        let name = method_names.add(method);
 
-        let signature = method_def_signature(writer.reader, writer.reader.type_def_namespace(def), method, generics);
+        let signature = method_def_signature(def.namespace(), method, generics);
 
         let signature_tokens = writer.impl_signature(def, &signature);
         quote! { fn #name #signature_tokens; }
     });
 
     let mut method_names = MethodNames::new();
-    method_names.add_vtable_types(writer, def);
+    method_names.add_vtable_types(def);
 
-    let method_impls = writer.reader.type_def_methods(def).map(|method| {
-        let name = method_names.add(writer, method);
-        let signature = method_def_signature(writer.reader, writer.reader.type_def_namespace(def), method, generics);
+    let method_impls = def.methods().map(|method| {
+        let name = method_names.add(method);
+        let signature = method_def_signature(def.namespace(), method, generics);
         let vtbl_signature = writer.vtbl_signature(def, generics, &signature);
 
-        let invoke_upcall = if writer.reader.type_def_flags(def).contains(TypeAttributes::WindowsRuntime) { winrt_methods::gen_upcall(writer, &signature, quote! { this.#name }) } else { com_methods::gen_upcall(writer, &signature, quote! { this.#name }) };
+        let invoke_upcall = if def.flags().contains(TypeAttributes::WindowsRuntime) { winrt_methods::gen_upcall(writer, &signature, quote! { this.#name }) } else { com_methods::gen_upcall(writer, &signature, quote! { this.#name }) };
 
         if has_unknown_base {
             quote! {
@@ -114,10 +114,10 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
     }
 
     let mut method_names = MethodNames::new();
-    method_names.add_vtable_types(writer, def);
+    method_names.add_vtable_types(def);
 
-    for method in writer.reader.type_def_methods(def) {
-        let name = method_names.add(writer, method);
+    for method in def.methods() {
+        let name = method_names.add(method);
         if has_unknown_base {
             methods.combine(&quote! { #name: #name::<#generic_names Identity, Impl, OFFSET>, });
         } else {
@@ -142,7 +142,7 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
                         #(#named_phantoms)*
                     }
                 }
-                pub fn matches(iid: &::windows_core::GUID) -> bool {
+                pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
                     #matches
                 }
             }

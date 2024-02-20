@@ -13,7 +13,7 @@ pub type StableCrateIdMap =
     indexmap::IndexMap<StableCrateId, CrateNum, BuildHasherDefault<Unhasher>>;
 
 rustc_index::newtype_index! {
-    #[custom_encodable]
+    #[orderable]
     #[debug_format = "crate{}"]
     pub struct CrateNum {}
 }
@@ -213,7 +213,7 @@ rustc_index::newtype_index! {
     /// A DefIndex is an index into the hir-map for a crate, identifying a
     /// particular definition. It should really be considered an interned
     /// shorthand for a particular DefPath.
-    #[custom_encodable] // (only encodable in metadata)
+    #[orderable]
     #[debug_format = "DefIndex({})"]
     pub struct DefIndex {
         /// The crate root is always assigned index 0 by the AST Map code,

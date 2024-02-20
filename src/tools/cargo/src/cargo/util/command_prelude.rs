@@ -7,11 +7,13 @@ use crate::util::important_paths::find_root_manifest_for_wd;
 use crate::util::interning::InternedString;
 use crate::util::is_rustup;
 use crate::util::restricted_names;
-use crate::util::toml::schema::StringOrVec;
 use crate::util::{
     print_available_benches, print_available_binaries, print_available_examples,
     print_available_packages, print_available_tests,
 };
+use crate::util_schemas::manifest::ProfileName;
+use crate::util_schemas::manifest::RegistryName;
+use crate::util_schemas::manifest::StringOrVec;
 use crate::CargoResult;
 use anyhow::bail;
 use cargo_util::paths;
@@ -363,20 +365,19 @@ pub trait CommandExt: Sized {
         ))
     }
 
-    fn arg_quiet(self) -> Self {
-        let unsupported_silent_arg = {
-            let value_parser = UnknownArgumentValueParser::suggest_arg("--quiet");
+    /// Adds a suggestion for the `--silent` or `-s` flags to use the
+    /// `--quiet` flag instead. This is to help with people familiar with
+    /// other tools that use `-s`.
+    ///
+    /// Every command should call this, unless it has its own `-s` short flag.
+    fn arg_silent_suggestion(self) -> Self {
+        let value_parser = UnknownArgumentValueParser::suggest_arg("--quiet");
+        self._arg(
             flag("silent", "")
                 .short('s')
                 .value_parser(value_parser)
-                .hide(true)
-        };
-        self.arg_quiet_without_unknown_silent_arg_tip()
-            ._arg(unsupported_silent_arg)
-    }
-
-    fn arg_quiet_without_unknown_silent_arg_tip(self) -> Self {
-        self._arg(flag("quiet", "Do not print cargo log messages").short('q'))
+                .hide(true),
+        )
     }
 
     fn arg_timings(self) -> Self {
@@ -606,7 +607,7 @@ Run `{cmd}` to see possible targets."
                 bail!("profile `doc` is reserved and not allowed to be explicitly specified")
             }
             (_, _, Some(name)) => {
-                restricted_names::validate_profile_name(name)?;
+                ProfileName::new(name)?;
                 name
             }
         };
@@ -834,7 +835,7 @@ Run `{cmd}` to see possible targets."
             (None, None) => config.default_registry()?.map(RegistryOrIndex::Registry),
             (None, Some(i)) => Some(RegistryOrIndex::Index(i.into_url()?)),
             (Some(r), None) => {
-                restricted_names::validate_package_name(r, "registry name", "")?;
+                RegistryName::new(r)?;
                 Some(RegistryOrIndex::Registry(r.to_string()))
             }
             (Some(_), Some(_)) => {
@@ -849,7 +850,7 @@ Run `{cmd}` to see possible targets."
         match self._value_of("registry").map(|s| s.to_string()) {
             None => config.default_registry(),
             Some(registry) => {
-                restricted_names::validate_package_name(&registry, "registry name", "")?;
+                RegistryName::new(&registry)?;
                 Ok(Some(registry))
             }
         }

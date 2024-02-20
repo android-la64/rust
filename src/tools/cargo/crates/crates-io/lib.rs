@@ -1,5 +1,3 @@
-#![allow(clippy::all)]
-
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::prelude::*;
@@ -438,7 +436,8 @@ impl Registry {
             .map(|s| s.errors.into_iter().map(|s| s.detail).collect::<Vec<_>>());
 
         match (self.handle.response_code()?, errors) {
-            (0, None) | (200, None) => Ok(body),
+            (0, None) => Ok(body),
+            (code, None) if is_success(code) => Ok(body),
             (code, Some(errors)) => Err(Error::Api {
                 code,
                 headers,
@@ -453,8 +452,12 @@ impl Registry {
     }
 }
 
+fn is_success(code: u32) -> bool {
+    code >= 200 && code < 300
+}
+
 fn status(code: u32) -> String {
-    if code == 200 {
+    if is_success(code) {
         String::new()
     } else {
         let reason = reason(code);

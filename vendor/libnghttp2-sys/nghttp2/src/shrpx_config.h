@@ -43,6 +43,7 @@
 #include <vector>
 #include <memory>
 #include <set>
+#include <unordered_map>
 
 #include <openssl/ssl.h>
 
@@ -391,8 +392,19 @@ constexpr auto SHRPX_OPT_FRONTEND_QUIC_REQUIRE_TOKEN =
     StringRef::from_lit("frontend-quic-require-token");
 constexpr auto SHRPX_OPT_FRONTEND_QUIC_CONGESTION_CONTROLLER =
     StringRef::from_lit("frontend-quic-congestion-controller");
-constexpr auto SHRPX_OPT_FRONTEND_QUIC_CONNECTION_ID_ENCRYPTION_KEY =
-    StringRef::from_lit("frontend-quic-connection-id-encryption-key");
+constexpr auto SHRPX_OPT_QUIC_SERVER_ID = StringRef::from_lit("quic-server-id");
+constexpr auto SHRPX_OPT_FRONTEND_QUIC_SECRET_FILE =
+    StringRef::from_lit("frontend-quic-secret-file");
+constexpr auto SHRPX_OPT_RLIMIT_MEMLOCK = StringRef::from_lit("rlimit-memlock");
+constexpr auto SHRPX_OPT_MAX_WORKER_PROCESSES =
+    StringRef::from_lit("max-worker-processes");
+constexpr auto SHRPX_OPT_WORKER_PROCESS_GRACE_SHUTDOWN_PERIOD =
+    StringRef::from_lit("worker-process-grace-shutdown-period");
+constexpr auto SHRPX_OPT_FRONTEND_QUIC_INITIAL_RTT =
+    StringRef::from_lit("frontend-quic-initial-rtt");
+constexpr auto SHRPX_OPT_REQUIRE_HTTP_SCHEME =
+    StringRef::from_lit("require-http-scheme");
+constexpr auto SHRPX_OPT_TLS_KTLS = StringRef::from_lit("tls-ktls");
 
 constexpr size_t SHRPX_OBFUSCATED_NODE_LENGTH = 8;
 
@@ -426,6 +438,16 @@ enum class SessionAffinityCookieSecure {
   NO,
 };
 
+enum class SessionAffinityCookieStickiness {
+  // Backend server might be changed when an existing backend server
+  // is removed, or new backend server is added.
+  LOOSE,
+  // Backend server might be changed when a designated backend server
+  // is removed, but adding new backend server does not cause
+  // breakage.
+  STRICT,
+};
+
 struct AffinityConfig {
   // Type of session affinity.
   SessionAffinity type;
@@ -436,6 +458,8 @@ struct AffinityConfig {
     StringRef path;
     // Secure attribute
     SessionAffinityCookieSecure secure;
+    // Affinity Stickiness
+    SessionAffinityCookieStickiness stickiness;
   } cookie;
 };
 
@@ -518,6 +542,9 @@ struct DownstreamAddrConfig {
   uint32_t weight;
   // weight of the weight group.  Its range is [1, 256], inclusive.
   uint32_t group_weight;
+  // affinity hash for this address.  It is assigned when strict
+  // stickiness is enabled.
+  uint32_t affinity_hash;
   // Application protocol used in this group
   Proto proto;
   // backend port.  0 if |host_unix| is true.
@@ -558,6 +585,9 @@ struct DownstreamAddrGroupConfig {
   // Bunch of session affinity hash.  Only used if affinity ==
   // SessionAffinity::IP.
   std::vector<AffinityHash> affinity_hash;
+  // Maps affinity hash of each DownstreamAddrConfig to its index in
+  // addrs.  It is only assigned when strict stickiness is enabled.
+  std::unordered_map<uint32_t, size_t> affinity_hash_map;
   // Cookie based session affinity configuration.
   AffinityConfig affinity;
   // true if this group requires that client connection must be TLS,
@@ -604,10 +634,18 @@ struct TLSCertificate {
 };
 
 #ifdef ENABLE_HTTP3
-struct QUICSecret {
-  std::array<uint8_t, SHRPX_QUIC_STATELESS_RESET_SECRETLEN>
-      stateless_reset_secret;
-  std::array<uint8_t, SHRPX_QUIC_TOKEN_SECRETLEN> token_secret;
+struct QUICKeyingMaterial {
+  std::array<uint8_t, SHRPX_QUIC_SECRET_RESERVEDLEN> reserved;
+  std::array<uint8_t, SHRPX_QUIC_SECRETLEN> secret;
+  std::array<uint8_t, SHRPX_QUIC_SALTLEN> salt;
+  std::array<uint8_t, SHRPX_QUIC_CID_ENCRYPTION_KEYLEN> cid_encryption_key;
+  // Identifier of this keying material.  Only the first 2 bits are
+  // used.
+  uint8_t id;
+};
+
+struct QUICKeyingMaterials {
+  std::vector<QUICKeyingMaterial> keying_materials;
 };
 #endif // ENABLE_HTTP3
 
@@ -675,7 +713,7 @@ struct TLSConfig {
     ev_tstamp idle_timeout;
   } dyn_rec;
 
-  // OCSP realted configurations
+  // OCSP related configurations
   struct {
     ev_tstamp update_interval;
     StringRef fetch_ocsp_response_file;
@@ -746,6 +784,7 @@ struct TLSConfig {
   // true if forwarding requests included in TLS early data should not
   // be postponed until TLS handshake finishes.
   bool no_postpone_early_data;
+  bool ktls;
 };
 
 #ifdef ENABLE_HTTP3
@@ -763,12 +802,14 @@ struct QUICConfig {
     ngtcp2_cc_algo congestion_controller;
     bool early_data;
     bool require_token;
-    std::array<uint8_t, SHRPX_QUIC_CID_ENCRYPTION_KEYLEN> cid_encryption_key;
+    StringRef secret_file;
+    ev_tstamp initial_rtt;
   } upstream;
   struct {
     StringRef prog_file;
     bool disabled;
   } bpf;
+  std::array<uint8_t, SHRPX_QUIC_SERVER_IDLEN> server_id;
 };
 
 struct Http3Config {
@@ -839,6 +880,7 @@ struct HttpConfig {
   bool no_location_rewrite;
   bool no_host_rewrite;
   bool no_server_rewrite;
+  bool require_http_scheme;
 };
 
 struct Http2Config {
@@ -1053,6 +1095,7 @@ struct Config {
         num_worker{0},
         padding{0},
         rlimit_nofile{0},
+        rlimit_memlock{0},
         uid{0},
         gid{0},
         pid{0},
@@ -1062,7 +1105,9 @@ struct Config {
         single_process{false},
         single_thread{false},
         ignore_per_pattern_mruby_error{false},
-        ev_loop_flags{0} {
+        ev_loop_flags{0},
+        max_worker_processes{0},
+        worker_process_grace_shutdown_period{0.} {
   }
   ~Config();
 
@@ -1101,6 +1146,7 @@ struct Config {
   size_t num_worker;
   size_t padding;
   size_t rlimit_nofile;
+  size_t rlimit_memlock;
   uid_t uid;
   gid_t gid;
   pid_t pid;
@@ -1115,6 +1161,8 @@ struct Config {
   bool ignore_per_pattern_mruby_error;
   // flags passed to ev_default_loop() and ev_loop_new()
   int ev_loop_flags;
+  size_t max_worker_processes;
+  ev_tstamp worker_process_grace_shutdown_period;
 };
 
 const Config *get_config();
@@ -1217,12 +1265,13 @@ enum {
   SHRPX_OPTID_FRONTEND_MAX_REQUESTS,
   SHRPX_OPTID_FRONTEND_NO_TLS,
   SHRPX_OPTID_FRONTEND_QUIC_CONGESTION_CONTROLLER,
-  SHRPX_OPTID_FRONTEND_QUIC_CONNECTION_ID_ENCRYPTION_KEY,
   SHRPX_OPTID_FRONTEND_QUIC_DEBUG_LOG,
   SHRPX_OPTID_FRONTEND_QUIC_EARLY_DATA,
   SHRPX_OPTID_FRONTEND_QUIC_IDLE_TIMEOUT,
+  SHRPX_OPTID_FRONTEND_QUIC_INITIAL_RTT,
   SHRPX_OPTID_FRONTEND_QUIC_QLOG_DIR,
   SHRPX_OPTID_FRONTEND_QUIC_REQUIRE_TOKEN,
+  SHRPX_OPTID_FRONTEND_QUIC_SECRET_FILE,
   SHRPX_OPTID_FRONTEND_READ_TIMEOUT,
   SHRPX_OPTID_FRONTEND_WRITE_TIMEOUT,
   SHRPX_OPTID_HEADER_FIELD_BUFFER,
@@ -1240,6 +1289,7 @@ enum {
   SHRPX_OPTID_MAX_HEADER_FIELDS,
   SHRPX_OPTID_MAX_REQUEST_HEADER_FIELDS,
   SHRPX_OPTID_MAX_RESPONSE_HEADER_FIELDS,
+  SHRPX_OPTID_MAX_WORKER_PROCESSES,
   SHRPX_OPTID_MRUBY_FILE,
   SHRPX_OPTID_NO_ADD_X_FORWARDED_PROTO,
   SHRPX_OPTID_NO_HOST_REWRITE,
@@ -1264,11 +1314,14 @@ enum {
   SHRPX_OPTID_PRIVATE_KEY_PASSWD_FILE,
   SHRPX_OPTID_PSK_SECRETS,
   SHRPX_OPTID_QUIC_BPF_PROGRAM_FILE,
+  SHRPX_OPTID_QUIC_SERVER_ID,
   SHRPX_OPTID_READ_BURST,
   SHRPX_OPTID_READ_RATE,
   SHRPX_OPTID_REDIRECT_HTTPS_PORT,
   SHRPX_OPTID_REQUEST_HEADER_FIELD_BUFFER,
+  SHRPX_OPTID_REQUIRE_HTTP_SCHEME,
   SHRPX_OPTID_RESPONSE_HEADER_FIELD_BUFFER,
+  SHRPX_OPTID_RLIMIT_MEMLOCK,
   SHRPX_OPTID_RLIMIT_NOFILE,
   SHRPX_OPTID_SERVER_NAME,
   SHRPX_OPTID_SINGLE_PROCESS,
@@ -1281,6 +1334,7 @@ enum {
   SHRPX_OPTID_SYSLOG_FACILITY,
   SHRPX_OPTID_TLS_DYN_REC_IDLE_TIMEOUT,
   SHRPX_OPTID_TLS_DYN_REC_WARMUP_THRESHOLD,
+  SHRPX_OPTID_TLS_KTLS,
   SHRPX_OPTID_TLS_MAX_EARLY_DATA,
   SHRPX_OPTID_TLS_MAX_PROTO_VERSION,
   SHRPX_OPTID_TLS_MIN_PROTO_VERSION,
@@ -1309,6 +1363,7 @@ enum {
   SHRPX_OPTID_VERIFY_CLIENT_CACERT,
   SHRPX_OPTID_VERIFY_CLIENT_TOLERATE_EXPIRED,
   SHRPX_OPTID_WORKER_FRONTEND_CONNECTIONS,
+  SHRPX_OPTID_WORKER_PROCESS_GRACE_SHUTDOWN_PERIOD,
   SHRPX_OPTID_WORKER_READ_BURST,
   SHRPX_OPTID_WORKER_READ_RATE,
   SHRPX_OPTID_WORKER_WRITE_BURST,
@@ -1372,6 +1427,11 @@ FILE *open_file_for_write(const char *filename);
 std::unique_ptr<TicketKeys>
 read_tls_ticket_key_file(const std::vector<StringRef> &files,
                          const EVP_CIPHER *cipher, const EVP_MD *hmac);
+
+#ifdef ENABLE_HTTP3
+std::shared_ptr<QUICKeyingMaterials>
+read_quic_secret_file(const StringRef &path);
+#endif // ENABLE_HTTP3
 
 // Returns string representation of |proto|.
 StringRef strproto(Proto proto);

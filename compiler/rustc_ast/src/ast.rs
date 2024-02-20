@@ -301,7 +301,7 @@ pub enum TraitBoundModifier {
     Maybe,
 
     /// `~const Trait`
-    MaybeConst,
+    MaybeConst(Span),
 
     /// `~const !Trait`
     //
@@ -317,8 +317,7 @@ pub enum TraitBoundModifier {
 impl TraitBoundModifier {
     pub fn to_constness(self) -> Const {
         match self {
-            // FIXME(effects) span
-            Self::MaybeConst => Const::Yes(DUMMY_SP),
+            Self::MaybeConst(span) => Const::Yes(span),
             _ => Const::No,
         }
     }
@@ -646,6 +645,7 @@ impl Pat {
             // These patterns do not contain subpatterns, skip.
             PatKind::Wild
             | PatKind::Rest
+            | PatKind::Never
             | PatKind::Lit(_)
             | PatKind::Range(..)
             | PatKind::Ident(..)
@@ -657,6 +657,37 @@ impl Pat {
     /// Is this a `..` pattern?
     pub fn is_rest(&self) -> bool {
         matches!(self.kind, PatKind::Rest)
+    }
+
+    /// Whether this could be a never pattern, taking into account that a macro invocation can
+    /// return a never pattern. Used to inform errors during parsing.
+    pub fn could_be_never_pattern(&self) -> bool {
+        let mut could_be_never_pattern = false;
+        self.walk(&mut |pat| match &pat.kind {
+            PatKind::Never | PatKind::MacCall(_) => {
+                could_be_never_pattern = true;
+                false
+            }
+            PatKind::Or(s) => {
+                could_be_never_pattern = s.iter().all(|p| p.could_be_never_pattern());
+                false
+            }
+            _ => true,
+        });
+        could_be_never_pattern
+    }
+
+    /// Whether this contains a `!` pattern. This in particular means that a feature gate error will
+    /// be raised if the feature is off. Used to avoid gating the feature twice.
+    pub fn contains_never_pattern(&self) -> bool {
+        let mut contains_never_pattern = false;
+        self.walk(&mut |pat| {
+            if matches!(pat.kind, PatKind::Never) {
+                contains_never_pattern = true;
+            }
+            true
+        });
+        contains_never_pattern
     }
 }
 
@@ -796,6 +827,9 @@ pub enum PatKind {
     /// only one rest pattern may occur in the pattern sequences.
     Rest,
 
+    // A never pattern `!`
+    Never,
+
     /// Parentheses in patterns used for grouping (i.e., `(PAT)`).
     Paren(P<Pat>),
 
@@ -818,7 +852,7 @@ pub enum BorrowKind {
     Raw,
 }
 
-#[derive(Clone, PartialEq, Encodable, Decodable, Debug, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Encodable, Decodable, HashStable_Generic)]
 pub enum BinOpKind {
     /// The `+` operator (addition)
     Add,
@@ -859,9 +893,9 @@ pub enum BinOpKind {
 }
 
 impl BinOpKind {
-    pub fn to_string(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         use BinOpKind::*;
-        match *self {
+        match self {
             Add => "+",
             Sub => "-",
             Mul => "*",
@@ -882,18 +916,24 @@ impl BinOpKind {
             Gt => ">",
         }
     }
-    pub fn lazy(&self) -> bool {
+
+    pub fn is_lazy(&self) -> bool {
         matches!(self, BinOpKind::And | BinOpKind::Or)
     }
 
     pub fn is_comparison(&self) -> bool {
         use BinOpKind::*;
-        // Note for developers: please keep this as is;
+        // Note for developers: please keep this match exhaustive;
         // we want compilation to fail if another variant is added.
         match *self {
             Eq | Lt | Le | Ne | Gt | Ge => true,
             And | Or | Add | Sub | Mul | Div | Rem | BitXor | BitAnd | BitOr | Shl | Shr => false,
         }
+    }
+
+    /// Returns `true` if the binary operator takes its arguments by value.
+    pub fn is_by_value(self) -> bool {
+        !self.is_comparison()
     }
 }
 
@@ -902,7 +942,7 @@ pub type BinOp = Spanned<BinOpKind>;
 /// Unary operator.
 ///
 /// Note that `&data` is not an operator, it's an `AddrOf` expression.
-#[derive(Clone, Encodable, Decodable, Debug, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Encodable, Decodable, HashStable_Generic)]
 pub enum UnOp {
     /// The `*` operator for dereferencing
     Deref,
@@ -913,12 +953,17 @@ pub enum UnOp {
 }
 
 impl UnOp {
-    pub fn to_string(op: UnOp) -> &'static str {
-        match op {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             UnOp::Deref => "*",
             UnOp::Not => "!",
             UnOp::Neg => "-",
         }
+    }
+
+    /// Returns `true` if the unary operator takes its argument by value.
+    pub fn is_by_value(self) -> bool {
+        matches!(self, Self::Neg | Self::Not)
     }
 }
 
@@ -1066,8 +1111,8 @@ pub struct Arm {
     pub pat: P<Pat>,
     /// Match arm guard, e.g. `n > 10` in `match foo { n if n > 10 => {}, _ => {} }`
     pub guard: Option<P<Expr>>,
-    /// Match arm body.
-    pub body: P<Expr>,
+    /// Match arm body. Omitted if the pattern is a never pattern.
+    pub body: Option<P<Expr>>,
     pub span: Span,
     pub id: NodeId,
     pub is_placeholder: bool,
@@ -1297,7 +1342,7 @@ pub struct Closure {
     pub binder: ClosureBinder,
     pub capture_clause: CaptureBy,
     pub constness: Const,
-    pub asyncness: Async,
+    pub coroutine_kind: Option<CoroutineKind>,
     pub movability: Movability,
     pub fn_decl: P<FnDecl>,
     pub body: P<Expr>,
@@ -1502,6 +1547,7 @@ pub enum ExprKind {
 pub enum GenBlockKind {
     Async,
     Gen,
+    AsyncGen,
 }
 
 impl fmt::Display for GenBlockKind {
@@ -1515,6 +1561,7 @@ impl GenBlockKind {
         match self {
             GenBlockKind::Async => "async",
             GenBlockKind::Gen => "gen",
+            GenBlockKind::AsyncGen => "async gen",
         }
     }
 }
@@ -2237,6 +2284,18 @@ pub enum InlineAsmOperand {
     },
 }
 
+impl InlineAsmOperand {
+    pub fn reg(&self) -> Option<&InlineAsmRegOrRegClass> {
+        match self {
+            Self::In { reg, .. }
+            | Self::Out { reg, .. }
+            | Self::InOut { reg, .. }
+            | Self::SplitInOut { reg, .. } => Some(reg),
+            Self::Const { .. } | Self::Sym { .. } => None,
+        }
+    }
+}
+
 /// Inline assembly.
 ///
 /// E.g., `asm!("NOP");`.
@@ -2380,28 +2439,47 @@ pub enum Unsafe {
     No,
 }
 
+/// Describes what kind of coroutine markers, if any, a function has.
+///
+/// Coroutine markers are things that cause the function to generate a coroutine, such as `async`,
+/// which makes the function return `impl Future`, or `gen`, which makes the function return `impl
+/// Iterator`.
 #[derive(Copy, Clone, Encodable, Decodable, Debug)]
-pub enum Async {
-    Yes { span: Span, closure_id: NodeId, return_impl_trait_id: NodeId },
-    No,
+pub enum CoroutineKind {
+    /// `async`, which returns an `impl Future`
+    Async { span: Span, closure_id: NodeId, return_impl_trait_id: NodeId },
+    /// `gen`, which returns an `impl Iterator`
+    Gen { span: Span, closure_id: NodeId, return_impl_trait_id: NodeId },
+    /// `async gen`, which returns an `impl AsyncIterator`
+    AsyncGen { span: Span, closure_id: NodeId, return_impl_trait_id: NodeId },
 }
 
-#[derive(Copy, Clone, Encodable, Decodable, Debug)]
-pub enum Gen {
-    Yes { span: Span, closure_id: NodeId, return_impl_trait_id: NodeId },
-    No,
-}
-
-impl Async {
+impl CoroutineKind {
     pub fn is_async(self) -> bool {
-        matches!(self, Async::Yes { .. })
+        matches!(self, CoroutineKind::Async { .. })
     }
 
-    /// In this case this is an `async` return, the `NodeId` for the generated `impl Trait` item.
-    pub fn opt_return_id(self) -> Option<(NodeId, Span)> {
+    pub fn is_gen(self) -> bool {
+        matches!(self, CoroutineKind::Gen { .. })
+    }
+
+    pub fn closure_id(self) -> NodeId {
         match self {
-            Async::Yes { return_impl_trait_id, span, .. } => Some((return_impl_trait_id, span)),
-            Async::No => None,
+            CoroutineKind::Async { closure_id, .. }
+            | CoroutineKind::Gen { closure_id, .. }
+            | CoroutineKind::AsyncGen { closure_id, .. } => closure_id,
+        }
+    }
+
+    /// In this case this is an `async` or `gen` return, the `NodeId` for the generated `impl Trait`
+    /// item.
+    pub fn return_id(self) -> (NodeId, Span) {
+        match self {
+            CoroutineKind::Async { return_impl_trait_id, span, .. }
+            | CoroutineKind::Gen { return_impl_trait_id, span, .. }
+            | CoroutineKind::AsyncGen { return_impl_trait_id, span, .. } => {
+                (return_impl_trait_id, span)
+            }
         }
     }
 }
@@ -2574,7 +2652,7 @@ pub enum AttrStyle {
 }
 
 rustc_index::newtype_index! {
-    #[custom_encodable]
+    #[orderable]
     #[debug_format = "AttrId({})"]
     pub struct AttrId {}
 }
@@ -2710,7 +2788,11 @@ pub enum VariantData {
     /// Struct variant.
     ///
     /// E.g., `Bar { .. }` as in `enum Foo { Bar { .. } }`.
-    Struct(ThinVec<FieldDef>, bool),
+    Struct {
+        fields: ThinVec<FieldDef>,
+        // FIXME: investigate making this a `Option<ErrorGuaranteed>`
+        recovered: bool,
+    },
     /// Tuple variant.
     ///
     /// E.g., `Bar(..)` as in `enum Foo { Bar(..) }`.
@@ -2725,7 +2807,7 @@ impl VariantData {
     /// Return the fields of this variant.
     pub fn fields(&self) -> &[FieldDef] {
         match self {
-            VariantData::Struct(fields, ..) | VariantData::Tuple(fields, _) => fields,
+            VariantData::Struct { fields, .. } | VariantData::Tuple(fields, _) => fields,
             _ => &[],
         }
     }
@@ -2733,7 +2815,7 @@ impl VariantData {
     /// Return the `NodeId` of this variant's constructor, if it has one.
     pub fn ctor_node_id(&self) -> Option<NodeId> {
         match *self {
-            VariantData::Struct(..) => None,
+            VariantData::Struct { .. } => None,
             VariantData::Tuple(_, id) | VariantData::Unit(id) => Some(id),
         }
     }
@@ -2766,6 +2848,28 @@ impl Item {
     /// Return the span that encompasses the attributes.
     pub fn span_with_attributes(&self) -> Span {
         self.attrs.iter().fold(self.span, |acc, attr| acc.to(attr.span))
+    }
+
+    pub fn opt_generics(&self) -> Option<&Generics> {
+        match &self.kind {
+            ItemKind::ExternCrate(_)
+            | ItemKind::Use(_)
+            | ItemKind::Mod(_, _)
+            | ItemKind::ForeignMod(_)
+            | ItemKind::GlobalAsm(_)
+            | ItemKind::MacCall(_)
+            | ItemKind::MacroDef(_) => None,
+            ItemKind::Static(_) => None,
+            ItemKind::Const(i) => Some(&i.generics),
+            ItemKind::Fn(i) => Some(&i.generics),
+            ItemKind::TyAlias(i) => Some(&i.generics),
+            ItemKind::TraitAlias(generics, _)
+            | ItemKind::Enum(_, generics)
+            | ItemKind::Struct(_, generics)
+            | ItemKind::Union(_, generics) => Some(&generics),
+            ItemKind::Trait(i) => Some(&i.generics),
+            ItemKind::Impl(i) => Some(&i.generics),
+        }
     }
 }
 
@@ -2805,8 +2909,8 @@ impl Extern {
 pub struct FnHeader {
     /// The `unsafe` keyword, if any
     pub unsafety: Unsafe,
-    /// The `async` keyword, if any
-    pub asyncness: Async,
+    /// Whether this is `async`, `gen`, or nothing.
+    pub coroutine_kind: Option<CoroutineKind>,
     /// The `const` keyword, if any
     pub constness: Const,
     /// The `extern` keyword and corresponding ABI string, if any
@@ -2816,9 +2920,9 @@ pub struct FnHeader {
 impl FnHeader {
     /// Does this function header have any qualifiers or is it empty?
     pub fn has_qualifiers(&self) -> bool {
-        let Self { unsafety, asyncness, constness, ext } = self;
+        let Self { unsafety, coroutine_kind, constness, ext } = self;
         matches!(unsafety, Unsafe::Yes(_))
-            || asyncness.is_async()
+            || coroutine_kind.is_some()
             || matches!(constness, Const::Yes(_))
             || !matches!(ext, Extern::None)
     }
@@ -2828,7 +2932,7 @@ impl Default for FnHeader {
     fn default() -> FnHeader {
         FnHeader {
             unsafety: Unsafe::No,
-            asyncness: Async::No,
+            coroutine_kind: None,
             constness: Const::No,
             ext: Extern::None,
         }
@@ -3151,11 +3255,11 @@ mod size_asserts {
     static_assert_size!(Block, 32);
     static_assert_size!(Expr, 72);
     static_assert_size!(ExprKind, 40);
-    static_assert_size!(Fn, 152);
+    static_assert_size!(Fn, 160);
     static_assert_size!(ForeignItem, 96);
     static_assert_size!(ForeignItemKind, 24);
     static_assert_size!(GenericArg, 24);
-    static_assert_size!(GenericBound, 56);
+    static_assert_size!(GenericBound, 64);
     static_assert_size!(Generics, 40);
     static_assert_size!(Impl, 136);
     static_assert_size!(Item, 136);

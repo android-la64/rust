@@ -8,7 +8,7 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 /// Provides intentionally-checked arithmetic on `T`.
 ///
 /// Internally this leverages the [`CtOption`] type from the [`subtle`] crate
-/// in order to handle overflows in constant time.
+/// in order to handle overflows.
 #[derive(Copy, Clone, Debug)]
 pub struct Checked<T>(pub CtOption<T>);
 
@@ -83,7 +83,9 @@ impl<T: Copy + Serialize> Serialize for Checked<T> {
 }
 
 #[cfg(all(test, feature = "serde"))]
+#[allow(clippy::unwrap_used)]
 mod tests {
+
     use crate::{Checked, U64};
     use subtle::{Choice, ConstantTimeEq, CtOption};
 

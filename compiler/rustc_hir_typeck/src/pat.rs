@@ -178,6 +178,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         let ty = match pat.kind {
             PatKind::Wild => expected,
+            // FIXME(never_patterns): check the type is uninhabited. If that is not possible within
+            // typeck, do that in a later phase.
+            PatKind::Never => expected,
             PatKind::Lit(lt) => self.check_pat_lit(pat.span, lt, expected, ti),
             PatKind::Range(lhs, rhs, _) => self.check_pat_range(pat.span, lhs, rhs, expected, ti),
             PatKind::Binding(ba, var_id, _, sub) => {
@@ -287,9 +290,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             | PatKind::Box(_)
             | PatKind::Range(..)
             | PatKind::Slice(..) => AdjustMode::Peel,
+            // A never pattern behaves somewhat like a literal or unit variant.
+            PatKind::Never => AdjustMode::Peel,
             // String and byte-string literals result in types `&str` and `&[u8]` respectively.
             // All other literals result in non-reference types.
-            // As a result, we allow `if let 0 = &&0 {}` but not `if let "foo" = &&"foo {}`.
+            // As a result, we allow `if let 0 = &&0 {}` but not `if let "foo" = &&"foo" {}`.
             //
             // Call `resolve_vars_if_possible` here for inline const blocks.
             PatKind::Lit(lt) => match self.resolve_vars_if_possible(self.check_expr(lt)).kind() {
@@ -715,7 +720,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             && let PatKind::Binding(_, _, binding, ..) = inner.kind
         {
             let binding_parent_id = tcx.hir().parent_id(pat.hir_id);
-            let binding_parent = tcx.hir().get(binding_parent_id);
+            let binding_parent = tcx.hir_node(binding_parent_id);
             debug!(?inner, ?pat, ?binding_parent);
 
             let mutability = match mutbl {
@@ -743,6 +748,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         | PatKind::Slice(..) => "binding",
 
                         PatKind::Wild
+                        | PatKind::Never
                         | PatKind::Binding(..)
                         | PatKind::Path(..)
                         | PatKind::Box(..)
@@ -872,7 +878,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         self.demand_eqtype_pat(pat.span, expected, pat_ty, pat_info.top_info);
 
         // Type-check subpatterns.
-        if self.check_struct_pat_fields(pat_ty, &pat, variant, fields, has_rest_pat, pat_info) {
+        if self.check_struct_pat_fields(pat_ty, pat, variant, fields, has_rest_pat, pat_info) {
             pat_ty
         } else {
             Ty::new_misc_error(self.tcx)
@@ -893,7 +899,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let (res, opt_ty, segments) = path_resolution;
         match res {
             Res::Err => {
-                let e = tcx.sess.delay_span_bug(qpath.span(), "`Res::Err` but no error emitted");
+                let e = tcx.sess.span_delayed_bug(qpath.span(), "`Res::Err` but no error emitted");
                 self.set_tainted_by_errors(e);
                 return Ty::new_error(tcx, e);
             }
@@ -935,7 +941,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 Some(hir::Node::Item(hir::Item {
                     kind: hir::ItemKind::Const(_, _, body_id),
                     ..
-                })) => match self.tcx.hir().get(body_id.hir_id) {
+                })) => match self.tcx.hir_node(body_id.hir_id) {
                     hir::Node::Expr(expr) => {
                         if hir::is_range_literal(expr) {
                             let span = self.tcx.hir().span(body_id.hir_id);
@@ -1062,7 +1068,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let (res, opt_ty, segments) =
             self.resolve_ty_and_res_fully_qualified_call(qpath, pat.hir_id, pat.span, None);
         if res == Res::Err {
-            let e = tcx.sess.delay_span_bug(pat.span, "`Res::Err` but no error emitted");
+            let e = tcx.sess.span_delayed_bug(pat.span, "`Res::Err` but no error emitted");
             self.set_tainted_by_errors(e);
             on_error(e);
             return Ty::new_error(tcx, e);
@@ -1078,7 +1084,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         let variant = match res {
             Res::Err => {
-                let e = tcx.sess.delay_span_bug(pat.span, "`Res::Err` but no error emitted");
+                let e = tcx.sess.span_delayed_bug(pat.span, "`Res::Err` but no error emitted");
                 self.set_tainted_by_errors(e);
                 on_error(e);
                 return Ty::new_error(tcx, e);
@@ -1814,7 +1820,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         fn joined_uncovered_patterns(witnesses: &[&Ident]) -> String {
             const LIMIT: usize = 3;
             match witnesses {
-                [] => bug!(),
+                [] => {
+                    unreachable!(
+                        "expected an uncovered pattern, otherwise why are we emitting an error?"
+                    )
+                }
                 [witness] => format!("`{witness}`"),
                 [head @ .., tail] if head.len() < LIMIT => {
                     let head: Vec<_> = head.iter().map(<_>::to_string).collect();
@@ -1839,8 +1849,6 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         lint.note(format!(
             "the pattern is of type `{ty}` and the `non_exhaustive_omitted_patterns` attribute was found",
         ));
-
-        lint
     });
     }
 

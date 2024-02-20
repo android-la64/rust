@@ -14,13 +14,14 @@
 //!   - [Implementing `FromStr`][fromstr]
 //!   - [Performance][performance]
 //!   - [Parsing Partial Input][partial]
-//!   - [Custom stream][stream]
+//!   - [Custom stream or token][stream]
 //!   - [Custom errors][error]
 //!
 //! See also parsers written with `winnow`:
 //!
 //! - [`toml_edit`](https://crates.io/crates/toml_edit)
 //! - [`hcl-edit`](https://crates.io/crates/hcl-edit)
+#![allow(clippy::std_instead_of_core)]
 
 pub mod arithmetic;
 pub mod error;

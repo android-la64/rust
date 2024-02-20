@@ -1,5 +1,7 @@
 #![allow(clippy::type_complexity)]
 
+#[cfg(feature = "arbitrary")]
+mod arbitrary;
 pub mod iter;
 pub mod iter_set;
 mod lock;
@@ -268,7 +270,7 @@ impl<'a, K: 'a + Eq + Hash, V: 'a, S: BuildHasher + Clone> DashMap<K, V, S> {
         hasher: S,
         shard_amount: usize,
     ) -> Self {
-        assert!(shard_amount > 0);
+        assert!(shard_amount > 1);
         assert!(shard_amount.is_power_of_two());
 
         let shift = util::ptr_size_bits() - ncb(shard_amount);
@@ -318,10 +320,50 @@ impl<'a, K: 'a + Eq + Hash, V: 'a, S: BuildHasher + Clone> DashMap<K, V, S> {
             pub fn shards(&self) -> &[RwLock<HashMap<K, V, S>>] {
                 &self.shards
             }
+
+            /// Provides mutable access to the inner shards that store your data.
+            /// You should probably not use this unless you know what you are doing.
+            ///
+            /// Requires the `raw-api` feature to be enabled.
+            ///
+            /// # Examples
+            ///
+            /// ```
+            /// use dashmap::DashMap;
+            /// use dashmap::SharedValue;
+            ///
+            /// let mut map = DashMap::<i32, &'static str>::new();
+            /// let shard_ind = map.determine_map(&42);
+            /// map.shards_mut()[shard_ind].get_mut().insert(42, SharedValue::new("forty two"));
+            /// assert_eq!(*map.get(&42).unwrap(), "forty two");
+            /// ```
+            pub fn shards_mut(&mut self) -> &mut [RwLock<HashMap<K, V, S>>] {
+                &mut self.shards
+            }
+
+            /// Consumes this `DashMap` and returns the inner shards.
+            /// You should probably not use this unless you know what you are doing.
+            ///
+            /// Requires the `raw-api` feature to be enabled.
+            ///
+            /// See [`DashMap::shards()`] and [`DashMap::shards_mut()`] for more information.
+            pub fn into_shards(self) -> Box<[RwLock<HashMap<K, V, S>>]> {
+                self.shards
+            }
         } else {
             #[allow(dead_code)]
             pub(crate) fn shards(&self) -> &[RwLock<HashMap<K, V, S>>] {
                 &self.shards
+            }
+
+            #[allow(dead_code)]
+            pub(crate) fn shards_mut(&mut self) -> &mut [RwLock<HashMap<K, V, S>>] {
+                &mut self.shards
+            }
+
+            #[allow(dead_code)]
+            pub(crate) fn into_shards(self) -> Box<[RwLock<HashMap<K, V, S>>]> {
+                self.shards
             }
         }
     }
@@ -510,7 +552,7 @@ impl<'a, K: 'a + Eq + Hash, V: 'a, S: BuildHasher + Clone> DashMap<K, V, S> {
         self._iter_mut()
     }
 
-    /// Get a immutable reference to an entry in the map
+    /// Get an immutable reference to an entry in the map
     ///
     /// **Locking behaviour:** May deadlock if called when holding a mutable reference into the map.
     ///
@@ -1223,7 +1265,7 @@ where
     }
 }
 
-impl<'a, K: Eq + Hash, V, S: BuildHasher + Clone> IntoIterator for DashMap<K, V, S> {
+impl<K: Eq + Hash, V, S: BuildHasher + Clone> IntoIterator for DashMap<K, V, S> {
     type Item = (K, V);
 
     type IntoIter = OwningIter<K, V, S>;

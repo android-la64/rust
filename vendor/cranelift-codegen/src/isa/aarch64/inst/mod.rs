@@ -902,6 +902,9 @@ fn aarch64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut Operan
             }
             CondBrKind::Cond(_) => {}
         },
+        &Inst::TestBitAndBranch { rn, .. } => {
+            collector.reg_use(rn);
+        }
         &Inst::IndirectBr { rn, .. } => {
             collector.reg_use(rn);
         }
@@ -939,11 +942,15 @@ fn aarch64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut Operan
         &Inst::Bti { .. } => {}
         &Inst::VirtualSPOffsetAdj { .. } => {}
 
-        &Inst::ElfTlsGetAddr { rd, .. } => {
+        &Inst::ElfTlsGetAddr { rd, tmp, .. } => {
+            // TLSDESC has a very neat calling convention. It is required to preserve
+            // all registers except x0 and x30. X30 is non allocatable in cranelift since
+            // its the link register.
+            //
+            // Additionally we need a second register as a temporary register for the
+            // TLSDESC sequence. This register can be any register other than x0 (and x30).
             collector.reg_fixed_def(rd, regs::xreg(0));
-            let mut clobbers = AArch64MachineDeps::get_regs_clobbered_by_call(CallConv::SystemV);
-            clobbers.remove(regs::xreg_preg(0));
-            collector.reg_clobbers(clobbers);
+            collector.reg_early_def(tmp);
         }
         &Inst::MachOTlsGetAddr { rd, .. } => {
             collector.reg_fixed_def(rd, regs::xreg(0));
@@ -1039,9 +1046,38 @@ impl MachInst for Inst {
             &Inst::ReturnCall { .. } | &Inst::ReturnCallInd { .. } => MachTerminator::RetCall,
             &Inst::Jump { .. } => MachTerminator::Uncond,
             &Inst::CondBr { .. } => MachTerminator::Cond,
+            &Inst::TestBitAndBranch { .. } => MachTerminator::Cond,
             &Inst::IndirectBr { .. } => MachTerminator::Indirect,
             &Inst::JTSequence { .. } => MachTerminator::Indirect,
             _ => MachTerminator::None,
+        }
+    }
+
+    fn is_mem_access(&self) -> bool {
+        match self {
+            &Inst::ULoad8 { .. }
+            | &Inst::SLoad8 { .. }
+            | &Inst::ULoad16 { .. }
+            | &Inst::SLoad16 { .. }
+            | &Inst::ULoad32 { .. }
+            | &Inst::SLoad32 { .. }
+            | &Inst::ULoad64 { .. }
+            | &Inst::LoadP64 { .. }
+            | &Inst::FpuLoad32 { .. }
+            | &Inst::FpuLoad64 { .. }
+            | &Inst::FpuLoad128 { .. }
+            | &Inst::FpuLoadP64 { .. }
+            | &Inst::FpuLoadP128 { .. }
+            | &Inst::Store8 { .. }
+            | &Inst::Store16 { .. }
+            | &Inst::Store32 { .. }
+            | &Inst::Store64 { .. }
+            | &Inst::StoreP64 { .. }
+            | &Inst::FpuStore32 { .. }
+            | &Inst::FpuStore64 { .. }
+            | &Inst::FpuStore128 { .. } => true,
+            // TODO: verify this carefully
+            _ => false,
         }
     }
 
@@ -2631,6 +2667,22 @@ impl Inst {
                     }
                 }
             }
+            &Inst::TestBitAndBranch {
+                kind,
+                ref taken,
+                ref not_taken,
+                rn,
+                bit,
+            } => {
+                let cond = match kind {
+                    TestBitAndBranchKind::Z => "z",
+                    TestBitAndBranchKind::NZ => "nz",
+                };
+                let taken = taken.pretty_print(0, allocs);
+                let not_taken = not_taken.pretty_print(0, allocs);
+                let rn = pretty_print_reg(rn, allocs);
+                format!("tb{cond} {rn}, #{bit}, {taken} ; b {not_taken}")
+            }
             &Inst::IndirectBr { rn, .. } => {
                 let rn = pretty_print_reg(rn, allocs);
                 format!("br {}", rn)
@@ -2814,9 +2866,14 @@ impl Inst {
             }
             &Inst::EmitIsland { needed_space } => format!("emit_island {}", needed_space),
 
-            &Inst::ElfTlsGetAddr { ref symbol, rd } => {
+            &Inst::ElfTlsGetAddr {
+                ref symbol,
+                rd,
+                tmp,
+            } => {
                 let rd = pretty_print_reg(rd.to_reg(), allocs);
-                format!("elf_tls_get_addr {}, {}", rd, symbol.display(None))
+                let tmp = pretty_print_reg(tmp.to_reg(), allocs);
+                format!("elf_tls_get_addr {}, {}, {}", rd, tmp, symbol.display(None))
             }
             &Inst::MachOTlsGetAddr { ref symbol, rd } => {
                 let rd = pretty_print_reg(rd.to_reg(), allocs);
@@ -2845,6 +2902,9 @@ impl Inst {
 /// Different forms of label references for different instruction formats.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LabelUse {
+    /// 14-bit branch offset (conditional branches). PC-rel, offset is imm <<
+    /// 2. Immediate is 14 signed bits, in bits 18:5. Used by tbz and tbnz.
+    Branch14,
     /// 19-bit branch offset (conditional branches). PC-rel, offset is imm << 2. Immediate is 19
     /// signed bits, in bits 23:5. Used by cbz, cbnz, b.cond.
     Branch19,
@@ -2871,8 +2931,10 @@ impl MachInstLabelUse for LabelUse {
     /// Maximum PC-relative range (positive), inclusive.
     fn max_pos_range(self) -> CodeOffset {
         match self {
-            // 19-bit immediate, left-shifted by 2, for 21 bits of total range. Signed, so +2^20
-            // from zero. Likewise for two other shifted cases below.
+            // N-bit immediate, left-shifted by 2, for (N+2) bits of total
+            // range. Signed, so +2^(N+1) from zero. Likewise for two other
+            // shifted cases below.
+            LabelUse::Branch14 => (1 << 15) - 1,
             LabelUse::Branch19 => (1 << 20) - 1,
             LabelUse::Branch26 => (1 << 27) - 1,
             LabelUse::Ldr19 => (1 << 20) - 1,
@@ -2904,6 +2966,7 @@ impl MachInstLabelUse for LabelUse {
         let pc_rel = pc_rel as u32;
         let insn_word = u32::from_le_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]);
         let mask = match self {
+            LabelUse::Branch14 => 0x0007ffe0, // bits 18..5 inclusive
             LabelUse::Branch19 => 0x00ffffe0, // bits 23..5 inclusive
             LabelUse::Branch26 => 0x03ffffff, // bits 25..0 inclusive
             LabelUse::Ldr19 => 0x00ffffe0,    // bits 23..5 inclusive
@@ -2918,6 +2981,7 @@ impl MachInstLabelUse for LabelUse {
             }
         };
         let pc_rel_inserted = match self {
+            LabelUse::Branch14 => (pc_rel_shifted & 0x3fff) << 5,
             LabelUse::Branch19 | LabelUse::Ldr19 => (pc_rel_shifted & 0x7ffff) << 5,
             LabelUse::Branch26 => pc_rel_shifted & 0x3ffffff,
             LabelUse::Adr21 => (pc_rel_shifted & 0x7ffff) << 5 | (pc_rel_shifted & 0x180000) << 10,
@@ -2938,8 +3002,8 @@ impl MachInstLabelUse for LabelUse {
     /// Is a veneer supported for this label reference type?
     fn supports_veneer(self) -> bool {
         match self {
-            LabelUse::Branch19 => true, // veneer is a Branch26
-            LabelUse::Branch26 => true, // veneer is a PCRel32
+            LabelUse::Branch14 | LabelUse::Branch19 => true, // veneer is a Branch26
+            LabelUse::Branch26 => true,                      // veneer is a PCRel32
             _ => false,
         }
     }
@@ -2947,7 +3011,7 @@ impl MachInstLabelUse for LabelUse {
     /// How large is the veneer, if supported?
     fn veneer_size(self) -> CodeOffset {
         match self {
-            LabelUse::Branch19 => 4,
+            LabelUse::Branch14 | LabelUse::Branch19 => 4,
             LabelUse::Branch26 => 20,
             _ => unreachable!(),
         }
@@ -2965,7 +3029,7 @@ impl MachInstLabelUse for LabelUse {
         veneer_offset: CodeOffset,
     ) -> (CodeOffset, LabelUse) {
         match self {
-            LabelUse::Branch19 => {
+            LabelUse::Branch14 | LabelUse::Branch19 => {
                 // veneer is a Branch26 (unconditional branch). Just encode directly here -- don't
                 // bother with constructing an Inst.
                 let insn_word = 0b000101 << 26;

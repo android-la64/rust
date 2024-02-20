@@ -693,17 +693,6 @@ StringRef rewrite_location_uri(BlockAllocator &balloc, const StringRef &uri,
   return StringRef{iov.base, p};
 }
 
-int check_nv(const uint8_t *name, size_t namelen, const uint8_t *value,
-             size_t valuelen) {
-  if (!nghttp2_check_header_name(name, namelen)) {
-    return 0;
-  }
-  if (!nghttp2_check_header_value(value, valuelen)) {
-    return 0;
-  }
-  return 1;
-}
-
 int parse_http_status_code(const StringRef &src) {
   if (src.size() != 3) {
     return -1;
@@ -1755,9 +1744,15 @@ StringRef path_join(BlockAllocator &balloc, const StringRef &base_path,
   for (; first != last;) {
     if (*first == '.') {
       if (first + 1 == last) {
+        if (*(p - 1) != '/') {
+          p = eat_file(res.base, p);
+        }
         break;
       }
       if (*(first + 1) == '/') {
+        if (*(p - 1) != '/') {
+          p = eat_file(res.base, p);
+        }
         first += 2;
         continue;
       }

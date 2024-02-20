@@ -70,6 +70,11 @@
 //!   This is not directly depended upon with a `path` dependency; cargo uses the version from crates.io.
 //!   It is intended to be versioned and published independently of Rust's release system.
 //!   Whenever a change needs to be made, bump the version in Cargo.toml and `cargo publish` it manually, and then update cargo's `Cargo.toml` to depend on the new version.
+//! - [`rustfix`](https://crates.io/crates/rustfix)
+//!   ([nightly docs](https://doc.rust-lang.org/nightly/nightly-rustc/rustfix)):
+//!   This defines structures that represent fix suggestions from rustc,
+//!   as well as generates "fixed" code from suggestions.
+//!   Operations in `rustfix` are all in memory and won't write to disks.
 //! - [`cargo-test-support`](https://github.com/rust-lang/cargo/tree/master/crates/cargo-test-support)
 //!   ([nightly docs](https://doc.rust-lang.org/nightly/nightly-rustc/cargo_test_support/index.html)):
 //!   This contains a variety of code to support writing tests
@@ -93,7 +98,7 @@
 //! Files that interact with cargo include
 //!
 //! - Package
-//!   - `Cargo.toml`: User-written project manifest, loaded with [`util::toml::schema::TomlManifest`] and then
+//!   - `Cargo.toml`: User-written project manifest, loaded with [`util_schemas::manifest::TomlManifest`] and then
 //!     translated to [`core::manifest::Manifest`] which maybe stored in a [`core::Package`].
 //!     - This is editable with [`util::toml_mut::manifest::LocalManifest`]
 //!   - `Cargo.lock`: Generally loaded with [`ops::resolve_ws`] or a variant of it into a [`core::resolver::Resolve`]
@@ -129,20 +134,6 @@
 //! [The Cargo Book]: https://doc.rust-lang.org/cargo/
 //! [Cargo Contributor Guide]: https://doc.crates.io/contrib/
 
-// TODO: consider removing these lint attributes when `-Zlints` hits stable.
-// For various reasons, some idioms are still allow'ed, but we would like to
-// test and enforce them.
-#![warn(rust_2018_idioms)]
-// Due to some of the default clippy lints being somewhat subjective and not
-// necessarily an improvement, we prefer to not use them at this time.
-#![allow(clippy::all)]
-#![warn(clippy::disallowed_methods)]
-#![warn(clippy::self_named_module_files)]
-#![warn(clippy::print_stdout)]
-#![warn(clippy::print_stderr)]
-#![warn(clippy::dbg_macro)]
-#![allow(rustdoc::private_intra_doc_links)]
-
 use crate::core::shell::Verbosity::Verbose;
 use crate::core::Shell;
 use anyhow::Error;
@@ -161,6 +152,7 @@ pub mod core;
 pub mod ops;
 pub mod sources;
 pub mod util;
+pub mod util_schemas;
 pub mod util_semver;
 mod version;
 

@@ -12,7 +12,7 @@ use crate::{Curve, Error, FieldBytes, Result, ScalarPrimitive};
 use core::fmt::{self, Debug};
 use generic_array::typenum::Unsigned;
 use subtle::{Choice, ConstantTimeEq};
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 #[cfg(feature = "arithmetic")]
 use crate::{rand_core::CryptoRngCore, CurveArithmetic, NonZeroScalar, PublicKey};
@@ -20,8 +20,17 @@ use crate::{rand_core::CryptoRngCore, CurveArithmetic, NonZeroScalar, PublicKey}
 #[cfg(feature = "jwk")]
 use crate::jwk::{JwkEcKey, JwkParameters};
 
+#[cfg(feature = "pem")]
+use pem_rfc7468::{self as pem, PemLabel};
+
 #[cfg(feature = "sec1")]
-use sec1::der;
+use {
+    crate::{
+        sec1::{EncodedPoint, ModulusSize, ValidatePublicKey},
+        FieldBytesSize,
+    },
+    sec1::der,
+};
 
 #[cfg(all(feature = "alloc", feature = "arithmetic", feature = "sec1"))]
 use {
@@ -31,7 +40,6 @@ use {
     },
     alloc::vec::Vec,
     sec1::der::Encode,
-    zeroize::Zeroizing,
 };
 
 #[cfg(all(feature = "arithmetic", any(feature = "jwk", feature = "pem")))]
@@ -40,21 +48,8 @@ use alloc::string::String;
 #[cfg(all(feature = "arithmetic", feature = "jwk"))]
 use alloc::string::ToString;
 
-#[cfg(feature = "pem")]
-use pem_rfc7468 as pem;
-
-#[cfg(feature = "sec1")]
-use crate::{
-    sec1::{EncodedPoint, ModulusSize, ValidatePublicKey},
-    FieldBytesSize,
-};
-
 #[cfg(all(doc, feature = "pkcs8"))]
 use {crate::pkcs8::DecodePrivateKey, core::str::FromStr};
-
-/// Type label for PEM-encoded SEC1 private keys.
-#[cfg(feature = "pem")]
-pub(crate) const SEC1_PEM_TYPE_LABEL: &str = "EC PRIVATE KEY";
 
 /// Elliptic curve secret keys.
 ///
@@ -89,6 +84,11 @@ impl<C> SecretKey<C>
 where
     C: Curve,
 {
+    /// Minimum allowed size of an elliptic curve secret key in bytes.
+    ///
+    /// This provides the equivalent of 96-bits of symmetric security.
+    const MIN_SIZE: usize = 24;
+
     /// Generate a random [`SecretKey`].
     #[cfg(feature = "arithmetic")]
     pub fn random(rng: &mut impl CryptoRngCore) -> Self
@@ -152,31 +152,20 @@ where
         Ok(Self { inner })
     }
 
-    /// Deserialize secret key from an encoded secret scalar passed as a
-    /// byte slice.
+    /// Deserialize secret key from an encoded secret scalar passed as a byte slice.
     ///
-    /// The slice is expected to be at most `C::FieldBytesSize` bytes in
-    /// length but may be up to 4-bytes shorter than that, which is handled by
-    /// zero-padding the value.
+    /// The slice is expected to be a minimum of 24-bytes (192-byts) and at most `C::FieldBytesSize`
+    /// bytes in length.
+    ///
+    /// Byte slices shorter than the field size are handled by zero padding the input.
     pub fn from_slice(slice: &[u8]) -> Result<Self> {
-        if slice.len() > C::FieldBytesSize::USIZE {
-            return Err(Error);
-        }
-
-        /// Maximum number of "missing" bytes to interpret as zeroes.
-        const MAX_LEADING_ZEROES: usize = 4;
-
-        let offset = C::FieldBytesSize::USIZE.saturating_sub(slice.len());
-
-        if offset == 0 {
+        if slice.len() == C::FieldBytesSize::USIZE {
             Self::from_bytes(FieldBytes::<C>::from_slice(slice))
-        } else if offset <= MAX_LEADING_ZEROES {
-            let mut bytes = FieldBytes::<C>::default();
+        } else if (Self::MIN_SIZE..C::FieldBytesSize::USIZE).contains(&slice.len()) {
+            let mut bytes = Zeroizing::new(FieldBytes::<C>::default());
+            let offset = C::FieldBytesSize::USIZE.saturating_sub(slice.len());
             bytes[offset..].copy_from_slice(slice);
-
-            let ret = Self::from_bytes(&bytes);
-            bytes.zeroize();
-            ret
+            Self::from_bytes(&bytes)
         } else {
             Err(Error)
         }
@@ -188,7 +177,7 @@ where
     }
 
     /// Deserialize secret key encoded in the SEC1 ASN.1 DER `ECPrivateKey` format.
-    #[cfg(all(feature = "sec1"))]
+    #[cfg(feature = "sec1")]
     pub fn from_sec1_der(der_bytes: &[u8]) -> Result<Self>
     where
         C: Curve + ValidatePublicKey,
@@ -237,7 +226,7 @@ where
     {
         let (label, der_bytes) = pem::decode_vec(s.as_bytes()).map_err(|_| Error)?;
 
-        if label != SEC1_PEM_TYPE_LABEL {
+        if label != sec1::EcPrivateKey::PEM_LABEL {
             return Err(Error);
         }
 
@@ -257,7 +246,9 @@ where
     {
         self.to_sec1_der()
             .ok()
-            .and_then(|der| pem::encode_string(SEC1_PEM_TYPE_LABEL, line_ending, &der).ok())
+            .and_then(|der| {
+                pem::encode_string(sec1::EcPrivateKey::PEM_LABEL, line_ending, &der).ok()
+            })
             .map(Zeroizing::new)
             .ok_or(Error)
     }
@@ -346,7 +337,7 @@ where
     }
 }
 
-#[cfg(all(feature = "sec1"))]
+#[cfg(feature = "sec1")]
 impl<C> TryFrom<sec1::EcPrivateKey<'_>> for SecretKey<C>
 where
     C: Curve + ValidatePublicKey,

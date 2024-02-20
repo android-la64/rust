@@ -90,6 +90,11 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                 let local_scope = this.local_scope();
                 let (success_block, failure_block) =
                     this.in_if_then_scope(local_scope, expr_span, |this| {
+                        // Help out coverage instrumentation by injecting a dummy statement with
+                        // the original condition's span (including `!`). This fixes #115468.
+                        if this.tcx.sess.instrument_coverage() {
+                            this.cfg.push_coverage_span_marker(block, this.source_info(expr_span));
+                        }
                         this.then_else_break(
                             block,
                             &this.thir[arg],
@@ -212,7 +217,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         let scrutinee_place =
             unpack!(block = self.lower_scrutinee(block, scrutinee, scrutinee_span,));
 
-        let mut arm_candidates = self.create_match_candidates(&scrutinee_place, &arms);
+        let mut arm_candidates = self.create_match_candidates(&scrutinee_place, arms);
 
         let match_has_guard = arm_candidates.iter().any(|(_, candidate)| candidate.has_guard);
         let mut candidates =
@@ -424,7 +429,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                         this.source_scope = source_scope;
                     }
 
-                    this.expr_into_dest(destination, arm_block, &&this.thir[arm.body])
+                    this.expr_into_dest(destination, arm_block, &this.thir[arm.body])
                 })
             })
             .collect();
@@ -505,7 +510,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                     let binding_end = self.bind_and_guard_matched_candidate(
                         leaf_candidate,
                         parent_bindings,
-                        &fake_borrow_temps,
+                        fake_borrow_temps,
                         scrutinee_span,
                         arm_match_scope,
                         schedule_drops,
@@ -613,7 +618,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             _ => {
                 let place_builder =
                     unpack!(block = self.lower_scrutinee(block, initializer, initializer.span));
-                self.place_into_pattern(block, &irrefutable_pat, place_builder, true)
+                self.place_into_pattern(block, irrefutable_pat, place_builder, true)
             }
         }
     }
@@ -625,7 +630,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         initializer: PlaceBuilder<'tcx>,
         set_match_place: bool,
     ) -> BlockAnd<()> {
-        let mut candidate = Candidate::new(initializer.clone(), &irrefutable_pat, false, self);
+        let mut candidate = Candidate::new(initializer.clone(), irrefutable_pat, false, self);
         let fake_borrow_temps = self.lower_match_tree(
             block,
             irrefutable_pat.span,
@@ -700,7 +705,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         opt_match_place: Option<(Option<&Place<'tcx>>, Span)>,
     ) -> Option<SourceScope> {
         self.visit_primary_bindings(
-            &pattern,
+            pattern,
             UserTypeProjections::none(),
             &mut |this, mutability, name, mode, var, span, ty, user_ty| {
                 if visibility_scope.is_none() {
@@ -827,6 +832,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             PatKind::Constant { .. }
             | PatKind::Range { .. }
             | PatKind::Wild
+            | PatKind::Never
             | PatKind::Error(_) => {}
 
             PatKind::Deref { ref subpattern } => {
@@ -1693,59 +1699,51 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         debug!("tested_candidates: {}", total_candidate_count - candidates.len());
         debug!("untested_candidates: {}", candidates.len());
 
-        // HACK(matthewjasper) This is a closure so that we can let the test
-        // create its blocks before the rest of the match. This currently
-        // improves the speed of llvm when optimizing long string literal
-        // matches
-        let make_target_blocks = move |this: &mut Self| -> Vec<BasicBlock> {
-            // The block that we should branch to if none of the
-            // `target_candidates` match. This is either the block where we
-            // start matching the untested candidates if there are any,
-            // otherwise it's the `otherwise_block`.
-            let remainder_start = &mut None;
-            let remainder_start =
-                if candidates.is_empty() { &mut *otherwise_block } else { remainder_start };
+        // The block that we should branch to if none of the
+        // `target_candidates` match. This is either the block where we
+        // start matching the untested candidates if there are any,
+        // otherwise it's the `otherwise_block`.
+        let remainder_start = &mut None;
+        let remainder_start =
+            if candidates.is_empty() { &mut *otherwise_block } else { remainder_start };
 
-            // For each outcome of test, process the candidates that still
-            // apply. Collect a list of blocks where control flow will
-            // branch if one of the `target_candidate` sets is not
-            // exhaustive.
-            let target_blocks: Vec<_> = target_candidates
-                .into_iter()
-                .map(|mut candidates| {
-                    if !candidates.is_empty() {
-                        let candidate_start = this.cfg.start_new_block();
-                        this.match_candidates(
-                            span,
-                            scrutinee_span,
-                            candidate_start,
-                            remainder_start,
-                            &mut *candidates,
-                            fake_borrows,
-                        );
-                        candidate_start
-                    } else {
-                        *remainder_start.get_or_insert_with(|| this.cfg.start_new_block())
-                    }
-                })
-                .collect();
+        // For each outcome of test, process the candidates that still
+        // apply. Collect a list of blocks where control flow will
+        // branch if one of the `target_candidate` sets is not
+        // exhaustive.
+        let target_blocks: Vec<_> = target_candidates
+            .into_iter()
+            .map(|mut candidates| {
+                if !candidates.is_empty() {
+                    let candidate_start = self.cfg.start_new_block();
+                    self.match_candidates(
+                        span,
+                        scrutinee_span,
+                        candidate_start,
+                        remainder_start,
+                        &mut *candidates,
+                        fake_borrows,
+                    );
+                    candidate_start
+                } else {
+                    *remainder_start.get_or_insert_with(|| self.cfg.start_new_block())
+                }
+            })
+            .collect();
 
-            if !candidates.is_empty() {
-                let remainder_start = remainder_start.unwrap_or_else(|| this.cfg.start_new_block());
-                this.match_candidates(
-                    span,
-                    scrutinee_span,
-                    remainder_start,
-                    otherwise_block,
-                    candidates,
-                    fake_borrows,
-                );
-            };
+        if !candidates.is_empty() {
+            let remainder_start = remainder_start.unwrap_or_else(|| self.cfg.start_new_block());
+            self.match_candidates(
+                span,
+                scrutinee_span,
+                remainder_start,
+                otherwise_block,
+                candidates,
+                fake_borrows,
+            );
+        }
 
-            target_blocks
-        };
-
-        self.perform_test(span, scrutinee_span, block, &match_place, &test, make_target_blocks);
+        self.perform_test(span, scrutinee_span, block, &match_place, &test, target_blocks);
     }
 
     /// Determine the fake borrows that are needed from a set of places that
@@ -1843,7 +1841,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         let expr_span = expr.span;
         let expr_place_builder = unpack!(block = self.lower_scrutinee(block, expr, expr_span));
         let wildcard = Pat::wildcard_from_ty(pat.ty);
-        let mut guard_candidate = Candidate::new(expr_place_builder.clone(), &pat, false, self);
+        let mut guard_candidate = Candidate::new(expr_place_builder.clone(), pat, false, self);
         let mut otherwise_candidate =
             Candidate::new(expr_place_builder.clone(), &wildcard, false, self);
         let fake_borrow_temps = self.lower_match_tree(

@@ -192,7 +192,14 @@ OPTIONS = [
     "frontend-quic-qlog-dir",
     "frontend-quic-require-token",
     "frontend-quic-congestion-controller",
-    "frontend-quic-connection-id-encryption-key",
+    "quic-server-id",
+    "frontend-quic-secret-file",
+    "rlimit-memlock",
+    "max-worker-processes",
+    "worker-process-grace-shutdown-period",
+    "frontend-quic-initial-rtt",
+    "require-http-scheme",
+    "tls-ktls",
 ]
 
 LOGVARS = [

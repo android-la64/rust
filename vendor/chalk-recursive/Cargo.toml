@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "chalk-recursive"
-version = "0.92.0"
+version = "0.95.0"
 authors = [
     "Rust Compiler Team",
     "Chalk developers",
@@ -28,13 +28,13 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/chalk"
 
 [dependencies.chalk-derive]
-version = "=0.92.0"
+version = "=0.95.0"
 
 [dependencies.chalk-ir]
-version = "=0.92.0"
+version = "=0.95.0"
 
 [dependencies.chalk-solve]
-version = "=0.92.0"
+version = "=0.95.0"
 default-features = false
 
 [dependencies.rustc-hash]

@@ -122,7 +122,7 @@ impl<'tcx> IfThisChanged<'tcx> {
 
     fn process_attrs(&mut self, def_id: LocalDefId) {
         let def_path_hash = self.tcx.def_path_hash(def_id.to_def_id());
-        let hir_id = self.tcx.hir().local_def_id_to_hir_id(def_id);
+        let hir_id = self.tcx.local_def_id_to_hir_id(def_id);
         let attrs = self.tcx.hir().attrs(hir_id);
         for attr in attrs {
             if attr.has_name(sym::rustc_if_this_changed) {
@@ -231,13 +231,13 @@ fn dump_graph(query: &DepGraphQuery) {
             // Expect one of: "-> target", "source -> target", or "source ->".
             let edge_filter =
                 EdgeFilter::new(&string).unwrap_or_else(|e| bug!("invalid filter: {}", e));
-            let sources = node_set(&query, &edge_filter.source);
-            let targets = node_set(&query, &edge_filter.target);
-            filter_nodes(&query, &sources, &targets)
+            let sources = node_set(query, &edge_filter.source);
+            let targets = node_set(query, &edge_filter.target);
+            filter_nodes(query, &sources, &targets)
         }
         Err(_) => query.nodes().into_iter().map(|n| n.kind).collect(),
     };
-    let edges = filter_edges(&query, &nodes);
+    let edges = filter_edges(query, &nodes);
 
     {
         // dump a .txt file with just the edges:

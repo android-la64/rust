@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "protobuf-support"
-version = "3.1.0"
+version = "3.2.0"
 authors = ["Stepan Koltsov <stepan.koltsov@gmail.com>"]
 description = """
 Code supporting protobuf implementation. None of code in this crate is public API.
@@ -22,7 +22,6 @@ documentation = "https://github.com/stepancheg/rust-protobuf/blob/master/README.
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/stepancheg/rust-protobuf/"
-resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true

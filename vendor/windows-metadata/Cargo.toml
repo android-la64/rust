@@ -11,10 +11,12 @@
 
 [package]
 edition = "2021"
+rust-version = "1.64"
 name = "windows-metadata"
-version = "0.51.1"
+version = "0.52.0"
 authors = ["Microsoft"]
 description = "Windows metadata reader"
+readme = "readme.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/microsoft/windows-rs"
 

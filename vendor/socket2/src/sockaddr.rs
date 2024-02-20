@@ -234,9 +234,14 @@ impl From<SocketAddrV4> for SockAddr {
                 target_os = "ios",
                 target_os = "macos",
                 target_os = "netbsd",
-                target_os = "openbsd"
+                target_os = "openbsd",
+                target_os = "nto",
+                target_os = "espidf",
+                target_os = "vita",
             ))]
             sin_len: 0,
+            #[cfg(target_os = "vita")]
+            sin_vport: addr.port().to_be(),
         };
         let mut storage = MaybeUninit::<sockaddr_storage>::zeroed();
         // Safety: A `sockaddr_in` is memory compatible with a `sockaddr_storage`
@@ -273,9 +278,14 @@ impl From<SocketAddrV6> for SockAddr {
                 target_os = "ios",
                 target_os = "macos",
                 target_os = "netbsd",
-                target_os = "openbsd"
+                target_os = "openbsd",
+                target_os = "nto",
+                target_os = "espidf",
+                target_os = "vita",
             ))]
             sin6_len: 0,
+            #[cfg(target_os = "vita")]
+            sin6_vport: addr.port().to_be(),
             #[cfg(any(target_os = "solaris", target_os = "illumos"))]
             __sin6_src_id: 0,
         };

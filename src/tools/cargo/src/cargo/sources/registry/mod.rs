@@ -201,7 +201,8 @@ use tar::Archive;
 use tracing::debug;
 
 use crate::core::dependency::Dependency;
-use crate::core::{Package, PackageId, SourceId, Summary};
+use crate::core::global_cache_tracker;
+use crate::core::{Package, PackageId, SourceId};
 use crate::sources::source::MaybePackage;
 use crate::sources::source::QueryKind;
 use crate::sources::source::Source;
@@ -239,6 +240,9 @@ struct LockMetadata {
 ///
 /// For general concepts of registries, see the [module-level documentation](crate::sources::registry).
 pub struct RegistrySource<'cfg> {
+    /// A unique name of the source (typically used as the directory name
+    /// where its cached content is stored).
+    name: InternedString,
     /// The unique identifier of this source.
     source_id: SourceId,
     /// The path where crate files are extracted (`$CARGO_HOME/registry/src/$REG-HASH`).
@@ -435,12 +439,18 @@ pub enum MaybeLock {
 mod download;
 mod http_remote;
 mod index;
+pub use index::IndexSummary;
 mod local;
 mod remote;
 
 /// Generates a unique name for [`SourceId`] to have a unique path to put their
 /// index files.
 fn short_name(id: SourceId, is_shallow: bool) -> String {
+    // CAUTION: This should not change between versions. If you change how
+    // this is computed, it will orphan previously cached data, forcing the
+    // cache to be rebuilt and potentially wasting significant disk space. If
+    // you change it, be cautious of the impact. See `test_cratesio_hash` for
+    // a similar discussion.
     let hash = hex::short_hash(&id);
     let ident = id.url().host_str().unwrap_or("").to_string();
     let mut name = format!("{}-{}", ident, hash);
@@ -514,6 +524,7 @@ impl<'cfg> RegistrySource<'cfg> {
         yanked_whitelist: &HashSet<PackageId>,
     ) -> RegistrySource<'cfg> {
         RegistrySource {
+            name: name.into(),
             src_path: config.registry_source_path().join(name),
             config,
             source_id,
@@ -589,6 +600,13 @@ impl<'cfg> RegistrySource<'cfg> {
         match fs::read_to_string(path) {
             Ok(ok) => match serde_json::from_str::<LockMetadata>(&ok) {
                 Ok(lock_meta) if lock_meta.v == 1 => {
+                    self.config
+                        .deferred_global_last_use()?
+                        .mark_registry_src_used(global_cache_tracker::RegistrySrc {
+                            encoded_registry_name: self.name,
+                            package_dir: package_dir.into(),
+                            size: None,
+                        });
                     return Ok(unpack_dir.to_path_buf());
                 }
                 _ => {
@@ -613,6 +631,7 @@ impl<'cfg> RegistrySource<'cfg> {
             set_mask(&mut tar);
             tar
         };
+        let mut bytes_written = 0;
         let prefix = unpack_dir.file_name().unwrap();
         let parent = unpack_dir.parent().unwrap();
         for entry in tar.entries()? {
@@ -644,6 +663,7 @@ impl<'cfg> RegistrySource<'cfg> {
                 continue;
             }
             // Unpacking failed
+            bytes_written += entry.size();
             let mut result = entry.unpack_in(parent).map_err(anyhow::Error::from);
             if cfg!(windows) && restricted_names::is_windows_reserved_path(&entry_path) {
                 result = result.with_context(|| {
@@ -669,6 +689,14 @@ impl<'cfg> RegistrySource<'cfg> {
 
         let lock_meta = LockMetadata { v: 1 };
         write!(ok, "{}", serde_json::to_string(&lock_meta).unwrap())?;
+
+        self.config
+            .deferred_global_last_use()?
+            .mark_registry_src_used(global_cache_tracker::RegistrySrc {
+                encoded_registry_name: self.name,
+                package_dir: package_dir.into(),
+                size: Some(bytes_written),
+            });
 
         Ok(unpack_dir.to_path_buf())
     }
@@ -710,7 +738,7 @@ impl<'cfg> Source for RegistrySource<'cfg> {
         &mut self,
         dep: &Dependency,
         kind: QueryKind,
-        f: &mut dyn FnMut(Summary),
+        f: &mut dyn FnMut(IndexSummary),
     ) -> Poll<CargoResult<()>> {
         let mut req = dep.version_req().clone();
 
@@ -736,7 +764,7 @@ impl<'cfg> Source for RegistrySource<'cfg> {
                     if dep.matches(s.as_summary()) {
                         // We are looking for a package from a lock file so we do not care about yank
                         called = true;
-                        f(s.into_summary());
+                        f(s);
                     }
                 },))?;
             if called {
@@ -761,7 +789,7 @@ impl<'cfg> Source for RegistrySource<'cfg> {
                     if matched
                         && (!s.is_yanked() || self.yanked_whitelist.contains(&s.package_id()))
                     {
-                        f(s.into_summary());
+                        f(s);
                         called = true;
                     }
                 }))?;
@@ -786,9 +814,7 @@ impl<'cfg> Source for RegistrySource<'cfg> {
                     }
                     any_pending |= self
                         .index
-                        .query_inner(name_permutation, &req, &mut *self.ops, &mut |s| {
-                            f(s.into_summary());
-                        })?
+                        .query_inner(name_permutation, &req, &mut *self.ops, f)?
                         .is_pending();
                 }
             }

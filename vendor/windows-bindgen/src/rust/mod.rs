@@ -21,14 +21,15 @@ use crate::{Error, Result, Tree};
 use cfg::*;
 use rayon::prelude::*;
 
-pub fn from_reader(reader: &metadata::Reader, filter: &metadata::Filter, mut config: std::collections::BTreeMap<&str, &str>, output: &str) -> Result<()> {
-    let mut writer = Writer::new(reader, filter, output);
+pub fn from_reader(reader: &'static metadata::Reader, mut config: std::collections::BTreeMap<&str, &str>, output: &str) -> Result<()> {
+    let mut writer = Writer::new(reader, output);
     writer.package = config.remove("package").is_some();
     writer.flatten = config.remove("flatten").is_some();
     writer.std = config.remove("std").is_some();
     writer.sys = writer.std || config.remove("sys").is_some();
     writer.implement = config.remove("implement").is_some();
     writer.minimal = config.remove("minimal").is_some();
+    writer.no_inner_attributes = config.remove("no-inner-attributes").is_some();
 
     if writer.package && writer.flatten {
         return Err(Error::new("cannot combine `package` and `flatten` configuration values"));
@@ -55,22 +56,22 @@ fn gen_file(writer: &Writer) -> Result<()> {
 
     if writer.flatten {
         let tokens = standalone::standalone_imp(writer);
-        crate::write_to_file(writer.output, try_format(writer, &tokens))
+        crate::write_to_file(&writer.output, try_format(writer, &tokens))
     } else {
         let mut tokens = String::new();
-        let root = Tree::new(writer.reader, writer.filter);
+        let root = Tree::new(writer.reader);
 
         for tree in root.nested.values() {
             tokens.push_str(&namespace(writer, tree));
         }
 
-        crate::write_to_file(writer.output, try_format(writer, &tokens))
+        crate::write_to_file(&writer.output, try_format(writer, &tokens))
     }
 }
 
 fn gen_package(writer: &Writer) -> Result<()> {
-    let directory = crate::directory(writer.output);
-    let root = Tree::new(writer.reader, writer.filter);
+    let directory = crate::directory(&writer.output);
+    let root = Tree::new(writer.reader);
     let mut root_len = 0;
 
     for tree in root.nested.values() {
@@ -143,10 +144,12 @@ fn namespace(writer: &Writer, tree: &Tree) -> String {
 
     for (name, tree) in &tree.nested {
         let name = to_ident(name);
-        let namespace_feature = tree.namespace[tree.namespace.find('.').unwrap() + 1..].replace('.', "_");
+        let feature = tree.namespace[tree.namespace.find('.').unwrap() + 1..].replace('.', "_");
+        let doc = format!(r#"Required features: `\"{feature}\"`"#);
         if writer.package {
             tokens.combine(&quote! {
-                #[cfg(feature = #namespace_feature)]
+                #[cfg(feature = #feature)]
+                #[doc = #doc]
                 pub mod #name;
             });
         } else {
@@ -160,10 +163,10 @@ fn namespace(writer: &Writer, tree: &Tree) -> String {
     let mut functions = BTreeMap::<&str, TokenStream>::new();
     let mut types = BTreeMap::<TypeKind, BTreeMap<&str, TokenStream>>::new();
 
-    for item in writer.reader.namespace_items(writer.namespace, writer.filter) {
+    for item in writer.reader.namespace_items(writer.namespace) {
         match item {
             Item::Type(def) => {
-                let type_name = writer.reader.type_def_type_name(def);
+                let type_name = def.type_name();
                 if REMAP_TYPES.iter().any(|(x, _)| x == &type_name) {
                     continue;
                 }
@@ -171,22 +174,22 @@ fn namespace(writer: &Writer, tree: &Tree) -> String {
                     continue;
                 }
                 let name = type_name.name;
-                let kind = writer.reader.type_def_kind(def);
+                let kind = def.kind();
                 match kind {
                     TypeKind::Class => {
-                        if writer.reader.type_def_flags(def).contains(TypeAttributes::WindowsRuntime) {
+                        if def.flags().contains(TypeAttributes::WindowsRuntime) {
                             types.entry(kind).or_default().insert(name, classes::writer(writer, def));
                         }
                     }
                     TypeKind::Interface => types.entry(kind).or_default().entry(name).or_default().combine(&interfaces::writer(writer, def)),
                     TypeKind::Enum => types.entry(kind).or_default().entry(name).or_default().combine(&enums::writer(writer, def)),
                     TypeKind::Struct => {
-                        if writer.reader.type_def_fields(def).next().is_none() {
-                            if let Some(guid) = type_def_guid(writer.reader, def) {
+                        if def.fields().next().is_none() {
+                            if let Some(guid) = type_def_guid(def) {
                                 let ident = to_ident(name);
                                 let value = writer.guid(&guid);
                                 let guid = writer.type_name(&Type::GUID);
-                                let cfg = type_def_cfg(writer.reader, def, &[]);
+                                let cfg = type_def_cfg(def, &[]);
                                 let doc = writer.cfg_doc(&cfg);
                                 let constant = quote! {
                                     #doc
@@ -202,11 +205,11 @@ fn namespace(writer: &Writer, tree: &Tree) -> String {
                 }
             }
             Item::Fn(def, namespace) => {
-                let name = writer.reader.method_def_name(def);
-                functions.entry(name).or_default().combine(&functions::writer(writer, &namespace, def));
+                let name = def.name();
+                functions.entry(name).or_default().combine(&functions::writer(writer, namespace, def));
             }
             Item::Const(def) => {
-                let name = writer.reader.field_name(def);
+                let name = def.name();
                 types.entry(TypeKind::Class).or_default().entry(name).or_default().combine(&constants::writer(writer, def));
             }
         }
@@ -234,13 +237,13 @@ fn namespace_impl(writer: &Writer, tree: &Tree) -> String {
     writer.namespace = tree.namespace;
     let mut types = BTreeMap::<&str, TokenStream>::new();
 
-    for item in writer.reader.namespace_items(writer.namespace, writer.filter) {
+    for item in writer.reader.namespace_items(tree.namespace) {
         if let Item::Type(def) = item {
-            let type_name = writer.reader.type_def_type_name(def);
+            let type_name = def.type_name();
             if CORE_TYPES.iter().any(|(x, _)| x == &type_name) {
                 continue;
             }
-            if writer.reader.type_def_kind(def) != TypeKind::Interface {
+            if def.kind() != TypeKind::Interface {
                 continue;
             }
             let tokens = implements::writer(writer, def);

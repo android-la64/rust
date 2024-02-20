@@ -44,6 +44,7 @@ rm tests/ui/proc-macro/no-mangle-in-proc-macro-issue-111888.rs
 # vendor intrinsics
 rm tests/ui/sse2.rs # CodegenBackend::target_features not yet implemented
 rm tests/ui/simd/array-type.rs # "Index argument for `simd_insert` is not a constant"
+rm tests/ui/simd/masked-load-store.rs
 
 # exotic linkages
 rm tests/ui/issues/issue-33992.rs # unsupported linkages
@@ -145,11 +146,6 @@ rm tests/ui/backtrace.rs # TODO warning
 rm tests/ui/process/nofile-limit.rs # TODO some AArch64 linking issue
 
 rm tests/ui/stdio-is-blocking.rs # really slow with unoptimized libstd
-
-# rustc bugs
-# ==========
-# https://github.com/rust-lang/rust/pull/116447#issuecomment-1790451463
-rm tests/ui/coroutine/gen_block_*.rs
 
 cp ../dist/bin/rustdoc-clif ../dist/bin/rustdoc # some tests expect bin/rustdoc to exist
 

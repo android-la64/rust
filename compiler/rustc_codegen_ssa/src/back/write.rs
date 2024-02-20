@@ -14,7 +14,7 @@ use rustc_data_structures::memmap::Mmap;
 use rustc_data_structures::profiling::{SelfProfilerRef, VerboseTimingGuard};
 use rustc_data_structures::sync::Lrc;
 use rustc_errors::emitter::Emitter;
-use rustc_errors::{translation::Translate, DiagnosticId, FatalError, Handler, Level};
+use rustc_errors::{translation::Translate, DiagCtxt, DiagnosticId, FatalError, Level};
 use rustc_errors::{DiagnosticMessage, Style};
 use rustc_fs_util::link_or_copy;
 use rustc_hir::def_id::{CrateNum, LOCAL_CRATE};
@@ -355,7 +355,7 @@ pub struct CodegenContext<B: WriteBackendMethods> {
     /// how to call the compiler with the same arguments.
     pub expanded_args: Vec<String>,
 
-    /// Handler to use for diagnostics produced during codegen.
+    /// Emitter to use for diagnostics produced during codegen.
     pub diag_emitter: SharedEmitter,
     /// LLVM optimizations for which we want to print remarks.
     pub remark: Passes,
@@ -370,8 +370,8 @@ pub struct CodegenContext<B: WriteBackendMethods> {
 }
 
 impl<B: WriteBackendMethods> CodegenContext<B> {
-    pub fn create_diag_handler(&self) -> Handler {
-        Handler::with_emitter(Box::new(self.diag_emitter.clone()))
+    pub fn create_dcx(&self) -> DiagCtxt {
+        DiagCtxt::with_emitter(Box::new(self.diag_emitter.clone()))
     }
 
     pub fn config(&self, kind: ModuleKind) -> &ModuleConfig {
@@ -569,7 +569,7 @@ fn produce_final_output_artifacts(
             }
             if !sess.opts.cg.save_temps && !keep_numbered {
                 // The user just wants `foo.x`, not `foo.#module-name#.x`.
-                ensure_removed(sess.diagnostic(), &path);
+                ensure_removed(sess.dcx(), &path);
             }
         } else {
             let extension = crate_output
@@ -660,19 +660,19 @@ fn produce_final_output_artifacts(
         for module in compiled_modules.modules.iter() {
             if let Some(ref path) = module.object {
                 if !keep_numbered_objects {
-                    ensure_removed(sess.diagnostic(), path);
+                    ensure_removed(sess.dcx(), path);
                 }
             }
 
             if let Some(ref path) = module.dwarf_object {
                 if !keep_numbered_objects {
-                    ensure_removed(sess.diagnostic(), path);
+                    ensure_removed(sess.dcx(), path);
                 }
             }
 
             if let Some(ref path) = module.bytecode {
                 if !keep_numbered_bitcode {
-                    ensure_removed(sess.diagnostic(), path);
+                    ensure_removed(sess.dcx(), path);
                 }
             }
         }
@@ -680,7 +680,7 @@ fn produce_final_output_artifacts(
         if !user_wants_bitcode {
             if let Some(ref allocator_module) = compiled_modules.allocator_module {
                 if let Some(ref path) = allocator_module.bytecode {
-                    ensure_removed(sess.diagnostic(), path);
+                    ensure_removed(sess.dcx(), path);
                 }
             }
         }
@@ -836,10 +836,10 @@ fn execute_optimize_work_item<B: ExtraBackendMethods>(
     module: ModuleCodegen<B::Module>,
     module_config: &ModuleConfig,
 ) -> Result<WorkItemResult<B>, FatalError> {
-    let diag_handler = cgcx.create_diag_handler();
+    let dcx = cgcx.create_dcx();
 
     unsafe {
-        B::optimize(cgcx, &diag_handler, &module, module_config)?;
+        B::optimize(cgcx, &dcx, &module, module_config)?;
     }
 
     // After we've done the initial round of optimizations we need to
@@ -892,7 +892,7 @@ fn execute_copy_from_cache_work_item<B: ExtraBackendMethods>(
     let incr_comp_session_dir = cgcx.incr_comp_session_dir.as_ref().unwrap();
 
     let load_from_incr_comp_dir = |output_path: PathBuf, saved_path: &str| {
-        let source_file = in_incr_comp_dir(&incr_comp_session_dir, saved_path);
+        let source_file = in_incr_comp_dir(incr_comp_session_dir, saved_path);
         debug!(
             "copying preexisting module `{}` from {:?} to {}",
             module.name,
@@ -902,11 +902,7 @@ fn execute_copy_from_cache_work_item<B: ExtraBackendMethods>(
         match link_or_copy(&source_file, &output_path) {
             Ok(_) => Some(output_path),
             Err(error) => {
-                cgcx.create_diag_handler().emit_err(errors::CopyPathBuf {
-                    source_file,
-                    output_path,
-                    error,
-                });
+                cgcx.create_dcx().emit_err(errors::CopyPathBuf { source_file, output_path, error });
                 None
             }
         }
@@ -914,7 +910,7 @@ fn execute_copy_from_cache_work_item<B: ExtraBackendMethods>(
 
     let object = load_from_incr_comp_dir(
         cgcx.output_filenames.temp_path(OutputType::Object, Some(&module.name)),
-        &module.source.saved_files.get("o").expect("no saved object file in work product"),
+        module.source.saved_files.get("o").expect("no saved object file in work product"),
     );
     let dwarf_object =
         module.source.saved_files.get("dwo").as_ref().and_then(|saved_dwarf_object_file| {
@@ -924,7 +920,7 @@ fn execute_copy_from_cache_work_item<B: ExtraBackendMethods>(
                 .expect(
                     "saved dwarf object in work product but `split_dwarf_path` returned `None`",
                 );
-            load_from_incr_comp_dir(dwarf_obj_out, &saved_dwarf_object_file)
+            load_from_incr_comp_dir(dwarf_obj_out, saved_dwarf_object_file)
         });
 
     WorkItemResult::Finished(CompiledModule {
@@ -950,13 +946,13 @@ fn finish_intra_module_work<B: ExtraBackendMethods>(
     module: ModuleCodegen<B::Module>,
     module_config: &ModuleConfig,
 ) -> Result<WorkItemResult<B>, FatalError> {
-    let diag_handler = cgcx.create_diag_handler();
+    let dcx = cgcx.create_dcx();
 
     if !cgcx.opts.unstable_opts.combine_cgu
         || module.kind == ModuleKind::Metadata
         || module.kind == ModuleKind::Allocator
     {
-        let module = unsafe { B::codegen(cgcx, &diag_handler, module, module_config)? };
+        let module = unsafe { B::codegen(cgcx, &dcx, module, module_config)? };
         Ok(WorkItemResult::Finished(module))
     } else {
         Ok(WorkItemResult::NeedsLink(module))
@@ -1609,11 +1605,10 @@ fn start_executing_work<B: ExtraBackendMethods>(
         let needs_link = mem::take(&mut needs_link);
         if !needs_link.is_empty() {
             assert!(compiled_modules.is_empty());
-            let diag_handler = cgcx.create_diag_handler();
-            let module = B::run_link(&cgcx, &diag_handler, needs_link).map_err(|_| ())?;
+            let dcx = cgcx.create_dcx();
+            let module = B::run_link(&cgcx, &dcx, needs_link).map_err(|_| ())?;
             let module = unsafe {
-                B::codegen(&cgcx, &diag_handler, module, cgcx.config(ModuleKind::Regular))
-                    .map_err(|_| ())?
+                B::codegen(&cgcx, &dcx, module, cgcx.config(ModuleKind::Regular)).map_err(|_| ())?
             };
             compiled_modules.push(module);
         }
@@ -1856,13 +1851,13 @@ impl SharedEmitterMain {
 
             match message {
                 Ok(SharedEmitterMessage::Diagnostic(diag)) => {
-                    let handler = sess.diagnostic();
+                    let dcx = sess.dcx();
                     let mut d = rustc_errors::Diagnostic::new_with_messages(diag.lvl, diag.msg);
                     if let Some(code) = diag.code {
                         d.code(code);
                     }
                     d.replace_args(diag.args);
-                    handler.emit_diagnostic(&mut d);
+                    dcx.emit_diagnostic(d);
                 }
                 Ok(SharedEmitterMessage::InlineAsmError(cookie, msg, level, source)) => {
                     let msg = msg.strip_prefix("error: ").unwrap_or(&msg).to_string();
@@ -1870,7 +1865,7 @@ impl SharedEmitterMain {
                     let mut err = match level {
                         Level::Error { lint: false } => sess.struct_err(msg).forget_guarantee(),
                         Level::Warning(_) => sess.struct_warn(msg),
-                        Level::Note => sess.struct_note_without_error(msg),
+                        Level::Note => sess.struct_note(msg),
                         _ => bug!("Invalid inline asm diagnostic level"),
                     };
 

@@ -24,6 +24,7 @@
  */
 #include "nghttp2_test_helper.h"
 
+#include <stdio.h>
 #include <assert.h>
 
 #include <CUnit/CUnit.h>
@@ -87,6 +88,11 @@ int unpack_frame(nghttp2_frame *frame, const uint8_t *in, size_t len) {
   case NGHTTP2_ORIGIN:
     rv = nghttp2_frame_unpack_origin_payload(&frame->ext, payload, payloadlen,
                                              mem);
+    break;
+  case NGHTTP2_PRIORITY_UPDATE:
+    assert(payloadlen >= 4);
+    nghttp2_frame_unpack_priority_update_payload(
+        &frame->ext, (uint8_t *)payload, payloadlen);
     break;
   default:
     /* Must not be reachable */

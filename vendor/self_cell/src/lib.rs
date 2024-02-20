@@ -263,7 +263,7 @@ pub mod unsafe_self_cell;
 ///
 ///   * **covariant**: This generates the direct reference accessor function
 ///     `borrow_dependent`. This is only safe to do if this compiles `fn
-///     _assert_covariance<'x: 'y, 'y>(x: $Dependent<'x>) -> $Dependent<'y>
+///     _assert_covariance<'x: 'y, 'y>(x: &'y $Dependent<'x>) -> &'y $Dependent<'y>
 ///     {x}`. Otherwise you could choose a lifetime that is too short for types
 ///     with interior mutability like `Cell`, which can lead to UB in safe code.
 ///     Which would violate the promise of this library that it is safe-to-use.
@@ -337,6 +337,12 @@ macro_rules! self_cell {
     }
 
     impl $(<$OwnerLifetime>)? $StructName $(<$OwnerLifetime>)? {
+        /// Constructs a new self-referential struct.
+        ///
+        /// The provided `owner` will be moved into a heap allocated box.
+        /// Followed by construction of the dependent value, by calling
+        /// `dependent_builder` with a shared reference to the owner that
+        /// remains valid for the lifetime of the constructed struct.
         $Vis fn new(
             owner: $Owner,
             dependent_builder: impl for<'_q> FnOnce(&'_q $Owner) -> $Dependent<'_q>
@@ -364,9 +370,7 @@ macro_rules! self_cell {
 
                 let joined_void_ptr = NonNull::new($crate::alloc::alloc::alloc(layout)).unwrap();
 
-                let mut joined_ptr = core::mem::transmute::<NonNull<u8>, NonNull<JoinedCell>>(
-                    joined_void_ptr
-                );
+                let mut joined_ptr = joined_void_ptr.cast::<JoinedCell>();
 
                 let (owner_ptr, dependent_ptr) = JoinedCell::_field_pointers(joined_ptr.as_ptr());
 
@@ -390,6 +394,9 @@ macro_rules! self_cell {
             }
         }
 
+        /// Tries to create a new structure with a given dependent builder.
+        ///
+        /// Consumes owner on error.
         $Vis fn try_new<Err>(
             owner: $Owner,
             dependent_builder:
@@ -408,9 +415,7 @@ macro_rules! self_cell {
 
                 let joined_void_ptr = NonNull::new($crate::alloc::alloc::alloc(layout)).unwrap();
 
-                let mut joined_ptr = core::mem::transmute::<NonNull<u8>, NonNull<JoinedCell>>(
-                    joined_void_ptr
-                );
+                let mut joined_ptr = joined_void_ptr.cast::<JoinedCell>();
 
                 let (owner_ptr, dependent_ptr) = JoinedCell::_field_pointers(joined_ptr.as_ptr());
 
@@ -438,6 +443,9 @@ macro_rules! self_cell {
             }
         }
 
+        /// Tries to create a new structure with a given dependent builder.
+        ///
+        /// Returns owner on error.
         $Vis fn try_new_or_recover<Err>(
             owner: $Owner,
             dependent_builder:
@@ -456,9 +464,7 @@ macro_rules! self_cell {
 
                 let joined_void_ptr = NonNull::new($crate::alloc::alloc::alloc(layout)).unwrap();
 
-                let mut joined_ptr = core::mem::transmute::<NonNull<u8>, NonNull<JoinedCell>>(
-                    joined_void_ptr
-                );
+                let mut joined_ptr = joined_void_ptr.cast::<JoinedCell>();
 
                 let (owner_ptr, dependent_ptr) = JoinedCell::_field_pointers(joined_ptr.as_ptr());
 
@@ -499,10 +505,12 @@ macro_rules! self_cell {
             }
         }
 
+        /// Borrows owner.
         $Vis fn borrow_owner<'_q>(&'_q self) -> &'_q $Owner {
             unsafe { self.unsafe_self_cell.borrow_owner::<$Dependent<'_q>>() }
         }
 
+        /// Calls given closure `func` with a shared reference to dependent.
         $Vis fn with_dependent<'outer_fn, Ret>(
             &'outer_fn self,
             func: impl for<'_q> FnOnce(&'_q $Owner, &'outer_fn $Dependent<'_q>
@@ -515,6 +523,7 @@ macro_rules! self_cell {
             }
         }
 
+        /// Calls given closure `func` with an unique reference to dependent.
         $Vis fn with_dependent_mut<'outer_fn, Ret>(
             &'outer_fn mut self,
             func: impl for<'_q> FnOnce(&'_q $Owner, &'outer_fn mut $Dependent<'_q>) -> Ret
@@ -528,6 +537,7 @@ macro_rules! self_cell {
 
         $crate::_covariant_access!($Covariance, $Vis, $Dependent);
 
+        /// Consumes `self` and returns the the owner.
         $Vis fn into_owner(self) -> $Owner {
             // This is only safe to do with repr(transparent).
             let unsafe_self_cell = unsafe { core::mem::transmute::<
@@ -565,8 +575,9 @@ macro_rules! self_cell {
 #[macro_export]
 macro_rules! _covariant_access {
     (covariant, $Vis:vis, $Dependent:ident) => {
+        /// Borrows dependent.
         $Vis fn borrow_dependent<'_q>(&'_q self) -> &'_q $Dependent<'_q> {
-            fn _assert_covariance<'x: 'y, 'y>(x: $Dependent<'x>) -> $Dependent<'y> {
+            fn _assert_covariance<'x: 'y, 'y>(x: &'y $Dependent<'x>) -> &'y $Dependent<'y> {
                 //  This function only compiles for covariant types.
                 x // Change the macro invocation to not_covariant.
             }

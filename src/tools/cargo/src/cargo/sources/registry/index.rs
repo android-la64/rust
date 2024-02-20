@@ -92,7 +92,8 @@ use crate::sources::registry::{LoadResponse, RegistryData};
 use crate::util::cache_lock::CacheLockMode;
 use crate::util::interning::InternedString;
 use crate::util::IntoUrl;
-use crate::util::{internal, CargoResult, Config, Filesystem, OptVersionReq, RustVersion};
+use crate::util::{internal, CargoResult, Config, Filesystem, OptVersionReq};
+use crate::util_schemas::manifest::RustVersion;
 use anyhow::bail;
 use cargo_util::{paths, registry::make_dep_path};
 use semver::Version;
@@ -220,6 +221,15 @@ impl IndexSummary {
             | IndexSummary::Yanked(sum)
             | IndexSummary::Offline(sum)
             | IndexSummary::Unsupported(sum, _) => sum,
+        }
+    }
+
+    pub fn map_summary(self, f: impl Fn(Summary) -> Summary) -> Self {
+        match self {
+            IndexSummary::Candidate(s) => IndexSummary::Candidate(f(s)),
+            IndexSummary::Yanked(s) => IndexSummary::Yanked(f(s)),
+            IndexSummary::Offline(s) => IndexSummary::Offline(f(s)),
+            IndexSummary::Unsupported(s, v) => IndexSummary::Unsupported(f(s), v.clone()),
         }
     }
 
@@ -935,7 +945,7 @@ impl IndexSummary {
         } = serde_json::from_slice(line)?;
         let v = v.unwrap_or(1);
         tracing::trace!("json parsed registry {}/{}", name, vers);
-        let pkgid = PackageId::pure(name.into(), vers.clone(), source_id);
+        let pkgid = PackageId::new(name.into(), vers.clone(), source_id);
         let deps = deps
             .into_iter()
             .map(|dep| dep.into_dep(source_id))

@@ -1,6 +1,6 @@
-use gix_features::zlib;
 use std::ops::Deref;
 
+use gix_features::zlib;
 use gix_hash::oid;
 
 use super::find::Error;
@@ -13,7 +13,7 @@ impl<S> super::Handle<S>
 where
     S: Deref<Target = super::Store> + Clone,
 {
-    fn try_header_inner<'b>(
+    pub(crate) fn try_header_inner<'b>(
         &'b self,
         mut id: &'b gix_hash::oid,
         inflate: &mut zlib::Inflate,
@@ -182,7 +182,7 @@ impl<S> crate::Header for super::Handle<S>
 where
     S: Deref<Target = super::Store> + Clone,
 {
-    fn try_header(&self, id: &oid) -> Result<Option<Header>, crate::find::Error> {
+    fn try_header(&self, id: &oid) -> Result<Option<Header>, gix_object::find::Error> {
         let mut snapshot = self.snapshot.borrow_mut();
         let mut inflate = self.inflate.borrow_mut();
         self.try_header_inner(id, &mut inflate, &mut snapshot, None)

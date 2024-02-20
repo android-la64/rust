@@ -79,6 +79,8 @@ const char *strsettingsid(int32_t id) {
     return "SETTINGS_MAX_HEADER_LIST_SIZE";
   case NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL:
     return "SETTINGS_ENABLE_CONNECT_PROTOCOL";
+  case NGHTTP2_SETTINGS_NO_RFC7540_PRIORITIES:
+    return "SETTINGS_NO_RFC7540_PRIORITIES";
   default:
     return "UNKNOWN";
   }
@@ -110,6 +112,8 @@ std::string strframetype(uint8_t type) {
     return "ALTSVC";
   case NGHTTP2_ORIGIN:
     return "ORIGIN";
+  case NGHTTP2_PRIORITY_UPDATE:
+    return "PRIORITY_UPDATE";
   }
 
   std::string s = "extension(0x";
@@ -364,6 +368,17 @@ void print_frame(print_type ptype, const nghttp2_frame *frame) {
     }
     break;
   }
+  case NGHTTP2_PRIORITY_UPDATE: {
+    auto priority_update =
+        static_cast<nghttp2_ext_priority_update *>(frame->ext.payload);
+    print_frame_attr_indent();
+    fprintf(outfile,
+            "(prioritized_stream_id=%d, priority_field_value=[%.*s])\n",
+            priority_update->stream_id,
+            static_cast<int>(priority_update->field_value_len),
+            priority_update->field_value);
+    break;
+  }
   default:
     break;
   }
@@ -465,14 +480,9 @@ std::chrono::steady_clock::time_point get_time() {
 ssize_t deflate_data(uint8_t *out, size_t outlen, const uint8_t *in,
                      size_t inlen) {
   int rv;
-  z_stream zst;
+  z_stream zst{};
   uint8_t temp_out[8_k];
   auto temp_outlen = sizeof(temp_out);
-
-  zst.next_in = Z_NULL;
-  zst.zalloc = Z_NULL;
-  zst.zfree = Z_NULL;
-  zst.opaque = Z_NULL;
 
   rv = deflateInit2(&zst, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 31, 9,
                     Z_DEFAULT_STRATEGY);

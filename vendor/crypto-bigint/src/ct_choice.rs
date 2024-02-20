@@ -29,8 +29,29 @@ impl CtChoice {
         Self(value.wrapping_neg())
     }
 
+    /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
+    pub(crate) const fn from_usize_being_nonzero(value: usize) -> Self {
+        const HI_BIT: u32 = usize::BITS - 1;
+        Self::from_lsb(((value | value.wrapping_neg()) >> HI_BIT) as Word)
+    }
+
+    /// Returns the truthy value if `x == y`, and the falsy value otherwise.
+    pub(crate) const fn from_usize_equality(x: usize, y: usize) -> Self {
+        Self::from_usize_being_nonzero(x.wrapping_sub(y)).not()
+    }
+
+    /// Returns the truthy value if `x < y`, and the falsy value otherwise.
+    pub(crate) const fn from_usize_lt(x: usize, y: usize) -> Self {
+        let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (usize::BITS - 1);
+        Self::from_lsb(bit as Word)
+    }
+
     pub(crate) const fn not(&self) -> Self {
         Self(!self.0)
+    }
+
+    pub(crate) const fn or(&self, other: Self) -> Self {
+        Self(self.0 | other.0)
     }
 
     pub(crate) const fn and(&self, other: Self) -> Self {
@@ -50,11 +71,15 @@ impl CtChoice {
     pub(crate) const fn is_true_vartime(&self) -> bool {
         self.0 == CtChoice::TRUE.0
     }
+
+    pub(crate) const fn to_u8(self) -> u8 {
+        (self.0 as u8) & 1
+    }
 }
 
 impl From<CtChoice> for Choice {
     fn from(choice: CtChoice) -> Self {
-        Choice::from(choice.0 as u8 & 1)
+        Choice::from(choice.to_u8())
     }
 }
 

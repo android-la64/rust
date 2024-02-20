@@ -1,5 +1,3 @@
-#![allow(clippy::unwrap_used)]
-
 use std::hash::Hash;
 
 use crate::{
@@ -105,13 +103,13 @@ macro_rules! tests {
         #[test]
         fn expand() {$(
             let expanded: $t::<0, 20> = $t::<5, 10>::MAX.expand();
-            assert_eq!(expanded, $t::<0, 20>::new(10).unwrap());
+            assert_eq!(expanded, $t::<0, 20>::new_static::<10>());
         )*}
 
         #[test]
         fn narrow() {$(
-            let narrowed: Option<$t::<10, 20>> = $t::<0, 20>::new(10).unwrap().narrow();
-            assert_eq!(narrowed, $t::<10, 20>::new(10));
+            let narrowed: Option<$t::<10, 20>> = $t::<0, 20>::new_static::<10>().narrow();
+            assert_eq!(narrowed, Some($t::<10, 20>::MIN));
         )*}
 
         #[test]
@@ -123,7 +121,7 @@ macro_rules! tests {
         #[test]
         fn new_static() {$(
             let six: $t::<5, 10> = $t::<5, 10>::new_static::<6>();
-            assert_eq!(six, $t::<5, 10>::new(6).unwrap());
+            assert_eq!(Some(six), $t::<5, 10>::new(6));
         )*}
 
         #[test]
@@ -171,7 +169,7 @@ macro_rules! tests {
         fn new_saturating() {$(
             assert_eq!($t::<5, 10>::new_saturating(11), $t::<5, 10>::MAX);
             assert_eq!($t::<5, 10>::new_saturating(0), $t::<5, 10>::MIN);
-            assert_eq!($t::<5, 10>::new_saturating(9), $t::<5, 10>::new(9).unwrap());
+            assert_eq!($t::<5, 10>::new_saturating(9), $t::<5, 10>::new_static::<9>());
         )*}
 
         #[test]
@@ -388,6 +386,78 @@ macro_rules! tests {
         )*}
 
         #[test]
+        fn wrapping_add() {
+            $(
+                assert_eq!($t::<5, 10>::MAX.wrapping_add(0), $t::<5, 10>::MAX);
+                assert_eq!($t::<5, 10>::MAX.wrapping_add(1), $t::<5, 10>::MIN);
+                assert_eq!($t::<{ $inner::MIN }, { $inner::MAX }>::MAX.wrapping_add(1),
+                           $t::<{ $inner::MIN }, { $inner::MAX }>::MIN);
+                for i in 1..127 {
+                    assert_eq!(
+                        $t::<{ $inner::MIN}, { $inner::MAX - 1 }>::MAX.wrapping_add(i),
+                        $t::<{ $inner::MIN}, { $inner::MAX - 1 }>::new($inner::MIN + i - 1).unwrap_or_else(|| panic!("adding {i}+{} does not yield {}", $inner::MIN, $inner::MAX + i ))
+                    );
+                }
+            )*
+            $(if_signed! { $signed
+                for i in 1..=127 {
+                    assert_eq!($t::<-5, 126>::MIN.wrapping_add(-i), $t::<-5,126>::new(126-i+1).unwrap_or_else(|| panic!("adding {i}+{} does not yield {}", $inner::MIN, 126-i+1)));
+                    assert_eq!($t::<-5, 126>::MIN.wrapping_add(i), $t::<-5,126>::new(-5+i).unwrap_or_else(|| panic!("adding {i}+{} does not yield {}", $inner::MIN, 126-i+1)));
+                }
+                for i in -127..=-1 {
+                    assert_eq!($t::<-5, 126>::MIN.wrapping_add(i), $t::<-5,126>::new(126+i+1).unwrap_or_else(|| panic!("adding {i}+{} does not yield {}", $inner::MIN, 126-i+1)));
+                    assert_eq!($t::<-5, 126>::MIN.wrapping_add(-i), $t::<-5,126>::new(-5-i).unwrap_or_else(|| panic!("adding {i}+{} does not yield {}", $inner::MIN, 126-i+1)));
+                }
+                assert_eq!($t::<-5, 126>::MIN.wrapping_add(-128), $t::<-5,126>::new(-1).unwrap_or_else(|| panic!("adding 128+{} does not yield -1", $inner::MIN)));
+                assert_eq!($t::<-5, 10>::MAX.wrapping_add(0), $t::<-5, 10>::MAX);
+                assert_eq!($t::<-5, -3>::MIN.wrapping_add(-1-3), $t::<-5, -3>::MAX);
+                assert_eq!($t::<-5, -3>::MIN.wrapping_add(-1-30), $t::<-5, -3>::MAX);
+                assert_eq!($t::<-5, -3>::MIN.wrapping_add(30), $t::<-5, -3>::MIN);
+                assert_eq!($t::<-5, -3>::MIN.wrapping_add(-30), $t::<-5, -3>::MIN);
+                assert_eq!($t::<-5, 10>::MAX.wrapping_add(25), $t::<-5, 10>::MIN.wrapping_add(24));
+                assert_eq!($t::<-5, 10>::MIN.wrapping_add(24), $t::<-5, 10>::MIN.wrapping_add(8));
+                assert_eq!($t::<-5, 10>::MAX.wrapping_add(1), $t::<-5, 10>::MIN);
+                assert_eq!($t::<-5, 10>::MIN.wrapping_add(-1), $t::<-5, 10>::MAX);
+                assert_eq!($t::<-5, 127>::MIN.wrapping_add(-1), $t::<-5, 127>::MAX);
+                assert_eq!($t::<-127, 126>::MIN.wrapping_add(-1), $t::<-127, 126>::MAX);
+                assert_eq!($t::<{ $inner::MIN }, { $inner::MAX }>::MIN.wrapping_add(-1),
+                           $t::<{ $inner::MIN }, { $inner::MAX }>::MAX);
+            })*
+        }
+
+        #[test]
+        fn wrapping_sub() {
+            $(
+                assert_eq!($t::<5, 10>::MIN.wrapping_sub(0), $t::<5, 10>::MIN);
+                assert_eq!($t::<5, 10>::MIN.wrapping_sub(1), $t::<5, 10>::MAX);
+                assert_eq!($t::<5, 10>::new(5 + 1).unwrap().wrapping_sub(1), $t::<5, 10>::MIN);
+                assert_eq!($t::<5, 10>::MAX.wrapping_sub(1), $t::<5, 10>::new(10 - 1).unwrap());
+                assert_eq!($t::<{ $inner::MIN }, { $inner::MAX }>::MIN.wrapping_sub(1),
+                           $t::<{ $inner::MIN }, { $inner::MAX }>::MAX);
+                for i in 1..127 {
+                    assert_eq!(
+                        $t::<{ $inner::MIN + 1 }, { $inner::MAX }>::MIN.wrapping_sub(i),
+                        $t::<{ $inner::MIN + 1 }, { $inner::MAX }>::new($inner::MAX - i + 1).unwrap_or_else(|| panic!("failed test at iteration {i}"))
+                    );
+                }
+            )*
+            $(if_signed! { $signed
+                for i in -127..=127 {
+                    assert_eq!($t::<-5, 126>::MIN.wrapping_add(i), $t::<-5,126>::MIN.wrapping_sub(-i), "failed test at {i}");
+                    assert_eq!($t::<-5, 126>::MIN.wrapping_add(-i), $t::<-5,126>::MIN.wrapping_sub(i), "failed test at {i}");
+                }
+                assert_eq!(
+                    $t::<-5, 126>::MIN.wrapping_add(127).wrapping_add(1),
+                    $t::<-5,126>::MIN.wrapping_sub(-128)
+                );
+                assert_eq!(
+                    $t::<-5, 126>::MIN.wrapping_add(-128),
+                    $t::<-5,126>::MIN.wrapping_sub(127).wrapping_sub(1)
+                );
+            })*
+        }
+
+        #[test]
         fn saturating_sub() {$(
             assert_eq!($t::<5, 10>::MIN.saturating_sub(0), $t::<5, 10>::MIN);
             assert_eq!($t::<5, 10>::MIN.saturating_sub(1), $t::<5, 10>::MIN);
@@ -517,11 +587,12 @@ macro_rules! tests {
 
         #[cfg(feature = "serde")]
         #[test]
-        fn serde() {$(
+        fn serde() -> serde_json::Result<()> {
+            $(
             let val = $t::<5, 10>::MAX;
-            let serialized = serde_json::to_string(&val).unwrap();
+            let serialized = serde_json::to_string(&val)?;
             assert_eq!(serialized, "10");
-            let deserialized: $t<5, 10> = serde_json::from_str(&serialized).unwrap();
+            let deserialized: $t<5, 10> = serde_json::from_str(&serialized)?;
             assert_eq!(deserialized, val);
 
             assert!(serde_json::from_str::<$t<5, 10>>("").is_err());
@@ -529,9 +600,9 @@ macro_rules! tests {
             assert!(serde_json::from_str::<$t<5, 10>>("11").is_err());
 
             let val = $opt::<5, 10>::Some($t::<5, 10>::MAX);
-            let serialized = serde_json::to_string(&val).unwrap();
+            let serialized = serde_json::to_string(&val)?;
             assert_eq!(serialized, "10");
-            let deserialized: $opt<5, 10> = serde_json::from_str(&serialized).unwrap();
+            let deserialized: $opt<5, 10> = serde_json::from_str(&serialized)?;
             assert_eq!(deserialized, val);
 
             assert!(serde_json::from_str::<$opt<5, 10>>("").is_err());
@@ -539,13 +610,15 @@ macro_rules! tests {
             assert!(serde_json::from_str::<$opt<5, 10>>("11").is_err());
 
             let val = $opt::<5, 10>::None;
-            let serialized = serde_json::to_string(&val).unwrap();
+            let serialized = serde_json::to_string(&val)?;
             assert_eq!(serialized, "null");
 
             assert!(serde_json::from_str::<$opt<5, 10>>("").is_err());
             assert!(serde_json::from_str::<$opt<5, 10>>("4").is_err());
             assert!(serde_json::from_str::<$opt<5, 10>>("11").is_err());
-        )*}
+            )*
+            Ok(())
+        }
 
         #[cfg(feature = "rand")]
         #[test]

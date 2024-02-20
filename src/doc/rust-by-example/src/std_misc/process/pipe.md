@@ -6,14 +6,21 @@ process via pipes.
 
 ```rust,ignore
 use std::io::prelude::*;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 static PANGRAM: &'static str =
 "the quick brown fox jumped over the lazy dog\n";
 
 fn main() {
     // Spawn the `wc` command
-    let process = match Command::new("wc")
+    let mut cmd = if cfg!(target_family = "windows") {
+        let mut cmd = Command::new("powershell");
+        cmd.arg("-Command").arg("$input | Measure-Object -Line -Word -Character");
+        cmd
+    } else {
+        Command::new("wc")
+    };
+    let process = match cmd
                                 .stdin(Stdio::piped())
                                 .stdout(Stdio::piped())
                                 .spawn() {

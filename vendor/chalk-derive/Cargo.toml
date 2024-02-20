@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "chalk-derive"
-version = "0.92.0"
+version = "0.95.0"
 authors = [
     "Rust Compiler Team",
     "Chalk developers",

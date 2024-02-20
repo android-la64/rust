@@ -68,7 +68,7 @@ static void check_frame_header(size_t length, uint8_t type, uint8_t flags,
   CU_ASSERT(0 == hd->reserved);
 }
 
-void test_nghttp2_frame_pack_headers() {
+void test_nghttp2_frame_pack_headers(void) {
   nghttp2_hd_deflater deflater;
   nghttp2_hd_inflater inflater;
   nghttp2_headers frame, oframe;
@@ -276,7 +276,7 @@ void test_nghttp2_frame_pack_rst_stream(void) {
   nghttp2_bufs_free(&bufs);
 }
 
-void test_nghttp2_frame_pack_settings() {
+void test_nghttp2_frame_pack_settings(void) {
   nghttp2_settings frame, oframe;
   nghttp2_bufs bufs;
   int i;
@@ -311,7 +311,7 @@ void test_nghttp2_frame_pack_settings() {
   nghttp2_frame_settings_free(&oframe, mem);
 }
 
-void test_nghttp2_frame_pack_push_promise() {
+void test_nghttp2_frame_pack_push_promise(void) {
   nghttp2_hd_deflater deflater;
   nghttp2_hd_inflater inflater;
   nghttp2_push_promise frame, oframe;
@@ -384,7 +384,7 @@ void test_nghttp2_frame_pack_ping(void) {
   nghttp2_frame_ping_free(&frame);
 }
 
-void test_nghttp2_frame_pack_goaway() {
+void test_nghttp2_frame_pack_goaway(void) {
   nghttp2_goaway frame, oframe;
   nghttp2_bufs bufs;
   size_t opaque_data_len = 16;
@@ -596,6 +596,43 @@ void test_nghttp2_frame_pack_origin(void) {
   CU_ASSERT(NULL == oorigin.ov);
 
   nghttp2_frame_origin_free(&oframe, mem);
+
+  nghttp2_bufs_free(&bufs);
+}
+
+void test_nghttp2_frame_pack_priority_update(void) {
+  nghttp2_extension frame, oframe;
+  nghttp2_ext_priority_update priority_update, opriority_update;
+  nghttp2_bufs bufs;
+  int rv;
+  size_t payloadlen;
+  static const uint8_t field_value[] = "i,u=0";
+
+  frame_pack_bufs_init(&bufs);
+
+  frame.payload = &priority_update;
+  oframe.payload = &opriority_update;
+
+  nghttp2_frame_priority_update_init(&frame, 1000000007, (uint8_t *)field_value,
+                                     sizeof(field_value) - 1);
+
+  payloadlen = 4 + sizeof(field_value) - 1;
+
+  rv = nghttp2_frame_pack_priority_update(&bufs, &frame);
+
+  CU_ASSERT(0 == rv);
+  CU_ASSERT(NGHTTP2_FRAME_HDLEN + payloadlen == nghttp2_bufs_len(&bufs));
+
+  rv = unpack_framebuf((nghttp2_frame *)&oframe, &bufs);
+
+  CU_ASSERT(0 == rv);
+
+  check_frame_header(payloadlen, NGHTTP2_PRIORITY_UPDATE, NGHTTP2_FLAG_NONE, 0,
+                     &oframe.hd);
+
+  CU_ASSERT(sizeof(field_value) - 1 == opriority_update.field_value_len);
+  CU_ASSERT(0 == memcmp(field_value, opriority_update.field_value,
+                        sizeof(field_value) - 1));
 
   nghttp2_bufs_free(&bufs);
 }

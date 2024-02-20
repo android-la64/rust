@@ -1,16 +1,16 @@
 //! A library implementing a URL for use in git with access to its special capabilities.
 //! ## Feature Flags
 #![cfg_attr(
-    feature = "document-features",
-    cfg_attr(doc, doc = ::document_features::document_features!())
+    all(doc, feature = "document-features"),
+    doc = ::document_features::document_features!()
 )]
-#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
+#![cfg_attr(all(doc, feature = "document-features"), feature(doc_cfg, doc_auto_cfg))]
 #![deny(rust_2018_idioms, missing_docs)]
 #![forbid(unsafe_code)]
 
+use std::{borrow::Cow, path::PathBuf};
+
 use bstr::{BStr, BString};
-use std::borrow::Cow;
-use std::path::PathBuf;
 
 ///
 pub mod expand_path;
@@ -122,6 +122,13 @@ impl Url {
     pub fn set_user(&mut self, user: Option<String>) -> Option<String> {
         let prev = self.user.take();
         self.user = user;
+        prev
+    }
+
+    /// Set the given `password`, or unset it with `None`. Return the previous value.
+    pub fn set_password(&mut self, password: Option<String>) -> Option<String> {
+        let prev = self.password.take();
+        self.password = password;
         prev
     }
 }

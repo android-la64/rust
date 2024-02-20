@@ -307,6 +307,3 @@ impl FromStr for Bom {
         Ok(Bom::from(&mut file))
     }
 }
-
-unsafe impl Send for Bom {}
-unsafe impl Sync for Bom {}

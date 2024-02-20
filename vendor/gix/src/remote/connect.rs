@@ -1,7 +1,8 @@
 #![allow(clippy::result_large_err)]
 
-use gix_protocol::transport::client::Transport;
 use std::borrow::Cow;
+
+use gix_protocol::transport::client::Transport;
 
 use crate::{remote::Connection, Remote};
 
@@ -57,11 +58,13 @@ impl<'repo> Remote<'repo> {
     where
         T: Transport,
     {
+        let trace = self.repo.config.trace_packet();
         Connection {
             remote: self,
             authenticate: None,
             transport_options: None,
             transport,
+            trace,
         }
     }
 
@@ -91,6 +94,7 @@ impl<'repo> Remote<'repo> {
                     .then(|| self.repo.ssh_connect_options())
                     .transpose()?
                     .unwrap_or_default(),
+                trace: self.repo.config.trace_packet(),
             },
         )
         .await?;

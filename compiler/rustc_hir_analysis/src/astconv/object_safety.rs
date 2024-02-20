@@ -1,7 +1,7 @@
 use crate::astconv::{GenericArgCountMismatch, GenericArgCountResult, OnlySelfBounds};
 use crate::bounds::Bounds;
 use crate::errors::TraitObjectDeclaredWithNoTraits;
-use rustc_data_structures::fx::{FxHashMap, FxHashSet};
+use rustc_data_structures::fx::{FxHashSet, FxIndexMap, FxIndexSet};
 use rustc_errors::struct_span_err;
 use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
@@ -14,7 +14,6 @@ use rustc_trait_selection::traits::error_reporting::report_object_safety_error;
 use rustc_trait_selection::traits::{self, astconv_object_safety_violations};
 
 use smallvec::{smallvec, SmallVec};
-use std::collections::BTreeSet;
 
 use super::AstConv;
 
@@ -74,7 +73,7 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
                 | ty::ClauseKind::ConstArgHasType(..)
                 | ty::ClauseKind::WellFormed(_)
                 | ty::ClauseKind::ConstEvaluatable(_) => {
-                    bug!()
+                    span_bug!(span, "did not expect {pred} clause in object bounds");
                 }
             }
         }
@@ -107,6 +106,7 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
              trait here instead: `trait NewTrait: {} {{}}`",
                 regular_traits
                     .iter()
+                    // FIXME: This should `print_sugared`, but also needs to integrate projection bounds...
                     .map(|t| t.trait_ref().print_only_trait_path().to_string())
                     .collect::<Vec<_>>()
                     .join(" + "),
@@ -148,8 +148,7 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
             }
         }
 
-        // Use a `BTreeSet` to keep output in a more consistent order.
-        let mut associated_types: FxHashMap<Span, BTreeSet<DefId>> = FxHashMap::default();
+        let mut associated_types: FxIndexMap<Span, FxIndexSet<DefId>> = FxIndexMap::default();
 
         let regular_traits_refs_spans = trait_bounds
             .into_iter()
@@ -327,7 +326,7 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
                         false
                     });
                     if references_self {
-                        let guar = tcx.sess.delay_span_bug(
+                        let guar = tcx.sess.span_delayed_bug(
                             span,
                             "trait object projection bounds reference `Self`",
                         );

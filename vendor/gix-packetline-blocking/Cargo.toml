@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-packetline-blocking"
-version = "0.16.6"
+version = "0.17.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
 ]
 description = "A duplicate of `gix-packetline` with the `blocking-io` feature pre-selected"
 license = "MIT OR Apache-2.0"
@@ -29,10 +28,6 @@ features = [
     "document-features",
     "blocking-io",
     "serde",
-]
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
 ]
 
 [lib]
@@ -50,6 +45,9 @@ optional = true
 [dependencies.faster-hex]
 version = "0.8.0"
 
+[dependencies.gix-trace]
+version = "^0.1.4"
+
 [dependencies.serde]
 version = "1.0.114"
 features = [
@@ -63,6 +61,7 @@ default-features = false
 version = "1.0.34"
 
 [features]
+async-io = []
 blocking-io = []
 default = ["blocking-io"]
 serde = [

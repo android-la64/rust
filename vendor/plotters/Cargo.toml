@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "plotters"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["Hao Hou <haohou302@gmail.com>"]
 exclude = [
     "doc-template",
@@ -47,19 +47,19 @@ optional = true
 version = "0.2.14"
 
 [dependencies.plotters-backend]
-version = "0.3"
+version = "0.3.5"
 
 [dependencies.plotters-bitmap]
-version = "0.3"
+version = "0.3.3"
 optional = true
 default_features = false
 
 [dependencies.plotters-svg]
-version = "^0.3"
+version = "0.3.5"
 optional = true
 
 [dev-dependencies.criterion]
-version = "0.3.6"
+version = "0.4.0"
 
 [dev-dependencies.itertools]
 version = "0.10.0"
@@ -77,6 +77,10 @@ version = "1.0.140"
 version = "1.0.82"
 
 [features]
+ab_glyph = [
+    "dep:ab_glyph",
+    "once_cell",
+]
 all_elements = [
     "errorbar",
     "candlestick",
@@ -90,14 +94,12 @@ all_series = [
     "surface_series",
 ]
 area_series = []
-bitmap_backend = [
-    "plotters-bitmap",
-    "ttf",
-]
+bitmap_backend = ["plotters-bitmap"]
 bitmap_encoder = ["plotters-bitmap/image_encoder"]
 bitmap_gif = ["plotters-bitmap/gif_backend"]
 boxplot = []
 candlestick = []
+colormaps = []
 datetime = ["chrono"]
 default = [
     "bitmap_backend",
@@ -111,6 +113,7 @@ default = [
     "all_series",
     "all_elements",
     "full_palette",
+    "colormaps",
 ]
 deprecated_items = []
 errorbar = []
@@ -153,6 +156,10 @@ features = [
 [target."cfg(all(target_arch = \"wasm32\", not(target_os = \"wasi\")))".dev-dependencies.wasm-bindgen-test]
 version = "0.3.24"
 
+[target."cfg(not(all(target_arch = \"wasm32\", not(target_os = \"wasi\"))))".dependencies.ab_glyph]
+version = "0.2.12"
+optional = true
+
 [target."cfg(not(all(target_arch = \"wasm32\", not(target_os = \"wasi\"))))".dependencies.font-kit]
 version = "0.11.0"
 optional = true
@@ -171,12 +178,16 @@ default-features = false
 version = "1.4.0"
 optional = true
 
+[target."cfg(not(all(target_arch = \"wasm32\", not(target_os = \"wasi\"))))".dependencies.once_cell]
+version = "1.8.0"
+optional = true
+
 [target."cfg(not(all(target_arch = \"wasm32\", not(target_os = \"wasi\"))))".dependencies.pathfinder_geometry]
 version = "0.5.1"
 optional = true
 
 [target."cfg(not(all(target_arch = \"wasm32\", not(target_os = \"wasi\"))))".dependencies.ttf-parser]
-version = "0.15.0"
+version = "0.17.0"
 optional = true
 
 [target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies.rand]

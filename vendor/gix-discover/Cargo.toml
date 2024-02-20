@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-discover"
-version = "0.26.0"
+version = "0.27.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
 ]
 description = "Discover git repositories and check if a directory is a git repository"
 license = "MIT OR Apache-2.0"
@@ -36,16 +35,16 @@ features = [
 default-features = false
 
 [dependencies.gix-hash]
-version = "^0.13.1"
+version = "^0.13.2"
 
 [dependencies.gix-path]
-version = "^0.10.0"
+version = "^0.10.1"
 
 [dependencies.gix-ref]
-version = "^0.38.0"
+version = "^0.39.0"
 
 [dependencies.gix-sec]
-version = "^0.10.0"
+version = "^0.10.1"
 
 [dependencies.thiserror]
 version = "1.0.26"

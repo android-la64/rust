@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::{Dependency, PackageId, Summary};
 use crate::util::interning::InternedString;
-use crate::util::RustVersion;
+use crate::util_schemas::manifest::RustVersion;
 
 /// A collection of preferences for particular package versions.
 ///
@@ -58,10 +58,10 @@ impl VersionPreferences {
     ///
     /// Sort order:
     /// 1. Preferred packages
-    /// 2. `first_version`, falling back to [`VersionPreferences::version_ordering`] when `None`
+    /// 2. [`VersionPreferences::max_rust_version`]
+    /// 3. `first_version`, falling back to [`VersionPreferences::version_ordering`] when `None`
     ///
     /// Filtering:
-    /// - [`VersionPreferences::max_rust_version`]
     /// - `first_version`
     pub fn sort_summaries(
         &self,
@@ -76,15 +76,46 @@ impl VersionPreferences {
                     .map(|deps| deps.iter().any(|d| d.matches_id(*pkg_id)))
                     .unwrap_or(false)
         };
-        if self.max_rust_version.is_some() {
-            summaries.retain(|s| s.rust_version() <= self.max_rust_version.as_ref());
-        }
         summaries.sort_unstable_by(|a, b| {
             let prefer_a = should_prefer(&a.package_id());
             let prefer_b = should_prefer(&b.package_id());
             let previous_cmp = prefer_a.cmp(&prefer_b).reverse();
             if previous_cmp != Ordering::Equal {
                 return previous_cmp;
+            }
+
+            if let Some(max_rust_version) = &self.max_rust_version {
+                match (a.rust_version(), b.rust_version()) {
+                    // Fallback
+                    (None, None) => {}
+                    (Some(a), Some(b)) if a == b => {}
+                    // Primary comparison
+                    (Some(a), Some(b)) => {
+                        let a_is_compat = a <= max_rust_version;
+                        let b_is_compat = b <= max_rust_version;
+                        match (a_is_compat, b_is_compat) {
+                            (true, true) => {}   // fallback
+                            (false, false) => {} // fallback
+                            (true, false) => return Ordering::Less,
+                            (false, true) => return Ordering::Greater,
+                        }
+                    }
+                    // Prioritize `None` over incompatible
+                    (None, Some(b)) => {
+                        if b <= max_rust_version {
+                            return Ordering::Greater;
+                        } else {
+                            return Ordering::Less;
+                        }
+                    }
+                    (Some(a), None) => {
+                        if a <= max_rust_version {
+                            return Ordering::Less;
+                        } else {
+                            return Ordering::Greater;
+                        }
+                    }
+                }
             }
 
             let cmp = a.version().cmp(b.version());
@@ -108,7 +139,7 @@ mod test {
     fn pkgid(name: &str, version: &str) -> PackageId {
         let src_id =
             SourceId::from_url("registry+https://github.com/rust-lang/crates.io-index").unwrap();
-        PackageId::new(name, version, src_id).unwrap()
+        PackageId::try_new(name, version, src_id).unwrap()
     }
 
     fn dep(name: &str, version: &str) -> Dependency {
@@ -226,8 +257,11 @@ mod test {
         vp.max_rust_version(Some("1.50".parse().unwrap()));
 
         let mut summaries = vec![
-            summ("foo", "1.2.4", Some("1.60")),
-            summ("foo", "1.2.3", Some("1.50")),
+            summ("foo", "1.2.4", None),
+            summ("foo", "1.2.3", Some("1.60")),
+            summ("foo", "1.2.2", None),
+            summ("foo", "1.2.1", Some("1.50")),
+            summ("foo", "1.2.0", None),
             summ("foo", "1.1.0", Some("1.40")),
             summ("foo", "1.0.9", None),
         ];
@@ -236,14 +270,16 @@ mod test {
         vp.sort_summaries(&mut summaries, None);
         assert_eq!(
             describe(&summaries),
-            "foo/1.2.3, foo/1.1.0, foo/1.0.9".to_string()
+            "foo/1.2.1, foo/1.1.0, foo/1.2.4, foo/1.2.2, foo/1.2.0, foo/1.0.9, foo/1.2.3"
+                .to_string()
         );
 
         vp.version_ordering(VersionOrdering::MinimumVersionsFirst);
         vp.sort_summaries(&mut summaries, None);
         assert_eq!(
             describe(&summaries),
-            "foo/1.0.9, foo/1.1.0, foo/1.2.3".to_string()
+            "foo/1.1.0, foo/1.2.1, foo/1.0.9, foo/1.2.0, foo/1.2.2, foo/1.2.4, foo/1.2.3"
+                .to_string()
         );
     }
 }

@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.61"
 name = "pest"
-version = "2.7.0"
+version = "2.7.5"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>"]
 description = "The Elegant Parser"
 homepage = "https://pest.rs/"
@@ -26,8 +26,12 @@ keywords = [
     "grammar",
 ]
 categories = ["parsing"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/pest-parser/pest"
+
+[[bench]]
+name = "stack"
+harness = false
 
 [dependencies.memchr]
 version = "2"
@@ -49,9 +53,16 @@ optional = true
 version = "0.1.5"
 default-features = false
 
+[dev-dependencies.criterion]
+version = "0.5.1"
+features = ["html_reports"]
+
 [features]
 const_prec_climber = []
-default = ["std"]
+default = [
+    "std",
+    "memchr",
+]
 pretty-print = [
     "dep:serde",
     "dep:serde_json",

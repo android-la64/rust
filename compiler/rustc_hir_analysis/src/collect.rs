@@ -221,7 +221,7 @@ pub(crate) fn placeholder_type_error_diag<'tcx>(
 
             // Check if parent is const or static
             let parent_id = tcx.hir().parent_id(hir_ty.hir_id);
-            let parent_node = tcx.hir().get(parent_id);
+            let parent_node = tcx.hir_node(parent_id);
 
             is_const_or_static = matches!(
                 parent_node,
@@ -350,11 +350,11 @@ impl<'tcx> ItemCtxt<'tcx> {
     }
 
     pub fn hir_id(&self) -> hir::HirId {
-        self.tcx.hir().local_def_id_to_hir_id(self.item_def_id)
+        self.tcx.local_def_id_to_hir_id(self.item_def_id)
     }
 
     pub fn node(&self) -> hir::Node<'tcx> {
-        self.tcx.hir().get(self.hir_id())
+        self.tcx.hir_node(self.hir_id())
     }
 }
 
@@ -440,10 +440,10 @@ impl<'tcx> AstConv<'tcx> for ItemCtxt<'tcx> {
                                 second: format!(
                                     "{}::",
                                     // Replace the existing lifetimes with a new named lifetime.
-                                    self.tcx.replace_late_bound_regions_uncached(
+                                    self.tcx.instantiate_bound_regions_uncached(
                                         poly_trait_ref,
                                         |_| {
-                                            ty::Region::new_early_bound(self.tcx, ty::EarlyBoundRegion {
+                                            ty::Region::new_early_param(self.tcx, ty::EarlyParamRegion {
                                                 def_id: item_def_id,
                                                 index: 0,
                                                 name: Symbol::intern(&lt_name),
@@ -672,7 +672,7 @@ fn convert_trait_item(tcx: TyCtxt<'_>, trait_item_id: hir::TraitItemId) {
 
         hir::TraitItemKind::Const(ty, body_id) => {
             tcx.ensure().type_of(def_id);
-            if !tcx.sess.diagnostic().has_stashed_diagnostic(ty.span, StashKey::ItemNoType)
+            if !tcx.sess.dcx().has_stashed_diagnostic(ty.span, StashKey::ItemNoType)
                 && !(is_suggestable_infer_ty(ty) && body_id.is_some())
             {
                 // Account for `const C: _;`.
@@ -814,7 +814,7 @@ fn convert_variant(
         })
         .collect();
     let recovered = match def {
-        hir::VariantData::Struct(_, r) => *r,
+        hir::VariantData::Struct { recovered, .. } => *recovered,
         _ => false,
     };
     ty::VariantDef::new(
@@ -835,9 +835,8 @@ fn convert_variant(
 fn adt_def(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::AdtDef<'_> {
     use rustc_hir::*;
 
-    let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
-    let Node::Item(item) = tcx.hir().get(hir_id) else {
-        bug!();
+    let Node::Item(item) = tcx.hir_node_by_def_id(def_id) else {
+        bug!("expected ADT to be an item");
     };
 
     let repr = tcx.repr_options_of_def(def_id.to_def_id());
@@ -888,7 +887,7 @@ fn adt_def(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::AdtDef<'_> {
 
             (adt_kind, variants)
         }
-        _ => bug!(),
+        _ => bug!("{:?} is not an ADT", item.owner_id.def_id),
     };
     tcx.mk_adt_def(def_id.to_def_id(), kind, variants, repr)
 }
@@ -1090,7 +1089,7 @@ fn is_suggestable_infer_ty(ty: &hir::Ty<'_>) -> bool {
 pub fn get_infer_ret_ty<'hir>(output: &'hir hir::FnRetTy<'hir>) -> Option<&'hir hir::Ty<'hir>> {
     if let hir::FnRetTy::Return(ty) = output {
         if is_suggestable_infer_ty(ty) {
-            return Some(&*ty);
+            return Some(*ty);
         }
     }
     None
@@ -1101,11 +1100,11 @@ fn fn_sig(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::EarlyBinder<ty::PolyFnSig<
     use rustc_hir::Node::*;
     use rustc_hir::*;
 
-    let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+    let hir_id = tcx.local_def_id_to_hir_id(def_id);
 
     let icx = ItemCtxt::new(tcx, def_id);
 
-    let output = match tcx.hir().get(hir_id) {
+    let output = match tcx.hir_node(hir_id) {
         TraitItem(hir::TraitItem {
             kind: TraitItemKind::Fn(sig, TraitFn::Provided(_)),
             generics,
@@ -1186,7 +1185,7 @@ fn infer_return_ty_for_fn_sig<'tcx>(
     def_id: LocalDefId,
     icx: &ItemCtxt<'tcx>,
 ) -> ty::PolyFnSig<'tcx> {
-    let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+    let hir_id = tcx.local_def_id_to_hir_id(def_id);
 
     match get_infer_ret_ty(&sig.decl.output) {
         Some(ty) => {
@@ -1373,7 +1372,7 @@ fn impl_trait_ref(
             if let Some(ErrorGuaranteed { .. }) = check_impl_constness(
                 tcx,
                 tcx.is_const_trait_impl_raw(def_id.to_def_id()),
-                &ast_trait_ref,
+                ast_trait_ref,
             ) {
                 // we have a const impl, but for a trait without `#[const_trait]`, so
                 // without the host param. If we continue with the HIR trait ref, we get
@@ -1383,7 +1382,7 @@ fn impl_trait_ref(
                 let last_segment = path_segments.len() - 1;
                 let mut args = *path_segments[last_segment].args();
                 let last_arg = args.args.len() - 1;
-                assert!(matches!(args.args[last_arg], hir::GenericArg::Const(anon_const) if tcx.has_attr(anon_const.value.def_id, sym::rustc_host)));
+                assert!(matches!(args.args[last_arg], hir::GenericArg::Const(anon_const) if anon_const.is_desugared_from_effects));
                 args.args = &args.args[..args.args.len() - 1];
                 path_segments[last_segment].args = Some(&args);
                 let path = hir::Path {
@@ -1394,7 +1393,7 @@ fn impl_trait_ref(
                 let trait_ref = hir::TraitRef { path: &path, hir_ref_id: ast_trait_ref.hir_ref_id };
                 icx.astconv().instantiate_mono_trait_ref(&trait_ref, selfty)
             } else {
-                icx.astconv().instantiate_mono_trait_ref(&ast_trait_ref, selfty)
+                icx.astconv().instantiate_mono_trait_ref(ast_trait_ref, selfty)
             }
         })
         .map(ty::EarlyBinder::bind)
@@ -1519,7 +1518,7 @@ fn compute_sig_of_foreign_fn_decl<'tcx>(
     } else {
         hir::Unsafety::Unsafe
     };
-    let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+    let hir_id = tcx.local_def_id_to_hir_id(def_id);
     let fty =
         ItemCtxt::new(tcx, def_id).astconv().ty_of_fn(hir_id, unsafety, abi, decl, None, None);
 
@@ -1551,7 +1550,7 @@ fn compute_sig_of_foreign_fn_decl<'tcx>(
 }
 
 fn coroutine_kind(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Option<hir::CoroutineKind> {
-    match tcx.hir().get_by_def_id(def_id) {
+    match tcx.hir_node_by_def_id(def_id) {
         Node::Expr(&rustc_hir::Expr {
             kind: rustc_hir::ExprKind::Closure(&rustc_hir::Closure { body, .. }),
             ..
@@ -1561,7 +1560,7 @@ fn coroutine_kind(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Option<hir::CoroutineK
 }
 
 fn is_type_alias_impl_trait<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> bool {
-    match tcx.hir().get_by_def_id(def_id) {
+    match tcx.hir_node_by_def_id(def_id) {
         Node::Item(hir::Item { kind: hir::ItemKind::OpaqueTy(opaque), .. }) => {
             matches!(opaque.origin, hir::OpaqueTyOrigin::TyAlias { .. })
         }

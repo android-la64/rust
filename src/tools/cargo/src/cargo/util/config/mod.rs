@@ -68,6 +68,7 @@ use std::time::Instant;
 
 use self::ConfigValue as CV;
 use crate::core::compiler::rustdoc::RustdocExternMap;
+use crate::core::global_cache_tracker::{DeferredGlobalLastUse, GlobalCacheTracker};
 use crate::core::shell::Verbosity;
 use crate::core::{features, CliUnstable, Shell, SourceId, Workspace, WorkspaceRootConfig};
 use crate::ops::RegistryCredentialConfig;
@@ -76,9 +77,10 @@ use crate::sources::CRATES_IO_REGISTRY;
 use crate::util::errors::CargoResult;
 use crate::util::network::http::configure_http_handle;
 use crate::util::network::http::http_handle;
+use crate::util::try_canonicalize;
 use crate::util::{internal, CanonicalUrl};
-use crate::util::{try_canonicalize, validate_package_name};
 use crate::util::{Filesystem, IntoUrl, IntoUrlWithBase, Rustc};
+use crate::util_schemas::manifest::RegistryName;
 use anyhow::{anyhow, bail, format_err, Context as _};
 use cargo_credential::Secret;
 use cargo_util::paths;
@@ -244,6 +246,11 @@ pub struct Config {
     pub nightly_features_allowed: bool,
     /// WorkspaceRootConfigs that have been found
     pub ws_roots: RefCell<HashMap<PathBuf, WorkspaceRootConfig>>,
+    /// The global cache tracker is a database used to track disk cache usage.
+    global_cache_tracker: LazyCell<RefCell<GlobalCacheTracker>>,
+    /// A cache of modifications to make to [`Config::global_cache_tracker`],
+    /// saved to disk in a batch to improve performance.
+    deferred_global_last_use: LazyCell<RefCell<DeferredGlobalLastUse>>,
 }
 
 impl Config {
@@ -317,6 +324,8 @@ impl Config {
             env_config: LazyCell::new(),
             nightly_features_allowed: matches!(&*features::channel(), "nightly" | "dev"),
             ws_roots: RefCell::new(HashMap::new()),
+            global_cache_tracker: LazyCell::new(),
+            deferred_global_last_use: LazyCell::new(),
         }
     }
 
@@ -1195,6 +1204,8 @@ impl Config {
                 path.display()
             );
         }
+        tracing::debug!(?path, ?why_load, includes, "load config from file");
+
         let contents = fs::read_to_string(path)
             .with_context(|| format!("failed to read configuration file `{}`", path.display()))?;
         let toml = parse_document(&contents, path, self).with_context(|| {
@@ -1541,7 +1552,7 @@ impl Config {
 
     /// Gets the index for a registry.
     pub fn get_registry_index(&self, registry: &str) -> CargoResult<Url> {
-        validate_package_name(registry, "registry name", "")?;
+        RegistryName::new(registry)?;
         if let Some(index) = self.get_string(&format!("registries.{}.index", registry))? {
             self.resolve_registry_index(&index).with_context(|| {
                 format!(
@@ -1918,6 +1929,25 @@ impl Config {
         mode: CacheLockMode,
     ) -> CargoResult<Option<CacheLock<'_>>> {
         self.package_cache_lock.try_lock(self, mode)
+    }
+
+    /// Returns a reference to the shared [`GlobalCacheTracker`].
+    ///
+    /// The package cache lock must be held to call this function (and to use
+    /// it in general).
+    pub fn global_cache_tracker(&self) -> CargoResult<RefMut<'_, GlobalCacheTracker>> {
+        let tracker = self.global_cache_tracker.try_borrow_with(|| {
+            Ok::<_, anyhow::Error>(RefCell::new(GlobalCacheTracker::new(self)?))
+        })?;
+        Ok(tracker.borrow_mut())
+    }
+
+    /// Returns a reference to the shared [`DeferredGlobalLastUse`].
+    pub fn deferred_global_last_use(&self) -> CargoResult<RefMut<'_, DeferredGlobalLastUse>> {
+        let deferred = self.deferred_global_last_use.try_borrow_with(|| {
+            Ok::<_, anyhow::Error>(RefCell::new(DeferredGlobalLastUse::new()))
+        })?;
+        Ok(deferred.borrow_mut())
     }
 }
 

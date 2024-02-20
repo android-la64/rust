@@ -126,7 +126,7 @@ impl MultiItemModifier for DeriveProcMacro {
                 Annotatable::Stmt(stmt) => token::NtStmt(stmt),
                 _ => unreachable!(),
             };
-            TokenStream::token_alone(token::Interpolated(Lrc::new(nt)), DUMMY_SP)
+            TokenStream::token_alone(token::Interpolated(Lrc::new((nt, span))), DUMMY_SP)
         } else {
             item.to_tokens()
         };
@@ -156,7 +156,7 @@ impl MultiItemModifier for DeriveProcMacro {
             }
         };
 
-        let error_count_before = ecx.sess.parse_sess.span_diagnostic.err_count();
+        let error_count_before = ecx.sess.dcx().err_count();
         let mut parser =
             rustc_parse::stream_to_parser(&ecx.sess.parse_sess, stream, Some("proc-macro derive"));
         let mut items = vec![];
@@ -179,7 +179,7 @@ impl MultiItemModifier for DeriveProcMacro {
         }
 
         // fail if there have been errors emitted
-        if ecx.sess.parse_sess.span_diagnostic.err_count() > error_count_before {
+        if ecx.sess.dcx().err_count() > error_count_before {
             ecx.sess.emit_err(errors::ProcMacroDeriveTokens { span });
         }
 

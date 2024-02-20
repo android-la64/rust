@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-date"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
 ]
 description = "A crate of the gitoxide project parsing dates the way git does"
 license = "MIT OR Apache-2.0"
@@ -27,10 +26,6 @@ repository = "https://github.com/Byron/gitoxide"
 [package.metadata.docs.rs]
 all-features = true
 features = ["document-features"]
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
-]
 
 [lib]
 doctest = false

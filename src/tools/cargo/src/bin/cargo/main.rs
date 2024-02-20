@@ -1,12 +1,10 @@
-#![warn(rust_2018_idioms)] // while we're getting used to 2018
-#![allow(clippy::all)]
-#![warn(clippy::disallowed_methods)]
+#![allow(clippy::self_named_module_files)] // false positive in `commands/build.rs`
 
 use cargo::util::network::http::http_handle;
 use cargo::util::network::http::needs_custom_http_transport;
-use cargo::util::toml::schema::StringOrVec;
 use cargo::util::CliError;
 use cargo::util::{self, closest_msg, command_prelude, CargoResult, CliResult, Config};
+use cargo::util_schemas::manifest::StringOrVec;
 use cargo_util::{ProcessBuilder, ProcessError};
 use std::collections::BTreeMap;
 use std::env;

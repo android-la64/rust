@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "protobuf"
-version = "3.1.0"
+version = "3.2.0"
 authors = ["Stepan Koltsov <stepan.koltsov@gmail.com>"]
 description = """
 Rust implementation of Google protocol buffers
@@ -22,7 +22,6 @@ documentation = "https://github.com/stepancheg/rust-protobuf/blob/master/README.
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/stepancheg/rust-protobuf/"
-resolver = "2"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -38,7 +37,7 @@ optional = true
 version = "1.9.0"
 
 [dependencies.protobuf-support]
-version = "=3.1.0"
+version = "=3.2.0"
 
 [dependencies.thiserror]
 version = "1.0.30"

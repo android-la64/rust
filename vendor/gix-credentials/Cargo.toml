@@ -13,8 +13,12 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-credentials"
-version = "0.21.0"
+version = "0.22.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
+include = [
+    "src/**/*",
+    "LICENSE-*",
+]
 description = "A crate of the gitoxide project to interact with git credentials helpers"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
@@ -22,10 +26,6 @@ repository = "https://github.com/Byron/gitoxide"
 [package.metadata.docs.rs]
 all-features = true
 features = ["document-features"]
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
-]
 
 [lib]
 doctest = false
@@ -40,22 +40,25 @@ version = "0.2.1"
 optional = true
 
 [dependencies.gix-command]
-version = "^0.2.10"
+version = "^0.3.0"
 
 [dependencies.gix-config-value]
-version = "^0.14.0"
+version = "^0.14.1"
 
 [dependencies.gix-path]
-version = "^0.10.0"
+version = "^0.10.1"
 
 [dependencies.gix-prompt]
-version = "^0.7.0"
+version = "^0.8.0"
 
 [dependencies.gix-sec]
-version = "^0.10.0"
+version = "^0.10.1"
+
+[dependencies.gix-trace]
+version = "^0.1.4"
 
 [dependencies.gix-url]
-version = "^0.25.0"
+version = "^0.25.2"
 
 [dependencies.serde]
 version = "1.0.114"

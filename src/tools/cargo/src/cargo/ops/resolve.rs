@@ -64,14 +64,15 @@ use crate::core::resolver::{
     self, HasDevUnits, Resolve, ResolveOpts, ResolveVersion, VersionOrdering, VersionPreferences,
 };
 use crate::core::summary::Summary;
-use crate::core::Feature;
-use crate::core::{GitReference, PackageId, PackageIdSpec, PackageSet, SourceId, Workspace};
+use crate::core::{
+    GitReference, PackageId, PackageIdSpec, PackageIdSpecQuery, PackageSet, SourceId, Workspace,
+};
 use crate::ops;
 use crate::sources::PathSource;
 use crate::util::cache_lock::CacheLockMode;
 use crate::util::errors::CargoResult;
-use crate::util::RustVersion;
 use crate::util::{profile, CanonicalUrl};
+use crate::util_schemas::manifest::RustVersion;
 use anyhow::Context as _;
 use std::collections::{HashMap, HashSet};
 use tracing::{debug, trace};
@@ -512,9 +513,6 @@ pub fn resolve_with_previous<'cfg>(
         registry,
         &version_prefs,
         Some(ws.config()),
-        ws.unstable_features()
-            .require(Feature::public_dependency())
-            .is_ok(),
     )?;
     let patches: Vec<_> = registry
         .patches()
@@ -530,6 +528,9 @@ pub fn resolve_with_previous<'cfg>(
     if let Some(previous) = previous {
         resolved.merge_from(previous)?;
     }
+    let config = ws.config();
+    let mut deferred = config.deferred_global_last_use()?;
+    deferred.save_no_error(config);
     Ok(resolved)
 }
 

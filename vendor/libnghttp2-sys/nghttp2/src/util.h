@@ -47,6 +47,10 @@
 #include <map>
 #include <random>
 
+#ifdef HAVE_LIBEV
+#  include <ev.h>
+#endif // HAVE_LIBEV
+
 #include "url-parser/url_parser.h"
 
 #include "template.h"
@@ -105,9 +109,6 @@ uint32_t hex_to_uint(char c);
 std::string percent_encode(const unsigned char *target, size_t len);
 
 std::string percent_encode(const std::string &target);
-
-// percent-encode path component of URI |s|.
-std::string percent_encode_path(const std::string &s);
 
 template <typename InputIt>
 std::string percent_decode(InputIt first, InputIt last) {
@@ -572,7 +573,7 @@ std::string ascii_dump(const uint8_t *data, size_t len);
 
 // Returns absolute path of executable path.  If argc == 0 or |cwd| is
 // nullptr, this function returns nullptr.  If argv[0] starts with
-// '/', this function returns argv[0].  Oterwise return cwd + "/" +
+// '/', this function returns argv[0].  Otherwise return cwd + "/" +
 // argv[0].  If non-null is returned, it is NULL-terminated string and
 // dynamically allocated by malloc.  The caller is responsible to free
 // it.
@@ -697,6 +698,17 @@ template <typename Clock, typename Rep> Rep clock_precision() {
 
   return duration.count();
 }
+
+#ifdef HAVE_LIBEV
+template <typename Duration = std::chrono::steady_clock::duration>
+Duration duration_from(ev_tstamp d) {
+  return std::chrono::duration_cast<Duration>(std::chrono::duration<double>(d));
+}
+
+template <typename Duration> ev_tstamp ev_tstamp_from(const Duration &d) {
+  return std::chrono::duration<double>(d).count();
+}
+#endif // HAVE_LIBEV
 
 int make_socket_closeonexec(int fd);
 int make_socket_nonblocking(int fd);
@@ -875,8 +887,28 @@ OutputIt random_alpha_digit(OutputIt first, OutputIt last, Generator &gen) {
 // Fills random bytes to the range [|first|, |last|).
 template <typename OutputIt, typename Generator>
 void random_bytes(OutputIt first, OutputIt last, Generator &gen) {
-  std::uniform_int_distribution<> dis(0, 255);
+  std::uniform_int_distribution<uint8_t> dis;
   std::generate(first, last, [&dis, &gen]() { return dis(gen); });
+}
+
+// Shuffles the range [|first|, |last|] by calling swap function |fun|
+// for each pair.  |fun| takes 2 RandomIt iterators.  If |fun| is
+// noop, no modification is made.
+template <typename RandomIt, typename Generator, typename SwapFun>
+void shuffle(RandomIt first, RandomIt last, Generator &&gen, SwapFun fun) {
+  auto len = std::distance(first, last);
+  if (len < 2) {
+    return;
+  }
+
+  for (unsigned int i = 0; i < static_cast<unsigned int>(len - 1); ++i) {
+    auto dis = std::uniform_int_distribution<unsigned int>(i, len - 1);
+    auto j = dis(gen);
+    if (i == j) {
+      continue;
+    }
+    fun(first + i, first + j);
+  }
 }
 
 template <typename OutputIterator, typename CharT, size_t N>
@@ -916,7 +948,23 @@ std::mt19937 make_mt19937();
 // daemon() using fork().
 int daemonize(int nochdir, int noclose);
 
+// Returns |s| from which trailing white spaces (SPC or HTAB) are
+// removed.  If any white spaces are removed, new string is allocated
+// by |balloc| and returned.  Otherwise, the copy of |s| is returned
+// without allocation.
+StringRef rstrip(BlockAllocator &balloc, const StringRef &s);
+
+#ifdef ENABLE_HTTP3
 int msghdr_get_local_addr(Address &dest, msghdr *msg, int family);
+
+unsigned int msghdr_get_ecn(msghdr *msg, int family);
+
+// msghdr_get_udp_gro returns UDP_GRO value from |msg|.  If UDP_GRO is
+// not found, or UDP_GRO is not supported, this function returns 0.
+size_t msghdr_get_udp_gro(msghdr *msg);
+
+int fd_set_send_ecn(int fd, int family, unsigned int ecn);
+#endif // ENABLE_HTTP3
 
 } // namespace util
 

@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "wasmtime-jit-icache-coherence"
-version = "14.0.2"
+version = "15.0.0"
 authors = ["The Wasmtime Project Developers"]
 description = "Utilities for JIT icache maintenance"
 documentation = "https://docs.rs/jit-icache-coherence"

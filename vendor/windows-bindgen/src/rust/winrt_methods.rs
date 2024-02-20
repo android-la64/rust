@@ -2,15 +2,15 @@ use super::*;
 
 // TODO take Signature instead of MethodDef (wherever MethodDef is found)
 pub fn writer(writer: &Writer, def: TypeDef, generic_types: &[Type], kind: InterfaceKind, method: MethodDef, method_names: &mut MethodNames, virtual_names: &mut MethodNames) -> TokenStream {
-    let signature = method_def_signature(writer.reader, writer.reader.type_def_namespace(def), method, generic_types);
+    let signature = method_def_signature(def.namespace(), method, generic_types);
     let params = &signature.params;
-    let name = method_names.add(writer, method);
+    let name = method_names.add(method);
     let interface_name = writer.type_def_name(def, generic_types);
-    let vname = virtual_names.add(writer, method);
+    let vname = virtual_names.add(method);
     let generics = writer.constraint_generics(params);
     let where_clause = writer.where_clause(params);
-    let mut cfg = signature_cfg(writer.reader, method);
-    type_def_cfg_combine(writer.reader, def, generic_types, &mut cfg);
+    let mut cfg = signature_cfg(method);
+    type_def_cfg_combine(def, generic_types, &mut cfg);
     let doc = writer.cfg_method_doc(&cfg);
     let features = writer.cfg_features(&cfg);
     let args = gen_winrt_abi_args(writer, params);
@@ -106,14 +106,14 @@ fn gen_winrt_params(writer: &Writer, params: &[SignatureParam]) -> TokenStream {
         let kind = writer.type_name(&param.ty);
         let default_type = writer.type_default_name(&param.ty);
 
-        if writer.reader.param_flags(param.def).contains(ParamAttributes::In) {
+        if param.def.flags().contains(ParamAttributes::In) {
             if param.ty.is_winrt_array() {
                 result.combine(&quote! { #name: &[#default_type], });
-            } else if signature_param_is_convertible(writer.reader, param) {
+            } else if param.is_convertible() {
                 let (position, _) = generic_params.next().unwrap();
                 let kind: TokenStream = format!("P{position}").into();
                 result.combine(&quote! { #name: #kind, });
-            } else if type_is_blittable(writer.reader, &param.ty) {
+            } else if type_is_blittable(&param.ty) {
                 result.combine(&quote! { #name: #kind, });
             } else {
                 result.combine(&quote! { #name: &#kind, });
@@ -135,18 +135,18 @@ fn gen_winrt_abi_args(writer: &Writer, params: &[SignatureParam]) -> TokenStream
     for param in params {
         let name = writer.param_name(param.def);
 
-        let param = if writer.reader.param_flags(param.def).contains(ParamAttributes::In) {
+        let param = if param.def.flags().contains(ParamAttributes::In) {
             if param.ty.is_winrt_array() {
-                if type_is_blittable(writer.reader, &param.ty) {
-                    quote! { #name.len() as u32, #name.as_ptr(), }
+                if type_is_blittable(&param.ty) {
+                    quote! { #name.len().try_into().unwrap(), #name.as_ptr(), }
                 } else {
-                    quote! { #name.len() as u32, ::core::mem::transmute(#name.as_ptr()), }
+                    quote! { #name.len().try_into().unwrap(), ::core::mem::transmute(#name.as_ptr()), }
                 }
-            } else if type_is_non_exclusive_winrt_interface(writer.reader, &param.ty) {
+            } else if type_is_non_exclusive_winrt_interface(&param.ty) {
                 quote! { #name.try_into_param()?.abi(), }
-            } else if signature_param_is_borrowed(writer.reader, param) {
+            } else if type_is_borrowed(&param.ty) {
                 quote! { #name.into_param().abi(), }
-            } else if type_is_blittable(writer.reader, &param.ty) {
+            } else if type_is_blittable(&param.ty) {
                 if param.ty.is_const_ref() {
                     quote! { &#name, }
                 } else {
@@ -156,14 +156,14 @@ fn gen_winrt_abi_args(writer: &Writer, params: &[SignatureParam]) -> TokenStream
                 quote! { ::core::mem::transmute_copy(#name), }
             }
         } else if param.ty.is_winrt_array() {
-            if type_is_blittable(writer.reader, &param.ty) {
-                quote! { #name.len() as u32, #name.as_mut_ptr(), }
+            if type_is_blittable(&param.ty) {
+                quote! { #name.len().try_into().unwrap(), #name.as_mut_ptr(), }
             } else {
-                quote! { #name.len() as u32, ::core::mem::transmute_copy(&#name), }
+                quote! { #name.len().try_into().unwrap(), ::core::mem::transmute_copy(&#name), }
             }
         } else if param.ty.is_winrt_array_ref() {
             quote! { #name.set_abi_len(), #name as *mut _ as _, }
-        } else if type_is_blittable(writer.reader, &param.ty) {
+        } else if type_is_blittable(&param.ty) {
             quote! { #name, }
         } else {
             quote! { #name as *mut _ as _, }
@@ -195,7 +195,7 @@ pub fn gen_upcall(writer: &Writer, sig: &Signature, inner: TokenStream) -> Token
             }
         }
         _ => {
-            let forget = if type_is_blittable(writer.reader, &sig.return_type) {
+            let forget = if type_is_blittable(&sig.return_type) {
                 quote! {}
             } else {
                 quote! { ::core::mem::forget(ok__); }
@@ -218,16 +218,16 @@ pub fn gen_upcall(writer: &Writer, sig: &Signature, inner: TokenStream) -> Token
 
 fn gen_winrt_invoke_arg(writer: &Writer, param: &SignatureParam) -> TokenStream {
     let name = writer.param_name(param.def);
-    let abi_size_name: TokenStream = format!("{}_array_size", writer.reader.param_name(param.def)).into();
+    let abi_size_name: TokenStream = format!("{}_array_size", param.def.name()).into();
 
-    if writer.reader.param_flags(param.def).contains(ParamAttributes::In) {
+    if param.def.flags().contains(ParamAttributes::In) {
         if param.ty.is_winrt_array() {
             quote! { ::core::slice::from_raw_parts(::core::mem::transmute_copy(&#name), #abi_size_name as usize) }
-        } else if type_is_primitive(writer.reader, &param.ty) {
+        } else if type_is_primitive(&param.ty) {
             quote! { #name }
         } else if param.ty.is_const_ref() {
             quote! { ::core::mem::transmute_copy(&#name) }
-        } else if type_is_nullable(writer.reader, &param.ty) {
+        } else if type_is_nullable(&param.ty) {
             quote! { ::windows_core::from_raw_borrowed(&#name) }
         } else {
             quote! { ::core::mem::transmute(&#name) }

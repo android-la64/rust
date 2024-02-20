@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.64.0"
 name = "winnow"
-version = "0.5.15"
+version = "0.5.25"
 include = [
     "build.rs",
     "src/**/*",
@@ -142,9 +142,14 @@ required-features = ["alloc"]
 name = "arithmetic"
 path = "examples/arithmetic/bench.rs"
 harness = false
+required-features = ["alloc"]
 
 [[bench]]
 name = "contains_token"
+harness = false
+
+[[bench]]
+name = "find_slice"
 harness = false
 
 [[bench]]
@@ -211,6 +216,9 @@ version = "0.3.0"
 
 [dev-dependencies.proptest]
 version = "1.2.0"
+
+[dev-dependencies.rustc-hash]
+version = "1.1.0"
 
 [dev-dependencies.snapbox]
 version = "0.4.11"

@@ -40,6 +40,9 @@ pub mod attributes;
 mod cache;
 mod config;
 ///
+#[cfg(feature = "blob-diff")]
+pub mod diff;
+///
 #[cfg(feature = "attributes")]
 pub mod filter;
 mod graph;
@@ -124,6 +127,8 @@ pub mod worktree_stream {
         AttributesCache(#[from] crate::config::attribute_stack::Error),
         #[error(transparent)]
         FilterPipeline(#[from] crate::filter::pipeline::options::Error),
+        #[error(transparent)]
+        CommandContext(#[from] crate::config::command_context::Error),
         #[error("Needed {id} to be a tree to turn into a workspace stream, got {actual}")]
         NotATree {
             id: gix_hash::ObjectId,

@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-jit"
-version = "0.101.2"
+version = "0.102.0"
 authors = ["The Cranelift Project Developers"]
 description = "A JIT library backed by Cranelift"
 documentation = "https://docs.rs/cranelift-jit"
@@ -24,7 +24,7 @@ repository = "https://github.com/bytecodealliance/wasmtime"
 version = "1.0.22"
 
 [dependencies.cranelift-codegen]
-version = "0.101.2"
+version = "0.102.0"
 features = [
     "std",
     "unwind",
@@ -33,16 +33,16 @@ features = [
 default-features = false
 
 [dependencies.cranelift-control]
-version = "0.101.2"
+version = "0.102.0"
 
 [dependencies.cranelift-entity]
-version = "0.101.2"
+version = "0.102.0"
 
 [dependencies.cranelift-module]
-version = "0.101.2"
+version = "0.102.0"
 
 [dependencies.cranelift-native]
-version = "0.101.2"
+version = "0.102.0"
 
 [dependencies.libc]
 version = "0.2.42"
@@ -59,21 +59,21 @@ optional = true
 version = "2.2.0"
 
 [dependencies.target-lexicon]
-version = "0.12.3"
+version = "0.12.12"
 features = ["std"]
 default-features = false
 
 [dependencies.wasmtime-jit-icache-coherence]
-version = "=14.0.2"
+version = "=15.0.0"
 
 [dev-dependencies.cranelift]
-version = "0.101.2"
+version = "0.102.0"
 
 [dev-dependencies.cranelift-entity]
-version = "0.101.2"
+version = "0.102.0"
 
 [dev-dependencies.cranelift-frontend]
-version = "0.101.2"
+version = "0.102.0"
 
 [features]
 default = []

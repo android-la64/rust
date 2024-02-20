@@ -25,7 +25,6 @@ use rustc_span::source_map::{SourceMap, StableSourceFileId};
 use rustc_span::{BytePos, ExpnData, ExpnHash, Pos, RelativeBytePos, SourceFile, Span};
 use rustc_span::{CachingSourceMapView, Symbol};
 use std::collections::hash_map::Entry;
-use std::io;
 use std::mem;
 
 const TAG_FILE_FOOTER: u128 = 0xC0FFEE_C0FFEE_C0FFEE_C0FFEE_C0FFEE;
@@ -246,7 +245,7 @@ impl<'sess> OnDiskCache<'sess> {
                     let index = SourceFileIndex(index as u32);
                     let file_ptr: *const SourceFile = &**file as *const _;
                     file_to_file_index.insert(file_ptr, index);
-                    let source_file_id = EncodedSourceFileId::new(tcx, &file);
+                    let source_file_id = EncodedSourceFileId::new(tcx, file);
                     file_index_to_stable_id.insert(index, source_file_id);
                 }
 
@@ -482,13 +481,8 @@ pub struct CacheDecoder<'a, 'tcx> {
 impl<'a, 'tcx> CacheDecoder<'a, 'tcx> {
     #[inline]
     fn file_index_to_file(&self, index: SourceFileIndex) -> Lrc<SourceFile> {
-        let CacheDecoder {
-            tcx,
-            ref file_index_to_file,
-            ref file_index_to_stable_id,
-            ref source_map,
-            ..
-        } = *self;
+        let CacheDecoder { tcx, file_index_to_file, file_index_to_stable_id, source_map, .. } =
+            *self;
 
         file_index_to_file
             .borrow_mut()
@@ -867,7 +861,7 @@ impl<'a, 'tcx> CacheEncoder<'a, 'tcx> {
     }
 
     #[inline]
-    fn finish(self) -> Result<usize, io::Error> {
+    fn finish(mut self) -> FileEncodeResult {
         self.encoder.finish()
     }
 }

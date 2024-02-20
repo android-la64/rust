@@ -147,10 +147,23 @@ safety types rather than `RawFd`, and the flags parameters to functions such as
 ## Minimum Supported Rust Version (MSRV)
 
 This crate currently works on the version of [Rust on Debian stable], which is
-currently Rust 1.63. This policy may change in the future, in minor version
+currently [Rust 1.63]. This policy may change in the future, in minor version
 releases, so users using a fixed version of Rust should pin to a specific
 version of this crate.
 
+## Minimum Linux Version
+
+On Linux platforms, rustix requires at least Linux 3.2. This is at most the
+oldest Linux version supported by:
+ - [any current Rust target], or
+ - [kernel.org] at the time of rustix's [MSRV] release.
+The specifics of this policy may change in the future, but we intend it to
+always reflect “very old” Linux versions.
+
+[MSRV]: #minimum-supported-rust-version-msrv
+[Rust 1.63]: https://blog.rust-lang.org/2022/08/11/Rust-1.63.0.html
+[any current Rust target]: https://doc.rust-lang.org/nightly/rustc/platform-support.html
+[kernel.org]: https://www.kernel.org/releases.html
 [Rust on Debian stable]: https://packages.debian.org/stable/rust/rustc
 [`nix`]: https://crates.io/crates/nix
 [`unix`]: https://crates.io/crates/unix
@@ -158,7 +171,7 @@ version of this crate.
 [`simple_libc`]: https://crates.io/crates/simple_libc
 [`uapi`]: https://crates.io/crates/uapi
 [`rusl`]: https://lib.rs/crates/rusl
-[`relibc`]: https://github.com/redox-os/relibc
+[`relibc`]: https://gitlab.redox-os.org/redox-os/relibc
 [`syscall`]: https://crates.io/crates/syscall
 [`sc`]: https://crates.io/crates/sc
 [`scall`]: https://crates.io/crates/scall

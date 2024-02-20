@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5
+
+- Improve error message when a working directory for `cmd!` does not exist.
+
 ## 0.2.3
 
 - Fix bug where `Cmd::run` would ignore specified stdin.

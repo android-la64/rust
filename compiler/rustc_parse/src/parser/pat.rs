@@ -5,8 +5,8 @@ use crate::errors::{
     ExpectedCommaAfterPatternField, GenericArgsInPatRequireTurbofishSyntax,
     InclusiveRangeExtraEquals, InclusiveRangeMatchArrow, InclusiveRangeNoEnd, InvalidMutInPattern,
     PatternOnWrongSideOfAt, RefMutOrderIncorrect, RemoveLet, RepeatedMutInPattern,
-    TopLevelOrPatternNotAllowed, TopLevelOrPatternNotAllowedSugg, TrailingVertNotAllowed,
-    UnexpectedLifetimeInPattern, UnexpectedVertVertBeforeFunctionParam,
+    SwitchRefBoxOrder, TopLevelOrPatternNotAllowed, TopLevelOrPatternNotAllowedSugg,
+    TrailingVertNotAllowed, UnexpectedLifetimeInPattern, UnexpectedVertVertBeforeFunctionParam,
     UnexpectedVertVertInPattern,
 };
 use crate::{maybe_recover_from_interpolated_ty_qpath, maybe_whole};
@@ -141,13 +141,21 @@ impl<'a> Parser<'a> {
         };
 
         // Parse the first pattern (`p_0`).
-        let mut first_pat = self.parse_pat_no_top_alt(expected, syntax_loc)?;
-        if rc == RecoverComma::Yes {
-            self.maybe_recover_unexpected_comma(
-                first_pat.span,
-                matches!(first_pat.kind, PatKind::MacCall(_)),
-                rt,
-            )?;
+        let mut first_pat = match self.parse_pat_no_top_alt(expected, syntax_loc) {
+            Ok(pat) => pat,
+            Err(mut err)
+                if self.token.is_reserved_ident()
+                    && !self.token.is_keyword(kw::In)
+                    && !self.token.is_keyword(kw::If) =>
+            {
+                err.emit();
+                self.bump();
+                self.mk_pat(self.token.span, PatKind::Wild)
+            }
+            Err(err) => return Err(err),
+        };
+        if rc == RecoverComma::Yes && !first_pat.could_be_never_pattern() {
+            self.maybe_recover_unexpected_comma(first_pat.span, rt)?;
         }
 
         // If the next token is not a `|`,
@@ -188,8 +196,8 @@ impl<'a> Parser<'a> {
                 err.span_label(lo, WHILE_PARSING_OR_MSG);
                 err
             })?;
-            if rc == RecoverComma::Yes {
-                self.maybe_recover_unexpected_comma(pat.span, false, rt)?;
+            if rc == RecoverComma::Yes && !pat.could_be_never_pattern() {
+                self.maybe_recover_unexpected_comma(pat.span, rt)?;
             }
             pats.push(pat);
         }
@@ -368,12 +376,22 @@ impl<'a> Parser<'a> {
             self.recover_dotdotdot_rest_pat(lo)
         } else if let Some(form) = self.parse_range_end() {
             self.parse_pat_range_to(form)? // `..=X`, `...X`, or `..X`.
+        } else if self.eat(&token::Not) {
+            // Parse `!`
+            self.sess.gated_spans.gate(sym::never_patterns, self.prev_token.span);
+            PatKind::Never
         } else if self.eat_keyword(kw::Underscore) {
-            // Parse _
+            // Parse `_`
             PatKind::Wild
         } else if self.eat_keyword(kw::Mut) {
             self.parse_pat_ident_mut(syntax_loc)?
         } else if self.eat_keyword(kw::Ref) {
+            if self.check_keyword(kw::Box) {
+                // Suggest `box ref`.
+                let span = self.prev_token.span.to(self.token.span);
+                self.bump();
+                self.sess.emit_err(SwitchRefBoxOrder { span });
+            }
             // Parse ref ident @ pat / ref mut ident @ pat
             let mutbl = self.parse_mutability();
             self.parse_pat_ident(BindingAnnotation(ByRef::Yes, mutbl), syntax_loc)?
@@ -541,7 +559,7 @@ impl<'a> Parser<'a> {
         }
 
         self.sess
-            .emit_err(AmbiguousRangePattern { span: pat.span, pat: pprust::pat_to_string(&pat) });
+            .emit_err(AmbiguousRangePattern { span: pat.span, pat: pprust::pat_to_string(pat) });
     }
 
     /// Parse `&pat` / `&mut pat`.
@@ -592,7 +610,7 @@ impl<'a> Parser<'a> {
 
         // Make sure we don't allow e.g. `let mut $p;` where `$p:pat`.
         if let token::Interpolated(nt) = &self.token.kind {
-            if let token::NtPat(_) = **nt {
+            if let token::NtPat(..) = &nt.0 {
                 self.expected_ident_found_err().emit();
             }
         }
@@ -638,13 +656,13 @@ impl<'a> Parser<'a> {
 
     /// Error on `mut $pat` where `$pat` is not an ident.
     fn ban_mut_general_pat(&self, lo: Span, pat: &Pat, changed_any_binding: bool) {
-        let span = lo.to(pat.span);
-        let pat = pprust::pat_to_string(&pat);
-
         self.sess.emit_err(if changed_any_binding {
-            InvalidMutInPattern::NestedIdent { span, pat }
+            InvalidMutInPattern::NestedIdent {
+                span: lo.to(pat.span),
+                pat: pprust::pat_to_string(pat),
+            }
         } else {
-            InvalidMutInPattern::NonIdent { span, pat }
+            InvalidMutInPattern::NonIdent { span: lo.until(pat.span) }
         });
     }
 
@@ -829,7 +847,7 @@ impl<'a> Parser<'a> {
         binding_annotation: BindingAnnotation,
         syntax_loc: Option<PatternLocation>,
     ) -> PResult<'a, PatKind> {
-        let ident = self.parse_ident()?;
+        let ident = self.parse_ident_common(false)?;
 
         if self.may_recover()
             && !matches!(syntax_loc, Some(PatternLocation::FunctionParameter))
@@ -855,7 +873,7 @@ impl<'a> Parser<'a> {
         // will direct us over to `parse_enum_variant()`.
         if self.token == token::OpenDelim(Delimiter::Parenthesis) {
             return Err(EnumPatternInsteadOfIdentifier { span: self.prev_token.span }
-                .into_diagnostic(&self.sess.span_diagnostic));
+                .into_diagnostic(self.dcx()));
         }
 
         Ok(PatKind::Ident(binding_annotation, ident, sub))
@@ -969,7 +987,7 @@ impl<'a> Parser<'a> {
             // check that a comma comes after every field
             if !ate_comma {
                 let mut err = ExpectedCommaAfterPatternField { span: self.token.span }
-                    .into_diagnostic(&self.sess.span_diagnostic);
+                    .into_diagnostic(self.dcx());
                 if let Some(mut delayed) = delayed_err {
                     delayed.emit();
                 }

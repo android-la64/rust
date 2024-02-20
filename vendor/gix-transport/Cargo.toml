@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-transport"
-version = "0.38.0"
+version = "0.39.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
 ]
 description = "A crate of the gitoxide project dedicated to implementing the git transport layer"
 license = "MIT OR Apache-2.0"
@@ -29,10 +28,6 @@ features = [
     "http-client-curl",
     "document-features",
     "serde",
-]
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
 ]
 
 [lib]
@@ -96,26 +91,26 @@ version = "1.12.0"
 optional = true
 
 [dependencies.gix-command]
-version = "^0.2.10"
+version = "^0.3.0"
 
 [dependencies.gix-credentials]
-version = "^0.21.0"
+version = "^0.22.0"
 optional = true
 
 [dependencies.gix-features]
-version = "^0.36.0"
+version = "^0.36.1"
 
 [dependencies.gix-packetline]
-version = "^0.16.7"
+version = "^0.17.0"
 
 [dependencies.gix-quote]
-version = "^0.4.7"
+version = "^0.4.8"
 
 [dependencies.gix-sec]
-version = "^0.10.0"
+version = "^0.10.1"
 
 [dependencies.gix-url]
-version = "^0.25.0"
+version = "^0.25.2"
 
 [dependencies.pin-project-lite]
 version = "0.2.6"

@@ -1,13 +1,8 @@
 use crate::rmeta::*;
 
 use rustc_data_structures::fingerprint::Fingerprint;
-use rustc_hir::def::{CtorKind, CtorOf};
+use rustc_hir::def::CtorOf;
 use rustc_index::Idx;
-use rustc_middle::ty::{ParameterizedOverTcx, UnusedGenericParams};
-use rustc_serialize::opaque::FileEncoder;
-use rustc_span::hygiene::MacroKind;
-use std::marker::PhantomData;
-use std::num::NonZeroUsize;
 
 pub(super) trait IsDefault: Default {
     fn is_default(&self) -> bool;
@@ -167,7 +162,6 @@ fixed_size_enum! {
         ( Impl { of_trait: false }                 )
         ( Impl { of_trait: true }                  )
         ( Closure                                  )
-        ( Coroutine                                )
         ( Static(ast::Mutability::Not)             )
         ( Static(ast::Mutability::Mut)             )
         ( Ctor(CtorOf::Struct, CtorKind::Fn)       )
@@ -382,8 +376,8 @@ impl<T> LazyArray<T> {
     }
 
     fn from_bytes_impl(position: &[u8; 8], meta: &[u8; 8]) -> Option<LazyArray<T>> {
-        let position = NonZeroUsize::new(u64::from_bytes(&position) as usize)?;
-        let len = u64::from_bytes(&meta) as usize;
+        let position = NonZeroUsize::new(u64::from_bytes(position) as usize)?;
+        let len = u64::from_bytes(meta) as usize;
         Some(LazyArray::from_position_and_num_elems(position, len))
     }
 }
@@ -497,7 +491,7 @@ impl<I: Idx, const N: usize, T: FixedSizeEncoding<ByteArray = [u8; N]>> TableBui
         }
 
         LazyTable::from_position_and_encoded_size(
-            NonZeroUsize::new(pos as usize).unwrap(),
+            NonZeroUsize::new(pos).unwrap(),
             width,
             self.blocks.len(),
         )

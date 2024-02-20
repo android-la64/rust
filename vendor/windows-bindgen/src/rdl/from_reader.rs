@@ -1,16 +1,16 @@
 use super::*;
 use crate::tokens::{quote, to_ident, TokenStream};
 use crate::{rdl, Error, Result, Tree};
-use metadata::RowReader;
+use metadata::*;
 
-pub fn from_reader(reader: &metadata::Reader, filter: &metadata::Filter, mut config: std::collections::BTreeMap<&str, &str>, output: &str) -> Result<()> {
+pub fn from_reader(reader: &'static metadata::Reader, mut config: std::collections::BTreeMap<&str, &str>, output: &str) -> Result<()> {
     let dialect = match config.remove("type") {
         Some("winrt") => Dialect::WinRT,
         Some("win32") => Dialect::Win32,
         _ => return Err(Error::new("configuration value `type` must be `win32` or `winrt`")),
     };
 
-    let mut writer = Writer::new(reader, filter, output, dialect);
+    let mut writer = Writer::new(reader, output, dialect);
 
     // TODO: be sure to use the same "split" key for winmd splitting.
     // May also want to support split=N similar to the way MIDLRT supports winmd splitting
@@ -29,8 +29,8 @@ pub fn from_reader(reader: &metadata::Reader, filter: &metadata::Filter, mut con
 }
 
 fn gen_split(writer: &Writer) -> Result<()> {
-    let tree = Tree::new(writer.reader, writer.filter);
-    let directory = crate::directory(writer.output);
+    let tree = Tree::new(writer.reader);
+    let directory = crate::directory(&writer.output);
 
     // TODO: parallelize
     for tree in tree.flatten() {
@@ -46,9 +46,9 @@ fn gen_split(writer: &Writer) -> Result<()> {
 }
 
 fn gen_file(writer: &Writer) -> Result<()> {
-    let tree = Tree::new(writer.reader, writer.filter);
+    let tree = Tree::new(writer.reader);
     let tokens = writer.tree(&tree);
-    writer.write_to_file(writer.output, tokens)
+    writer.write_to_file(&writer.output, tokens)
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -57,22 +57,21 @@ enum Dialect {
     WinRT,
 }
 
-struct Writer<'a> {
-    reader: &'a metadata::Reader<'a>,
-    filter: &'a metadata::Filter<'a>,
-    namespace: &'a str,
+struct Writer {
+    reader: &'static metadata::Reader,
+    namespace: &'static str,
     dialect: Dialect,
     split: bool,
-    output: &'a str,
+    output: String,
 }
 
-impl<'a> Writer<'a> {
-    fn new(reader: &'a metadata::Reader, filter: &'a metadata::Filter, output: &'a str, dialect: Dialect) -> Self {
-        Self { reader, filter, namespace: "", output, dialect, split: false }
+impl Writer {
+    fn new(reader: &'static metadata::Reader, output: &str, dialect: Dialect) -> Self {
+        Self { reader, namespace: "", output: output.to_string(), dialect, split: false }
     }
 
-    fn with_namespace(&self, namespace: &'a str) -> Self {
-        Self { reader: self.reader, filter: self.filter, namespace, dialect: self.dialect, output: self.output, split: self.split }
+    fn with_namespace(&self, namespace: &'static str) -> Self {
+        Self { reader: self.reader, namespace, dialect: self.dialect, output: self.output.clone(), split: self.split }
     }
 
     fn write_to_file(&self, output: &str, tokens: TokenStream) -> Result<()> {
@@ -91,7 +90,7 @@ impl<'a> Writer<'a> {
         //crate::write_to_file(output, tokens.into_string())
     }
 
-    fn tree(&self, tree: &'a Tree) -> TokenStream {
+    fn tree(&self, tree: &Tree) -> TokenStream {
         let items = self.items(tree);
 
         if self.split {
@@ -129,15 +128,15 @@ impl<'a> Writer<'a> {
         }
     }
 
-    fn items(&self, tree: &'a Tree) -> TokenStream {
+    fn items(&self, tree: &Tree) -> TokenStream {
         let mut functions = vec![];
         let mut constants = vec![];
         let mut types = vec![];
 
         if !tree.namespace.is_empty() {
-            for item in self.reader.namespace_items(tree.namespace, self.filter).filter(|item| match item {
+            for item in self.reader.namespace_items(tree.namespace).filter(|item| match item {
                 metadata::Item::Type(def) => {
-                    let winrt = self.reader.type_def_flags(*def).contains(metadata::TypeAttributes::WindowsRuntime);
+                    let winrt = def.flags().contains(metadata::TypeAttributes::WindowsRuntime);
                     match self.dialect {
                         Dialect::Win32 => !winrt,
                         Dialect::WinRT => winrt,
@@ -148,7 +147,7 @@ impl<'a> Writer<'a> {
                 match item {
                     metadata::Item::Type(def) => types.push(self.type_def(def)),
                     metadata::Item::Const(field) => constants.push(self.constant(field)),
-                    metadata::Item::Fn(method, namespace) => functions.push(self.function(method, &namespace)),
+                    metadata::Item::Fn(method, namespace) => functions.push(self.function(method, namespace)),
                 }
             }
         }
@@ -161,17 +160,17 @@ impl<'a> Writer<'a> {
     }
 
     fn function(&self, def: metadata::MethodDef, _namespace: &str) -> TokenStream {
-        let name = to_ident(self.reader.method_def_name(def));
+        let name = to_ident(def.name());
         quote! { fn #name(); }
     }
 
     fn constant(&self, def: metadata::Field) -> TokenStream {
-        let name = to_ident(self.reader.field_name(def));
+        let name = to_ident(def.name());
         quote! { const #name: i32 = 0; }
     }
 
     fn type_def(&self, def: metadata::TypeDef) -> TokenStream {
-        if let Some(extends) = self.reader.type_def_extends(def) {
+        if let Some(extends) = def.extends() {
             if extends.namespace == "System" {
                 if extends.name == "Enum" {
                     self.enum_def(def)
@@ -191,7 +190,7 @@ impl<'a> Writer<'a> {
     }
 
     fn enum_def(&self, def: metadata::TypeDef) -> TokenStream {
-        let name = to_ident(self.reader.type_def_name(def));
+        let name = to_ident(def.name());
 
         quote! {
             struct #name {
@@ -201,11 +200,11 @@ impl<'a> Writer<'a> {
     }
 
     fn struct_def(&self, def: metadata::TypeDef) -> TokenStream {
-        let name = to_ident(self.reader.type_def_name(def));
+        let name = to_ident(def.name());
 
-        let fields = self.reader.type_def_fields(def).map(|field| {
-            let name = to_ident(self.reader.field_name(field));
-            let ty = self.ty(&self.reader.field_type(field, Some(def)));
+        let fields = def.fields().map(|field| {
+            let name = to_ident(field.name());
+            let ty = self.ty(&field.ty(Some(def)));
             quote! {
                 #name: #ty
             }
@@ -219,7 +218,7 @@ impl<'a> Writer<'a> {
     }
 
     fn delegate_def(&self, def: metadata::TypeDef) -> TokenStream {
-        let name = to_ident(self.reader.type_def_name(def));
+        let name = to_ident(def.name());
 
         quote! {
             struct #name {
@@ -229,7 +228,7 @@ impl<'a> Writer<'a> {
     }
 
     fn class_def(&self, def: metadata::TypeDef) -> TokenStream {
-        let name = to_ident(self.reader.type_def_name(def));
+        let name = to_ident(def.name());
         let implements = self.implements(def, &[]);
 
         quote! {
@@ -238,20 +237,20 @@ impl<'a> Writer<'a> {
     }
 
     fn interface_def(&self, def: metadata::TypeDef) -> TokenStream {
-        let name = to_ident(self.reader.type_def_name(def));
-        let generics = &metadata::type_def_generics(self.reader, def);
+        let name = to_ident(def.name());
+        let generics = &metadata::type_def_generics(def);
         let implements = self.implements(def, generics);
 
-        let methods = self.reader.type_def_methods(def).map(|method| {
-            let name = to_ident(self.reader.method_def_name(method));
+        let methods = def.methods().map(|method| {
+            let name = to_ident(method.name());
 
             // TODO: use reader.method_def_signature instead
-            let signature = metadata::method_def_signature(self.reader, self.reader.type_def_namespace(def), method, generics);
+            let signature = metadata::method_def_signature(def.namespace(), method, generics);
 
             let return_type = self.return_type(&signature.return_type);
 
             let params = signature.params.iter().map(|param| {
-                let name = to_ident(self.reader.param_name(param.def));
+                let name = to_ident(param.def.name());
                 let ty = self.ty(&param.ty);
                 quote! { #name: #ty }
             });
@@ -287,16 +286,15 @@ impl<'a> Writer<'a> {
         // TODO: then list default interface first
         // Then everything else
 
-        for imp in self.reader.type_def_interface_impls(def) {
-            let ty = self.reader.interface_impl_type(imp, generics);
-            if self.reader.has_attribute(imp, "DefaultAttribute") {
-                types.insert(0, self.ty(&ty));
+        for interface in type_def_interfaces(def, generics) {
+            if interface.kind == InterfaceKind::Default {
+                types.insert(0, self.ty(&interface.ty));
             } else {
-                types.push(self.ty(&ty));
+                types.push(self.ty(&interface.ty));
             }
         }
 
-        if let Some(type_name) = self.reader.type_def_extends(def) {
+        if let Some(type_name) = def.extends() {
             if type_name != metadata::TypeName::Object {
                 let namespace = self.namespace(type_name.namespace);
                 let name = to_ident(type_name.name);
@@ -349,8 +347,8 @@ impl<'a> Writer<'a> {
             metadata::Type::IUnknown => quote! { IUnknown },
 
             metadata::Type::TypeDef(def, generics) => {
-                let namespace = self.namespace(self.reader.type_def_namespace(*def));
-                let name = to_ident(self.reader.type_def_name(*def));
+                let namespace = self.namespace(def.namespace());
+                let name = to_ident(def.name());
                 if generics.is_empty() {
                     quote! { #namespace #name }
                 } else {
@@ -359,14 +357,13 @@ impl<'a> Writer<'a> {
                 }
             }
 
-            metadata::Type::TypeRef(code) => {
-                let type_name = self.reader.type_def_or_ref(*code);
+            metadata::Type::TypeRef(type_name) => {
                 let namespace = self.namespace(type_name.namespace);
                 let name = to_ident(type_name.name);
                 quote! { #namespace #name }
             }
 
-            metadata::Type::GenericParam(generic) => self.reader.generic_param_name(*generic).into(),
+            metadata::Type::GenericParam(generic) => generic.name().into(),
             metadata::Type::WinrtArray(ty) => self.ty(ty),
             metadata::Type::WinrtArrayRef(ty) => self.ty(ty),
             metadata::Type::ConstRef(ty) => self.ty(ty),

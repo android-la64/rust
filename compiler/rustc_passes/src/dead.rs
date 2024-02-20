@@ -32,7 +32,7 @@ use crate::errors::{
 // may need to be marked as live.
 fn should_explore(tcx: TyCtxt<'_>, def_id: LocalDefId) -> bool {
     matches!(
-        tcx.hir().find_by_def_id(def_id),
+        tcx.opt_hir_node_by_def_id(def_id),
         Some(
             Node::Item(..)
                 | Node::ImplItem(..)
@@ -297,7 +297,7 @@ impl<'tcx> MarkSymbolVisitor<'tcx> {
             // tuple struct constructor function
             let id = self.struct_constructors.get(&id).copied().unwrap_or(id);
 
-            if let Some(node) = self.tcx.hir().find_by_def_id(id) {
+            if let Some(node) = self.tcx.opt_hir_node_by_def_id(id) {
                 // When using `#[allow]` or `#[expect]` of `dead_code`, we do a QOL improvement
                 // by declaring fn calls, statics, ... within said items as live, as well as
                 // the item itself, although technically this is not the case.
@@ -314,7 +314,7 @@ impl<'tcx> MarkSymbolVisitor<'tcx> {
                 // for the `#[expect]` case.
                 //
                 // Note that an item can and will be duplicated on the worklist with different
-                // `ComesFromAllowExpect`, particulary if it was added from the
+                // `ComesFromAllowExpect`, particularly if it was added from the
                 // `effective_visibilities` query or from the `#[allow]`/`#[expect]` checks,
                 // this "duplication" is essential as otherwise a function with `#[expect]`
                 // called from a `pub fn` may be falsely reported as not live, falsely
@@ -373,10 +373,10 @@ impl<'tcx> MarkSymbolVisitor<'tcx> {
                     self.repr_has_repr_c = def.repr().c();
                     self.repr_has_repr_simd = def.repr().simd();
 
-                    intravisit::walk_item(self, &item)
+                    intravisit::walk_item(self, item)
                 }
                 hir::ItemKind::ForeignMod { .. } => {}
-                _ => intravisit::walk_item(self, &item),
+                _ => intravisit::walk_item(self, item),
             },
             Node::TraitItem(trait_item) => {
                 intravisit::walk_trait_item(self, trait_item);
@@ -403,7 +403,7 @@ impl<'tcx> MarkSymbolVisitor<'tcx> {
                 intravisit::walk_impl_item(self, impl_item);
             }
             Node::ForeignItem(foreign_item) => {
-                intravisit::walk_foreign_item(self, &foreign_item);
+                intravisit::walk_foreign_item(self, foreign_item);
             }
             _ => {}
         }
@@ -459,9 +459,9 @@ impl<'tcx> Visitor<'tcx> for MarkSymbolVisitor<'tcx> {
                 self.lookup_and_handle_method(expr.hir_id);
             }
             hir::ExprKind::Field(ref lhs, ..) => {
-                self.handle_field_access(&lhs, expr.hir_id);
+                self.handle_field_access(lhs, expr.hir_id);
             }
-            hir::ExprKind::Struct(ref qpath, ref fields, _) => {
+            hir::ExprKind::Struct(qpath, fields, _) => {
                 let res = self.typeck_results().qpath_res(qpath, expr.hir_id);
                 self.handle_res(res);
                 if let ty::Adt(adt, _) = self.typeck_results().expr_ty(expr).kind() {
@@ -493,7 +493,7 @@ impl<'tcx> Visitor<'tcx> for MarkSymbolVisitor<'tcx> {
     fn visit_pat(&mut self, pat: &'tcx hir::Pat<'tcx>) {
         self.in_pat = true;
         match pat.kind {
-            PatKind::Struct(ref path, ref fields, _) => {
+            PatKind::Struct(ref path, fields, _) => {
                 let res = self.typeck_results().qpath_res(path, pat.hir_id);
                 self.handle_field_pattern_match(pat, res, fields);
             }
@@ -501,7 +501,7 @@ impl<'tcx> Visitor<'tcx> for MarkSymbolVisitor<'tcx> {
                 let res = self.typeck_results().qpath_res(qpath, pat.hir_id);
                 self.handle_res(res);
             }
-            PatKind::TupleStruct(ref qpath, ref fields, dotdot) => {
+            PatKind::TupleStruct(ref qpath, fields, dotdot) => {
                 let res = self.typeck_results().qpath_res(qpath, pat.hir_id);
                 self.handle_tuple_field_pattern_match(pat, res, fields, dotdot);
             }
@@ -559,7 +559,7 @@ fn has_allow_dead_code_or_lang_attr(
     }
 
     fn has_allow_expect_dead_code(tcx: TyCtxt<'_>, def_id: LocalDefId) -> bool {
-        let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+        let hir_id = tcx.local_def_id_to_hir_id(def_id);
         let lint_level = tcx.lint_level_at_node(lint::builtin::DEAD_CODE, hir_id).0;
         matches!(lint_level, lint::Allow | lint::Expect(_))
     }
@@ -805,10 +805,10 @@ impl<'tcx> DeadVisitor<'tcx> {
         };
         let tcx = self.tcx;
 
-        let first_hir_id = tcx.hir().local_def_id_to_hir_id(first_id);
+        let first_hir_id = tcx.local_def_id_to_hir_id(first_id);
         let first_lint_level = tcx.lint_level_at_node(lint::builtin::DEAD_CODE, first_hir_id).0;
         assert!(dead_codes.iter().skip(1).all(|id| {
-            let hir_id = tcx.hir().local_def_id_to_hir_id(*id);
+            let hir_id = tcx.local_def_id_to_hir_id(*id);
             let level = tcx.lint_level_at_node(lint::builtin::DEAD_CODE, hir_id).0;
             level == first_lint_level
         }));
@@ -969,7 +969,7 @@ fn check_mod_deathness(tcx: TyCtxt<'_>, module: LocalModDefId) {
                 let def_id = item.id.owner_id.def_id;
                 if !visitor.is_live_code(def_id) {
                     let name = tcx.item_name(def_id.to_def_id());
-                    let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+                    let hir_id = tcx.local_def_id_to_hir_id(def_id);
                     let level = tcx.lint_level_at_node(lint::builtin::DEAD_CODE, hir_id).0;
 
                     dead_items.push(DeadItem { def_id, name, level })
@@ -997,7 +997,7 @@ fn check_mod_deathness(tcx: TyCtxt<'_>, module: LocalModDefId) {
                 let def_id = variant.def_id.expect_local();
                 if !live_symbols.contains(&def_id) {
                     // Record to group diagnostics.
-                    let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+                    let hir_id = tcx.local_def_id_to_hir_id(def_id);
                     let level = tcx.lint_level_at_node(lint::builtin::DEAD_CODE, hir_id).0;
                     dead_variants.push(DeadItem { def_id, name: variant.name, level });
                     continue;
@@ -1009,9 +1009,9 @@ fn check_mod_deathness(tcx: TyCtxt<'_>, module: LocalModDefId) {
                     .iter()
                     .filter_map(|field| {
                         let def_id = field.did.expect_local();
-                        let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+                        let hir_id = tcx.local_def_id_to_hir_id(def_id);
                         if let ShouldWarnAboutField::Yes(is_pos) =
-                            visitor.should_warn_about_field(&field)
+                            visitor.should_warn_about_field(field)
                         {
                             let level = tcx
                                 .lint_level_at_node(

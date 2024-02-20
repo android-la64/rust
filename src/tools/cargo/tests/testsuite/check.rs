@@ -3,11 +3,12 @@
 use std::fmt::{self, Write};
 
 use crate::messages::raw_rustc_output;
+use cargo_test_support::compare;
 use cargo_test_support::install::exe;
 use cargo_test_support::paths::CargoPathExt;
 use cargo_test_support::registry::Package;
+use cargo_test_support::tools;
 use cargo_test_support::{basic_bin_manifest, basic_manifest, git, project};
-use cargo_test_support::{tools, wrapped_clippy_driver};
 
 #[cargo_test]
 fn check_success() {
@@ -804,7 +805,7 @@ fn short_message_format() {
         .with_stderr_contains(
             "\
 src/lib.rs:1:27: error[E0308]: mismatched types
-error: could not compile `foo` (lib) due to previous error
+error: could not compile `foo` (lib) due to 1 previous error
 ",
         )
         .run();
@@ -1250,7 +1251,7 @@ fn check_fixable_error_no_fix() {
 [CHECKING] foo v0.0.1 ([..])
 {}\
 [WARNING] `foo` (lib) generated 1 warning
-[ERROR] could not compile `foo` (lib) due to previous error; 1 warning emitted
+[ERROR] could not compile `foo` (lib) due to 1 previous error; 1 warning emitted
 ",
         rustc_message
     );
@@ -1432,7 +1433,7 @@ fn check_fixable_warning_for_clippy() {
 
     foo.cargo("check")
         // We can't use `clippy` so we use a `rustc` workspace wrapper instead
-        .env("RUSTC_WORKSPACE_WRAPPER", wrapped_clippy_driver())
+        .env("RUSTC_WORKSPACE_WRAPPER", tools::wrapped_clippy_driver())
         .with_stderr_contains("[..] (run `cargo clippy --fix --lib -p foo` to apply 1 suggestion)")
         .run();
 }
@@ -1516,6 +1517,46 @@ fn versionless_package() {
 [CHECKING] foo v0.0.0 ([CWD])
 [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
 ",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn pkgid_querystring_works() {
+    let git_project = git::new("gitdep", |p| {
+        p.file("Cargo.toml", &basic_manifest("gitdep", "1.0.0"))
+            .file("src/lib.rs", "")
+    });
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                [package]
+                name = "foo"
+
+                [dependencies]
+                gitdep = {{ git = "{}", branch = "master" }}
+                "#,
+                git_project.url()
+            ),
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("generate-lockfile").run();
+
+    let output = p.cargo("pkgid").arg("gitdep").exec_with_output().unwrap();
+    let gitdep_pkgid = String::from_utf8(output.stdout).unwrap();
+    let gitdep_pkgid = gitdep_pkgid.trim();
+    compare::assert_match_exact("git+file://[..]/gitdep?branch=master#1.0.0", &gitdep_pkgid);
+
+    p.cargo("build -p")
+        .arg(gitdep_pkgid)
+        .with_stderr(
+            "\
+[COMPILING] gitdep v1.0.0 (file:///[..]/gitdep?branch=master#[..])
+[FINISHED] dev [..]",
         )
         .run();
 }

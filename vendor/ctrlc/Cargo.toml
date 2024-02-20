@@ -11,8 +11,9 @@
 
 [package]
 edition = "2018"
+rust-version = "1.63.0"
 name = "ctrlc"
-version = "3.4.0"
+version = "3.4.1"
 authors = ["Antti Keränen <detegr@gmail.com>"]
 exclude = [
     "/.travis.yml",
@@ -48,7 +49,7 @@ version = "0.3"
 termination = []
 
 [target."cfg(unix)".dependencies.nix]
-version = "0.26"
+version = "0.27"
 features = [
     "fs",
     "signal",
@@ -72,3 +73,6 @@ features = [
     "Win32_System_IO",
     "Win32_System_Console",
 ]
+
+[badges.maintenance]
+status = "passively-maintained"

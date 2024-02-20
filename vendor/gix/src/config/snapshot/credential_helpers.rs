@@ -2,11 +2,12 @@ use std::{borrow::Cow, convert::TryFrom};
 
 pub use error::Error;
 
-use crate::config::cache::util::IgnoreEmptyPath;
+use crate::config::cache::util::ApplyLeniency;
 use crate::{
     bstr::{ByteSlice, ByteVec},
     config::{
-        tree::{credential, Core, Credential, Key},
+        cache::util::IgnoreEmptyPath,
+        tree::{credential, gitoxide::Credentials, Core, Credential, Key},
         Snapshot,
     },
 };
@@ -25,6 +26,8 @@ mod error {
         },
         #[error("core.askpass could not be read")]
         CoreAskpass(#[from] gix_config::path::interpolate::Error),
+        #[error(transparent)]
+        BooleanConfig(#[from] crate::config::boolean::Error),
     }
 }
 
@@ -144,16 +147,27 @@ impl Snapshot<'_> {
                 .transpose()
                 .ignore_empty()?
                 .map(|c| Cow::Owned(c.into_owned())),
-            ..Default::default()
+            mode: self
+                .try_boolean(Credentials::TERMINAL_PROMPT.logical_name().as_str())
+                .map(|val| Credentials::TERMINAL_PROMPT.enrich_error(val))
+                .transpose()
+                .with_leniency(self.repo.config.lenient_config)?
+                .and_then(|val| (!val).then_some(gix_prompt::Mode::Disable))
+                .unwrap_or_default(),
         }
-        .apply_environment(allow_git_env, allow_ssh_env, allow_git_env);
+        .apply_environment(allow_git_env, allow_ssh_env, false /* terminal prompt */);
         Ok((
             gix_credentials::helper::Cascade {
                 programs,
                 use_http_path,
                 // The default ssh implementation uses binaries that do their own auth, so our passwords aren't used.
                 query_user_only: url.scheme == gix_url::Scheme::Ssh,
-                ..Default::default()
+                stderr: self
+                    .try_boolean(Credentials::HELPER_STDERR.logical_name().as_str())
+                    .map(|val| Credentials::HELPER_STDERR.enrich_error(val))
+                    .transpose()
+                    .with_leniency(self.repo.options.lenient_config)?
+                    .unwrap_or(true),
             },
             gix_credentials::helper::Action::get_for_url(url.to_bstring()),
             prompt_options,

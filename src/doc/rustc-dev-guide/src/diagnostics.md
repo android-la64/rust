@@ -523,7 +523,7 @@ are:
 - Early lint pass: Works on [AST nodes] after [macro expansion] and name
   resolution, just before [HIR lowering]. These lints are for purely
   syntactical lints.
-  - Example: The [`unsued_parens`] lint checks for parenthesized-expressions
+  - Example: The [`unused_parens`] lint checks for parenthesized-expressions
     in situations where they are not needed, like an `if` condition.
 
 - Late lint pass: Works on [HIR nodes], towards the end of [analysis] (after
@@ -558,7 +558,7 @@ compiler](#linting-early-in-the-compiler).
 [macro expansion]: macro-expansion.md
 [analysis]: part-4-intro.md
 [`keyword_idents`]: https://doc.rust-lang.org/rustc/lints/listing/allowed-by-default.html#keyword-idents
-[`unsued_parens`]: https://doc.rust-lang.org/rustc/lints/listing/warn-by-default.html#unused-parens
+[`unused_parens`]: https://doc.rust-lang.org/rustc/lints/listing/warn-by-default.html#unused-parens
 [`invalid_value`]: https://doc.rust-lang.org/rustc/lints/listing/warn-by-default.html#invalid-value
 [`arithmetic_overflow`]: https://doc.rust-lang.org/rustc/lints/listing/deny-by-default.html#arithmetic-overflow
 [`unused_mut`]: https://doc.rust-lang.org/rustc/lints/listing/warn-by-default.html#unused-mut
@@ -572,7 +572,6 @@ generally based on how they are registered.
 - *Built-in* lints are defined inside the compiler source.
 - *Driver-registered* lints are registered when the compiler driver is created
   by an external driver. This is the mechanism used by Clippy, for example.
-- *Plugin* lints are registered by the [deprecated plugin system].
 - *Tool* lints are lints with a path prefix like `clippy::` or `rustdoc::`.
 - *Internal* lints are the `rustc::` scoped tool lints that only run on the
   rustc source tree itself and are defined in the compiler source like a
@@ -581,7 +580,6 @@ generally based on how they are registered.
 More information about lint registration can be found in the [LintStore]
 chapter.
 
-[deprecated plugin system]: https://doc.rust-lang.org/nightly/unstable-book/language-features/plugin.html
 [LintStore]: diagnostics/lintstore.md
 
 ### Declaring a lint
@@ -691,6 +689,8 @@ declare_lint! {
 This makes the `ANONYMOUS_PARAMETERS` lint allow-by-default in the 2015 edition
 but warn-by-default in the 2018 edition.
 
+See [Edition-specific lints](../guides/editions.md#edition-specific-lints) for more information.
+
 ### Feature-gated lints
 
 Lints belonging to a feature should only be usable if the feature is enabled in the
@@ -722,6 +722,7 @@ meaning that rustc exclusively exposes to users as "future incompatible".
 meaning in an upcoming *edition*. These are often called "edition lints" and can be
 typically seen in the various "edition compatibility" lint groups (e.g., `rust_2021_compatibility`)
 that are used to lint against code that will break if the user updates the crate's edition.
+See [migration lints](guides/editions.md#migration-lints) for more details.
 
 A future-incompatible lint should be declared with the `@future_incompatible`
 additional "field":

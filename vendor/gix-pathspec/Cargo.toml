@@ -13,8 +13,13 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-pathspec"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
+include = [
+    "src/**/*",
+    "LICENSE-*",
+    "README.md",
+]
 description = "A crate of the gitoxide project dealing magical pathspecs"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -32,16 +37,16 @@ features = ["std"]
 default-features = false
 
 [dependencies.gix-attributes]
-version = "^0.20.0"
+version = "^0.20.1"
 
 [dependencies.gix-config-value]
-version = "^0.14.0"
+version = "^0.14.1"
 
 [dependencies.gix-glob]
-version = "^0.14.0"
+version = "^0.14.1"
 
 [dependencies.gix-path]
-version = "^0.10.0"
+version = "^0.10.1"
 
 [dependencies.thiserror]
 version = "1.0.26"

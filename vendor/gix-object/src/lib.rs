@@ -2,10 +2,10 @@
 //! as well as [mutable versions][Object] of these. Both types of objects can be encoded.
 //! ## Feature Flags
 #![cfg_attr(
-    feature = "document-features",
-    cfg_attr(doc, doc = ::document_features::document_features!())
+    all(doc, feature = "document-features"),
+    doc = ::document_features::document_features!()
 )]
-#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
+#![cfg_attr(all(doc, feature = "document-features"), feature(doc_cfg, doc_auto_cfg))]
 #![deny(missing_docs, rust_2018_idioms)]
 #![forbid(unsafe_code)]
 
@@ -30,8 +30,11 @@ mod blob;
 ///
 pub mod data;
 
+///
+pub mod find;
+
 mod traits;
-pub use traits::WriteTo;
+pub use traits::{Exists, Find, FindExt, FindObjectOrHeader, Header as FindHeader, HeaderExt, WriteTo};
 
 pub mod encode;
 pub(crate) mod parse;
@@ -50,7 +53,7 @@ pub enum Kind {
     Tag,
 }
 /// A chunk of any [`data`][BlobRef::data].
-#[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
+#[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct BlobRef<'a> {
     /// The bytes themselves.
@@ -222,7 +225,7 @@ pub struct TreeRef<'a> {
 }
 
 /// A directory snapshot containing files (blobs), directories (trees) and submodules (commits), lazily evaluated.
-#[derive(Default, PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
+#[derive(Default, PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone, Copy)]
 pub struct TreeRefIter<'a> {
     /// The directories and files contained in this tree.
     data: &'a [u8],
@@ -246,12 +249,21 @@ impl Tree {
 }
 
 /// A borrowed object using a slice as backing buffer, or in other words a bytes buffer that knows the kind of object it represents.
-#[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone)]
+#[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone, Copy)]
 pub struct Data<'a> {
     /// kind of object
     pub kind: Kind,
     /// decoded, decompressed data, owned by a backing store.
     pub data: &'a [u8],
+}
+
+/// Information about an object, which includes its kind and the amount of bytes it would have when obtained.
+#[derive(PartialEq, Eq, Debug, Hash, Ord, PartialOrd, Clone, Copy)]
+pub struct Header {
+    /// The kind of object.
+    pub kind: Kind,
+    /// The object's size in bytes, or the size of the buffer when it's retrieved in full.
+    pub size: u64,
 }
 
 ///
@@ -264,6 +276,7 @@ pub mod decode {
         pub(crate) fn empty_error() -> Error {
             Error {
                 inner: winnow::error::ContextError::new(),
+                remaining: Default::default(),
             }
         }
 
@@ -272,19 +285,33 @@ pub mod decode {
         pub struct Error {
             /// The actual error
             pub inner: ParseError,
+            /// Where the error occurred
+            pub remaining: Vec<u8>,
         }
 
         impl Error {
-            pub(crate) fn with_err(err: winnow::error::ErrMode<ParseError>) -> Self {
+            pub(crate) fn with_err(err: winnow::error::ErrMode<ParseError>, remaining: &[u8]) -> Self {
                 Self {
                     inner: err.into_inner().expect("we don't have streaming parsers"),
+                    remaining: remaining.to_owned(),
                 }
             }
         }
 
         impl std::fmt::Display for Error {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                self.inner.fmt(f)
+                write!(f, "object parsing failed at `{}`", bstr::BStr::new(&self.remaining))?;
+                if self.inner.context().next().is_some() {
+                    writeln!(f)?;
+                    self.inner.fmt(f)?;
+                }
+                Ok(())
+            }
+        }
+
+        impl std::error::Error for Error {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                self.inner.cause().map(|v| v as &(dyn std::error::Error + 'static))
             }
         }
     }
@@ -307,7 +334,7 @@ pub mod decode {
         }
 
         impl Error {
-            pub(crate) fn with_err(err: winnow::error::ErrMode<ParseError>) -> Self {
+            pub(crate) fn with_err(err: winnow::error::ErrMode<ParseError>, _remaining: &[u8]) -> Self {
                 Self {
                     inner: err.into_inner().expect("we don't have streaming parsers"),
                 }
@@ -315,14 +342,15 @@ pub mod decode {
         }
 
         impl std::fmt::Display for Error {
-            fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                Ok(())
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("object parsing failed")
             }
         }
+
+        impl std::error::Error for Error {}
     }
     pub(crate) use _decode::empty_error;
     pub use _decode::{Error, ParseError};
-    impl std::error::Error for Error {}
 
     /// Returned by [`loose_header()`]
     #[derive(Debug, thiserror::Error)]

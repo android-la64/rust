@@ -14,7 +14,7 @@ use crate::{
 pub trait LayoutCalculator {
     type TargetDataLayoutRef: Borrow<TargetDataLayout>;
 
-    fn delay_bug(&self, txt: String);
+    fn delayed_bug(&self, txt: String);
     fn current_data_layout(&self) -> Self::TargetDataLayoutRef;
 
     fn scalar_pair<FieldIdx: Idx, VariantIdx: Idx>(
@@ -111,8 +111,8 @@ pub trait LayoutCalculator {
                             alt_tail_space,
                             layout.fields.count(),
                             prefer_alt_layout,
-                            format_field_niches(&layout, &fields, &dl),
-                            format_field_niches(&alt_layout, &fields, &dl),
+                            format_field_niches(layout, fields, dl),
+                            format_field_niches(&alt_layout, fields, dl),
                         );
 
                         if prefer_alt_layout {
@@ -382,7 +382,7 @@ pub trait LayoutCalculator {
                             *offset += this_offset;
                         }
                     }
-                    _ => {
+                    FieldsShape::Primitive | FieldsShape::Array { .. } | FieldsShape::Union(..) => {
                         panic!("Layout of fields should be Arbitrary for variants")
                     }
                 }
@@ -600,7 +600,9 @@ pub trait LayoutCalculator {
                             variant.size = new_ity_size;
                         }
                     }
-                    _ => panic!(),
+                    FieldsShape::Primitive | FieldsShape::Array { .. } | FieldsShape::Union(..) => {
+                        panic!("encountered a non-arbitrary layout during enum layout")
+                    }
                 }
             }
         }
@@ -628,7 +630,7 @@ pub trait LayoutCalculator {
             let mut common_prim_initialized_in_all_variants = true;
             for (field_layouts, layout_variant) in iter::zip(variants, &layout_variants) {
                 let FieldsShape::Arbitrary { ref offsets, .. } = layout_variant.fields else {
-                    panic!();
+                    panic!("encountered a non-arbitrary layout during enum layout");
                 };
                 // We skip *all* ZST here and later check if we are good in terms of alignment.
                 // This lets us handle some cases involving aligned ZST.
@@ -681,7 +683,7 @@ pub trait LayoutCalculator {
                         assert_eq!(memory_index.raw, [0, 1]);
                         offsets
                     }
-                    _ => panic!(),
+                    _ => panic!("encountered a non-arbitrary layout during enum layout"),
                 };
                 if pair_offsets[FieldIdx::new(0)] == Size::ZERO
                     && pair_offsets[FieldIdx::new(1)] == *offset
@@ -758,7 +760,9 @@ pub trait LayoutCalculator {
             Variants::Multiple { tag, tag_encoding, tag_field, .. } => {
                 Variants::Multiple { tag, tag_encoding, tag_field, variants: best_layout.variants }
             }
-            _ => panic!(),
+            Variants::Single { .. } => {
+                panic!("encountered a single-variant enum during multi-variant layout")
+            }
         };
         Some(best_layout.layout)
     }
@@ -792,7 +796,7 @@ pub trait LayoutCalculator {
         let only_variant = &variants[VariantIdx::new(0)];
         for field in only_variant {
             if field.is_unsized() {
-                self.delay_bug("unsized field in union".to_string());
+                self.delayed_bug("unsized field in union".to_string());
             }
 
             align = align.max(field.align);
@@ -1025,7 +1029,7 @@ fn univariant<
     // At the bottom of this function, we invert `inverse_memory_index` to
     // produce `memory_index` (see `invert_mapping`).
     let mut sized = true;
-    let mut offsets = IndexVec::from_elem(Size::ZERO, &fields);
+    let mut offsets = IndexVec::from_elem(Size::ZERO, fields);
     let mut offset = Size::ZERO;
     let mut largest_niche = None;
     let mut largest_niche_available = 0;
@@ -1038,7 +1042,7 @@ fn univariant<
     for &i in &inverse_memory_index {
         let field = &fields[i];
         if !sized {
-            this.delay_bug(format!(
+            this.delayed_bug(format!(
                 "univariant: field #{} comes after unsized field",
                 offsets.len(),
             ));
@@ -1154,7 +1158,11 @@ fn univariant<
                                 assert_eq!(memory_index.raw, [0, 1]);
                                 offsets
                             }
-                            _ => panic!(),
+                            FieldsShape::Primitive
+                            | FieldsShape::Array { .. }
+                            | FieldsShape::Union(..) => {
+                                panic!("encountered a non-arbitrary layout during enum layout")
+                            }
                         };
                         if offsets[i] == pair_offsets[FieldIdx::new(0)]
                             && offsets[j] == pair_offsets[FieldIdx::new(1)]

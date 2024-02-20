@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-hashtable"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Pascal Kuthe <pascal.kuthe@semimod.de>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
 ]
 description = "A crate that provides hashtable based data structures optimized to utilize ObjectId keys"
 license = "MIT OR Apache-2.0"
@@ -28,7 +27,7 @@ repository = "https://github.com/Byron/gitoxide"
 doctest = false
 
 [dependencies.gix-hash]
-version = "^0.13.0"
+version = "^0.13.2"
 
 [dependencies.hashbrown]
 version = "0.14.0"

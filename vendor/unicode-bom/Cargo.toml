@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "unicode-bom"
-version = "2.0.2"
+version = "2.0.3"
 authors = ["Phil Booth <pmbooth@gmail.com>"]
 description = "Unicode byte-order mark detection for files and byte arrays."
 documentation = "https://philbooth.gitlab.io/unicode-bom/unicode_bom/"

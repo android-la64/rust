@@ -1028,7 +1028,7 @@ versions that meet the requirements `*` are: 0.5.0
 
 the package `a-sys` links to the native library `a`, but it conflicts with a previous package which links to `a` as well:
 package `foo v0.5.0 ([..])`
-Only one package in the dependency graph may specify the same links value. This helps ensure that only one copy of a native library is linked in the final binary. Try to adjust your dependencies so that only one package uses the links ='a-sys' value. For more information, see https://doc.rust-lang.org/cargo/reference/resolver.html#links.
+Only one package in the dependency graph may specify the same links value. This helps ensure that only one copy of a native library is linked in the final binary. Try to adjust your dependencies so that only one package uses the `links = \"a\"` value. For more information, see https://doc.rust-lang.org/cargo/reference/resolver.html#links.
 
 failed to select a version for `a-sys` which could resolve this conflict
 ").run();
@@ -1148,7 +1148,7 @@ versions that meet the requirements `*` are: 0.5.0
 
 the package `a-sys` links to the native library `a`, but it conflicts with a previous package which links to `a` as well:
 package `foo v0.5.0 ([..])`
-Only one package in the dependency graph may specify the same links value. This helps ensure that only one copy of a native library is linked in the final binary. Try to adjust your dependencies so that only one package uses the links ='a-sys' value. For more information, see https://doc.rust-lang.org/cargo/reference/resolver.html#links.
+Only one package in the dependency graph may specify the same links value. This helps ensure that only one copy of a native library is linked in the final binary. Try to adjust your dependencies so that only one package uses the `links = \"a\"` value. For more information, see https://doc.rust-lang.org/cargo/reference/resolver.html#links.
 
 failed to select a version for `a-sys` which could resolve this conflict
 ").run();
@@ -1716,7 +1716,7 @@ fn build_deps_not_for_normal() {
         .with_stderr_contains("[..]can't find crate for `aaaaa`[..]")
         .with_stderr_contains(
             "\
-[ERROR] could not compile `foo` (lib) due to previous error
+[ERROR] could not compile `foo` (lib) due to 1 previous error
 
 Caused by:
   process didn't exit successfully: [..]
@@ -3245,7 +3245,6 @@ fn fresh_builds_possible_with_multiple_metadata_overrides() {
         .run();
 
     p.cargo("build -v")
-        .env("CARGO_LOG", "cargo::ops::cargo_rustc::fingerprint=info")
         .with_stderr(
             "\
 [FRESH] foo v0.5.0 ([..])
@@ -3472,7 +3471,7 @@ fn rebuild_only_on_explicit_paths() {
 
     // random other files do not affect freshness
     println!("run baz");
-    p.change_file("baz", "");
+    p.change_file("baz", "// modified");
     p.cargo("build -v")
         .with_stderr(
             "\
@@ -3484,7 +3483,7 @@ fn rebuild_only_on_explicit_paths() {
 
     // but changing dependent files does
     println!("run foo change");
-    p.change_file("foo", "");
+    p.change_file("foo", "// modified");
     p.cargo("build -v")
         .with_stderr(
             "\
@@ -4382,7 +4381,7 @@ versions that meet the requirements `*` are: 0.5.0
 
 the package `a` links to the native library `a`, but it conflicts with a previous package which links to `a` as well:
 package `foo v0.5.0 ([..])`
-Only one package in the dependency graph may specify the same links value. This helps ensure that only one copy of a native library is linked in the final binary. Try to adjust your dependencies so that only one package uses the links ='a' value. For more information, see https://doc.rust-lang.org/cargo/reference/resolver.html#links.
+Only one package in the dependency graph may specify the same links value. This helps ensure that only one copy of a native library is linked in the final binary. Try to adjust your dependencies so that only one package uses the `links = \"a\"` value. For more information, see https://doc.rust-lang.org/cargo/reference/resolver.html#links.
 
 failed to select a version for `a` which could resolve this conflict
 ").run();

@@ -11,7 +11,7 @@
 
 [package]
 name = "triomphe"
-version = "0.1.8"
+version = "0.1.10"
 authors = ["The Servo Project Developers"]
 description = "A fork of std::sync::Arc with some extra functionality and without weak references (originally servo_arc)"
 readme = "README.md"

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "faster-hex"
-version = "0.8.1"
+version = "0.9.0"
 authors = ["zhangsoledad <787953403@qq.com>"]
 exclude = [
     "afl/*",

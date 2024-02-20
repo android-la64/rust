@@ -44,11 +44,13 @@ impl<T: Clone + Copy + Default + PartialEq> ParallelMoves<T> {
     }
 
     fn sources_overlap_dests(&self) -> bool {
-        // Assumes `parallel_moves` has already been sorted in `resolve()` below.
-        for &(_, dst, _) in &self.parallel_moves {
+        // Assumes `parallel_moves` has already been sorted by `dst`
+        // in `resolve()` below. The O(n log n) cost of this loop is no
+        // worse than the sort we already did.
+        for &(src, _, _) in &self.parallel_moves {
             if self
                 .parallel_moves
-                .binary_search_by_key(&dst, |&(src, _, _)| src)
+                .binary_search_by_key(&src, |&(_, dst, _)| dst)
                 .is_ok()
             {
                 return true;
@@ -75,16 +77,17 @@ impl<T: Clone + Copy + Default + PartialEq> ParallelMoves<T> {
             return MoveVecWithScratch::NoScratch(self.parallel_moves);
         }
 
-        // Sort moves by source so that we can efficiently test for
-        // presence.
+        // Sort moves so that we can efficiently test for presence.
+        // For that purpose it doesn't matter whether we sort by
+        // source or destination, but later we'll want them sorted
+        // by destination.
         self.parallel_moves
-            .sort_by_key(|&(src, dst, _)| u64_key(src.bits(), dst.bits()));
+            .sort_by_key(|&(src, dst, _)| u64_key(dst.bits(), src.bits()));
 
-        // Do any dests overlap sources? If not, we can also just
-        // return the list.
-        if !self.sources_overlap_dests() {
-            return MoveVecWithScratch::NoScratch(self.parallel_moves);
-        }
+        // Duplicate moves cannot change the semantics of this
+        // parallel move set, so remove them. This is cheap since we
+        // just sorted the list.
+        self.parallel_moves.dedup();
 
         // General case: some moves overwrite dests that other moves
         // read as sources. We'll use a general algorithm.
@@ -102,10 +105,7 @@ impl<T: Clone + Copy + Default + PartialEq> ParallelMoves<T> {
         // know we have the full cycle and we can do a cyclic move
         // sequence and continue.
 
-        // Sort moves by destination and check that each destination
-        // has only one writer.
-        self.parallel_moves.sort_by_key(|&(_, dst, _)| dst);
-        self.parallel_moves.dedup();
+        // Check that each destination has only one writer.
         if cfg!(debug_assertions) {
             let mut last_dst = None;
             for &(_, dst, _) in &self.parallel_moves {
@@ -116,70 +116,69 @@ impl<T: Clone + Copy + Default + PartialEq> ParallelMoves<T> {
             }
         }
 
+        // Moving an allocation into itself is technically a cycle but
+        // should have no effect, as long as there are no other writes
+        // into that destination.
+        self.parallel_moves.retain(|&mut (src, dst, _)| src != dst);
+
+        // Do any dests overlap sources? If not, we can also just
+        // return the list.
+        if !self.sources_overlap_dests() {
+            return MoveVecWithScratch::NoScratch(self.parallel_moves);
+        }
+
         // Construct a mapping from move indices to moves they must
         // come before. Any given move must come before a move that
         // overwrites its destination; we have moves sorted by dest
         // above so we can efficiently find such a move, if any.
-        let mut must_come_before: SmallVec<[Option<usize>; 16]> =
-            smallvec![None; self.parallel_moves.len()];
-        for (i, &(src, _, _)) in self.parallel_moves.iter().enumerate() {
-            if let Ok(move_to_dst_idx) = self
-                .parallel_moves
-                .binary_search_by_key(&src, |&(_, dst, _)| dst)
-            {
-                must_come_before[i] = Some(move_to_dst_idx);
-            }
-        }
+        const NONE: usize = usize::MAX;
+        let must_come_before: SmallVec<[usize; 16]> = self
+            .parallel_moves
+            .iter()
+            .map(|&(src, _, _)| {
+                self.parallel_moves
+                    .binary_search_by_key(&src, |&(_, dst, _)| dst)
+                    .unwrap_or(NONE)
+            })
+            .collect();
 
         // Do a simple stack-based DFS and emit moves in postorder,
         // then reverse at the end for RPO. Unlike Tarjan's SCC
         // algorithm, we can emit a cycle as soon as we find one, as
         // noted above.
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        enum State {
+            /// Not on stack, not visited
+            ToDo,
+            /// On stack, not yet visited
+            Pending,
+            /// Visited
+            Done,
+        }
         let mut ret: MoveVec<T> = smallvec![];
         let mut stack: SmallVec<[usize; 16]> = smallvec![];
-        let mut visited: SmallVec<[bool; 16]> = smallvec![false; self.parallel_moves.len()];
-        let mut onstack: SmallVec<[bool; 16]> = smallvec![false; self.parallel_moves.len()];
+        let mut state: SmallVec<[State; 16]> = smallvec![State::ToDo; self.parallel_moves.len()];
         let mut scratch_used = false;
 
-        stack.push(0);
-        onstack[0] = true;
-        loop {
-            if stack.is_empty() {
-                if let Some(next) = visited.iter().position(|&flag| !flag) {
-                    stack.push(next);
-                    onstack[next] = true;
-                } else {
-                    break;
-                }
-            }
+        while let Some(next) = state.iter().position(|&state| state == State::ToDo) {
+            stack.push(next);
+            state[next] = State::Pending;
 
-            let top = *stack.last().unwrap();
-            visited[top] = true;
-            match must_come_before[top] {
-                None => {
+            while let Some(&top) = stack.last() {
+                debug_assert_eq!(state[top], State::Pending);
+                let next = must_come_before[top];
+                if next == NONE || state[next] == State::Done {
                     ret.push(self.parallel_moves[top]);
-                    onstack[top] = false;
+                    state[top] = State::Done;
                     stack.pop();
                     while let Some(top) = stack.pop() {
                         ret.push(self.parallel_moves[top]);
-                        onstack[top] = false;
+                        state[top] = State::Done;
                     }
-                }
-                Some(next) if visited[next] && !onstack[next] => {
-                    ret.push(self.parallel_moves[top]);
-                    onstack[top] = false;
-                    stack.pop();
-                    while let Some(top) = stack.pop() {
-                        ret.push(self.parallel_moves[top]);
-                        onstack[top] = false;
-                    }
-                }
-                Some(next) if !visited[next] && !onstack[next] => {
+                } else if state[next] == State::ToDo {
                     stack.push(next);
-                    onstack[next] = true;
-                    continue;
-                }
-                Some(next) => {
+                    state[next] = State::Pending;
+                } else {
                     // Found a cycle -- emit a cyclic-move sequence
                     // for the cycle on the top of stack, then normal
                     // moves below it. Recall that these moves will be
@@ -201,29 +200,23 @@ impl<T: Clone + Copy + Default + PartialEq> ParallelMoves<T> {
                     //     C := B
                     //     B := A
                     //     A := scratch
-                    let mut last_dst = None;
-                    let mut scratch_src = None;
-                    while let Some(move_idx) = stack.pop() {
-                        onstack[move_idx] = false;
-                        let (mut src, dst, dst_t) = self.parallel_moves[move_idx];
-                        if last_dst.is_none() {
-                            scratch_src = Some(src);
-                            src = Allocation::none();
-                            scratch_used = true;
-                        } else {
-                            debug_assert_eq!(last_dst.unwrap(), src);
-                        }
-                        ret.push((src, dst, dst_t));
+                    debug_assert_ne!(top, next);
+                    state[top] = State::Done;
+                    stack.pop();
 
-                        last_dst = Some(dst);
+                    let (scratch_src, dst, dst_t) = self.parallel_moves[top];
+                    scratch_used = true;
+
+                    ret.push((Allocation::none(), dst, dst_t));
+                    while let Some(move_idx) = stack.pop() {
+                        state[move_idx] = State::Done;
+                        ret.push(self.parallel_moves[move_idx]);
 
                         if move_idx == next {
                             break;
                         }
                     }
-                    if let Some(src) = scratch_src {
-                        ret.push((src, Allocation::none(), T::default()));
-                    }
+                    ret.push((scratch_src, Allocation::none(), T::default()));
                 }
             }
         }
@@ -284,15 +277,6 @@ impl<T> MoveVecWithScratch<T> {
             MoveVecWithScratch::Scratch(..) => true,
         }
     }
-
-    /// Do any moves go from stack to stack?
-    pub fn stack_to_stack(&self, is_stack_alloc: impl Fn(Allocation) -> bool) -> bool {
-        match self {
-            MoveVecWithScratch::NoScratch(moves) | MoveVecWithScratch::Scratch(moves) => moves
-                .iter()
-                .any(|&(src, dst, _)| is_stack_alloc(src) && is_stack_alloc(dst)),
-        }
-    }
 }
 
 /// Final stage of move resolution: finding or using scratch
@@ -313,37 +297,28 @@ impl<T> MoveVecWithScratch<T> {
 ///
 /// Then, we resolve stack-to-stack moves into stack-to-reg /
 /// reg-to-stack pairs. For this, we try to allocate a second free
-/// register. If unavailable, we create another scratch stackslot, and
-/// we pick a "victim" register in the appropriate class, and we
-/// resolve into: victim -> extra-stackslot; stack-src -> victim;
-/// victim -> stack-dst; extra-stackslot -> victim.
-///
-/// Sometimes move elision will be able to clean this up a bit. But,
-/// for simplicity reasons, let's keep the concerns separated! So we
-/// always do the full expansion above.
+/// register. If unavailable, we create a new scratch stackslot to
+/// serve as a backup of one of the in-use registers, then borrow that
+/// register as the scratch register in the middle of stack-to-stack
+/// moves.
 pub struct MoveAndScratchResolver<GetReg, GetStackSlot, IsStackAlloc>
 where
     GetReg: FnMut() -> Option<Allocation>,
     GetStackSlot: FnMut() -> Allocation,
     IsStackAlloc: Fn(Allocation) -> bool,
 {
-    /// Scratch register for stack-to-stack move expansion.
-    stack_stack_scratch_reg: Option<Allocation>,
-    /// Stackslot into which we need to save the stack-to-stack
-    /// scratch reg before doing any stack-to-stack moves, if we stole
-    /// the reg.
-    stack_stack_scratch_reg_save: Option<Allocation>,
     /// Closure that finds us a PReg at the current location.
-    find_free_reg: GetReg,
+    pub find_free_reg: GetReg,
     /// Closure that gets us a stackslot, if needed.
-    get_stackslot: GetStackSlot,
+    pub get_stackslot: GetStackSlot,
     /// Closure to determine whether an `Allocation` refers to a stack slot.
-    is_stack_alloc: IsStackAlloc,
-    /// The victim PReg to evict to another stackslot at every
-    /// stack-to-stack move if a free PReg is not otherwise
-    /// available. Provided by caller and statically chosen. This is a
-    /// very last-ditch option, so static choice is OK.
-    victim: PReg,
+    pub is_stack_alloc: IsStackAlloc,
+    /// Use this register if no free register is available to use as a
+    /// temporary in stack-to-stack moves. If we do use this register
+    /// for that purpose, its value will be restored by the end of the
+    /// move sequence. Provided by caller and statically chosen. This is
+    /// a very last-ditch option, so static choice is OK.
+    pub borrowed_scratch_reg: PReg,
 }
 
 impl<GetReg, GetStackSlot, IsStackAlloc> MoveAndScratchResolver<GetReg, GetStackSlot, IsStackAlloc>
@@ -352,88 +327,129 @@ where
     GetStackSlot: FnMut() -> Allocation,
     IsStackAlloc: Fn(Allocation) -> bool,
 {
-    pub fn new(
-        find_free_reg: GetReg,
-        get_stackslot: GetStackSlot,
-        is_stack_alloc: IsStackAlloc,
-        victim: PReg,
-    ) -> Self {
-        Self {
-            stack_stack_scratch_reg: None,
-            stack_stack_scratch_reg_save: None,
-            find_free_reg,
-            get_stackslot,
-            is_stack_alloc,
-            victim,
-        }
-    }
+    pub fn compute<T: Debug + Default + Copy>(
+        mut self,
+        moves: MoveVecWithScratch<T>,
+    ) -> MoveVec<T> {
+        let moves = if moves.needs_scratch() {
+            // Now, find a scratch allocation in order to resolve cycles.
+            let scratch = (self.find_free_reg)().unwrap_or_else(|| (self.get_stackslot)());
+            trace!("scratch resolver: scratch alloc {:?}", scratch);
 
-    pub fn compute<T: Debug + Copy>(mut self, moves: MoveVecWithScratch<T>) -> MoveVec<T> {
-        // First, do we have a vec with no stack-to-stack moves or use
-        // of a scratch register? Fast return if so.
-        if !moves.needs_scratch() && !moves.stack_to_stack(&self.is_stack_alloc) {
-            return moves.without_scratch().unwrap();
+            moves.with_scratch(scratch)
+        } else {
+            moves.without_scratch().unwrap()
+        };
+
+        // Do we have any stack-to-stack moves? Fast return if not.
+        let stack_to_stack = moves
+            .iter()
+            .any(|&(src, dst, _)| self.is_stack_to_stack_move(src, dst));
+        if !stack_to_stack {
+            return moves;
         }
+
+        // Allocate a scratch register for stack-to-stack move expansion.
+        let (scratch_reg, save_slot) = if let Some(reg) = (self.find_free_reg)() {
+            trace!(
+                "scratch resolver: have free stack-to-stack scratch preg: {:?}",
+                reg
+            );
+            (reg, None)
+        } else {
+            let reg = Allocation::reg(self.borrowed_scratch_reg);
+            // Stackslot into which we need to save the stack-to-stack
+            // scratch reg before doing any stack-to-stack moves, if we stole
+            // the reg.
+            let save = (self.get_stackslot)();
+            trace!(
+                "scratch resolver: stack-to-stack borrowing {:?} with save stackslot {:?}",
+                reg,
+                save
+            );
+            (reg, Some(save))
+        };
+
+        // Mutually exclusive flags for whether either scratch_reg or
+        // save_slot need to be restored from the other. Initially,
+        // scratch_reg has a value we should preserve and save_slot
+        // has garbage.
+        let mut scratch_dirty = false;
+        let mut save_dirty = true;
 
         let mut result = smallvec![];
-
-        // Now, find a scratch allocation in order to resolve cycles.
-        let scratch = (self.find_free_reg)().unwrap_or_else(|| (self.get_stackslot)());
-        trace!("scratch resolver: scratch alloc {:?}", scratch);
-
-        let moves = moves.with_scratch(scratch);
         for &(src, dst, data) in &moves {
             // Do we have a stack-to-stack move? If so, resolve.
-            if (self.is_stack_alloc)(src) && (self.is_stack_alloc)(dst) {
+            if self.is_stack_to_stack_move(src, dst) {
                 trace!("scratch resolver: stack to stack: {:?} -> {:?}", src, dst);
-                // Lazily allocate a stack-to-stack scratch.
-                if self.stack_stack_scratch_reg.is_none() {
-                    if let Some(reg) = (self.find_free_reg)() {
-                        trace!(
-                            "scratch resolver: have free stack-to-stack scratch preg: {:?}",
-                            reg
-                        );
-                        self.stack_stack_scratch_reg = Some(reg);
-                    } else {
-                        self.stack_stack_scratch_reg = Some(Allocation::reg(self.victim));
-                        self.stack_stack_scratch_reg_save = Some((self.get_stackslot)());
-                        trace!("scratch resolver: stack-to-stack using victim {:?} with save stackslot {:?}",
-                                    self.stack_stack_scratch_reg,
-                                    self.stack_stack_scratch_reg_save);
+
+                // If the selected scratch register is stolen from the
+                // set of in-use registers, then we need to save the
+                // current contents of the scratch register before using
+                // it as a temporary.
+                if let Some(save_slot) = save_slot {
+                    // However we may have already done so for an earlier
+                    // stack-to-stack move in which case we don't need
+                    // to do it again.
+                    if save_dirty {
+                        debug_assert!(!scratch_dirty);
+                        result.push((scratch_reg, save_slot, T::default()));
+                        save_dirty = false;
                     }
                 }
 
-                // If we have a "victimless scratch", then do a
-                // stack-to-scratch / scratch-to-stack sequence.
-                if self.stack_stack_scratch_reg_save.is_none() {
-                    result.push((src, self.stack_stack_scratch_reg.unwrap(), data));
-                    result.push((self.stack_stack_scratch_reg.unwrap(), dst, data));
-                }
-                // Otherwise, save the current value in the
-                // stack-to-stack scratch reg (which is our victim) to
-                // the extra stackslot, then do the stack-to-scratch /
-                // scratch-to-stack sequence, then restore it.
-                else {
-                    result.push((
-                        self.stack_stack_scratch_reg.unwrap(),
-                        self.stack_stack_scratch_reg_save.unwrap(),
-                        data,
-                    ));
-                    result.push((src, self.stack_stack_scratch_reg.unwrap(), data));
-                    result.push((self.stack_stack_scratch_reg.unwrap(), dst, data));
-                    result.push((
-                        self.stack_stack_scratch_reg_save.unwrap(),
-                        self.stack_stack_scratch_reg.unwrap(),
-                        data,
-                    ));
-                }
+                // We can't move directly from one stack slot to another
+                // on any architecture we care about, so stack-to-stack
+                // moves must go via a scratch register.
+                result.push((src, scratch_reg, data));
+                result.push((scratch_reg, dst, data));
+                scratch_dirty = true;
             } else {
-                // Normal move.
+                // This is not a stack-to-stack move, but we need to
+                // make sure that the scratch register is in the correct
+                // state if this move interacts with that register.
+                if src == scratch_reg && scratch_dirty {
+                    // We're copying from the scratch register so if
+                    // it was stolen for a stack-to-stack move then we
+                    // need to make sure it has the correct contents,
+                    // not whatever was temporarily copied into it. If
+                    // we got scratch_reg from find_free_reg then it
+                    // had better not have been used as the source of
+                    // a move. So if we're here it's because we fell
+                    // back to the caller-provided last-resort scratch
+                    // register, and we must therefore have a save-slot
+                    // allocated too.
+                    debug_assert!(!save_dirty);
+                    let save_slot = save_slot.expect("move source should not be a free register");
+                    result.push((save_slot, scratch_reg, T::default()));
+                    scratch_dirty = false;
+                }
+                if dst == scratch_reg {
+                    // We are writing something to the scratch register
+                    // so it doesn't matter what was there before. We
+                    // can avoid restoring it, but we will need to save
+                    // it again before the next stack-to-stack move.
+                    scratch_dirty = false;
+                    save_dirty = true;
+                }
                 result.push((src, dst, data));
+            }
+        }
+
+        // Now that all the stack-to-stack moves are done, restore the
+        // scratch register if necessary.
+        if let Some(save_slot) = save_slot {
+            if scratch_dirty {
+                debug_assert!(!save_dirty);
+                result.push((save_slot, scratch_reg, T::default()));
             }
         }
 
         trace!("scratch resolver: got {:?}", result);
         result
+    }
+
+    fn is_stack_to_stack_move(&self, src: Allocation, dst: Allocation) -> bool {
+        (self.is_stack_alloc)(src) && (self.is_stack_alloc)(dst)
     }
 }

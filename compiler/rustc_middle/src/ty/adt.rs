@@ -99,7 +99,7 @@ pub struct AdtDefData {
 
 impl PartialOrd for AdtDefData {
     fn partial_cmp(&self, other: &AdtDefData) -> Option<Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 
@@ -375,7 +375,7 @@ impl<'tcx> AdtDef<'tcx> {
     /// Asserts this is a struct or union and returns its unique variant.
     pub fn non_enum_variant(self) -> &'tcx VariantDef {
         assert!(self.is_struct() || self.is_union());
-        &self.variant(FIRST_VARIANT)
+        self.variant(FIRST_VARIANT)
     }
 
     #[inline]
@@ -481,7 +481,7 @@ impl<'tcx> AdtDef<'tcx> {
                     ErrorHandled::Reported(..) => "enum discriminant evaluation failed",
                     ErrorHandled::TooGeneric(..) => "enum discriminant depends on generics",
                 };
-                tcx.sess.delay_span_bug(tcx.def_span(expr_did), msg);
+                tcx.sess.span_delayed_bug(tcx.def_span(expr_did), msg);
                 None
             }
         }

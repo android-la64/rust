@@ -164,6 +164,10 @@ macro_rules! isle_common_prelude_methods {
             0 == value
         }
 
+        fn i64_is_zero(&mut self, value: i64) -> bool {
+            0 == value
+        }
+
         #[inline]
         fn u64_is_odd(&mut self, x: u64) -> bool {
             x & 1 == 1
@@ -372,6 +376,15 @@ macro_rules! isle_common_prelude_methods {
         #[inline]
         fn ty_8_or_16(&mut self, ty: Type) -> Option<Type> {
             if ty.bits() == 8 || ty.bits() == 16 {
+                Some(ty)
+            } else {
+                None
+            }
+        }
+
+        #[inline]
+        fn ty_16_or_32(&mut self, ty: Type) -> Option<Type> {
+            if ty.bits() == 16 || ty.bits() == 32 {
                 Some(ty)
             } else {
                 None

@@ -1,5 +1,5 @@
 use rustc_errors::{
-    AddToDiagnostic, DiagnosticBuilder, EmissionGuarantee, Handler, IntoDiagnostic, MultiSpan,
+    AddToDiagnostic, DiagCtxt, DiagnosticBuilder, ErrorGuaranteed, IntoDiagnostic, MultiSpan,
     SingleLabelManySpans,
 };
 use rustc_macros::{Diagnostic, Subdiagnostic};
@@ -446,14 +446,14 @@ pub(crate) struct EnvNotDefinedWithUserMessage {
 }
 
 // Hand-written implementation to support custom user messages.
-impl<'a, G: EmissionGuarantee> IntoDiagnostic<'a, G> for EnvNotDefinedWithUserMessage {
+impl<'a> IntoDiagnostic<'a> for EnvNotDefinedWithUserMessage {
     #[track_caller]
-    fn into_diagnostic(self, handler: &'a Handler) -> DiagnosticBuilder<'a, G> {
+    fn into_diagnostic(self, dcx: &'a DiagCtxt) -> DiagnosticBuilder<'a, ErrorGuaranteed> {
         #[expect(
             rustc::untranslatable_diagnostic,
             reason = "cannot translate user-provided messages"
         )]
-        let mut diag = handler.struct_diagnostic(self.msg_from_user.to_string());
+        let mut diag = dcx.struct_err(self.msg_from_user.to_string());
         diag.set_span(self.span);
         diag
     }
@@ -801,18 +801,17 @@ pub(crate) struct AsmClobberNoReg {
     pub(crate) clobbers: Vec<Span>,
 }
 
-impl<'a, G: EmissionGuarantee> IntoDiagnostic<'a, G> for AsmClobberNoReg {
-    fn into_diagnostic(self, handler: &'a Handler) -> DiagnosticBuilder<'a, G> {
-        let mut diag =
-            handler.struct_diagnostic(crate::fluent_generated::builtin_macros_asm_clobber_no_reg);
+impl<'a> IntoDiagnostic<'a> for AsmClobberNoReg {
+    fn into_diagnostic(self, dcx: &'a DiagCtxt) -> DiagnosticBuilder<'a, ErrorGuaranteed> {
+        let mut diag = dcx.struct_err(crate::fluent_generated::builtin_macros_asm_clobber_no_reg);
         diag.set_span(self.spans.clone());
         // eager translation as `span_labels` takes `AsRef<str>`
-        let lbl1 = handler.eagerly_translate_to_string(
+        let lbl1 = dcx.eagerly_translate_to_string(
             crate::fluent_generated::builtin_macros_asm_clobber_abi,
             [].into_iter(),
         );
         diag.span_labels(self.clobbers, &lbl1);
-        let lbl2 = handler.eagerly_translate_to_string(
+        let lbl2 = dcx.eagerly_translate_to_string(
             crate::fluent_generated::builtin_macros_asm_clobber_outputs,
             [].into_iter(),
         );

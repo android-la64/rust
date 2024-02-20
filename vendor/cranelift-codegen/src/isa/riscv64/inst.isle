@@ -22,7 +22,7 @@
     ;; An ALU operation with one register sources and a register destination.
     (FpuRR
       (alu_op FpuOPRR)
-      (frm OptionFloatRoundingMode)
+      (frm FRM)
       (rd WritableReg)
       (rs Reg))
 
@@ -37,7 +37,7 @@
     ;; An ALU operation with two register sources and a register destination.
     (FpuRRR
       (alu_op FpuOPRRR)
-      (frm OptionFloatRoundingMode)
+      (frm FRM)
       (rd WritableReg)
       (rs1 Reg)
       (rs2 Reg))
@@ -45,7 +45,7 @@
     ;; An ALU operation with three register sources and a register destination.
     (FpuRRRR
       (alu_op FpuOPRRRR)
-      (frm OptionFloatRoundingMode)
+      (frm FRM)
       (rd WritableReg)
       (rs1 Reg)
       (rs2 Reg)
@@ -103,8 +103,6 @@
       (from_bits u8)
       (to_bits u8))
 
-    (AdjustSp
-      (amount i64))
     (Call
       (info BoxCallInfo))
 
@@ -241,21 +239,6 @@
       (addr Reg)
       (v Reg)
       (ty Type))
-    ;; an integer compare.
-    (Icmp
-      (cc IntCC)
-      (rd WritableReg)
-      (a ValueRegs)
-      (b ValueRegs)
-      (ty Type))
-    (FcvtToInt
-      (is_sat bool)
-      (rd WritableReg)
-      (tmp WritableReg) ;; a float register to load bounds.
-      (rs Reg)
-      (is_signed bool)
-      (in_type Type)
-      (out_type Type))
 
     (RawData (data VecU8))
 
@@ -273,15 +256,6 @@
       (int_tmp WritableReg)
       (f_tmp WritableReg)
       (rs Reg)
-      (ty Type))
-    ;;;; FMax
-    (FloatSelect
-      (op FloatSelectOP)
-      (rd WritableReg)
-      ;; a integer register
-      (tmp WritableReg)
-      (rs1 Reg)
-      (rs2 Reg)
       (ty Type))
 
     ;; popcnt  if target doesn't support extension B
@@ -302,13 +276,7 @@
       (tmp WritableReg)
       (rs Reg)
       (ty Type))
-    ;; Byte-reverse register
-    (Rev8
-      (rs Reg)
-      (step WritableReg)
-      (tmp WritableReg)
-      (rd WritableReg))
-    ;;
+
     (Brev8
       (rs Reg)
       (ty Type)
@@ -390,11 +358,6 @@
       (vstate VState))
 ))
 
-
-(type FloatSelectOP (enum
-  (Max)
-  (Min)
-))
 
 (type FloatRoundOP (enum
   (Nearest)
@@ -860,7 +823,6 @@
 (type Imm20 (primitive Imm20))
 (type Imm3 (primitive Imm3))
 (type CondBrTarget (primitive CondBrTarget))
-(type OptionFloatRoundingMode (primitive OptionFloatRoundingMode))
 (type VecU8 (primitive VecU8))
 (type AMO (primitive AMO))
 (type VecMachLabel extern (enum))
@@ -1098,15 +1060,6 @@
       (_ Unit (emit (MInst.FloatRound op rd tmp tmp2 rs ty))))
     (writable_reg_to_reg rd)))
 
-(decl gen_float_select (FloatSelectOP Reg Reg Type) Reg)
-(rule
-  (gen_float_select op x y ty)
-  (let
-    ((rd WritableReg (temp_writable_reg ty))
-      (tmp WritableXReg (temp_writable_xreg))
-      (_ Unit (emit (MInst.FloatSelect op rd tmp x y ty))))
-    (writable_reg_to_reg rd)))
-
 
 ;;;; Instruction Helpers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1214,6 +1167,12 @@
 (rule (rv_andi rs1 imm)
   (alu_rr_imm12 (AluOPRRI.Andi) rs1 imm))
 
+;; Helper for emitting the `slt` ("Set Less Than") instruction.
+;; rd ← rs1 < rs2
+(decl rv_slt (XReg XReg) XReg)
+(rule (rv_slt rs1 rs2)
+  (alu_rrr (AluOPRRR.Slt) rs1 rs2))
+
 ;; Helper for emitting the `sltu` ("Set Less Than Unsigned") instruction.
 ;; rd ← rs1 < rs2
 (decl rv_sltu (XReg XReg) XReg)
@@ -1225,6 +1184,12 @@
 (decl rv_snez (XReg) XReg)
 (rule (rv_snez rs1)
   (rv_sltu (zero_reg) rs1))
+
+;; Helper for emiting the `slti` ("Set Less Than Immediate") instruction.
+;; rd ← rs1 < imm
+(decl rv_slti (XReg Imm12) XReg)
+(rule (rv_slti rs1 imm)
+  (alu_rr_imm12 (AluOPRRI.Slti) rs1 imm))
 
 ;; Helper for emiting the `sltiu` ("Set Less Than Immediate Unsigned") instruction.
 ;; rd ← rs1 < imm
@@ -1386,104 +1351,156 @@
 ;; TODO: Enable these instructions only when we have the F or D extensions
 
 ;; Helper for emitting the `fadd` instruction.
-(decl rv_fadd (Type FReg FReg) FReg)
-(rule (rv_fadd $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FaddS) $F32 rs1 rs2))
-(rule (rv_fadd $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FaddD) $F64 rs1 rs2))
+(decl rv_fadd (Type FRM FReg FReg) FReg)
+(rule (rv_fadd $F32 frm rs1 rs2) (fpu_rrr (FpuOPRRR.FaddS) $F32 frm rs1 rs2))
+(rule (rv_fadd $F64 frm rs1 rs2) (fpu_rrr (FpuOPRRR.FaddD) $F64 frm rs1 rs2))
 
 ;; Helper for emitting the `fsub` instruction.
-(decl rv_fsub (Type FReg FReg) FReg)
-(rule (rv_fsub $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FsubS) $F32 rs1 rs2))
-(rule (rv_fsub $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FsubD) $F64 rs1 rs2))
+(decl rv_fsub (Type FRM FReg FReg) FReg)
+(rule (rv_fsub $F32 frm rs1 rs2) (fpu_rrr (FpuOPRRR.FsubS) $F32 frm rs1 rs2))
+(rule (rv_fsub $F64 frm rs1 rs2) (fpu_rrr (FpuOPRRR.FsubD) $F64 frm rs1 rs2))
 
 ;; Helper for emitting the `fmul` instruction.
-(decl rv_fmul (Type FReg FReg) FReg)
-(rule (rv_fmul $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FmulS) $F32 rs1 rs2))
-(rule (rv_fmul $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FmulD) $F64 rs1 rs2))
+(decl rv_fmul (Type FRM FReg FReg) FReg)
+(rule (rv_fmul $F32 frm rs1 rs2) (fpu_rrr (FpuOPRRR.FmulS) $F32 frm rs1 rs2))
+(rule (rv_fmul $F64 frm rs1 rs2) (fpu_rrr (FpuOPRRR.FmulD) $F64 frm rs1 rs2))
 
 ;; Helper for emitting the `fdiv` instruction.
-(decl rv_fdiv (Type FReg FReg) FReg)
-(rule (rv_fdiv $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FdivS) $F32 rs1 rs2))
-(rule (rv_fdiv $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FdivD) $F64 rs1 rs2))
+(decl rv_fdiv (Type FRM FReg FReg) FReg)
+(rule (rv_fdiv $F32 frm rs1 rs2) (fpu_rrr (FpuOPRRR.FdivS) $F32 frm rs1 rs2))
+(rule (rv_fdiv $F64 frm rs1 rs2) (fpu_rrr (FpuOPRRR.FdivD) $F64 frm rs1 rs2))
 
 ;; Helper for emitting the `fsqrt` instruction.
-(decl rv_fsqrt (Type FReg) FReg)
-(rule (rv_fsqrt $F32 rs1) (fpu_rr (FpuOPRR.FsqrtS) $F32 rs1))
-(rule (rv_fsqrt $F64 rs1) (fpu_rr (FpuOPRR.FsqrtD) $F64 rs1))
+(decl rv_fsqrt (Type FRM FReg) FReg)
+(rule (rv_fsqrt $F32 frm rs1) (fpu_rr (FpuOPRR.FsqrtS) $F32 frm rs1))
+(rule (rv_fsqrt $F64 frm rs1) (fpu_rr (FpuOPRR.FsqrtD) $F64 frm rs1))
 
 ;; Helper for emitting the `fmadd` instruction.
-(decl rv_fmadd (Type FReg FReg FReg) FReg)
-(rule (rv_fmadd $F32 rs1 rs2 rs3) (fpu_rrrr (FpuOPRRRR.FmaddS) $F32 rs1 rs2 rs3))
-(rule (rv_fmadd $F64 rs1 rs2 rs3) (fpu_rrrr (FpuOPRRRR.FmaddD) $F64 rs1 rs2 rs3))
+(decl rv_fmadd (Type FRM FReg FReg FReg) FReg)
+(rule (rv_fmadd $F32 frm rs1 rs2 rs3) (fpu_rrrr (FpuOPRRRR.FmaddS) $F32 frm rs1 rs2 rs3))
+(rule (rv_fmadd $F64 frm rs1 rs2 rs3) (fpu_rrrr (FpuOPRRRR.FmaddD) $F64 frm rs1 rs2 rs3))
 
 ;; Helper for emitting the `fmv.x.w` instruction.
 (decl rv_fmvxw (FReg) XReg)
-(rule (rv_fmvxw r) (fpu_rr (FpuOPRR.FmvXW) $I32 r))
+(rule (rv_fmvxw r) (fpu_rr (FpuOPRR.FmvXW) $I32 (FRM.RNE) r))
 
 ;; Helper for emitting the `fmv.x.d` instruction.
 (decl rv_fmvxd (FReg) XReg)
-(rule (rv_fmvxd r) (fpu_rr (FpuOPRR.FmvXD) $I64 r))
+(rule (rv_fmvxd r) (fpu_rr (FpuOPRR.FmvXD) $I64 (FRM.RNE) r))
 
 ;; Helper for emitting the `fmv.w.x` instruction.
 (decl rv_fmvwx (XReg) FReg)
-(rule (rv_fmvwx r) (fpu_rr (FpuOPRR.FmvWX) $F32 r))
+(rule (rv_fmvwx r) (fpu_rr (FpuOPRR.FmvWX) $F32 (FRM.RNE) r))
 
 ;; Helper for emitting the `fmv.d.x` instruction.
 (decl rv_fmvdx (XReg) FReg)
-(rule (rv_fmvdx r) (fpu_rr (FpuOPRR.FmvDX) $F64 r))
+(rule (rv_fmvdx r) (fpu_rr (FpuOPRR.FmvDX) $F64 (FRM.RNE) r))
 
 ;; Helper for emitting the `fcvt.d.s` ("Float Convert Double to Single") instruction.
 (decl rv_fcvtds (FReg) FReg)
-(rule (rv_fcvtds rs1) (fpu_rr (FpuOPRR.FcvtDS) $F32 rs1))
+(rule (rv_fcvtds rs1) (fpu_rr (FpuOPRR.FcvtDS) $F32 (FRM.RNE) rs1))
 
 ;; Helper for emitting the `fcvt.s.d` ("Float Convert Single to Double") instruction.
-(decl rv_fcvtsd (FReg) FReg)
-(rule (rv_fcvtsd rs1) (fpu_rr (FpuOPRR.FcvtSD) $F64 rs1))
+(decl rv_fcvtsd (FRM FReg) FReg)
+(rule (rv_fcvtsd frm rs1) (fpu_rr (FpuOPRR.FcvtSD) $F64 frm rs1))
 
 ;; Helper for emitting the `fcvt.s.w` instruction.
-(decl rv_fcvtsw (XReg) FReg)
-(rule (rv_fcvtsw rs1) (fpu_rr (FpuOPRR.FcvtSw) $F32 rs1))
+(decl rv_fcvtsw (FRM XReg) FReg)
+(rule (rv_fcvtsw frm rs1) (fpu_rr (FpuOPRR.FcvtSw) $F32 frm rs1))
 
 ;; Helper for emitting the `fcvt.s.wu` instruction.
-(decl rv_fcvtswu (XReg) FReg)
-(rule (rv_fcvtswu rs1) (fpu_rr (FpuOPRR.FcvtSwU) $F32 rs1))
+(decl rv_fcvtswu (FRM XReg) FReg)
+(rule (rv_fcvtswu frm rs1) (fpu_rr (FpuOPRR.FcvtSwU) $F32 frm rs1))
 
 ;; Helper for emitting the `fcvt.d.w` instruction.
 (decl rv_fcvtdw (XReg) FReg)
-(rule (rv_fcvtdw rs1) (fpu_rr (FpuOPRR.FcvtDW) $F32 rs1))
+(rule (rv_fcvtdw rs1) (fpu_rr (FpuOPRR.FcvtDW) $F32 (FRM.RNE) rs1))
 
 ;; Helper for emitting the `fcvt.d.wu` instruction.
 (decl rv_fcvtdwu (XReg) FReg)
-(rule (rv_fcvtdwu rs1) (fpu_rr (FpuOPRR.FcvtDWU) $F32 rs1))
+(rule (rv_fcvtdwu rs1) (fpu_rr (FpuOPRR.FcvtDWU) $F32 (FRM.RNE) rs1))
 
 ;; Helper for emitting the `fcvt.s.l` instruction.
-(decl rv_fcvtsl (XReg) FReg)
-(rule (rv_fcvtsl rs1) (fpu_rr (FpuOPRR.FcvtSL) $F32 rs1))
+(decl rv_fcvtsl (FRM XReg) FReg)
+(rule (rv_fcvtsl frm rs1) (fpu_rr (FpuOPRR.FcvtSL) $F32 frm rs1))
 
 ;; Helper for emitting the `fcvt.s.lu` instruction.
-(decl rv_fcvtslu (XReg) FReg)
-(rule (rv_fcvtslu rs1) (fpu_rr (FpuOPRR.FcvtSLU) $F32 rs1))
+(decl rv_fcvtslu (FRM XReg) FReg)
+(rule (rv_fcvtslu frm rs1) (fpu_rr (FpuOPRR.FcvtSLU) $F32 frm rs1))
 
 ;; Helper for emitting the `fcvt.d.l` instruction.
-(decl rv_fcvtdl (XReg) FReg)
-(rule (rv_fcvtdl rs1) (fpu_rr (FpuOPRR.FcvtDL) $F32 rs1))
+(decl rv_fcvtdl (FRM XReg) FReg)
+(rule (rv_fcvtdl frm rs1) (fpu_rr (FpuOPRR.FcvtDL) $F32 frm rs1))
 
 ;; Helper for emitting the `fcvt.d.lu` instruction.
-(decl rv_fcvtdlu (XReg) FReg)
-(rule (rv_fcvtdlu rs1) (fpu_rr (FpuOPRR.FcvtDLu) $F32 rs1))
+(decl rv_fcvtdlu (FRM XReg) FReg)
+(rule (rv_fcvtdlu frm rs1) (fpu_rr (FpuOPRR.FcvtDLu) $F32 frm rs1))
+
+;; Helper for emitting the `fcvt.w.s` instruction.
+(decl rv_fcvtws (FRM FReg) XReg)
+(rule (rv_fcvtws frm rs1) (fpu_rr (FpuOPRR.FcvtWS) $I64 frm rs1))
+
+;; Helper for emitting the `fcvt.l.s` instruction.
+(decl rv_fcvtls (FRM FReg) XReg)
+(rule (rv_fcvtls frm rs1) (fpu_rr (FpuOPRR.FcvtLS) $I64 frm rs1))
+
+;; Helper for emitting the `fcvt.wu.s` instruction.
+(decl rv_fcvtwus (FRM FReg) XReg)
+(rule (rv_fcvtwus frm rs1) (fpu_rr (FpuOPRR.FcvtWuS) $I64 frm rs1))
+
+;; Helper for emitting the `fcvt.lu.s` instruction.
+(decl rv_fcvtlus (FRM FReg) XReg)
+(rule (rv_fcvtlus frm rs1) (fpu_rr (FpuOPRR.FcvtLuS) $I64 frm rs1))
+
+;; Helper for emitting the `fcvt.w.d` instruction.
+(decl rv_fcvtwd (FRM FReg) XReg)
+(rule (rv_fcvtwd frm rs1) (fpu_rr (FpuOPRR.FcvtWD) $I64 frm rs1))
+
+;; Helper for emitting the `fcvt.l.d` instruction.
+(decl rv_fcvtld (FRM FReg) XReg)
+(rule (rv_fcvtld frm rs1) (fpu_rr (FpuOPRR.FcvtLD) $I64 frm rs1))
+
+;; Helper for emitting the `fcvt.wu.d` instruction.
+(decl rv_fcvtwud (FRM FReg) XReg)
+(rule (rv_fcvtwud frm rs1) (fpu_rr (FpuOPRR.FcvtWuD) $I64 frm rs1))
+
+;; Helper for emitting the `fcvt.lu.d` instruction.
+(decl rv_fcvtlud (FRM FReg) XReg)
+(rule (rv_fcvtlud frm rs1) (fpu_rr (FpuOPRR.FcvtLuD) $I64 frm rs1))
+
+;; Helper for emitting the `fcvt.w.*` instructions.
+(decl rv_fcvtw (Type FRM FReg) XReg)
+(rule (rv_fcvtw $F32 frm rs1) (rv_fcvtws frm rs1))
+(rule (rv_fcvtw $F64 frm rs1) (rv_fcvtwd frm rs1))
+
+;; Helper for emitting the `fcvt.l.*` instructions.
+(decl rv_fcvtl (Type FRM FReg) XReg)
+(rule (rv_fcvtl $F32 frm rs1) (rv_fcvtls frm rs1))
+(rule (rv_fcvtl $F64 frm rs1) (rv_fcvtld frm rs1))
+
+;; Helper for emitting the `fcvt.wu.*` instructions.
+(decl rv_fcvtwu (Type FRM FReg) XReg)
+(rule (rv_fcvtwu $F32 frm rs1) (rv_fcvtwus frm rs1))
+(rule (rv_fcvtwu $F64 frm rs1) (rv_fcvtwud frm rs1))
+
+;; Helper for emitting the `fcvt.lu.*` instructions.
+(decl rv_fcvtlu (Type FRM FReg) XReg)
+(rule (rv_fcvtlu $F32 frm rs1) (rv_fcvtlus frm rs1))
+(rule (rv_fcvtlu $F64 frm rs1) (rv_fcvtlud frm rs1))
 
 ;; Helper for emitting the `fsgnj` ("Floating Point Sign Injection") instruction.
 ;; The output of this instruction is `rs1` with the sign bit from `rs2`
 ;; This implements the `copysign` operation
 (decl rv_fsgnj (Type FReg FReg) FReg)
-(rule (rv_fsgnj $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjS) $F32 rs1 rs2))
-(rule (rv_fsgnj $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjD) $F64 rs1 rs2))
+(rule (rv_fsgnj $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjS) $F32 (FRM.RNE) rs1 rs2))
+(rule (rv_fsgnj $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjD) $F64 (FRM.RNE) rs1 rs2))
 
 ;; Helper for emitting the `fsgnjn` ("Floating Point Sign Injection Negated") instruction.
 ;; The output of this instruction is `rs1` with the negated sign bit from `rs2`
 ;; When `rs1 == rs2` this implements the `neg` operation
 (decl rv_fsgnjn (Type FReg FReg) FReg)
-(rule (rv_fsgnjn $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjnS) $F32 rs1 rs2))
-(rule (rv_fsgnjn $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjnD) $F64 rs1 rs2))
+(rule (rv_fsgnjn $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjnS) $F32 (FRM.RTZ) rs1 rs2))
+(rule (rv_fsgnjn $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjnD) $F64 (FRM.RTZ) rs1 rs2))
 
 ;; Helper for emitting the `fneg` ("Floating Point Negate") instruction.
 ;; This instruction is a mnemonic for `fsgnjn rd, rs1, rs1`
@@ -1494,8 +1511,8 @@
 ;; The output of this instruction is `rs1` with the XOR of the sign bits from `rs1` and `rs2`.
 ;; When `rs1 == rs2` this implements `fabs`
 (decl rv_fsgnjx (Type FReg FReg) FReg)
-(rule (rv_fsgnjx $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjxS) $F32 rs1 rs2))
-(rule (rv_fsgnjx $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjxD) $F64 rs1 rs2))
+(rule (rv_fsgnjx $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjxS) $F32 (FRM.RDN) rs1 rs2))
+(rule (rv_fsgnjx $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FsgnjxD) $F64 (FRM.RDN) rs1 rs2))
 
 ;; Helper for emitting the `fabs` ("Floating Point Absolute") instruction.
 ;; This instruction is a mnemonic for `fsgnjx rd, rs1, rs1`
@@ -1504,18 +1521,18 @@
 
 ;; Helper for emitting the `feq` ("Float Equal") instruction.
 (decl rv_feq (Type FReg FReg) XReg)
-(rule (rv_feq $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FeqS) $I64 rs1 rs2))
-(rule (rv_feq $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FeqD) $I64 rs1 rs2))
+(rule (rv_feq $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FeqS) $I64 (FRM.RDN) rs1 rs2))
+(rule (rv_feq $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FeqD) $I64 (FRM.RDN) rs1 rs2))
 
 ;; Helper for emitting the `flt` ("Float Less Than") instruction.
 (decl rv_flt (Type FReg FReg) XReg)
-(rule (rv_flt $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FltS) $I64 rs1 rs2))
-(rule (rv_flt $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FltD) $I64 rs1 rs2))
+(rule (rv_flt $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FltS) $I64 (FRM.RTZ) rs1 rs2))
+(rule (rv_flt $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FltD) $I64 (FRM.RTZ) rs1 rs2))
 
 ;; Helper for emitting the `fle` ("Float Less Than or Equal") instruction.
 (decl rv_fle (Type FReg FReg) XReg)
-(rule (rv_fle $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FleS) $I64 rs1 rs2))
-(rule (rv_fle $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FleD) $I64 rs1 rs2))
+(rule (rv_fle $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FleS) $I64 (FRM.RNE) rs1 rs2))
+(rule (rv_fle $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FleD) $I64 (FRM.RNE) rs1 rs2))
 
 ;; Helper for emitting the `fgt` ("Float Greater Than") instruction.
 ;; Note: The arguments are reversed
@@ -1526,6 +1543,16 @@
 ;; Note: The arguments are reversed
 (decl rv_fge (Type FReg FReg) XReg)
 (rule (rv_fge ty rs1 rs2) (rv_fle ty rs2 rs1))
+
+;; Helper for emitting the `fmin` instruction.
+(decl rv_fmin (Type FReg FReg) FReg)
+(rule (rv_fmin $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FminS) $F32 (FRM.RNE) rs1 rs2))
+(rule (rv_fmin $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FminD) $F64 (FRM.RNE) rs1 rs2))
+
+;; Helper for emitting the `fmax` instruction.
+(decl rv_fmax (Type FReg FReg) FReg)
+(rule (rv_fmax $F32 rs1 rs2) (fpu_rrr (FpuOPRRR.FmaxS) $F32 (FRM.RTZ) rs1 rs2))
+(rule (rv_fmax $F64 rs1 rs2) (fpu_rrr (FpuOPRRR.FmaxD) $F64 (FRM.RTZ) rs1 rs2))
 
 
 ;; `Zba` Extension Instructions
@@ -1556,13 +1583,23 @@
 ;; rd ← rs1 ∧ ~(rs2)
 (decl rv_andn (XReg XReg) XReg)
 (rule (rv_andn rs1 rs2)
+  (if-let $true (has_zbb))
   (alu_rrr (AluOPRRR.Andn) rs1 rs2))
+(rule (rv_andn rs1 rs2)
+  (if-let $false (has_zbb))
+  (rv_and rs1 (rv_not rs2)))
 
 ;; Helper for emitting the `orn` ("Or Negated") instruction.
 ;; rd ← rs1 ∨ ~(rs2)
 (decl rv_orn (XReg XReg) XReg)
 (rule (rv_orn rs1 rs2)
   (alu_rrr (AluOPRRR.Orn) rs1 rs2))
+
+;; Helper for emitting the `xnor` ("Exclusive NOR") instruction.
+;; rd ← ~(rs1 ^ rs2)
+(decl rv_xnor (XReg XReg) XReg)
+(rule (rv_xnor rs1 rs2)
+  (alu_rrr (AluOPRRR.Xnor) rs1 rs2))
 
 ;; Helper for emitting the `clz` ("Count Leading Zero Bits") instruction.
 (decl rv_clz (XReg) XReg)
@@ -1649,6 +1686,16 @@
 (rule (rv_rorw rs1 rs2)
   (alu_rrr (AluOPRRR.Rorw) rs1 rs2))
 
+;; Helper for emitting the `rori` ("Rotate Right") instruction.
+(decl rv_rori (XReg Imm12) XReg)
+(rule (rv_rori rs1 rs2)
+  (alu_rr_imm12 (AluOPRRI.Rori) rs1 rs2))
+
+;; Helper for emitting the `roriw` ("Rotate Right Word") instruction.
+(decl rv_roriw (XReg Imm12) XReg)
+(rule (rv_roriw rs1 rs2)
+  (alu_rr_imm12 (AluOPRRI.Roriw) rs1 rs2))
+
 ;; Helper for emitting the `rev8` ("Byte Reverse") instruction.
 (decl rv_rev8 (XReg) XReg)
 (rule (rv_rev8 rs1)
@@ -1662,11 +1709,40 @@
 (rule (rv_brev8 rs1)
   (alu_rr_funct12 (AluOPRRI.Brev8) rs1))
 
+;; `Zbs` Extension Instructions
+
+(decl rv_bclr (XReg XReg) XReg)
+(rule (rv_bclr rs1 rs2)
+  (alu_rrr (AluOPRRR.Bclr) rs1 rs2))
+
+(decl rv_bclri (XReg Imm12) XReg)
+(rule (rv_bclri rs1 imm)
+  (alu_rr_imm12 (AluOPRRI.Bclri) rs1 imm))
+
+(decl rv_bext (XReg XReg) XReg)
+(rule (rv_bext rs1 rs2)
+  (alu_rrr (AluOPRRR.Bext) rs1 rs2))
+
+(decl rv_bexti (XReg Imm12) XReg)
+(rule (rv_bexti rs1 imm)
+  (alu_rr_imm12 (AluOPRRI.Bexti) rs1 imm))
+
+(decl rv_binv (XReg XReg) XReg)
+(rule (rv_binv rs1 rs2)
+  (alu_rrr (AluOPRRR.Binv) rs1 rs2))
+
+(decl rv_binvi (XReg Imm12) XReg)
+(rule (rv_binvi rs1 imm)
+  (alu_rr_imm12 (AluOPRRI.Binvi) rs1 imm))
+
+(decl rv_bset (XReg XReg) XReg)
+(rule (rv_bset rs1 rs2)
+  (alu_rrr (AluOPRRR.Bset) rs1 rs2))
+
 ;; Helper for emitting the `bseti` ("Single-Bit Set Immediate") instruction.
 (decl rv_bseti (XReg Imm12) XReg)
 (rule (rv_bseti rs1 imm)
   (alu_rr_imm12 (AluOPRRI.Bseti) rs1 imm))
-
 
 ;; `Zbkb` Extension Instructions
 
@@ -1707,9 +1783,6 @@
 
 
 
-;; Generate a mask for the bit-width of the given type
-(decl pure shift_mask (Type) u64)
-(rule (shift_mask ty) (u64_sub (ty_bits (lane_type ty)) 1))
 
 ;; Helper for generating a i64 from a pair of Imm20 and Imm12 constants
 (decl i64_generate_imm (Imm20 Imm12) i64)
@@ -1799,6 +1872,10 @@
 (decl imm12_const_add (i32 i32) Imm12)
 (extern constructor imm12_const_add imm12_const_add)
 
+;; Performs a fallible add of the `Imm12` value and the 32-bit value provided.
+(decl pure partial imm12_add (Imm12 i32) Imm12)
+(extern constructor imm12_add imm12_add)
+
 (decl imm12_and (Imm12 u64) Imm12)
 (extern constructor imm12_and imm12_and)
 
@@ -1807,6 +1884,14 @@
 ;; Helper to go directly from a `Value`, when it's an `iconst`, to an `Imm12`.
 (decl imm12_from_value (Imm12) Value)
 (extractor (imm12_from_value n) (i64_from_iconst (imm12_from_i64 n)))
+
+;; Conceptually the same as `imm12_from_value`, but tries negating the constant
+;; value (first sign-extending to handle narrow widths).
+(decl pure partial imm12_from_negated_value (Value) Imm12)
+(rule
+  (imm12_from_negated_value (has_type ty (iconst n)))
+  (if-let (imm12_from_u64 imm) (i64_as_u64 (i64_neg (i64_sextend_imm64 ty n))))
+  imm)
 
 (decl imm12_from_u64 (Imm12) u64)
 (extern extractor imm12_from_u64 imm12_from_u64)
@@ -1845,9 +1930,13 @@
 (decl pure partial i8_to_imm5 (i8) Imm5)
 (extern constructor i8_to_imm5 i8_to_imm5)
 
+;; Helper to go directly from a `Value` to an `Imm5`.
+(decl imm5_from_value (Imm5) Value)
+(extractor (imm5_from_value n) (i64_from_iconst (imm5_from_i64 n)))
+
 ;; Constructor that matches a `Value` equivalent to a replicated Imm5 on all lanes.
 (decl pure partial replicated_imm5 (Value) Imm5)
-(rule (replicated_imm5 (splat (i64_from_iconst (imm5_from_i64 n)))) n)
+(rule (replicated_imm5 (splat (imm5_from_value n))) n)
 (rule (replicated_imm5 (vconst (u128_from_constant n128)))
   (if-let (u128_replicated_u64 n64) n128)
   (if-let (u64_replicated_u32 n32) n64)
@@ -1896,14 +1985,11 @@
 (rule (canonical_nan_u64 $F32) 0x7fc00000)
 (rule (canonical_nan_u64 $F64) 0x7ff8000000000000)
 
-(decl gen_default_frm () OptionFloatRoundingMode)
-(extern constructor gen_default_frm gen_default_frm)
-
 ;; Helper for emitting `MInst.FpuRR` instructions.
-(decl fpu_rr (FpuOPRR Type Reg) Reg)
-(rule (fpu_rr op ty src)
+(decl fpu_rr (FpuOPRR Type FRM Reg) Reg)
+(rule (fpu_rr op ty frm src)
       (let ((dst WritableReg (temp_writable_reg ty))
-            (_ Unit (emit (MInst.FpuRR op (gen_default_frm) dst src))))
+            (_ Unit (emit (MInst.FpuRR op frm dst src))))
         dst))
 
 ;; Helper for emitting `MInst.AluRRR` instructions.
@@ -1914,17 +2000,17 @@
         dst))
 
 ;; Helper for emitting `MInst.AluRRR` instructions.
-(decl fpu_rrr (FpuOPRRR Type Reg Reg) Reg)
-(rule (fpu_rrr op ty src1 src2)
+(decl fpu_rrr (FpuOPRRR Type FRM Reg Reg) Reg)
+(rule (fpu_rrr op ty frm src1 src2)
       (let ((dst WritableReg (temp_writable_reg ty))
-            (_ Unit (emit (MInst.FpuRRR op (gen_default_frm) dst src1 src2))))
+            (_ Unit (emit (MInst.FpuRRR op frm dst src1 src2))))
         dst))
 
 ;; Helper for emitting `MInst.FpuRRRR` instructions.
-(decl fpu_rrrr (FpuOPRRRR Type Reg Reg Reg) Reg)
-(rule (fpu_rrrr op ty src1 src2 src3)
+(decl fpu_rrrr (FpuOPRRRR Type FRM Reg Reg Reg) Reg)
+(rule (fpu_rrrr op ty frm src1 src2 src3)
       (let ((dst WritableReg (temp_writable_reg ty))
-            (_ Unit (emit (MInst.FpuRRRR op (gen_default_frm) dst src1 src2 src3))))
+            (_ Unit (emit (MInst.FpuRRRR op frm dst src1 src2 src3))))
         dst))
 
 
@@ -1971,33 +2057,6 @@
 (rule (select_addi (fits_in_64 ty)) (AluOPRRI.Addi))
 
 
-(decl gen_bnot (Type ValueRegs) ValueRegs)
-(rule 2 (gen_bnot (ty_scalar_float ty) x)
-  (let ((val FReg (value_regs_get x 0))
-        (x_val XReg (move_f_to_x val ty))
-        (inverted XReg (rv_not x_val))
-        (res FReg (move_x_to_f inverted (float_int_of_same_size ty))))
-    (value_reg res)))
-
-(rule 1 (gen_bnot $I128 x)
-  (let ((lo XReg (rv_not (value_regs_get x 0)))
-        (hi XReg (rv_not (value_regs_get x 1))))
-    (value_regs lo hi)))
-
-(rule 0 (gen_bnot (ty_int_ref_scalar_64 _) x)
-  (rv_not (value_regs_get x 0)))
-
-
-(decl gen_and (Type ValueRegs ValueRegs) ValueRegs)
-(rule 1 (gen_and $I128 x y)
-  (value_regs
-    (rv_and (value_regs_get x 0) (value_regs_get y 0))
-    (rv_and (value_regs_get x 1) (value_regs_get y 1))))
-
-(rule 0 (gen_and (fits_in_64 _) x y)
-  (rv_and (value_regs_get x 0) (value_regs_get y 0)))
-
-
 (decl gen_andi (XReg u64) XReg)
 (rule 1 (gen_andi x (imm12_from_u64 y))
   (rv_andi x y))
@@ -2014,34 +2073,6 @@
 
 (rule 0 (gen_or (fits_in_64 _) x y)
   (rv_or (value_regs_get x 0) (value_regs_get y 0)))
-
-(decl lower_bit_reverse (Reg Type) Reg)
-
-(rule
-  (lower_bit_reverse r $I8)
-  (gen_brev8 r $I8))
-
-(rule
-  (lower_bit_reverse r $I16)
-  (let
-    ((tmp XReg (gen_brev8 r $I16))
-      (tmp2 XReg (gen_rev8 tmp))
-      (result XReg (rv_srli tmp2 (imm12_const 48))))
-    result))
-
-(rule
-  (lower_bit_reverse r $I32)
-  (let
-    ((tmp XReg (gen_brev8 r $I32))
-      (tmp2 XReg (gen_rev8 tmp))
-      (result XReg (rv_srli tmp2 (imm12_const 32))))
-    result))
-
-(rule
-  (lower_bit_reverse r $I64)
-  (let
-    ((tmp XReg (gen_rev8 r)))
-    (gen_brev8 tmp $I64)))
 
 
 (decl lower_ctz (Type Reg) Reg)
@@ -2110,7 +2141,7 @@
 ;; Ignore sign extensions for values whose representation is already the full
 ;; register width.
 (rule 3 (zext val)
-  (if (val_already_extended val))
+  (if (val_already_extended (ExtendOp.Zero) val))
   val)
 
 ;; Performs a signed extension of the given value
@@ -2139,25 +2170,36 @@
 ;; Ignore sign extensions for values whose representation is already the full
 ;; register width.
 (rule 2 (sext val)
-  (if (val_already_extended val))
+  (if (val_already_extended (ExtendOp.Signed) val))
   val)
 
 ;; Helper matcher for when a value's representation is already sign or zero
 ;; extended to the full 64-bit register representation. This is used by `zext`
 ;; and `sext` above to skip the extension instruction entirely in some
 ;; circumstances.
-(decl pure partial val_already_extended (Value) bool)
-(rule 0 (val_already_extended v @ (value_type $I64)) $true)
+(decl pure partial val_already_extended (ExtendOp Value) bool)
+(rule 0 (val_already_extended _ v @ (value_type $I64)) $true)
 
 ;; When extending our backend always extends to the full register width, so
 ;; there's no need to extend-an-extend.
-(rule 1 (val_already_extended (uextend _)) $true)
-(rule 1 (val_already_extended (sextend _)) $true)
+(rule 1 (val_already_extended (ExtendOp.Zero) (uextend _)) $true)
+(rule 1 (val_already_extended (ExtendOp.Signed) (sextend _)) $true)
 
 ;; The result of `icmp`/`fcmp` is zero or one, meaning that it's already sign
 ;; extended to the full register width.
-(rule 1 (val_already_extended (icmp _ _ _)) $true)
-(rule 1 (val_already_extended (fcmp _ _ _)) $true)
+(rule 1 (val_already_extended _ (icmp _ _ _)) $true)
+(rule 1 (val_already_extended _ (fcmp _ _ _)) $true)
+
+;; The lowering for these operations always sign-extend their results due to the
+;; use of the `*w` instructions in RV64I. Note that this requires that the
+;; extension is from 32 to 64, 16/8-bit operations are explicitly excluded here.
+;; There are no native instructions for the 16/8 bit operations so they must
+;; fall through to actual sign extension above.
+(rule 1 (val_already_extended (ExtendOp.Signed) (has_type $I32 (ishl _ _))) $true)
+(rule 1 (val_already_extended (ExtendOp.Signed) (has_type $I32 (ushr _ _))) $true)
+(rule 1 (val_already_extended (ExtendOp.Signed) (has_type $I32 (sshr _ _))) $true)
+(rule 1 (val_already_extended (ExtendOp.Signed) (has_type $I32 (iadd _ _))) $true)
+(rule 1 (val_already_extended (ExtendOp.Signed) (has_type $I32 (isub _ _))) $true)
 
 (type ExtendOp
   (enum
@@ -2185,100 +2227,11 @@
     ((tmp XReg (rv_mul rs1 rs2)))
     (rv_srli tmp (imm12_const (ty_bits ty)))))
 
-
-(decl lower_rotl (Type XReg XReg) XReg)
-
-(rule 1
-  (lower_rotl $I64 rs amount)
-  (if-let $true (has_zbb))
-  (rv_rol rs amount))
-
-(rule
-  (lower_rotl $I64 rs amount)
-  (if-let $false (has_zbb))
-  (lower_rotl_shift $I64 rs amount))
-
-(rule 1
-  (lower_rotl $I32 rs amount)
-  (if-let $true (has_zbb))
-  (rv_rolw rs amount))
-
-(rule
-  (lower_rotl $I32 rs amount)
-  (if-let $false (has_zbb))
-  (lower_rotl_shift $I32 rs amount))
-
-(rule -1
-  (lower_rotl ty rs amount)
-  (lower_rotl_shift ty rs amount))
-
-;;; using shift to implement rotl.
-(decl lower_rotl_shift (Type XReg XReg) XReg)
-
-;;; for I8 and I16 ...
-(rule
-  (lower_rotl_shift ty rs amount)
-  (let
-    ((x ValueRegs (gen_shamt ty amount))
-      (shamt Reg (value_regs_get x 0))
-      (len_sub_shamt Reg (value_regs_get x 1))
-      ;;
-      (part1 Reg (rv_sll rs shamt))
-      ;;
-      (part2 Reg (rv_srl rs len_sub_shamt))
-      (part3 Reg (gen_select_xreg (cmp_eqz shamt) (zero_reg) part2)))
-    (rv_or part1 part3)))
-
-
 ;;;; construct shift amount.rotl on i128 will use shift to implement. So can call this function.
 ;;;; this will return shift amount and (ty_bits - "shift amount")
 ;;;; if ty_bits is greater than 64 like i128, then shmat will fallback to 64.because We are 64 bit platform.
 (decl gen_shamt (Type XReg) ValueRegs)
 (extern constructor gen_shamt gen_shamt)
-
-(decl lower_rotr (Type XReg XReg) XReg)
-
-(rule 1
-  (lower_rotr $I64 rs amount)
-  (if-let $true (has_zbb))
-  (rv_ror rs amount))
-(rule
-  (lower_rotr $I64 rs amount)
-  (if-let $false (has_zbb))
-  (lower_rotr_shift $I64 rs amount))
-
-(rule 1
-  (lower_rotr $I32 rs amount)
-  (if-let $true (has_zbb))
-  (rv_rorw rs amount))
-
-(rule
-  (lower_rotr $I32 rs amount)
-  (if-let $false (has_zbb))
-  (lower_rotr_shift $I32 rs amount))
-
-(rule -1
-  (lower_rotr ty rs amount)
-  (lower_rotr_shift ty rs amount))
-
-(decl lower_rotr_shift (Type XReg XReg) XReg)
-
-;;;
-(rule
-  (lower_rotr_shift ty rs amount)
-  (let
-    ((x ValueRegs (gen_shamt ty amount))
-      (shamt XReg (value_regs_get x 0))
-      (len_sub_shamt XReg (value_regs_get x 1))
-      ;;
-      (part1 XReg (rv_srl rs shamt))
-      ;;
-      (part2 XReg (rv_sll rs len_sub_shamt))
-      ;;
-      (part3 XReg (gen_select_xreg (cmp_eqz shamt) (zero_reg) part2)))
-    (rv_or part1 part3)))
-
-
 
 ;; bseti: Set a single bit in a register, indexed by a constant.
 (decl gen_bseti (Reg u64) Reg)
@@ -2306,67 +2259,6 @@
       (sum WritableXReg (temp_writable_xreg))
       (_ Unit (emit (MInst.Popcnt sum step tmp rs $I64))))
     (writable_reg_to_reg sum)))
-
-
-(decl lower_i128_rotl (ValueRegs ValueRegs) ValueRegs)
-(rule
-  (lower_i128_rotl x y)
-  (let
-    ((tmp ValueRegs (gen_shamt $I128 (value_regs_get y 0)))
-      (shamt XReg (value_regs_get tmp 0))
-      (len_sub_shamt XReg (value_regs_get tmp 1))
-      ;;
-      (low_part1 XReg (rv_sll (value_regs_get x 0) shamt))
-      (low_part2 XReg (rv_srl (value_regs_get x 1) len_sub_shamt))
-      ;;; if shamt == 0 low_part2 will overflow we should zero instead.
-      (low_part3 XReg (gen_select_xreg (cmp_eqz shamt) (zero_reg) low_part2))
-      (low XReg (rv_or low_part1 low_part3))
-      ;;
-      (high_part1 XReg (rv_sll (value_regs_get x 1) shamt))
-      (high_part2 XReg (rv_srl (value_regs_get x 0) len_sub_shamt))
-      (high_part3 XReg (gen_select_xreg (cmp_eqz shamt) (zero_reg) high_part2))
-      (high XReg (rv_or high_part1 high_part3))
-      ;;
-      (const64 XReg (imm $I64 64))
-      (shamt_128 XReg (rv_andi (value_regs_get y 0) (imm12_const 127))))
-    ;; right now we only rotate less than 64 bits.
-    ;; if shamt is greater than or equal 64 , we should switch low and high.
-    (gen_select_regs
-      (cmp_geu shamt_128 const64)
-      (value_regs high low)
-      (value_regs low high)
-    )))
-
-
-(decl lower_i128_rotr (ValueRegs ValueRegs) ValueRegs)
-(rule
-  (lower_i128_rotr x y)
-  (let
-    ((tmp ValueRegs (gen_shamt $I128 (value_regs_get y 0)))
-      (shamt XReg (value_regs_get tmp 0))
-      (len_sub_shamt XReg (value_regs_get tmp 1))
-      ;;
-      (low_part1 XReg (rv_srl (value_regs_get x 0) shamt))
-      (low_part2 XReg (rv_sll (value_regs_get x 1) len_sub_shamt))
-      ;;; if shamt == 0 low_part2 will overflow we should zero instead.
-      (low_part3 XReg (gen_select_xreg (cmp_eqz shamt) (zero_reg) low_part2))
-      (low XReg (rv_or low_part1 low_part3))
-      ;;
-      (high_part1 XReg (rv_srl (value_regs_get x 1) shamt))
-      (high_part2 XReg (rv_sll (value_regs_get x 0) len_sub_shamt))
-      (high_part3 XReg (gen_select_xreg (cmp_eqz shamt) (zero_reg) high_part2))
-      (high XReg (rv_or high_part1 high_part3))
-
-      ;;
-      (const64 XReg (imm $I64 64))
-      (shamt_128 XReg (rv_andi (value_regs_get y 0) (imm12_const 127))))
-    ;; right now we only rotate less than 64 bits.
-    ;; if shamt is greater than or equal 64 , we should switch low and high.
-    (gen_select_regs
-      (cmp_geu shamt_128 const64)
-      (value_regs high low)
-      (value_regs low high)
-    )))
 
 ;; Generates a AMode that points to a register plus an offset.
 (decl gen_reg_offset_amode (Reg i64 Type) AMode)
@@ -2632,16 +2524,6 @@
             (_ Unit (emit (MInst.ElfTlsGetAddr dst name))))
         dst))
 
-;;;;
-(decl gen_fcvt_int (bool FReg bool Type Type) XReg)
-(rule
-  (gen_fcvt_int is_sat rs is_signed in_type out_type)
-  (let
-    ((result WritableReg (temp_writable_reg out_type))
-      (tmp WritableFReg (temp_writable_freg))
-      (_ Unit (emit (MInst.FcvtToInt is_sat result tmp rs is_signed in_type out_type))))
-    (writable_reg_to_reg result)))
-
 ;;; some float binary operation
 ;;; 1. need move into x reister.
 ;;; 2. do the operation.
@@ -2668,10 +2550,6 @@
       ;;
       (high XReg (rv_sub high_tmp borrow)))
     (value_regs low high)))
-
-;; int scalar zero regs.
-(decl int_zero_reg (Type) ValueRegs)
-(extern constructor int_zero_reg int_zero_reg)
 
 ;; Consume a CmpResult, producing a branch on its result.
 (decl cond_br (IntegerCompare CondBrTarget CondBrTarget) SideEffectNoResult)
@@ -2741,7 +2619,7 @@
 ;; This is used in `Select` and `brif` for example to generate conditional
 ;; branches. The returned comparison, when taken, represents that `Value` is
 ;; nonzero. When not taken the input `Value` is zero.
-(decl lower_int_compare (Value) IntegerCompare)
+(decl is_nonzero_cmp (Value) IntegerCompare)
 
 ;; Base case - convert to a "truthy" value and compare it against zero.
 ;;
@@ -2752,46 +2630,72 @@
 ;; Additionally the base 64-bit ISA has a single instruction for sign-extending
 ;; from 32 to 64-bits which makes that a bit cheaper if used.
 ;; of registers sign-extend the results.
-(rule 0 (lower_int_compare val @ (value_type (fits_in_64 _)))
+(rule 0 (is_nonzero_cmp val @ (value_type (fits_in_64 _)))
   (cmp_nez (sext val)))
-(rule 1 (lower_int_compare val @ (value_type $I8))
+(rule 1 (is_nonzero_cmp val @ (value_type $I8))
   (cmp_nez (zext val)))
-(rule 1 (lower_int_compare val @ (value_type $I128))
+(rule 1 (is_nonzero_cmp val @ (value_type $I128))
   (cmp_nez (rv_or (value_regs_get val 0) (value_regs_get val 1))))
 
-;; If the input value is itself an `icmp` we can avoid generating the result of
-;; the `icmp` and instead move the comparison directly into the `IntegerCompare`
-;; that's returned. Note that comparisons compare full registers so
-;; sign-extension according to the integer comparison performed here is
-;; required.
-;;
-;; Also note that as a small optimization `Equal` and `NotEqual` use
-;; sign-extension for 32-bit values since the same result is produced with
-;; either zero-or-sign extension and many values are already sign-extended given
-;; the RV64 instruction set (e.g. `addw` adds 32-bit values and sign extends),
-;; theoretically resulting in more efficient codegen.
-(rule 2 (lower_int_compare (maybe_uextend (icmp cc a b @ (value_type (fits_in_64 in_ty)))))
-  (int_compare cc (zext a) (zext b)))
-(rule 3 (lower_int_compare (maybe_uextend (icmp cc a b @ (value_type (fits_in_64 in_ty)))))
-  (if (signed_cond_code cc))
-  (int_compare cc (sext a) (sext b)))
-(rule 4 (lower_int_compare (maybe_uextend (icmp cc @ (IntCC.Equal) a b @ (value_type $I32))))
-  (int_compare cc (sext a) (sext b)))
-(rule 4 (lower_int_compare (maybe_uextend (icmp cc @ (IntCC.NotEqual) a b @ (value_type $I32))))
-  (int_compare cc (sext a) (sext b)))
+;; If the input value is itself an `icmp` or `fcmp` we can avoid generating the
+;; result of the comparison and instead move the comparison directly into the
+;; `IntegerCompare` that's returned.
+(rule 2 (is_nonzero_cmp (maybe_uextend (icmp cc a b @ (value_type (fits_in_64 _)))))
+  (icmp_to_int_compare cc a b))
+(rule 2 (is_nonzero_cmp (maybe_uextend (fcmp cc a @ (value_type ty) b)))
+  (fcmp_to_float_compare cc ty a b))
 
-;; If the input is an `fcmp` then the `FCmp` return value is directly
-;; convertible to `IntegerCompare` which can shave off an instruction from the
-;; fallback lowering above.
-(rule 2 (lower_int_compare (maybe_uextend (fcmp cc a @ (value_type ty) b)))
-  (emit_fcmp cc ty a b))
+;; Creates an `IntegerCompare` from an `icmp` node's parts. This will extend
+;; values as necessary to their full register width to perform the
+;; comparison. The returned `IntegerCompare` is suitable to use in conditional
+;; branches for example.
+;;
+;; Note that this should ideally only be used when the `IntegerCompare` returned
+;; is fed into a branch. If `IntegerCompare` is materialized this will miss out
+;; on optimizations to compare against constants using some native instructions.
+(decl icmp_to_int_compare (IntCC Value Value) IntegerCompare)
+(rule 0 (icmp_to_int_compare cc a b @ (value_type (fits_in_64 in_ty)))
+  (int_compare cc (put_value_in_reg_for_icmp cc a) (put_value_in_reg_for_icmp cc b)))
+(rule 1 (icmp_to_int_compare cc a b @ (value_type $I128))
+  (cmp_nez (lower_icmp_i128 cc a b)))
+
+;; Places a `Value` into a full register width to prepare for a comparison
+;; using `IntCC`.
+;;
+;; This is largely a glorified means of choosing sign-extension or
+;; zero-extension for the `Value` input.
+(decl put_value_in_reg_for_icmp (IntCC Value) XReg)
+
+;; Base cases, use the `cc` to determine whether to zero or sign extend.
+(rule 0 (put_value_in_reg_for_icmp cc val)
+  (zext val))
+(rule 1 (put_value_in_reg_for_icmp cc val)
+  (if (signed_cond_code cc))
+  (sext val))
+
+;; For equality and inequality favor sign extension since it's generally
+;; easier to perform sign extension on RV64 via native instructions. For 8-bit
+;; types though use zero-extension since that's a single instruction `and`.
+(rule 2 (put_value_in_reg_for_icmp (IntCC.Equal) val @ (value_type (fits_in_64 _)))
+  (sext val))
+(rule 2 (put_value_in_reg_for_icmp (IntCC.NotEqual) val @ (value_type (fits_in_64 _)))
+  (sext val))
+(rule 3 (put_value_in_reg_for_icmp (IntCC.Equal) val @ (value_type $I8))
+  (zext val))
+(rule 3 (put_value_in_reg_for_icmp (IntCC.NotEqual) val @ (value_type $I8))
+  (zext val))
+
+;; As a special case use `x0` directly if a constant is 0.
+(rule 4 (put_value_in_reg_for_icmp _ (i64_from_iconst 0))
+  (zero_reg))
+
 
 (decl partial lower_branch (Inst MachLabelSlice) Unit)
 (rule (lower_branch (jump _) (single_target label))
       (emit_side_effect (rv_j label)))
 
 (rule (lower_branch (brif v _ _) (two_targets then else))
-  (emit_side_effect (cond_br (lower_int_compare v) then else)))
+  (emit_side_effect (cond_br (is_nonzero_cmp v) then else)))
 
 (decl lower_br_table (Reg MachLabelSlice) Unit)
 (extern constructor lower_br_table lower_br_table)
@@ -2823,23 +2727,6 @@
 (decl float_int_of_same_size (Type) Type)
 (rule (float_int_of_same_size $F32) $I32)
 (rule (float_int_of_same_size $F64) $I64)
-
-
-(decl gen_rev8 (XReg) XReg)
-(rule 1
-  (gen_rev8 rs)
-  (if-let $true (has_zbb))
-  (rv_rev8 rs))
-
-(rule
-  (gen_rev8 rs)
-  (if-let $false (has_zbb))
-  (let
-    ((rd WritableXReg (temp_writable_xreg))
-      (tmp WritableXReg (temp_writable_xreg))
-      (step WritableXReg (temp_writable_xreg))
-      (_ Unit (emit (MInst.Rev8 rs step tmp rd))))
-    (writable_reg_to_reg rd)))
 
 
 (decl gen_brev8 (Reg Type) Reg)
@@ -2904,12 +2791,22 @@
 
 ;; Generates either 0 if `Value` is zero or -1 otherwise.
 (decl gen_bmask (Value) XReg)
+
+;; Base cases: use `snez` after a sign extension to ensure that the entire
+;; register is defined. For i128 we test both the upper and lower half.
 (rule 0 (gen_bmask val @ (value_type (fits_in_64 _)))
   (let ((non_zero XReg (rv_snez (sext val))))
     (rv_neg non_zero)))
 (rule 1 (gen_bmask val @ (value_type $I128))
   (let ((non_zero XReg (rv_snez (rv_or (value_regs_get val 0) (value_regs_get val 1)))))
     (rv_neg non_zero)))
+
+;; If the input value is an `icmp` or an `fcmp` directly then the `snez` can
+;; be omitted because the result of the icmp or fcmp is a 0 or 1 directly. This
+;; means we can go straight to the `neg` instruction to produce the final
+;; result.
+(rule 2 (gen_bmask val @ (maybe_uextend (icmp _ _ _))) (rv_neg val))
+(rule 2 (gen_bmask val @ (maybe_uextend (fcmp _ _ _))) (rv_neg val))
 
 (decl lower_bmask (Value Type) ValueRegs)
 (rule 0 (lower_bmask val (fits_in_64 _))
@@ -2935,8 +2832,9 @@
 (extern constructor sp_reg sp_reg)
 
 ;; Helper for creating the zero register.
-(decl zero_reg () Reg)
+(decl zero_reg () XReg)
 (extern constructor zero_reg zero_reg)
+(extern extractor zero_reg is_zero_reg)
 
 (decl value_regs_zero () ValueRegs)
 (rule (value_regs_zero)
@@ -2948,67 +2846,64 @@
 
 ;;;; Helpers for floating point comparisons ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(decl is_not_nan (Type FReg) XReg)
-(rule (is_not_nan ty a) (rv_feq ty a a))
-
-(decl ordered (Type FReg FReg) XReg)
-(rule (ordered ty a b) (rv_and (is_not_nan ty a) (is_not_nan ty b)))
-
-(type FCmp (enum
+(type FloatCompare (enum
   ;; The comparison succeeded if `r` is one
   (One (r XReg))
   ;; The comparison succeeded if `r` is zero
   (Zero (r XReg))
 ))
 
-(decl fcmp_invert (FCmp) FCmp)
-(rule (fcmp_invert (FCmp.One r)) (FCmp.Zero r))
-(rule (fcmp_invert (FCmp.Zero r)) (FCmp.One r))
+(decl float_compare_invert (FloatCompare) FloatCompare)
+(rule (float_compare_invert (FloatCompare.One r)) (FloatCompare.Zero r))
+(rule (float_compare_invert (FloatCompare.Zero r)) (FloatCompare.One r))
 
-(decl fcmp_to_compare (FCmp) IntegerCompare)
-(rule (fcmp_to_compare (FCmp.One r)) (cmp_nez r))
-(rule (fcmp_to_compare (FCmp.Zero r)) (cmp_eqz r))
-(convert FCmp IntegerCompare fcmp_to_compare)
+(decl float_to_int_compare (FloatCompare) IntegerCompare)
+(rule (float_to_int_compare (FloatCompare.One r)) (cmp_nez r))
+(rule (float_to_int_compare (FloatCompare.Zero r)) (cmp_eqz r))
+(convert FloatCompare IntegerCompare float_to_int_compare)
 
 ;; Compare two floating point numbers and return a zero/non-zero result.
-(decl emit_fcmp (FloatCC Type FReg FReg) FCmp)
+(decl fcmp_to_float_compare (FloatCC Type FReg FReg) FloatCompare)
 
 ;; Direct codegen for unordered comparisons is not that efficient, so invert
 ;; the comparison to get an ordered comparison and generate that. Then invert
 ;; the result to produce the final fcmp result.
-(rule 0 (emit_fcmp cc ty a b)
+(rule 0 (fcmp_to_float_compare cc ty a b)
   (if-let $true (floatcc_unordered cc))
-  (fcmp_invert (emit_fcmp (floatcc_complement cc) ty a b)))
+  (float_compare_invert (fcmp_to_float_compare (floatcc_complement cc) ty a b)))
 
 ;; a is not nan && b is not nan
-(rule 1 (emit_fcmp (FloatCC.Ordered) ty a b)
-  (FCmp.One (ordered ty a b)))
+(rule 1 (fcmp_to_float_compare (FloatCC.Ordered) ty a b)
+  (FloatCompare.One (rv_and (is_not_nan ty a) (is_not_nan ty b))))
+
+(decl is_not_nan (Type FReg) XReg)
+(rule (is_not_nan ty a) (rv_feq ty a a))
 
 ;; a == b
-(rule 1 (emit_fcmp (FloatCC.Equal) ty a b)
-  (FCmp.One (rv_feq ty a b)))
+(rule 1 (fcmp_to_float_compare (FloatCC.Equal) ty a b)
+  (FloatCompare.One (rv_feq ty a b)))
 
 ;; a != b
 ;; == !(a == b)
-(rule 1 (emit_fcmp (FloatCC.NotEqual) ty a b)
-  (FCmp.Zero (rv_feq ty a b)))
+(rule 1 (fcmp_to_float_compare (FloatCC.NotEqual) ty a b)
+  (FloatCompare.Zero (rv_feq ty a b)))
 
 ;; a < b || a > b
-(rule 1 (emit_fcmp (FloatCC.OrderedNotEqual) ty a b)
-  (FCmp.One (rv_or (rv_flt ty a b) (rv_fgt ty a b))))
+(rule 1 (fcmp_to_float_compare (FloatCC.OrderedNotEqual) ty a b)
+  (FloatCompare.One (rv_or (rv_flt ty a b) (rv_fgt ty a b))))
 
 ;; a < b
-(rule 1 (emit_fcmp (FloatCC.LessThan) ty a b)
-  (FCmp.One (rv_flt ty a b)))
+(rule 1 (fcmp_to_float_compare (FloatCC.LessThan) ty a b)
+  (FloatCompare.One (rv_flt ty a b)))
 
 ;; a <= b
-(rule 1 (emit_fcmp (FloatCC.LessThanOrEqual) ty a b)
-  (FCmp.One (rv_fle ty a b)))
+(rule 1 (fcmp_to_float_compare (FloatCC.LessThanOrEqual) ty a b)
+  (FloatCompare.One (rv_fle ty a b)))
 
 ;; a > b
-(rule 1 (emit_fcmp (FloatCC.GreaterThan) ty a b)
-  (FCmp.One (rv_fgt ty a b)))
+(rule 1 (fcmp_to_float_compare (FloatCC.GreaterThan) ty a b)
+  (FloatCompare.One (rv_fgt ty a b)))
 
 ;; a >= b
-(rule 1 (emit_fcmp (FloatCC.GreaterThanOrEqual) ty a b)
-  (FCmp.One (rv_fge ty a b)))
+(rule 1 (fcmp_to_float_compare (FloatCC.GreaterThanOrEqual) ty a b)
+  (FloatCompare.One (rv_fge ty a b)))

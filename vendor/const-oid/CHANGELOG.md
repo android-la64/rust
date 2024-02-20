@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.9.5 (2023-08-02)
+### Added
+- rfc8410 (curve25519) OIDS. ([#867])
+
+[#867]: https://github.com/RustCrypto/formats/pull/867
+
+## 0.9.4 (2023-07-10)
+### Added
+- rfc8894 (SCEP) OIDs. ([#1114])
+
+[#1114]: https://github.com/RustCrypto/formats/pull/1114
+
+## 0.9.3 (2023-06-29)
+### Added
+- `Database::find_names_for_oid` ([#1129])
+
+[#1129]: https://github.com/RustCrypto/formats/pull/1129
+
+## 0.9.2 (2023-02-26)
+### Added
+- Implement `Arbitrary` trait ([#761])
+
+[#761]: https://github.com/RustCrypto/formats/pull/761
+
 ## 0.9.1 (2022-11-12)
 ### Added
 - clippy lints for checked arithmetic and panics ([#561])

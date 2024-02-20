@@ -5,11 +5,9 @@ use super::*;
 
 use crate::errors::UnableToConstructConstantValue;
 use crate::infer::region_constraints::{Constraint, RegionConstraintData};
-use crate::infer::InferCtxt;
 use crate::traits::project::ProjectAndUnifyResult;
 use rustc_infer::infer::DefineOpaqueTypes;
 use rustc_middle::mir::interpret::ErrorHandled;
-use rustc_middle::ty::visit::TypeVisitableExt;
 use rustc_middle::ty::{ImplPolarity, Region, RegionVid};
 
 use rustc_data_structures::fx::{FxHashMap, FxHashSet, FxIndexSet};
@@ -252,7 +250,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
             fresh_preds.insert(self.clean_pred(infcx, predicate.as_predicate()));
         }
 
-        let mut select = SelectionContext::new(&infcx);
+        let mut select = SelectionContext::new(infcx);
 
         let mut already_visited = FxHashSet::default();
         let mut predicates = VecDeque::new();
@@ -410,11 +408,11 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                         iter::zip(new_args.regions(), old_args.regions())
                     {
                         match (*new_region, *old_region) {
-                            // If both predicates have an `ReLateBound` (a HRTB) in the
+                            // If both predicates have an `ReBound` (a HRTB) in the
                             // same spot, we do nothing.
-                            (ty::ReLateBound(_, _), ty::ReLateBound(_, _)) => {}
+                            (ty::ReBound(_, _), ty::ReBound(_, _)) => {}
 
-                            (ty::ReLateBound(_, _), _) | (_, ty::ReVar(_)) => {
+                            (ty::ReBound(_, _), _) | (_, ty::ReVar(_)) => {
                                 // One of these is true:
                                 // The new predicate has a HRTB in a spot where the old
                                 // predicate does not (if they both had a HRTB, the previous
@@ -440,7 +438,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                                 // `user_computed_preds`.
                                 return false;
                             }
-                            (_, ty::ReLateBound(_, _)) | (ty::ReVar(_), _) => {
+                            (_, ty::ReBound(_, _)) | (ty::ReVar(_), _) => {
                                 // This is the opposite situation as the previous arm.
                                 // One of these is true:
                                 //
@@ -820,9 +818,9 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                 // the `ParamEnv`.
                 ty::PredicateKind::Clause(ty::ClauseKind::WellFormed(..))
                 | ty::PredicateKind::Clause(ty::ClauseKind::ConstArgHasType(..))
+                | ty::PredicateKind::NormalizesTo(..)
                 | ty::PredicateKind::AliasRelate(..)
                 | ty::PredicateKind::ObjectSafe(..)
-                | ty::PredicateKind::ClosureKind(..)
                 | ty::PredicateKind::Subtype(..)
                 // FIXME(generic_const_exprs): you can absolutely add this as a where clauses
                 | ty::PredicateKind::Clause(ty::ClauseKind::ConstEvaluatable(..))

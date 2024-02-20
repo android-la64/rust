@@ -2,8 +2,7 @@
 
 use crate::backend::c;
 #[cfg(any(
-    apple,
-    linux_kernel,
+    not(target_os = "redox"),
     feature = "alloc",
     all(linux_kernel, feature = "procfs")
 ))]
@@ -275,10 +274,7 @@ pub(crate) fn readlink(path: &CStr, buf: &mut [u8]) -> io::Result<usize> {
     }
 }
 
-#[cfg(all(
-    any(feature = "alloc", all(linux_kernel, feature = "procfs")),
-    not(target_os = "redox")
-))]
+#[cfg(not(target_os = "redox"))]
 #[inline]
 pub(crate) fn readlinkat(
     dirfd: BorrowedFd<'_>,
@@ -660,7 +656,7 @@ pub(crate) fn lstat(path: &CStr) -> io::Result<Stat> {
     }
 }
 
-#[cfg(not(any(target_os = "aix", target_os = "espidf", target_os = "redox")))]
+#[cfg(not(any(target_os = "espidf", target_os = "redox")))]
 pub(crate) fn statat(dirfd: BorrowedFd<'_>, path: &CStr, flags: AtFlags) -> io::Result<Stat> {
     // See the comments in `fstat` about using `crate::fs::statx` here.
     #[cfg(all(
@@ -1703,7 +1699,7 @@ pub(crate) fn ftruncate(fd: BorrowedFd<'_>, length: u64) -> io::Result<()> {
 }
 
 #[cfg(any(linux_kernel, target_os = "freebsd"))]
-pub(crate) fn memfd_create(path: &CStr, flags: MemfdFlags) -> io::Result<OwnedFd> {
+pub(crate) fn memfd_create(name: &CStr, flags: MemfdFlags) -> io::Result<OwnedFd> {
     #[cfg(target_os = "freebsd")]
     weakcall! {
         fn memfd_create(
@@ -1720,7 +1716,7 @@ pub(crate) fn memfd_create(path: &CStr, flags: MemfdFlags) -> io::Result<OwnedFd
         ) via SYS_memfd_create -> c::c_int
     }
 
-    unsafe { ret_owned_fd(memfd_create(c_str(path), bitflags_bits!(flags))) }
+    unsafe { ret_owned_fd(memfd_create(c_str(name), bitflags_bits!(flags))) }
 }
 
 #[cfg(linux_kernel)]

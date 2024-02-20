@@ -76,6 +76,8 @@ pub enum Error {
     ConfigUnsigned(#[from] unsigned_integer::Error),
     #[error(transparent)]
     ConfigTypedString(#[from] key::GenericErrorWithValue),
+    #[error(transparent)]
+    RefsNamespace(#[from] refs_namespace::Error),
     #[error("Cannot handle objects formatted as {:?}", .name)]
     UnsupportedObjectFormat { name: BString },
     #[error(transparent)]
@@ -91,8 +93,11 @@ pub enum Error {
     ResolveIncludes(#[from] gix_config::file::includes::Error),
     #[error(transparent)]
     FromEnv(#[from] gix_config::file::init::from_env::Error),
-    #[error(transparent)]
-    PathInterpolation(#[from] gix_config::path::interpolate::Error),
+    #[error("The path {path:?} at the 'core.worktree' configuration could not be interpolated")]
+    PathInterpolation {
+        path: BString,
+        source: gix_config::path::interpolate::Error,
+    },
     #[error("{source:?} configuration overrides at open or init time could not be applied.")]
     ConfigOverrides {
         #[source]
@@ -115,6 +120,36 @@ pub mod diff {
             Unknown { name: BString },
             #[error("The '{name}' algorithm is not yet implemented")]
             Unimplemented { name: BString },
+        }
+    }
+
+    ///
+    pub mod pipeline_options {
+        /// The error produced when obtaining options needed to fill in [gix_diff::blob::pipeline::Options].
+        #[derive(Debug, thiserror::Error)]
+        #[allow(missing_docs)]
+        pub enum Error {
+            #[error(transparent)]
+            FilesystemCapabilities(#[from] crate::config::boolean::Error),
+            #[error(transparent)]
+            BigFileThreshold(#[from] crate::config::unsigned_integer::Error),
+        }
+    }
+
+    ///
+    pub mod drivers {
+        use crate::bstr::BString;
+
+        /// The error produced when obtaining a list of [Drivers](gix_diff::blob::Driver).
+        #[derive(Debug, thiserror::Error)]
+        #[error("Failed to parse value of 'diff.{name}.{attribute}'")]
+        pub struct Error {
+            /// The name fo the driver.
+            pub name: BString,
+            /// The name of the attribute we tried to parse.
+            pub attribute: &'static str,
+            /// The actual error that occurred.
+            pub source: Box<dyn std::error::Error + Send + Sync + 'static>,
         }
     }
 }
@@ -149,6 +184,25 @@ pub mod checkout_options {
         Attributes(#[from] super::attribute_stack::Error),
         #[error(transparent)]
         FilterPipelineOptions(#[from] crate::filter::pipeline::options::Error),
+        #[error(transparent)]
+        CommandContext(#[from] crate::config::command_context::Error),
+    }
+}
+
+///
+#[cfg(feature = "attributes")]
+pub mod command_context {
+    use crate::config;
+
+    /// The error produced when collecting all information relevant to spawned commands,
+    /// obtained via [Repository::command_context()](crate::Repository::command_context()).
+    #[derive(Debug, thiserror::Error)]
+    #[allow(missing_docs)]
+    pub enum Error {
+        #[error(transparent)]
+        Boolean(#[from] config::boolean::Error),
+        #[error(transparent)]
+        ParseBool(#[from] gix_config::value::Error),
     }
 }
 
@@ -409,6 +463,12 @@ pub mod refspec {
 }
 
 ///
+pub mod refs_namespace {
+    /// The error produced when failing to parse a refspec from the configuration.
+    pub type Error = super::key::Error<gix_validate::reference::name::Error, 'v', 'i'>;
+}
+
+///
 pub mod ssl_version {
     /// The error produced when failing to parse a refspec from the configuration.
     pub type Error = super::key::Error<std::convert::Infallible, 's', 'i'>;
@@ -504,6 +564,8 @@ pub(crate) struct Cache {
     pub use_multi_pack_index: bool,
     /// The representation of `core.logallrefupdates`, or `None` if the variable wasn't set.
     pub reflog: Option<gix_ref::store::WriteReflog>,
+    /// The representation of `gitoxide.core.refsNamespace`, or `None` if the variable wasn't set.
+    pub refs_namespace: Option<gix_ref::Namespace>,
     /// The configured user agent for presentation to servers.
     pub(crate) user_agent: OnceCell<String>,
     /// identities for later use, lazy initialization.
@@ -512,7 +574,7 @@ pub(crate) struct Cache {
     pub(crate) url_rewrite: OnceCell<crate::remote::url::Rewrite>,
     /// The lazy-loaded rename information for diffs.
     #[cfg(feature = "blob-diff")]
-    pub(crate) diff_renames: OnceCell<Option<crate::object::tree::diff::Rewrites>>,
+    pub(crate) diff_renames: OnceCell<Option<crate::diff::Rewrites>>,
     /// A lazily loaded mapping to know which url schemes to allow
     #[cfg(any(feature = "blocking-network-client", feature = "async-network-client"))]
     pub(crate) url_scheme: OnceCell<crate::remote::url::SchemePermission>,
@@ -540,4 +602,24 @@ pub(crate) struct Cache {
     attributes: crate::open::permissions::Attributes,
     environment: crate::open::permissions::Environment,
     // TODO: make core.precomposeUnicode available as well.
+}
+
+/// Utillities shared privately across the crate, for lack of a better place.
+pub(crate) mod shared {
+    use crate::{
+        config,
+        config::{cache::util::ApplyLeniency, tree::Core},
+    };
+
+    pub fn is_replace_refs_enabled(
+        config: &gix_config::File<'static>,
+        lenient: bool,
+        mut filter_config_section: fn(&gix_config::file::Metadata) -> bool,
+    ) -> Result<Option<bool>, config::boolean::Error> {
+        config
+            .boolean_filter_by_key("core.useReplaceRefs", &mut filter_config_section)
+            .map(|b| Core::USE_REPLACE_REFS.enrich_error(b))
+            .transpose()
+            .with_leniency(lenient)
+    }
 }

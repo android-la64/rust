@@ -13,8 +13,12 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-utils"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
+include = [
+    "src/**/*",
+    "LICENSE-*",
+]
 description = "A crate with `gitoxide` utilities that don't need feature toggles"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"

@@ -20,19 +20,14 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-SUBDIRS = lib third-party src bpf examples python tests integration-tests \
+SUBDIRS = lib third-party src bpf examples tests integration-tests \
 	doc contrib script
-
-# Now with python setuptools, make uninstall will leave many files we
-# cannot easily remove (e.g., easy-install.pth).  Disable it for
-# distcheck rule.
-AM_DISTCHECK_CONFIGURE_FLAGS = --disable-python-bindings
 
 ACLOCAL_AMFLAGS = -I m4
 
 dist_doc_DATA = README.rst
 
-EXTRA_DIST = nghttpx.conf.sample proxy.pac.sample android-config android-make \
+EXTRA_DIST = nghttpx.conf.sample proxy.pac.sample android-config android-env \
 	Dockerfile.android \
 	cmakeconfig.h.in \
 	CMakeLists.txt \
@@ -42,20 +37,23 @@ EXTRA_DIST = nghttpx.conf.sample proxy.pac.sample android-config android-make \
 	cmake/FindLibev.cmake \
 	cmake/FindCUnit.cmake \
 	cmake/Version.cmake \
-	cmake/FindCython.cmake \
 	cmake/FindLibevent.cmake \
 	cmake/FindJansson.cmake \
 	cmake/FindLibcares.cmake \
-	cmake/FindSystemd.cmake
+	cmake/FindSystemd.cmake \
+	cmake/FindLibbpf.cmake \
+	cmake/FindLibnghttp3.cmake \
+	cmake/FindLibngtcp2.cmake \
+	cmake/FindLibngtcp2_crypto_quictls.cmake
 
 .PHONY: clang-format
 
 # Format source files using clang-format.  Don't format source files
-# under third-party directory since we are not responsible for thier
+# under third-party directory since we are not responsible for their
 # coding style.
 clang-format:
 	CLANGFORMAT=`git config --get clangformat.binary`; \
 	test -z $${CLANGFORMAT} && CLANGFORMAT="clang-format"; \
 	$${CLANGFORMAT} -i lib/*.{c,h} lib/includes/nghttp2/*.h \
-	src/*.{c,cc,h} src/includes/nghttp2/*.h examples/*.{c,cc} \
-	tests/*.{c,h}
+	src/*.{c,cc,h} examples/*.{c,cc} \
+	tests/*.{c,h} bpf/*.c fuzz/*.cc

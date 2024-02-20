@@ -73,7 +73,7 @@ struct Worker;
 struct Config {
   std::vector<std::vector<nghttp2_nv>> nva;
   std::vector<std::string> h1reqs;
-  std::vector<ev_tstamp> timings;
+  std::vector<std::chrono::steady_clock::duration> timings;
   nghttp2::Headers custom_headers;
   std::string scheme;
   std::string host;
@@ -95,6 +95,7 @@ struct Config {
   ssize_t max_concurrent_streams;
   size_t window_bits;
   size_t connection_window_bits;
+  size_t max_frame_size;
   // rate at which connections should be made
   size_t rate;
   ev_tstamp rate_period;
@@ -135,6 +136,8 @@ struct Config {
   bool no_udp_gso;
   // The maximum UDP datagram payload size to send.
   size_t max_udp_payload_size;
+  // Enable ktls.
+  bool ktls;
 
   Config();
   ~Config();
@@ -269,6 +272,7 @@ struct Sampling {
 
 struct Worker {
   MemchunkPool mcpool;
+  std::mt19937 randgen;
   Stats stats;
   Sampling request_times_smp;
   Sampling client_smp;
@@ -335,11 +339,25 @@ struct Client {
   SSL *ssl;
 #ifdef ENABLE_HTTP3
   struct {
+    ngtcp2_crypto_conn_ref conn_ref;
     ev_timer pkt_timer;
     ngtcp2_conn *conn;
-    quic::Error last_error;
+    ngtcp2_ccerr last_error;
     bool close_requested;
     FILE *qlog_file;
+
+    struct {
+      bool send_blocked;
+      size_t num_blocked;
+      size_t num_blocked_sent;
+      struct {
+        Address remote_addr;
+        const uint8_t *data;
+        size_t datalen;
+        size_t gso_size;
+      } blocked[2];
+      std::unique_ptr<uint8_t[]> data;
+    } tx;
   } quic;
 #endif // ENABLE_HTTP3
   ev_timer request_timeout_watcher;
@@ -378,7 +396,7 @@ struct Client {
   ev_timer rps_watcher;
   // The timestamp that starts the period which contributes to the
   // next request generation.
-  ev_tstamp rps_duration_started;
+  std::chrono::steady_clock::time_point rps_duration_started;
   // The number of requests allowed by rps, but limited by stream
   // concurrency.
   size_t rps_req_pending;
@@ -463,6 +481,9 @@ struct Client {
   int write_quic();
   int write_udp(const sockaddr *addr, socklen_t addrlen, const uint8_t *data,
                 size_t datalen, size_t gso_size);
+  void on_send_blocked(const ngtcp2_addr &remote_addr, const uint8_t *data,
+                       size_t datalen, size_t gso_size);
+  int send_blocked_packet();
   void quic_close_connection();
 
   int quic_handshake_completed();
@@ -473,16 +494,14 @@ struct Client {
   int quic_stream_reset(int64_t stream_id, uint64_t app_error_code);
   int quic_stream_stop_sending(int64_t stream_id, uint64_t app_error_code);
   int quic_extend_max_local_streams();
+  int quic_extend_max_stream_data(int64_t stream_id);
 
-  int quic_on_key(ngtcp2_crypto_level level, const uint8_t *rx_secret,
-                  const uint8_t *tx_secret, size_t secretlen);
-  void quic_set_tls_alert(uint8_t alert);
-
-  void quic_write_client_handshake(ngtcp2_crypto_level level,
-                                   const uint8_t *data, size_t datalen);
+  int quic_write_client_handshake(ngtcp2_encryption_level level,
+                                  const uint8_t *data, size_t datalen);
   int quic_pkt_timeout();
   void quic_restart_pkt_timer();
   void quic_write_qlog(const void *data, size_t datalen);
+  int quic_make_http3_session();
 #endif // ENABLE_HTTP3
 };
 

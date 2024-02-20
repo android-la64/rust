@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "rowan"
-version = "0.15.11"
+version = "0.15.15"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 exclude = [
     ".github/",
@@ -28,12 +28,12 @@ repository = "https://github.com/rust-analyzer/rowan"
 version = "3.0.0"
 
 [dependencies.hashbrown]
-version = "0.12"
+version = "0.14.3"
 features = ["inline-more"]
 default-features = false
 
 [dependencies.memoffset]
-version = "0.8"
+version = "0.9"
 
 [dependencies.rustc-hash]
 version = "1.0.1"

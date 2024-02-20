@@ -78,7 +78,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
                         has_impl_path,
                         impl_path,
                     });
-                    if self.find_impl_on_dyn_trait(&mut err, param.param_ty, &ctxt) {
+                    if self.find_impl_on_dyn_trait(&mut err, param.param_ty, ctxt) {
                         let reported = err.emit();
                         return Some(reported);
                     } else {
@@ -204,7 +204,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
             && let ObligationCauseCode::UnifyReceiver(ctxt) = cause.code()
             // Handle case of `impl Foo for dyn Bar { fn qux(&self) {} }` introducing a
             // `'static` lifetime when called as a method on a binding: `bar.qux()`.
-            && self.find_impl_on_dyn_trait(&mut err, param.param_ty, &ctxt)
+            && self.find_impl_on_dyn_trait(&mut err, param.param_ty, ctxt)
         {
             override_error_code = Some(ctxt.assoc_item.name);
         }
@@ -460,7 +460,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
                 tcx.hir().trait_impls(trait_did).iter().find_map(|&impl_did| {
                     if let Node::Item(Item {
                         kind: ItemKind::Impl(hir::Impl { self_ty, .. }), ..
-                    }) = tcx.hir().find_by_def_id(impl_did)?
+                    }) = tcx.opt_hir_node_by_def_id(impl_did)?
                         && trait_objects.iter().all(|did| {
                             // FIXME: we should check `self_ty` against the receiver
                             // type in the `UnifyReceiver` context, but for now, use
@@ -530,7 +530,7 @@ impl<'a, 'tcx> NiceRegionError<'a, 'tcx> {
         for found_did in found_dids {
             let mut traits = vec![];
             let mut hir_v = HirTraitObjectVisitor(&mut traits, *found_did);
-            hir_v.visit_ty(&self_ty);
+            hir_v.visit_ty(self_ty);
             for &span in &traits {
                 let subdiag = DynTraitConstraintSuggestion { span, ident };
                 subdiag.add_to_diagnostic(err);

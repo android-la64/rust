@@ -35,7 +35,7 @@ fn check_mod_naked_functions(tcx: TyCtxt<'_>, module_def_id: LocalModDefId) {
             continue;
         }
 
-        let (fn_header, body_id) = match tcx.hir().get_by_def_id(def_id) {
+        let (fn_header, body_id) = match tcx.hir_node_by_def_id(def_id) {
             hir::Node::Item(hir::Item { kind: hir::ItemKind::Fn(sig, _, body_id), .. })
             | hir::Node::TraitItem(hir::TraitItem {
                 kind: hir::TraitItemKind::Fn(sig, hir::TraitFn::Provided(body_id)),
@@ -68,7 +68,7 @@ fn check_inline(tcx: TyCtxt<'_>, def_id: LocalDefId) {
 /// Checks that function uses non-Rust ABI.
 fn check_abi(tcx: TyCtxt<'_>, def_id: LocalDefId, abi: Abi) {
     if abi == Abi::Rust {
-        let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+        let hir_id = tcx.local_def_id_to_hir_id(def_id);
         let span = tcx.def_span(def_id);
         tcx.emit_spanned_lint(
             UNDEFINED_NAKED_FUNCTION_ABI,
@@ -211,7 +211,7 @@ impl<'tcx> CheckInlineAssembly<'tcx> {
                 self.items.push((ItemKind::NonAsm, span));
             }
 
-            ExprKind::InlineAsm(ref asm) => {
+            ExprKind::InlineAsm(asm) => {
                 self.items.push((ItemKind::Asm, span));
                 self.check_inline_asm(asm, span);
             }
@@ -282,13 +282,13 @@ impl<'tcx> Visitor<'tcx> for CheckInlineAssembly<'tcx> {
             StmtKind::Local(..) => {
                 self.items.push((ItemKind::NonAsm, stmt.span));
             }
-            StmtKind::Expr(ref expr) | StmtKind::Semi(ref expr) => {
+            StmtKind::Expr(expr) | StmtKind::Semi(expr) => {
                 self.check_expr(expr, stmt.span);
             }
         }
     }
 
     fn visit_expr(&mut self, expr: &'tcx hir::Expr<'tcx>) {
-        self.check_expr(&expr, expr.span);
+        self.check_expr(expr, expr.span);
     }
 }

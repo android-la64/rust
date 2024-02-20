@@ -7,7 +7,7 @@
 //! equivalent. That is the only part we support: no MAP_FIXED or MAP_SHARED or anything
 //! else that goes beyond a basic allocation API.
 
-use crate::*;
+use crate::{helpers::round_to_next_multiple_of, *};
 use rustc_target::abi::Size;
 
 impl<'mir, 'tcx: 'mir> EvalContextExt<'mir, 'tcx> for crate::MiriInterpCx<'mir, 'tcx> {}
@@ -48,11 +48,11 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         // First, we do some basic argument validation as required by mmap
         if (flags & (map_private | map_shared)).count_ones() != 1 {
             this.set_last_error(Scalar::from_i32(this.eval_libc_i32("EINVAL")))?;
-            return Ok(Scalar::from_maybe_pointer(Pointer::null(), this));
+            return Ok(this.eval_libc("MAP_FAILED"));
         }
         if length == 0 {
             this.set_last_error(Scalar::from_i32(this.eval_libc_i32("EINVAL")))?;
-            return Ok(Scalar::from_maybe_pointer(Pointer::null(), this));
+            return Ok(this.eval_libc("MAP_FAILED"));
         }
 
         // If a user tries to map a file, we want to loudly inform them that this is not going
@@ -72,7 +72,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         // Miri doesn't support MAP_FIXED or any any protections other than PROT_READ|PROT_WRITE.
         if flags & map_fixed != 0 || prot != prot_read | prot_write {
             this.set_last_error(Scalar::from_i32(this.eval_libc_i32("ENOTSUP")))?;
-            return Ok(Scalar::from_maybe_pointer(Pointer::null(), this));
+            return Ok(this.eval_libc("MAP_FAILED"));
         }
 
         // Miri does not support shared mappings, or any of the other extensions that for example
@@ -89,7 +89,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
         }
 
         let align = this.machine.page_align();
-        let map_length = this.machine.round_up_to_multiple_of_page_size(length).unwrap_or(u64::MAX);
+        let map_length = round_to_next_multiple_of(length, this.machine.page_size);
 
         let ptr =
             this.allocate_ptr(Size::from_bytes(map_length), align, MiriMemoryKind::Mmap.into())?;
@@ -123,7 +123,7 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
             return Ok(Scalar::from_i32(-1));
         }
 
-        let length = this.machine.round_up_to_multiple_of_page_size(length).unwrap_or(u64::MAX);
+        let length = round_to_next_multiple_of(length, this.machine.page_size);
 
         let ptr = Machine::ptr_from_addr_cast(this, addr)?;
 

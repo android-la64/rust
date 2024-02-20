@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-revwalk"
-version = "0.9.0"
+version = "0.10.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
 ]
 description = "A crate providing utilities for walking the revision graph"
 license = "MIT OR Apache-2.0"
@@ -28,19 +27,19 @@ repository = "https://github.com/Byron/gitoxide"
 doctest = false
 
 [dependencies.gix-commitgraph]
-version = "^0.22.0"
+version = "^0.22.1"
 
 [dependencies.gix-date]
-version = "^0.8.0"
+version = "^0.8.1"
 
 [dependencies.gix-hash]
-version = "^0.13.1"
+version = "^0.13.2"
 
 [dependencies.gix-hashtable]
-version = "^0.4.0"
+version = "^0.4.1"
 
 [dependencies.gix-object]
-version = "^0.38.0"
+version = "^0.39.0"
 
 [dependencies.smallvec]
 version = "1.10.0"

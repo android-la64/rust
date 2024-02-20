@@ -44,7 +44,7 @@ pub enum TerminationInfo {
     },
     DataRace {
         involves_non_atomic: bool,
-        ptr: Pointer,
+        ptr: Pointer<AllocId>,
         op1: RacingOp,
         op2: RacingOp,
         extra: Option<&'static str>,
@@ -270,7 +270,8 @@ pub fn report_error<'tcx, 'mir>(
             DataRace { op1, extra, .. } => {
                 let mut helps = vec![(Some(op1.span), format!("and (1) occurred earlier here"))];
                 if let Some(extra) = extra {
-                    helps.push((None, format!("{extra}")))
+                    helps.push((None, format!("{extra}")));
+                    helps.push((None, format!("see https://doc.rust-lang.org/nightly/std/sync/atomic/index.html#memory-model-for-atomic-accesses for more information about the Rust memory model")));
                 }
                 helps.push((None, format!("this indicates a bug in the program: it performed an invalid operation, and caused Undefined Behavior")));
                 helps.push((None, format!("see https://doc.rust-lang.org/nightly/reference/behavior-considered-undefined.html for further information")));
@@ -383,7 +384,7 @@ pub fn report_error<'tcx, 'mir>(
 
     // Include a note like `std` does when we omit frames from a backtrace
     if was_pruned {
-        ecx.tcx.sess.diagnostic().note_without_error(
+        ecx.tcx.sess.dcx().note(
             "some details are omitted, run with `MIRIFLAGS=-Zmiri-backtrace=full` for a verbose backtrace",
         );
     }
@@ -430,7 +431,7 @@ pub fn report_leaks<'mir, 'tcx>(
         );
     }
     if any_pruned {
-        ecx.tcx.sess.diagnostic().note_without_error(
+        ecx.tcx.sess.dcx().note(
             "some details are omitted, run with `MIRIFLAGS=-Zmiri-backtrace=full` for a verbose backtrace",
         );
     }
@@ -455,7 +456,7 @@ pub fn report_msg<'tcx>(
     let mut err = match diag_level {
         DiagLevel::Error => sess.struct_span_err(span, title).forget_guarantee(),
         DiagLevel::Warning => sess.struct_span_warn(span, title),
-        DiagLevel::Note => sess.diagnostic().span_note_diag(span, title),
+        DiagLevel::Note => sess.dcx().struct_span_note(span, title),
     };
 
     // Show main message.
@@ -511,7 +512,7 @@ pub fn report_msg<'tcx>(
         }
     }
 
-    handler.emit_diagnostic(&mut err);
+    handler.emit_diagnostic(err);
 }
 
 impl<'mir, 'tcx> MiriMachine<'mir, 'tcx> {

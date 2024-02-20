@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "measureme"
-version = "10.1.1"
+version = "10.1.2"
 authors = [
     "Wesley Wiser <wwiser@gmail.com>",
     "Michael Woerister <michaelwoerister@posteo>",
@@ -27,7 +27,7 @@ repository = "https://github.com/rust-lang/measureme"
 version = "0.4"
 
 [dependencies.parking_lot]
-version = "0.11.0"
+version = "0.12.0"
 
 [dependencies.rustc-hash]
 version = "1.0.1"

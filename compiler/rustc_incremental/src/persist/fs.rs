@@ -262,7 +262,7 @@ pub(crate) fn prepare_session_directory(
                     directory."
             );
 
-            sess.init_incr_comp_session(session_dir, directory_lock, false);
+            sess.init_incr_comp_session(session_dir, directory_lock);
             return Ok(());
         };
 
@@ -276,7 +276,7 @@ pub(crate) fn prepare_session_directory(
                 sess.emit_warning(errors::HardLinkFailed { path: &session_dir });
             }
 
-            sess.init_incr_comp_session(session_dir, directory_lock, true);
+            sess.init_incr_comp_session(session_dir, directory_lock);
             return Ok(());
         } else {
             debug!("copying failed - trying next directory");
@@ -312,7 +312,7 @@ pub fn finalize_session_directory(sess: &Session, svh: Option<Svh>) {
 
     let incr_comp_session_dir: PathBuf = sess.incr_comp_session_dir().clone();
 
-    if let Some(_) = sess.has_errors_or_delayed_span_bugs() {
+    if let Some(_) = sess.has_errors_or_span_delayed_bugs() {
         // If there have been any errors during compilation, we don't want to
         // publish this session directory. Rather, we'll just delete it.
 
@@ -499,7 +499,7 @@ fn lock_directory(
 }
 
 fn delete_session_dir_lock_file(sess: &Session, lock_file_path: &Path) {
-    if let Err(err) = safe_remove_file(&lock_file_path) {
+    if let Err(err) = safe_remove_file(lock_file_path) {
         sess.emit_warning(errors::DeleteLock { path: lock_file_path, err });
     }
 }
@@ -847,10 +847,10 @@ pub(crate) fn garbage_collect_session_directories(sess: &Session) -> io::Result<
 fn delete_old(sess: &Session, path: &Path) {
     debug!("garbage_collect_session_directories() - deleting `{}`", path.display());
 
-    if let Err(err) = safe_remove_dir_all(&path) {
-        sess.emit_warning(errors::SessionGcFailed { path: &path, err });
+    if let Err(err) = safe_remove_dir_all(path) {
+        sess.emit_warning(errors::SessionGcFailed { path: path, err });
     } else {
-        delete_session_dir_lock_file(sess, &lock_file_path(&path));
+        delete_session_dir_lock_file(sess, &lock_file_path(path));
     }
 }
 

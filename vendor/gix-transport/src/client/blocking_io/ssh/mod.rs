@@ -93,11 +93,13 @@ pub mod connect {
 ///
 /// The `desired_version` is the preferred protocol version when establishing the connection, but note that it can be
 /// downgraded by servers not supporting it.
+/// If `trace` is `true`, all packetlines received or sent will be passed to the facilities of the `gix-trace` crate.
 #[allow(clippy::result_large_err)]
 pub fn connect(
     url: gix_url::Url,
     desired_version: Protocol,
     options: connect::Options,
+    trace: bool,
 ) -> Result<blocking_io::file::SpawnProcessOnDemand, Error> {
     if url.scheme != gix_url::Scheme::Ssh || url.host().is_none() {
         return Err(Error::UnsupportedScheme(url));
@@ -105,7 +107,7 @@ pub fn connect(
     let ssh_cmd = options.ssh_command();
     let mut kind = options.kind.unwrap_or_else(|| ProgramKind::from(ssh_cmd));
     if options.kind.is_none() && kind == ProgramKind::Simple {
-        kind = if std::process::Command::from(
+        let mut cmd = std::process::Command::from(
             gix_command::prepare(ssh_cmd)
                 .stderr(Stdio::null())
                 .stdout(Stdio::null())
@@ -115,11 +117,9 @@ pub fn connect(
                 .arg(url.host_argument_safe().ok_or_else(|| Error::AmbiguousHostName {
                     host: url.host().expect("set in ssh urls").into(),
                 })?),
-        )
-        .status()
-        .ok()
-        .map_or(false, |status| status.success())
-        {
+        );
+        gix_features::trace::debug!(cmd = ?cmd, "invoking `ssh` for feature check");
+        kind = if cmd.status().ok().map_or(false, |status| status.success()) {
             ProgramKind::Ssh
         } else {
             ProgramKind::Simple
@@ -134,6 +134,7 @@ pub fn connect(
         kind,
         options.disallow_shell,
         desired_version,
+        trace,
     ))
 }
 

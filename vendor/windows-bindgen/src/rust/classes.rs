@@ -2,8 +2,8 @@ use super::*;
 
 pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
     if writer.sys {
-        if type_def_has_default_interface(writer.reader, def) {
-            let name = to_ident(writer.reader.type_def_name(def));
+        if def.interface_impls().next().is_some() {
+            let name = to_ident(def.name());
             quote! {
                 pub type #name = *mut ::core::ffi::c_void;
             }
@@ -16,16 +16,16 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
 }
 
 fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
-    if writer.reader.type_def_extends(def) == Some(TypeName::Attribute) {
+    if def.extends() == Some(TypeName::Attribute) {
         return TokenStream::new();
     }
 
-    let name = to_ident(writer.reader.type_def_name(def));
-    let interfaces = type_interfaces(writer.reader, &Type::TypeDef(def, Vec::new()));
+    let name = to_ident(def.name());
+    let interfaces = type_interfaces(&Type::TypeDef(def, Vec::new()));
     let mut methods = quote! {};
     let mut method_names = MethodNames::new();
 
-    let cfg = type_def_cfg(writer.reader, def, &[]);
+    let cfg = type_def_cfg(def, &[]);
     let doc = writer.cfg_doc(&cfg);
     let features = writer.cfg_features(&cfg);
 
@@ -33,7 +33,7 @@ fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
         if let Type::TypeDef(def, generics) = &interface.ty {
             let mut virtual_names = MethodNames::new();
 
-            for method in writer.reader.type_def_methods(*def) {
+            for method in def.methods() {
                 methods.combine(&winrt_methods::writer(writer, *def, generics, interface.kind, method, &mut method_names, &mut virtual_names));
             }
         }
@@ -42,9 +42,9 @@ fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
     let factories = interfaces.iter().filter_map(|interface| match interface.kind {
         InterfaceKind::Static => {
             if let Type::TypeDef(def, generics) = &interface.ty {
-                if writer.reader.type_def_methods(*def).next().is_some() {
+                if def.methods().next().is_some() {
                     let interface_type = writer.type_name(&interface.ty);
-                    let features = writer.cfg_features(&type_def_cfg(writer.reader, *def, generics));
+                    let features = writer.cfg_features(&type_def_cfg(*def, generics));
 
                     return Some(quote! {
                         #[doc(hidden)]
@@ -64,8 +64,8 @@ fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
         _ => None,
     });
 
-    if type_def_has_default_interface(writer.reader, def) {
-        let new = if type_def_has_default_constructor(writer.reader, def) {
+    if def.interface_impls().next().is_some() {
+        let new = if type_def_has_default_constructor(def) {
             quote! {
                 pub fn new() -> ::windows_core::Result<Self> {
                     Self::IActivationFactory(|f| f.ActivateInstance::<Self>())
@@ -86,6 +86,7 @@ fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
             #doc
             #features
             #[repr(transparent)]
+            #[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
             pub struct #name(::windows_core::IUnknown);
             #features
             impl #name {
@@ -95,7 +96,6 @@ fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
             }
         };
 
-        tokens.combine(&writer.interface_core_traits(def, &[], &name, &TokenStream::new(), &TokenStream::new(), &features));
         tokens.combine(&writer.interface_winrt_trait(def, &[], &name, &TokenStream::new(), &TokenStream::new(), &features));
         tokens.combine(&writer.interface_trait(def, &[], &name, &TokenStream::new(), &features, true));
         tokens.combine(&writer.runtime_name_trait(def, &[], &name, &TokenStream::new(), &features));
@@ -129,7 +129,7 @@ fn gen_conversions(writer: &Writer, def: TypeDef, name: &TokenStream, interfaces
     };
 
     for interface in interfaces {
-        if type_is_exclusive(writer.reader, &interface.ty) {
+        if type_is_exclusive(&interface.ty) {
             continue;
         }
 
@@ -138,7 +138,7 @@ fn gen_conversions(writer: &Writer, def: TypeDef, name: &TokenStream, interfaces
         }
 
         let into = writer.type_name(&interface.ty);
-        let features = writer.cfg_features(&cfg.union(&type_cfg(writer.reader, &interface.ty)));
+        let features = writer.cfg_features(&cfg.union(&type_cfg(&interface.ty)));
 
         tokens.combine(&quote! {
             #features
@@ -146,9 +146,9 @@ fn gen_conversions(writer: &Writer, def: TypeDef, name: &TokenStream, interfaces
         });
     }
 
-    for def in type_def_bases(writer.reader, def) {
+    for def in type_def_bases(def) {
         let into = writer.type_def_name(def, &[]);
-        let features = writer.cfg_features(&cfg.union(&type_def_cfg(writer.reader, def, &[])));
+        let features = writer.cfg_features(&cfg.union(&type_def_cfg(def, &[])));
 
         tokens.combine(&quote! {
             #features
@@ -157,4 +157,24 @@ fn gen_conversions(writer: &Writer, def: TypeDef, name: &TokenStream, interfaces
     }
 
     tokens
+}
+
+fn type_def_has_default_constructor(row: TypeDef) -> bool {
+    for attribute in row.attributes() {
+        if attribute.name() == "ActivatableAttribute" {
+            if attribute.args().iter().any(|arg| matches!(arg.1, Value::TypeName(_))) {
+                continue;
+            } else {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn type_is_exclusive(ty: &Type) -> bool {
+    match ty {
+        Type::TypeDef(row, _) => type_def_is_exclusive(*row),
+        _ => false,
+    }
 }

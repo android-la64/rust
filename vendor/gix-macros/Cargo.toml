@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-macros"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
     "Jiahao XU <Jiahao_XU@outlook.com>",
     "Andre Bogus <bogusandre@gmail.com>",
@@ -22,7 +22,6 @@ authors = [
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
 ]
 description = "Proc-macro utilities for gix"
 license = "MIT OR Apache-2.0"

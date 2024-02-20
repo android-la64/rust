@@ -8,7 +8,6 @@ use crate::llvm::{self, True};
 use crate::type_::Type;
 use crate::type_of::LayoutLlvmExt;
 use crate::value::Value;
-use cstr::cstr;
 use rustc_codegen_ssa::traits::*;
 use rustc_hir::def_id::DefId;
 use rustc_middle::middle::codegen_fn_attrs::{CodegenFnAttrFlags, CodegenFnAttrs};
@@ -72,7 +71,7 @@ pub fn const_alloc_to_llvm<'ll>(cx: &CodegenCx<'ll, '_>, alloc: ConstAllocation<
     }
 
     let mut next_offset = 0;
-    for &(offset, alloc_id) in alloc.provenance().ptrs().iter() {
+    for &(offset, prov) in alloc.provenance().ptrs().iter() {
         let offset = offset.bytes();
         assert_eq!(offset as usize as u64, offset);
         let offset = offset as usize;
@@ -92,13 +91,10 @@ pub fn const_alloc_to_llvm<'ll>(cx: &CodegenCx<'ll, '_>, alloc: ConstAllocation<
         .expect("const_alloc_to_llvm: could not read relocation pointer")
             as u64;
 
-        let address_space = cx.tcx.global_alloc(alloc_id).address_space(cx);
+        let address_space = cx.tcx.global_alloc(prov.alloc_id()).address_space(cx);
 
         llvals.push(cx.scalar_to_backend(
-            InterpScalar::from_pointer(
-                Pointer::new(alloc_id, Size::from_bytes(ptr_offset)),
-                &cx.tcx,
-            ),
+            InterpScalar::from_pointer(Pointer::new(prov, Size::from_bytes(ptr_offset)), &cx.tcx),
             Scalar::Initialized {
                 value: Primitive::Pointer(address_space),
                 valid_range: WrappingRange::full(dl.pointer_size),
@@ -187,7 +183,7 @@ fn check_and_apply_linkage<'ll, 'tcx>(
     {
         cx.declare_global(
             &common::i686_decorated_name(
-                &dllimport,
+                dllimport,
                 common::is_mingw_gnu_toolchain(&cx.tcx.sess.target),
                 true,
             ),
@@ -476,9 +472,9 @@ impl<'ll> StaticMethods for CodegenCx<'ll, '_> {
                             .all(|&byte| byte == 0);
 
                     let sect_name = if all_bytes_are_zero {
-                        cstr!("__DATA,__thread_bss")
+                        c"__DATA,__thread_bss"
                     } else {
-                        cstr!("__DATA,__thread_data")
+                        c"__DATA,__thread_data"
                     };
                     llvm::LLVMSetSection(g, sect_name.as_ptr());
                 }
@@ -507,7 +503,7 @@ impl<'ll> StaticMethods for CodegenCx<'ll, '_> {
                     let val = llvm::LLVMMetadataAsValue(self.llcx, meta);
                     llvm::LLVMAddNamedMetadataOperand(
                         self.llmod,
-                        "wasm.custom_sections\0".as_ptr().cast(),
+                        c"wasm.custom_sections".as_ptr().cast(),
                         val,
                     );
                 }

@@ -298,6 +298,45 @@ impl Command {
         self
     }
 
+    /// Allows one to mutate an [`ArgGroup`] after it's been added to a [`Command`].
+    ///
+    /// # Panics
+    ///
+    /// If the argument is undefined
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use clap_builder as clap;
+    /// # use clap::{Command, arg, ArgGroup};
+    ///
+    /// Command::new("foo")
+    ///     .arg(arg!(--"set-ver" <ver> "set the version manually").required(false))
+    ///     .arg(arg!(--major "auto increase major"))
+    ///     .arg(arg!(--minor "auto increase minor"))
+    ///     .arg(arg!(--patch "auto increase patch"))
+    ///     .group(ArgGroup::new("vers")
+    ///          .args(["set-ver", "major", "minor","patch"])
+    ///          .required(true))
+    ///     .mut_group("vers", |a| a.required(false));
+    /// ```
+    #[must_use]
+    #[cfg_attr(debug_assertions, track_caller)]
+    pub fn mut_group<F>(mut self, arg_id: impl AsRef<str>, f: F) -> Self
+    where
+        F: FnOnce(ArgGroup) -> ArgGroup,
+    {
+        let id = arg_id.as_ref();
+        let index = self
+            .groups
+            .iter()
+            .position(|g| g.get_id() == id)
+            .unwrap_or_else(|| panic!("Group `{id}` is undefined"));
+        let a = self.groups.remove(index);
+
+        self.groups.push(f(a));
+        self
+    }
     /// Allows one to mutate a [`Command`] after it's been added as a subcommand.
     ///
     /// This can be useful for modifying auto-generated arguments of nested subcommands with
@@ -1070,7 +1109,7 @@ impl Command {
     /// Replace prior occurrences of arguments rather than error
     ///
     /// For any argument that would conflict with itself by default (e.g.
-    /// [`ArgAction::Set`][ArgAction::Set], it will now override itself.
+    /// [`ArgAction::Set`], it will now override itself.
     ///
     /// This is the equivalent to saying the `foo` arg using [`Arg::overrides_with("foo")`] for all
     /// defined arguments.
@@ -1359,7 +1398,7 @@ impl Command {
     /// assert_eq!(res.unwrap_err().kind(), ErrorKind::UnknownArgument);
     /// ```
     ///
-    /// You can create a custom version flag with [`ArgAction::Help`], [`ArgAction::HelpShort`], or
+    /// You can create a custom help flag with [`ArgAction::Help`], [`ArgAction::HelpShort`], or
     /// [`ArgAction::HelpLong`]
     /// ```rust
     /// # use clap_builder as clap;
@@ -2047,6 +2086,21 @@ impl Command {
         self.settings.unset(setting);
         self.g_settings.unset(setting);
         self
+    }
+
+    /// Flatten subcommand help into the current command's help
+    ///
+    /// This shows a summary of subcommands within the usage and help for the current command, similar to
+    /// `git stash --help` showing information on `push`, `pop`, etc.
+    /// To see more information, a user can still pass `--help` to the individual subcommands.
+    #[inline]
+    #[must_use]
+    pub fn flatten_help(self, yes: bool) -> Self {
+        if yes {
+            self.setting(AppSettings::FlattenHelp)
+        } else {
+            self.unset_setting(AppSettings::FlattenHelp)
+        }
     }
 
     /// Set the default section heading for future args.
@@ -3335,6 +3389,20 @@ impl Command {
         self.usage_name.as_deref()
     }
 
+    #[inline]
+    #[cfg(feature = "usage")]
+    pub(crate) fn get_usage_name_fallback(&self) -> &str {
+        self.get_usage_name()
+            .unwrap_or_else(|| self.get_bin_name_fallback())
+    }
+
+    #[inline]
+    #[cfg(not(feature = "usage"))]
+    #[allow(dead_code)]
+    pub(crate) fn get_usage_name_fallback(&self) -> &str {
+        self.get_bin_name_fallback()
+    }
+
     /// Get the name of the binary.
     #[inline]
     pub fn get_display_name(&self) -> Option<&str> {
@@ -3345,6 +3413,12 @@ impl Command {
     #[inline]
     pub fn get_bin_name(&self) -> Option<&str> {
         self.bin_name.as_deref()
+    }
+
+    /// Get the name of the binary.
+    #[inline]
+    pub(crate) fn get_bin_name_fallback(&self) -> &str {
+        self.bin_name.as_deref().unwrap_or_else(|| self.get_name())
     }
 
     /// Set binary name. Uses `&mut self` instead of `self`.
@@ -3408,6 +3482,12 @@ impl Command {
     #[inline]
     pub fn get_long_about(&self) -> Option<&StyledStr> {
         self.long_about.as_ref()
+    }
+
+    /// Get the custom section heading specified via [`Command::flatten_help`].
+    #[inline]
+    pub fn is_flatten_help_set(&self) -> bool {
+        self.is_set(AppSettings::FlattenHelp)
     }
 
     /// Get the custom section heading specified via [`Command::next_help_heading`].

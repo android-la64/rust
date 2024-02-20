@@ -36,7 +36,14 @@ const MAN_MASK: u64 = 0x000fffffffffffffu64;
 
 // canonical raw bit patterns (for hashing)
 const CANONICAL_NAN_BITS: u64 = 0x7ff8000000000000u64;
-const CANONICAL_ZERO_BITS: u64 = 0x0u64;
+
+#[inline(always)]
+fn canonicalize_signed_zero<T: Float>(x: T) -> T {
+    // -0.0 + 0.0 == +0.0 under IEEE754 roundTiesToEven rounding mode,
+    // which Rust guarantees. Thus by adding a positive zero we
+    // canonicalize signed zero without any branches in one instruction.
+    x + T::zero()
+}
 
 /// A wrapper around floats providing implementations of `Eq`, `Ord`, and `Hash`.
 ///
@@ -111,25 +118,43 @@ impl<T: Float> PartialOrd for OrderedFloat<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
+
+    #[inline]
+    fn lt(&self, other: &Self) -> bool {
+        !self.ge(other)
+    }
+
+    #[inline]
+    fn le(&self, other: &Self) -> bool {
+        other.ge(self)
+    }
+
+    #[inline]
+    fn gt(&self, other: &Self) -> bool {
+        !other.ge(self)
+    }
+
+    #[inline]
+    fn ge(&self, other: &Self) -> bool {
+        // We consider all NaNs equal, and NaN is the largest possible
+        // value. Thus if self is NaN we always return true. Otherwise
+        // self >= other is correct. If other is also not NaN it is trivially
+        // correct, and if it is we note that nothing can be greater or
+        // equal to NaN except NaN itself, which we already handled earlier.
+        self.0.is_nan() | (self.0 >= other.0)
+    }
 }
 
 impl<T: Float> Ord for OrderedFloat<T> {
+    #[inline]
+    #[allow(clippy::comparison_chain)]
     fn cmp(&self, other: &Self) -> Ordering {
-        let lhs = &self.0;
-        let rhs = &other.0;
-        match lhs.partial_cmp(rhs) {
-            Some(ordering) => ordering,
-            None => {
-                if lhs.is_nan() {
-                    if rhs.is_nan() {
-                        Ordering::Equal
-                    } else {
-                        Ordering::Greater
-                    }
-                } else {
-                    Ordering::Less
-                }
-            }
+        if self < other {
+            Ordering::Less
+        } else if self > other {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
         }
     }
 }
@@ -154,12 +179,13 @@ impl<T: Float> PartialEq<T> for OrderedFloat<T> {
 
 impl<T: Float> Hash for OrderedFloat<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        if self.is_nan() {
-            // normalize to one representation of NaN
-            hash_float(&T::nan(), state)
+        let bits = if self.is_nan() {
+            CANONICAL_NAN_BITS
         } else {
-            hash_float(&self.0, state)
-        }
+            raw_double_bits(&canonicalize_signed_zero(self.0))
+        };
+
+        bits.hash(state)
     }
 }
 
@@ -943,7 +969,8 @@ impl<T: Float> Ord for NotNan<T> {
 impl<T: Float> Hash for NotNan<T> {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        hash_float(&self.0, state)
+        let bits = raw_double_bits(&canonicalize_signed_zero(self.0));
+        bits.hash(state)
     }
 }
 
@@ -1267,21 +1294,8 @@ impl From<FloatIsNan> for std::io::Error {
 }
 
 #[inline]
-fn hash_float<F: Float, H: Hasher>(f: &F, state: &mut H) {
-    raw_double_bits(f).hash(state);
-}
-
-#[inline]
 fn raw_double_bits<F: Float>(f: &F) -> u64 {
-    if f.is_nan() {
-        return CANONICAL_NAN_BITS;
-    }
-
     let (man, exp, sign) = f.integer_decode();
-    if man == 0 {
-        return CANONICAL_ZERO_BITS;
-    }
-
     let exp_u64 = exp as u16 as u64;
     let sign_u64 = if sign > 0 { 1u64 } else { 0u64 };
     (man & MAN_MASK) | ((exp_u64 << 52) & EXP_MASK) | ((sign_u64 << 63) & SIGN_MASK)

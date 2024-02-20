@@ -47,7 +47,7 @@ impl Packages {
             Packages::All => ws
                 .members()
                 .map(Package::package_id)
-                .map(PackageIdSpec::from_package_id)
+                .map(|id| id.to_spec())
                 .collect(),
             Packages::OptOut(opt_out) => {
                 let (mut patterns, mut names) = opt_patterns_and_names(opt_out)?;
@@ -57,7 +57,7 @@ impl Packages {
                         !names.remove(pkg.name().as_str()) && !match_patterns(pkg, &mut patterns)
                     })
                     .map(Package::package_id)
-                    .map(PackageIdSpec::from_package_id)
+                    .map(|id| id.to_spec())
                     .collect();
                 let warn = |e| ws.config().shell().warn(e);
                 emit_package_not_found(ws, names, true).or_else(warn)?;
@@ -65,7 +65,7 @@ impl Packages {
                 specs
             }
             Packages::Packages(packages) if packages.is_empty() => {
-                vec![PackageIdSpec::from_package_id(ws.current()?.package_id())]
+                vec![ws.current()?.package_id().to_spec()]
             }
             Packages::Packages(opt_in) => {
                 let (mut patterns, packages) = opt_patterns_and_names(opt_in)?;
@@ -78,7 +78,7 @@ impl Packages {
                         .members()
                         .filter(|pkg| match_patterns(pkg, &mut patterns))
                         .map(Package::package_id)
-                        .map(PackageIdSpec::from_package_id);
+                        .map(|id| id.to_spec());
                     specs.extend(matched_pkgs);
                 }
                 emit_pattern_not_found(ws, patterns, false)?;
@@ -87,7 +87,7 @@ impl Packages {
             Packages::Default => ws
                 .default_members()
                 .map(Package::package_id)
-                .map(PackageIdSpec::from_package_id)
+                .map(|id| id.to_spec())
                 .collect(),
         };
         if specs.is_empty() {
@@ -195,7 +195,7 @@ fn opt_patterns_and_names(
     let mut opt_patterns = Vec::new();
     let mut opt_names = BTreeSet::new();
     for x in opt.iter() {
-        if is_glob_pattern(x) {
+        if PackageIdSpec::parse(x).is_err() && is_glob_pattern(x) {
             opt_patterns.push((build_glob(x)?, false));
         } else {
             opt_names.insert(String::as_str(x));

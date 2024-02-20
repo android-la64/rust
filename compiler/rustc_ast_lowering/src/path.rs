@@ -9,6 +9,7 @@ use rustc_ast::{self as ast, *};
 use rustc_hir as hir;
 use rustc_hir::def::{DefKind, PartialRes, Res};
 use rustc_hir::GenericArg;
+use rustc_middle::span_bug;
 use rustc_span::symbol::{kw, sym, Ident};
 use rustc_span::{BytePos, Span, DUMMY_SP};
 
@@ -139,7 +140,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
 
         // We should've returned in the for loop above.
 
-        self.diagnostic().span_bug(
+        self.tcx.sess.dcx().span_bug(
             p.span,
             format!(
                 "lower_qpath: no final extension segment in {}..{}",
@@ -285,7 +286,9 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         let (start, end) = match self.resolver.get_lifetime_res(segment_id) {
             Some(LifetimeRes::ElidedAnchor { start, end }) => (start, end),
             None => return,
-            Some(_) => panic!(),
+            Some(res) => {
+                span_bug!(path_span, "expected an elided lifetime to insert. found {res:?}")
+            }
         };
         let expected_lifetimes = end.as_usize() - start.as_usize();
         debug!(expected_lifetimes);
@@ -372,10 +375,10 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
             // ```
             FnRetTy::Ty(ty) if matches!(itctx, ImplTraitContext::ReturnPositionOpaqueTy { .. }) => {
                 if self.tcx.features().impl_trait_in_fn_trait_return {
-                    self.lower_ty(&ty, itctx)
+                    self.lower_ty(ty, itctx)
                 } else {
                     self.lower_ty(
-                        &ty,
+                        ty,
                         &ImplTraitContext::FeatureGated(
                             ImplTraitPosition::FnTraitReturn,
                             sym::impl_trait_in_fn_trait_return,
@@ -384,12 +387,12 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                 }
             }
             FnRetTy::Ty(ty) => {
-                self.lower_ty(&ty, &ImplTraitContext::Disallowed(ImplTraitPosition::FnTraitReturn))
+                self.lower_ty(ty, &ImplTraitContext::Disallowed(ImplTraitPosition::FnTraitReturn))
             }
             FnRetTy::Default(_) => self.arena.alloc(self.ty_tup(*span, &[])),
         };
         let args = smallvec![GenericArg::Type(self.arena.alloc(self.ty_tup(*inputs_span, inputs)))];
-        let binding = self.output_ty_binding(output_ty.span, output_ty);
+        let binding = self.assoc_ty_binding(sym::Output, output_ty.span, output_ty);
         (
             GenericArgsCtor {
                 args,
@@ -401,13 +404,14 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         )
     }
 
-    /// An associated type binding `Output = $ty`.
-    pub(crate) fn output_ty_binding(
+    /// An associated type binding `$assoc_ty_name = $ty`.
+    pub(crate) fn assoc_ty_binding(
         &mut self,
+        assoc_ty_name: rustc_span::Symbol,
         span: Span,
         ty: &'hir hir::Ty<'hir>,
     ) -> hir::TypeBinding<'hir> {
-        let ident = Ident::with_dummy_span(hir::FN_OUTPUT_NAME);
+        let ident = Ident::with_dummy_span(assoc_ty_name);
         let kind = hir::TypeBindingKind::Equality { term: ty.into() };
         let args = arena_vec![self;];
         let bindings = arena_vec![self;];

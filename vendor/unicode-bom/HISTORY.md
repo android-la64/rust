@@ -1,5 +1,11 @@
 # Change log
 
+## 2.0.3
+
+### Other changes
+
+* code: drop unnecessary `unsafe impl` for `Send` and `Sync` (21d7837889515dbc15a381ca00b7a55711e38828)
+
 ## 2.0.2
 
 ### Other changes

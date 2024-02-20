@@ -21,7 +21,7 @@ use rustc_errors::{
 use rustc_feature::Features;
 use rustc_lint_defs::builtin::PROC_MACRO_BACK_COMPAT;
 use rustc_lint_defs::{BufferedEarlyLint, BuiltinLintDiagnostics, RegisteredTools};
-use rustc_parse::{self, parser, MACRO_ARGUMENTS};
+use rustc_parse::{parser, MACRO_ARGUMENTS};
 use rustc_session::errors::report_lit_error;
 use rustc_session::{parse::ParseSess, Limit, Session};
 use rustc_span::def_id::{CrateNum, DefId, LocalDefId};
@@ -777,7 +777,7 @@ impl SyntaxExtension {
         attrs: &[ast::Attribute],
     ) -> SyntaxExtension {
         let allow_internal_unstable =
-            attr::allow_internal_unstable(sess, &attrs).collect::<Vec<Symbol>>();
+            attr::allow_internal_unstable(sess, attrs).collect::<Vec<Symbol>>();
 
         let allow_internal_unsafe = attr::contains_name(attrs, sym::allow_internal_unsafe);
         let local_inner_macros = attr::find_by_name(attrs, sym::macro_export)
@@ -790,15 +790,15 @@ impl SyntaxExtension {
             .map(|attr| {
                 // Override `helper_attrs` passed above if it's a built-in macro,
                 // marking `proc_macro_derive` macros as built-in is not a realistic use case.
-                parse_macro_name_and_helper_attrs(sess.diagnostic(), attr, "built-in").map_or_else(
+                parse_macro_name_and_helper_attrs(sess.dcx(), attr, "built-in").map_or_else(
                     || (Some(name), Vec::new()),
                     |(name, helper_attrs)| (Some(name), helper_attrs),
                 )
             })
             .unwrap_or_else(|| (None, helper_attrs));
-        let stability = attr::find_stability(&sess, attrs, span);
-        let const_stability = attr::find_const_stability(&sess, attrs, span);
-        let body_stability = attr::find_body_stability(&sess, attrs);
+        let stability = attr::find_stability(sess, attrs, span);
+        let const_stability = attr::find_const_stability(sess, attrs, span);
+        let body_stability = attr::find_body_stability(sess, attrs);
         if let Some((_, sp)) = const_stability {
             sess.emit_err(errors::MacroConstStability {
                 span: sp,
@@ -818,7 +818,7 @@ impl SyntaxExtension {
             allow_internal_unstable: (!allow_internal_unstable.is_empty())
                 .then(|| allow_internal_unstable.into()),
             stability: stability.map(|(s, _)| s),
-            deprecation: attr::find_deprecation(&sess, features, attrs).map(|(d, _)| d),
+            deprecation: attr::find_deprecation(sess, features, attrs).map(|(d, _)| d),
             helper_attrs,
             edition,
             builtin_name,
@@ -1119,7 +1119,7 @@ impl<'a> ExtCtxt<'a> {
         sp: S,
         msg: impl Into<DiagnosticMessage>,
     ) -> DiagnosticBuilder<'a, ErrorGuaranteed> {
-        self.sess.parse_sess.span_diagnostic.struct_span_err(sp, msg)
+        self.sess.dcx().struct_span_err(sp, msg)
     }
 
     #[track_caller]
@@ -1143,15 +1143,10 @@ impl<'a> ExtCtxt<'a> {
     #[rustc_lint_diagnostics]
     #[track_caller]
     pub fn span_err<S: Into<MultiSpan>>(&self, sp: S, msg: impl Into<DiagnosticMessage>) {
-        self.sess.parse_sess.span_diagnostic.span_err(sp, msg);
+        self.sess.dcx().span_err(sp, msg);
     }
-    #[rustc_lint_diagnostics]
-    #[track_caller]
-    pub fn span_warn<S: Into<MultiSpan>>(&self, sp: S, msg: impl Into<DiagnosticMessage>) {
-        self.sess.parse_sess.span_diagnostic.span_warn(sp, msg);
-    }
-    pub fn span_bug<S: Into<MultiSpan>>(&self, sp: S, msg: impl Into<String>) -> ! {
-        self.sess.parse_sess.span_diagnostic.span_bug(sp, msg);
+    pub fn span_bug<S: Into<MultiSpan>>(&self, sp: S, msg: impl Into<DiagnosticMessage>) -> ! {
+        self.sess.dcx().span_bug(sp, msg);
     }
     pub fn trace_macros_diag(&mut self) {
         for (span, notes) in self.expansions.iter() {
@@ -1165,7 +1160,7 @@ impl<'a> ExtCtxt<'a> {
         self.expansions.clear();
     }
     pub fn bug(&self, msg: &'static str) -> ! {
-        self.sess.parse_sess.span_diagnostic.bug(msg);
+        self.sess.dcx().bug(msg);
     }
     pub fn trace_macros(&self) -> bool {
         self.ecfg.trace_mac
@@ -1213,7 +1208,7 @@ pub fn resolve_path(
                     span,
                     path: parse_sess.source_map().filename_for_diagnostics(&other).to_string(),
                 }
-                .into_diagnostic(&parse_sess.span_diagnostic));
+                .into_diagnostic(&parse_sess.dcx));
             }
         };
         result.pop();
@@ -1286,9 +1281,8 @@ pub fn expr_to_string(
 
 /// Non-fatally assert that `tts` is empty. Note that this function
 /// returns even when `tts` is non-empty, macros that *need* to stop
-/// compilation should call
-/// `cx.parse_sess.span_diagnostic.abort_if_errors()` (this should be
-/// done as rarely as possible).
+/// compilation should call `cx.diagnostic().abort_if_errors()`
+/// (this should be done as rarely as possible).
 pub fn check_zero_tts(cx: &ExtCtxt<'_>, span: Span, tts: TokenStream, name: &str) {
     if !tts.is_empty() {
         cx.emit_err(errors::TakesNoArguments { span, name });
@@ -1356,7 +1350,7 @@ pub fn get_exprs_from_tts(cx: &mut ExtCtxt<'_>, tts: TokenStream) -> Option<Vec<
 }
 
 pub fn parse_macro_name_and_helper_attrs(
-    diag: &rustc_errors::Handler,
+    dcx: &rustc_errors::DiagCtxt,
     attr: &Attribute,
     macro_type: &str,
 ) -> Option<(Symbol, Vec<Symbol>)> {
@@ -1365,23 +1359,23 @@ pub fn parse_macro_name_and_helper_attrs(
     // `#[proc_macro_derive(Foo, attributes(A, ..))]`
     let list = attr.meta_item_list()?;
     if list.len() != 1 && list.len() != 2 {
-        diag.emit_err(errors::AttrNoArguments { span: attr.span });
+        dcx.emit_err(errors::AttrNoArguments { span: attr.span });
         return None;
     }
     let Some(trait_attr) = list[0].meta_item() else {
-        diag.emit_err(errors::NotAMetaItem { span: list[0].span() });
+        dcx.emit_err(errors::NotAMetaItem { span: list[0].span() });
         return None;
     };
     let trait_ident = match trait_attr.ident() {
         Some(trait_ident) if trait_attr.is_word() => trait_ident,
         _ => {
-            diag.emit_err(errors::OnlyOneWord { span: trait_attr.span });
+            dcx.emit_err(errors::OnlyOneWord { span: trait_attr.span });
             return None;
         }
     };
 
     if !trait_ident.name.can_be_raw() {
-        diag.emit_err(errors::CannotBeNameOfMacro {
+        dcx.emit_err(errors::CannotBeNameOfMacro {
             span: trait_attr.span,
             trait_ident,
             macro_type,
@@ -1391,29 +1385,29 @@ pub fn parse_macro_name_and_helper_attrs(
     let attributes_attr = list.get(1);
     let proc_attrs: Vec<_> = if let Some(attr) = attributes_attr {
         if !attr.has_name(sym::attributes) {
-            diag.emit_err(errors::ArgumentNotAttributes { span: attr.span() });
+            dcx.emit_err(errors::ArgumentNotAttributes { span: attr.span() });
         }
         attr.meta_item_list()
             .unwrap_or_else(|| {
-                diag.emit_err(errors::AttributesWrongForm { span: attr.span() });
+                dcx.emit_err(errors::AttributesWrongForm { span: attr.span() });
                 &[]
             })
             .iter()
             .filter_map(|attr| {
                 let Some(attr) = attr.meta_item() else {
-                    diag.emit_err(errors::AttributeMetaItem { span: attr.span() });
+                    dcx.emit_err(errors::AttributeMetaItem { span: attr.span() });
                     return None;
                 };
 
                 let ident = match attr.ident() {
                     Some(ident) if attr.is_word() => ident,
                     _ => {
-                        diag.emit_err(errors::AttributeSingleWord { span: attr.span });
+                        dcx.emit_err(errors::AttributeSingleWord { span: attr.span });
                         return None;
                     }
                 };
                 if !ident.name.can_be_raw() {
-                    diag.emit_err(errors::HelperAttributeNameInvalid {
+                    dcx.emit_err(errors::HelperAttributeNameInvalid {
                         span: attr.span,
                         name: ident,
                     });
@@ -1464,7 +1458,7 @@ fn pretty_printing_compatibility_hack(item: &Item, sess: &ParseSess) -> bool {
 
                             if crate_matches {
                                 sess.buffer_lint_with_diagnostic(
-                                        &PROC_MACRO_BACK_COMPAT,
+                                        PROC_MACRO_BACK_COMPAT,
                                         item.ident.span,
                                         ast::CRATE_NODE_ID,
                                         "using an old version of `rental`",

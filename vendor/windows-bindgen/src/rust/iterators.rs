@@ -1,7 +1,7 @@
 use super::*;
 
 pub fn writer(writer: &Writer, def: TypeDef, generics: &[Type], ident: &TokenStream, constraints: &TokenStream, _phantoms: &TokenStream, cfg: &Cfg) -> TokenStream {
-    match writer.reader.type_def_type_name(def) {
+    match def.type_name() {
         // If the type is IIterator<T> then simply implement the Iterator trait over top.
         TypeName::IIterator => {
             return quote! {
@@ -143,17 +143,17 @@ pub fn writer(writer: &Writer, def: TypeDef, generics: &[Type], ident: &TokenStr
 
     let wfc = writer.namespace("Windows.Foundation.Collections");
     let mut iterable = None;
-    let interfaces = type_interfaces(writer.reader, &Type::TypeDef(def, generics.to_vec()));
+    let interfaces = type_interfaces(&Type::TypeDef(def, generics.to_vec()));
 
     // If the class or interface is not one of the well-known collection interfaces, we then see whether it
     // implements any one of them. Here is where we favor IVectorView/IVector over IIterable.
     for interface in interfaces {
         if let Type::TypeDef(interface, interface_generics) = &interface.ty {
-            match writer.reader.type_def_type_name(*interface) {
+            match interface.type_name() {
                 TypeName::IVectorView => {
                     let item = writer.type_name(&interface_generics[0]);
                     let mut cfg = cfg.clone();
-                    type_def_cfg_combine(writer.reader, *interface, interface_generics, &mut cfg);
+                    type_def_cfg_combine(*interface, interface_generics, &mut cfg);
                     let features = writer.cfg_features(&cfg);
 
                     return quote! {
@@ -180,7 +180,7 @@ pub fn writer(writer: &Writer, def: TypeDef, generics: &[Type], ident: &TokenStr
                 TypeName::IVector => {
                     let item = writer.type_name(&interface_generics[0]);
                     let mut cfg = cfg.clone();
-                    type_def_cfg_combine(writer.reader, *interface, interface_generics, &mut cfg);
+                    type_def_cfg_combine(*interface, interface_generics, &mut cfg);
                     let features = writer.cfg_features(&cfg);
 
                     return quote! {
@@ -217,7 +217,7 @@ pub fn writer(writer: &Writer, def: TypeDef, generics: &[Type], ident: &TokenStr
         Some((interface, interface_generics)) => {
             let item = writer.type_name(&interface_generics[0]);
             let mut cfg = cfg.clone();
-            type_def_cfg_combine(writer.reader, interface, &interface_generics, &mut cfg);
+            type_def_cfg_combine(interface, &interface_generics, &mut cfg);
             let features = writer.cfg_features(&cfg);
 
             quote! {

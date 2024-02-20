@@ -6,7 +6,7 @@ use cargo::ops;
 
 pub fn cli() -> Command {
     subcommand("search")
-        .about("Search packages in crates.io")
+        .about("Search packages in the registry. Default registry is crates.io")
         .arg(Arg::new("query").value_name("QUERY").num_args(0..))
         .arg(
             opt(
@@ -17,7 +17,7 @@ pub fn cli() -> Command {
         )
         .arg_index("Registry index URL to search packages in")
         .arg_registry("Registry to search packages in")
-        .arg_quiet()
+        .arg_silent_suggestion()
         .after_help(color_print::cstr!(
             "Run `<cyan,bold>cargo help search</>` for more detailed information.\n"
         ))

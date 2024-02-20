@@ -1,5 +1,5 @@
-use std::cmp::Ordering::{Equal, Greater, Less};
 use super::size_hint;
+use std::cmp::Ordering::{Equal, Greater, Less};
 use std::iter::{Fuse, FusedIterator};
 
 use crate::either_or_both::EitherOrBoth;
@@ -21,8 +21,9 @@ pub struct ZipLongest<T, U> {
 
 /// Create a new `ZipLongest` iterator.
 pub fn zip_longest<T, U>(a: T, b: U) -> ZipLongest<T, U>
-    where T: Iterator,
-          U: Iterator
+where
+    T: Iterator,
+    U: Iterator,
 {
     ZipLongest {
         a: a.fuse(),
@@ -31,8 +32,9 @@ pub fn zip_longest<T, U>(a: T, b: U) -> ZipLongest<T, U>
 }
 
 impl<T, U> Iterator for ZipLongest<T, U>
-    where T: Iterator,
-          U: Iterator
+where
+    T: Iterator,
+    U: Iterator,
 {
     type Item = EitherOrBoth<T::Item, U::Item>;
 
@@ -50,11 +52,26 @@ impl<T, U> Iterator for ZipLongest<T, U>
     fn size_hint(&self) -> (usize, Option<usize>) {
         size_hint::max(self.a.size_hint(), self.b.size_hint())
     }
+
+    #[inline]
+    fn fold<B, F>(self, mut init: B, mut f: F) -> B
+    where
+        Self: Sized,
+        F: FnMut(B, Self::Item) -> B,
+    {
+        let ZipLongest { a, mut b } = self;
+        init = a.fold(init, |init, a| match b.next() {
+            Some(b) => f(init, EitherOrBoth::Both(a, b)),
+            None => f(init, EitherOrBoth::Left(a)),
+        });
+        b.fold(init, |init, b| f(init, EitherOrBoth::Right(b)))
+    }
 }
 
 impl<T, U> DoubleEndedIterator for ZipLongest<T, U>
-    where T: DoubleEndedIterator + ExactSizeIterator,
-          U: DoubleEndedIterator + ExactSizeIterator
+where
+    T: DoubleEndedIterator + ExactSizeIterator,
+    U: DoubleEndedIterator + ExactSizeIterator,
 {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
@@ -73,11 +90,15 @@ impl<T, U> DoubleEndedIterator for ZipLongest<T, U>
 }
 
 impl<T, U> ExactSizeIterator for ZipLongest<T, U>
-    where T: ExactSizeIterator,
-          U: ExactSizeIterator
-{}
+where
+    T: ExactSizeIterator,
+    U: ExactSizeIterator,
+{
+}
 
 impl<T, U> FusedIterator for ZipLongest<T, U>
-    where T: Iterator,
-          U: Iterator
-{}
+where
+    T: Iterator,
+    U: Iterator,
+{
+}

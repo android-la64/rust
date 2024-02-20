@@ -7,7 +7,7 @@ use rustc_hir as hir;
 use rustc_hir::lang_items::LangItem;
 use rustc_hir_analysis::astconv::AstConv;
 use rustc_infer::infer::type_variable::{TypeVariableOrigin, TypeVariableOriginKind};
-use rustc_infer::infer::{DefineOpaqueTypes, LateBoundRegionConversionTime};
+use rustc_infer::infer::{BoundRegionConversionTime, DefineOpaqueTypes};
 use rustc_infer::infer::{InferOk, InferResult};
 use rustc_macros::{TypeFoldable, TypeVisitable};
 use rustc_middle::ty::visit::{TypeVisitable, TypeVisitableExt};
@@ -141,7 +141,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         debug!(?sig, ?opt_kind);
 
         let closure_kind_ty = match opt_kind {
-            Some(kind) => kind.to_ty(self.tcx),
+            Some(kind) => Ty::from_closure_kind(self.tcx, kind),
 
             // Create a type variable (for now) to represent the closure kind.
             // It will be unified during the upvar inference phase (`upvar.rs`)
@@ -181,7 +181,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         .iter_instantiated_copied(self.tcx, args)
                         .map(|(c, s)| (c.as_predicate(), s)),
                 ),
-            ty::Dynamic(ref object_type, ..) => {
+            ty::Dynamic(object_type, ..) => {
                 let sig = object_type.projection_bounds().find_map(|pb| {
                     let pb = pb.with_self_ty(self.tcx, self.tcx.types.trait_object_dummy_self);
                     self.deduce_sig_from_projection(None, pb)
@@ -483,8 +483,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         body: &hir::Body<'_>,
         expected_sig: ExpectedSig<'tcx>,
     ) -> ClosureSignatures<'tcx> {
-        let hir = self.tcx.hir();
-        let expr_map_node = hir.get_by_def_id(expr_def_id);
+        let expr_map_node = self.tcx.hir_node_by_def_id(expr_def_id);
         let expected_args: Vec<_> = expected_sig
             .sig
             .skip_binder()
@@ -558,7 +557,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 // Instantiate (this part of..) S to S', i.e., with fresh variables.
                 self.instantiate_binder_with_fresh_vars(
                     hir_ty.span,
-                    LateBoundRegionConversionTime::FnCall,
+                    BoundRegionConversionTime::FnCall,
                     // (*) binder moved to here
                     supplied_sig.inputs().rebind(supplied_ty),
                 )
@@ -583,7 +582,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
             let supplied_output_ty = self.instantiate_binder_with_fresh_vars(
                 decl.output.span(),
-                LateBoundRegionConversionTime::FnCall,
+                BoundRegionConversionTime::FnCall,
                 supplied_sig.output(),
             );
             let cause = &self.misc(decl.output.span());
@@ -624,13 +623,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         trace!("decl = {:#?}", decl);
         debug!(?body.coroutine_kind);
 
-        let hir_id = self.tcx.hir().local_def_id_to_hir_id(expr_def_id);
+        let hir_id = self.tcx.local_def_id_to_hir_id(expr_def_id);
         let bound_vars = self.tcx.late_bound_vars(hir_id);
 
         // First, convert the types that the user supplied (if any).
         let supplied_arguments = decl.inputs.iter().map(|a| astconv.ast_ty_to_ty(a));
         let supplied_return = match decl.output {
-            hir::FnRetTy::Return(ref output) => astconv.ast_ty_to_ty(&output),
+            hir::FnRetTy::Return(ref output) => astconv.ast_ty_to_ty(output),
             hir::FnRetTy::DefaultReturn(_) => match body.coroutine_kind {
                 // In the case of the async block that we create for a function body,
                 // we expect the return type of the block to match that of the enclosing
@@ -651,8 +650,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         },
                     )
                 }
-                Some(hir::CoroutineKind::Gen(hir::CoroutineSource::Fn)) => {
-                    todo!("gen closures do not exist yet")
+                // All `gen {}` and `async gen {}` must return unit.
+                Some(hir::CoroutineKind::Gen(_) | hir::CoroutineKind::AsyncGen(_)) => {
+                    self.tcx.types.unit
                 }
 
                 _ => astconv.ty_infer(None, decl.output.span()),
@@ -819,7 +819,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         });
 
         if let hir::FnRetTy::Return(ref output) = decl.output {
-            astconv.ast_ty_to_ty(&output);
+            astconv.ast_ty_to_ty(output);
         }
 
         let result = ty::Binder::dummy(self.tcx.mk_fn_sig(

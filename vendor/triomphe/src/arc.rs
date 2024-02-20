@@ -7,6 +7,7 @@ use core::convert::From;
 use core::ffi::c_void;
 use core::fmt;
 use core::hash::{Hash, Hasher};
+use core::iter::FromIterator;
 use core::marker::PhantomData;
 use core::mem::{ManuallyDrop, MaybeUninit};
 use core::ops::Deref;
@@ -28,7 +29,7 @@ use crate::{abort, ArcBorrow, HeaderSlice, OffsetArc, UniqueArc};
 /// necessarily) at _exactly_ `MAX_REFCOUNT + 1` references.
 const MAX_REFCOUNT: usize = (isize::MAX) as usize;
 
-/// The object allocated by an Arc<T>
+/// The object allocated by an `Arc<T>`
 #[repr(C)]
 pub(crate) struct ArcInner<T: ?Sized> {
     pub(crate) count: atomic::AtomicUsize,
@@ -70,12 +71,16 @@ impl<T> Arc<T> {
         }
     }
 
-    /// Reconstruct the Arc<T> from a raw pointer obtained from into_raw()
+    /// Reconstruct the `Arc<T>` from a raw pointer obtained from into_raw()
     ///
     /// Note: This raw pointer will be offset in the allocation and must be preceded
     /// by the atomic count.
     ///
     /// It is recommended to use OffsetArc for this
+    ///
+    ///  # Safety
+    /// - The given pointer must be a valid pointer to `T` that came from [`Arc::into_raw`].
+    /// - After `from_raw`, the pointer must not be accessed.
     #[inline]
     pub unsafe fn from_raw(ptr: *const T) -> Self {
         // FIXME: when `byte_sub` is stabilized, this can accept T: ?Sized.
@@ -144,8 +149,31 @@ impl<T> Arc<T> {
     }
 }
 
+impl<T> Arc<[T]> {
+    /// Reconstruct the `Arc<[T]>` from a raw pointer obtained from `into_raw()`.
+    ///
+    /// [`Arc::from_raw`] should accept unsized types, but this is not trivial to do correctly
+    /// until the feature [`pointer_bytes_offsets`](https://github.com/rust-lang/rust/issues/96283)
+    /// is stabilized. This is stopgap solution for slices.
+    ///
+    ///  # Safety
+    /// - The given pointer must be a valid pointer to `[T]` that came from [`Arc::into_raw`].
+    /// - After `from_raw_slice`, the pointer must not be accessed.
+    pub unsafe fn from_raw_slice(ptr: *const [T]) -> Self {
+        let len = (*ptr).len();
+        // Assuming the offset of `T` in `ArcInner<T>` is the same
+        // as as offset of `[T]` in `ArcInner<[T]>`.
+        // (`offset_of!` macro requires `Sized`.)
+        let arc_inner_ptr = (ptr as *const u8).sub(offset_of!(ArcInner<T>, data));
+        // Synthesize the fat pointer: the pointer metadata for `Arc<[T]>`
+        // is the same as the pointer metadata for `[T]`: the length.
+        let fake_slice = ptr::slice_from_raw_parts_mut(arc_inner_ptr as *mut T, len);
+        Arc::from_raw_inner(fake_slice as *mut ArcInner<[T]>)
+    }
+}
+
 impl<T: ?Sized> Arc<T> {
-    /// Convert the Arc<T> to a raw pointer, suitable for use across FFI
+    /// Convert the `Arc<T>` to a raw pointer, suitable for use across FFI
     ///
     /// Note: This returns a pointer to the data T, which is offset in the allocation.
     ///
@@ -451,7 +479,7 @@ impl<T: Clone> Arc<T> {
     pub fn make_mut(this: &mut Self) -> &mut T {
         if !this.is_unique() {
             // Another pointer exists; clone
-            *this = Arc::new(T::clone(&this));
+            *this = Arc::new(T::clone(this));
         }
 
         unsafe {
@@ -477,7 +505,7 @@ impl<T: Clone> Arc<T> {
     pub fn make_unique(this: &mut Self) -> &mut UniqueArc<T> {
         if !this.is_unique() {
             // Another pointer exists; clone
-            *this = Arc::new(T::clone(&this));
+            *this = Arc::new(T::clone(this));
         }
 
         unsafe {
@@ -683,17 +711,23 @@ impl<T> From<T> for Arc<T> {
     }
 }
 
+impl<A> FromIterator<A> for Arc<[A]> {
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        UniqueArc::from_iter(iter).shareable()
+    }
+}
+
 impl<T: ?Sized> borrow::Borrow<T> for Arc<T> {
     #[inline]
     fn borrow(&self) -> &T {
-        &**self
+        self
     }
 }
 
 impl<T: ?Sized> AsRef<T> for Arc<T> {
     #[inline]
     fn as_ref(&self) -> &T {
-        &**self
+        self
     }
 }
 
@@ -766,7 +800,10 @@ fn must_be_unique<T: ?Sized>(arc: &mut Arc<T>) -> &mut UniqueArc<T> {
 #[cfg(test)]
 mod tests {
     use crate::arc::Arc;
+    use alloc::borrow::ToOwned;
     use alloc::string::String;
+    use alloc::vec::Vec;
+    use core::iter::FromIterator;
     use core::mem::MaybeUninit;
     #[cfg(feature = "unsize")]
     use unsize::{CoerceUnsize, Coercion};
@@ -884,4 +921,119 @@ mod tests {
             let _arc = Arc::from_raw(ptr);
         }
     }
+
+    #[test]
+    fn from_iterator_exact_size() {
+        let arc = Arc::from_iter(Vec::from_iter(["ololo".to_owned(), "trololo".to_owned()]));
+        assert_eq!(1, Arc::count(&arc));
+        assert_eq!(["ololo".to_owned(), "trololo".to_owned()], *arc);
+    }
+
+    #[test]
+    fn from_iterator_unknown_size() {
+        let arc = Arc::from_iter(
+            Vec::from_iter(["ololo".to_owned(), "trololo".to_owned()])
+                .into_iter()
+                // Filter is opaque to iterators, so the resulting iterator
+                // will report lower bound of 0.
+                .filter(|_| true),
+        );
+        assert_eq!(1, Arc::count(&arc));
+        assert_eq!(["ololo".to_owned(), "trololo".to_owned()], *arc);
+    }
+
+    #[test]
+    fn roundtrip_slice() {
+        let arc = Arc::from(Vec::from_iter([17, 19]));
+        let ptr = Arc::into_raw(arc);
+        let arc = unsafe { Arc::from_raw_slice(ptr) };
+        assert_eq!([17, 19], *arc);
+        assert_eq!(1, Arc::count(&arc));
+    }
+
+    #[test]
+    fn arc_eq_and_cmp() {
+        [
+            [("*", &b"AB"[..]), ("*", &b"ab"[..])],
+            [("*", &b"AB"[..]), ("*", &b"a"[..])],
+            [("*", &b"A"[..]), ("*", &b"ab"[..])],
+            [("A", &b"*"[..]), ("a", &b"*"[..])],
+            [("a", &b"*"[..]), ("A", &b"*"[..])],
+            [("AB", &b"*"[..]), ("a", &b"*"[..])],
+            [("A", &b"*"[..]), ("ab", &b"*"[..])],
+        ]
+        .iter()
+        .for_each(|[lt @ (lh, ls), rt @ (rh, rs)]| {
+            let l = Arc::from_header_and_slice(lh, ls);
+            let r = Arc::from_header_and_slice(rh, rs);
+
+            assert_eq!(l, l);
+            assert_eq!(r, r);
+
+            assert_ne!(l, r);
+            assert_ne!(r, l);
+
+            assert_eq!(l <= l, lt <= lt, "{lt:?} <= {lt:?}");
+            assert_eq!(l >= l, lt >= lt, "{lt:?} >= {lt:?}");
+
+            assert_eq!(l < l, lt < lt, "{lt:?} < {lt:?}");
+            assert_eq!(l > l, lt > lt, "{lt:?} > {lt:?}");
+
+            assert_eq!(r <= r, rt <= rt, "{rt:?} <= {rt:?}");
+            assert_eq!(r >= r, rt >= rt, "{rt:?} >= {rt:?}");
+
+            assert_eq!(r < r, rt < rt, "{rt:?} < {rt:?}");
+            assert_eq!(r > r, rt > rt, "{rt:?} > {rt:?}");
+
+            assert_eq!(l < r, lt < rt, "{lt:?} < {rt:?}");
+            assert_eq!(r > l, rt > lt, "{rt:?} > {lt:?}");
+        })
+    }
+
+    #[test]
+    fn arc_eq_and_partial_cmp() {
+        [
+            [(0.0, &[0.0, 0.0][..]), (1.0, &[0.0, 0.0][..])],
+            [(1.0, &[0.0, 0.0][..]), (0.0, &[0.0, 0.0][..])],
+            [(0.0, &[0.0][..]), (0.0, &[0.0, 0.0][..])],
+            [(0.0, &[0.0, 0.0][..]), (0.0, &[0.0][..])],
+            [(0.0, &[1.0, 2.0][..]), (0.0, &[10.0, 20.0][..])],
+        ]
+        .iter()
+        .for_each(|[lt @ (lh, ls), rt @ (rh, rs)]| {
+            let l = Arc::from_header_and_slice(lh, ls);
+            let r = Arc::from_header_and_slice(rh, rs);
+
+            assert_eq!(l, l);
+            assert_eq!(r, r);
+
+            assert_ne!(l, r);
+            assert_ne!(r, l);
+
+            assert_eq!(l <= l, lt <= lt, "{lt:?} <= {lt:?}");
+            assert_eq!(l >= l, lt >= lt, "{lt:?} >= {lt:?}");
+
+            assert_eq!(l < l, lt < lt, "{lt:?} < {lt:?}");
+            assert_eq!(l > l, lt > lt, "{lt:?} > {lt:?}");
+
+            assert_eq!(r <= r, rt <= rt, "{rt:?} <= {rt:?}");
+            assert_eq!(r >= r, rt >= rt, "{rt:?} >= {rt:?}");
+
+            assert_eq!(r < r, rt < rt, "{rt:?} < {rt:?}");
+            assert_eq!(r > r, rt > rt, "{rt:?} > {rt:?}");
+
+            assert_eq!(l < r, lt < rt, "{lt:?} < {rt:?}");
+            assert_eq!(r > l, rt > lt, "{rt:?} > {lt:?}");
+        })
+    }
+
+    #[allow(dead_code)]
+    const fn is_partial_ord<T: ?Sized + PartialOrd>() {}
+
+    #[allow(dead_code)]
+    const fn is_ord<T: ?Sized + Ord>() {}
+
+    // compile-time check that PartialOrd/Ord is correctly derived
+    const _: () = is_partial_ord::<Arc<f64>>();
+    const _: () = is_ord::<Arc<u64>>();
 }

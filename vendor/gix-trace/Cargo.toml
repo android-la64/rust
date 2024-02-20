@@ -13,8 +13,12 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-trace"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
+include = [
+    "src/**/*",
+    "LICENSE-*",
+]
 description = "A crate to provide minimal `tracing` support that can be turned off to zero cost"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
@@ -22,10 +26,6 @@ repository = "https://github.com/Byron/gitoxide"
 [package.metadata.docs.rs]
 all-features = true
 features = ["document-features"]
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
-]
 
 [lib]
 test = false

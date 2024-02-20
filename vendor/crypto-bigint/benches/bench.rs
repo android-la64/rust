@@ -3,7 +3,7 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::runtime_mod::{DynResidue, DynResidueParams},
-    Limb, NonZero, Random, Reciprocal, U128, U256,
+    Limb, MultiExponentiate, NonZero, Random, Reciprocal, U128, U2048, U256,
 };
 use rand_core::OsRng;
 
@@ -101,6 +101,34 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             BatchSize::SmallInput,
         )
     });
+
+    for i in [1, 2, 3, 4, 10, 100] {
+        group.bench_function(
+            format!("multi_exponentiate for {i} bases, U256^U256"),
+            |b| {
+                b.iter_batched(
+                    || {
+                        let bases_and_exponents: Vec<(DynResidue<{ U256::LIMBS }>, U256)> = (1..=i)
+                            .map(|_| {
+                                let x = U256::random(&mut OsRng);
+                                let x_m = DynResidue::new(&x, params);
+                                let p = U256::random(&mut OsRng) | (U256::ONE << (U256::BITS - 1));
+                                (x_m, p)
+                            })
+                            .collect();
+
+                        bases_and_exponents
+                    },
+                    |bases_and_exponents| {
+                        DynResidue::<{ U256::LIMBS }>::multi_exponentiate(
+                            bases_and_exponents.as_slice(),
+                        )
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
 }
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
@@ -131,6 +159,81 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     });
 }
 
+fn bench_shifts<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    group.bench_function("shl_vartime, small, U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x.shl_vartime(10), BatchSize::SmallInput)
+    });
+
+    group.bench_function("shl_vartime, large, U2048", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| x.shl_vartime(1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shl, U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x.shl(1024 + 10), BatchSize::SmallInput)
+    });
+
+    group.bench_function("shr, U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x.shr(1024 + 10), BatchSize::SmallInput)
+    });
+}
+
+fn bench_inv_mod<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    group.bench_function("inv_odd_mod, U256", |b| {
+        b.iter_batched(
+            || {
+                let m = U256::random(&mut OsRng) | U256::ONE;
+                loop {
+                    let x = U256::random(&mut OsRng);
+                    let (_, is_some) = x.inv_odd_mod(&m);
+                    if is_some.into() {
+                        break (x, m);
+                    }
+                }
+            },
+            |(x, m)| x.inv_odd_mod(&m),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("inv_mod, U256, odd modulus", |b| {
+        b.iter_batched(
+            || {
+                let m = U256::random(&mut OsRng) | U256::ONE;
+                loop {
+                    let x = U256::random(&mut OsRng);
+                    let (_, is_some) = x.inv_odd_mod(&m);
+                    if is_some.into() {
+                        break (x, m);
+                    }
+                }
+            },
+            |(x, m)| x.inv_mod(&m),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("inv_mod, U256", |b| {
+        b.iter_batched(
+            || {
+                let m = U256::random(&mut OsRng);
+                loop {
+                    let x = U256::random(&mut OsRng);
+                    let (_, is_some) = x.inv_mod(&m);
+                    if is_some.into() {
+                        break (x, m);
+                    }
+                }
+            },
+            |(x, m)| x.inv_mod(&m),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 fn bench_wrapping_ops(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
     bench_division(&mut group);
@@ -144,5 +247,18 @@ fn bench_montgomery(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_wrapping_ops, bench_montgomery);
+fn bench_modular_ops(c: &mut Criterion) {
+    let mut group = c.benchmark_group("modular ops");
+    bench_shifts(&mut group);
+    bench_inv_mod(&mut group);
+    group.finish();
+}
+
+criterion_group!(
+    benches,
+    bench_wrapping_ops,
+    bench_montgomery,
+    bench_modular_ops
+);
+
 criterion_main!(benches);

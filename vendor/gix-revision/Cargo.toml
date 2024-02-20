@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-revision"
-version = "0.23.0"
+version = "0.24.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
     "README.md",
 ]
 description = "A crate of the gitoxide project dealing with finding names for revisions and parsing specifications"
@@ -29,10 +28,6 @@ repository = "https://github.com/Byron/gitoxide"
 [package.metadata.docs.rs]
 all-features = true
 features = ["document-features"]
-rustdoc-args = [
-    "--cfg",
-    "docsrs",
-]
 
 [lib]
 doctest = false
@@ -47,22 +42,22 @@ version = "0.2.1"
 optional = true
 
 [dependencies.gix-date]
-version = "^0.8.0"
+version = "^0.8.1"
 
 [dependencies.gix-hash]
-version = "^0.13.1"
+version = "^0.13.2"
 
 [dependencies.gix-hashtable]
-version = "^0.4.0"
+version = "^0.4.1"
 
 [dependencies.gix-object]
-version = "^0.38.0"
+version = "^0.39.0"
 
 [dependencies.gix-revwalk]
-version = "^0.9.0"
+version = "^0.10.0"
 
 [dependencies.gix-trace]
-version = "^0.1.3"
+version = "^0.1.4"
 
 [dependencies.serde]
 version = "1.0.114"

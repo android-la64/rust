@@ -66,7 +66,7 @@ pub fn check_drop_impl(tcx: TyCtxt<'_>, drop_impl_did: DefId) -> Result<(), Erro
             // already checked by coherence, but compilation may
             // not have been terminated.
             let span = tcx.def_span(drop_impl_did);
-            let reported = tcx.sess.delay_span_bug(
+            let reported = tcx.sess.span_delayed_bug(
                 span,
                 format!("should have been rejected by coherence check: {dtor_self_type}"),
             );
@@ -81,8 +81,7 @@ fn ensure_drop_params_and_item_params_correspond<'tcx>(
     self_type_did: DefId,
     adt_to_impl_args: GenericArgsRef<'tcx>,
 ) -> Result<(), ErrorGuaranteed> {
-    let Err(arg) = tcx.uses_unique_generic_params(adt_to_impl_args, CheckRegions::OnlyEarlyBound)
-    else {
+    let Err(arg) = tcx.uses_unique_generic_params(adt_to_impl_args, CheckRegions::OnlyParam) else {
         return Ok(());
     };
 

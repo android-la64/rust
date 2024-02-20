@@ -11,6 +11,7 @@ use rustc_middle::mir::visit::{
     MutVisitor, MutatingUseContext, NonMutatingUseContext, PlaceContext, Visitor,
 };
 use rustc_middle::mir::*;
+use rustc_middle::query::TyCtxtAt;
 use rustc_middle::ty::layout::{LayoutError, LayoutOf, LayoutOfHelpers, TyAndLayout};
 use rustc_middle::ty::{self, GenericArgs, Instance, ParamEnv, Ty, TyCtxt, TypeVisitableExt};
 use rustc_span::{def_id::DefId, Span};
@@ -18,7 +19,6 @@ use rustc_target::abi::{self, HasDataLayout, Size, TargetDataLayout};
 use rustc_target::spec::abi::Abi as CallAbi;
 
 use crate::dataflow_const_prop::Patch;
-use crate::MirPass;
 use rustc_const_eval::interpret::{
     self, compile_time_machine, AllocId, ConstAllocation, FnArg, Frame, ImmTy, Immediate, InterpCx,
     InterpResult, MemoryKind, OpTy, PlaceTy, Pointer, Scalar, StackPopCleanup,
@@ -84,8 +84,7 @@ impl<'tcx> MirPass<'tcx> for ConstProp {
 
         // FIXME(welseywiser) const prop doesn't work on coroutines because of query cycles
         // computing their layout.
-        let is_coroutine = def_kind == DefKind::Coroutine;
-        if is_coroutine {
+        if tcx.is_coroutine(def_id.to_def_id()) {
             trace!("ConstProp skipped for coroutine {:?}", def_id);
             return;
         }
@@ -221,7 +220,7 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for ConstPropMachine<'mir, 'tcx>
     }
 
     fn before_access_global(
-        _tcx: TyCtxt<'tcx>,
+        _tcx: TyCtxtAt<'tcx>,
         _machine: &Self,
         _alloc_id: AllocId,
         alloc: ConstAllocation<'tcx>,
@@ -241,10 +240,7 @@ impl<'mir, 'tcx> interpret::Machine<'mir, 'tcx> for ConstPropMachine<'mir, 'tcx>
     }
 
     #[inline(always)]
-    fn expose_ptr(
-        _ecx: &mut InterpCx<'mir, 'tcx, Self>,
-        _ptr: Pointer<AllocId>,
-    ) -> InterpResult<'tcx> {
+    fn expose_ptr(_ecx: &mut InterpCx<'mir, 'tcx, Self>, _ptr: Pointer) -> InterpResult<'tcx> {
         throw_machine_stop_str!("exposing pointers isn't supported in ConstProp")
     }
 
@@ -607,7 +603,7 @@ impl CanConstProp {
         for arg in body.args_iter() {
             cpv.found_assignment.insert(arg);
         }
-        cpv.visit_body(&body);
+        cpv.visit_body(body);
         cpv.can_const_prop
     }
 }

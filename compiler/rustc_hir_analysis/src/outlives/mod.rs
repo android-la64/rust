@@ -18,7 +18,7 @@ pub fn provide(providers: &mut Providers) {
 }
 
 fn inferred_outlives_of(tcx: TyCtxt<'_>, item_def_id: LocalDefId) -> &[(ty::Clause<'_>, Span)] {
-    let id = tcx.hir().local_def_id_to_hir_id(item_def_id);
+    let id = tcx.local_def_id_to_hir_id(item_def_id);
 
     if matches!(tcx.def_kind(item_def_id), hir::def::DefKind::AnonConst)
         && tcx.features().generic_const_exprs
@@ -41,7 +41,7 @@ fn inferred_outlives_of(tcx: TyCtxt<'_>, item_def_id: LocalDefId) -> &[(ty::Clau
         }
     }
 
-    match tcx.hir().get(id) {
+    match tcx.hir_node(id) {
         Node::Item(item) => match item.kind {
             hir::ItemKind::Struct(..) | hir::ItemKind::Enum(..) | hir::ItemKind::Union(..) => {
                 let crate_map = tcx.inferred_outlives_crate(());

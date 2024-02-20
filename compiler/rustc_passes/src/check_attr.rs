@@ -130,59 +130,59 @@ impl CheckAttrVisitor<'_> {
                     &mut specified_inline,
                     &mut doc_aliases,
                 ),
-                sym::no_link => self.check_no_link(hir_id, &attr, span, target),
-                sym::export_name => self.check_export_name(hir_id, &attr, span, target),
+                sym::no_link => self.check_no_link(hir_id, attr, span, target),
+                sym::export_name => self.check_export_name(hir_id, attr, span, target),
                 sym::rustc_layout_scalar_valid_range_start
                 | sym::rustc_layout_scalar_valid_range_end => {
-                    self.check_rustc_layout_scalar_valid_range(&attr, span, target)
+                    self.check_rustc_layout_scalar_valid_range(attr, span, target)
                 }
                 sym::allow_internal_unstable => {
-                    self.check_allow_internal_unstable(hir_id, &attr, span, target, &attrs)
+                    self.check_allow_internal_unstable(hir_id, attr, span, target, attrs)
                 }
-                sym::debugger_visualizer => self.check_debugger_visualizer(&attr, target),
+                sym::debugger_visualizer => self.check_debugger_visualizer(attr, target),
                 sym::rustc_allow_const_fn_unstable => {
-                    self.check_rustc_allow_const_fn_unstable(hir_id, &attr, span, target)
+                    self.check_rustc_allow_const_fn_unstable(hir_id, attr, span, target)
                 }
                 sym::rustc_std_internal_symbol => {
-                    self.check_rustc_std_internal_symbol(&attr, span, target)
+                    self.check_rustc_std_internal_symbol(attr, span, target)
                 }
                 sym::naked => self.check_naked(hir_id, attr, span, target),
                 sym::rustc_never_returns_null_ptr => {
                     self.check_applied_to_fn_or_method(hir_id, attr, span, target)
                 }
                 sym::rustc_legacy_const_generics => {
-                    self.check_rustc_legacy_const_generics(hir_id, &attr, span, target, item)
+                    self.check_rustc_legacy_const_generics(hir_id, attr, span, target, item)
                 }
                 sym::rustc_lint_query_instability => {
-                    self.check_rustc_lint_query_instability(hir_id, &attr, span, target)
+                    self.check_rustc_lint_query_instability(hir_id, attr, span, target)
                 }
                 sym::rustc_lint_diagnostics => {
-                    self.check_rustc_lint_diagnostics(hir_id, &attr, span, target)
+                    self.check_rustc_lint_diagnostics(hir_id, attr, span, target)
                 }
-                sym::rustc_lint_opt_ty => self.check_rustc_lint_opt_ty(&attr, span, target),
+                sym::rustc_lint_opt_ty => self.check_rustc_lint_opt_ty(attr, span, target),
                 sym::rustc_lint_opt_deny_field_access => {
-                    self.check_rustc_lint_opt_deny_field_access(&attr, span, target)
+                    self.check_rustc_lint_opt_deny_field_access(attr, span, target)
                 }
                 sym::rustc_clean
                 | sym::rustc_dirty
                 | sym::rustc_if_this_changed
-                | sym::rustc_then_this_would_need => self.check_rustc_dirty_clean(&attr),
+                | sym::rustc_then_this_would_need => self.check_rustc_dirty_clean(attr),
                 sym::rustc_coinductive
                 | sym::rustc_must_implement_one_of
                 | sym::rustc_deny_explicit_impl
-                | sym::const_trait => self.check_must_be_applied_to_trait(&attr, span, target),
+                | sym::const_trait => self.check_must_be_applied_to_trait(attr, span, target),
                 sym::cmse_nonsecure_entry => {
                     self.check_cmse_nonsecure_entry(hir_id, attr, span, target)
                 }
                 sym::collapse_debuginfo => self.check_collapse_debuginfo(attr, span, target),
-                sym::must_not_suspend => self.check_must_not_suspend(&attr, span, target),
-                sym::must_use => self.check_must_use(hir_id, &attr, target),
-                sym::rustc_pass_by_value => self.check_pass_by_value(&attr, span, target),
+                sym::must_not_suspend => self.check_must_not_suspend(attr, span, target),
+                sym::must_use => self.check_must_use(hir_id, attr, target),
+                sym::rustc_pass_by_value => self.check_pass_by_value(attr, span, target),
                 sym::rustc_allow_incoherent_impl => {
-                    self.check_allow_incoherent_impl(&attr, span, target)
+                    self.check_allow_incoherent_impl(attr, span, target)
                 }
                 sym::rustc_has_incoherent_inherent_impls => {
-                    self.check_has_incoherent_inherent_impls(&attr, span, target)
+                    self.check_has_incoherent_inherent_impls(attr, span, target)
                 }
                 sym::ffi_pure => self.check_ffi_pure(attr.span, attrs, target),
                 sym::ffi_const => self.check_ffi_const(attr.span, target),
@@ -192,9 +192,9 @@ impl CheckAttrVisitor<'_> {
                 | sym::unstable
                 | sym::stable
                 | sym::rustc_allowed_through_unstable_modules
-                | sym::rustc_promotable => self.check_stability_promotable(&attr, span, target),
-                sym::link_ordinal => self.check_link_ordinal(&attr, span, target),
-                sym::rustc_confusables => self.check_confusables(&attr, target),
+                | sym::rustc_promotable => self.check_stability_promotable(attr, span, target),
+                sym::link_ordinal => self.check_link_ordinal(attr, span, target),
+                sym::rustc_confusables => self.check_confusables(attr, target),
                 sym::rustc_safe_intrinsic => {
                     self.check_rustc_safe_intrinsic(hir_id, attr, span, target)
                 }
@@ -604,7 +604,7 @@ impl CheckAttrVisitor<'_> {
                     && !self.tcx.sess.target.is_like_wasm
                     && !self.tcx.sess.opts.actually_rustdoc
                 {
-                    let hir::Node::Item(item) = self.tcx.hir().get(hir_id) else {
+                    let hir::Node::Item(item) = self.tcx.hir_node(hir_id) else {
                         unreachable!();
                     };
                     let hir::ItemKind::Fn(sig, _, _) = item.kind else {
@@ -820,11 +820,11 @@ impl CheckAttrVisitor<'_> {
             self.doc_attr_str_error(meta, "keyword");
             return false;
         }
-        match self.tcx.hir().find(hir_id).and_then(|node| match node {
+        match self.tcx.opt_hir_node(hir_id).and_then(|node| match node {
             hir::Node::Item(item) => Some(&item.kind),
             _ => None,
         }) {
-            Some(ItemKind::Mod(ref module)) => {
+            Some(ItemKind::Mod(module)) => {
                 if !module.item_ids.is_empty() {
                     self.tcx.sess.emit_err(errors::DocKeywordEmptyMod { span: meta.span() });
                     return false;
@@ -846,11 +846,11 @@ impl CheckAttrVisitor<'_> {
     }
 
     fn check_doc_fake_variadic(&self, meta: &NestedMetaItem, hir_id: HirId) -> bool {
-        match self.tcx.hir().find(hir_id).and_then(|node| match node {
+        match self.tcx.opt_hir_node(hir_id).and_then(|node| match node {
             hir::Node::Item(item) => Some(&item.kind),
             _ => None,
         }) {
-            Some(ItemKind::Impl(ref i)) => {
+            Some(ItemKind::Impl(i)) => {
                 let is_valid = matches!(&i.self_ty.kind, hir::TyKind::Tup([_]))
                     || if let hir::TyKind::BareFn(bare_fn_ty) = &i.self_ty.kind {
                         bare_fn_ty.decl.inputs.len() == 1
@@ -1387,7 +1387,7 @@ impl CheckAttrVisitor<'_> {
     /// Checks if `#[link]` is applied to an item other than a foreign module.
     fn check_link(&self, hir_id: HirId, attr: &Attribute, span: Span, target: Target) {
         if target == Target::ForeignMod
-            && let hir::Node::Item(item) = self.tcx.hir().get(hir_id)
+            && let hir::Node::Item(item) = self.tcx.hir_node(hir_id)
             && let Item { kind: ItemKind::ForeignMod { abi, .. }, .. } = item
             && !matches!(abi, Abi::Rust | Abi::RustIntrinsic | Abi::PlatformIntrinsic)
         {
@@ -1456,7 +1456,7 @@ impl CheckAttrVisitor<'_> {
     }
 
     fn is_impl_item(&self, hir_id: HirId) -> bool {
-        matches!(self.tcx.hir().get(hir_id), hir::Node::ImplItem(..))
+        matches!(self.tcx.hir_node(hir_id), hir::Node::ImplItem(..))
     }
 
     /// Checks if `#[export_name]` is applied to a function or static. Returns `true` if valid.
@@ -2074,7 +2074,7 @@ impl CheckAttrVisitor<'_> {
             && let hir::Node::Item(Item {
                 kind: ItemKind::ForeignMod { abi: Abi::RustIntrinsic | Abi::PlatformIntrinsic, .. },
                 ..
-            }) = hir.get(parent)
+            }) = self.tcx.hir_node(parent)
         {
             return true;
         }
@@ -2222,7 +2222,7 @@ impl CheckAttrVisitor<'_> {
         } else {
             // special case when `#[macro_export]` is applied to a macro 2.0
             let (macro_definition, _) =
-                self.tcx.hir().find(hir_id).unwrap().expect_item().expect_macro();
+                self.tcx.opt_hir_node(hir_id).unwrap().expect_item().expect_macro();
             let is_decl_macro = !macro_definition.macro_rules;
 
             if is_decl_macro {
@@ -2395,7 +2395,7 @@ impl<'tcx> Visitor<'tcx> for CheckAttrVisitor<'tcx> {
         // Historically we've run more checks on non-exported than exported macros,
         // so this lets us continue to run them while maintaining backwards compatibility.
         // In the long run, the checks should be harmonized.
-        if let ItemKind::Macro(ref macro_def, _) = item.kind {
+        if let ItemKind::Macro(macro_def, _) = item.kind {
             let def_id = item.owner_id.to_def_id();
             if macro_def.macro_rules && !self.tcx.has_attr(def_id, sym::macro_export) {
                 check_non_exported_macro_for_invalid_attrs(self.tcx, item);
@@ -2443,7 +2443,7 @@ impl<'tcx> Visitor<'tcx> for CheckAttrVisitor<'tcx> {
 
     fn visit_stmt(&mut self, stmt: &'tcx hir::Stmt<'tcx>) {
         // When checking statements ignore expressions, they will be checked later.
-        if let hir::StmtKind::Local(ref l) = stmt.kind {
+        if let hir::StmtKind::Local(l) = stmt.kind {
             self.check_attributes(l.hir_id, stmt.span, Target::Statement, None);
         }
         intravisit::walk_stmt(self, stmt)

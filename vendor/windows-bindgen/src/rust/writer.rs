@@ -1,11 +1,10 @@
 use super::*;
 
 #[derive(Clone)]
-pub struct Writer<'a> {
-    pub reader: &'a Reader<'a>,
-    pub filter: &'a metadata::Filter<'a>,
-    pub output: &'a str,
-    pub namespace: &'a str,
+pub struct Writer {
+    pub reader: &'static Reader,
+    pub output: String,
+    pub namespace: &'static str,
     pub implement: bool, // TODO: ideally we can use this to generate implementation traits on the fly and
     // and have a single interface definition macro for consumption that expands to include
     // impl traits when the `implement` cfg flag is set and then this writer option would be
@@ -13,16 +12,28 @@ pub struct Writer<'a> {
     //
     // Maybe this macro is the embedable version of the IDL format?! like a more intelligient
     // version of the existing interface macro...
-    pub std: bool,     // tweaks for internal std library support
-    pub sys: bool,     // writer sys-style bindings
-    pub flatten: bool, // strips out namespaces - implies !package
-    pub package: bool, // default is single file with no cfg - implies !flatten
-    pub minimal: bool, // strips out enumerators - in future possibly other helpers as well
+    pub std: bool,                 // tweaks for internal std library support
+    pub sys: bool,                 // writer sys-style bindings
+    pub flatten: bool,             // strips out namespaces - implies !package
+    pub package: bool,             // default is single file with no cfg - implies !flatten
+    pub minimal: bool,             // strips out enumerators - in future possibly other helpers as well
+    pub no_inner_attributes: bool, // skips the inner attributes at the start of the file
 }
 
-impl<'a> Writer<'a> {
-    pub fn new(reader: &'a Reader, filter: &'a metadata::Filter, output: &'a str) -> Self {
-        Self { reader, filter, output, namespace: "", implement: false, std: false, sys: false, flatten: false, package: false, minimal: false }
+impl Writer {
+    pub fn new(reader: &'static Reader, output: &str) -> Self {
+        Self {
+            reader,
+            output: output.to_string(),
+            namespace: "",
+            implement: false,
+            std: false,
+            sys: false,
+            flatten: false,
+            package: false,
+            minimal: false,
+            no_inner_attributes: false,
+        }
     }
 
     //
@@ -36,7 +47,7 @@ impl<'a> Writer<'a> {
         self.type_def_name_imp(def, generics, "_Vtbl")
     }
     pub fn type_def_name_imp(&self, def: TypeDef, generics: &[Type], suffix: &str) -> TokenStream {
-        let type_name = self.reader.type_def_type_name(def);
+        let type_name = def.type_name();
 
         if type_name.namespace.is_empty() {
             to_ident(&self.scoped_name(def))
@@ -73,7 +84,7 @@ impl<'a> Writer<'a> {
 
             if ty.is_generic() {
                 quote! { <#kind as ::windows_core::Type<#kind>>::Default }
-            } else if type_is_nullable(self.reader, ty) && !self.sys {
+            } else if type_is_nullable(ty) && !self.sys {
                 quote! { ::core::option::Option<#kind> }
             } else {
                 kind
@@ -143,7 +154,7 @@ impl<'a> Writer<'a> {
                 let len = Literal::usize_unsuffixed(*len);
                 quote! { [#name; #len] }
             }
-            Type::GenericParam(generic) => self.reader.generic_param_name(*generic).into(),
+            Type::GenericParam(generic) => generic.name().into(),
             Type::TypeDef(def, generics) => self.type_def_name(*def, generics),
             Type::MutPtr(ty, pointers) => {
                 let pointers = mut_ptrs(*pointers);
@@ -192,21 +203,21 @@ impl<'a> Writer<'a> {
                 quote! { [#name; #len] }
             }
             Type::GenericParam(generic) => {
-                let name = to_ident(self.reader.generic_param_name(*generic));
+                let name = to_ident(generic.name());
                 quote! { ::windows_core::AbiType<#name> }
             }
-            Type::TypeDef(def, _) => match self.reader.type_def_kind(*def) {
+            Type::TypeDef(def, _) => match def.kind() {
                 TypeKind::Enum => self.type_def_name(*def, &[]),
                 TypeKind::Struct => {
                     let tokens = self.type_def_name(*def, &[]);
-                    if type_def_is_blittable(self.reader, *def) {
+                    if type_def_is_blittable(*def) {
                         tokens
                     } else {
                         quote! { ::std::mem::MaybeUninit<#tokens> }
                     }
                 }
                 TypeKind::Delegate => {
-                    if self.reader.type_def_flags(*def).contains(TypeAttributes::WindowsRuntime) {
+                    if def.flags().contains(TypeAttributes::WindowsRuntime) {
                         quote! { *mut ::core::ffi::c_void }
                     } else {
                         self.type_def_name(*def, &[])
@@ -270,7 +281,7 @@ impl<'a> Writer<'a> {
     }
     /// The signature params which are generic (along with their relative index)
     pub fn generic_params<'b>(&'b self, params: &'b [SignatureParam]) -> impl Iterator<Item = (usize, &SignatureParam)> + 'b {
-        params.iter().filter(move |param| signature_param_is_convertible(self.reader, param)).enumerate()
+        params.iter().filter(move |param| param.is_convertible()).enumerate()
     }
     /// The generic param names (i.e., `T` in `fn foo<T>()`)
     pub fn constraint_generics(&self, params: &[SignatureParam]) -> TokenStream {
@@ -325,18 +336,18 @@ impl<'a> Writer<'a> {
         if !self.package {
             quote! {}
         } else {
-            let mut tokens = format!(r#"`\"{}\"`"#, to_feature(self.namespace));
-            let features = self.cfg_features_imp(cfg, self.namespace);
+            let mut tokens = String::new();
 
-            for features in features {
-                write!(tokens, r#", `\"{}\"`"#, to_feature(features)).unwrap();
+            for features in self.cfg_features_imp(cfg, self.namespace) {
+                write!(tokens, r#"`\"{}\"`, "#, to_feature(features)).unwrap();
             }
 
-            if cfg.implement {
-                tokens.push_str(r#", `\"implement\"`"#)
+            if tokens.is_empty() {
+                TokenStream::new()
+            } else {
+                tokens.truncate(tokens.len() - 2);
+                format!(r#" #[doc = "Required features: {tokens}"]"#).into()
             }
-
-            format!(r#" #[doc = "*Required features: {tokens}*"]"#).into()
         }
     }
 
@@ -347,15 +358,18 @@ impl<'a> Writer<'a> {
             quote! {}
         } else {
             let features = self.cfg_features_imp(cfg, self.namespace);
+
             if features.is_empty() {
                 quote! {}
             } else {
                 let mut tokens = String::new();
+
                 for features in features {
                     write!(tokens, r#"`\"{}\"`, "#, to_feature(features)).unwrap();
                 }
+
                 tokens.truncate(tokens.len() - 2);
-                format!(r#"#[doc = "*Required features: {tokens}*"]"#).into()
+                format!(r#"#[doc = "Required features: {tokens}"]"#).into()
             }
         }
     }
@@ -389,7 +403,7 @@ impl<'a> Writer<'a> {
         quote! { #arch #features }
     }
 
-    fn cfg_features_imp(&self, cfg: &'a Cfg, namespace: &'a str) -> Vec<&'a str> {
+    fn cfg_features_imp(&self, cfg: &Cfg, namespace: &str) -> Vec<&'static str> {
         let mut compact = Vec::<&'static str>::new();
         if self.package {
             for feature in cfg.types.keys() {
@@ -477,14 +491,14 @@ impl<'a> Writer<'a> {
         }
     }
     fn scoped_name(&self, def: TypeDef) -> String {
-        if let Some(enclosing_type) = self.reader.type_def_enclosing_type(def) {
+        if let Some(enclosing_type) = def.enclosing_type() {
             for (index, nested_type) in self.reader.nested_types(enclosing_type).enumerate() {
-                if self.reader.type_def_name(nested_type) == self.reader.type_def_name(def) {
+                if nested_type.name() == def.name() {
                     return format!("{}_{index}", &self.scoped_name(enclosing_type));
                 }
             }
         }
-        self.reader.type_def_name(def).to_string()
+        def.name().to_string()
     }
     pub fn value(&self, value: &Value) -> TokenStream {
         match value {
@@ -533,31 +547,12 @@ impl<'a> Writer<'a> {
         }
     }
 
-    pub fn guid(&self, value: &GUID) -> TokenStream {
+    pub fn guid(&self, value: &Guid) -> TokenStream {
         let guid = self.type_name(&Type::GUID);
         format!("{}::from_u128(0x{:08x?}_{:04x?}_{:04x?}_{:02x?}{:02x?}_{:02x?}{:02x?}{:02x?}{:02x?}{:02x?}{:02x?})", guid.into_string(), value.0, value.1, value.2, value.3, value.4, value.5, value.6, value.7, value.8, value.9, value.10).into()
     }
-    pub fn interface_core_traits(&self, def: TypeDef, _generics: &[Type], ident: &TokenStream, constraints: &TokenStream, _phantoms: &TokenStream, features: &TokenStream) -> TokenStream {
-        let name = crate::trim_tick(self.reader.type_def_name(def));
-        quote! {
-            #features
-            impl<#constraints> ::core::cmp::PartialEq for #ident {
-                fn eq(&self, other: &Self) -> bool {
-                    self.0 == other.0
-                }
-            }
-            #features
-            impl<#constraints> ::core::cmp::Eq for #ident {}
-            #features
-            impl<#constraints> ::core::fmt::Debug for #ident {
-                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    f.debug_tuple(#name).field(&self.0).finish()
-                }
-            }
-        }
-    }
     pub fn agile(&self, def: TypeDef, ident: &TokenStream, constraints: &TokenStream, features: &TokenStream) -> TokenStream {
-        if type_def_is_agile(self.reader, def) {
+        if type_def_is_agile(def) {
             quote! {
                 #features
                 unsafe impl<#constraints> ::core::marker::Send for #ident {}
@@ -569,13 +564,13 @@ impl<'a> Writer<'a> {
         }
     }
     pub fn async_get(&self, def: TypeDef, generics: &[Type], ident: &TokenStream, constraints: &TokenStream, _phantoms: &TokenStream, features: &TokenStream) -> TokenStream {
-        let mut kind = type_def_async_kind(self.reader, def);
+        let mut kind = type_def_async_kind(def);
         let mut async_generics = generics.to_vec();
 
         if kind == AsyncKind::None {
-            for interface in type_def_interfaces(self.reader, def, generics) {
+            for interface in def.interface_impls().map(move |imp| imp.ty(generics)) {
                 if let Type::TypeDef(interface_def, interface_generics) = &interface {
-                    kind = type_def_async_kind(self.reader, *interface_def);
+                    kind = type_def_async_kind(*interface_def);
                     if kind != AsyncKind::None {
                         async_generics = interface_generics.to_vec();
                         break;
@@ -642,14 +637,14 @@ impl<'a> Writer<'a> {
         }
     }
     pub fn interface_winrt_trait(&self, def: TypeDef, generics: &[Type], ident: &TokenStream, constraints: &TokenStream, _phantoms: &TokenStream, features: &TokenStream) -> TokenStream {
-        if self.reader.type_def_flags(def).contains(TypeAttributes::WindowsRuntime) {
-            let type_signature = if self.reader.type_def_kind(def) == TypeKind::Class {
-                let type_signature = Literal::byte_string(type_def_signature(self.reader, def, generics).as_bytes());
+        if def.flags().contains(TypeAttributes::WindowsRuntime) {
+            let type_signature = if def.kind() == TypeKind::Class {
+                let type_signature = Literal::byte_string(type_def_signature(def, generics).as_bytes());
                 quote! { ::windows_core::imp::ConstBuffer::from_slice(#type_signature) }
             } else {
                 let signature = Literal::byte_string(
                     // TODO: workaround for riddle winmd generation (no attribute support)
-                    if let Some(guid) = type_def_guid(self.reader, def) { format!("{{{:#?}}}", guid) } else { "TODO".to_string() }.as_bytes(),
+                    if let Some(guid) = type_def_guid(def) { format!("{{{:#?}}}", guid) } else { "TODO".to_string() }.as_bytes(),
                 );
 
                 if generics.is_empty() {
@@ -695,9 +690,9 @@ impl<'a> Writer<'a> {
         }
     }
     pub fn runtime_name_trait(&self, def: TypeDef, _generics: &[Type], name: &TokenStream, constraints: &TokenStream, features: &TokenStream) -> TokenStream {
-        if self.reader.type_def_flags(def).contains(TypeAttributes::WindowsRuntime) {
+        if def.flags().contains(TypeAttributes::WindowsRuntime) {
             // TODO: this needs to use a ConstBuffer-like facility to accomodate generics
-            let runtime_name = format!("{}", self.reader.type_def_type_name(def));
+            let runtime_name = format!("{}", def.type_name());
 
             quote! {
                 #features
@@ -714,16 +709,10 @@ impl<'a> Writer<'a> {
     }
 
     pub fn interface_trait(&self, def: TypeDef, generics: &[Type], ident: &TokenStream, constraints: &TokenStream, features: &TokenStream, has_unknown_base: bool) -> TokenStream {
-        if let Some(default) = type_def_default_interface(self.reader, def) {
+        if let Some(default) = type_def_default_interface(def) {
             let default_name = self.type_name(&default);
             let vtbl = self.type_vtbl_name(&default);
             quote! {
-                #features
-                impl<#constraints> ::core::clone::Clone for #ident {
-                    fn clone(&self) -> Self {
-                        Self(self.0.clone())
-                    }
-                }
                 #features
                 unsafe impl ::windows_core::Interface for #ident {
                     type Vtable = #vtbl;
@@ -736,7 +725,7 @@ impl<'a> Writer<'a> {
         } else {
             let vtbl = self.type_def_vtbl_name(def, generics);
             let guid = if generics.is_empty() {
-                match type_def_guid(self.reader, def) {
+                match type_def_guid(def) {
                     Some(guid) => self.guid(&guid),
                     None => {
                         quote! {
@@ -750,18 +739,10 @@ impl<'a> Writer<'a> {
                 }
             };
 
-            let phantoms = self.generic_phantoms(generics);
-
             let mut tokens = quote! {
                 #features
                 unsafe impl<#constraints> ::windows_core::Interface for #ident {
                     type Vtable = #vtbl;
-                }
-                #features
-                impl<#constraints> ::core::clone::Clone for #ident {
-                    fn clone(&self) -> Self {
-                        Self(self.0.clone(), #phantoms)
-                    }
                 }
             };
 
@@ -781,10 +762,10 @@ impl<'a> Writer<'a> {
         let vtbl = self.type_def_vtbl_name(def, generics);
         let mut methods = quote! {};
         let mut method_names = MethodNames::new();
-        method_names.add_vtable_types(self, def);
+        method_names.add_vtable_types(def);
         let phantoms = self.generic_named_phantoms(generics);
 
-        match type_def_vtables(self.reader, def).last() {
+        match type_def_vtables(def).last() {
             Some(Type::IUnknown) => methods.combine(&quote! { pub base__: ::windows_core::IUnknown_Vtbl, }),
             Some(Type::IInspectable) => methods.combine(&quote! { pub base__: ::windows_core::IInspectable_Vtbl, }),
             Some(Type::TypeDef(def, _)) => {
@@ -794,15 +775,15 @@ impl<'a> Writer<'a> {
             _ => {}
         }
 
-        for method in self.reader.type_def_methods(def) {
-            if self.reader.method_def_name(method) == ".ctor" {
+        for method in def.methods() {
+            if method.name() == ".ctor" {
                 continue;
             }
-            let name = method_names.add(self, method);
-            let signature = method_def_signature(self.reader, self.reader.type_def_namespace(def), method, generics);
-            let mut cfg = signature_cfg(self.reader, method);
+            let name = method_names.add(method);
+            let signature = method_def_signature(def.namespace(), method, generics);
+            let mut cfg = signature_cfg(method);
             let signature = self.vtbl_signature(def, generics, &signature);
-            cfg.add_feature(self.reader.type_def_namespace(def));
+            cfg.add_feature(def.namespace());
             let cfg_all = self.cfg_features(&cfg);
             let cfg_not = self.cfg_not_features(&cfg);
 
@@ -829,7 +810,7 @@ impl<'a> Writer<'a> {
         }
     }
     pub fn vtbl_signature(&self, def: TypeDef, _generics: &[Type], signature: &Signature) -> TokenStream {
-        let is_winrt = self.reader.type_def_flags(def).contains(TypeAttributes::WindowsRuntime);
+        let is_winrt = def.flags().contains(TypeAttributes::WindowsRuntime);
 
         let crate_name = self.crate_name();
 
@@ -844,7 +825,7 @@ impl<'a> Writer<'a> {
                 let tokens = self.type_abi_name(&signature.return_type);
                 (quote! { result__: *mut #tokens }, quote! { -> #crate_name HRESULT }, quote! {})
             }
-            _ if type_is_struct(self.reader, &signature.return_type) => {
+            _ if type_is_struct(&signature.return_type) => {
                 let tokens = self.type_abi_name(&signature.return_type);
                 (quote! {}, quote! {}, quote! { result__: *mut #tokens, })
             }
@@ -858,9 +839,9 @@ impl<'a> Writer<'a> {
             let name = self.param_name(p.def);
             if is_winrt {
                 let abi = self.type_abi_name(&p.ty);
-                let abi_size_name: TokenStream = format!("{}_array_size", self.reader.param_name(p.def)).into();
+                let abi_size_name: TokenStream = format!("{}_array_size", p.def.name()).into();
 
-                if self.reader.param_flags(p.def).contains(ParamAttributes::In) {
+                if p.def.flags().contains(ParamAttributes::In) {
                     if p.ty.is_winrt_array() {
                         quote! { #abi_size_name: u32, #name: *const #abi, }
                     } else if p.ty.is_const_ref() {
@@ -894,11 +875,11 @@ impl<'a> Writer<'a> {
     pub fn param_name(&self, param: Param) -> TokenStream {
         // In Rust, function parameters cannot be named the same as structs. This avoids some collisions that occur in the win32 metadata.
         // See Icmp6SendEcho2 for an example.
-        to_ident(&self.reader.param_name(param).to_lowercase())
+        to_ident(&param.name().to_lowercase())
     }
     pub fn return_sig(&self, signature: &Signature) -> TokenStream {
         match &signature.return_type {
-            Type::Void if self.reader.has_attribute(signature.def, "DoesNotReturnAttribute") => " -> !".into(),
+            Type::Void if signature.def.has_attribute("DoesNotReturnAttribute") => " -> !".into(),
             Type::Void => " -> ()".into(),
             _ => {
                 let tokens = self.type_default_name(&signature.return_type);
@@ -925,7 +906,7 @@ impl<'a> Writer<'a> {
                 }
                 _ => {
                     let name = self.param_name(param.def);
-                    let flags = self.reader.param_flags(param.def);
+                    let flags = param.def.flags();
                     match param.kind {
                         SignatureParamKind::ArrayFixed(_) | SignatureParamKind::ArrayRelativeLen(_) | SignatureParamKind::ArrayRelativeByteLen(_) => {
                             let map = if flags.contains(ParamAttributes::Optional) {
@@ -937,11 +918,11 @@ impl<'a> Writer<'a> {
                         }
                         SignatureParamKind::ArrayRelativePtr(relative) => {
                             let name = self.param_name(params[relative].def);
-                            let flags = self.reader.param_flags(params[relative].def);
+                            let flags = params[relative].def.flags();
                             if flags.contains(ParamAttributes::Optional) {
-                                quote! { #name.as_deref().map_or(0, |slice|slice.len() as _), }
+                                quote! { #name.as_deref().map_or(0, |slice|slice.len().try_into().unwrap()), }
                             } else {
-                                quote! { #name.len() as _, }
+                                quote! { #name.len().try_into().unwrap(), }
                             }
                         }
                         SignatureParamKind::TryInto => {
@@ -1002,12 +983,12 @@ impl<'a> Writer<'a> {
                     let ty = param.ty.deref();
                     let ty = self.type_default_name(&ty);
                     let len = Literal::u32_unsuffixed(fixed as u32);
-                    let ty = if self.reader.param_flags(param.def).contains(ParamAttributes::Out) {
+                    let ty = if param.def.flags().contains(ParamAttributes::Out) {
                         quote! { &mut [#ty; #len] }
                     } else {
                         quote! { &[#ty; #len] }
                     };
-                    if self.reader.param_flags(param.def).contains(ParamAttributes::Optional) {
+                    if param.def.flags().contains(ParamAttributes::Optional) {
                         tokens.combine(&quote! { #name: ::core::option::Option<#ty>, });
                     } else {
                         tokens.combine(&quote! { #name: #ty, });
@@ -1016,24 +997,24 @@ impl<'a> Writer<'a> {
                 SignatureParamKind::ArrayRelativeLen(_) => {
                     let ty = param.ty.deref();
                     let ty = self.type_default_name(&ty);
-                    let ty = if self.reader.param_flags(param.def).contains(ParamAttributes::Out) {
+                    let ty = if param.def.flags().contains(ParamAttributes::Out) {
                         quote! { &mut [#ty] }
                     } else {
                         quote! { &[#ty] }
                     };
-                    if self.reader.param_flags(param.def).contains(ParamAttributes::Optional) {
+                    if param.def.flags().contains(ParamAttributes::Optional) {
                         tokens.combine(&quote! { #name: ::core::option::Option<#ty>, });
                     } else {
                         tokens.combine(&quote! { #name: #ty, });
                     }
                 }
                 SignatureParamKind::ArrayRelativeByteLen(_) => {
-                    let ty = if self.reader.param_flags(param.def).contains(ParamAttributes::Out) {
+                    let ty = if param.def.flags().contains(ParamAttributes::Out) {
                         quote! { &mut [u8] }
                     } else {
                         quote! { &[u8] }
                     };
-                    if self.reader.param_flags(param.def).contains(ParamAttributes::Optional) {
+                    if param.def.flags().contains(ParamAttributes::Optional) {
                         tokens.combine(&quote! { #name: ::core::option::Option<#ty>, });
                     } else {
                         tokens.combine(&quote! { #name: #ty, });
@@ -1064,8 +1045,8 @@ impl<'a> Writer<'a> {
     }
 
     pub fn impl_signature(&self, def: TypeDef, signature: &Signature) -> TokenStream {
-        if self.reader.type_def_flags(def).contains(TypeAttributes::WindowsRuntime) {
-            let is_delegate = self.reader.type_def_kind(def) == TypeKind::Delegate;
+        if def.flags().contains(TypeAttributes::WindowsRuntime) {
+            let is_delegate = def.kind() == TypeKind::Delegate;
             let params = signature.params.iter().map(|p| self.winrt_produce_type(p, !is_delegate));
 
             let return_type = match &signature.return_type {
@@ -1089,7 +1070,7 @@ impl<'a> Writer<'a> {
 
             quote! { (#this #(#params),*) -> ::windows_core::Result<#return_type> }
         } else {
-            let signature_kind = signature_kind(self.reader, signature);
+            let signature_kind = signature.kind();
             let mut params = quote! {};
 
             if signature_kind == SignatureKind::ResultValue {
@@ -1120,12 +1101,12 @@ impl<'a> Writer<'a> {
     fn winrt_produce_type(&self, param: &SignatureParam, include_param_names: bool) -> TokenStream {
         let default_type = self.type_default_name(&param.ty);
 
-        let sig = if self.reader.param_flags(param.def).contains(ParamAttributes::In) {
+        let sig = if param.def.flags().contains(ParamAttributes::In) {
             if param.ty.is_winrt_array() {
                 quote! { &[#default_type] }
-            } else if type_is_primitive(self.reader, &param.ty) {
+            } else if type_is_primitive(&param.ty) {
                 quote! { #default_type }
-            } else if type_is_nullable(self.reader, &param.ty) {
+            } else if type_is_nullable(&param.ty) {
                 let type_name = self.type_name(&param.ty);
                 quote! { ::core::option::Option<&#type_name> }
             } else {
@@ -1151,10 +1132,10 @@ impl<'a> Writer<'a> {
         let name = self.param_name(param.def);
         let kind = self.type_default_name(&param.ty);
 
-        if self.reader.param_flags(param.def).contains(ParamAttributes::In) {
-            if type_is_primitive(self.reader, &param.ty) {
+        if param.def.flags().contains(ParamAttributes::In) {
+            if type_is_primitive(&param.ty) {
                 quote! { #name: #kind, }
-            } else if type_is_nullable(self.reader, &param.ty) {
+            } else if type_is_nullable(&param.ty) {
                 let kind = self.type_name(&param.ty);
                 quote! { #name: ::core::option::Option<&#kind>, }
             } else {
@@ -1209,6 +1190,33 @@ fn gen_mut_ptrs(pointers: usize) -> TokenStream {
 
 fn gen_const_ptrs(pointers: usize) -> TokenStream {
     "*const ".repeat(pointers).into()
+}
+
+fn type_def_async_kind(row: TypeDef) -> AsyncKind {
+    match row.type_name() {
+        TypeName::IAsyncAction => AsyncKind::Action,
+        TypeName::IAsyncActionWithProgress => AsyncKind::ActionWithProgress,
+        TypeName::IAsyncOperation => AsyncKind::Operation,
+        TypeName::IAsyncOperationWithProgress => AsyncKind::OperationWithProgress,
+        _ => AsyncKind::None,
+    }
+}
+
+fn type_def_is_agile(row: TypeDef) -> bool {
+    for attribute in row.attributes() {
+        match attribute.name() {
+            "AgileAttribute" => return true,
+            "MarshalingBehaviorAttribute" => {
+                if let Some((_, Value::EnumDef(_, value))) = attribute.args().first() {
+                    if let Value::I32(2) = **value {
+                        return true;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    matches!(row.type_name(), TypeName::IAsyncAction | TypeName::IAsyncActionWithProgress | TypeName::IAsyncOperation | TypeName::IAsyncOperationWithProgress)
 }
 
 #[cfg(test)]

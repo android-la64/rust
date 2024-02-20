@@ -13,15 +13,26 @@
 edition = "2021"
 rust-version = "1.59"
 name = "xshell"
-version = "0.2.3"
+version = "0.2.5"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
-exclude = [".github/", "bors.toml", "rustfmt.toml", "cbench", "mock_bin/"]
+exclude = [
+    ".github/",
+    "bors.toml",
+    "rustfmt.toml",
+    "cbench",
+    "mock_bin/",
+]
 description = "Utilities for quick shell scripting in Rust"
-categories = ["development-tools::build-utils", "filesystem"]
+readme = "README.md"
+categories = [
+    "development-tools::build-utils",
+    "filesystem",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/matklad/xshell"
-resolver = "2"
+
 [dependencies.xshell-macros]
-version = "=0.2.3"
+version = "=0.2.5"
+
 [dev-dependencies.anyhow]
 version = "1.0.56"

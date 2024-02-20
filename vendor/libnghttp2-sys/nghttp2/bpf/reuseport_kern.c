@@ -423,26 +423,26 @@ static inline __u32 jhash_2words(__u32 a, __u32 b, __u32 initval) {
   return __jhash_nwords(a, b, 0, initval + JHASH_INITVAL + (2 << 2));
 }
 
-struct bpf_map_def SEC("maps") cid_prefix_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .max_entries = 255,
-    .key_size = sizeof(__u64),
-    .value_size = sizeof(__u32),
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH);
+  __uint(max_entries, 255);
+  __type(key, __u64);
+  __type(value, __u32);
+} cid_prefix_map SEC(".maps");
 
-struct bpf_map_def SEC("maps") reuseport_array = {
-    .type = BPF_MAP_TYPE_REUSEPORT_SOCKARRAY,
-    .max_entries = 255,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(__u32),
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_REUSEPORT_SOCKARRAY);
+  __uint(max_entries, 255);
+  __type(key, __u32);
+  __type(value, __u32);
+} reuseport_array SEC(".maps");
 
-struct bpf_map_def SEC("maps") sk_info = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .max_entries = 3,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(__u64),
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __uint(max_entries, 3);
+  __type(key, __u32);
+  __type(value, __u64);
+} sk_info SEC(".maps");
 
 typedef struct quic_hd {
   __u8 *dcid;
@@ -455,6 +455,7 @@ typedef struct quic_hd {
 #define MAX_DCIDLEN 20
 #define MIN_DCIDLEN 8
 #define CID_PREFIXLEN 8
+#define CID_PREFIX_OFFSET 1
 
 enum {
   NGTCP2_PKT_INITIAL = 0x0,
@@ -579,6 +580,7 @@ int select_reuseport(struct sk_reuseport_md *reuse_md) {
   __u8 qpktbuf[6 + MAX_DCIDLEN];
   struct AES_ctx aes_ctx;
   __u8 key[AES_KEYLEN];
+  __u8 *cid_prefix;
 
   if (bpf_skb_load_bytes(reuse_md, sizeof(struct udphdr), qpktbuf,
                          sizeof(qpktbuf)) != 0) {
@@ -615,9 +617,10 @@ int select_reuseport(struct sk_reuseport_md *reuse_md) {
   case NGTCP2_PKT_INITIAL:
   case NGTCP2_PKT_0RTT:
     if (qhd.dcidlen == SV_DCIDLEN) {
-      AES_ECB_decrypt(&aes_ctx, qhd.dcid);
+      cid_prefix = qhd.dcid + CID_PREFIX_OFFSET;
+      AES_ECB_decrypt(&aes_ctx, cid_prefix);
 
-      psk_index = bpf_map_lookup_elem(&cid_prefix_map, qhd.dcid);
+      psk_index = bpf_map_lookup_elem(&cid_prefix_map, cid_prefix);
       if (psk_index != NULL) {
         sk_index = *psk_index;
 
@@ -634,9 +637,10 @@ int select_reuseport(struct sk_reuseport_md *reuse_md) {
       return SK_DROP;
     }
 
-    AES_ECB_decrypt(&aes_ctx, qhd.dcid);
+    cid_prefix = qhd.dcid + CID_PREFIX_OFFSET;
+    AES_ECB_decrypt(&aes_ctx, cid_prefix);
 
-    psk_index = bpf_map_lookup_elem(&cid_prefix_map, qhd.dcid);
+    psk_index = bpf_map_lookup_elem(&cid_prefix_map, cid_prefix);
     if (psk_index == NULL) {
       sk_index = sk_index_from_dcid(&qhd, reuse_md, *pnum_socks);
 

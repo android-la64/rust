@@ -56,6 +56,7 @@
     - [RISC-V](notification-groups/risc-v.md)
     - [Windows](notification-groups/windows.md)
 - [Licenses](./licenses.md)
+- [Editions](guides/editions.md)
 
 # High-level Compiler Architecture
 
@@ -123,6 +124,7 @@
         - [Lowering to logic](./traits/lowering-to-logic.md)
         - [Goals and clauses](./traits/goals-and-clauses.md)
         - [Canonical queries](./traits/canonical-queries.md)
+        - [Canonicalization](./traits/canonicalization.md)
     - [Next-gen trait solving](./solve/trait-solving.md)
         - [Invariants of the type system](./solve/invariants.md)
         - [The solver](./solve/the-solver.md)
@@ -130,6 +132,7 @@
         - [Coinduction](./solve/coinduction.md)
         - [Proof trees](./solve/proof-trees.md)
         - [Normalization](./solve/normalization.md)
+    - [`Unsize` and `CoerceUnsized` traits](./traits/unsize.md)
 - [Type checking](./type-checking.md)
     - [Method Lookup](./method-lookup.md)
     - [Variance](./variance.md)

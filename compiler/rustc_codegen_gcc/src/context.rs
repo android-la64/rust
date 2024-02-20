@@ -22,12 +22,6 @@ use rustc_target::spec::{HasTargetSpec, Target, TlsModel};
 use crate::callee::get_fn;
 use crate::common::SignType;
 
-#[derive(Clone)]
-pub struct FuncSig<'gcc> {
-    pub params: Vec<Type<'gcc>>,
-    pub return_type: Type<'gcc>,
-}
-
 pub struct CodegenCx<'gcc, 'tcx> {
     pub check_overflow: bool,
     pub codegen_unit: &'tcx CodegenUnit<'tcx>,
@@ -569,5 +563,6 @@ fn to_gcc_tls_mode(tls_model: TlsModel) -> gccjit::TlsModel {
         TlsModel::LocalDynamic => gccjit::TlsModel::LocalDynamic,
         TlsModel::InitialExec => gccjit::TlsModel::InitialExec,
         TlsModel::LocalExec => gccjit::TlsModel::LocalExec,
+        TlsModel::Emulated => gccjit::TlsModel::GlobalDynamic,
     }
 }

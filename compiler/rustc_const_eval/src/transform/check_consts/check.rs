@@ -12,7 +12,7 @@ use rustc_middle::traits::BuiltinImplSource;
 use rustc_middle::ty::GenericArgs;
 use rustc_middle::ty::{self, adjustment::PointerCoercion, Instance, InstanceDef, Ty, TyCtxt};
 use rustc_middle::ty::{TraitRef, TypeVisitableExt};
-use rustc_mir_dataflow::{self, Analysis};
+use rustc_mir_dataflow::Analysis;
 use rustc_span::{sym, Span, Symbol};
 use rustc_trait_selection::traits::error_reporting::TypeErrCtxtExt as _;
 use rustc_trait_selection::traits::{self, ObligationCauseCode, ObligationCtxt, SelectionContext};
@@ -22,7 +22,7 @@ use std::mem;
 use std::ops::{ControlFlow, Deref};
 
 use super::ops::{self, NonConstOp, Status};
-use super::qualifs::{self, CustomEq, HasMutInterior, NeedsDrop};
+use super::qualifs::{self, CustomEq, HasMutInterior, NeedsDrop, NeedsNonConstDrop};
 use super::resolver::FlowSensitiveAnalysis;
 use super::{ConstCx, Qualif};
 use crate::const_eval::is_unstable_const_fn;
@@ -35,7 +35,7 @@ type QualifResults<'mir, 'tcx, Q> =
 pub struct Qualifs<'mir, 'tcx> {
     has_mut_interior: Option<QualifResults<'mir, 'tcx, HasMutInterior>>,
     needs_drop: Option<QualifResults<'mir, 'tcx, NeedsDrop>>,
-    // needs_non_const_drop: Option<QualifResults<'mir, 'tcx, NeedsNonConstDrop>>,
+    needs_non_const_drop: Option<QualifResults<'mir, 'tcx, NeedsNonConstDrop>>,
 }
 
 impl<'mir, 'tcx> Qualifs<'mir, 'tcx> {
@@ -60,9 +60,9 @@ impl<'mir, 'tcx> Qualifs<'mir, 'tcx> {
             let ConstCx { tcx, body, .. } = *ccx;
 
             FlowSensitiveAnalysis::new(NeedsDrop, ccx)
-                .into_engine(tcx, &body)
+                .into_engine(tcx, body)
                 .iterate_to_fixpoint()
-                .into_results_cursor(&body)
+                .into_results_cursor(body)
         });
 
         needs_drop.seek_before_primary_effect(location);
@@ -78,27 +78,25 @@ impl<'mir, 'tcx> Qualifs<'mir, 'tcx> {
         local: Local,
         location: Location,
     ) -> bool {
-        // FIXME(effects) replace with `NeedsNonconstDrop` after const traits work again
-        /*
         let ty = ccx.body.local_decls[local].ty;
-        if !NeedsDrop::in_any_value_of_ty(ccx, ty) {
+        // Peeking into opaque types causes cycles if the current function declares said opaque
+        // type. Thus we avoid short circuiting on the type and instead run the more expensive
+        // analysis that looks at the actual usage within this function
+        if !ty.has_opaque_types() && !NeedsNonConstDrop::in_any_value_of_ty(ccx, ty) {
             return false;
         }
 
         let needs_non_const_drop = self.needs_non_const_drop.get_or_insert_with(|| {
             let ConstCx { tcx, body, .. } = *ccx;
 
-            FlowSensitiveAnalysis::new(NeedsDrop, ccx)
-                .into_engine(tcx, &body)
+            FlowSensitiveAnalysis::new(NeedsNonConstDrop, ccx)
+                .into_engine(tcx, body)
                 .iterate_to_fixpoint()
-                .into_results_cursor(&body)
+                .into_results_cursor(body)
         });
 
         needs_non_const_drop.seek_before_primary_effect(location);
         needs_non_const_drop.get().contains(local)
-        */
-
-        self.needs_drop(ccx, local, location)
     }
 
     /// Returns `true` if `local` is `HasMutInterior` at the given `Location`.
@@ -122,9 +120,9 @@ impl<'mir, 'tcx> Qualifs<'mir, 'tcx> {
             let ConstCx { tcx, body, .. } = *ccx;
 
             FlowSensitiveAnalysis::new(HasMutInterior, ccx)
-                .into_engine(tcx, &body)
+                .into_engine(tcx, body)
                 .iterate_to_fixpoint()
-                .into_results_cursor(&body)
+                .into_results_cursor(body)
         });
 
         has_mut_interior.seek_before_primary_effect(location);
@@ -170,9 +168,9 @@ impl<'mir, 'tcx> Qualifs<'mir, 'tcx> {
 
             hir::ConstContext::Const { .. } | hir::ConstContext::Static(_) => {
                 let mut cursor = FlowSensitiveAnalysis::new(CustomEq, ccx)
-                    .into_engine(ccx.tcx, &ccx.body)
+                    .into_engine(ccx.tcx, ccx.body)
                     .iterate_to_fixpoint()
-                    .into_results_cursor(&ccx.body);
+                    .into_results_cursor(ccx.body);
 
                 cursor.seek_after_primary_effect(return_loc);
                 cursor.get().contains(RETURN_PLACE)
@@ -225,7 +223,7 @@ impl<'mir, 'tcx> Deref for Checker<'mir, 'tcx> {
     type Target = ConstCx<'mir, 'tcx>;
 
     fn deref(&self) -> &Self::Target {
-        &self.ccx
+        self.ccx
     }
 }
 
@@ -248,7 +246,7 @@ impl<'mir, 'tcx> Checker<'mir, 'tcx> {
         // `async` functions cannot be `const fn`. This is checked during AST lowering, so there's
         // no need to emit duplicate errors here.
         if self.ccx.is_async() || body.coroutine.is_some() {
-            tcx.sess.delay_span_bug(body.span, "`async` functions cannot be `const fn`");
+            tcx.sess.span_delayed_bug(body.span, "`async` functions cannot be `const fn`");
             return;
         }
 
@@ -272,15 +270,15 @@ impl<'mir, 'tcx> Checker<'mir, 'tcx> {
         }
 
         if !tcx.has_attr(def_id, sym::rustc_do_not_const_check) {
-            self.visit_body(&body);
+            self.visit_body(body);
         }
 
         // If we got through const-checking without emitting any "primary" errors, emit any
         // "secondary" errors if they occurred.
         let secondary_errors = mem::take(&mut self.secondary_errors);
         if self.error_emitted.is_none() {
-            for mut error in secondary_errors {
-                self.tcx.sess.diagnostic().emit_diagnostic(&mut error);
+            for error in secondary_errors {
+                self.tcx.sess.dcx().emit_diagnostic(error);
             }
         } else {
             assert!(self.tcx.sess.has_errors().is_some());
@@ -357,7 +355,9 @@ impl<'mir, 'tcx> Checker<'mir, 'tcx> {
 
     fn check_static(&mut self, def_id: DefId, span: Span) {
         if self.tcx.is_thread_local_static(def_id) {
-            self.tcx.sess.delay_span_bug(span, "tls access is checked in `Rvalue::ThreadLocalRef`");
+            self.tcx
+                .sess
+                .span_delayed_bug(span, "tls access is checked in `Rvalue::ThreadLocalRef`");
         }
         self.check_op_spanned(ops::StaticAccess, span)
     }
@@ -503,7 +503,7 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
             Rvalue::Ref(_, BorrowKind::Shared | BorrowKind::Fake, place)
             | Rvalue::AddressOf(Mutability::Not, place) => {
                 let borrowed_place_has_mut_interior = qualifs::in_place::<HasMutInterior, _>(
-                    &self.ccx,
+                    self.ccx,
                     &mut |local| self.qualifs.has_mut_interior(self.ccx, local, location),
                     place.as_ref(),
                 );
@@ -1011,9 +1011,8 @@ impl<'tcx> Visitor<'tcx> for Checker<'_, 'tcx> {
                 let mut err_span = self.span;
                 let ty_of_dropped_place = dropped_place.ty(self.body, self.tcx).ty;
 
-                // FIXME(effects) replace with `NeedsNonConstDrop` once we fix const traits
                 let ty_needs_non_const_drop =
-                    qualifs::NeedsDrop::in_any_value_of_ty(self.ccx, ty_of_dropped_place);
+                    qualifs::NeedsNonConstDrop::in_any_value_of_ty(self.ccx, ty_of_dropped_place);
 
                 debug!(?ty_of_dropped_place, ?ty_needs_non_const_drop);
 

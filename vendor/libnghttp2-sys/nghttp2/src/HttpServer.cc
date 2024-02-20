@@ -72,6 +72,8 @@
 #  define O_BINARY (0)
 #endif // O_BINARY
 
+using namespace std::chrono_literals;
+
 namespace nghttp2 {
 
 namespace {
@@ -113,7 +115,9 @@ Config::Config()
       early_response(false),
       hexdump(false),
       echo_upload(false),
-      no_content_length(false) {}
+      no_content_length(false),
+      ktls(false),
+      no_rfc7540_pri(false) {}
 
 Config::~Config() {}
 
@@ -192,7 +196,7 @@ void release_fd_cb(struct ev_loop *loop, ev_timer *w, int revents);
 } // namespace
 
 namespace {
-constexpr ev_tstamp FILE_ENTRY_MAX_AGE = 10.;
+constexpr auto FILE_ENTRY_MAX_AGE = 10s;
 } // namespace
 
 namespace {
@@ -200,13 +204,15 @@ constexpr size_t FILE_ENTRY_EVICT_THRES = 2048;
 } // namespace
 
 namespace {
-bool need_validation_file_entry(const FileEntry *ent, ev_tstamp now) {
+bool need_validation_file_entry(
+    const FileEntry *ent, const std::chrono::steady_clock::time_point &now) {
   return ent->last_valid + FILE_ENTRY_MAX_AGE < now;
 }
 } // namespace
 
 namespace {
-bool validate_file_entry(FileEntry *ent, ev_tstamp now) {
+bool validate_file_entry(FileEntry *ent,
+                         const std::chrono::steady_clock::time_point &now) {
   struct stat stbuf;
   int rv;
 
@@ -333,7 +339,7 @@ public:
       return nullptr;
     }
 
-    auto now = ev_now(loop_);
+    auto now = std::chrono::steady_clock::now();
 
     for (auto it = range.first; it != range.second;) {
       auto &ent = (*it).second;
@@ -748,37 +754,37 @@ int Http2Handler::read_tls() {
 
   ERR_clear_error();
 
-  auto rv = SSL_read(ssl_, buf.data(), buf.size());
+  for (;;) {
+    auto rv = SSL_read(ssl_, buf.data(), buf.size());
 
-  if (rv <= 0) {
-    auto err = SSL_get_error(ssl_, rv);
-    switch (err) {
-    case SSL_ERROR_WANT_READ:
-      return write_(*this);
-    case SSL_ERROR_WANT_WRITE:
-      // renegotiation started
-      return -1;
-    default:
+    if (rv <= 0) {
+      auto err = SSL_get_error(ssl_, rv);
+      switch (err) {
+      case SSL_ERROR_WANT_READ:
+        return write_(*this);
+      case SSL_ERROR_WANT_WRITE:
+        // renegotiation started
+        return -1;
+      default:
+        return -1;
+      }
+    }
+
+    auto nread = rv;
+
+    if (get_config()->hexdump) {
+      util::hexdump(stdout, buf.data(), nread);
+    }
+
+    rv = nghttp2_session_mem_recv(session_, buf.data(), nread);
+    if (rv < 0) {
+      if (rv != NGHTTP2_ERR_BAD_CLIENT_MAGIC) {
+        std::cerr << "nghttp2_session_mem_recv() returned error: "
+                  << nghttp2_strerror(rv) << std::endl;
+      }
       return -1;
     }
   }
-
-  auto nread = rv;
-
-  if (get_config()->hexdump) {
-    util::hexdump(stdout, buf.data(), nread);
-  }
-
-  rv = nghttp2_session_mem_recv(session_, buf.data(), nread);
-  if (rv < 0) {
-    if (rv != NGHTTP2_ERR_BAD_CLIENT_MAGIC) {
-      std::cerr << "nghttp2_session_mem_recv() returned error: "
-                << nghttp2_strerror(rv) << std::endl;
-    }
-    return -1;
-  }
-
-  return write_(*this);
 }
 
 int Http2Handler::write_tls() {
@@ -860,6 +866,12 @@ int Http2Handler::connection_made() {
   if (config->window_bits != -1) {
     entry[niv].settings_id = NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE;
     entry[niv].value = (1 << config->window_bits) - 1;
+    ++niv;
+  }
+
+  if (config->no_rfc7540_pri) {
+    entry[niv].settings_id = NGHTTP2_SETTINGS_NO_RFC7540_PRIORITIES;
+    entry[niv].value = 1;
     ++niv;
   }
 
@@ -1189,7 +1201,7 @@ bool prepare_upload_temp_store(Stream *stream, Http2Handler *hd) {
   // now.  We will update it when we get whole request body.
   auto path = std::string("echo:") + tempfn;
   stream->file_ent =
-      sessions->cache_fd(path, FileEntry(path, 0, 0, fd, nullptr, 0, true));
+      sessions->cache_fd(path, FileEntry(path, 0, 0, fd, nullptr, {}, true));
   stream->echo_upload = true;
   return true;
 }
@@ -1360,7 +1372,7 @@ void prepare_response(Stream *stream, Http2Handler *hd,
 
     file_ent = sessions->cache_fd(
         file_path, FileEntry(file_path, buf.st_size, buf.st_mtime, file,
-                             content_type, ev_now(sessions->get_loop())));
+                             content_type, std::chrono::steady_clock::now()));
   }
 
   stream->file_ent = file_ent;
@@ -1797,7 +1809,7 @@ void worker_acceptcb(struct ev_loop *loop, ev_async *w, int revents) {
     q.swap(worker->q);
   }
 
-  for (auto c : q) {
+  for (const auto &c : q) {
     sessions->accept_connection(c.fd);
   }
 }
@@ -1883,7 +1895,7 @@ class ListenEventHandler {
 public:
   ListenEventHandler(Sessions *sessions, int fd,
                      std::shared_ptr<AcceptHandler> acceptor)
-      : acceptor_(acceptor), sessions_(sessions), fd_(fd) {
+      : acceptor_(std::move(acceptor)), sessions_(sessions), fd_(fd) {
     ev_io_init(&w_, acceptcb, fd, EV_READ);
     w_.data = this;
     ev_io_start(sessions_->get_loop(), &w_);
@@ -1961,7 +1973,7 @@ FileEntry make_status_body(int status, uint16_t port) {
     assert(0);
   }
 
-  return FileEntry(util::utos(status), nwrite, 0, fd, nullptr, 0);
+  return FileEntry(util::utos(status), nwrite, 0, fd, nullptr, {});
 }
 } // namespace
 
@@ -2110,7 +2122,7 @@ int HttpServer::run() {
   std::vector<unsigned char> next_proto;
 
   if (!config_->no_tls) {
-    ssl_ctx = SSL_CTX_new(SSLv23_server_method());
+    ssl_ctx = SSL_CTX_new(TLS_server_method());
     if (!ssl_ctx) {
       std::cerr << ERR_error_string(ERR_get_error(), nullptr) << std::endl;
       return -1;
@@ -2121,6 +2133,12 @@ int HttpServer::run() {
                     SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
                     SSL_OP_SINGLE_ECDH_USE | SSL_OP_NO_TICKET |
                     SSL_OP_CIPHER_SERVER_PREFERENCE;
+
+#ifdef SSL_OP_ENABLE_KTLS
+    if (config_->ktls) {
+      ssl_opts |= SSL_OP_ENABLE_KTLS;
+    }
+#endif // SSL_OP_ENABLE_KTLS
 
     SSL_CTX_set_options(ssl_ctx, ssl_opts);
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
@@ -2143,22 +2161,13 @@ int HttpServer::run() {
     SSL_CTX_set_session_cache_mode(ssl_ctx, SSL_SESS_CACHE_SERVER);
 
 #ifndef OPENSSL_NO_EC
-    // Disabled SSL_CTX_set_ecdh_auto, because computational cost of
-    // chosen curve is much higher than P-256.
-
-    //     SSL_CTX_set_ecdh_auto(ssl_ctx, 1);
-    // Use P-256, which is sufficiently secure at the time of this
-    // writing.
-#  if OPENSSL_3_0_0_API
-    auto ecdh = EVP_EC_gen("P-256");
-    if (ecdh == nullptr) {
-      std::cerr << "EC_KEY_new_by_curv_name failed: "
+#  if !LIBRESSL_LEGACY_API && OPENSSL_VERSION_NUMBER >= 0x10002000L
+    if (SSL_CTX_set1_curves_list(ssl_ctx, "P-256") != 1) {
+      std::cerr << "SSL_CTX_set1_curves_list failed: "
                 << ERR_error_string(ERR_get_error(), nullptr);
       return -1;
     }
-    SSL_CTX_set_tmp_ecdh(ssl_ctx, ecdh);
-    EVP_PKEY_free(ecdh);
-#  else  // !OPENSSL_3_0_0_API
+#  else  // !(!LIBRESSL_LEGACY_API && OPENSSL_VERSION_NUMBER >= 0x10002000L)
     auto ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
     if (ecdh == nullptr) {
       std::cerr << "EC_KEY_new_by_curv_name failed: "
@@ -2167,7 +2176,7 @@ int HttpServer::run() {
     }
     SSL_CTX_set_tmp_ecdh(ssl_ctx, ecdh);
     EC_KEY_free(ecdh);
-#  endif // !OPENSSL_3_0_0_API
+#  endif // !(!LIBRESSL_LEGACY_API && OPENSSL_VERSION_NUMBER >= 0x10002000L)
 #endif   // OPENSSL_NO_EC
 
     if (!config_->dh_param_file.empty()) {
@@ -2191,8 +2200,11 @@ int HttpServer::run() {
         return -1;
       }
 
-      SSL_CTX_set_tmp_dh(ssl_ctx, dh);
-      EVP_PKEY_free(dh);
+      if (SSL_CTX_set0_tmp_dh_pkey(ssl_ctx, dh) != 1) {
+        std::cerr << "SSL_CTX_set0_tmp_dh_pkey failed: "
+                  << ERR_error_string(ERR_get_error(), nullptr) << std::endl;
+        return -1;
+      }
 #else  // !OPENSSL_3_0_0_API
       auto dh = PEM_read_bio_DHparams(bio, nullptr, nullptr, nullptr);
 

@@ -101,7 +101,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         Ok(match *t.kind() {
             ty::Slice(_) | ty::Str => Some(PointerKind::Length),
-            ty::Dynamic(ref tty, _, ty::Dyn) => Some(PointerKind::VTable(tty.principal_def_id())),
+            ty::Dynamic(tty, _, ty::Dyn) => Some(PointerKind::VTable(tty.principal_def_id())),
             ty::Adt(def, args) if def.is_struct() => match def.non_enum_variant().tail_opt() {
                 None => Some(PointerKind::Thin),
                 Some(f) => {
@@ -142,14 +142,14 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 let reported = self
                     .tcx
                     .sess
-                    .delay_span_bug(span, format!("`{t:?}` should be sized but is not?"));
+                    .span_delayed_bug(span, format!("`{t:?}` should be sized but is not?"));
                 return Err(reported);
             }
         })
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum CastError {
     ErrorGuaranteed(ErrorGuaranteed),
 
@@ -271,7 +271,7 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                         match e {
                             CastError::NeedViaPtr => "a raw pointer",
                             CastError::NeedViaThinPtr => "a thin pointer",
-                            _ => bug!(),
+                            e => unreachable!("control flow means we should never encounter a {e:?}"),
                         }
                     ));
                 }
@@ -288,13 +288,7 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                     self.cast_ty,
                     fcx,
                 )
-                .help(format!(
-                    "cast through {} first",
-                    match e {
-                        CastError::NeedViaInt => "an integer",
-                        _ => bug!(),
-                    }
-                ))
+                .help("cast through an integer first")
                 .emit();
             }
             CastError::IllegalCast => {
@@ -506,7 +500,7 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                 };
 
                 SizedUnsizedCast {
-                    sess: &fcx.tcx.sess,
+                    sess: fcx.tcx.sess,
                     span: self.span,
                     expr_ty: self.expr_ty,
                     cast_ty: fcx.ty_to_string(self.cast_ty),
@@ -534,7 +528,7 @@ impl<'a, 'tcx> CastCheck<'tcx> {
                 let unknown_cast_to = match e {
                     CastError::UnknownCastPtrKind => true,
                     CastError::UnknownExprPtrKind => false,
-                    _ => bug!(),
+                    e => unreachable!("control flow means we should never encounter a {e:?}"),
                 };
                 let (span, sub) = if unknown_cast_to {
                     (self.cast_span, errors::CastUnknownPointerSub::To(self.cast_span))

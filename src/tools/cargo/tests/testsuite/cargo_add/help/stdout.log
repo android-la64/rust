@@ -32,6 +32,17 @@ Options:
           
           The package will be removed from your features.
 
+      --public
+          Mark the dependency as public
+          
+          The dependency can be referenced in your library's public API.
+
+      --no-public
+          Mark the dependency as private
+          
+          While you can use the crate in your implementation, it cannot be referenced in your public
+          API.
+
       --rename <NAME>
           Rename the dependency
           
@@ -45,11 +56,11 @@ Options:
   -n, --dry-run
           Don't actually write the manifest
 
-  -q, --quiet
-          Do not print cargo log messages
-
   -v, --verbose...
           Use verbose output (-vv very verbose/build.rs output)
+
+  -q, --quiet
+          Do not print cargo log messages
 
       --color <WHEN>
           Coloring: auto, always, never

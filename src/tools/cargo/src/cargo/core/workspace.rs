@@ -15,18 +15,19 @@ use crate::core::features::Features;
 use crate::core::registry::PackageRegistry;
 use crate::core::resolver::features::CliFeatures;
 use crate::core::resolver::ResolveBehavior;
-use crate::core::{Dependency, Edition, FeatureValue, PackageId, PackageIdSpec};
+use crate::core::{
+    Dependency, Edition, FeatureValue, PackageId, PackageIdSpec, PackageIdSpecQuery,
+};
 use crate::core::{EitherManifest, Package, SourceId, VirtualManifest};
 use crate::ops;
 use crate::sources::{PathSource, CRATES_IO_INDEX, CRATES_IO_REGISTRY};
 use crate::util::edit_distance;
 use crate::util::errors::{CargoResult, ManifestError};
 use crate::util::interning::InternedString;
-use crate::util::toml::{
-    read_manifest, schema::InheritableFields, schema::TomlDependency, schema::TomlProfiles,
-};
-use crate::util::RustVersion;
+use crate::util::toml::{read_manifest, InheritableFields};
 use crate::util::{config::ConfigRelativePath, Config, Filesystem, IntoUrl};
+use crate::util_schemas::manifest::RustVersion;
+use crate::util_schemas::manifest::{TomlDependency, TomlProfiles};
 use cargo_util::paths;
 use cargo_util::paths::normalize_path;
 use pathdiff::diff_paths;
@@ -437,7 +438,8 @@ impl<'cfg> Workspace<'cfg> {
                 url,
                 deps.iter()
                     .map(|(name, dep)| {
-                        dep.to_dependency_split(
+                        crate::util::toml::to_dependency(
+                            dep,
                             name,
                             source,
                             &mut nested_paths,

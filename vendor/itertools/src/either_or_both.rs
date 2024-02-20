@@ -6,7 +6,7 @@ use either::Either;
 
 /// Value that either holds a single A or B, or both.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub enum EitherOrBoth<A, B> {
+pub enum EitherOrBoth<A, B = A> {
     /// Both values are present.
     Both(A, B),
     /// Only the left value of type `A` is present.
@@ -63,6 +63,14 @@ impl<A, B> EitherOrBoth<A, B> {
             Right(right) | Both(_, right) => Some(right),
             _ => None,
         }
+    }
+
+    /// Return tuple of options corresponding to the left and right value respectively
+    ///
+    /// If `Left` return `(Some(..), None)`, if `Right` return `(None,Some(..))`, else return
+    /// `(Some(..),Some(..))`
+    pub fn left_and_right(self) -> (Option<A>, Option<B>) {
+        self.map_any(Some, Some).or_default()
     }
 
     /// If `Left`, return `Some` with the left value. If `Right` or `Both`, return `None`.
@@ -464,13 +472,21 @@ impl<A, B> EitherOrBoth<A, B> {
 impl<T> EitherOrBoth<T, T> {
     /// Return either value of left, right, or apply a function `f` to both values if both are present.
     /// The input function has to return the same type as both Right and Left carry.
-    /// 
+    ///
+    /// This function can be used to preferrably extract the left resp. right value,
+    /// but fall back to the other (i.e. right resp. left) if the preferred one is not present.
+    ///
     /// # Examples
     /// ```
     /// # use itertools::EitherOrBoth;
     /// assert_eq!(EitherOrBoth::Both(3, 7).reduce(u32::max), 7);
     /// assert_eq!(EitherOrBoth::Left(3).reduce(u32::max), 3);
     /// assert_eq!(EitherOrBoth::Right(7).reduce(u32::max), 7);
+    ///
+    /// // Extract the left value if present, fall back to the right otherwise.
+    /// assert_eq!(EitherOrBoth::Left("left").reduce(|l, _r| l), "left");
+    /// assert_eq!(EitherOrBoth::Right("right").reduce(|l, _r| l), "right");
+    /// assert_eq!(EitherOrBoth::Both("left", "right").reduce(|l, _r| l), "left");
     /// ```
     pub fn reduce<F>(self, f: F) -> T
     where
@@ -490,6 +506,15 @@ impl<A, B> Into<Option<Either<A, B>>> for EitherOrBoth<A, B> {
             EitherOrBoth::Left(l) => Some(Either::Left(l)),
             EitherOrBoth::Right(r) => Some(Either::Right(r)),
             _ => None,
+        }
+    }
+}
+
+impl<A, B> From<Either<A, B>> for EitherOrBoth<A, B> {
+    fn from(either: Either<A, B>) -> Self {
+        match either {
+            Either::Left(l) => EitherOrBoth::Left(l),
+            Either::Right(l) => EitherOrBoth::Right(l),
         }
     }
 }

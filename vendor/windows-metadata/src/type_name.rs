@@ -1,12 +1,12 @@
 #![allow(non_upper_case_globals)]
 
-#[derive(Copy, Clone, PartialEq, PartialOrd, Eq, Ord)]
-pub struct TypeName<'a> {
-    pub namespace: &'a str,
-    pub name: &'a str,
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Ord, PartialOrd)]
+pub struct TypeName {
+    pub namespace: &'static str,
+    pub name: &'static str,
 }
 
-impl<'a> TypeName<'a> {
+impl TypeName {
     pub const Enum: Self = Self::from_const("System", "Enum");
     pub const Delegate: Self = Self::from_const("System", "MulticastDelegate");
     pub const Struct: Self = Self::from_const("System", "ValueType");
@@ -30,7 +30,6 @@ impl<'a> TypeName<'a> {
     pub const IVectorView: Self = Self::from_const("Windows.Foundation.Collections", "IVectorView");
     pub const IVector: Self = Self::from_const("Windows.Foundation.Collections", "IVector");
 
-    pub const NTSTATUS: Self = Self::from_const("Windows.Win32.Foundation", "NTSTATUS");
     pub const PWSTR: Self = Self::from_const("Windows.Win32.Foundation", "PWSTR");
     pub const PSTR: Self = Self::from_const("Windows.Win32.Foundation", "PSTR");
     pub const BSTR: Self = Self::from_const("Windows.Win32.Foundation", "BSTR");
@@ -52,17 +51,17 @@ impl<'a> TypeName<'a> {
         Self { namespace, name }
     }
 
-    pub fn new(namespace: &'a str, name: &'a str) -> Self {
-        Self { namespace, name: crate::trim_tick(name) }
+    pub fn new(namespace: &'static str, name: &'static str) -> Self {
+        Self { namespace, name }
     }
 
-    pub fn parse(full_name: &'a str) -> Self {
+    pub fn parse(full_name: &'static str) -> Self {
         let index = full_name.rfind('.').expect("Expected full name separated with `.`");
-        Self { namespace: &full_name[0..index], name: &full_name[index + 1..] }
+        Self::new(&full_name[0..index], &full_name[index + 1..])
     }
 }
 
-impl<'a> std::fmt::Display for TypeName<'a> {
+impl std::fmt::Display for TypeName {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(fmt, "{}.{}", self.namespace, self.name)
     }

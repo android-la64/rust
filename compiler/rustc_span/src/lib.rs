@@ -17,11 +17,10 @@
 
 // tidy-alphabetical-start
 #![allow(internal_features)]
-#![cfg_attr(not(bootstrap), doc(rust_logo))]
-#![cfg_attr(not(bootstrap), feature(rustdoc_internals))]
 #![deny(rustc::diagnostic_outside_of_impl)]
 #![deny(rustc::untranslatable_diagnostic)]
 #![doc(html_root_url = "https://doc.rust-lang.org/nightly/nightly-rustc/")]
+#![doc(rust_logo)]
 #![feature(array_windows)]
 #![feature(cfg_match)]
 #![feature(core_io_borrowed_buf)]
@@ -33,6 +32,7 @@
 #![feature(read_buf)]
 #![feature(round_char_boundary)]
 #![feature(rustc_attrs)]
+#![feature(rustdoc_internals)]
 // tidy-alphabetical-end
 
 #[macro_use]
@@ -137,13 +137,6 @@ pub fn set_session_globals_then<R>(session_globals: &SessionGlobals, f: impl FnO
          Use another thread if you need another SessionGlobals"
     );
     SESSION_GLOBALS.set(session_globals, f)
-}
-
-pub fn create_default_session_if_not_set_then<R, F>(f: F) -> R
-where
-    F: FnOnce(&SessionGlobals) -> R,
-{
-    create_session_if_not_set_then(edition::DEFAULT_EDITION, f)
 }
 
 pub fn create_session_if_not_set_then<R, F>(edition: Edition, f: F) -> R
@@ -2254,7 +2247,7 @@ pub struct ErrorGuaranteed(());
 impl ErrorGuaranteed {
     /// To be used only if you really know what you are doing... ideally, we would find a way to
     /// eliminate all calls to this method.
-    #[deprecated = "`Session::delay_span_bug` should be preferred over this function"]
+    #[deprecated = "`Session::span_delayed_bug` should be preferred over this function"]
     pub fn unchecked_claim_error_was_emitted() -> Self {
         ErrorGuaranteed(())
     }

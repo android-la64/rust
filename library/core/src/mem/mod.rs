@@ -10,7 +10,7 @@ use crate::cmp;
 use crate::fmt;
 use crate::hash;
 use crate::intrinsics;
-use crate::marker::{Copy, DiscriminantKind, Sized};
+use crate::marker::DiscriminantKind;
 use crate::ptr;
 
 mod manually_drop;
@@ -1360,7 +1360,7 @@ impl<T> SizedTypeProperties for T {}
 ///
 /// ```
 /// #![feature(offset_of)]
-/// # #![cfg_attr(not(bootstrap), feature(offset_of_enum))]
+/// # #![feature(offset_of_enum)]
 ///
 /// use std::mem;
 /// #[repr(C)]
@@ -1390,12 +1390,9 @@ impl<T> SizedTypeProperties for T {}
 ///     B { one: u8, two: u16 },
 /// }
 ///
-/// # #[cfg(not(bootstrap))]
 /// assert_eq!(mem::offset_of!(Enum, A.0), 1);
-/// # #[cfg(not(bootstrap))]
 /// assert_eq!(mem::offset_of!(Enum, B.two), 2);
 ///
-/// # #[cfg(not(bootstrap))]
 /// assert_eq!(mem::offset_of!(Option<&u8>, Some.0), 0);
 /// ```
 #[unstable(feature = "offset_of", issue = "106655")]

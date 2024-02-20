@@ -451,7 +451,7 @@ fn construct_fn<'tcx>(
     fn_sig: ty::FnSig<'tcx>,
 ) -> Body<'tcx> {
     let span = tcx.def_span(fn_def);
-    let fn_id = tcx.hir().local_def_id_to_hir_id(fn_def);
+    let fn_id = tcx.local_def_id_to_hir_id(fn_def);
     let coroutine_kind = tcx.coroutine_kind(fn_def);
 
     // The representation of thir for `-Zunpretty=thir-tree` relies on
@@ -569,10 +569,10 @@ fn construct_const<'a, 'tcx>(
     expr: ExprId,
     const_ty: Ty<'tcx>,
 ) -> Body<'tcx> {
-    let hir_id = tcx.hir().local_def_id_to_hir_id(def);
+    let hir_id = tcx.local_def_id_to_hir_id(def);
 
     // Figure out what primary body this item has.
-    let (span, const_ty_span) = match tcx.hir().get(hir_id) {
+    let (span, const_ty_span) = match tcx.hir_node(hir_id) {
         Node::Item(hir::Item {
             kind: hir::ItemKind::Static(ty, _, _) | hir::ItemKind::Const(ty, _, _),
             span,
@@ -622,7 +622,7 @@ fn construct_const<'a, 'tcx>(
 /// with type errors, but normal MIR construction can't handle that in general.
 fn construct_error(tcx: TyCtxt<'_>, def_id: LocalDefId, guar: ErrorGuaranteed) -> Body<'_> {
     let span = tcx.def_span(def_id);
-    let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+    let hir_id = tcx.local_def_id_to_hir_id(def_id);
     let coroutine_kind = tcx.coroutine_kind(def_id);
 
     let (inputs, output, yield_ty) = match tcx.def_kind(def_id) {
@@ -638,9 +638,21 @@ fn construct_error(tcx: TyCtxt<'_>, def_id: LocalDefId, guar: ErrorGuaranteed) -
             );
             (sig.inputs().to_vec(), sig.output(), None)
         }
+        DefKind::Closure if coroutine_kind.is_some() => {
+            let coroutine_ty = tcx.type_of(def_id).instantiate_identity();
+            let ty::Coroutine(_, args, _) = coroutine_ty.kind() else {
+                bug!("expected type of coroutine-like closure to be a coroutine")
+            };
+            let args = args.as_coroutine();
+            let yield_ty = args.yield_ty();
+            let return_ty = args.return_ty();
+            (vec![coroutine_ty, args.resume_ty()], return_ty, Some(yield_ty))
+        }
         DefKind::Closure => {
             let closure_ty = tcx.type_of(def_id).instantiate_identity();
-            let ty::Closure(_, args) = closure_ty.kind() else { bug!() };
+            let ty::Closure(_, args) = closure_ty.kind() else {
+                bug!("expected type of closure to be a closure")
+            };
             let args = args.as_closure();
             let sig = tcx.liberate_late_bound_regions(def_id.to_def_id(), args.sig());
             let self_ty = match args.kind() {
@@ -649,14 +661,6 @@ fn construct_error(tcx: TyCtxt<'_>, def_id: LocalDefId, guar: ErrorGuaranteed) -
                 ty::ClosureKind::FnOnce => closure_ty,
             };
             ([self_ty].into_iter().chain(sig.inputs().to_vec()).collect(), sig.output(), None)
-        }
-        DefKind::Coroutine => {
-            let coroutine_ty = tcx.type_of(def_id).instantiate_identity();
-            let ty::Coroutine(_, args, _) = coroutine_ty.kind() else { bug!() };
-            let args = args.as_coroutine();
-            let yield_ty = args.yield_ty();
-            let return_ty = args.return_ty();
-            (vec![coroutine_ty, args.resume_ty()], return_ty, Some(yield_ty))
         }
         dk => bug!("{:?} is not a body: {:?}", def_id, dk),
     };
@@ -938,12 +942,12 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
                     scope = self.declare_bindings(
                         scope,
                         expr.span,
-                        &pat,
+                        pat,
                         None,
                         Some((Some(&place), span)),
                     );
                     let place_builder = PlaceBuilder::from(local);
-                    unpack!(block = self.place_into_pattern(block, &pat, place_builder, false));
+                    unpack!(block = self.place_into_pattern(block, pat, place_builder, false));
                 }
             }
             self.source_scope = original_source_scope;
@@ -954,7 +958,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             self.source_scope = source_scope;
         }
 
-        self.expr_into_dest(Place::return_place(), block, &expr)
+        self.expr_into_dest(Place::return_place(), block, expr)
     }
 
     fn set_correct_source_scope_for_arg(

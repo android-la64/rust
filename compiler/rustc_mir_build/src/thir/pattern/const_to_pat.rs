@@ -200,7 +200,9 @@ impl<'tcx> ConstToPat<'tcx> {
                     // We errored. Signal that in the pattern, so that follow up errors can be silenced.
                     let kind = PatKind::Error(e);
                     return Box::new(Pat { span: self.span, ty: cv.ty(), kind });
-                } else if let ty::Adt(..) = cv.ty().kind() && matches!(cv, mir::Const::Val(..)) {
+                } else if let ty::Adt(..) = cv.ty().kind()
+                    && matches!(cv, mir::Const::Val(..))
+                {
                     // This branch is only entered when the current `cv` is `mir::Const::Val`.
                     // This is because `mir::Const::ty` has already been handled by `Self::recur`
                     // and the invalid types may be ignored.
@@ -256,18 +258,26 @@ impl<'tcx> ConstToPat<'tcx> {
 
     #[instrument(level = "trace", skip(self), ret)]
     fn type_has_partial_eq_impl(&self, ty: Ty<'tcx>) -> bool {
+        let tcx = self.tcx();
         // double-check there even *is* a semantic `PartialEq` to dispatch to.
         //
         // (If there isn't, then we can safely issue a hard
         // error, because that's never worked, due to compiler
         // using `PartialEq::eq` in this scenario in the past.)
-        let partial_eq_trait_id =
-            self.tcx().require_lang_item(hir::LangItem::PartialEq, Some(self.span));
+        let partial_eq_trait_id = tcx.require_lang_item(hir::LangItem::PartialEq, Some(self.span));
         let partial_eq_obligation = Obligation::new(
-            self.tcx(),
+            tcx,
             ObligationCause::dummy(),
             self.param_env,
-            ty::TraitRef::new(self.tcx(), partial_eq_trait_id, [ty, ty]),
+            ty::TraitRef::new(
+                tcx,
+                partial_eq_trait_id,
+                tcx.with_opt_host_effect_param(
+                    tcx.hir().enclosing_body_owner(self.id),
+                    partial_eq_trait_id,
+                    [ty, ty],
+                ),
+            ),
         );
 
         // This *could* accept a type that isn't actually `PartialEq`, because region bounds get
@@ -482,8 +492,9 @@ impl<'tcx> ConstToPat<'tcx> {
                 PatKind::Constant { value: mir::Const::Ty(ty::Const::new_value(tcx, cv, ty)) }
             }
             ty::FnPtr(..) => {
-                // Valtree construction would never succeed for these, so this is unreachable.
-                unreachable!()
+                unreachable!(
+                    "Valtree construction would never succeed for FnPtr, so this is unreachable."
+                )
             }
             _ => {
                 let err = InvalidPattern { span, non_sm_ty: ty };

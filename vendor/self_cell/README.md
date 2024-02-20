@@ -143,15 +143,13 @@ cargo miri test
 
 ### Related projects
 
-[ouroboros](https://github.com/joshua-maros/ouroboros)
-
-[rental](https://github.com/jpernst/rental)
-
-[Schroedinger](https://github.com/dureuill/sc)
-
-[owning_ref](https://github.com/Kimundi/owning-ref-rs)
-
-[ghost-cell](https://github.com/matthieu-m/ghost-cell)
+- [ouroboros](https://github.com/joshua-maros/ouroboros)
+- [rental](https://github.com/jpernst/rental) | soundness issues (tests fail with recent miri versions) and [deprecated](https://github.com/jpernst/rental#warning-this-crate-is-no-longer-maintained-or-supported)
+- [Schroedinger](https://github.com/dureuill/sc) | [soundness issues](https://github.com/dureuill/sc/issues/1)
+- [owning_ref](https://github.com/Kimundi/owning-ref-rs) | [soundness issues](https://rustsec.org/advisories/RUSTSEC-2022-0040.html) and [seems unmaintained](https://github.com/Kimundi/owning-ref-rs/issues/81)
+- [ghost-cell](https://github.com/matthieu-m/ghost-cell)
+- [qcell](https://github.com/uazu/qcell/)
+- [selfref](https://docs.rs/selfref)
 
 ## Min required rustc version
 
@@ -162,7 +160,7 @@ support down to rustc version 1.36. However this requires polyfilling std
 library functionality for older rustc with technically UB versions. Testing does
 not show older rustc versions (ab)using this. Use at your own risk.
 
-The minimum versions are a best effor and may change with any new major release.
+The minimum versions are best-effort and may change with any new major release.
 
 ## Contributing
 

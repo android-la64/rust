@@ -33,6 +33,10 @@
 
 #include <openssl/ssl.h>
 
+#ifdef ENABLE_HTTP3
+#  include <ngtcp2/ngtcp2_crypto.h>
+#endif // ENABLE_HTTP3
+
 #include "shrpx_rate_limit.h"
 #include "shrpx_error.h"
 #include "memchunk.h"
@@ -62,7 +66,7 @@ struct TLSConnection {
   SSL_SESSION *cached_session;
   MemcachedRequest *cached_session_lookup_req;
   tls::TLSSessionCache *client_session_cache;
-  ev_tstamp last_write_idle;
+  std::chrono::steady_clock::time_point last_write_idle;
   size_t warmup_writelen;
   // length passed to SSL_write and SSL_read last time.  This is
   // required since these functions require the exact same parameters
@@ -109,6 +113,7 @@ struct Connection {
   void prepare_server_handshake();
 
   int tls_handshake();
+  int tls_handshake_simple();
   int write_tls_pending_handshake();
 
   int check_http2_requirement();
@@ -136,6 +141,10 @@ struct Connection {
   ssize_t write_clear(const void *data, size_t len);
   ssize_t writev_clear(struct iovec *iov, int iovcnt);
   ssize_t read_clear(void *data, size_t len);
+  // Read at most |len| bytes of data from socket without rate limit.
+  ssize_t read_nolim_clear(void *data, size_t len);
+  // Peek at most |len| bytes of data from socket without rate limit.
+  ssize_t peek_clear(void *data, size_t len);
 
   void handle_tls_pending_read();
 
@@ -154,6 +163,10 @@ struct Connection {
   // Returns true if read timer expired.
   bool expired_rt();
 
+#ifdef ENABLE_HTTP3
+  // This must be the first member of Connection.
+  ngtcp2_crypto_conn_ref conn_ref;
+#endif // ENABLE_HTTP3
   TLSConnection tls;
   ev_io wev;
   ev_io rev;
@@ -165,17 +178,22 @@ struct Connection {
   void *data;
   int fd;
   size_t tls_dyn_rec_warmup_threshold;
-  ev_tstamp tls_dyn_rec_idle_timeout;
+  std::chrono::steady_clock::duration tls_dyn_rec_idle_timeout;
   // Application protocol used over the connection.  This field is not
   // used in this object at the moment.  The rest of the program may
   // use this value when it is useful.
   Proto proto;
   // The point of time when last read is observed.  Note: since we use
   // |rt| as idle timer, the activity is not limited to read.
-  ev_tstamp last_read;
+  std::chrono::steady_clock::time_point last_read;
   // Timeout for read timer |rt|.
   ev_tstamp read_timeout;
 };
+
+#ifdef ENABLE_HTTP3
+static_assert(std::is_standard_layout<Connection>::value,
+              "Conneciton is not standard layout");
+#endif // ENABLE_HTTP3
 
 // Creates BIO_method shared by all SSL objects.
 BIO_METHOD *create_bio_method();

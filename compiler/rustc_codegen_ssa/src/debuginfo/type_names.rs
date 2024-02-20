@@ -216,7 +216,7 @@ fn push_debuginfo_type_name<'tcx>(
                 output.push(']');
             }
         }
-        ty::Dynamic(ref trait_data, ..) => {
+        ty::Dynamic(trait_data, ..) => {
             let auto_traits: SmallVec<[DefId; 4]> = trait_data.auto_traits().collect();
 
             let has_enclosing_parens = if cpp_like_debuginfo {
@@ -249,7 +249,7 @@ fn push_debuginfo_type_name<'tcx>(
                     .projection_bounds()
                     .map(|bound| {
                         let ExistentialProjection { def_id: item_def_id, term, .. } =
-                            tcx.erase_late_bound_regions(bound);
+                            tcx.instantiate_bound_regions_with_erased(bound);
                         // FIXME(associated_const_equality): allow for consts here
                         (item_def_id, term.ty().unwrap())
                     })
@@ -566,6 +566,9 @@ fn coroutine_kind_label(coroutine_kind: Option<CoroutineKind>) -> &'static str {
         Some(CoroutineKind::Async(CoroutineSource::Block)) => "async_block",
         Some(CoroutineKind::Async(CoroutineSource::Closure)) => "async_closure",
         Some(CoroutineKind::Async(CoroutineSource::Fn)) => "async_fn",
+        Some(CoroutineKind::AsyncGen(CoroutineSource::Block)) => "async_gen_block",
+        Some(CoroutineKind::AsyncGen(CoroutineSource::Closure)) => "async_gen_closure",
+        Some(CoroutineKind::AsyncGen(CoroutineSource::Fn)) => "async_gen_fn",
         Some(CoroutineKind::Coroutine) => "coroutine",
         None => "closure",
     }
@@ -594,7 +597,7 @@ fn push_unqualified_item_name(
         DefPathData::CrateRoot => {
             output.push_str(tcx.crate_name(def_id.krate).as_str());
         }
-        DefPathData::ClosureExpr => {
+        DefPathData::Closure => {
             let label = coroutine_kind_label(tcx.coroutine_kind(def_id));
 
             push_disambiguated_special_name(

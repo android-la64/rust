@@ -1,7 +1,6 @@
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-env-changed=LIBZ_SYS_STATIC");
@@ -43,7 +42,7 @@ fn main() {
         }
     }
 
-    if target.contains("msvc") {
+    if target.contains("windows") {
         if try_vcpkg() {
             return;
         }
@@ -159,18 +158,11 @@ mod build_zng;
 #[cfg(feature = "zlib-ng")]
 use build_zng::build_zlib_ng;
 
-#[cfg(not(target_env = "msvc"))]
-fn try_vcpkg() -> bool {
-    false
-}
-
-#[cfg(target_env = "msvc")]
 fn try_vcpkg() -> bool {
     // see if there is a vcpkg tree with zlib installed
     match vcpkg::Config::new()
         .emit_includes(true)
-        .lib_names("zlib", "zlib1")
-        .probe("zlib")
+        .find_package("zlib")
     {
         Ok(_) => true,
         Err(e) => {
@@ -181,8 +173,7 @@ fn try_vcpkg() -> bool {
 }
 
 fn zlib_installed(cfg: &mut cc::Build) -> bool {
-    let compiler = cfg.get_compiler();
-    let mut cmd = Command::new(compiler.path());
+    let mut cmd = cfg.get_compiler().to_command();
     cmd.arg("src/smoke.c").arg("-o").arg("/dev/null").arg("-lz");
 
     println!("running {:?}", cmd);

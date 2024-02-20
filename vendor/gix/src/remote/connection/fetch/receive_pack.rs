@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use gix_odb::{store::RefreshMode, FindExt};
+use gix_odb::store::RefreshMode;
 use gix_protocol::{
     fetch::Arguments,
     transport::{client::Transport, packetline::read::ProgressAction},
@@ -104,7 +104,7 @@ where
 
         gix_protocol::fetch::Response::check_required_features(protocol_version, &fetch_features)?;
         let sideband_all = fetch_features.iter().any(|(n, _)| *n == "sideband-all");
-        let mut arguments = gix_protocol::fetch::Arguments::new(protocol_version, fetch_features);
+        let mut arguments = gix_protocol::fetch::Arguments::new(protocol_version, fetch_features, con.trace);
         if matches!(con.remote.fetch_tags, crate::remote::fetch::Tags::Included) {
             if !arguments.can_use_include_tag() {
                 return Err(Error::MissingServerFeature {
@@ -125,7 +125,10 @@ where
             });
         }
 
-        let negotiate_span = gix_trace::detail!("negotiate");
+        let negotiate_span = gix_trace::detail!(
+            "negotiate",
+            protocol_version = self.ref_map.handshake.server_protocol_version as usize
+        );
         let mut negotiator = repo
             .config
             .resolved
@@ -155,7 +158,9 @@ where
         let mut previous_response = None::<gix_protocol::fetch::Response>;
         let (mut write_pack_bundle, negotiate) = match &action {
             negotiate::Action::NoChange | negotiate::Action::SkipToRefUpdate => {
-                gix_protocol::indicate_end_of_interaction(&mut con.transport).await.ok();
+                gix_protocol::indicate_end_of_interaction(&mut con.transport, con.trace)
+                    .await
+                    .ok();
                 (None, None)
             }
             negotiate::Action::MustNegotiate {
@@ -206,7 +211,9 @@ where
                             is_done
                         }
                         Err(err) => {
-                            gix_protocol::indicate_end_of_interaction(&mut con.transport).await.ok();
+                            gix_protocol::indicate_end_of_interaction(&mut con.transport, con.trace)
+                                .await
+                                .ok();
                             return Err(err.into());
                         }
                     };
@@ -214,8 +221,13 @@ where
                     if sideband_all {
                         setup_remote_progress(progress, &mut reader, should_interrupt);
                     }
-                    let response =
-                        gix_protocol::fetch::Response::from_line_reader(protocol_version, &mut reader, is_done).await?;
+                    let response = gix_protocol::fetch::Response::from_line_reader(
+                        protocol_version,
+                        &mut reader,
+                        is_done,
+                        !is_done,
+                    )
+                    .await?;
                     let has_pack = response.has_pack();
                     previous_response = Some(response);
                     if has_pack {
@@ -265,14 +277,23 @@ where
                         should_interrupt,
                         Some(Box::new({
                             let repo = repo.clone();
-                            move |oid, buf| repo.objects.find(&oid, buf).ok()
+                            repo.objects
                         })),
                         options,
                     )?;
+                    // Assure the final flush packet is consumed.
+                    #[cfg(feature = "async-network-client")]
+                    let has_read_to_end = { rd.get_ref().stopped_at().is_some() };
+                    #[cfg(not(feature = "async-network-client"))]
+                    let has_read_to_end = { rd.stopped_at().is_some() };
+                    if !has_read_to_end {
+                        std::io::copy(&mut rd, &mut std::io::sink()).unwrap();
+                    }
                     #[cfg(feature = "async-network-client")]
                     {
                         reader = rd.into_inner();
                     }
+
                     #[cfg(not(feature = "async-network-client"))]
                     {
                         reader = rd;
@@ -284,7 +305,9 @@ where
                 drop(reader);
 
                 if matches!(protocol_version, gix_protocol::transport::Protocol::V2) {
-                    gix_protocol::indicate_end_of_interaction(&mut con.transport).await.ok();
+                    gix_protocol::indicate_end_of_interaction(&mut con.transport, con.trace)
+                        .await
+                        .ok();
                 }
 
                 if let Some(shallow_lock) = shallow_lock {
@@ -387,24 +410,14 @@ fn add_shallow_args(
     Ok((shallow_commits, shallow_lock))
 }
 
-fn setup_remote_progress(
+fn setup_remote_progress<'a>(
     progress: &mut dyn crate::DynNestedProgress,
-    reader: &mut Box<dyn gix_protocol::transport::client::ExtendedBufRead + Unpin + '_>,
-    should_interrupt: &AtomicBool,
+    reader: &mut Box<dyn gix_protocol::transport::client::ExtendedBufRead<'a> + Unpin + 'a>,
+    should_interrupt: &'a AtomicBool,
 ) {
     use gix_protocol::transport::client::ExtendedBufRead;
     reader.set_progress_handler(Some(Box::new({
         let mut remote_progress = progress.add_child_with_id("remote".to_string(), ProgressId::RemoteProgress.into());
-        // SAFETY: Ugh, so, with current Rust I can't declare lifetimes in the involved traits the way they need to
-        //         be and I also can't use scoped threads to pump from local scopes to an Arc version that could be
-        //         used here due to the this being called from sync AND async code (and the async version doesn't work
-        //         with a surrounding `std::thread::scope()`.
-        //         Thus there is only claiming this is 'static which we know works for *our* implementations of ExtendedBufRead
-        //         and typical implementations, but of course it's possible for user code to come along and actually move this
-        //         handler into a context where it can outlive the current function. Is this going to happen? Probably not unless
-        //         somebody really wants to break it. So, with standard usage this value is never used past its actual lifetime.
-        #[allow(unsafe_code)]
-        let should_interrupt: &'static AtomicBool = unsafe { std::mem::transmute(should_interrupt) };
         move |is_err: bool, data: &[u8]| {
             gix_protocol::RemoteProgress::translate_to_progress(is_err, data, &mut remote_progress);
             if should_interrupt.load(Ordering::Relaxed) {
@@ -413,5 +426,5 @@ fn setup_remote_progress(
                 ProgressAction::Continue
             }
         }
-    }) as gix_protocol::transport::client::HandleProgress));
+    }) as gix_protocol::transport::client::HandleProgress<'a>));
 }

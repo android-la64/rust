@@ -6,7 +6,7 @@ use crate::errors::{
     MacroExpectedFound, RemoveSurroundingDerive,
 };
 use crate::Namespace::*;
-use crate::{BuiltinMacroState, Determinacy};
+use crate::{BuiltinMacroState, Determinacy, MacroData};
 use crate::{DeriveData, Finalize, ParentScope, ResolutionError, Resolver, ScopeSet};
 use crate::{ModuleKind, ModuleOrUniformRoot, NameBinding, PathResult, Segment, ToNameBinding};
 use rustc_ast::expand::StrippedCfgItem;
@@ -205,10 +205,7 @@ impl<'a, 'tcx> ResolverExpand for Resolver<'a, 'tcx> {
 
     fn register_builtin_macro(&mut self, name: Symbol, ext: SyntaxExtensionKind) {
         if self.builtin_macros.insert(name, BuiltinMacroState::NotYetSeen(ext)).is_some() {
-            self.tcx
-                .sess
-                .diagnostic()
-                .bug(format!("built-in macro `{name}` was already registered"));
+            self.tcx.sess.dcx().bug(format!("built-in macro `{name}` was already registered"));
         }
     }
 
@@ -371,7 +368,7 @@ impl<'a, 'tcx> ResolverExpand for Resolver<'a, 'tcx> {
             if opt_ext.is_none() {
                 *opt_ext = Some(
                     match self.resolve_macro_path(
-                        &path,
+                        path,
                         Some(MacroKind::Derive),
                         &parent_scope,
                         true,
@@ -485,7 +482,7 @@ impl<'a, 'tcx> ResolverExpand for Resolver<'a, 'tcx> {
     }
 
     fn registered_tools(&self) -> &RegisteredTools {
-        &self.registered_tools
+        self.registered_tools
     }
 }
 
@@ -695,7 +692,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             res
         };
 
-        res.map(|res| (self.get_macro(res).map(|macro_data| macro_data.ext), res))
+        res.map(|res| (self.get_macro(res).map(|macro_data| macro_data.ext.clone()), res))
     }
 
     pub(crate) fn finalize_macro_resolutions(&mut self, krate: &Crate) {
@@ -710,7 +707,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                     // Make sure compilation does not succeed if preferred macro resolution
                     // has changed after the macro had been expanded. In theory all such
                     // situations should be reported as errors, so this is a bug.
-                    this.tcx.sess.delay_span_bug(span, "inconsistent resolution for a macro");
+                    this.tcx.sess.span_delayed_bug(span, "inconsistent resolution for a macro");
                 }
             } else {
                 // It's possible that the macro was unresolved (indeterminate) and silently
@@ -887,7 +884,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             }
         }
         if let Some(depr) = &ext.deprecation {
-            let path = pprust::path_to_string(&path);
+            let path = pprust::path_to_string(path);
             let (message, lint) = stability::deprecation_message_and_lint(depr, "macro", &path);
             stability::early_report_deprecation(
                 &mut self.lint_buffer,
@@ -936,28 +933,20 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
     /// Compile the macro into a `SyntaxExtension` and its rule spans.
     ///
     /// Possibly replace its expander to a pre-defined one for built-in macros.
-    pub(crate) fn compile_macro(
-        &mut self,
-        item: &ast::Item,
-        edition: Edition,
-    ) -> (SyntaxExtension, Vec<(usize, Span)>) {
-        let (mut result, mut rule_spans) =
+    pub(crate) fn compile_macro(&mut self, item: &ast::Item, edition: Edition) -> MacroData {
+        let (mut ext, mut rule_spans) =
             compile_declarative_macro(self.tcx.sess, self.tcx.features(), item, edition);
 
-        if let Some(builtin_name) = result.builtin_name {
+        if let Some(builtin_name) = ext.builtin_name {
             // The macro was marked with `#[rustc_builtin_macro]`.
             if let Some(builtin_macro) = self.builtin_macros.get_mut(&builtin_name) {
                 // The macro is a built-in, replace its expander function
                 // while still taking everything else from the source code.
                 // If we already loaded this builtin macro, give a better error message than 'no such builtin macro'.
                 match mem::replace(builtin_macro, BuiltinMacroState::AlreadySeen(item.span)) {
-                    BuiltinMacroState::NotYetSeen(ext) => {
-                        result.kind = ext;
+                    BuiltinMacroState::NotYetSeen(builtin_ext) => {
+                        ext.kind = builtin_ext;
                         rule_spans = Vec::new();
-                        if item.id != ast::DUMMY_NODE_ID {
-                            self.builtin_macro_kinds
-                                .insert(self.local_def_id(item.id), result.macro_kind());
-                        }
                     }
                     BuiltinMacroState::AlreadySeen(span) => {
                         struct_span_err!(
@@ -976,6 +965,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             }
         }
 
-        (result, rule_spans)
+        let ItemKind::MacroDef(def) = &item.kind else { unreachable!() };
+        MacroData { ext: Lrc::new(ext), rule_spans, macro_rules: def.macro_rules }
     }
 }

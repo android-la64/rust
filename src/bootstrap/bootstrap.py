@@ -616,22 +616,6 @@ class RustBuild(object):
             with output(self.rustc_stamp()) as rust_stamp:
                 rust_stamp.write(key)
 
-    def _download_component_helper(
-        self, filename, pattern, tarball_suffix, rustc_cache,
-    ):
-        key = self.stage0_compiler.date
-
-        tarball = os.path.join(rustc_cache, filename)
-        if not os.path.exists(tarball):
-            get(
-                self.download_url,
-                "dist/{}/{}".format(key, filename),
-                tarball,
-                self.checksums_sha256,
-                verbose=self.verbose,
-            )
-        unpack(tarball, tarball_suffix, self.bin_root(), match=pattern, verbose=self.verbose)
-
     def should_fix_bins_and_dylibs(self):
         """Whether or not `fix_bin_or_dylib` needs to be run; can only be True
         on NixOS or if config.toml has `build.patch-binaries-for-nix` set.
@@ -946,6 +930,8 @@ class RustBuild(object):
         target_linker = self.get_toml("linker", build_section)
         if target_linker is not None:
             env["RUSTFLAGS"] += " -C linker=" + target_linker
+        # When changing this list, also update the corresponding list in `Builder::cargo`
+        # in `src/bootstrap/src/core/builder.rs`.
         env["RUSTFLAGS"] += " -Wrust_2018_idioms -Wunused_lifetimes"
         if self.warnings == "default":
             deny_warnings = self.get_toml("deny-warnings", "rust") != "false"
@@ -1083,6 +1069,11 @@ def bootstrap(args):
         include_file = 'config.{}.toml'.format(profile_aliases.get(profile) or profile)
         include_dir = os.path.join(rust_root, 'src', 'bootstrap', 'defaults')
         include_path = os.path.join(include_dir, include_file)
+
+        if not os.path.exists(include_path):
+            raise Exception("Unrecognized config profile '{}'. Check src/bootstrap/defaults"
+            " for available options.".format(profile))
+
         # HACK: This works because `self.get_toml()` returns the first match it finds for a
         # specific key, so appending our defaults at the end allows the user to override them
         with open(include_path) as included_toml:

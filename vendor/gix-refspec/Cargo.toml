@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-refspec"
-version = "0.19.0"
+version = "0.20.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
     "README.md",
 ]
 description = "A crate of the gitoxide project for parsing and representing refspecs"
@@ -35,14 +34,14 @@ features = ["std"]
 default-features = false
 
 [dependencies.gix-hash]
-version = "^0.13.1"
+version = "^0.13.2"
 
 [dependencies.gix-revision]
-version = "^0.23.0"
+version = "^0.24.0"
 default-features = false
 
 [dependencies.gix-validate]
-version = "^0.8.0"
+version = "^0.8.1"
 
 [dependencies.smallvec]
 version = "1.9.0"

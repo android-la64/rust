@@ -1,15 +1,14 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use gix_features::progress::DynNestedProgress;
 use gix_features::{
     parallel::in_parallel_with_slice,
-    progress::{self, Progress},
+    progress::{self, DynNestedProgress, Progress},
     threading,
     threading::{Mutable, OwnShared},
 };
 
 use crate::{
-    cache::delta::{traverse::util::ItemSliceSend, Item, Tree},
+    cache::delta::{traverse::util::ItemSliceSync, Item, Tree},
     data::EntryRange,
 };
 
@@ -130,32 +129,26 @@ where
         };
         size_progress.init(None, progress::bytes());
         let size_counter = size_progress.counter();
-        let child_items = self.child_items.as_mut_slice();
         let object_progress = OwnShared::new(Mutable::new(object_progress));
 
         let start = std::time::Instant::now();
+        let child_items = ItemSliceSync::new(&mut self.child_items);
+        let child_items = &child_items;
         in_parallel_with_slice(
             &mut self.root_items,
             thread_limit,
             {
-                let child_items = ItemSliceSend(std::ptr::slice_from_raw_parts_mut(
-                    child_items.as_mut_ptr(),
-                    child_items.len(),
-                ));
                 {
                     let object_progress = object_progress.clone();
-                    move |thread_index| {
-                        let _ = &child_items;
-                        resolve::State {
-                            delta_bytes: Vec::<u8>::with_capacity(4096),
-                            fully_resolved_delta_bytes: Vec::<u8>::with_capacity(4096),
-                            progress: Box::new(
-                                threading::lock(&object_progress).add_child(format!("thread {thread_index}")),
-                            ),
-                            resolve: resolve.clone(),
-                            modify_base: inspect_object.clone(),
-                            child_items: child_items.clone(),
-                        }
+                    move |thread_index| resolve::State {
+                        delta_bytes: Vec::<u8>::with_capacity(4096),
+                        fully_resolved_delta_bytes: Vec::<u8>::with_capacity(4096),
+                        progress: Box::new(
+                            threading::lock(&object_progress).add_child(format!("thread {thread_index}")),
+                        ),
+                        resolve: resolve.clone(),
+                        modify_base: inspect_object.clone(),
+                        child_items,
                     }
                 }
             },

@@ -1,15 +1,15 @@
 use super::*;
 
 #[derive(Default, Clone)]
-pub struct Cfg<'a> {
-    pub types: BTreeMap<&'a str, BTreeSet<TypeDef>>,
+pub struct Cfg {
+    pub types: BTreeMap<&'static str, BTreeSet<TypeDef>>,
     pub core_types: BTreeSet<Type>,
     pub arches: BTreeSet<&'static str>,
     pub implement: bool,
 }
 
-impl<'a> Cfg<'a> {
-    pub fn add_feature(&mut self, feature: &'a str) {
+impl Cfg {
+    pub fn add_feature(&mut self, feature: &'static str) {
         self.types.entry(feature).or_default();
     }
     pub fn union(&self, other: &Self) -> Self {
@@ -30,106 +30,98 @@ impl<'a> Cfg<'a> {
     }
 }
 
-pub fn field_cfg<'a>(reader: &'a Reader<'a>, row: Field) -> Cfg<'a> {
+pub fn field_cfg(row: Field) -> Cfg {
     let mut cfg = Cfg::default();
-    field_cfg_combine(reader, row, None, &mut cfg);
+    field_cfg_combine(row, None, &mut cfg);
     cfg
 }
-fn field_cfg_combine<'a>(reader: &'a Reader, row: Field, enclosing: Option<TypeDef>, cfg: &mut Cfg<'a>) {
-    type_cfg_combine(reader, &reader.field_type(row, enclosing), cfg)
+fn field_cfg_combine(row: Field, enclosing: Option<TypeDef>, cfg: &mut Cfg) {
+    type_cfg_combine(&row.ty(enclosing), cfg)
 }
 
-pub fn type_def_cfg<'a>(reader: &'a Reader, row: TypeDef, generics: &[Type]) -> Cfg<'a> {
+pub fn type_def_cfg(row: TypeDef, generics: &[Type]) -> Cfg {
     let mut cfg = Cfg::default();
-    type_def_cfg_combine(reader, row, generics, &mut cfg);
-    cfg_add_attributes(reader, &mut cfg, row);
+    type_def_cfg_combine(row, generics, &mut cfg);
+    cfg_add_attributes(&mut cfg, row);
     cfg
 }
-pub fn type_def_cfg_impl<'a>(reader: &'a Reader, def: TypeDef, generics: &[Type]) -> Cfg<'a> {
+pub fn type_def_cfg_impl(def: TypeDef, generics: &[Type]) -> Cfg {
     let mut cfg = Cfg { implement: true, ..Default::default() };
 
-    fn combine<'a>(reader: &'a Reader, def: TypeDef, generics: &[Type], cfg: &mut Cfg<'a>) {
-        type_def_cfg_combine(reader, def, generics, cfg);
+    fn combine(def: TypeDef, generics: &[Type], cfg: &mut Cfg) {
+        type_def_cfg_combine(def, generics, cfg);
 
-        for method in reader.type_def_methods(def) {
-            signature_cfg_combine(reader, &reader.method_def_signature(method, generics), cfg);
+        for method in def.methods() {
+            signature_cfg_combine(&method.signature(generics), cfg);
         }
     }
 
-    combine(reader, def, generics, &mut cfg);
+    combine(def, generics, &mut cfg);
 
-    for def in type_def_vtables(reader, def) {
-        if let Type::TypeDef(def, generics) = def {
-            combine(reader, def, &generics, &mut cfg);
+    for interface in type_interfaces(&Type::TypeDef(def, generics.to_vec())) {
+        if let Type::TypeDef(def, generics) = interface.ty {
+            combine(def, &generics, &mut cfg);
         }
     }
 
-    if reader.type_def_flags(def).contains(TypeAttributes::WindowsRuntime) {
-        for interface in type_def_interfaces(reader, def, generics) {
-            if let Type::TypeDef(def, generics) = interface {
-                combine(reader, def, &generics, &mut cfg);
-            }
-        }
-    }
-
-    cfg_add_attributes(reader, &mut cfg, def);
+    cfg_add_attributes(&mut cfg, def);
     cfg
 }
-pub fn type_def_cfg_combine<'a>(reader: &'a Reader, row: TypeDef, generics: &[Type], cfg: &mut Cfg<'a>) {
-    let type_name = reader.type_def_type_name(row);
+pub fn type_def_cfg_combine(row: TypeDef, generics: &[Type], cfg: &mut Cfg) {
+    let type_name = row.type_name();
 
     for generic in generics {
-        type_cfg_combine(reader, generic, cfg);
+        type_cfg_combine(generic, cfg);
     }
 
     if cfg.types.entry(type_name.namespace).or_default().insert(row) {
-        match reader.type_def_kind(row) {
+        match row.kind() {
             TypeKind::Class => {
-                if let Some(default_interface) = type_def_default_interface(reader, row) {
-                    type_cfg_combine(reader, &default_interface, cfg);
+                if let Some(default_interface) = type_def_default_interface(row) {
+                    type_cfg_combine(&default_interface, cfg);
                 }
             }
             TypeKind::Interface => {
-                if !reader.type_def_flags(row).contains(TypeAttributes::WindowsRuntime) {
-                    for def in type_def_vtables(reader, row) {
+                if !row.flags().contains(TypeAttributes::WindowsRuntime) {
+                    for def in type_def_vtables(row) {
                         if let Type::TypeDef(def, _) = def {
-                            cfg.add_feature(reader.type_def_namespace(def));
+                            cfg.add_feature(def.namespace());
                         }
                     }
                 }
             }
             TypeKind::Struct => {
-                reader.type_def_fields(row).for_each(|field| field_cfg_combine(reader, field, Some(row), cfg));
+                row.fields().for_each(|field| field_cfg_combine(field, Some(row), cfg));
                 if !type_name.namespace.is_empty() {
-                    for def in reader.get_type_def(type_name) {
+                    for def in row.reader().get_type_def(type_name.namespace, type_name.name) {
                         if def != row {
-                            type_def_cfg_combine(reader, def, &[], cfg);
+                            type_def_cfg_combine(def, &[], cfg);
                         }
                     }
                 }
             }
-            TypeKind::Delegate => signature_cfg_combine(reader, &reader.method_def_signature(type_def_invoke_method(reader, row), generics), cfg),
+            TypeKind::Delegate => signature_cfg_combine(&type_def_invoke_method(row).signature(generics), cfg),
             _ => {}
         }
     }
 }
 
-pub fn signature_cfg<'a>(reader: &'a Reader, method: MethodDef) -> Cfg<'a> {
+pub fn signature_cfg(method: MethodDef) -> Cfg {
     let mut cfg = Cfg::default();
-    signature_cfg_combine(reader, &reader.method_def_signature(method, &[]), &mut cfg);
-    cfg_add_attributes(reader, &mut cfg, method);
+    signature_cfg_combine(&method.signature(&[]), &mut cfg);
+    cfg_add_attributes(&mut cfg, method);
     cfg
 }
-fn signature_cfg_combine<'a>(reader: &'a Reader, signature: &MethodDefSig, cfg: &mut Cfg<'a>) {
-    type_cfg_combine(reader, &signature.return_type, cfg);
-    signature.params.iter().for_each(|param| type_cfg_combine(reader, param, cfg));
+fn signature_cfg_combine(signature: &MethodDefSig, cfg: &mut Cfg) {
+    type_cfg_combine(&signature.return_type, cfg);
+    signature.params.iter().for_each(|param| type_cfg_combine(param, cfg));
 }
 
-fn cfg_add_attributes<R: AsRow + Into<HasAttribute>>(reader: &Reader, cfg: &mut Cfg, row: R) {
-    for attribute in reader.attributes(row) {
-        match reader.attribute_name(attribute) {
+fn cfg_add_attributes<R: AsRow + Into<HasAttribute>>(cfg: &mut Cfg, row: R) {
+    for attribute in row.attributes() {
+        match attribute.name() {
             "SupportedArchitectureAttribute" => {
-                if let Some((_, Value::EnumDef(_, value))) = reader.attribute_args(attribute).get(0) {
+                if let Some((_, Value::EnumDef(_, value))) = attribute.args().first() {
                     if let Value::I32(value) = **value {
                         if value & 1 == 1 {
                             cfg.arches.insert("x86");
@@ -151,19 +143,20 @@ fn cfg_add_attributes<R: AsRow + Into<HasAttribute>>(reader: &Reader, cfg: &mut 
     }
 }
 
-pub fn type_cfg<'a>(reader: &'a Reader, ty: &Type) -> Cfg<'a> {
+pub fn type_cfg(ty: &Type) -> Cfg {
     let mut cfg = Cfg::default();
-    type_cfg_combine(reader, ty, &mut cfg);
+    type_cfg_combine(ty, &mut cfg);
     cfg
 }
-fn type_cfg_combine<'a>(reader: &'a Reader, ty: &Type, cfg: &mut Cfg<'a>) {
+
+fn type_cfg_combine(ty: &Type, cfg: &mut Cfg) {
     match ty {
-        Type::TypeDef(row, generics) => type_def_cfg_combine(reader, *row, generics, cfg),
-        Type::Win32Array(ty, _) => type_cfg_combine(reader, ty, cfg),
-        Type::ConstPtr(ty, _) => type_cfg_combine(reader, ty, cfg),
-        Type::MutPtr(ty, _) => type_cfg_combine(reader, ty, cfg),
-        Type::WinrtArray(ty) => type_cfg_combine(reader, ty, cfg),
-        Type::WinrtArrayRef(ty) => type_cfg_combine(reader, ty, cfg),
+        Type::TypeDef(row, generics) => type_def_cfg_combine(*row, generics, cfg),
+        Type::Win32Array(ty, _) => type_cfg_combine(ty, cfg),
+        Type::ConstPtr(ty, _) => type_cfg_combine(ty, cfg),
+        Type::MutPtr(ty, _) => type_cfg_combine(ty, cfg),
+        Type::WinrtArray(ty) => type_cfg_combine(ty, cfg),
+        Type::WinrtArrayRef(ty) => type_cfg_combine(ty, cfg),
         ty => _ = cfg.core_types.insert(ty.clone()),
     }
 }

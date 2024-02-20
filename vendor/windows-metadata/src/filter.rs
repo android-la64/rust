@@ -1,18 +1,16 @@
-use super::*;
-
 #[derive(Default)]
-pub struct Filter<'a>(Vec<(&'a str, bool)>);
+pub struct Filter(pub Vec<(String, bool)>);
 
-impl<'a> Filter<'a> {
-    pub fn new(include: &[&'a str], exclude: &[&'a str]) -> Self {
+impl Filter {
+    pub fn new(include: &[&str], exclude: &[&str]) -> Self {
         let mut rules = vec![];
 
         for include in include {
-            rules.push((*include, true));
+            rules.push((include.to_string(), true));
         }
 
         for exclude in exclude {
-            rules.push((*exclude, false));
+            rules.push((exclude.to_string(), false));
         }
 
         rules.sort_unstable_by(|left, right| {
@@ -25,7 +23,7 @@ impl<'a> Filter<'a> {
     }
 
     pub fn includes_namespace(&self, namespace: &str) -> bool {
-        if self.is_empty() {
+        if self.0.is_empty() {
             return true;
         }
 
@@ -35,12 +33,12 @@ impl<'a> Filter<'a> {
                 if rule.0.starts_with(namespace) {
                     return true;
                 }
-                if namespace.starts_with(rule.0) {
+                if namespace.starts_with(&rule.0) {
                     return true;
                 }
             } else {
                 // exclude
-                if namespace.starts_with(rule.0) {
+                if namespace.starts_with(&rule.0) {
                     return false;
                 }
             }
@@ -49,26 +47,18 @@ impl<'a> Filter<'a> {
         false
     }
 
-    pub fn includes_type_name(&self, type_name: TypeName) -> bool {
-        if self.is_empty() {
+    pub fn includes_type_name(&self, namespace: &str, name: &str) -> bool {
+        if self.0.is_empty() {
             return true;
         }
 
         for rule in &self.0 {
-            if match_type_name(rule.0, type_name.namespace, type_name.name) {
+            if match_type_name(&rule.0, namespace, name) {
                 return rule.1;
             }
         }
 
         false
-    }
-
-    pub fn includes(&self) -> impl Iterator<Item = &str> + '_ {
-        self.0.iter().filter_map(|(name, include)| if *include { Some(*name) } else { None })
-    }
-
-    fn is_empty(&self) -> bool {
-        self.0.is_empty()
     }
 }
 
@@ -92,8 +82,9 @@ fn match_type_name(rule: &str, namespace: &str, name: &str) -> bool {
 mod tests {
     use super::*;
 
-    fn includes_type_name(filter: &Filter, full_name: &str) -> bool {
-        filter.includes_type_name(TypeName::parse(full_name))
+    fn includes_type_name(filter: &Filter, full_name: &'static str) -> bool {
+        let type_name = crate::TypeName::parse(full_name);
+        filter.includes_type_name(type_name.namespace, type_name.name)
     }
 
     #[test]
@@ -116,8 +107,6 @@ mod tests {
         let exclude = ["N2", "N3.N4"];
         let f = Filter::new(&include, &exclude);
 
-        assert!(!f.is_empty());
-
         assert!(!includes_type_name(&f, "NN.T"));
 
         assert!(includes_type_name(&f, "N1.T"));
@@ -135,8 +124,6 @@ mod tests {
         let exclude = ["N.N3", "N.N4"];
         let f = Filter::new(&include, &exclude);
 
-        assert!(!f.is_empty());
-
         assert!(includes_type_name(&f, "N.N1.T"));
         assert!(includes_type_name(&f, "N.N2.T"));
 
@@ -149,8 +136,6 @@ mod tests {
         let include = ["N.T"];
         let exclude = ["N.T"];
         let f = Filter::new(&include, &exclude);
-
-        assert!(!f.is_empty());
 
         assert!(!includes_type_name(&f, "N.T"));
     }

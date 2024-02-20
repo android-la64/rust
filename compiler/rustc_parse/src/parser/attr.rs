@@ -7,7 +7,6 @@ use rustc_ast::attr;
 use rustc_ast::token::{self, Delimiter, Nonterminal};
 use rustc_errors::{error_code, Diagnostic, IntoDiagnostic, PResult};
 use rustc_span::{sym, BytePos, Span};
-use std::convert::TryInto;
 use thin_vec::ThinVec;
 use tracing::debug;
 
@@ -56,7 +55,7 @@ impl<'a> Parser<'a> {
             } else if let token::DocComment(comment_kind, attr_style, data) = self.token.kind {
                 if attr_style != ast::AttrStyle::Outer {
                     let span = self.token.span;
-                    let mut err = self.sess.span_diagnostic.struct_span_err_with_code(
+                    let mut err = self.dcx().struct_span_err_with_code(
                         span,
                         fluent::parse_inner_doc_comment_not_permitted,
                         error_code!(E0753),
@@ -249,7 +248,7 @@ impl<'a> Parser<'a> {
     /// The delimiters or `=` are still put into the resulting token stream.
     pub fn parse_attr_item(&mut self, capture_tokens: bool) -> PResult<'a, ast::AttrItem> {
         let item = match &self.token.kind {
-            token::Interpolated(nt) => match &**nt {
+            token::Interpolated(nt) => match &nt.0 {
                 Nonterminal::NtMeta(item) => Some(item.clone().into_inner()),
                 _ => None,
             },
@@ -369,7 +368,7 @@ impl<'a> Parser<'a> {
     /// ```
     pub fn parse_meta_item(&mut self) -> PResult<'a, ast::MetaItem> {
         let nt_meta = match &self.token.kind {
-            token::Interpolated(nt) => match &**nt {
+            token::Interpolated(nt) => match &nt.0 {
                 token::NtMeta(e) => Some(e.clone()),
                 _ => None,
             },
@@ -418,7 +417,7 @@ impl<'a> Parser<'a> {
         }
 
         Err(InvalidMetaItem { span: self.token.span, token: self.token.clone() }
-            .into_diagnostic(&self.sess.span_diagnostic))
+            .into_diagnostic(self.dcx()))
     }
 }
 

@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 /*!
 
-# Plotters - A Rust drawing library focus on data plotting for both WASM and native applications  🦀📈🚀
+# Plotters - A Rust drawing library focusing on data plotting for both WASM and native applications 🦀📈🚀
 
 <a href="https://crates.io/crates/plotters">
     <img style="display: inline!important" src="https://img.shields.io/crates/v/plotters.svg"></img>
@@ -16,14 +16,14 @@
     <img style="display: inline! important" src="https://img.shields.io/badge/docs-development-lightgrey.svg"></img>
 </a>
 
-Plotters is drawing library designed for rendering figures, plots, and charts, in pure rust. Plotters supports various types of back-ends,
+Plotters is a drawing library designed for rendering figures, plots, and charts, in pure Rust. Plotters supports various types of back-ends,
 including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
 
-- A new Plotters Developer's Guide is working in progress. The preview version is available at [here](https://plotters-rs.github.io/book).
-- To try Plotters with interactive Jupyter notebook, or view [here](https://plotters-rs.github.io/plotters-doc-data/evcxr-jupyter-integration.html) for the static HTML version.
+- A new Plotters Developer's Guide is a work in progress. The preview version is available [here](https://plotters-rs.github.io/book).
+- Try Plotters with an interactive Jupyter notebook, or view [here](https://plotters-rs.github.io/plotters-doc-data/evcxr-jupyter-integration.html) for the static HTML version.
 - To view the WASM example, go to this [link](https://plotters-rs.github.io/wasm-demo/www/index.html)
-- Currently we have all the internal code ready for console plotting, but a console based backend is still not ready. See [this example](https://github.com/38/plotters/blob/master/examples/console.rs) for how to plotting on Console with a customized backend.
-- Plotters now moved all backend code to sperate repositories, check [FAQ list](#faq-list) for details
+- Currently we have all the internal code ready for console plotting, but a console based backend is still not ready. See [this example](https://github.com/plotters-rs/plotters/blob/master/plotters/examples/console.rs) for how to plot on console with a customized backend.
+- Plotters has moved all backend code to separate repositories, check [FAQ list](#faq-list) for details
 - Some interesting [demo projects](#demo-projects) are available, feel free to try them out.
 
 ## Gallery
@@ -34,7 +34,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Multiple Plot
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/chart.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/chart.rs">[code]</a>
     </div>
 </div>
 
@@ -44,7 +44,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Candlestick Plot
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/stock.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/stock.rs">[code]</a>
     </div>
 </div>
 
@@ -54,7 +54,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
        Histogram
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/histogram.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/histogram.rs">[code]</a>
     </div>
 </div>
 
@@ -82,7 +82,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Mandelbrot set
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/mandelbrot.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/mandelbrot.rs">[code]</a>
     </div>
 </div>
 
@@ -112,7 +112,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Histogram with Scatter
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/normal-dist.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/normal-dist.rs">[code]</a>
     </div>
 </div>
 
@@ -122,7 +122,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Dual Y-Axis Example
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/two-scales.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/two-scales.rs">[code]</a>
     </div>
 </div>
 
@@ -132,7 +132,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         The Matplotlib Matshow Example
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/matshow.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/matshow.rs">[code]</a>
     </div>
 </div>
 
@@ -142,7 +142,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         The Sierpinski Carpet
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/sierpinski.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/sierpinski.rs">[code]</a>
     </div>
 </div>
 
@@ -152,7 +152,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         The 1D Gaussian Distribution
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/nomal-dist2.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/nomal-dist2.rs">[code]</a>
     </div>
 </div>
 
@@ -162,7 +162,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         The 1D Gaussian Distribution
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/errorbar.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/errorbar.rs">[code]</a>
     </div>
 </div>
 
@@ -172,7 +172,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Monthly Time Coordinate
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/slc-temp.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/slc-temp.rs">[code]</a>
     </div>
 </div>
 
@@ -182,7 +182,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Monthly Time Coordinate
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/area-chart.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/area-chart.rs">[code]</a>
     </div>
 </div>
 
@@ -192,7 +192,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Koch Snowflake
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/snowflake.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/snowflake.rs">[code]</a>
     </div>
 </div>
 
@@ -203,7 +203,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Koch Snowflake Animation
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/animation.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/animation.rs">[code]</a>
     </div>
 </div>
 
@@ -214,7 +214,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Drawing on a Console
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/console.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/console.rs">[code]</a>
     </div>
 </div>
 
@@ -224,7 +224,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         Drawing bitmap on chart
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/blit-bitmap.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/blit-bitmap.rs">[code]</a>
     </div>
 </div>
 
@@ -234,7 +234,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         The boxplot demo
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/boxplot.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/boxplot.rs">[code]</a>
     </div>
 </div>
 
@@ -244,7 +244,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         3D plot rendering
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/3d-plot.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/3d-plot.rs">[code]</a>
     </div>
 </div>
 
@@ -254,7 +254,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         2-Var Gussian Distribution PDF
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/3d-plot2.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/3d-plot2.rs">[code]</a>
     </div>
 </div>
 
@@ -264,7 +264,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
     </a>
     <div class="galleryText">
         COVID-19 Visualization
-        <a href="https://github.com/38/plotters/blob/master/plotters/examples/tick_control.rs">[code]</a>
+        <a href="https://github.com/plotters-rs/plotters/blob/master/plotters/examples/tick_control.rs">[code]</a>
     </div>
 </div>
 
@@ -280,8 +280,8 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
   * [Plotting in Rust](#plotting-in-rust)
   * [Plotting on HTML5 canvas with WASM Backend](#plotting-on-html5-canvas-with-wasm-backend)
   * [What types of figure are supported?](#what-types-of-figure-are-supported)
-  * [Concepts by examples](#concepts-by-examples)
-    + [Drawing Back-ends](#drawing-back-ends)
+  * [Concepts by example](#concepts-by-example)
+    + [Drawing Backends](#drawing-backends)
     + [Drawing Area](#drawing-area)
     + [Elements](#elements)
     + [Composable Elements](#composable-elements)
@@ -303,7 +303,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
 To use Plotters, you can simply add Plotters into your `Cargo.toml`
 ```toml
 [dependencies]
-plotters = "0.3.1"
+plotters = "0.3.3"
 ```
 
 And the following code draws a quadratic function. `src/main.rs`,
@@ -346,27 +346,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Demo Projects
 
-To learn how to use Plotters in different scenarios by checking out the following demo projects:
+To learn how to use Plotters in different scenarios, check out the following demo projects:
 
 - WebAssembly + Plotters: [plotters-wasm-demo](https://github.com/plotters-rs/plotters-wasm-demo)
 - minifb + Plotters: [plotters-minifb-demo](https://github.com/plotters-rs/plotters-minifb-demo)
-- GTK + Plotters: [plotters-gtk-demo](https://github.com/plotters/plotters-gtk-demo)
+- GTK + Plotters: [plotters-gtk-demo](https://github.com/plotters-rs/plotters-gtk-demo)
 
 
 ## Trying with Jupyter evcxr Kernel Interactively
 
-Plotters now supports integrate with `evcxr` and is able to interactively drawing plots in Jupyter Notebook.
+Plotters now supports integration with `evcxr` and is able to interactively draw plots in Jupyter Notebook.
 The feature `evcxr` should be enabled when including Plotters to Jupyter Notebook.
 
 The following code shows a minimal example of this.
 
 ```text
-:dep plotters = { git = "https://github.com/38/plotters", default_features = false, features = ["evcxr"] }
+:dep plotters = { version = "^0.3.5", default_features = false, features = ["evcxr", "all_series", "all_elements"] }
 extern crate plotters;
 use plotters::prelude::*;
 
 let figure = evcxr_figure((640, 480), |root| {
-    root.fill(&WHITE);
+    root.fill(&WHITE)?;
     let mut chart = ChartBuilder::on(&root)
         .caption("y=x^2", ("Arial", 50).into_font())
         .margin(5)
@@ -396,7 +396,7 @@ figure
 
 ## Interactive Tutorial with Jupyter Notebook
 
-*This tutorial is now working in progress and isn't complete*
+*This tutorial is a work in progress and isn't complete*
 
 Thanks to the evcxr, now we have an interactive tutorial for Plotters!
 To use the interactive notebook, you must have Jupyter and evcxr installed on your computer.
@@ -406,57 +406,55 @@ After that, you should be able to start your Jupyter server locally and load the
 
 ```bash
 git clone https://github.com/38/plotters-doc-data
-cd plotteres-doc-data
+cd plotters-doc-data
 jupyter notebook
 ```
 
 And select the notebook called `evcxr-jupyter-integration.ipynb`.
 
-Also, there's a static HTML version of this notebook available at the [this location](https://plotters-rs.github.io/plotters-doc-data/evcxr-jupyter-integration.html)
+Also, there's a static HTML version of this notebook available at [this location](https://plotters-rs.github.io/plotters-doc-data/evcxr-jupyter-integration.html)
 
 ## Plotting in Rust
 
-Rust is a perfect language for data visualization. Although there are many mature visualization libraries in many different languages.
-But Rust is one of the best languages fits the need.
+Rust is a perfect language for data visualization. Although there are many mature visualization libraries in many different languages, Rust is one of the best languages that fits the need.
 
 * **Easy to use** Rust has a very good iterator system built into the standard library. With the help of iterators,
-Plotting in Rust can be as easy as most of the high-level programming languages. The Rust based plotting library
+plotting in Rust can be as easy as most of the high-level programming languages. The Rust based plotting library
 can be very easy to use.
 
-* **Fast** If you need rendering a figure with trillions of data points,
-Rust is a good choice. Rust's performance allows you to combine data processing step
+* **Fast** If you need to render a figure with trillions of data points,
+Rust is a good choice. Rust's performance allows you to combine the data processing step
 and rendering step into a single application. When plotting in high-level programming languages,
 e.g. Javascript or Python, data points must be down-sampled before feeding into the plotting
 program because of the performance considerations. Rust is fast enough to do the data processing and visualization
 within a single program. You can also integrate the
-figure rendering code into your application handling a huge amount of data and visualize it in real-time.
+figure rendering code into your application to handle a huge amount of data and visualize it in real-time.
 
-* **WebAssembly Support** Rust is one of few the language with the best WASM support. Plotting in Rust could be
+* **WebAssembly Support** Rust is one of the languages with the best WASM support. Plotting in Rust could be
 very useful for visualization on a web page and would have a huge performance improvement comparing to Javascript.
 
 ## Plotting on HTML5 canvas with WASM Backend
 
-Plotters currently supports backend that uses the HTML5 canvas. To use the WASM support, you can simply use
+Plotters currently supports a backend that uses the HTML5 canvas. To use WASM, you can simply use
 `CanvasBackend` instead of other backend and all other API remains the same!
 
 There's a small demo for Plotters + WASM available at [here](https://github.com/plotters-rs/plotters-wasm-demo).
 To play with the deployed version, follow this [link](https://plotters-rs.github.io/wasm-demo/www/index.html).
-
 
 ## What types of figure are supported?
 
 Plotters is not limited to any specific type of figure.
 You can create your own types of figures easily with the Plotters API.
 
-But Plotters provides some builtin figure types for convenience.
+Plotters does provide some built-in figure types for convenience.
 Currently, we support line series, point series, candlestick series, and histogram.
 And the library is designed to be able to render multiple figure into a single image.
 But Plotter is aimed to be a platform that is fully extendable to support any other types of figure.
 
-## Concepts by examples
+## Concepts by example
 
-### Drawing Back-ends
-Plotters can use different drawing back-ends, including SVG, BitMap, and even real-time rendering. For example, a bitmap drawing backend.
+### Drawing Backends
+Plotters can use different drawing backends, including SVG, BitMap, and even real-time rendering. For example, a bitmap drawing backend.
 
 ```rust
 use plotters::prelude::*;
@@ -475,10 +473,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Drawing Area
 Plotters uses a concept called drawing area for layout purpose.
-Plotters support multiple integrating into a single image.
+Plotters supports integrating multiple figures into a single image.
 This is done by creating sub-drawing-areas.
 
-Besides that, the drawing area also allows the customized coordinate system, by doing so, the coordinate mapping is done by the drawing area automatically.
+Besides that, the drawing area also allows for a customized coordinate system, by doing so, the coordinate mapping is done by the drawing area automatically.
 
 ```rust
 use plotters::prelude::*;
@@ -500,7 +498,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Elements
 
-In Plotters, elements are build blocks of figures. All elements are able to draw on a drawing area.
+In Plotters, elements are the building blocks of figures. All elements are able to be drawn on a drawing area.
 There are different types of built-in elements, like lines, texts, circles, etc.
 You can also define your own element in the application code.
 
@@ -528,9 +526,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Composable Elements
 
-Besides the built-in elements, elements can be composed into a logic group we called composed elements.
+Besides the built-in elements, elements can be composed into a logical group we called composed elements.
 When composing new elements, the upper-left corner is given in the target coordinate, and a new pixel-based
-coordinate which has the upper-left corner defined as `(0,0)` is used for further element composition purpose.
+coordinate which has the upper-left corner defined as `(0,0)` is used for further element composition.
 
 For example, we can have an element which includes a dot and its coordinate.
 
@@ -571,7 +569,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Chart Context
 
-In order to draw a chart, Plotters need a data object built on top of the drawing area called `ChartContext`.
+In order to draw a chart, Plotters needs a data object built on top of the drawing area called `ChartContext`.
 The chart context defines even higher level constructs compare to the drawing area.
 For example, you can define the label areas, meshes, and put a data series onto the drawing area with the help
 of the chart context object.
@@ -582,7 +580,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let root = BitMapBackend::new("plotters-doc-data/5.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE);
     let root = root.margin(10, 10, 10, 10);
-    // After this point, we should be able to draw construct a chart context
+    // After this point, we should be able to construct a chart context
     let mut chart = ChartBuilder::on(&root)
         // Set the caption of the chart
         .caption("This is our first plot", ("sans-serif", 40).into_font())
@@ -629,14 +627,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Development Version
 
-Find the latest development version of Plotters on [GitHub](https://github.com/38/plotters.git).
+Find the latest development version of Plotters on [GitHub](https://github.com/plotters-rs/plotters.git).
 Clone the repository and learn more about the Plotters API and ways to contribute. Your help is needed!
 
 If you want to add the development version of Plotters to your project, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-plotters = { git = "https://github.com/38/plotters.git" }
+plotters = { git = "https://github.com/plotters-rs/plotters.git" }
 ```
 
 ### Reducing Depending Libraries && Turning Off Backends
@@ -650,7 +648,7 @@ For example, the following dependency description would avoid compiling with bit
 
 ```toml
 [dependencies]
-plotters = { git = "https://github.com/38/plotters.git", default_features = false, features = ["svg"] }
+plotters = { git = "https://github.com/plotters-rs/plotters.git", default_features = false, features = ["svg"] }
 ```
 
 The library also allows consumers to make use of the [`Palette`](https://crates.io/crates/palette/) crate's color types by default.
@@ -663,21 +661,50 @@ Use `default_features = false` to disable those default enabled features,
 and then you should be able to cherry-pick what features you want to include into `Plotters` crate.
 By doing so, you can minimize the number of dependencies down to only `itertools` and compile time is less than 6s.
 
-The following list is a complete list of features that can be opt in and out.
+The following list is a complete list of features that can be opted in or out.
 
 - Tier 1 drawing backends
 
 | Name    |  Description | Additional Dependency |Default?|
 |---------|--------------|--------|------------|
-| bitmap\_encoder  | Allow `BitMapBackend` save the result to bitmap files | image, rusttype, font-kit | Yes |
+| bitmap\_encoder  | Allow `BitMapBackend` to save the result to bitmap files | image, rusttype, font-kit | Yes |
 | svg\_backend     | Enable `SVGBackend` Support | None | Yes |
 | bitmap\_gif| Opt-in GIF animation Rendering support for `BitMapBackend`, implies `bitmap` enabled | gif | Yes |
 
 - Font manipulation features
 
-| Name    |  Description | Additional Dependency |Default?|
-|---------|--------------|--------|------------|
-| ttf | Allows TrueType font support | rusttype, font-kit | Yes |
+| Name     | Description                              | Additional Dependency | Default? |
+|----------|------------------------------------------|-----------------------|----------|
+| ttf      | Allows TrueType font support             | font-kit              | Yes      |
+| ab_glyph | Skips loading system fonts, unlike `ttf` | ab_glyph              | No       |
+
+`ab_glyph` supports TrueType and OpenType fonts, but does not attempt to
+load fonts provided by the system on which it is running.
+It is pure Rust, and easier to cross compile.
+To use this, you *must* call `plotters::style::register_font` before
+using any `plotters` functions which require the ability to render text.
+This function only exists when the `ab_glyph` feature is enabled.
+```rust,ignore
+/// Register a font in the fonts table.
+///
+/// The `name` parameter gives the name this font shall be referred to
+/// in the other APIs, like `"sans-serif"`.
+///
+/// Unprovided font styles for a given name will fallback to `FontStyle::Normal`
+/// if that is available for that name, when other functions lookup fonts which
+/// are registered with this function.
+///
+/// The `bytes` parameter should be the complete contents
+/// of an OpenType font file, like:
+/// ```ignore
+/// include_bytes!("FiraGO-Regular.otf")
+/// ```
+pub fn register_font(
+    name: &str,
+    style: FontStyle,
+    bytes: &'static [u8],
+) -> Result<(), InvalidFont>
+```
 
 - Coordinate features
 
@@ -715,7 +742,7 @@ The following list is a complete list of features that can be opt in and out.
 
 * How to draw text/circle/point/rectangle/... on the top of chart ?
 
-    As you may realized, Plotters is a drawing library rather than a traditional data plotting library,
+    As you may have realized, Plotters is a drawing library rather than a traditional data plotting library,
     you have the freedom to draw anything you want on the drawing area.
     Use `DrawingArea::draw` to draw any element on the drawing area.
 
@@ -729,10 +756,10 @@ The following list is a complete list of features that can be opt in and out.
     - [HTML5 Canvas Backend](https://github.com/plotters-rs/plotters-canvas.git)
     - [GTK/Cairo Backend](https://github.com/plotters-rs/plotters-cairo.git)
 
-* How to check if a backend writes file successfully ?
+* How to check if a backend writes to a file successfully ?
 
-    The behavior of Plotters backend is consistent with standard library.
-    When the backend instance is being dropped, [`crate::drawing::DrawingArea::present()`] or `Backend::present()` is called automatically
+    The behavior of Plotters backend is consistent with the standard library.
+    When the backend instance is dropped, [`crate::drawing::DrawingArea::present()`] or `Backend::present()` is called automatically
     whenever is needed. When the `present()` method is called from `drop`, any error will be silently ignored.
 
     In the case that error handling is important, you need manually call the `present()` method before the backend gets dropped.
@@ -824,6 +851,9 @@ pub mod prelude {
 
     #[cfg(feature = "full_palette")]
     pub use crate::style::full_palette;
+
+    #[cfg(feature = "colormaps")]
+    pub use crate::style::colors::colormaps::*;
 
     pub use crate::style::{
         AsRelative, Color, FontDesc, FontFamily, FontStyle, FontTransform, HSLColor, IntoFont,

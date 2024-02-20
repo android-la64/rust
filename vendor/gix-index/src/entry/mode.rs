@@ -11,6 +11,12 @@ impl Mode {
         *self == Self::DIR | Self::SYMLINK
     }
 
+    /// Convert this instance to a tree's entry mode, or return `None` if for some
+    /// and unexpected reason the bitflags don't resemble any known entry-mode.
+    pub fn to_tree_entry_mode(&self) -> Option<gix_object::tree::EntryMode> {
+        gix_object::tree::EntryMode::try_from(self.bits()).ok()
+    }
+
     /// Compares this mode to the file system version ([`std::fs::symlink_metadata`])
     /// and returns the change needed to update this mode to match the file.
     ///
@@ -37,7 +43,7 @@ impl Mode {
     /// can not be committed to git).
     pub fn change_to_match_fs(
         self,
-        stat: &std::fs::Metadata,
+        stat: &crate::fs::Metadata,
         has_symlinks: bool,
         executable_bit: bool,
     ) -> Option<Change> {
@@ -46,15 +52,13 @@ impl Mode {
             Mode::SYMLINK if has_symlinks && !stat.is_symlink() => (),
             Mode::SYMLINK if !has_symlinks && !stat.is_file() => (),
             Mode::COMMIT | Mode::DIR if !stat.is_dir() => (),
-            Mode::FILE if executable_bit && gix_fs::is_executable(stat) => return Some(Change::ExecutableBit),
-            Mode::FILE_EXECUTABLE if executable_bit && !gix_fs::is_executable(stat) => {
-                return Some(Change::ExecutableBit)
-            }
+            Mode::FILE if executable_bit && stat.is_executable() => return Some(Change::ExecutableBit),
+            Mode::FILE_EXECUTABLE if executable_bit && !stat.is_executable() => return Some(Change::ExecutableBit),
             _ => return None,
         };
         let new_mode = if stat.is_dir() {
             Mode::COMMIT
-        } else if executable_bit && gix_fs::is_executable(stat) {
+        } else if executable_bit && stat.is_executable() {
             Mode::FILE_EXECUTABLE
         } else {
             Mode::FILE

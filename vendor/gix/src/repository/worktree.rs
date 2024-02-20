@@ -62,7 +62,7 @@ impl crate::Repository {
         &self,
         id: impl Into<gix_hash::ObjectId>,
     ) -> Result<(gix_worktree_stream::Stream, gix_index::File), crate::repository::worktree_stream::Error> {
-        use gix_odb::{FindExt, HeaderExt};
+        use gix_odb::HeaderExt;
         let id = id.into();
         let header = self.objects.header(id)?;
         if !header.kind().is_tree() {
@@ -79,18 +79,14 @@ impl crate::Repository {
         let mut cache = self
             .attributes_only(&index, gix_worktree::stack::state::attributes::Source::IdMapping)?
             .detach();
-        let pipeline =
-            gix_filter::Pipeline::new(cache.attributes_collection(), crate::filter::Pipeline::options(self)?);
+        let pipeline = gix_filter::Pipeline::new(self.command_context()?, crate::filter::Pipeline::options(self)?);
         let objects = self.objects.clone().into_arc().expect("TBD error handling");
         let stream = gix_worktree_stream::from_tree(
             id,
-            {
-                let objects = objects.clone();
-                move |id, buf| objects.find(id, buf)
-            },
+            objects.clone(),
             pipeline,
             move |path, mode, attrs| -> std::io::Result<()> {
-                let entry = cache.at_entry(path, Some(mode.is_tree()), |id, buf| objects.find_blob(id, buf))?;
+                let entry = cache.at_entry(path, Some(mode.is_tree()), &objects)?;
                 entry.matching_attributes(attrs);
                 Ok(())
             },

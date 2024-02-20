@@ -220,19 +220,31 @@ impl NumericalStdDuration for u64 {
     }
 
     fn std_minutes(self) -> StdDuration {
-        StdDuration::from_secs(self * Second::per(Minute) as Self)
+        StdDuration::from_secs(
+            self.checked_mul(Second::per(Minute) as Self)
+                .expect("overflow constructing `time::Duration`"),
+        )
     }
 
     fn std_hours(self) -> StdDuration {
-        StdDuration::from_secs(self * Second::per(Hour) as Self)
+        StdDuration::from_secs(
+            self.checked_mul(Second::per(Hour) as Self)
+                .expect("overflow constructing `time::Duration`"),
+        )
     }
 
     fn std_days(self) -> StdDuration {
-        StdDuration::from_secs(self * Second::per(Day) as Self)
+        StdDuration::from_secs(
+            self.checked_mul(Second::per(Day) as Self)
+                .expect("overflow constructing `time::Duration`"),
+        )
     }
 
     fn std_weeks(self) -> StdDuration {
-        StdDuration::from_secs(self * Second::per(Week) as Self)
+        StdDuration::from_secs(
+            self.checked_mul(Second::per(Week) as Self)
+                .expect("overflow constructing `time::Duration`"),
+        )
     }
 }
 
@@ -278,3 +290,30 @@ impl NumericalStdDuration for f64 {
     }
 }
 // endregion NumericalStdDuration
+
+// region: DigitCount
+/// A trait that indicates the formatted width of the value can be determined.
+///
+/// Note that this should not be implemented for any signed integers. This forces the caller to
+/// write the sign if desired.
+pub(crate) trait DigitCount {
+    /// The number of digits in the stringified value.
+    fn num_digits(self) -> u8;
+}
+
+/// A macro to generate implementations of `DigitCount` for unsigned integers.
+macro_rules! impl_digit_count {
+    ($($t:ty),* $(,)?) => {
+        $(impl DigitCount for $t {
+            fn num_digits(self) -> u8 {
+                match self.checked_ilog10() {
+                    Some(n) => (n as u8) + 1,
+                    None => 1,
+                }
+            }
+        })*
+    };
+}
+
+impl_digit_count!(u8, u16, u32);
+// endregion DigitCount

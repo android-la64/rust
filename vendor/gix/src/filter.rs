@@ -2,7 +2,7 @@
 use std::borrow::Cow;
 
 pub use gix_filter as plumbing;
-use gix_odb::{Find, FindExt};
+use gix_object::Find;
 
 use crate::{
     bstr::BStr,
@@ -32,6 +32,8 @@ pub mod pipeline {
                 name: BString,
                 source: gix_config::value::Error,
             },
+            #[error(transparent)]
+            CommandContext(#[from] config::command_context::Error),
         }
     }
 
@@ -111,7 +113,7 @@ impl<'repo> Pipeline<'repo> {
     /// Create a new instance by extracting all necessary information and configuration from a `repo` along with `cache` for accessing
     /// attributes. The `index` is used for some filters which may access it under very specific circumstances.
     pub fn new(repo: &'repo Repository, cache: gix_worktree::Stack) -> Result<Self, pipeline::options::Error> {
-        let pipeline = gix_filter::Pipeline::new(cache.attributes_collection(), Self::options(repo)?);
+        let pipeline = gix_filter::Pipeline::new(repo.command_context()?, Self::options(repo)?);
         Ok(Pipeline {
             inner: pipeline,
             cache,
@@ -141,16 +143,14 @@ impl<'repo> Pipeline<'repo> {
     where
         R: std::io::Read,
     {
-        let entry = self
-            .cache
-            .at_path(rela_path, Some(false), |id, buf| self.repo.objects.find_blob(id, buf))?;
+        let entry = self.cache.at_path(rela_path, Some(false), &self.repo.objects)?;
         Ok(self.inner.convert_to_git(
             src,
             rela_path,
             &mut |_, attrs| {
                 entry.matching_attributes(attrs);
             },
-            &mut |buf| -> Result<_, gix_odb::find::Error> {
+            &mut |buf| -> Result<_, gix_object::find::Error> {
                 let entry = match index.entry_by_path(gix_path::into_bstr(rela_path).as_ref()) {
                     None => return Ok(None),
                     Some(entry) => entry,
@@ -175,9 +175,7 @@ impl<'repo> Pipeline<'repo> {
         can_delay: gix_filter::driver::apply::Delay,
     ) -> Result<gix_filter::pipeline::convert::ToWorktreeOutcome<'input, '_>, pipeline::convert_to_worktree::Error>
     {
-        let entry = self
-            .cache
-            .at_entry(rela_path, Some(false), |id, buf| self.repo.objects.find_blob(id, buf))?;
+        let entry = self.cache.at_entry(rela_path, Some(false), &self.repo.objects)?;
         Ok(self.inner.convert_to_worktree(
             src,
             rela_path,

@@ -41,7 +41,11 @@ pub fn cli() -> clap::Command {
             .action(ArgAction::Count)
             .global(true),
         )
-        .arg_quiet()
+        .arg(
+            flag("quiet", "Do not print cargo log messages")
+                .short('q')
+                .global(true),
+        )
         .arg(
             opt("color", "Coloring: auto, always, never")
                 .value_name("WHEN")
@@ -114,6 +118,11 @@ fn bump_check(args: &clap::ArgMatches, config: &cargo::util::Config) -> CargoRes
     let changed_members = changed(&ws, &repo, &base_commit, &head_commit)?;
     let status = |msg: &str| config.shell().status(STATUS, msg);
 
+    // Don't check against beta and stable branches,
+    // as the publish of these crates are not tied with Rust release process.
+    // See `TO_PUBLISH` in publish.py.
+    let crates_not_check_against_channels = ["home"];
+
     status(&format!("base commit `{}`", base_commit.id()))?;
     status(&format!("head commit `{}`", head_commit.id()))?;
 
@@ -125,6 +134,11 @@ fn bump_check(args: &clap::ArgMatches, config: &cargo::util::Config) -> CargoRes
         status(&format!("compare against `{}`", referenced_commit.id()))?;
         for referenced_member in checkout_ws(&ws, &repo, referenced_commit)?.members() {
             let pkg_name = referenced_member.name().as_str();
+
+            if crates_not_check_against_channels.contains(&pkg_name) {
+                continue;
+            }
+
             let Some(changed_member) = changed_members.get(pkg_name) else {
                 tracing::trace!("skipping {pkg_name}, may be removed or not published");
                 continue;
@@ -162,8 +176,12 @@ fn bump_check(args: &clap::ArgMatches, config: &cargo::util::Config) -> CargoRes
         let mut cmd = ProcessBuilder::new("cargo");
         cmd.arg("semver-checks")
             .arg("--workspace")
+            .args(&["--exclude", "rustfix"]) // FIXME: Remove once 1.76 is stable
             .arg("--baseline-rev")
             .arg(referenced_commit.id().to_string());
+        for krate in crates_not_check_against_channels {
+            cmd.args(&["--exclude", krate]);
+        }
         config.shell().status("Running", &cmd)?;
         cmd.exec()?;
     }
@@ -373,6 +391,7 @@ fn check_crates_io<'a>(
                 "`{name}@{current}` needs a bump because its should have a version newer than crates.io: {:?}`",
                 possibilities
                     .iter()
+                    .map(|s| s.as_summary())
                     .map(|s| format!("{}@{}", s.name(), s.version()))
                     .collect::<Vec<_>>(),
             );

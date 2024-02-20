@@ -52,11 +52,7 @@ use crate::expectation::Expectation;
 use crate::fn_ctxt::RawTy;
 use crate::gather_locals::GatherLocalsVisitor;
 use rustc_data_structures::unord::UnordSet;
-use rustc_errors::{
-    struct_span_err, DiagnosticId, DiagnosticMessage, ErrorGuaranteed, MultiSpan,
-    SubdiagnosticMessage,
-};
-use rustc_fluent_macro::fluent_messages;
+use rustc_errors::{struct_span_err, DiagnosticId, ErrorGuaranteed, MultiSpan};
 use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::intravisit::Visitor;
@@ -71,7 +67,7 @@ use rustc_session::config;
 use rustc_span::def_id::{DefId, LocalDefId};
 use rustc_span::Span;
 
-fluent_messages! { "../messages.ftl" }
+rustc_fluent_macro::fluent_messages! { "../messages.ftl" }
 
 #[macro_export]
 macro_rules! type_error_struct {
@@ -131,7 +127,7 @@ fn has_typeck_results(tcx: TyCtxt<'_>, def_id: DefId) -> bool {
     }
 
     if let Some(def_id) = def_id.as_local() {
-        primary_body_of(tcx.hir().get_by_def_id(def_id)).is_some()
+        primary_body_of(tcx.hir_node_by_def_id(def_id)).is_some()
     } else {
         false
     }
@@ -150,7 +146,7 @@ fn typeck<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> &ty::TypeckResults<'tc
 /// Currently only used for type inference of `static`s and `const`s to avoid type cycle errors.
 fn diagnostic_only_typeck<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> &ty::TypeckResults<'tcx> {
     let fallback = move || {
-        let span = tcx.hir().span(tcx.hir().local_def_id_to_hir_id(def_id));
+        let span = tcx.hir().span(tcx.local_def_id_to_hir_id(def_id));
         Ty::new_error_with_message(tcx, span, "diagnostic only typeck table used")
     };
     typeck_with_fallback(tcx, def_id, fallback)
@@ -169,8 +165,8 @@ fn typeck_with_fallback<'tcx>(
         return tcx.typeck(typeck_root_def_id);
     }
 
-    let id = tcx.hir().local_def_id_to_hir_id(def_id);
-    let node = tcx.hir().get(id);
+    let id = tcx.local_def_id_to_hir_id(def_id);
+    let node = tcx.hir_node(id);
     let span = tcx.hir().span(id);
 
     // Figure out what primary body this item has.
@@ -205,7 +201,7 @@ fn typeck_with_fallback<'tcx>(
                 span,
             }))
         } else if let Node::AnonConst(_) = node {
-            match tcx.hir().get(tcx.hir().parent_id(id)) {
+            match tcx.hir_node(tcx.hir().parent_id(id)) {
                 Node::Ty(&hir::Ty { kind: hir::TyKind::Typeof(ref anon_const), .. })
                     if anon_const.hir_id == id =>
                 {
@@ -243,7 +239,7 @@ fn typeck_with_fallback<'tcx>(
         // Gather locals in statics (because of block expressions).
         GatherLocalsVisitor::new(&fcx).visit_body(body);
 
-        fcx.check_expr_coercible_to_type(&body.value, expected_type, None);
+        fcx.check_expr_coercible_to_type(body.value, expected_type, None);
 
         fcx.write_ty(id, expected_type);
     };
@@ -286,8 +282,6 @@ fn typeck_with_fallback<'tcx>(
     }
 
     fcx.check_asms();
-
-    fcx.infcx.skip_region_resolution();
 
     let typeck_results = fcx.resolve_type_vars_in_body(body);
 
@@ -419,32 +413,32 @@ enum TupleArgumentsFlag {
 }
 
 fn fatally_break_rust(tcx: TyCtxt<'_>) {
-    let handler = tcx.sess.diagnostic();
-    handler.span_bug_no_panic(
+    let dcx = tcx.sess.dcx();
+    dcx.span_bug_no_panic(
         MultiSpan::new(),
         "It looks like you're trying to break rust; would you like some ICE?",
     );
-    handler.note_without_error("the compiler expectedly panicked. this is a feature.");
-    handler.note_without_error(
+    dcx.note("the compiler expectedly panicked. this is a feature.");
+    dcx.note(
         "we would appreciate a joke overview: \
          https://github.com/rust-lang/rust/issues/43162#issuecomment-320764675",
     );
-    handler.note_without_error(format!(
-        "rustc {} running on {}",
-        tcx.sess.cfg_version,
-        config::host_triple(),
-    ));
+    dcx.note(format!("rustc {} running on {}", tcx.sess.cfg_version, config::host_triple(),));
     if let Some((flags, excluded_cargo_defaults)) = rustc_session::utils::extra_compiler_flags() {
-        handler.note_without_error(format!("compiler flags: {}", flags.join(" ")));
+        dcx.note(format!("compiler flags: {}", flags.join(" ")));
         if excluded_cargo_defaults {
-            handler.note_without_error("some of the compiler flags provided by cargo are hidden");
+            dcx.note("some of the compiler flags provided by cargo are hidden");
         }
     }
 }
 
+/// `expected` here is the expected number of explicit generic arguments on the trait.
 fn has_expected_num_generic_args(tcx: TyCtxt<'_>, trait_did: DefId, expected: usize) -> bool {
     let generics = tcx.generics_of(trait_did);
-    generics.count() == expected + if generics.has_self { 1 } else { 0 }
+    generics.count()
+        == expected
+            + if generics.has_self { 1 } else { 0 }
+            + if generics.host_effect_index.is_some() { 1 } else { 0 }
 }
 
 pub fn provide(providers: &mut Providers) {

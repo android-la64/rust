@@ -46,7 +46,7 @@ impl Person {
     /// Gives a friendly hello!
     ///
     /// Says "Hello, [name](Person::name)" to the `Person` it is called on.
-    pub fn hello(& self) {
+    pub fn hello(&self) {
         println!("Hello, {}!", self.name);
     }
 }
@@ -80,7 +80,7 @@ Used to inline docs, instead of linking out to separate page.
 pub use bar::Bar;
 
 /// bar docs
-mod bar {
+pub mod bar {
     /// the docs for Bar
     pub struct Bar;
 }

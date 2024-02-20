@@ -79,6 +79,52 @@ impl crate::Repository {
         Ok(opts)
     }
 
+    /// Return the context to be passed to any spawned program that is supposed to interact with the repository, like
+    /// hooks or filters.
+    #[cfg(feature = "attributes")]
+    pub fn command_context(&self) -> Result<gix_command::Context, config::command_context::Error> {
+        use crate::config::{
+            cache::util::ApplyLeniency,
+            tree::{gitoxide, Key},
+        };
+
+        let pathspec_boolean = |key: &'static config::tree::keys::Boolean| {
+            self.config
+                .resolved
+                .boolean("gitoxide", Some("pathspec".into()), key.name())
+                .map(|value| key.enrich_error(value))
+                .transpose()
+                .with_leniency(self.config.lenient_config)
+        };
+
+        Ok(gix_command::Context {
+            stderr: {
+                let key = &gitoxide::Core::EXTERNAL_COMMAND_STDERR;
+                self.config
+                    .resolved
+                    .boolean("gitoxide", Some("core".into()), key.name())
+                    .map(|value| key.enrich_error(value))
+                    .transpose()
+                    .with_leniency(self.config.lenient_config)?
+                    .unwrap_or(true)
+                    .into()
+            },
+            git_dir: self.git_dir().to_owned().into(),
+            worktree_dir: self.work_dir().map(ToOwned::to_owned),
+            no_replace_objects: config::shared::is_replace_refs_enabled(
+                &self.config.resolved,
+                self.config.lenient_config,
+                self.filter_config_section(),
+            )?
+            .map(|enabled| !enabled),
+            ref_namespace: self.refs.namespace.as_ref().map(|ns| ns.as_bstr().to_owned()),
+            literal_pathspecs: pathspec_boolean(&gitoxide::Pathspec::LITERAL)?,
+            glob_pathspecs: pathspec_boolean(&gitoxide::Pathspec::GLOB)?
+                .or(pathspec_boolean(&gitoxide::Pathspec::NOGLOB)?),
+            icase_pathspecs: pathspec_boolean(&gitoxide::Pathspec::ICASE)?,
+        })
+    }
+
     /// The kind of object hash the repository is configured to use.
     pub fn object_hash(&self) -> gix_hash::Kind {
         self.config.object_hash

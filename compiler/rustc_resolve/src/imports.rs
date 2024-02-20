@@ -8,7 +8,7 @@ use crate::errors::{
     ItemsInTraitsAreNotImportable,
 };
 use crate::Determinacy::{self, *};
-use crate::{fluent_generated as fluent, Namespace::*};
+use crate::Namespace::*;
 use crate::{module_to_string, names_to_string, ImportSuggestion};
 use crate::{AmbiguityKind, BindingKey, ModuleKind, ResolutionError, Resolver, Segment};
 use crate::{Finalize, Module, ModuleOrUniformRoot, ParentScope, PerNS, ScopeSet};
@@ -477,6 +477,9 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             self.per_ns(|this, ns| {
                 let key = BindingKey::new(target, ns);
                 let _ = this.try_define(import.parent_scope.module, key, dummy_binding, false);
+                this.update_resolution(import.parent_scope.module, key, false, |_, resolution| {
+                    resolution.single_imports.remove(&import);
+                })
             });
             self.record_use(target, dummy_binding, false);
         } else if import.imported_module.get().is_none() {
@@ -708,7 +711,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                         self.tcx,
                         &mut diag,
                         Some(err.span),
-                        &candidates,
+                        candidates,
                         DiagnosticMode::Import,
                         (source != target)
                             .then(|| format!(" as {target}"))
@@ -720,7 +723,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                             self.tcx,
                             &mut diag,
                             None,
-                            &candidates,
+                            candidates,
                             DiagnosticMode::Normal,
                             (source != target)
                                 .then(|| format!(" as {target}"))
@@ -987,13 +990,23 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                     }
                     if !is_prelude
                         && let Some(max_vis) = max_vis.get()
-                        && !max_vis.is_at_least(import.expect_vis(), self.tcx)
+                        && let import_vis = import.expect_vis()
+                        && !max_vis.is_at_least(import_vis, self.tcx)
                     {
-                        self.lint_buffer.buffer_lint(
+                        let def_id = self.local_def_id(id);
+                        let msg = format!(
+                            "glob import doesn't reexport anything with visibility `{}` because no imported item is public enough",
+                            import_vis.to_string(def_id, self.tcx)
+                        );
+                        self.lint_buffer.buffer_lint_with_diagnostic(
                             UNUSED_IMPORTS,
                             id,
                             import.span,
-                            fluent::resolve_glob_import_doesnt_reexport,
+                            msg,
+                            BuiltinLintDiagnostics::RedundantImportVisibility {
+                                max_vis: max_vis.to_string(def_id, self.tcx),
+                                span: import.span,
+                            },
                         );
                     }
                     return None;
@@ -1050,16 +1063,12 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                             initial_binding.res()
                         });
                         let res = binding.res();
-                        let has_ambiguity_error = this
-                            .ambiguity_errors
-                            .iter()
-                            .filter(|error| !error.warning)
-                            .next()
-                            .is_some();
+                        let has_ambiguity_error =
+                            this.ambiguity_errors.iter().any(|error| !error.warning);
                         if res == Res::Err || has_ambiguity_error {
                             this.tcx
                                 .sess
-                                .delay_span_bug(import.span, "some error happened for an import");
+                                .span_delayed_bug(import.span, "some error happened for an import");
                             return;
                         }
                         if let Ok(initial_res) = initial_res {

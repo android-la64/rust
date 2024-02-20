@@ -19,7 +19,7 @@ use super::utils::SubdiagnosticVariant;
 /// What kind of diagnostic is being derived - a fatal/error/warning or a lint?
 #[derive(Clone, PartialEq, Eq)]
 pub(crate) enum DiagnosticDeriveKind {
-    Diagnostic { handler: syn::Ident },
+    Diagnostic { dcx: syn::Ident },
     LintDiagnostic,
 }
 
@@ -53,6 +53,7 @@ pub(crate) struct DiagnosticDeriveVariantBuilder<'parent> {
     /// Slug is a mandatory part of the struct attribute as corresponds to the Fluent message that
     /// has the actual diagnostic message.
     pub slug: SpannedOption<Path>,
+
     /// Error codes are a optional part of the struct attribute - this is only set to detect
     /// multiple specifications.
     pub code: SpannedOption<()>,
@@ -68,7 +69,7 @@ impl DiagnosticDeriveBuilder {
     /// Call `f` for the struct or for each variant of the enum, returning a `TokenStream` with the
     /// tokens from `f` wrapped in an `match` expression. Emits errors for use of derive on unions
     /// or attributes on the type itself when input is an enum.
-    pub fn each_variant<'s, F>(&mut self, structure: &mut Structure<'s>, f: F) -> TokenStream
+    pub(crate) fn each_variant<'s, F>(&mut self, structure: &mut Structure<'s>, f: F) -> TokenStream
     where
         F: for<'a, 'v> Fn(DiagnosticDeriveVariantBuilder<'a>, &VariantInfo<'v>) -> TokenStream,
     {
@@ -121,7 +122,7 @@ impl DiagnosticDeriveBuilder {
 impl<'a> DiagnosticDeriveVariantBuilder<'a> {
     /// Generates calls to `code` and similar functions based on the attributes on the type or
     /// variant.
-    pub fn preamble(&mut self, variant: &VariantInfo<'_>) -> TokenStream {
+    pub(crate) fn preamble(&mut self, variant: &VariantInfo<'_>) -> TokenStream {
         let ast = variant.ast();
         let attrs = &ast.attrs;
         let preamble = attrs.iter().map(|attr| {
@@ -135,7 +136,7 @@ impl<'a> DiagnosticDeriveVariantBuilder<'a> {
 
     /// Generates calls to `span_label` and similar functions based on the attributes on fields or
     /// calls to `set_arg` when no attributes are present.
-    pub fn body(&mut self, variant: &VariantInfo<'_>) -> TokenStream {
+    pub(crate) fn body(&mut self, variant: &VariantInfo<'_>) -> TokenStream {
         let mut body = quote! {};
         // Generate `set_arg` calls first..
         for binding in variant.bindings().iter().filter(|bi| should_generate_set_arg(bi.ast())) {
@@ -347,11 +348,11 @@ impl<'a> DiagnosticDeriveVariantBuilder<'a> {
             }
             (Meta::Path(_), "subdiagnostic") => {
                 if FieldInnerTy::from_type(&info.binding.ast().ty).will_iterate() {
-                    let DiagnosticDeriveKind::Diagnostic { handler } = &self.parent.kind else {
+                    let DiagnosticDeriveKind::Diagnostic { dcx } = &self.parent.kind else {
                         // No eager translation for lints.
                         return Ok(quote! { #diag.subdiagnostic(#binding); });
                     };
-                    return Ok(quote! { #diag.eager_subdiagnostic(#handler, #binding); });
+                    return Ok(quote! { #diag.eager_subdiagnostic(#dcx, #binding); });
                 } else {
                     return Ok(quote! { #diag.subdiagnostic(#binding); });
                 }
@@ -375,15 +376,15 @@ impl<'a> DiagnosticDeriveVariantBuilder<'a> {
                     return Ok(quote! {});
                 }
 
-                let handler = match &self.parent.kind {
-                    DiagnosticDeriveKind::Diagnostic { handler } => handler,
+                let dcx = match &self.parent.kind {
+                    DiagnosticDeriveKind::Diagnostic { dcx } => dcx,
                     DiagnosticDeriveKind::LintDiagnostic => {
                         throw_invalid_attr!(attr, |diag| {
                             diag.help("eager subdiagnostics are not supported on lints")
                         })
                     }
                 };
-                return Ok(quote! { #diag.eager_subdiagnostic(#handler, #binding); });
+                return Ok(quote! { #diag.eager_subdiagnostic(#dcx, #binding); });
             }
             _ => (),
         }

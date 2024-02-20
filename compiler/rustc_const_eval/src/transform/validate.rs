@@ -128,9 +128,9 @@ impl<'a, 'tcx> CfgChecker<'a, 'tcx> {
     #[track_caller]
     fn fail(&self, location: Location, msg: impl AsRef<str>) {
         let span = self.body.source_info(location).span;
-        // We use `delay_span_bug` as we might see broken MIR when other errors have already
+        // We use `span_delayed_bug` as we might see broken MIR when other errors have already
         // occurred.
-        self.tcx.sess.diagnostic().delay_span_bug(
+        self.tcx.sess.dcx().span_delayed_bug(
             span,
             format!(
                 "broken MIR in {:?} ({}) at {:?}:\n{}",
@@ -285,6 +285,12 @@ impl<'a, 'tcx> CfgChecker<'a, 'tcx> {
             UnwindAction::Unreachable | UnwindAction::Terminate(UnwindTerminateReason::Abi) => (),
         }
     }
+
+    fn is_critical_call_edge(&self, target: Option<BasicBlock>, unwind: UnwindAction) -> bool {
+        let Some(target) = target else { return false };
+        matches!(unwind, UnwindAction::Cleanup(_) | UnwindAction::Terminate(_))
+            && self.body.basic_blocks.predecessors()[target].len() > 1
+    }
 }
 
 impl<'a, 'tcx> Visitor<'tcx> for CfgChecker<'a, 'tcx> {
@@ -425,6 +431,22 @@ impl<'a, 'tcx> Visitor<'tcx> for CfgChecker<'a, 'tcx> {
                 }
                 self.check_unwind_edge(location, *unwind);
 
+                // The code generation assumes that there are no critical call edges. The assumption
+                // is used to simplify inserting code that should be executed along the return edge
+                // from the call. FIXME(tmiasko): Since this is a strictly code generation concern,
+                // the code generation should be responsible for handling it.
+                if self.mir_phase >= MirPhase::Runtime(RuntimePhase::Optimized)
+                    && self.is_critical_call_edge(*target, *unwind)
+                {
+                    self.fail(
+                        location,
+                        format!(
+                            "encountered critical edge in `Call` terminator {:?}",
+                            terminator.kind,
+                        ),
+                    );
+                }
+
                 // The call destination place and Operand::Move place used as an argument might be
                 // passed by a reference to the callee. Consequently they must be non-overlapping
                 // and cannot be packed. Currently this simply checks for duplicate places.
@@ -549,7 +571,7 @@ impl<'a, 'tcx> Visitor<'tcx> for CfgChecker<'a, 'tcx> {
 
     fn visit_source_scope(&mut self, scope: SourceScope) {
         if self.body.source_scopes.get(scope).is_none() {
-            self.tcx.sess.diagnostic().delay_span_bug(
+            self.tcx.sess.dcx().span_delayed_bug(
                 self.body.span,
                 format!(
                     "broken MIR in {:?} ({}):\ninvalid source scope {:?}",

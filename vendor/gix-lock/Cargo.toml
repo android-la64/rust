@@ -13,13 +13,12 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-lock"
-version = "11.0.0"
+version = "11.0.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
     "README.md",
-    "CHANGELOG.md",
 ]
 description = "A git-style lock-file implementation"
 readme = "README.md"
@@ -35,7 +34,7 @@ version = "^11.0.0"
 default-features = false
 
 [dependencies.gix-utils]
-version = "^0.1.5"
+version = "^0.1.6"
 default-features = false
 
 [dependencies.thiserror]

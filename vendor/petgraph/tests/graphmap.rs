@@ -61,6 +61,35 @@ fn simple() {
 }
 
 #[test]
+fn edges_directed() {
+    let mut gr = DiGraphMap::new();
+    let a = gr.add_node("A");
+    let b = gr.add_node("B");
+    let c = gr.add_node("C");
+    let d = gr.add_node("D");
+    let e = gr.add_node("E");
+    let f = gr.add_node("F");
+    gr.add_edge(a, b, 7);
+    gr.add_edge(a, c, 9);
+    gr.add_edge(a, d, 14);
+    gr.add_edge(b, c, 10);
+    gr.add_edge(c, d, 2);
+    gr.add_edge(d, e, 9);
+    gr.add_edge(b, f, 15);
+    gr.add_edge(c, f, 11);
+
+    let mut edges_out = gr.edges_directed(c, Direction::Outgoing);
+    assert_eq!(edges_out.next(), Some((c, d, &2)));
+    assert_eq!(edges_out.next(), Some((c, f, &11)));
+    assert_eq!(edges_out.next(), None);
+
+    let mut edges_in = gr.edges_directed(c, Direction::Incoming);
+    assert_eq!(edges_in.next(), Some((a, c, &9)));
+    assert_eq!(edges_in.next(), Some((b, c, &10)));
+    assert_eq!(edges_in.next(), None);
+}
+
+#[test]
 fn remov() {
     let mut g = UnGraphMap::new();
     g.add_node(1);
@@ -80,6 +109,20 @@ fn remov() {
     assert_eq!(g.edge_weight(1, 2), None);
     assert_eq!(g.edge_weight(2, 1), None);
     assert_eq!(g.neighbors(1).count(), 0);
+}
+
+#[test]
+fn remove_node() {
+    // From #431
+    let mut graph = petgraph::graphmap::DiGraphMap::<u32, ()>::new();
+    graph.add_edge(1, 2, ());
+    graph.remove_node(2);
+
+    let neighbors: Vec<u32> = graph.neighbors(1).collect();
+    assert_eq!(neighbors, []);
+
+    let edges: Vec<(u32, u32, _)> = graph.all_edges().collect();
+    assert_eq!(edges, []);
 }
 
 #[test]
@@ -280,6 +323,26 @@ fn test_into_graph() {
         let bw = graph[b];
         assert_eq!(&gr[(aw, bw)], edge.weight());
     }
+}
+
+#[test]
+fn test_from_graph() {
+    let mut gr: Graph<u32, u32, Directed> = Graph::new();
+    let node_a = gr.add_node(12);
+    let node_b = gr.add_node(13);
+    let node_c = gr.add_node(14);
+    gr.add_edge(node_a, node_b, 1000);
+    gr.add_edge(node_b, node_c, 999);
+    gr.add_edge(node_c, node_a, 1111);
+    gr.add_node(42);
+    let gr = gr;
+
+    let graph: GraphMap<u32, u32, Directed> = GraphMap::from_graph(gr.clone());
+    println!("{}", Dot::new(&gr));
+    println!("{}", Dot::new(&graph));
+
+    assert!(petgraph::algo::is_isomorphic(&gr, &graph));
+    assert_eq!(graph[(12, 13)], 1000);
 }
 
 #[test]

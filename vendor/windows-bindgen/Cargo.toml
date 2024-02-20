@@ -11,8 +11,9 @@
 
 [package]
 edition = "2021"
+rust-version = "1.56"
 name = "windows-bindgen"
-version = "0.51.1"
+version = "0.52.0"
 authors = ["Microsoft"]
 description = "Windows metadata compiler"
 readme = "readme.md"
@@ -38,7 +39,7 @@ features = [
 ]
 
 [dependencies.windows-metadata]
-version = "0.51.1"
+version = "0.52.0"
 
 [features]
 default = ["metadata"]

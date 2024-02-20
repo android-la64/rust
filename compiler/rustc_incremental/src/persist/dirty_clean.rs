@@ -32,7 +32,6 @@ use rustc_middle::hir::nested_filter;
 use rustc_middle::ty::TyCtxt;
 use rustc_span::symbol::{sym, Symbol};
 use rustc_span::Span;
-use std::iter::FromIterator;
 use thin_vec::ThinVec;
 
 const LOADED_FROM_DISK: Symbol = sym::loaded_from_disk;
@@ -233,7 +232,7 @@ impl<'tcx> DirtyCleanVisitor<'tcx> {
     /// Return all DepNode labels that should be asserted for this item.
     /// index=0 is the "name" used for error messages
     fn auto_labels(&mut self, item_id: LocalDefId, attr: &Attribute) -> (&'static str, Labels) {
-        let node = self.tcx.hir().get_by_def_id(item_id);
+        let node = self.tcx.hir_node_by_def_id(item_id);
         let (name, labels) = match node {
             HirNode::Item(item) => {
                 match item.kind {
@@ -378,15 +377,15 @@ impl<'tcx> DirtyCleanVisitor<'tcx> {
             };
             self.checked_attrs.insert(attr.id);
             for label in assertion.clean.items().into_sorted_stable_ord() {
-                let dep_node = DepNode::from_label_string(self.tcx, &label, def_path_hash).unwrap();
+                let dep_node = DepNode::from_label_string(self.tcx, label, def_path_hash).unwrap();
                 self.assert_clean(item_span, dep_node);
             }
             for label in assertion.dirty.items().into_sorted_stable_ord() {
-                let dep_node = DepNode::from_label_string(self.tcx, &label, def_path_hash).unwrap();
+                let dep_node = DepNode::from_label_string(self.tcx, label, def_path_hash).unwrap();
                 self.assert_dirty(item_span, dep_node);
             }
             for label in assertion.loaded_from_disk.items().into_sorted_stable_ord() {
-                let dep_node = DepNode::from_label_string(self.tcx, &label, def_path_hash).unwrap();
+                let dep_node = DepNode::from_label_string(self.tcx, label, def_path_hash).unwrap();
                 self.assert_loaded_from_disk(item_span, dep_node);
             }
         }

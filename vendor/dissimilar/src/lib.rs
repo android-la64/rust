@@ -37,7 +37,7 @@
 //! [Myers' diff algorithm]: https://neil.fraser.name/writing/diff/myers.pdf
 //! [semantic cleanups]: https://neil.fraser.name/writing/diff/
 
-#![doc(html_root_url = "https://docs.rs/dissimilar/1.0.6")]
+#![doc(html_root_url = "https://docs.rs/dissimilar/1.0.7")]
 #![allow(
     clippy::blocks_in_if_conditions,
     clippy::bool_to_int_with_if,
@@ -46,6 +46,8 @@
     clippy::cloned_instead_of_copied, // https://github.com/rust-lang/rust-clippy/issues/7127
     clippy::collapsible_else_if,
     clippy::comparison_chain,
+    clippy::items_after_test_module, // https://github.com/rust-lang/rust-clippy/issues/10713
+    clippy::let_underscore_untyped,
     clippy::match_same_arms,
     clippy::module_name_repetitions,
     clippy::must_use_candidate,

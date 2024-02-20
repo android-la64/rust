@@ -88,7 +88,7 @@ impl<'a> PostExpansionVisitor<'a> {
             }
         }
 
-        match abi::is_enabled(&self.features, span, symbol_unescaped.as_str()) {
+        match abi::is_enabled(self.features, span, symbol_unescaped.as_str()) {
             Ok(()) => (),
             Err(abi::AbiDisabled::Unstable { feature, explain }) => {
                 feature_err_issue(
@@ -102,7 +102,7 @@ impl<'a> PostExpansionVisitor<'a> {
             }
             Err(abi::AbiDisabled::Unrecognized) => {
                 if self.sess.opts.pretty.map_or(true, |ppm| ppm.needs_hir()) {
-                    self.sess.parse_sess.span_diagnostic.delay_span_bug(
+                    self.sess.dcx().span_delayed_bug(
                         span,
                         format!(
                             "unrecognized ABI not caught in lowering: {}",
@@ -182,7 +182,7 @@ impl<'a> Visitor<'a> for PostExpansionVisitor<'a> {
             ..
         }) = attr_info
         {
-            gate_alt!(self, has_feature(&self.features), *name, attr.span, *descr);
+            gate_alt!(self, has_feature(self.features), *name, attr.span, *descr);
         }
         // Check unstable flavors of the `#[doc]` attribute.
         if attr.has_name(sym::doc) {
@@ -300,7 +300,7 @@ impl<'a> Visitor<'a> for PostExpansionVisitor<'a> {
             }
 
             ast::ItemKind::TyAlias(box ast::TyAlias { ty: Some(ty), .. }) => {
-                self.check_impl_trait(&ty, false)
+                self.check_impl_trait(ty, false)
             }
 
             _ => {}
@@ -556,6 +556,34 @@ pub fn check_crate(krate: &ast::Crate, sess: &Session, features: &Features) {
     gate_all!(generic_const_items, "generic const items are experimental");
     gate_all!(unnamed_fields, "unnamed fields are not yet fully implemented");
 
+    if !visitor.features.never_patterns {
+        if let Some(spans) = spans.get(&sym::never_patterns) {
+            for &span in spans {
+                if span.allows_unstable(sym::never_patterns) {
+                    continue;
+                }
+                let sm = sess.source_map();
+                // We gate two types of spans: the span of a `!` pattern, and the span of a
+                // match arm without a body. For the latter we want to give the user a normal
+                // error.
+                if let Ok(snippet) = sm.span_to_snippet(span)
+                    && snippet == "!"
+                {
+                    feature_err(
+                        &sess.parse_sess,
+                        sym::never_patterns,
+                        span,
+                        "`!` patterns are experimental",
+                    )
+                    .emit();
+                } else {
+                    let suggestion = span.shrink_to_hi();
+                    sess.emit_err(errors::MatchArmWithNoBody { span, suggestion });
+                }
+            }
+        }
+    }
+
     if !visitor.features.negative_bounds {
         for &span in spans.get(&sym::negative_bounds).iter().copied().flatten() {
             sess.emit_err(errors::NegativeBoundUnsupported { span });
@@ -627,7 +655,7 @@ fn maybe_stage_features(sess: &Session, features: &Features, krate: &ast::Crate)
             if all_stable {
                 err.sugg = Some(attr.span);
             }
-            sess.parse_sess.span_diagnostic.emit_err(err);
+            sess.dcx().emit_err(err);
         }
     }
 }

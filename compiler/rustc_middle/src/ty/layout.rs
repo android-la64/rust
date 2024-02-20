@@ -2,10 +2,10 @@ use crate::error::UnsupportedFnAbi;
 use crate::middle::codegen_fn_attrs::CodegenFnAttrFlags;
 use crate::query::TyCtxtAt;
 use crate::ty::normalize_erasing_regions::NormalizationError;
-use crate::ty::{self, ConstKind, ReprOptions, Ty, TyCtxt, TypeVisitableExt};
+use crate::ty::{self, ConstKind, Ty, TyCtxt, TypeVisitableExt};
 use rustc_error_messages::DiagnosticMessage;
 use rustc_errors::{
-    DiagnosticArgValue, DiagnosticBuilder, Handler, IntoDiagnostic, IntoDiagnosticArg,
+    DiagCtxt, DiagnosticArgValue, DiagnosticBuilder, IntoDiagnostic, IntoDiagnosticArg,
 };
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
@@ -215,7 +215,7 @@ pub enum LayoutError<'tcx> {
     SizeOverflow(Ty<'tcx>),
     NormalizationFailure(Ty<'tcx>, NormalizationError<'tcx>),
     ReferencesError(ErrorGuaranteed),
-    Cycle,
+    Cycle(ErrorGuaranteed),
 }
 
 impl<'tcx> LayoutError<'tcx> {
@@ -226,7 +226,7 @@ impl<'tcx> LayoutError<'tcx> {
             Unknown(_) => middle_unknown_layout,
             SizeOverflow(_) => middle_values_too_big,
             NormalizationFailure(_, _) => middle_cannot_be_normalized,
-            Cycle => middle_cycle,
+            Cycle(_) => middle_cycle,
             ReferencesError(_) => middle_layout_references_error,
         }
     }
@@ -240,7 +240,7 @@ impl<'tcx> LayoutError<'tcx> {
             NormalizationFailure(ty, e) => {
                 E::NormalizationFailure { ty, failure_ty: e.get_type_for_failure() }
             }
-            Cycle => E::Cycle,
+            Cycle(_) => E::Cycle,
             ReferencesError(_) => E::ReferencesError,
         }
     }
@@ -261,7 +261,7 @@ impl<'tcx> fmt::Display for LayoutError<'tcx> {
                 t,
                 e.get_type_for_failure()
             ),
-            LayoutError::Cycle => write!(f, "a cycle occurred during layout computation"),
+            LayoutError::Cycle(_) => write!(f, "a cycle occurred during layout computation"),
             LayoutError::ReferencesError(_) => write!(f, "the type has an unknown layout"),
         }
     }
@@ -282,8 +282,8 @@ pub struct LayoutCx<'tcx, C> {
 impl<'tcx> LayoutCalculator for LayoutCx<'tcx, TyCtxt<'tcx>> {
     type TargetDataLayoutRef = &'tcx TargetDataLayout;
 
-    fn delay_bug(&self, txt: String) {
-        self.tcx.sess.delay_span_bug(DUMMY_SP, txt);
+    fn delayed_bug(&self, txt: String) {
+        self.tcx.sess.span_delayed_bug(DUMMY_SP, txt);
     }
 
     fn current_data_layout(&self) -> Self::TargetDataLayoutRef {
@@ -333,7 +333,7 @@ impl<'tcx> SizeSkeleton<'tcx> {
             Err(err @ LayoutError::Unknown(_)) => err,
             // We can't extract SizeSkeleton info from other layout errors
             Err(
-                e @ LayoutError::Cycle
+                e @ LayoutError::Cycle(_)
                 | e @ LayoutError::SizeOverflow(_)
                 | e @ LayoutError::NormalizationFailure(..)
                 | e @ LayoutError::ReferencesError(_),
@@ -899,13 +899,13 @@ where
                 ty::Str => TyMaybeWithLayout::Ty(tcx.types.u8),
 
                 // Tuples, coroutines and closures.
-                ty::Closure(_, ref args) => field_ty_or_layout(
+                ty::Closure(_, args) => field_ty_or_layout(
                     TyAndLayout { ty: args.as_closure().tupled_upvars_ty(), ..this },
                     cx,
                     i,
                 ),
 
-                ty::Coroutine(def_id, ref args, _) => match this.variants {
+                ty::Coroutine(def_id, args, _) => match this.variants {
                     Variants::Single { index } => TyMaybeWithLayout::Ty(
                         args.as_coroutine()
                             .state_tys(def_id, tcx)
@@ -1273,13 +1273,13 @@ pub enum FnAbiError<'tcx> {
 }
 
 impl<'a, 'b> IntoDiagnostic<'a, !> for FnAbiError<'b> {
-    fn into_diagnostic(self, handler: &'a Handler) -> DiagnosticBuilder<'a, !> {
+    fn into_diagnostic(self, dcx: &'a DiagCtxt) -> DiagnosticBuilder<'a, !> {
         match self {
-            Self::Layout(e) => e.into_diagnostic().into_diagnostic(handler),
+            Self::Layout(e) => e.into_diagnostic().into_diagnostic(dcx),
             Self::AdjustForForeignAbi(call::AdjustForForeignAbiError::Unsupported {
                 arch,
                 abi,
-            }) => UnsupportedFnAbi { arch, abi: abi.name() }.into_diagnostic(handler),
+            }) => UnsupportedFnAbi { arch, abi: abi.name() }.into_diagnostic(dcx),
         }
     }
 }

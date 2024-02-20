@@ -7,6 +7,7 @@ use std::process::Command;
 fn main() {
     commit_info();
     compress_man();
+    windows_manifest();
     // ALLOWED: Accessing environment during build time shouldn't be prohibited.
     #[allow(clippy::disallowed_methods)]
     let target = std::env::var("TARGET").unwrap();
@@ -50,6 +51,14 @@ fn commit_info() {
     if !Path::new(".git").exists() {
         return;
     }
+
+    // Var set by bootstrap whenever omit-git-hash is enabled in rust-lang/rust's config.toml.
+    println!("cargo:rerun-if-env-changed=CFG_OMIT_GIT_HASH");
+    #[allow(clippy::disallowed_methods)]
+    if std::env::var_os("CFG_OMIT_GIT_HASH").is_some() {
+        return;
+    }
+
     let output = match Command::new("git")
         .arg("log")
         .arg("-1")
@@ -67,4 +76,27 @@ fn commit_info() {
     println!("cargo:rustc-env=CARGO_COMMIT_HASH={}", next());
     println!("cargo:rustc-env=CARGO_COMMIT_SHORT_HASH={}", next());
     println!("cargo:rustc-env=CARGO_COMMIT_DATE={}", next())
+}
+
+#[allow(clippy::disallowed_methods)]
+fn windows_manifest() {
+    use std::env;
+    let target_os = env::var("CARGO_CFG_TARGET_OS");
+    let target_env = env::var("CARGO_CFG_TARGET_ENV");
+    if Ok("windows") == target_os.as_deref() && Ok("msvc") == target_env.as_deref() {
+        static WINDOWS_MANIFEST_FILE: &str = "windows.manifest.xml";
+
+        let mut manifest = env::current_dir().unwrap();
+        manifest.push(WINDOWS_MANIFEST_FILE);
+
+        println!("cargo:rerun-if-changed={WINDOWS_MANIFEST_FILE}");
+        // Embed the Windows application manifest file.
+        println!("cargo:rustc-link-arg-bin=cargo=/MANIFEST:EMBED");
+        println!(
+            "cargo:rustc-link-arg-bin=cargo=/MANIFESTINPUT:{}",
+            manifest.to_str().unwrap()
+        );
+        // Turn linker warnings into errors.
+        println!("cargo:rustc-link-arg-bin=cargo=/WX");
+    }
 }

@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 use std::collections::VecDeque;
 use std::fmt::Write;
 use std::path::Path;
+use std::str::FromStr;
 
 use anyhow::Context as _;
 use cargo_util::paths;
@@ -34,7 +35,7 @@ use crate::util::toml_mut::dependency::WorkspaceSource;
 use crate::util::toml_mut::is_sorted;
 use crate::util::toml_mut::manifest::DepTable;
 use crate::util::toml_mut::manifest::LocalManifest;
-use crate::util::RustVersion;
+use crate::util_schemas::manifest::RustVersion;
 use crate::CargoResult;
 use crate::Config;
 use crate_spec::CrateSpec;
@@ -196,6 +197,20 @@ pub fn add(workspace: &Workspace<'_>, options: &AddOptions<'_>) -> CargoResult<(
         print_dep_table_msg(&mut options.config.shell(), &dep)?;
 
         manifest.insert_into_table(&dep_table, &dep)?;
+        if dep.optional == Some(true) {
+            let is_namespaced_features_supported =
+                check_rust_version_for_optional_dependency(options.spec.rust_version())?;
+            if is_namespaced_features_supported {
+                let dep_key = dep.toml_key();
+                if !manifest.is_explicit_dep_activation(dep_key) {
+                    let table = manifest.get_table_mut(&[String::from("features")])?;
+                    let dep_name = dep.rename.as_deref().unwrap_or(&dep.name);
+                    let new_feature: toml_edit::Value =
+                        [format!("dep:{dep_name}")].iter().collect();
+                    table[dep_key] = toml_edit::value(new_feature);
+                }
+            }
+        }
         manifest.gc_dep(dep.toml_key());
     }
 
@@ -243,6 +258,9 @@ pub struct DepOp {
 
     /// Whether dependency is optional
     pub optional: Option<bool>,
+
+    /// Whether dependency is public
+    pub public: Option<bool>,
 
     /// Registry for looking up dependency version
     pub registry: Option<String>,
@@ -469,6 +487,26 @@ fn check_invalid_ws_keys(toml_key: &str, arg: &DepOp) -> CargoResult<()> {
     Ok(())
 }
 
+/// When the `--optional` option is added using `cargo add`, we need to
+/// check the current rust-version. As the `dep:` syntax is only avaliable
+/// starting with Rust 1.60.0
+///
+/// `true` means that the rust-version is None or the rust-version is higher
+/// than the version needed.
+///
+/// Note: Previous versions can only use the implicit feature name.
+fn check_rust_version_for_optional_dependency(
+    rust_version: Option<&RustVersion>,
+) -> CargoResult<bool> {
+    match rust_version {
+        Some(version) => {
+            let syntax_support_version = RustVersion::from_str("1.60.0")?;
+            Ok(&syntax_support_version <= version)
+        }
+        None => Ok(true),
+    }
+}
+
 /// Provide the existing dependency for the target table
 ///
 /// If it doesn't exist but exists in another table, let's use that as most likely users
@@ -545,7 +583,7 @@ fn get_latest_dependency(
             unreachable!("registry dependencies required, found a workspace dependency");
         }
         MaybeWorkspace::Other(query) => {
-            let mut possibilities = loop {
+            let possibilities = loop {
                 match registry.query_vec(&query, QueryKind::Fuzzy) {
                     std::task::Poll::Ready(res) => {
                         break res?;
@@ -553,6 +591,11 @@ fn get_latest_dependency(
                     std::task::Poll::Pending => registry.block_until_ready()?,
                 }
             };
+
+            let mut possibilities: Vec<_> = possibilities
+                .into_iter()
+                .map(|s| s.into_summary())
+                .collect();
 
             possibilities.sort_by_key(|s| {
                 // Fallback to a pre-release if no official release is available by sorting them as
@@ -671,6 +714,12 @@ fn select_package(
                     std::task::Poll::Pending => registry.block_until_ready()?,
                 }
             };
+
+            let possibilities: Vec<_> = possibilities
+                .into_iter()
+                .map(|s| s.into_summary())
+                .collect();
+
             match possibilities.len() {
                 0 => {
                     let source = dependency
@@ -745,6 +794,13 @@ fn populate_dependency(mut dependency: Dependency, arg: &DepOp) -> Dependency {
             dependency.optional = Some(true);
         } else {
             dependency.optional = None;
+        }
+    }
+    if let Some(value) = arg.public {
+        if value {
+            dependency.public = Some(true);
+        } else {
+            dependency.public = None;
         }
     }
     if let Some(value) = arg.default_features {
@@ -889,6 +945,7 @@ fn populate_available_features(
     // in the lock file for a given version requirement.
     let lowest_common_denominator = possibilities
         .iter()
+        .map(|s| s.as_summary())
         .min_by_key(|s| {
             // Fallback to a pre-release if no official release is available by sorting them as
             // more.
@@ -932,6 +989,9 @@ fn print_action_msg(shell: &mut Shell, dep: &DependencyUI, section: &[String]) -
     write!(message, " to")?;
     if dep.optional().unwrap_or(false) {
         write!(message, " optional")?;
+    }
+    if dep.public().unwrap_or(false) {
+        write!(message, " public")?;
     }
     let section = if section.len() == 1 {
         section[0].clone()

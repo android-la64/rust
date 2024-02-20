@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.61"
 name = "pest_meta"
-version = "2.7.0"
+version = "2.7.5"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>"]
 exclude = ["src/grammar.pest"]
 include = [
@@ -34,17 +34,17 @@ keywords = [
     "optimizer",
 ]
 categories = ["parsing"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/pest-parser/pest"
 
 [dependencies.once_cell]
 version = "1.8.0"
 
 [dependencies.pest]
-version = "2.7.0"
+version = "2.7.5"
 
 [build-dependencies.cargo]
-version = "0.70"
+version = "0.72.2"
 optional = true
 
 [build-dependencies.sha2]

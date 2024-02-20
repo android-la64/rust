@@ -1,6 +1,6 @@
 use super::*;
-use crate::cmp::Ordering::{self, Equal, Greater, Less};
-use crate::intrinsics::{self, const_eval_select};
+use crate::cmp::Ordering::{Equal, Greater, Less};
+use crate::intrinsics::const_eval_select;
 use crate::mem::SizedTypeProperties;
 use crate::slice::{self, SliceIndex};
 
@@ -193,10 +193,10 @@ impl<T: ?Sized> *mut T {
     /// [`with_addr`][pointer::with_addr] or [`map_addr`][pointer::map_addr].
     ///
     /// If using those APIs is not possible because there is no way to preserve a pointer with the
-    /// required provenance, use [`expose_addr`][pointer::expose_addr] and
-    /// [`from_exposed_addr_mut`][from_exposed_addr_mut] instead. However, note that this makes
-    /// your code less portable and less amenable to tools that check for compliance with the Rust
-    /// memory model.
+    /// required provenance, then Strict Provenance might not be for you. Use pointer-integer casts
+    /// or [`expose_addr`][pointer::expose_addr] and [`from_exposed_addr`][from_exposed_addr]
+    /// instead. However, note that this makes your code less portable and less amenable to tools
+    /// that check for compliance with the Rust memory model.
     ///
     /// On most platforms this will produce a value with the same bytes as the original
     /// pointer, because all the bytes are dedicated to describing the address.
@@ -226,7 +226,8 @@ impl<T: ?Sized> *mut T {
     /// later call [`from_exposed_addr_mut`][] to reconstitute the original pointer including its
     /// provenance. (Reconstructing address space information, if required, is your responsibility.)
     ///
-    /// Using this method means that code is *not* following Strict Provenance rules. Supporting
+    /// Using this method means that code is *not* following [Strict
+    /// Provenance][../index.html#strict-provenance] rules. Supporting
     /// [`from_exposed_addr_mut`][] complicates specification and reasoning and may not be supported
     /// by tools that help you to stay conformant with the Rust memory model, so it is recommended
     /// to use [`addr`][pointer::addr] wherever possible.
@@ -237,13 +238,13 @@ impl<T: ?Sized> *mut T {
     /// side-effect which is required for [`from_exposed_addr_mut`][] to work is typically not
     /// available.
     ///
-    /// This API and its claimed semantics are part of the Strict Provenance experiment, see the
-    /// [module documentation][crate::ptr] for details.
+    /// It is unclear whether this method can be given a satisfying unambiguous specification. This
+    /// API and its claimed semantics are part of [Exposed Provenance][../index.html#exposed-provenance].
     ///
     /// [`from_exposed_addr_mut`]: from_exposed_addr_mut
     #[must_use]
     #[inline(always)]
-    #[unstable(feature = "strict_provenance", issue = "95228")]
+    #[unstable(feature = "exposed_provenance", issue = "95228")]
     pub fn expose_addr(self) -> usize {
         // FIXME(strict_provenance_magic): I am magic and should be a compiler intrinsic.
         self.cast::<()>() as usize
@@ -259,7 +260,7 @@ impl<T: ?Sized> *mut T {
     /// This is equivalent to using [`wrapping_offset`][pointer::wrapping_offset] to offset
     /// `self` to the given address, and therefore has all the same capabilities and restrictions.
     ///
-    /// This API and its claimed semantics are part of the Strict Provenance experiment,
+    /// This API and its claimed semantics are an extension to the Strict Provenance experiment,
     /// see the [module documentation][crate::ptr] for details.
     #[must_use]
     #[inline]
@@ -1634,10 +1635,19 @@ impl<T: ?Sized> *mut T {
             panic!("align_offset: align is not a power-of-two");
         }
 
-        {
-            // SAFETY: `align` has been checked to be a power of 2 above
-            unsafe { align_offset(self, align) }
+        // SAFETY: `align` has been checked to be a power of 2 above
+        let ret = unsafe { align_offset(self, align) };
+
+        // Inform Miri that we want to consider the resulting pointer to be suitably aligned.
+        #[cfg(miri)]
+        if ret != usize::MAX {
+            intrinsics::miri_promise_symbolic_alignment(
+                self.wrapping_add(ret).cast_const().cast(),
+                align,
+            );
         }
+
+        ret
     }
 
     /// Returns whether the pointer is properly aligned for `T`.
@@ -1920,10 +1930,10 @@ impl<T> *mut [T] {
     ///
     /// ```
     /// #![feature(slice_ptr_len)]
+    /// use std::ptr;
     ///
-    /// let mut a = [1, 2, 3];
-    /// let ptr = &mut a as *mut [_];
-    /// assert!(!ptr.is_empty());
+    /// let slice: *mut [i8] = ptr::slice_from_raw_parts_mut(ptr::null_mut(), 3);
+    /// assert!(!slice.is_empty());
     /// ```
     #[inline(always)]
     #[unstable(feature = "slice_ptr_len", issue = "71146")]
@@ -2189,6 +2199,7 @@ impl<T> *mut [T] {
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: ?Sized> PartialEq for *mut T {
     #[inline(always)]
+    #[cfg_attr(not(bootstrap), allow(ambiguous_wide_pointer_comparisons))]
     fn eq(&self, other: &*mut T) -> bool {
         *self == *other
     }
@@ -2200,6 +2211,7 @@ impl<T: ?Sized> Eq for *mut T {}
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T: ?Sized> Ord for *mut T {
     #[inline]
+    #[cfg_attr(not(bootstrap), allow(ambiguous_wide_pointer_comparisons))]
     fn cmp(&self, other: &*mut T) -> Ordering {
         if self < other {
             Less
@@ -2219,21 +2231,25 @@ impl<T: ?Sized> PartialOrd for *mut T {
     }
 
     #[inline(always)]
+    #[cfg_attr(not(bootstrap), allow(ambiguous_wide_pointer_comparisons))]
     fn lt(&self, other: &*mut T) -> bool {
         *self < *other
     }
 
     #[inline(always)]
+    #[cfg_attr(not(bootstrap), allow(ambiguous_wide_pointer_comparisons))]
     fn le(&self, other: &*mut T) -> bool {
         *self <= *other
     }
 
     #[inline(always)]
+    #[cfg_attr(not(bootstrap), allow(ambiguous_wide_pointer_comparisons))]
     fn gt(&self, other: &*mut T) -> bool {
         *self > *other
     }
 
     #[inline(always)]
+    #[cfg_attr(not(bootstrap), allow(ambiguous_wide_pointer_comparisons))]
     fn ge(&self, other: &*mut T) -> bool {
         *self >= *other
     }

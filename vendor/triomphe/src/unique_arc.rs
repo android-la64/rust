@@ -1,11 +1,14 @@
+use alloc::vec::Vec;
 use alloc::{alloc::Layout, boxed::Box};
 use core::convert::TryFrom;
+use core::iter::FromIterator;
 use core::marker::PhantomData;
 use core::mem::{ManuallyDrop, MaybeUninit};
 use core::ops::{Deref, DerefMut};
 use core::ptr::{self, NonNull};
 use core::sync::atomic::AtomicUsize;
 
+use crate::iterator_as_exact_size_iterator::IteratorAsExactSizeIterator;
 use crate::HeaderSlice;
 
 use super::{Arc, ArcInner};
@@ -78,7 +81,7 @@ impl<T> UniqueArc<T> {
 }
 
 impl<T: ?Sized> UniqueArc<T> {
-    /// Convert to a shareable Arc<T> once we're done mutating it
+    /// Convert to a shareable `Arc<T>` once we're done mutating it
     #[inline]
     pub fn shareable(self) -> Arc<T> {
         self.0
@@ -105,7 +108,7 @@ impl<T: ?Sized> UniqueArc<T> {
     ///
     /// The given `Arc` must have a reference count of exactly one
     pub(crate) unsafe fn from_arc_ref(arc: &mut Arc<T>) -> &mut Self {
-        debug_assert_eq!(Arc::count(&arc), 1);
+        debug_assert_eq!(Arc::count(arc), 1);
 
         // Safety: caller guarantees that `arc` is unique,
         //         `UniqueArc` is `repr(transparent)`
@@ -188,7 +191,7 @@ impl<T: ?Sized> Deref for UniqueArc<T> {
 
     #[inline]
     fn deref(&self) -> &T {
-        &*self.0
+        &self.0
     }
 }
 
@@ -197,6 +200,22 @@ impl<T: ?Sized> DerefMut for UniqueArc<T> {
     fn deref_mut(&mut self) -> &mut T {
         // We know this to be uniquely owned
         unsafe { &mut (*self.0.ptr()).data }
+    }
+}
+
+impl<A> FromIterator<A> for UniqueArc<[A]> {
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        let iter = iter.into_iter();
+        let (lower, upper) = iter.size_hint();
+        let arc: Arc<[A]> = if Some(lower) == upper {
+            let iter = IteratorAsExactSizeIterator::new(iter);
+            Arc::from_header_and_iter((), iter).into()
+        } else {
+            let vec = iter.collect::<Vec<_>>();
+            Arc::from(vec)
+        };
+        // Safety: We just created an `Arc`, so it's unique.
+        unsafe { UniqueArc::from_arc(arc) }
     }
 }
 

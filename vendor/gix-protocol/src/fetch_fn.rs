@@ -41,8 +41,13 @@ pub enum FetchConnection {
 ///   if the server indicates 'permission denied'. Note that not all transport support authentication or authorization.
 /// * `progress` is used to emit progress messages.
 /// * `name` is the name of the git client to present as `agent`, like `"my-app (v2.0)"`".
+/// * If `trace` is `true`, all packetlines received or sent will be passed to the facilities of the `gix-trace` crate.
 ///
 /// _Note_ that depending on the `delegate`, the actual action performed can be `ls-refs`, `clone` or `fetch`.
+///
+/// # WARNING - Do not use!
+///
+/// As it will hang when having multiple negotiation rounds.
 #[allow(clippy::result_large_err)]
 #[maybe_async]
 // TODO: remove this without losing test coverage - we have the same but better in `gix` and it's
@@ -54,6 +59,7 @@ pub async fn fetch<F, D, T, P>(
     mut progress: P,
     fetch_mode: FetchConnection,
     agent: impl Into<String>,
+    trace: bool,
 ) -> Result<(), Error>
 where
     F: FnMut(credentials::helper::Action) -> credentials::protocol::Result,
@@ -87,6 +93,7 @@ where
                     res
                 },
                 &mut progress,
+                trace,
             )
             .await?
         }
@@ -99,7 +106,7 @@ where
             return if matches!(protocol_version, gix_transport::Protocol::V1)
                 || matches!(fetch_mode, FetchConnection::TerminateOnSuccessfulCompletion)
             {
-                indicate_end_of_interaction(transport).await.map_err(Into::into)
+                indicate_end_of_interaction(transport, trace).await.map_err(Into::into)
             } else {
                 Ok(())
             };
@@ -108,7 +115,7 @@ where
             fetch.validate_argument_prefixes_or_panic(protocol_version, &capabilities, &[], &fetch_features);
         }
         Err(err) => {
-            indicate_end_of_interaction(transport).await?;
+            indicate_end_of_interaction(transport, trace).await?;
             return Err(err.into());
         }
     }
@@ -116,7 +123,7 @@ where
     Response::check_required_features(protocol_version, &fetch_features)?;
     let sideband_all = fetch_features.iter().any(|(n, _)| *n == "sideband-all");
     fetch_features.push(("agent", Some(Cow::Owned(agent))));
-    let mut arguments = Arguments::new(protocol_version, fetch_features);
+    let mut arguments = Arguments::new(protocol_version, fetch_features, trace);
     let mut previous_response = None::<Response>;
     let mut round = 1;
     'negotiation: loop {
@@ -131,7 +138,8 @@ where
         let response = Response::from_line_reader(
             protocol_version,
             &mut reader,
-            true, /* hack, telling us we don't want this delegate approach anymore */
+            true,  /* hack, telling us we don't want this delegate approach anymore */
+            false, /* just as much of a hack which causes us to expect a pack immediately */
         )
         .await?;
         previous_response = if response.has_pack() {
@@ -152,13 +160,15 @@ where
     if matches!(protocol_version, gix_transport::Protocol::V2)
         && matches!(fetch_mode, FetchConnection::TerminateOnSuccessfulCompletion)
     {
-        indicate_end_of_interaction(transport).await?;
+        indicate_end_of_interaction(transport, trace).await?;
     }
     Ok(())
 }
 
-fn setup_remote_progress<P>(progress: &mut P, reader: &mut Box<dyn gix_transport::client::ExtendedBufRead + Unpin + '_>)
-where
+fn setup_remote_progress<P>(
+    progress: &mut P,
+    reader: &mut Box<dyn gix_transport::client::ExtendedBufRead<'_> + Unpin + '_>,
+) where
     P: NestedProgress,
     P::SubProgress: 'static,
 {
@@ -168,5 +178,5 @@ where
             crate::RemoteProgress::translate_to_progress(is_err, data, &mut remote_progress);
             gix_transport::packetline::read::ProgressAction::Continue
         }
-    }) as gix_transport::client::HandleProgress));
+    }) as gix_transport::client::HandleProgress<'_>));
 }

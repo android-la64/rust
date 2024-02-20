@@ -1,6 +1,6 @@
 use crate::core::compiler::{CompileKind, CompileMode, Layout, RustcTargetData};
 use crate::core::profiles::Profiles;
-use crate::core::{PackageIdSpec, TargetKind, Workspace};
+use crate::core::{PackageIdSpec, PackageIdSpecQuery, TargetKind, Workspace};
 use crate::ops;
 use crate::util::edit_distance;
 use crate::util::errors::CargoResult;
@@ -389,7 +389,7 @@ impl<'cfg> CleanContext<'cfg> {
         Ok(())
     }
 
-    fn display_summary(&self) -> CargoResult<()> {
+    pub fn display_summary(&self) -> CargoResult<()> {
         let status = if self.dry_run { "Summary" } else { "Removed" };
         let byte_count = if self.total_bytes_removed == 0 {
             String::new()

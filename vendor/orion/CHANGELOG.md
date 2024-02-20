@@ -1,3 +1,22 @@
+### 0.17.6
+
+__Date:__ September 19, 2023.
+
+__Changelog:__
+- Bump MSRV to `1.70.0`.
+- Bump `fiat-crypto` to `0.2.1`.
+
+### 0.17.5
+
+__Date:__ July 4, 2023.
+
+__Changelog:__
+- Add `experimental` crate feature.
+- Add support for fully-committing AEAD variants based on CTX ([#324](https://github.com/orion-rs/orion/pull/324)).
+- Add support for SHA3 ([#327](https://github.com/orion-rs/orion/pull/327)).
+- Bump MSRV to `1.64`.
+- Add support for DHKEM(X25519, HKDF-SHA256) from HPKE [RFC 9180](https://www.rfc-editor.org/rfc/rfc9180).
+
 ### 0.17.4
 
 __Date:__ March 4, 2023.

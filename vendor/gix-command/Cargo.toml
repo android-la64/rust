@@ -13,8 +13,12 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-command"
-version = "0.2.10"
+version = "0.3.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
+include = [
+    "src/lib.rs",
+    "LICENSE-*",
+]
 description = "A crate of the gitoxide project handling internal git command execution"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Byron/gitoxide"
@@ -26,5 +30,14 @@ doctest = false
 version = "1.5.0"
 features = ["std"]
 default-features = false
+
+[dependencies.gix-path]
+version = "^0.10.1"
+
+[dependencies.gix-trace]
+version = "^0.1.4"
+
+[dependencies.shell-words]
+version = "1.0"
 
 [dev-dependencies]

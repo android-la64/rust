@@ -4,9 +4,8 @@ use std::borrow::Cow;
 use gix_features::threading::OwnShared;
 use gix_macros::momo;
 
-use crate::bstr::ByteSlice;
 use crate::{
-    bstr::{BStr, BString},
+    bstr::{BStr, BString, ByteSlice},
     config::{CommitAutoRollback, Snapshot, SnapshotMut},
 };
 
@@ -118,9 +117,13 @@ impl<'repo> SnapshotMut<'repo> {
         }
         let value = new_value.into();
         key.validate(value)?;
-        let current = self
-            .config
-            .set_raw_value(key.section().name(), None, key.name(), value)?;
+        let section = key.section();
+        let current = match section.parent() {
+            Some(parent) => self
+                .config
+                .set_raw_value(parent.name(), Some(section.name().into()), key.name(), value)?,
+            None => self.config.set_raw_value(section.name(), None, key.name(), value)?,
+        };
         Ok(current.map(std::borrow::Cow::into_owned))
     }
 

@@ -1,5 +1,83 @@
 # Changelog
 
+## mdBook 0.4.36
+[v0.4.35...v0.4.36](https://github.com/rust-lang/mdBook/compare/v0.4.35...v0.4.36)
+
+### Added
+- Added Nim to the default highlighted languages.
+  [#2232](https://github.com/rust-lang/mdBook/pull/2232)
+- Added a small indicator for the sidebar resize handle.
+  [#2209](https://github.com/rust-lang/mdBook/pull/2209)
+
+### Changed
+- Updated dependencies. MSRV raised to 1.70.0.
+  [#2173](https://github.com/rust-lang/mdBook/pull/2173)
+  [#2250](https://github.com/rust-lang/mdBook/pull/2250)
+  [#2252](https://github.com/rust-lang/mdBook/pull/2252)
+
+### Fixed
+- Fixed blank column in print page when the sidebar was visible.
+  [#2235](https://github.com/rust-lang/mdBook/pull/2235)
+- Fixed indentation of code blocks when Javascript is disabled.
+  [#2162](https://github.com/rust-lang/mdBook/pull/2162)
+- Fixed a panic when `mdbook serve` or `mdbook watch` were given certain kinds of paths.
+  [#2229](https://github.com/rust-lang/mdBook/pull/2229)
+
+## mdBook 0.4.35
+[v0.4.34...v0.4.35](https://github.com/rust-lang/mdBook/compare/v0.4.34...v0.4.35)
+
+### Added
+- Added the `book.text-direction` setting for explicit support for right-to-left languages.
+  [#1641](https://github.com/rust-lang/mdBook/pull/1641)
+- Added `rel=prefetch` to the "next" links to potentially improve browser performance.
+  [#2168](https://github.com/rust-lang/mdBook/pull/2168)
+- Added a `.warning` CSS class which is styled for displaying warning blocks.
+  [#2187](https://github.com/rust-lang/mdBook/pull/2187)
+
+### Changed
+- Better support of the sidebar when JavaScript is disabled.
+  [#2175](https://github.com/rust-lang/mdBook/pull/2175)
+
+## mdBook 0.4.34
+[v0.4.33...v0.4.34](https://github.com/rust-lang/mdBook/compare/v0.4.33...v0.4.34)
+
+### Fixed
+- Fixed file change watcher failing on macOS with a large number of files.
+  [#2157](https://github.com/rust-lang/mdBook/pull/2157)
+
+## mdBook 0.4.33
+[v0.4.32...v0.4.33](https://github.com/rust-lang/mdBook/compare/v0.4.32...v0.4.33)
+
+### Added
+- The `color-scheme` CSS property is now set based on the light/dark theme, which applies some slight color differences in browser elements like scroll bars on some browsers.
+  [#2134](https://github.com/rust-lang/mdBook/pull/2134)
+
+### Fixed
+- Fixed watching of extra-watch-dirs when not running in the book root directory.
+  [#2146](https://github.com/rust-lang/mdBook/pull/2146)
+- Reverted the dependency update to the `toml` crate (again!). This was an unintentional breaking change in 0.4.32.
+  [#2021](https://github.com/rust-lang/mdBook/pull/2021)
+- Changed macOS change notifications to use the kqueue implementation which should fix some issues with repeated rebuilds when a file changed.
+  [#2152](https://github.com/rust-lang/mdBook/pull/2152)
+- Don't set a background color in the print page for code blocks in a header.
+  [#2150](https://github.com/rust-lang/mdBook/pull/2150)
+
+## mdBook 0.4.32
+[v0.4.31...v0.4.32](https://github.com/rust-lang/mdBook/compare/v0.4.31...v0.4.32)
+
+### Fixed
+- Fixed theme-color meta tag not syncing with the theme.
+  [#2118](https://github.com/rust-lang/mdBook/pull/2118)
+
+### Changed
+- Updated all dependencies.
+  [#2121](https://github.com/rust-lang/mdBook/pull/2121)
+  [#2122](https://github.com/rust-lang/mdBook/pull/2122)
+  [#2123](https://github.com/rust-lang/mdBook/pull/2123)
+  [#2124](https://github.com/rust-lang/mdBook/pull/2124)
+  [#2125](https://github.com/rust-lang/mdBook/pull/2125)
+  [#2126](https://github.com/rust-lang/mdBook/pull/2126)
+
 ## mdBook 0.4.31
 [v0.4.30...v0.4.31](https://github.com/rust-lang/mdBook/compare/v0.4.30...v0.4.31)
 
@@ -224,7 +302,7 @@
   [#1771](https://github.com/rust-lang/mdBook/pull/1771)
 - The 404 not-found page now includes the books title in the HTML title tag.
   [#1693](https://github.com/rust-lang/mdBook/pull/1693)
-- Migrated to clap 3.0 which which handles CLI option parsing.
+- Migrated to clap 3.0 which handles CLI option parsing.
   [#1731](https://github.com/rust-lang/mdBook/pull/1731)
 
 ### Fixed

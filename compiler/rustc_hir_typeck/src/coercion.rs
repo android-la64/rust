@@ -36,7 +36,9 @@
 //! ```
 
 use crate::FnCtxt;
-use rustc_errors::{struct_span_err, Diagnostic, DiagnosticBuilder, ErrorGuaranteed, MultiSpan};
+use rustc_errors::{
+    struct_span_err, Applicability, Diagnostic, DiagnosticBuilder, ErrorGuaranteed, MultiSpan,
+};
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
 use rustc_hir::intravisit::{self, Visitor};
@@ -53,11 +55,10 @@ use rustc_middle::ty::adjustment::{
 use rustc_middle::ty::error::TypeError;
 use rustc_middle::ty::relate::RelateResult;
 use rustc_middle::ty::visit::TypeVisitableExt;
-use rustc_middle::ty::GenericArgsRef;
-use rustc_middle::ty::{self, Ty, TypeAndMut};
+use rustc_middle::ty::{self, GenericArgsRef, Ty, TyCtxt, TypeAndMut};
 use rustc_session::parse::feature_err;
 use rustc_span::symbol::sym;
-use rustc_span::{self, DesugaringKind};
+use rustc_span::DesugaringKind;
 use rustc_target::spec::abi::Abi;
 use rustc_trait_selection::infer::InferCtxtExt as _;
 use rustc_trait_selection::traits::error_reporting::TypeErrCtxtExt as _;
@@ -85,7 +86,7 @@ struct Coerce<'a, 'tcx> {
 impl<'a, 'tcx> Deref for Coerce<'a, 'tcx> {
     type Target = FnCtxt<'a, 'tcx>;
     fn deref(&self) -> &Self::Target {
-        &self.fcx
+        self.fcx
     }
 }
 
@@ -158,7 +159,7 @@ impl<'f, 'tcx> Coerce<'f, 'tcx> {
             if self.next_trait_solver() {
                 if let Ok(res) = &res {
                     for obligation in &res.obligations {
-                        if !self.predicate_may_hold(&obligation) {
+                        if !self.predicate_may_hold(obligation) {
                             return Err(TypeError::Mismatch);
                         }
                     }
@@ -1041,7 +1042,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// Returns false if the coercion creates any obligations that result in
     /// errors.
     pub fn can_coerce(&self, expr_ty: Ty<'tcx>, target: Ty<'tcx>) -> bool {
-        // FIXME(-Ztrait-solver=next): We need to structurally resolve both types here.
+        // FIXME(-Znext-solver): We need to structurally resolve both types here.
         let source = self.resolve_vars_with_obligations(expr_ty);
         debug!("coercion::can_with_predicates({:?} -> {:?})", source, target);
 
@@ -1204,14 +1205,14 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     Adjust::Pointer(PointerCoercion::ClosureFnPointer(a_sig.unsafety()))
                 }
                 ty::FnDef(..) => Adjust::Pointer(PointerCoercion::ReifyFnPointer),
-                _ => unreachable!(),
+                _ => span_bug!(cause.span, "should not try to coerce a {prev_ty} to a fn pointer"),
             };
             let next_adjustment = match new_ty.kind() {
                 ty::Closure(..) => {
                     Adjust::Pointer(PointerCoercion::ClosureFnPointer(b_sig.unsafety()))
                 }
                 ty::FnDef(..) => Adjust::Pointer(PointerCoercion::ReifyFnPointer),
-                _ => unreachable!(),
+                _ => span_bug!(new.span, "should not try to coerce a {new_ty} to a fn pointer"),
             };
             for expr in exprs.iter().map(|e| e.as_coercion_site()) {
                 self.apply_adjustments(
@@ -1510,7 +1511,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                         expression,
                         expression_ty,
                     ),
-                    Expressions::UpFront(ref coercion_sites) => fcx.try_find_coercion_lub(
+                    Expressions::UpFront(coercion_sites) => fcx.try_find_coercion_lub(
                         cause,
                         &coercion_sites[0..self.pushed],
                         self.merged_ty(),
@@ -1572,7 +1573,9 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                 // any superfluous errors we might encounter while trying to
                 // emit or provide suggestions on how to fix the initial error.
                 fcx.set_tainted_by_errors(
-                    fcx.tcx.sess.delay_span_bug(cause.span, "coercion error but no error emitted"),
+                    fcx.tcx
+                        .sess
+                        .span_delayed_bug(cause.span, "coercion error but no error emitted"),
                 );
                 let (expected, found) = if label_expression_as_expected {
                     // In the case where this is a "forced unit", like
@@ -1660,12 +1663,15 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                         None,
                         Some(coercion_error),
                     );
-                }
-
-                if visitor.ret_exprs.len() > 0
-                    && let Some(expr) = expression
-                {
-                    self.note_unreachable_loop_return(&mut err, &expr, &visitor.ret_exprs);
+                    if visitor.ret_exprs.len() > 0 {
+                        self.note_unreachable_loop_return(
+                            &mut err,
+                            fcx.tcx,
+                            &expr,
+                            &visitor.ret_exprs,
+                            expected,
+                        );
+                    }
                 }
 
                 let reported = err.emit_unless(unsized_return);
@@ -1678,8 +1684,10 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
     fn note_unreachable_loop_return(
         &self,
         err: &mut Diagnostic,
+        tcx: TyCtxt<'tcx>,
         expr: &hir::Expr<'tcx>,
         ret_exprs: &Vec<&'tcx hir::Expr<'tcx>>,
+        ty: Ty<'tcx>,
     ) {
         let hir::ExprKind::Loop(_, _, _, loop_span) = expr.kind else {
             return;
@@ -1704,10 +1712,77 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
                 ret_exprs.len() - MAXITER
             ));
         }
-        err.help(
-            "return a value for the case when the loop has zero elements to iterate on, or \
-           consider changing the return type to account for that possibility",
-        );
+        let hir = tcx.hir();
+        let item = hir.get_parent_item(expr.hir_id);
+        let ret_msg = "return a value for the case when the loop has zero elements to iterate on";
+        let ret_ty_msg =
+            "otherwise consider changing the return type to account for that possibility";
+        if let Some(node) = tcx.opt_hir_node(item.into())
+            && let Some(body_id) = node.body_id()
+            && let Some(sig) = node.fn_sig()
+            && let hir::ExprKind::Block(block, _) = hir.body(body_id).value.kind
+            && !ty.is_never()
+        {
+            let indentation = if let None = block.expr
+                && let [.., last] = &block.stmts
+            {
+                tcx.sess.source_map().indentation_before(last.span).unwrap_or_else(String::new)
+            } else if let Some(expr) = block.expr {
+                tcx.sess.source_map().indentation_before(expr.span).unwrap_or_else(String::new)
+            } else {
+                String::new()
+            };
+            if let None = block.expr
+                && let [.., last] = &block.stmts
+            {
+                err.span_suggestion_verbose(
+                    last.span.shrink_to_hi(),
+                    ret_msg,
+                    format!("\n{indentation}/* `{ty}` value */"),
+                    Applicability::MaybeIncorrect,
+                );
+            } else if let Some(expr) = block.expr {
+                err.span_suggestion_verbose(
+                    expr.span.shrink_to_hi(),
+                    ret_msg,
+                    format!("\n{indentation}/* `{ty}` value */"),
+                    Applicability::MaybeIncorrect,
+                );
+            }
+            let mut sugg = match sig.decl.output {
+                hir::FnRetTy::DefaultReturn(span) => {
+                    vec![(span, " -> Option<()>".to_string())]
+                }
+                hir::FnRetTy::Return(ty) => {
+                    vec![
+                        (ty.span.shrink_to_lo(), "Option<".to_string()),
+                        (ty.span.shrink_to_hi(), ">".to_string()),
+                    ]
+                }
+            };
+            for ret_expr in ret_exprs {
+                match ret_expr.kind {
+                    hir::ExprKind::Ret(Some(expr)) => {
+                        sugg.push((expr.span.shrink_to_lo(), "Some(".to_string()));
+                        sugg.push((expr.span.shrink_to_hi(), ")".to_string()));
+                    }
+                    hir::ExprKind::Ret(None) => {
+                        sugg.push((ret_expr.span.shrink_to_hi(), " Some(())".to_string()));
+                    }
+                    _ => {}
+                }
+            }
+            if let None = block.expr
+                && let [.., last] = &block.stmts
+            {
+                sugg.push((last.span.shrink_to_hi(), format!("\n{indentation}None")));
+            } else if let Some(expr) = block.expr {
+                sugg.push((expr.span.shrink_to_hi(), format!("\n{indentation}None")));
+            }
+            err.multipart_suggestion(ret_ty_msg, sugg, Applicability::MaybeIncorrect);
+        } else {
+            err.help(format!("{ret_msg}, {ret_ty_msg}"));
+        }
     }
 
     fn report_return_mismatched_types<'a>(
@@ -1724,7 +1799,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
         let mut err = fcx.err_ctxt().report_mismatched_types(cause, expected, found, ty_err);
 
         let parent_id = fcx.tcx.hir().parent_id(id);
-        let parent = fcx.tcx.hir().get(parent_id);
+        let parent = fcx.tcx.hir_node(parent_id);
         if let Some(expr) = expression
             && let hir::Node::Expr(hir::Expr {
                 kind: hir::ExprKind::Closure(&hir::Closure { body, .. }),
@@ -1738,6 +1813,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
         // label pointing out the cause for the type coercion will be wrong
         // as prior return coercions would not be relevant (#57664).
         let fn_decl = if let (Some(expr), Some(blk_id)) = (expression, blk_id) {
+            fcx.suggest_missing_semicolon(&mut err, expr, expected, false);
             let pointing_at_return_type =
                 fcx.suggest_mismatched_types_on_tail(&mut err, expr, expected, found, blk_id);
             if let (Some(cond_expr), true, false) = (
@@ -1772,7 +1848,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
             if blk_id.is_none() {
                 fcx.suggest_missing_return_type(
                     &mut err,
-                    &fn_decl,
+                    fn_decl,
                     expected,
                     found,
                     can_suggest,
@@ -1782,7 +1858,7 @@ impl<'tcx, 'exprs, E: AsCoercionSite> CoerceMany<'tcx, 'exprs, E> {
         }
 
         let parent_id = fcx.tcx.hir().get_parent_item(id);
-        let parent_item = fcx.tcx.hir().get_by_def_id(parent_id.def_id);
+        let parent_item = fcx.tcx.hir_node_by_def_id(parent_id.def_id);
 
         if let (Some(expr), Some(_), Some((fn_id, fn_decl, _, _))) =
             (expression, blk_id, fcx.get_node_fn_decl(parent_item))
@@ -1865,12 +1941,12 @@ where
 
 impl AsCoercionSite for ! {
     fn as_coercion_site(&self) -> &hir::Expr<'_> {
-        unreachable!()
+        *self
     }
 }
 
 impl AsCoercionSite for hir::Arm<'_> {
     fn as_coercion_site(&self) -> &hir::Expr<'_> {
-        &self.body
+        self.body
     }
 }

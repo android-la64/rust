@@ -3,18 +3,12 @@ use super::ty::{AllowPlus, RecoverQPath, RecoverReturnSign};
 use super::{AttrWrapper, FollowedByType, ForceCollect, Parser, PathStyle, TrailingToken};
 use crate::errors::{self, MacroExpandsToAdtField};
 use crate::fluent_generated as fluent;
-use ast::StaticItem;
 use rustc_ast::ast::*;
 use rustc_ast::ptr::P;
 use rustc_ast::token::{self, Delimiter, TokenKind};
 use rustc_ast::tokenstream::{DelimSpan, TokenStream, TokenTree};
 use rustc_ast::util::case::Case;
-use rustc_ast::MacCall;
-use rustc_ast::{self as ast, AttrVec, Attribute, DUMMY_NODE_ID};
-use rustc_ast::{Async, Const, Defaultness, IsAuto, Mutability, Unsafe, UseTree, UseTreeKind};
-use rustc_ast::{BindingAnnotation, Block, FnDecl, FnSig, Param, SelfKind};
-use rustc_ast::{EnumDef, FieldDef, Generics, TraitRef, Ty, TyKind, Variant, VariantData};
-use rustc_ast::{FnHeader, ForeignItem, Path, PathSegment, Visibility, VisibilityKind};
+use rustc_ast::{self as ast};
 use rustc_ast_pretty::pprust;
 use rustc_errors::{
     struct_span_err, Applicability, DiagnosticBuilder, ErrorGuaranteed, IntoDiagnostic, PResult,
@@ -123,7 +117,7 @@ impl<'a> Parser<'a> {
         // Don't use `maybe_whole` so that we have precise control
         // over when we bump the parser
         if let token::Interpolated(nt) = &self.token.kind
-            && let token::NtItem(item) = &**nt
+            && let token::NtItem(item) = &nt.0
         {
             let mut item = item.clone();
             self.bump();
@@ -444,11 +438,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        if let Some(err) = err {
-            Err(err.into_diagnostic(&self.sess.span_diagnostic))
-        } else {
-            Ok(())
-        }
+        if let Some(err) = err { Err(err.into_diagnostic(self.dcx())) } else { Ok(()) }
     }
 
     fn parse_item_builtin(&mut self) -> PResult<'a, Option<ItemInfo>> {
@@ -769,7 +759,7 @@ impl<'a> Parser<'a> {
             if self.look_ahead(1, |tok| tok == &token::CloseDelim(Delimiter::Brace)) {
                 // FIXME: merge with `DocCommentDoesNotDocumentAnything` (E0585)
                 struct_span_err!(
-                    self.diagnostic(),
+                    self.dcx(),
                     self.token.span,
                     E0584,
                     "found a documentation comment that doesn't document anything",
@@ -933,7 +923,7 @@ impl<'a> Parser<'a> {
         );
         let where_predicates_split = before_where_clause.predicates.len();
         let mut predicates = before_where_clause.predicates;
-        predicates.extend(after_where_clause.predicates.into_iter());
+        predicates.extend(after_where_clause.predicates);
         let where_clause = WhereClause {
             has_where_token: before_where_clause.has_where_token
                 || after_where_clause.has_where_token,
@@ -1143,9 +1133,11 @@ impl<'a> Parser<'a> {
                     Ok(kind) => kind,
                     Err(kind) => match kind {
                         ItemKind::Const(box ConstItem { ty, expr, .. }) => {
+                            let const_span = Some(span.with_hi(ident.span.lo()))
+                                .filter(|span| span.can_be_used_for_suggestions());
                             self.sess.emit_err(errors::ExternItemCannotBeConst {
                                 ident_span: ident.span,
-                                const_span: span.with_hi(ident.span.lo()),
+                                const_span,
                             });
                             ForeignItemKind::Static(ty, Mutability::Not, expr)
                         }
@@ -1382,8 +1374,7 @@ impl<'a> Parser<'a> {
 
         let span = self.prev_token.span.shrink_to_hi();
         let err: DiagnosticBuilder<'_, ErrorGuaranteed> =
-            errors::MissingConstType { span, colon, kind }
-                .into_diagnostic(&self.sess.span_diagnostic);
+            errors::MissingConstType { span, colon, kind }.into_diagnostic(self.dcx());
         err.stash(span, StashKey::ItemNoType);
 
         // The user intended that the type be inferred,
@@ -1400,7 +1391,7 @@ impl<'a> Parser<'a> {
                 self.bump();
                 self.sess.emit_err(err);
             } else {
-                return Err(err.into_diagnostic(&self.sess.span_diagnostic));
+                return Err(err.into_diagnostic(self.dcx()));
             }
         }
 
@@ -1415,8 +1406,8 @@ impl<'a> Parser<'a> {
             self.bump();
             (thin_vec![], false)
         } else {
-            self.parse_delim_comma_seq(Delimiter::Brace, |p| p.parse_enum_variant()).map_err(
-                |mut err| {
+            self.parse_delim_comma_seq(Delimiter::Brace, |p| p.parse_enum_variant(id.span))
+                .map_err(|mut err| {
                     err.span_label(id.span, "while parsing this enum");
                     if self.token == token::Colon {
                         let snapshot = self.create_snapshot_for_diagnostic();
@@ -1436,20 +1427,22 @@ impl<'a> Parser<'a> {
                         }
                         self.restore_snapshot(snapshot);
                     }
-                    self.recover_stmt();
+                    self.eat_to_tokens(&[&token::CloseDelim(Delimiter::Brace)]);
+                    self.bump(); // }
                     err
-                },
-            )?
+                })?
         };
 
         let enum_definition = EnumDef { variants: variants.into_iter().flatten().collect() };
         Ok((id, ItemKind::Enum(enum_definition, generics)))
     }
 
-    fn parse_enum_variant(&mut self) -> PResult<'a, Option<Variant>> {
+    fn parse_enum_variant(&mut self, span: Span) -> PResult<'a, Option<Variant>> {
         self.recover_diff_marker();
         let variant_attrs = self.parse_outer_attributes()?;
         self.recover_diff_marker();
+        let help = "enum variants can be `Variant`, `Variant = <integer>`, \
+                    `Variant(Type, ..., TypeN)` or `Variant { fields: Types }`";
         self.collect_tokens_trailing_token(
             variant_attrs,
             ForceCollect::No,
@@ -1476,10 +1469,39 @@ impl<'a> Parser<'a> {
                 let struct_def = if this.check(&token::OpenDelim(Delimiter::Brace)) {
                     // Parse a struct variant.
                     let (fields, recovered) =
-                        this.parse_record_struct_body("struct", ident.span, false)?;
-                    VariantData::Struct(fields, recovered)
+                        match this.parse_record_struct_body("struct", ident.span, false) {
+                            Ok((fields, recovered)) => (fields, recovered),
+                            Err(mut err) => {
+                                if this.token == token::Colon {
+                                    // We handle `enum` to `struct` suggestion in the caller.
+                                    return Err(err);
+                                }
+                                this.eat_to_tokens(&[&token::CloseDelim(Delimiter::Brace)]);
+                                this.bump(); // }
+                                err.span_label(span, "while parsing this enum");
+                                err.help(help);
+                                err.emit();
+                                (thin_vec![], true)
+                            }
+                        };
+                    VariantData::Struct { fields, recovered }
                 } else if this.check(&token::OpenDelim(Delimiter::Parenthesis)) {
-                    VariantData::Tuple(this.parse_tuple_struct_body()?, DUMMY_NODE_ID)
+                    let body = match this.parse_tuple_struct_body() {
+                        Ok(body) => body,
+                        Err(mut err) => {
+                            if this.token == token::Colon {
+                                // We handle `enum` to `struct` suggestion in the caller.
+                                return Err(err);
+                            }
+                            this.eat_to_tokens(&[&token::CloseDelim(Delimiter::Parenthesis)]);
+                            this.bump(); // )
+                            err.span_label(span, "while parsing this enum");
+                            err.help(help);
+                            err.emit();
+                            thin_vec![]
+                        }
+                    };
+                    VariantData::Tuple(body, DUMMY_NODE_ID)
                 } else {
                     VariantData::Unit(DUMMY_NODE_ID)
                 };
@@ -1500,8 +1522,9 @@ impl<'a> Parser<'a> {
 
                 Ok((Some(vr), TrailingToken::MaybeComma))
             },
-        ).map_err(|mut err| {
-            err.help("enum variants can be `Variant`, `Variant = <integer>`, `Variant(Type, ..., TypeN)` or `Variant { fields: Types }`");
+        )
+        .map_err(|mut err| {
+            err.help(help);
             err
         })
     }
@@ -1546,7 +1569,7 @@ impl<'a> Parser<'a> {
                     class_name.span,
                     generics.where_clause.has_where_token,
                 )?;
-                VariantData::Struct(fields, recovered)
+                VariantData::Struct { fields, recovered }
             }
         // No `where` so: `struct Foo<T>;`
         } else if self.eat(&token::Semi) {
@@ -1558,7 +1581,7 @@ impl<'a> Parser<'a> {
                 class_name.span,
                 generics.where_clause.has_where_token,
             )?;
-            VariantData::Struct(fields, recovered)
+            VariantData::Struct { fields, recovered }
         // Tuple-style struct definition with optional where-clause.
         } else if self.token == token::OpenDelim(Delimiter::Parenthesis) {
             let body = VariantData::Tuple(self.parse_tuple_struct_body()?, DUMMY_NODE_ID);
@@ -1568,7 +1591,7 @@ impl<'a> Parser<'a> {
         } else {
             let err =
                 errors::UnexpectedTokenAfterStructName::new(self.token.span, self.token.clone());
-            return Err(err.into_diagnostic(&self.sess.span_diagnostic));
+            return Err(err.into_diagnostic(self.dcx()));
         };
 
         Ok((class_name, ItemKind::Struct(vdata, generics)))
@@ -1587,14 +1610,14 @@ impl<'a> Parser<'a> {
                 class_name.span,
                 generics.where_clause.has_where_token,
             )?;
-            VariantData::Struct(fields, recovered)
+            VariantData::Struct { fields, recovered }
         } else if self.token == token::OpenDelim(Delimiter::Brace) {
             let (fields, recovered) = self.parse_record_struct_body(
                 "union",
                 class_name.span,
                 generics.where_clause.has_where_token,
             )?;
-            VariantData::Struct(fields, recovered)
+            VariantData::Struct { fields, recovered }
         } else {
             let token_str = super::token_descr(&self.token);
             let msg = format!("expected `where` or `{{` after union name, found {token_str}");
@@ -1764,7 +1787,7 @@ impl<'a> Parser<'a> {
                         let sp = previous_span.shrink_to_hi();
                         err.missing_comma = Some(sp);
                     }
-                    return Err(err.into_diagnostic(&self.sess.span_diagnostic));
+                    return Err(err.into_diagnostic(self.dcx()));
                 }
             }
             _ => {
@@ -1814,7 +1837,7 @@ impl<'a> Parser<'a> {
                     // Make sure an error was emitted (either by recovering an angle bracket,
                     // or by finding an identifier as the next token), since we're
                     // going to continue parsing
-                    assert!(self.sess.span_diagnostic.has_errors().is_some());
+                    assert!(self.dcx().has_errors().is_some());
                 } else {
                     return Err(err);
                 }
@@ -2271,7 +2294,7 @@ impl<'a> Parser<'a> {
             } else {
                 &[token::Semi, token::OpenDelim(Delimiter::Brace)]
             };
-            if let Err(mut err) = self.expected_one_of_not_found(&[], &expected) {
+            if let Err(mut err) = self.expected_one_of_not_found(&[], expected) {
                 if self.token.kind == token::CloseDelim(Delimiter::Brace) {
                     // The enclosing `mod`, `trait` or `impl` is being closed, so keep the `fn` in
                     // the AST for typechecking.
@@ -2330,8 +2353,10 @@ impl<'a> Parser<'a> {
                             || case == Case::Insensitive
                                 && t.is_non_raw_ident_where(|i| quals.iter().any(|qual| qual.as_str() == i.name.as_str().to_lowercase()))
                         )
-                        // Rule out unsafe extern block.
-                        && !self.is_unsafe_foreign_mod())
+                        // Rule out `unsafe extern {`.
+                        && !self.is_unsafe_foreign_mod()
+                        // Rule out `async gen {` and `async gen move {`
+                        && !self.is_async_gen_block())
                 })
             // `extern ABI fn`
             || self.check_keyword_case(kw::Extern, case)
@@ -2363,10 +2388,7 @@ impl<'a> Parser<'a> {
         let constness = self.parse_constness(case);
 
         let async_start_sp = self.token.span;
-        let asyncness = self.parse_asyncness(case);
-
-        let _gen_start_sp = self.token.span;
-        let genness = self.parse_genness(case);
+        let coroutine_kind = self.parse_coroutine_kind(case);
 
         let unsafe_start_sp = self.token.span;
         let unsafety = self.parse_unsafety(case);
@@ -2374,7 +2396,7 @@ impl<'a> Parser<'a> {
         let ext_start_sp = self.token.span;
         let ext = self.parse_extern(case);
 
-        if let Async::Yes { span, .. } = asyncness {
+        if let Some(CoroutineKind::Async { span, .. }) = coroutine_kind {
             if span.is_rust_2015() {
                 self.sess.emit_err(errors::AsyncFnIn2015 {
                     span,
@@ -2383,8 +2405,11 @@ impl<'a> Parser<'a> {
             }
         }
 
-        if let Gen::Yes { span, .. } = genness {
-            self.sess.emit_err(errors::GenFn { span });
+        match coroutine_kind {
+            Some(CoroutineKind::Gen { span, .. }) | Some(CoroutineKind::AsyncGen { span, .. }) => {
+                self.sess.gated_spans.gate(sym::gen_blocks, span);
+            }
+            Some(CoroutineKind::Async { .. }) | None => {}
         }
 
         if !self.eat_keyword_case(kw::Fn, case) {
@@ -2403,7 +2428,7 @@ impl<'a> Parser<'a> {
 
                     // We may be able to recover
                     let mut recover_constness = constness;
-                    let mut recover_asyncness = asyncness;
+                    let mut recover_coroutine_kind = coroutine_kind;
                     let mut recover_unsafety = unsafety;
                     // This will allow the machine fix to directly place the keyword in the correct place or to indicate
                     // that the keyword is already present and the second instance should be removed.
@@ -2416,14 +2441,28 @@ impl<'a> Parser<'a> {
                             }
                         }
                     } else if self.check_keyword(kw::Async) {
-                        match asyncness {
-                            Async::Yes { span, .. } => Some(WrongKw::Duplicated(span)),
-                            Async::No => {
-                                recover_asyncness = Async::Yes {
+                        match coroutine_kind {
+                            Some(CoroutineKind::Async { span, .. }) => {
+                                Some(WrongKw::Duplicated(span))
+                            }
+                            Some(CoroutineKind::AsyncGen { span, .. }) => {
+                                Some(WrongKw::Duplicated(span))
+                            }
+                            Some(CoroutineKind::Gen { .. }) => {
+                                recover_coroutine_kind = Some(CoroutineKind::AsyncGen {
                                     span: self.token.span,
                                     closure_id: DUMMY_NODE_ID,
                                     return_impl_trait_id: DUMMY_NODE_ID,
-                                };
+                                });
+                                // FIXME(gen_blocks): This span is wrong, didn't want to think about it.
+                                Some(WrongKw::Misplaced(unsafe_start_sp))
+                            }
+                            None => {
+                                recover_coroutine_kind = Some(CoroutineKind::Async {
+                                    span: self.token.span,
+                                    closure_id: DUMMY_NODE_ID,
+                                    return_impl_trait_id: DUMMY_NODE_ID,
+                                });
                                 Some(WrongKw::Misplaced(unsafe_start_sp))
                             }
                         }
@@ -2504,6 +2543,8 @@ impl<'a> Parser<'a> {
                         }
                     }
 
+                    // FIXME(gen_blocks): add keyword recovery logic for genness
+
                     if wrong_kw.is_some()
                         && self.may_recover()
                         && self.look_ahead(1, |tok| tok.is_keyword_case(kw::Fn, case))
@@ -2515,7 +2556,7 @@ impl<'a> Parser<'a> {
                         return Ok(FnHeader {
                             constness: recover_constness,
                             unsafety: recover_unsafety,
-                            asyncness: recover_asyncness,
+                            coroutine_kind: recover_coroutine_kind,
                             ext,
                         });
                     }
@@ -2525,7 +2566,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Ok(FnHeader { constness, unsafety, asyncness, ext })
+        Ok(FnHeader { constness, unsafety, coroutine_kind, ext })
     }
 
     /// Parses the parameter list and result type of a function declaration.
@@ -2750,7 +2791,7 @@ impl<'a> Parser<'a> {
 
     fn is_named_param(&self) -> bool {
         let offset = match &self.token.kind {
-            token::Interpolated(nt) => match **nt {
+            token::Interpolated(nt) => match &nt.0 {
                 token::NtPat(..) => return self.look_ahead(1, |t| t == &token::Colon),
                 _ => 0,
             },

@@ -24,6 +24,8 @@
  */
 #include "nghttp2_helper_test.h"
 
+#include <stdio.h>
+
 #include <CUnit/CUnit.h>
 
 #include "nghttp2_helper.h"
@@ -166,4 +168,28 @@ void test_nghttp2_check_header_value(void) {
   CU_ASSERT(check_header_value(goodval));
   CU_ASSERT(!check_header_value(badval1));
   CU_ASSERT(!check_header_value(badval2));
+  CU_ASSERT(check_header_value(""));
+  CU_ASSERT(check_header_value(" "));
+  CU_ASSERT(check_header_value("\t"));
+}
+
+#define check_header_value_rfc9113(S)                                          \
+  nghttp2_check_header_value_rfc9113((const uint8_t *)S, sizeof(S) - 1)
+
+void test_nghttp2_check_header_value_rfc9113(void) {
+  uint8_t goodval[] = {'a', 'b', 0x80u, 'c', 0xffu, 'd'};
+  uint8_t badval1[] = {'a', 0x1fu, 'b'};
+  uint8_t badval2[] = {'a', 0x7fu, 'b'};
+
+  CU_ASSERT(check_header_value_rfc9113("!|}~"));
+  CU_ASSERT(!check_header_value_rfc9113(" !|}~"));
+  CU_ASSERT(!check_header_value_rfc9113("!|}~ "));
+  CU_ASSERT(!check_header_value_rfc9113("\t!|}~"));
+  CU_ASSERT(!check_header_value_rfc9113("!|}~\t"));
+  CU_ASSERT(check_header_value_rfc9113(goodval));
+  CU_ASSERT(!check_header_value_rfc9113(badval1));
+  CU_ASSERT(!check_header_value_rfc9113(badval2));
+  CU_ASSERT(check_header_value_rfc9113(""));
+  CU_ASSERT(!check_header_value_rfc9113(" "));
+  CU_ASSERT(!check_header_value_rfc9113("\t"));
 }

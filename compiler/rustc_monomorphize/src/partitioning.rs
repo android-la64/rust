@@ -212,11 +212,17 @@ where
     let cgu_name_cache = &mut FxHashMap::default();
 
     for mono_item in mono_items {
-        // Handle only root items directly here. Inlined items are handled at
-        // the bottom of the loop based on reachability.
+        // Handle only root (GloballyShared) items directly here. Inlined (LocalCopy) items
+        // are handled at the bottom of the loop based on reachability, with one exception.
+        // The #[lang = "start"] item is the program entrypoint, so there are no calls to it in MIR.
+        // So even if its mode is LocalCopy, we need to treat it like a root.
         match mono_item.instantiation_mode(cx.tcx) {
             InstantiationMode::GloballyShared { .. } => {}
-            InstantiationMode::LocalCopy => continue,
+            InstantiationMode::LocalCopy => {
+                if Some(mono_item.def_id()) != cx.tcx.lang_items().start_fn() {
+                    continue;
+                }
+            }
         }
 
         let characteristic_def_id = characteristic_def_id_of_mono_item(cx.tcx, mono_item);
@@ -436,12 +442,12 @@ fn merge_codegen_units<'tcx>(
         for cgu in codegen_units.iter_mut() {
             if let Some(new_cgu_name) = new_cgu_names.get(&cgu.name()) {
                 if cx.tcx.sess.opts.unstable_opts.human_readable_cgu_names {
-                    cgu.set_name(Symbol::intern(&new_cgu_name));
+                    cgu.set_name(Symbol::intern(new_cgu_name));
                 } else {
                     // If we don't require CGU names to be human-readable,
                     // we use a fixed length hash of the composite CGU name
                     // instead.
-                    let new_cgu_name = CodegenUnit::mangle_name(&new_cgu_name);
+                    let new_cgu_name = CodegenUnit::mangle_name(new_cgu_name);
                     cgu.set_name(Symbol::intern(&new_cgu_name));
                 }
             }
@@ -883,7 +889,7 @@ fn mono_item_visibility<'tcx>(
 }
 
 fn default_visibility(tcx: TyCtxt<'_>, id: DefId, is_generic: bool) -> Visibility {
-    if !tcx.sess.target.default_hidden_visibility {
+    if !tcx.sess.default_hidden_visibility() {
         return Visibility::Default;
     }
 
@@ -1140,7 +1146,7 @@ fn collect_and_partition_mono_items(tcx: TyCtxt<'_>, (): ()) -> (&DefIdSet, &[Co
     // Output monomorphization stats per def_id
     if let SwitchWithOptPath::Enabled(ref path) = tcx.sess.opts.unstable_opts.dump_mono_stats {
         if let Err(err) =
-            dump_mono_items_stats(tcx, &codegen_units, path, tcx.crate_name(LOCAL_CRATE))
+            dump_mono_items_stats(tcx, codegen_units, path, tcx.crate_name(LOCAL_CRATE))
         {
             tcx.sess.emit_fatal(CouldntDumpMonoStats { error: err.to_string() });
         }

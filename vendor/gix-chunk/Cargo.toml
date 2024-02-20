@@ -13,12 +13,11 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-chunk"
-version = "0.4.4"
+version = "0.4.5"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
     "LICENSE-*",
-    "CHANGELOG.md",
 ]
 description = "Interact with the git chunk file format used in multi-pack index and commit-graph files"
 documentation = "https://github.com/git/git/blob/seen/Documentation/technical/chunk-format.txt"
