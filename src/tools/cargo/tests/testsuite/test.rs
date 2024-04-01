@@ -3925,7 +3925,7 @@ fn json_artifact_includes_test_flag() {
                     },
                     "executable": "[..]/foo-[..]",
                     "features": [],
-                    "package_id":"foo 0.0.1 ([..])",
+                    "package_id":"path+file:///[..]/foo#0.0.1",
                     "manifest_path": "[..]",
                     "target":{
                         "kind":["lib"],
@@ -3962,7 +3962,7 @@ fn json_artifact_includes_executable_for_library_tests() {
                     "features": [],
                     "filenames": "{...}",
                     "fresh": false,
-                    "package_id": "foo 0.0.1 ([..])",
+                    "package_id": "path+file:///[..]/foo#0.0.1",
                     "manifest_path": "[..]",
                     "profile": "{...}",
                     "reason": "compiler-artifact",
@@ -4001,7 +4001,7 @@ fn json_artifact_includes_executable_for_integration_tests() {
                     "features": [],
                     "filenames": "{...}",
                     "fresh": false,
-                    "package_id": "foo 0.0.1 ([..])",
+                    "package_id": "path+file:///[..]/foo#0.0.1",
                     "manifest_path": "[..]",
                     "profile": "{...}",
                     "reason": "compiler-artifact",
@@ -4895,5 +4895,51 @@ fn cargo_test_print_env_verbose() {
 [DOCTEST] foo
 [RUNNING] `[..]CARGO_MANIFEST_DIR=[CWD][..] rustdoc --crate-type lib --crate-name foo[..]",
         )
+        .run();
+}
+
+#[cargo_test]
+fn cargo_test_set_out_dir_env_var() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                edition = "2021"
+            "#,
+        )
+        .file(
+            "src/lib.rs",
+            r#"
+                pub fn add(left: usize, right: usize) -> usize {
+                    left + right
+                }
+            "#,
+        )
+        .file(
+            "build.rs",
+            r#"
+                fn main() {}
+            "#,
+        )
+        .file(
+            "tests/case.rs",
+            r#"
+                #[cfg(test)]
+                pub mod tests {
+                    #[test]
+                    fn test_add() {
+                        assert!(std::env::var("OUT_DIR").is_ok());
+                        assert_eq!(foo::add(2, 5), 7);
+                    }
+                }
+            "#,
+        )
+        .build();
+
+    p.cargo("test").run();
+    p.cargo("test --package foo --test case -- tests::test_add --exact --nocapture")
         .run();
 }

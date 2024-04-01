@@ -11,9 +11,9 @@
 
 [package]
 edition = "2018"
-rust-version = "1.65.0"
+rust-version = "1.70.0"
 name = "pasetors"
-version = "0.6.7"
+version = "0.6.8"
 authors = ["brycx <brycx@protonmail.com>"]
 description = "PASETO: Platform-Agnostic Security Tokens (in Rust)"
 documentation = "https://docs.rs/pasetors"

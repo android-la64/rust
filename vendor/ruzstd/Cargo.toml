@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "ruzstd"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Moritz Borcherding <moritz.borcherding@web.de>"]
 exclude = [
     "decodecorpus_files/*",
@@ -38,13 +38,16 @@ name = "reversedbitreader_bench"
 harness = false
 
 [dependencies.byteorder]
-version = "1.4"
+version = "1.5"
 default-features = false
 
-[dependencies.thiserror]
-version = "1.0.38"
+[dependencies.derive_more]
+version = "0.99"
+features = [
+    "display",
+    "from",
+]
 default-features = false
-package = "thiserror-core"
 
 [dependencies.twox-hash]
 version = "1.6"
@@ -55,7 +58,8 @@ version = "0.3"
 
 [dev-dependencies.rand]
 version = "0.8.5"
+features = ["small_rng"]
 
 [features]
 default = ["std"]
-std = ["thiserror/std"]
+std = ["derive_more/error"]

@@ -2,7 +2,7 @@
 
 // Predicates on exprs and stmts that the pretty-printer and parser use
 
-use crate::ast;
+use crate::{ast, token::Delimiter};
 
 /// Does this expression require a semicolon to be treated
 /// as a statement? The negation of this: 'can this expression
@@ -19,7 +19,7 @@ pub fn expr_requires_semi_to_be_stmt(e: &ast::Expr) -> bool {
             | ast::ExprKind::Block(..)
             | ast::ExprKind::While(..)
             | ast::ExprKind::Loop(..)
-            | ast::ExprKind::ForLoop(..)
+            | ast::ExprKind::ForLoop { .. }
             | ast::ExprKind::TryBlock(..)
             | ast::ExprKind::ConstBlock(..)
     )
@@ -48,11 +48,23 @@ pub fn expr_trailing_brace(mut expr: &ast::Expr) -> Option<&ast::Expr> {
             Closure(closure) => {
                 expr = &closure.body;
             }
-            Gen(..) | Block(..) | ForLoop(..) | If(..) | Loop(..) | Match(..) | Struct(..)
-            | TryBlock(..) | While(..) | ConstBlock(_) => break Some(expr),
+            Gen(..)
+            | Block(..)
+            | ForLoop { .. }
+            | If(..)
+            | Loop(..)
+            | Match(..)
+            | Struct(..)
+            | TryBlock(..)
+            | While(..)
+            | ConstBlock(_) => break Some(expr),
 
-            // FIXME: These can end in `}`, but changing these would break stable code.
-            InlineAsm(_) | OffsetOf(_, _) | MacCall(_) | IncludedBytes(_) | FormatArgs(_) => {
+            MacCall(mac) => {
+                break (mac.args.delim == Delimiter::Brace).then_some(expr);
+            }
+
+            InlineAsm(_) | OffsetOf(_, _) | IncludedBytes(_) | FormatArgs(_) => {
+                // These should have been denied pre-expansion.
                 break None;
             }
 

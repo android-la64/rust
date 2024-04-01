@@ -10,9 +10,10 @@ use crate::output::Output;
 use crate::registry::Registry;
 use crate::render::{Helper, RenderContext, Renderable};
 use crate::util::copy_on_push_vec;
+use crate::RenderErrorReason;
 
-fn update_block_context<'reg>(
-    block: &mut BlockContext<'reg>,
+fn update_block_context(
+    block: &mut BlockContext<'_>,
     base_path: Option<&Vec<String>>,
     relative_path: String,
     is_first: bool,
@@ -29,9 +30,9 @@ fn update_block_context<'reg>(
     }
 }
 
-fn set_block_param<'reg: 'rc, 'rc>(
-    block: &mut BlockContext<'reg>,
-    h: &Helper<'reg, 'rc>,
+fn set_block_param<'rc>(
+    block: &mut BlockContext<'rc>,
+    h: &Helper<'rc>,
     base_path: Option<&Vec<String>>,
     k: &Json,
     v: &Json,
@@ -66,7 +67,7 @@ pub struct EachHelper;
 impl HelperDef for EachHelper {
     fn call<'reg: 'rc, 'rc>(
         &self,
-        h: &Helper<'reg, 'rc>,
+        h: &Helper<'rc>,
         r: &'reg Registry<'reg>,
         ctx: &'rc Context,
         rc: &mut RenderContext<'reg, 'rc>,
@@ -74,7 +75,7 @@ impl HelperDef for EachHelper {
     ) -> HelperResult {
         let value = h
             .param(0)
-            .ok_or_else(|| RenderError::new("Param not found for helper \"each\""))?;
+            .ok_or(RenderErrorReason::ParamNotFoundForIndex("each", 0))?;
 
         let template = h.template();
 
@@ -183,13 +184,13 @@ mod test {
         assert!(handlebars
             .register_template_string(
                 "t0",
-                "{{#each this}}{{@first}}|{{@last}}|{{@index}}:{{this}}|{{/each}}"
+                "{{#each this}}{{@first}}|{{@last}}|{{@index}}:{{this}}|{{/each}}",
             )
             .is_ok());
         assert!(handlebars
             .register_template_string(
                 "t1",
-                "{{#each this}}{{@first}}|{{@last}}|{{@key}}:{{this}}|{{/each}}"
+                "{{#each this}}{{@first}}|{{@last}}|{{@key}}:{{this}}|{{/each}}",
             )
             .is_ok());
 
@@ -238,7 +239,7 @@ mod test {
         assert!(handlebars
             .register_template_string(
                 "t0",
-                "{{#each a}}{{#each b}}{{d}}:{{../c}}{{/each}}{{/each}}"
+                "{{#each a}}{{#each b}}{{d}}:{{../c}}{{/each}}{{/each}}",
             )
             .is_ok());
 
@@ -256,7 +257,7 @@ mod test {
         assert!(handlebars
             .register_template_string(
                 "t0",
-                "{{#each b}}{{#if ../a}}{{#each this}}{{this}}{{/each}}{{/if}}{{/each}}"
+                "{{#each b}}{{#if ../a}}{{#each this}}{{this}}{{/each}}{{/if}}{{/each}}",
             )
             .is_ok());
 
@@ -373,7 +374,7 @@ mod test {
         assert!(handlebars
             .register_template_string(
                 "t0",
-                "{{#each a.b}}{{#each c}}{{../../d}}{{/each}}{{/each}}"
+                "{{#each a.b}}{{#each c}}{{../../d}}{{/each}}{{/each}}",
             )
             .is_ok());
 
@@ -512,6 +513,16 @@ mod test {
     }
 
     #[test]
+    fn test_render_array_without_trailig_commas() {
+        let reg = Registry::new();
+        let template = "Array: {{array}}";
+        let input = json!({"array": [1, 2, 3]});
+        let rendered = reg.render_template(template, &input);
+
+        assert_eq!("Array: [1, 2, 3]", rendered.unwrap());
+    }
+
+    #[test]
     fn test_recursion() {
         let mut reg = Registry::new();
         assert!(reg
@@ -533,15 +544,15 @@ mod test {
             "string": "hi"
         });
         let expected_output = "(\
-            array: [42, [object], [[], ], ] (\
+            array: [42, [object], [[]]] (\
                 0: 42 (), \
                 1: [object] (wow: cool (), ), \
-                2: [[], ] (0: [] (), ), \
+                2: [[]] (0: [] (), ), \
             ), \
             object: [object] (\
                 a: [object] (\
                     b: c (), \
-                    d: [e, ] (0: e (), ), \
+                    d: [e] (0: e (), ), \
                 ), \
             ), \
             string: hi (), \

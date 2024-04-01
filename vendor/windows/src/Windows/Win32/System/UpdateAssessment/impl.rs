@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWaaSAssessor_Impl: Sized {
     fn GetOSUpdateAssessment(&self) -> ::windows_core::Result<OSUpdateAssessment>;
@@ -21,7 +21,7 @@ impl IWaaSAssessor_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetOSUpdateAssessment: GetOSUpdateAssessment::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWaaSAssessor as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWaaSAssessor as ::windows_core::ComInterface>::IID
     }
 }

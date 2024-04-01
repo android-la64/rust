@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-transport"
-version = "0.39.0"
+version = "0.40.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -87,30 +87,32 @@ version = "0.3.16"
 optional = true
 
 [dependencies.futures-lite]
-version = "1.12.0"
+version = "2.1.0"
+features = ["std"]
 optional = true
+default-features = false
 
 [dependencies.gix-command]
-version = "^0.3.0"
+version = "^0.3.2"
 
 [dependencies.gix-credentials]
-version = "^0.22.0"
+version = "^0.23.1"
 optional = true
 
 [dependencies.gix-features]
-version = "^0.36.1"
+version = "^0.37.1"
 
 [dependencies.gix-packetline]
-version = "^0.17.0"
+version = "^0.17.2"
 
 [dependencies.gix-quote]
-version = "^0.4.8"
+version = "^0.4.10"
 
 [dependencies.gix-sec]
-version = "^0.10.1"
+version = "^0.10.3"
 
 [dependencies.gix-url]
-version = "^0.25.2"
+version = "^0.26.1"
 
 [dependencies.pin-project-lite]
 version = "0.2.6"

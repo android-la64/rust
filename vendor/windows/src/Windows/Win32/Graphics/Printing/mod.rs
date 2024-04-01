@@ -1,6 +1,7 @@
 #[cfg(feature = "Win32_Graphics_Printing_PrintTicket")]
+#[doc = "Required features: `\"Win32_Graphics_Printing_PrintTicket\"`"]
 pub mod PrintTicket;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AbortPrinter<P0>(hprinter: P0) -> super::super::Foundation::BOOL
@@ -10,7 +11,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AbortPrinter(hprinter : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     AbortPrinter(hprinter.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddFormA<P0>(hprinter: P0, level: u32, pform: *const u8) -> super::super::Foundation::BOOL
@@ -20,7 +21,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddFormA(hprinter : super::super::Foundation:: HANDLE, level : u32, pform : *const u8) -> super::super::Foundation:: BOOL);
     AddFormA(hprinter.into_param().abi(), level, pform)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddFormW<P0>(hprinter: P0, level: u32, pform: *const u8) -> super::super::Foundation::BOOL
@@ -30,7 +31,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddFormW(hprinter : super::super::Foundation:: HANDLE, level : u32, pform : *const u8) -> super::super::Foundation:: BOOL);
     AddFormW(hprinter.into_param().abi(), level, pform)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddJobA<P0>(hprinter: P0, level: u32, pdata: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -38,9 +39,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn AddJobA(hprinter : super::super::Foundation:: HANDLE, level : u32, pdata : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    AddJobA(hprinter.into_param().abi(), level, ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    AddJobA(hprinter.into_param().abi(), level, ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddJobW<P0>(hprinter: P0, level: u32, pdata: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -48,9 +49,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn AddJobW(hprinter : super::super::Foundation:: HANDLE, level : u32, pdata : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    AddJobW(hprinter.into_param().abi(), level, ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    AddJobW(hprinter.into_param().abi(), level, ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddMonitorA<P0>(pname: P0, level: u32, pmonitors: ::core::option::Option<*const u8>) -> ::windows_core::Result<()>
@@ -60,7 +61,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddMonitorA(pname : ::windows_core::PCSTR, level : u32, pmonitors : *const u8) -> super::super::Foundation:: BOOL);
     AddMonitorA(pname.into_param().abi(), level, ::core::mem::transmute(pmonitors.unwrap_or(::std::ptr::null()))).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddMonitorW<P0>(pname: P0, level: u32, pmonitors: ::core::option::Option<*const u8>) -> ::windows_core::Result<()>
@@ -70,7 +71,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddMonitorW(pname : ::windows_core::PCWSTR, level : u32, pmonitors : *const u8) -> super::super::Foundation:: BOOL);
     AddMonitorW(pname.into_param().abi(), level, ::core::mem::transmute(pmonitors.unwrap_or(::std::ptr::null()))).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPortA<P0, P1, P2>(pname: P0, hwnd: P1, pmonitorname: P2) -> ::windows_core::Result<()>
@@ -82,7 +83,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPortA(pname : ::windows_core::PCSTR, hwnd : super::super::Foundation:: HWND, pmonitorname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     AddPortA(pname.into_param().abi(), hwnd.into_param().abi(), pmonitorname.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPortW<P0, P1, P2>(pname: P0, hwnd: P1, pmonitorname: P2) -> ::windows_core::Result<()>
@@ -94,7 +95,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPortW(pname : ::windows_core::PCWSTR, hwnd : super::super::Foundation:: HWND, pmonitorname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     AddPortW(pname.into_param().abi(), hwnd.into_param().abi(), pmonitorname.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrintDeviceObject<P0>(hprinter: P0) -> ::windows_core::Result<super::super::Foundation::HANDLE>
@@ -105,7 +106,7 @@ where
     let mut result__ = ::std::mem::zeroed();
     AddPrintDeviceObject(hprinter.into_param().abi(), &mut result__).from_abi(result__)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrintProcessorA<P0, P1, P2, P3>(pname: P0, penvironment: P1, ppathname: P2, pprintprocessorname: P3) -> super::super::Foundation::BOOL
@@ -118,7 +119,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrintProcessorA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, ppathname : ::windows_core::PCSTR, pprintprocessorname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     AddPrintProcessorA(pname.into_param().abi(), penvironment.into_param().abi(), ppathname.into_param().abi(), pprintprocessorname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrintProcessorW<P0, P1, P2, P3>(pname: P0, penvironment: P1, ppathname: P2, pprintprocessorname: P3) -> super::super::Foundation::BOOL
@@ -131,7 +132,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrintProcessorW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, ppathname : ::windows_core::PCWSTR, pprintprocessorname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     AddPrintProcessorW(pname.into_param().abi(), penvironment.into_param().abi(), ppathname.into_param().abi(), pprintprocessorname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrintProvidorA<P0>(pname: P0, level: u32, pprovidorinfo: *const u8) -> super::super::Foundation::BOOL
@@ -141,7 +142,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrintProvidorA(pname : ::windows_core::PCSTR, level : u32, pprovidorinfo : *const u8) -> super::super::Foundation:: BOOL);
     AddPrintProvidorA(pname.into_param().abi(), level, pprovidorinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrintProvidorW<P0>(pname: P0, level: u32, pprovidorinfo: *const u8) -> super::super::Foundation::BOOL
@@ -151,7 +152,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrintProvidorW(pname : ::windows_core::PCWSTR, level : u32, pprovidorinfo : *const u8) -> super::super::Foundation:: BOOL);
     AddPrintProvidorW(pname.into_param().abi(), level, pprovidorinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterA<P0>(pname: P0, level: u32, pprinter: *const u8) -> ::windows_core::Result<super::super::Foundation::HANDLE>
@@ -162,7 +163,7 @@ where
     let result__ = AddPrinterA(pname.into_param().abi(), level, pprinter);
     (!result__.is_invalid()).then(|| result__).ok_or_else(::windows_core::Error::from_win32)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterConnection2A<P0, P1>(hwnd: P0, pszname: P1, dwlevel: u32, pconnectioninfo: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL
@@ -173,7 +174,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrinterConnection2A(hwnd : super::super::Foundation:: HWND, pszname : ::windows_core::PCSTR, dwlevel : u32, pconnectioninfo : *const ::core::ffi::c_void) -> super::super::Foundation:: BOOL);
     AddPrinterConnection2A(hwnd.into_param().abi(), pszname.into_param().abi(), dwlevel, pconnectioninfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterConnection2W<P0, P1>(hwnd: P0, pszname: P1, dwlevel: u32, pconnectioninfo: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL
@@ -184,7 +185,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrinterConnection2W(hwnd : super::super::Foundation:: HWND, pszname : ::windows_core::PCWSTR, dwlevel : u32, pconnectioninfo : *const ::core::ffi::c_void) -> super::super::Foundation:: BOOL);
     AddPrinterConnection2W(hwnd.into_param().abi(), pszname.into_param().abi(), dwlevel, pconnectioninfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterConnectionA<P0>(pname: P0) -> super::super::Foundation::BOOL
@@ -194,7 +195,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrinterConnectionA(pname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     AddPrinterConnectionA(pname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterConnectionW<P0>(pname: P0) -> super::super::Foundation::BOOL
@@ -204,7 +205,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrinterConnectionW(pname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     AddPrinterConnectionW(pname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterDriverA<P0>(pname: P0, level: u32, pdriverinfo: *const u8) -> ::windows_core::Result<()>
@@ -214,7 +215,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrinterDriverA(pname : ::windows_core::PCSTR, level : u32, pdriverinfo : *const u8) -> super::super::Foundation:: BOOL);
     AddPrinterDriverA(pname.into_param().abi(), level, pdriverinfo).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterDriverExA<P0>(pname: P0, level: u32, lpbdriverinfo: *const u8, dwfilecopyflags: u32) -> super::super::Foundation::BOOL
@@ -224,7 +225,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrinterDriverExA(pname : ::windows_core::PCSTR, level : u32, lpbdriverinfo : *const u8, dwfilecopyflags : u32) -> super::super::Foundation:: BOOL);
     AddPrinterDriverExA(pname.into_param().abi(), level, lpbdriverinfo, dwfilecopyflags)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterDriverExW<P0>(pname: P0, level: u32, lpbdriverinfo: *const u8, dwfilecopyflags: u32) -> super::super::Foundation::BOOL
@@ -234,7 +235,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrinterDriverExW(pname : ::windows_core::PCWSTR, level : u32, lpbdriverinfo : *const u8, dwfilecopyflags : u32) -> super::super::Foundation:: BOOL);
     AddPrinterDriverExW(pname.into_param().abi(), level, lpbdriverinfo, dwfilecopyflags)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterDriverW<P0>(pname: P0, level: u32, pdriverinfo: *const u8) -> ::windows_core::Result<()>
@@ -244,7 +245,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AddPrinterDriverW(pname : ::windows_core::PCWSTR, level : u32, pdriverinfo : *const u8) -> super::super::Foundation:: BOOL);
     AddPrinterDriverW(pname.into_param().abi(), level, pdriverinfo).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AddPrinterW<P0>(pname: P0, level: u32, pprinter: *const u8) -> ::windows_core::Result<super::super::Foundation::HANDLE>
@@ -255,7 +256,7 @@ where
     let result__ = AddPrinterW(pname.into_param().abi(), level, pprinter);
     (!result__.is_invalid()).then(|| result__).ok_or_else(::windows_core::Error::from_win32)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn AdvancedDocumentPropertiesA<P0, P1, P2>(hwnd: P0, hprinter: P1, pdevicename: P2, pdevmodeoutput: ::core::option::Option<*mut super::Gdi::DEVMODEA>, pdevmodeinput: ::core::option::Option<*const super::Gdi::DEVMODEA>) -> i32
@@ -267,7 +268,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AdvancedDocumentPropertiesA(hwnd : super::super::Foundation:: HWND, hprinter : super::super::Foundation:: HANDLE, pdevicename : ::windows_core::PCSTR, pdevmodeoutput : *mut super::Gdi:: DEVMODEA, pdevmodeinput : *const super::Gdi:: DEVMODEA) -> i32);
     AdvancedDocumentPropertiesA(hwnd.into_param().abi(), hprinter.into_param().abi(), pdevicename.into_param().abi(), ::core::mem::transmute(pdevmodeoutput.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdevmodeinput.unwrap_or(::std::ptr::null())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn AdvancedDocumentPropertiesW<P0, P1, P2>(hwnd: P0, hprinter: P1, pdevicename: P2, pdevmodeoutput: ::core::option::Option<*mut super::Gdi::DEVMODEW>, pdevmodeinput: ::core::option::Option<*const super::Gdi::DEVMODEW>) -> i32
@@ -279,14 +280,14 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn AdvancedDocumentPropertiesW(hwnd : super::super::Foundation:: HWND, hprinter : super::super::Foundation:: HANDLE, pdevicename : ::windows_core::PCWSTR, pdevmodeoutput : *mut super::Gdi:: DEVMODEW, pdevmodeinput : *const super::Gdi:: DEVMODEW) -> i32);
     AdvancedDocumentPropertiesW(hwnd.into_param().abi(), hprinter.into_param().abi(), pdevicename.into_param().abi(), ::core::mem::transmute(pdevmodeoutput.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdevmodeinput.unwrap_or(::std::ptr::null())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn AppendPrinterNotifyInfoData(pinfodest: *const PRINTER_NOTIFY_INFO, pdatasrc: ::core::option::Option<*const PRINTER_NOTIFY_INFO_DATA>, fdwflags: u32) -> super::super::Foundation::BOOL {
     ::windows_targets::link!("spoolss.dll" "system" fn AppendPrinterNotifyInfoData(pinfodest : *const PRINTER_NOTIFY_INFO, pdatasrc : *const PRINTER_NOTIFY_INFO_DATA, fdwflags : u32) -> super::super::Foundation:: BOOL);
     AppendPrinterNotifyInfoData(pinfodest, ::core::mem::transmute(pdatasrc.unwrap_or(::std::ptr::null())), fdwflags)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn CallRouterFindFirstPrinterChangeNotification<P0, P1>(hprinterrpc: P0, fdwfilterflags: u32, fdwoptions: u32, hnotify: P1, pprinternotifyoptions: *const PRINTER_NOTIFY_OPTIONS) -> u32
@@ -297,7 +298,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn CallRouterFindFirstPrinterChangeNotification(hprinterrpc : super::super::Foundation:: HANDLE, fdwfilterflags : u32, fdwoptions : u32, hnotify : super::super::Foundation:: HANDLE, pprinternotifyoptions : *const PRINTER_NOTIFY_OPTIONS) -> u32);
     CallRouterFindFirstPrinterChangeNotification(hprinterrpc.into_param().abi(), fdwfilterflags, fdwoptions, hnotify.into_param().abi(), pprinternotifyoptions)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ClosePrinter<P0>(hprinter: P0) -> ::windows_core::Result<()>
@@ -307,7 +308,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ClosePrinter(hprinter : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     ClosePrinter(hprinter.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn CloseSpoolFileHandle<P0, P1>(hprinter: P0, hspoolfile: P1) -> super::super::Foundation::BOOL
@@ -318,7 +319,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn CloseSpoolFileHandle(hprinter : super::super::Foundation:: HANDLE, hspoolfile : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     CloseSpoolFileHandle(hprinter.into_param().abi(), hspoolfile.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn CommitSpoolData<P0, P1>(hprinter: P0, hspoolfile: P1, cbcommit: u32) -> super::super::Foundation::HANDLE
@@ -329,7 +330,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn CommitSpoolData(hprinter : super::super::Foundation:: HANDLE, hspoolfile : super::super::Foundation:: HANDLE, cbcommit : u32) -> super::super::Foundation:: HANDLE);
     CommitSpoolData(hprinter.into_param().abi(), hspoolfile.into_param().abi(), cbcommit)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn CommonPropertySheetUIA<P0, P1>(hwndowner: P0, pfnpropsheetui: PFNPROPSHEETUI, lparam: P1, presult: ::core::option::Option<*mut u32>) -> i32
@@ -340,7 +341,7 @@ where
     ::windows_targets::link!("compstui.dll" "system" fn CommonPropertySheetUIA(hwndowner : super::super::Foundation:: HWND, pfnpropsheetui : PFNPROPSHEETUI, lparam : super::super::Foundation:: LPARAM, presult : *mut u32) -> i32);
     CommonPropertySheetUIA(hwndowner.into_param().abi(), pfnpropsheetui, lparam.into_param().abi(), ::core::mem::transmute(presult.unwrap_or(::std::ptr::null_mut())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn CommonPropertySheetUIW<P0, P1>(hwndowner: P0, pfnpropsheetui: PFNPROPSHEETUI, lparam: P1, presult: ::core::option::Option<*mut u32>) -> i32
@@ -351,7 +352,7 @@ where
     ::windows_targets::link!("compstui.dll" "system" fn CommonPropertySheetUIW(hwndowner : super::super::Foundation:: HWND, pfnpropsheetui : PFNPROPSHEETUI, lparam : super::super::Foundation:: LPARAM, presult : *mut u32) -> i32);
     CommonPropertySheetUIW(hwndowner.into_param().abi(), pfnpropsheetui, lparam.into_param().abi(), ::core::mem::transmute(presult.unwrap_or(::std::ptr::null_mut())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ConfigurePortA<P0, P1, P2>(pname: P0, hwnd: P1, pportname: P2) -> super::super::Foundation::BOOL
@@ -363,7 +364,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ConfigurePortA(pname : ::windows_core::PCSTR, hwnd : super::super::Foundation:: HWND, pportname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     ConfigurePortA(pname.into_param().abi(), hwnd.into_param().abi(), pportname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ConfigurePortW<P0, P1, P2>(pname: P0, hwnd: P1, pportname: P2) -> super::super::Foundation::BOOL
@@ -375,7 +376,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ConfigurePortW(pname : ::windows_core::PCWSTR, hwnd : super::super::Foundation:: HWND, pportname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     ConfigurePortW(pname.into_param().abi(), hwnd.into_param().abi(), pportname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ConnectToPrinterDlg<P0>(hwnd: P0, flags: u32) -> super::super::Foundation::HANDLE
@@ -385,7 +386,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ConnectToPrinterDlg(hwnd : super::super::Foundation:: HWND, flags : u32) -> super::super::Foundation:: HANDLE);
     ConnectToPrinterDlg(hwnd.into_param().abi(), flags)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn CorePrinterDriverInstalledA<P0, P1>(pszserver: P0, pszenvironment: P1, coredriverguid: ::windows_core::GUID, ftdriverdate: super::super::Foundation::FILETIME, dwldriverversion: u64) -> ::windows_core::Result<super::super::Foundation::BOOL>
@@ -397,7 +398,7 @@ where
     let mut result__ = ::std::mem::zeroed();
     CorePrinterDriverInstalledA(pszserver.into_param().abi(), pszenvironment.into_param().abi(), ::core::mem::transmute(coredriverguid), ::core::mem::transmute(ftdriverdate), dwldriverversion, &mut result__).from_abi(result__)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn CorePrinterDriverInstalledW<P0, P1>(pszserver: P0, pszenvironment: P1, coredriverguid: ::windows_core::GUID, ftdriverdate: super::super::Foundation::FILETIME, dwldriverversion: u64) -> ::windows_core::Result<super::super::Foundation::BOOL>
@@ -409,7 +410,6 @@ where
     let mut result__ = ::std::mem::zeroed();
     CorePrinterDriverInstalledW(pszserver.into_param().abi(), pszenvironment.into_param().abi(), ::core::mem::transmute(coredriverguid), ::core::mem::transmute(ftdriverdate), dwldriverversion, &mut result__).from_abi(result__)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn CreatePrintAsyncNotifyChannel<P0, P1>(pszname: P0, pnotificationtype: *const ::windows_core::GUID, euserfilter: PrintAsyncNotifyUserFilter, econversationstyle: PrintAsyncNotifyConversationStyle, pcallback: P1) -> ::windows_core::Result<IPrintAsyncNotifyChannel>
 where
@@ -420,7 +420,7 @@ where
     let mut result__ = ::std::mem::zeroed();
     CreatePrintAsyncNotifyChannel(pszname.into_param().abi(), pnotificationtype, euserfilter, econversationstyle, pcallback.into_param().abi(), &mut result__).from_abi(result__)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn CreatePrinterIC<P0>(hprinter: P0, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEW>) -> super::super::Foundation::HANDLE
@@ -430,7 +430,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn CreatePrinterIC(hprinter : super::super::Foundation:: HANDLE, pdevmode : *const super::Gdi:: DEVMODEW) -> super::super::Foundation:: HANDLE);
     CreatePrinterIC(hprinter.into_param().abi(), ::core::mem::transmute(pdevmode.unwrap_or(::std::ptr::null())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeleteFormA<P0, P1>(hprinter: P0, pformname: P1) -> super::super::Foundation::BOOL
@@ -441,7 +441,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeleteFormA(hprinter : super::super::Foundation:: HANDLE, pformname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     DeleteFormA(hprinter.into_param().abi(), pformname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeleteFormW<P0, P1>(hprinter: P0, pformname: P1) -> super::super::Foundation::BOOL
@@ -452,7 +452,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeleteFormW(hprinter : super::super::Foundation:: HANDLE, pformname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     DeleteFormW(hprinter.into_param().abi(), pformname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeleteJobNamedProperty<P0, P1>(hprinter: P0, jobid: u32, pszname: P1) -> u32
@@ -463,7 +463,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeleteJobNamedProperty(hprinter : super::super::Foundation:: HANDLE, jobid : u32, pszname : ::windows_core::PCWSTR) -> u32);
     DeleteJobNamedProperty(hprinter.into_param().abi(), jobid, pszname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeleteMonitorA<P0, P1, P2>(pname: P0, penvironment: P1, pmonitorname: P2) -> ::windows_core::Result<()>
@@ -475,7 +475,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeleteMonitorA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, pmonitorname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     DeleteMonitorA(pname.into_param().abi(), penvironment.into_param().abi(), pmonitorname.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeleteMonitorW<P0, P1, P2>(pname: P0, penvironment: P1, pmonitorname: P2) -> ::windows_core::Result<()>
@@ -487,7 +487,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeleteMonitorW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, pmonitorname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     DeleteMonitorW(pname.into_param().abi(), penvironment.into_param().abi(), pmonitorname.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePortA<P0, P1, P2>(pname: P0, hwnd: P1, pportname: P2) -> ::windows_core::Result<()>
@@ -499,7 +499,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePortA(pname : ::windows_core::PCSTR, hwnd : super::super::Foundation:: HWND, pportname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     DeletePortA(pname.into_param().abi(), hwnd.into_param().abi(), pportname.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePortW<P0, P1, P2>(pname: P0, hwnd: P1, pportname: P2) -> ::windows_core::Result<()>
@@ -511,7 +511,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePortW(pname : ::windows_core::PCWSTR, hwnd : super::super::Foundation:: HWND, pportname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     DeletePortW(pname.into_param().abi(), hwnd.into_param().abi(), pportname.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrintProcessorA<P0, P1, P2>(pname: P0, penvironment: P1, pprintprocessorname: P2) -> super::super::Foundation::BOOL
@@ -523,7 +523,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrintProcessorA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, pprintprocessorname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     DeletePrintProcessorA(pname.into_param().abi(), penvironment.into_param().abi(), pprintprocessorname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrintProcessorW<P0, P1, P2>(pname: P0, penvironment: P1, pprintprocessorname: P2) -> super::super::Foundation::BOOL
@@ -535,7 +535,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrintProcessorW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, pprintprocessorname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     DeletePrintProcessorW(pname.into_param().abi(), penvironment.into_param().abi(), pprintprocessorname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrintProvidorA<P0, P1, P2>(pname: P0, penvironment: P1, pprintprovidorname: P2) -> super::super::Foundation::BOOL
@@ -547,7 +547,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrintProvidorA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, pprintprovidorname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     DeletePrintProvidorA(pname.into_param().abi(), penvironment.into_param().abi(), pprintprovidorname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrintProvidorW<P0, P1, P2>(pname: P0, penvironment: P1, pprintprovidorname: P2) -> super::super::Foundation::BOOL
@@ -559,7 +559,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrintProvidorW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, pprintprovidorname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     DeletePrintProvidorW(pname.into_param().abi(), penvironment.into_param().abi(), pprintprovidorname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinter<P0>(hprinter: P0) -> ::windows_core::Result<()>
@@ -569,7 +569,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinter(hprinter : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     DeletePrinter(hprinter.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterConnectionA<P0>(pname: P0) -> super::super::Foundation::BOOL
@@ -579,7 +579,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterConnectionA(pname : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     DeletePrinterConnectionA(pname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterConnectionW<P0>(pname: P0) -> super::super::Foundation::BOOL
@@ -589,7 +589,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterConnectionW(pname : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     DeletePrinterConnectionW(pname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterDataA<P0, P1>(hprinter: P0, pvaluename: P1) -> u32
@@ -600,7 +600,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDataA(hprinter : super::super::Foundation:: HANDLE, pvaluename : ::windows_core::PCSTR) -> u32);
     DeletePrinterDataA(hprinter.into_param().abi(), pvaluename.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterDataExA<P0, P1, P2>(hprinter: P0, pkeyname: P1, pvaluename: P2) -> u32
@@ -612,7 +612,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDataExA(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCSTR, pvaluename : ::windows_core::PCSTR) -> u32);
     DeletePrinterDataExA(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterDataExW<P0, P1, P2>(hprinter: P0, pkeyname: P1, pvaluename: P2) -> u32
@@ -624,7 +624,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDataExW(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCWSTR, pvaluename : ::windows_core::PCWSTR) -> u32);
     DeletePrinterDataExW(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterDataW<P0, P1>(hprinter: P0, pvaluename: P1) -> u32
@@ -635,7 +635,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDataW(hprinter : super::super::Foundation:: HANDLE, pvaluename : ::windows_core::PCWSTR) -> u32);
     DeletePrinterDataW(hprinter.into_param().abi(), pvaluename.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterDriverA<P0, P1, P2>(pname: P0, penvironment: P1, pdrivername: P2) -> super::super::Foundation::BOOL
@@ -647,7 +647,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDriverA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, pdrivername : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     DeletePrinterDriverA(pname.into_param().abi(), penvironment.into_param().abi(), pdrivername.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterDriverExA<P0, P1, P2>(pname: P0, penvironment: P1, pdrivername: P2, dwdeleteflag: u32, dwversionflag: u32) -> super::super::Foundation::BOOL
@@ -659,7 +659,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDriverExA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, pdrivername : ::windows_core::PCSTR, dwdeleteflag : u32, dwversionflag : u32) -> super::super::Foundation:: BOOL);
     DeletePrinterDriverExA(pname.into_param().abi(), penvironment.into_param().abi(), pdrivername.into_param().abi(), dwdeleteflag, dwversionflag)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterDriverExW<P0, P1, P2>(pname: P0, penvironment: P1, pdrivername: P2, dwdeleteflag: u32, dwversionflag: u32) -> super::super::Foundation::BOOL
@@ -671,7 +671,6 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDriverExW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, pdrivername : ::windows_core::PCWSTR, dwdeleteflag : u32, dwversionflag : u32) -> super::super::Foundation:: BOOL);
     DeletePrinterDriverExW(pname.into_param().abi(), penvironment.into_param().abi(), pdrivername.into_param().abi(), dwdeleteflag, dwversionflag)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn DeletePrinterDriverPackageA<P0, P1, P2>(pszserver: P0, pszinfpath: P1, pszenvironment: P2) -> ::windows_core::Result<()>
 where
@@ -682,7 +681,6 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDriverPackageA(pszserver : ::windows_core::PCSTR, pszinfpath : ::windows_core::PCSTR, pszenvironment : ::windows_core::PCSTR) -> ::windows_core::HRESULT);
     DeletePrinterDriverPackageA(pszserver.into_param().abi(), pszinfpath.into_param().abi(), pszenvironment.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn DeletePrinterDriverPackageW<P0, P1, P2>(pszserver: P0, pszinfpath: P1, pszenvironment: P2) -> ::windows_core::Result<()>
 where
@@ -693,7 +691,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDriverPackageW(pszserver : ::windows_core::PCWSTR, pszinfpath : ::windows_core::PCWSTR, pszenvironment : ::windows_core::PCWSTR) -> ::windows_core::HRESULT);
     DeletePrinterDriverPackageW(pszserver.into_param().abi(), pszinfpath.into_param().abi(), pszenvironment.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterDriverW<P0, P1, P2>(pname: P0, penvironment: P1, pdrivername: P2) -> super::super::Foundation::BOOL
@@ -705,7 +703,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterDriverW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, pdrivername : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     DeletePrinterDriverW(pname.into_param().abi(), penvironment.into_param().abi(), pdrivername.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterIC<P0>(hprinteric: P0) -> super::super::Foundation::BOOL
@@ -715,7 +713,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterIC(hprinteric : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     DeletePrinterIC(hprinteric.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterKeyA<P0, P1>(hprinter: P0, pkeyname: P1) -> u32
@@ -726,7 +724,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterKeyA(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCSTR) -> u32);
     DeletePrinterKeyA(hprinter.into_param().abi(), pkeyname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn DeletePrinterKeyW<P0, P1>(hprinter: P0, pkeyname: P1) -> u32
@@ -737,7 +735,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DeletePrinterKeyW(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCWSTR) -> u32);
     DeletePrinterKeyW(hprinter.into_param().abi(), pkeyname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn DevQueryPrint<P0>(hprinter: P0, pdevmode: *const super::Gdi::DEVMODEA, presid: *mut u32) -> super::super::Foundation::BOOL
@@ -747,14 +745,14 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DevQueryPrint(hprinter : super::super::Foundation:: HANDLE, pdevmode : *const super::Gdi:: DEVMODEA, presid : *mut u32) -> super::super::Foundation:: BOOL);
     DevQueryPrint(hprinter.into_param().abi(), pdevmode, presid)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn DevQueryPrintEx(pdqpinfo: *mut DEVQUERYPRINT_INFO) -> super::super::Foundation::BOOL {
     ::windows_targets::link!("winspool.drv" "system" fn DevQueryPrintEx(pdqpinfo : *mut DEVQUERYPRINT_INFO) -> super::super::Foundation:: BOOL);
     DevQueryPrintEx(pdqpinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn DocumentPropertiesA<P0, P1, P2>(hwnd: P0, hprinter: P1, pdevicename: P2, pdevmodeoutput: ::core::option::Option<*mut super::Gdi::DEVMODEA>, pdevmodeinput: ::core::option::Option<*const super::Gdi::DEVMODEA>, fmode: u32) -> i32
@@ -766,7 +764,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DocumentPropertiesA(hwnd : super::super::Foundation:: HWND, hprinter : super::super::Foundation:: HANDLE, pdevicename : ::windows_core::PCSTR, pdevmodeoutput : *mut super::Gdi:: DEVMODEA, pdevmodeinput : *const super::Gdi:: DEVMODEA, fmode : u32) -> i32);
     DocumentPropertiesA(hwnd.into_param().abi(), hprinter.into_param().abi(), pdevicename.into_param().abi(), ::core::mem::transmute(pdevmodeoutput.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdevmodeinput.unwrap_or(::std::ptr::null())), fmode)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn DocumentPropertiesW<P0, P1, P2>(hwnd: P0, hprinter: P1, pdevicename: P2, pdevmodeoutput: ::core::option::Option<*mut super::Gdi::DEVMODEW>, pdevmodeinput: ::core::option::Option<*const super::Gdi::DEVMODEW>, fmode: u32) -> i32
@@ -778,7 +776,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn DocumentPropertiesW(hwnd : super::super::Foundation:: HWND, hprinter : super::super::Foundation:: HANDLE, pdevicename : ::windows_core::PCWSTR, pdevmodeoutput : *mut super::Gdi:: DEVMODEW, pdevmodeinput : *const super::Gdi:: DEVMODEW, fmode : u32) -> i32);
     DocumentPropertiesW(hwnd.into_param().abi(), hprinter.into_param().abi(), pdevicename.into_param().abi(), ::core::mem::transmute(pdevmodeoutput.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdevmodeinput.unwrap_or(::std::ptr::null())), fmode)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EndDocPrinter<P0>(hprinter: P0) -> super::super::Foundation::BOOL
@@ -788,7 +786,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn EndDocPrinter(hprinter : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     EndDocPrinter(hprinter.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EndPagePrinter<P0>(hprinter: P0) -> super::super::Foundation::BOOL
@@ -798,7 +796,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn EndPagePrinter(hprinter : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     EndPagePrinter(hprinter.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumFormsA<P0>(hprinter: P0, level: u32, pform: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -806,9 +804,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumFormsA(hprinter : super::super::Foundation:: HANDLE, level : u32, pform : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumFormsA(hprinter.into_param().abi(), level, ::core::mem::transmute(pform.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pform.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumFormsA(hprinter.into_param().abi(), level, ::core::mem::transmute(pform.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pform.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumFormsW<P0>(hprinter: P0, level: u32, pform: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -816,9 +814,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumFormsW(hprinter : super::super::Foundation:: HANDLE, level : u32, pform : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumFormsW(hprinter.into_param().abi(), level, ::core::mem::transmute(pform.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pform.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumFormsW(hprinter.into_param().abi(), level, ::core::mem::transmute(pform.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pform.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumJobNamedProperties<P0>(hprinter: P0, jobid: u32, pcproperties: *mut u32, ppproperties: *mut *mut PrintNamedProperty) -> u32
@@ -828,7 +826,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn EnumJobNamedProperties(hprinter : super::super::Foundation:: HANDLE, jobid : u32, pcproperties : *mut u32, ppproperties : *mut *mut PrintNamedProperty) -> u32);
     EnumJobNamedProperties(hprinter.into_param().abi(), jobid, pcproperties, ppproperties)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumJobsA<P0>(hprinter: P0, firstjob: u32, nojobs: u32, level: u32, pjob: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> ::windows_core::Result<()>
@@ -836,9 +834,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumJobsA(hprinter : super::super::Foundation:: HANDLE, firstjob : u32, nojobs : u32, level : u32, pjob : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumJobsA(hprinter.into_param().abi(), firstjob, nojobs, level, ::core::mem::transmute(pjob.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pjob.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned).ok()
+    EnumJobsA(hprinter.into_param().abi(), firstjob, nojobs, level, ::core::mem::transmute(pjob.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pjob.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumJobsW<P0>(hprinter: P0, firstjob: u32, nojobs: u32, level: u32, pjob: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> ::windows_core::Result<()>
@@ -846,9 +844,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumJobsW(hprinter : super::super::Foundation:: HANDLE, firstjob : u32, nojobs : u32, level : u32, pjob : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumJobsW(hprinter.into_param().abi(), firstjob, nojobs, level, ::core::mem::transmute(pjob.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pjob.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned).ok()
+    EnumJobsW(hprinter.into_param().abi(), firstjob, nojobs, level, ::core::mem::transmute(pjob.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pjob.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumMonitorsA<P0>(pname: P0, level: u32, pmonitor: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -856,9 +854,9 @@ where
     P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumMonitorsA(pname : ::windows_core::PCSTR, level : u32, pmonitor : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumMonitorsA(pname.into_param().abi(), level, ::core::mem::transmute(pmonitor.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmonitor.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumMonitorsA(pname.into_param().abi(), level, ::core::mem::transmute(pmonitor.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmonitor.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumMonitorsW<P0>(pname: P0, level: u32, pmonitor: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -866,9 +864,9 @@ where
     P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumMonitorsW(pname : ::windows_core::PCWSTR, level : u32, pmonitor : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumMonitorsW(pname.into_param().abi(), level, ::core::mem::transmute(pmonitor.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmonitor.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumMonitorsW(pname.into_param().abi(), level, ::core::mem::transmute(pmonitor.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmonitor.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPortsA<P0>(pname: P0, level: u32, pport: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -876,9 +874,9 @@ where
     P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPortsA(pname : ::windows_core::PCSTR, level : u32, pport : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPortsA(pname.into_param().abi(), level, ::core::mem::transmute(pport.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pport.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumPortsA(pname.into_param().abi(), level, ::core::mem::transmute(pport.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pport.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPortsW<P0>(pname: P0, level: u32, pport: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -886,9 +884,9 @@ where
     P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPortsW(pname : ::windows_core::PCWSTR, level : u32, pport : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPortsW(pname.into_param().abi(), level, ::core::mem::transmute(pport.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pport.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumPortsW(pname.into_param().abi(), level, ::core::mem::transmute(pport.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pport.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrintProcessorDatatypesA<P0, P1>(pname: P0, pprintprocessorname: P1, level: u32, pdatatypes: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -897,9 +895,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrintProcessorDatatypesA(pname : ::windows_core::PCSTR, pprintprocessorname : ::windows_core::PCSTR, level : u32, pdatatypes : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPrintProcessorDatatypesA(pname.into_param().abi(), pprintprocessorname.into_param().abi(), level, ::core::mem::transmute(pdatatypes.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdatatypes.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumPrintProcessorDatatypesA(pname.into_param().abi(), pprintprocessorname.into_param().abi(), level, ::core::mem::transmute(pdatatypes.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdatatypes.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrintProcessorDatatypesW<P0, P1>(pname: P0, pprintprocessorname: P1, level: u32, pdatatypes: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -908,9 +906,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrintProcessorDatatypesW(pname : ::windows_core::PCWSTR, pprintprocessorname : ::windows_core::PCWSTR, level : u32, pdatatypes : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPrintProcessorDatatypesW(pname.into_param().abi(), pprintprocessorname.into_param().abi(), level, ::core::mem::transmute(pdatatypes.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdatatypes.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumPrintProcessorDatatypesW(pname.into_param().abi(), pprintprocessorname.into_param().abi(), level, ::core::mem::transmute(pdatatypes.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdatatypes.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrintProcessorsA<P0, P1>(pname: P0, penvironment: P1, level: u32, pprintprocessorinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -919,9 +917,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrintProcessorsA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, level : u32, pprintprocessorinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPrintProcessorsA(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pprintprocessorinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprintprocessorinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumPrintProcessorsA(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pprintprocessorinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprintprocessorinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrintProcessorsW<P0, P1>(pname: P0, penvironment: P1, level: u32, pprintprocessorinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> super::super::Foundation::BOOL
@@ -930,9 +928,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrintProcessorsW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, level : u32, pprintprocessorinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPrintProcessorsW(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pprintprocessorinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprintprocessorinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned)
+    EnumPrintProcessorsW(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pprintprocessorinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprintprocessorinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrinterDataA<P0>(hprinter: P0, dwindex: u32, pvaluename: &mut [u8], pcbvaluename: *mut u32, ptype: ::core::option::Option<*mut u32>, pdata: ::core::option::Option<&mut [u8]>, pcbdata: ::core::option::Option<*mut u32>) -> u32
@@ -940,9 +938,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrinterDataA(hprinter : super::super::Foundation:: HANDLE, dwindex : u32, pvaluename : ::windows_core::PSTR, cbvaluename : u32, pcbvaluename : *mut u32, ptype : *mut u32, pdata : *mut u8, cbdata : u32, pcbdata : *mut u32) -> u32);
-    EnumPrinterDataA(hprinter.into_param().abi(), dwindex, ::core::mem::transmute(pvaluename.as_ptr()), pvaluename.len() as _, pcbvaluename, ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(pcbdata.unwrap_or(::std::ptr::null_mut())))
+    EnumPrinterDataA(hprinter.into_param().abi(), dwindex, ::core::mem::transmute(pvaluename.as_ptr()), pvaluename.len().try_into().unwrap(), pcbvaluename, ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), ::core::mem::transmute(pcbdata.unwrap_or(::std::ptr::null_mut())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrinterDataExA<P0, P1>(hprinter: P0, pkeyname: P1, penumvalues: ::core::option::Option<&mut [u8]>, pcbenumvalues: *mut u32, pnenumvalues: *mut u32) -> u32
@@ -951,9 +949,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrinterDataExA(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCSTR, penumvalues : *mut u8, cbenumvalues : u32, pcbenumvalues : *mut u32, pnenumvalues : *mut u32) -> u32);
-    EnumPrinterDataExA(hprinter.into_param().abi(), pkeyname.into_param().abi(), ::core::mem::transmute(penumvalues.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), penumvalues.as_deref().map_or(0, |slice| slice.len() as _), pcbenumvalues, pnenumvalues)
+    EnumPrinterDataExA(hprinter.into_param().abi(), pkeyname.into_param().abi(), ::core::mem::transmute(penumvalues.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), penumvalues.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbenumvalues, pnenumvalues)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrinterDataExW<P0, P1>(hprinter: P0, pkeyname: P1, penumvalues: ::core::option::Option<&mut [u8]>, pcbenumvalues: *mut u32, pnenumvalues: *mut u32) -> u32
@@ -962,9 +960,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrinterDataExW(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCWSTR, penumvalues : *mut u8, cbenumvalues : u32, pcbenumvalues : *mut u32, pnenumvalues : *mut u32) -> u32);
-    EnumPrinterDataExW(hprinter.into_param().abi(), pkeyname.into_param().abi(), ::core::mem::transmute(penumvalues.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), penumvalues.as_deref().map_or(0, |slice| slice.len() as _), pcbenumvalues, pnenumvalues)
+    EnumPrinterDataExW(hprinter.into_param().abi(), pkeyname.into_param().abi(), ::core::mem::transmute(penumvalues.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), penumvalues.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbenumvalues, pnenumvalues)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrinterDataW<P0>(hprinter: P0, dwindex: u32, pvaluename: ::windows_core::PWSTR, cbvaluename: u32, pcbvaluename: *mut u32, ptype: ::core::option::Option<*mut u32>, pdata: ::core::option::Option<&mut [u8]>, pcbdata: ::core::option::Option<*mut u32>) -> u32
@@ -972,9 +970,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrinterDataW(hprinter : super::super::Foundation:: HANDLE, dwindex : u32, pvaluename : ::windows_core::PWSTR, cbvaluename : u32, pcbvaluename : *mut u32, ptype : *mut u32, pdata : *mut u8, cbdata : u32, pcbdata : *mut u32) -> u32);
-    EnumPrinterDataW(hprinter.into_param().abi(), dwindex, ::core::mem::transmute(pvaluename), cbvaluename, pcbvaluename, ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(pcbdata.unwrap_or(::std::ptr::null_mut())))
+    EnumPrinterDataW(hprinter.into_param().abi(), dwindex, ::core::mem::transmute(pvaluename), cbvaluename, pcbvaluename, ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), ::core::mem::transmute(pcbdata.unwrap_or(::std::ptr::null_mut())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrinterDriversA<P0, P1>(pname: P0, penvironment: P1, level: u32, pdriverinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> ::windows_core::Result<()>
@@ -983,9 +981,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrinterDriversA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, level : u32, pdriverinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPrinterDriversA(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned).ok()
+    EnumPrinterDriversA(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrinterDriversW<P0, P1>(pname: P0, penvironment: P1, level: u32, pdriverinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> ::windows_core::Result<()>
@@ -994,9 +992,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrinterDriversW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, level : u32, pdriverinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPrinterDriversW(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned).ok()
+    EnumPrinterDriversW(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrinterKeyA<P0, P1>(hprinter: P0, pkeyname: P1, psubkey: ::core::option::Option<&mut [u8]>, pcbsubkey: *mut u32) -> u32
@@ -1005,9 +1003,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrinterKeyA(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCSTR, psubkey : ::windows_core::PSTR, cbsubkey : u32, pcbsubkey : *mut u32) -> u32);
-    EnumPrinterKeyA(hprinter.into_param().abi(), pkeyname.into_param().abi(), ::core::mem::transmute(psubkey.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), psubkey.as_deref().map_or(0, |slice| slice.len() as _), pcbsubkey)
+    EnumPrinterKeyA(hprinter.into_param().abi(), pkeyname.into_param().abi(), ::core::mem::transmute(psubkey.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), psubkey.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbsubkey)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrinterKeyW<P0, P1>(hprinter: P0, pkeyname: P1, psubkey: ::windows_core::PWSTR, cbsubkey: u32, pcbsubkey: *mut u32) -> u32
@@ -1018,7 +1016,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrinterKeyW(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCWSTR, psubkey : ::windows_core::PWSTR, cbsubkey : u32, pcbsubkey : *mut u32) -> u32);
     EnumPrinterKeyW(hprinter.into_param().abi(), pkeyname.into_param().abi(), ::core::mem::transmute(psubkey), cbsubkey, pcbsubkey)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrintersA<P0>(flags: u32, name: P0, level: u32, pprinterenum: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> ::windows_core::Result<()>
@@ -1026,9 +1024,9 @@ where
     P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrintersA(flags : u32, name : ::windows_core::PCSTR, level : u32, pprinterenum : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPrintersA(flags, name.into_param().abi(), level, ::core::mem::transmute(pprinterenum.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprinterenum.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned).ok()
+    EnumPrintersA(flags, name.into_param().abi(), level, ::core::mem::transmute(pprinterenum.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprinterenum.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn EnumPrintersW<P0>(flags: u32, name: P0, level: u32, pprinterenum: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32, pcreturned: *mut u32) -> ::windows_core::Result<()>
@@ -1036,9 +1034,9 @@ where
     P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn EnumPrintersW(flags : u32, name : ::windows_core::PCWSTR, level : u32, pprinterenum : *mut u8, cbbuf : u32, pcbneeded : *mut u32, pcreturned : *mut u32) -> super::super::Foundation:: BOOL);
-    EnumPrintersW(flags, name.into_param().abi(), level, ::core::mem::transmute(pprinterenum.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprinterenum.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded, pcreturned).ok()
+    EnumPrintersW(flags, name.into_param().abi(), level, ::core::mem::transmute(pprinterenum.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprinterenum.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded, pcreturned).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn ExtDeviceMode<P0, P1, P2, P3, P4>(hwnd: P0, hinst: P1, pdevmodeoutput: ::core::option::Option<*mut super::Gdi::DEVMODEA>, pdevicename: P2, pport: P3, pdevmodeinput: ::core::option::Option<*const super::Gdi::DEVMODEA>, pprofile: P4, fmode: u32) -> i32
@@ -1052,7 +1050,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ExtDeviceMode(hwnd : super::super::Foundation:: HWND, hinst : super::super::Foundation:: HANDLE, pdevmodeoutput : *mut super::Gdi:: DEVMODEA, pdevicename : ::windows_core::PCSTR, pport : ::windows_core::PCSTR, pdevmodeinput : *const super::Gdi:: DEVMODEA, pprofile : ::windows_core::PCSTR, fmode : u32) -> i32);
     ExtDeviceMode(hwnd.into_param().abi(), hinst.into_param().abi(), ::core::mem::transmute(pdevmodeoutput.unwrap_or(::std::ptr::null_mut())), pdevicename.into_param().abi(), pport.into_param().abi(), ::core::mem::transmute(pdevmodeinput.unwrap_or(::std::ptr::null())), pprofile.into_param().abi(), fmode)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn FindClosePrinterChangeNotification<P0>(hchange: P0) -> super::super::Foundation::BOOL
@@ -1062,7 +1060,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn FindClosePrinterChangeNotification(hchange : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     FindClosePrinterChangeNotification(hchange.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn FindFirstPrinterChangeNotification<P0>(hprinter: P0, fdwfilter: u32, fdwoptions: u32, pprinternotifyoptions: ::core::option::Option<*const ::core::ffi::c_void>) -> super::super::Foundation::HANDLE
@@ -1072,7 +1070,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn FindFirstPrinterChangeNotification(hprinter : super::super::Foundation:: HANDLE, fdwfilter : u32, fdwoptions : u32, pprinternotifyoptions : *const ::core::ffi::c_void) -> super::super::Foundation:: HANDLE);
     FindFirstPrinterChangeNotification(hprinter.into_param().abi(), fdwfilter, fdwoptions, ::core::mem::transmute(pprinternotifyoptions.unwrap_or(::std::ptr::null())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn FindNextPrinterChangeNotification<P0>(hchange: P0, pdwchange: ::core::option::Option<*mut u32>, pvreserved: ::core::option::Option<*const ::core::ffi::c_void>, ppprinternotifyinfo: ::core::option::Option<*mut *mut ::core::ffi::c_void>) -> super::super::Foundation::BOOL
@@ -1082,7 +1080,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn FindNextPrinterChangeNotification(hchange : super::super::Foundation:: HANDLE, pdwchange : *mut u32, pvreserved : *const ::core::ffi::c_void, ppprinternotifyinfo : *mut *mut ::core::ffi::c_void) -> super::super::Foundation:: BOOL);
     FindNextPrinterChangeNotification(hchange.into_param().abi(), ::core::mem::transmute(pdwchange.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pvreserved.unwrap_or(::std::ptr::null())), ::core::mem::transmute(ppprinternotifyinfo.unwrap_or(::std::ptr::null_mut())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn FlushPrinter<P0>(hprinter: P0, pbuf: ::core::option::Option<*const ::core::ffi::c_void>, cbbuf: u32, pcwritten: *mut u32, csleep: u32) -> super::super::Foundation::BOOL
@@ -1092,26 +1090,24 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn FlushPrinter(hprinter : super::super::Foundation:: HANDLE, pbuf : *const ::core::ffi::c_void, cbbuf : u32, pcwritten : *mut u32, csleep : u32) -> super::super::Foundation:: BOOL);
     FlushPrinter(hprinter.into_param().abi(), ::core::mem::transmute(pbuf.unwrap_or(::std::ptr::null())), cbbuf, pcwritten, csleep)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn FreePrintNamedPropertyArray(ppproperties: ::core::option::Option<&mut [*mut PrintNamedProperty]>) {
     ::windows_targets::link!("winspool.drv" "system" fn FreePrintNamedPropertyArray(cproperties : u32, ppproperties : *mut *mut PrintNamedProperty) -> ());
-    FreePrintNamedPropertyArray(ppproperties.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(ppproperties.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())))
+    FreePrintNamedPropertyArray(ppproperties.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), ::core::mem::transmute(ppproperties.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn FreePrintPropertyValue(pvalue: *mut PrintPropertyValue) {
     ::windows_targets::link!("winspool.drv" "system" fn FreePrintPropertyValue(pvalue : *mut PrintPropertyValue) -> ());
     FreePrintPropertyValue(pvalue)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn FreePrinterNotifyInfo(pprinternotifyinfo: *const PRINTER_NOTIFY_INFO) -> super::super::Foundation::BOOL {
     ::windows_targets::link!("winspool.drv" "system" fn FreePrinterNotifyInfo(pprinternotifyinfo : *const PRINTER_NOTIFY_INFO) -> super::super::Foundation:: BOOL);
     FreePrinterNotifyInfo(pprinternotifyinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GdiDeleteSpoolFileHandle<P0>(spoolfilehandle: P0) -> super::super::Foundation::BOOL
@@ -1121,7 +1117,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiDeleteSpoolFileHandle(spoolfilehandle : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     GdiDeleteSpoolFileHandle(spoolfilehandle.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GdiEndDocEMF<P0>(spoolfilehandle: P0) -> super::super::Foundation::BOOL
@@ -1131,7 +1127,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiEndDocEMF(spoolfilehandle : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     GdiEndDocEMF(spoolfilehandle.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GdiEndPageEMF<P0>(spoolfilehandle: P0, dwoptimization: u32) -> super::super::Foundation::BOOL
@@ -1141,7 +1137,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiEndPageEMF(spoolfilehandle : super::super::Foundation:: HANDLE, dwoptimization : u32) -> super::super::Foundation:: BOOL);
     GdiEndPageEMF(spoolfilehandle.into_param().abi(), dwoptimization)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn GdiGetDC<P0>(spoolfilehandle: P0) -> super::Gdi::HDC
@@ -1151,7 +1147,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiGetDC(spoolfilehandle : super::super::Foundation:: HANDLE) -> super::Gdi:: HDC);
     GdiGetDC(spoolfilehandle.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn GdiGetDevmodeForPage<P0>(spoolfilehandle: P0, dwpagenumber: u32, pcurrdm: *mut *mut super::Gdi::DEVMODEW, plastdm: *mut *mut super::Gdi::DEVMODEW) -> super::super::Foundation::BOOL
@@ -1161,7 +1157,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiGetDevmodeForPage(spoolfilehandle : super::super::Foundation:: HANDLE, dwpagenumber : u32, pcurrdm : *mut *mut super::Gdi:: DEVMODEW, plastdm : *mut *mut super::Gdi:: DEVMODEW) -> super::super::Foundation:: BOOL);
     GdiGetDevmodeForPage(spoolfilehandle.into_param().abi(), dwpagenumber, pcurrdm, plastdm)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GdiGetPageCount<P0>(spoolfilehandle: P0) -> u32
@@ -1171,7 +1167,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiGetPageCount(spoolfilehandle : super::super::Foundation:: HANDLE) -> u32);
     GdiGetPageCount(spoolfilehandle.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GdiGetPageHandle<P0>(spoolfilehandle: P0, page: u32, pdwpagetype: *mut u32) -> super::super::Foundation::HANDLE
@@ -1181,7 +1177,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiGetPageHandle(spoolfilehandle : super::super::Foundation:: HANDLE, page : u32, pdwpagetype : *mut u32) -> super::super::Foundation:: HANDLE);
     GdiGetPageHandle(spoolfilehandle.into_param().abi(), page, pdwpagetype)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn GdiGetSpoolFileHandle<P0, P1>(pwszprintername: P0, pdevmode: *mut super::Gdi::DEVMODEW, pwszdocname: P1) -> super::super::Foundation::HANDLE
@@ -1192,7 +1188,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiGetSpoolFileHandle(pwszprintername : ::windows_core::PCWSTR, pdevmode : *mut super::Gdi:: DEVMODEW, pwszdocname : ::windows_core::PCWSTR) -> super::super::Foundation:: HANDLE);
     GdiGetSpoolFileHandle(pwszprintername.into_param().abi(), pdevmode, pwszdocname.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GdiPlayPageEMF<P0, P1>(spoolfilehandle: P0, hemf: P1, prectdocument: *mut super::super::Foundation::RECT, prectborder: *mut super::super::Foundation::RECT, prectclip: *mut super::super::Foundation::RECT) -> super::super::Foundation::BOOL
@@ -1203,7 +1199,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiPlayPageEMF(spoolfilehandle : super::super::Foundation:: HANDLE, hemf : super::super::Foundation:: HANDLE, prectdocument : *mut super::super::Foundation:: RECT, prectborder : *mut super::super::Foundation:: RECT, prectclip : *mut super::super::Foundation:: RECT) -> super::super::Foundation:: BOOL);
     GdiPlayPageEMF(spoolfilehandle.into_param().abi(), hemf.into_param().abi(), prectdocument, prectborder, prectclip)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn GdiResetDCEMF<P0>(spoolfilehandle: P0, pcurrdm: *mut super::Gdi::DEVMODEW) -> super::super::Foundation::BOOL
@@ -1213,7 +1209,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiResetDCEMF(spoolfilehandle : super::super::Foundation:: HANDLE, pcurrdm : *mut super::Gdi:: DEVMODEW) -> super::super::Foundation:: BOOL);
     GdiResetDCEMF(spoolfilehandle.into_param().abi(), pcurrdm)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Storage_Xps\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Storage_Xps\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Storage_Xps"))]
 #[inline]
 pub unsafe fn GdiStartDocEMF<P0>(spoolfilehandle: P0, pdocinfo: *mut super::super::Storage::Xps::DOCINFOW) -> super::super::Foundation::BOOL
@@ -1223,7 +1219,7 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiStartDocEMF(spoolfilehandle : super::super::Foundation:: HANDLE, pdocinfo : *mut super::super::Storage::Xps:: DOCINFOW) -> super::super::Foundation:: BOOL);
     GdiStartDocEMF(spoolfilehandle.into_param().abi(), pdocinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GdiStartPageEMF<P0>(spoolfilehandle: P0) -> super::super::Foundation::BOOL
@@ -1233,7 +1229,6 @@ where
     ::windows_targets::link!("gdi32.dll" "system" fn GdiStartPageEMF(spoolfilehandle : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     GdiStartPageEMF(spoolfilehandle.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn GenerateCopyFilePaths<P0, P1>(pszprintername: P0, pszdirectory: P1, psplclientinfo: *const u8, dwlevel: u32, pszsourcedir: ::windows_core::PWSTR, pcchsourcedirsize: *mut u32, psztargetdir: ::windows_core::PWSTR, pcchtargetdirsize: *mut u32, dwflags: u32) -> u32
 where
@@ -1243,7 +1238,7 @@ where
     ::windows_targets::link!("mscms.dll" "system" fn GenerateCopyFilePaths(pszprintername : ::windows_core::PCWSTR, pszdirectory : ::windows_core::PCWSTR, psplclientinfo : *const u8, dwlevel : u32, pszsourcedir : ::windows_core::PWSTR, pcchsourcedirsize : *mut u32, psztargetdir : ::windows_core::PWSTR, pcchtargetdirsize : *mut u32, dwflags : u32) -> u32);
     GenerateCopyFilePaths(pszprintername.into_param().abi(), pszdirectory.into_param().abi(), psplclientinfo, dwlevel, ::core::mem::transmute(pszsourcedir), pcchsourcedirsize, ::core::mem::transmute(psztargetdir), pcchtargetdirsize, dwflags)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetCPSUIUserData<P0>(hdlg: P0) -> usize
@@ -1253,7 +1248,7 @@ where
     ::windows_targets::link!("compstui.dll" "system" fn GetCPSUIUserData(hdlg : super::super::Foundation:: HWND) -> usize);
     GetCPSUIUserData(hdlg.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetCorePrinterDriversA<P0, P1, P2>(pszserver: P0, pszenvironment: P1, pszzcoredriverdependencies: P2, pcoreprinterdrivers: &mut [CORE_PRINTER_DRIVERA]) -> ::windows_core::Result<()>
@@ -1263,9 +1258,9 @@ where
     P2: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetCorePrinterDriversA(pszserver : ::windows_core::PCSTR, pszenvironment : ::windows_core::PCSTR, pszzcoredriverdependencies : ::windows_core::PCSTR, ccoreprinterdrivers : u32, pcoreprinterdrivers : *mut CORE_PRINTER_DRIVERA) -> ::windows_core::HRESULT);
-    GetCorePrinterDriversA(pszserver.into_param().abi(), pszenvironment.into_param().abi(), pszzcoredriverdependencies.into_param().abi(), pcoreprinterdrivers.len() as _, ::core::mem::transmute(pcoreprinterdrivers.as_ptr())).ok()
+    GetCorePrinterDriversA(pszserver.into_param().abi(), pszenvironment.into_param().abi(), pszzcoredriverdependencies.into_param().abi(), pcoreprinterdrivers.len().try_into().unwrap(), ::core::mem::transmute(pcoreprinterdrivers.as_ptr())).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetCorePrinterDriversW<P0, P1, P2>(pszserver: P0, pszenvironment: P1, pszzcoredriverdependencies: P2, pcoreprinterdrivers: &mut [CORE_PRINTER_DRIVERW]) -> ::windows_core::Result<()>
@@ -1275,23 +1270,23 @@ where
     P2: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetCorePrinterDriversW(pszserver : ::windows_core::PCWSTR, pszenvironment : ::windows_core::PCWSTR, pszzcoredriverdependencies : ::windows_core::PCWSTR, ccoreprinterdrivers : u32, pcoreprinterdrivers : *mut CORE_PRINTER_DRIVERW) -> ::windows_core::HRESULT);
-    GetCorePrinterDriversW(pszserver.into_param().abi(), pszenvironment.into_param().abi(), pszzcoredriverdependencies.into_param().abi(), pcoreprinterdrivers.len() as _, ::core::mem::transmute(pcoreprinterdrivers.as_ptr())).ok()
+    GetCorePrinterDriversW(pszserver.into_param().abi(), pszenvironment.into_param().abi(), pszzcoredriverdependencies.into_param().abi(), pcoreprinterdrivers.len().try_into().unwrap(), ::core::mem::transmute(pcoreprinterdrivers.as_ptr())).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetDefaultPrinterA(pszbuffer: ::windows_core::PSTR, pcchbuffer: *mut u32) -> super::super::Foundation::BOOL {
     ::windows_targets::link!("winspool.drv" "system" fn GetDefaultPrinterA(pszbuffer : ::windows_core::PSTR, pcchbuffer : *mut u32) -> super::super::Foundation:: BOOL);
     GetDefaultPrinterA(::core::mem::transmute(pszbuffer), pcchbuffer)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetDefaultPrinterW(pszbuffer: ::windows_core::PWSTR, pcchbuffer: *mut u32) -> super::super::Foundation::BOOL {
     ::windows_targets::link!("winspool.drv" "system" fn GetDefaultPrinterW(pszbuffer : ::windows_core::PWSTR, pcchbuffer : *mut u32) -> super::super::Foundation:: BOOL);
     GetDefaultPrinterW(::core::mem::transmute(pszbuffer), pcchbuffer)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetFormA<P0, P1>(hprinter: P0, pformname: P1, level: u32, pform: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1300,9 +1295,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetFormA(hprinter : super::super::Foundation:: HANDLE, pformname : ::windows_core::PCSTR, level : u32, pform : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetFormA(hprinter.into_param().abi(), pformname.into_param().abi(), level, ::core::mem::transmute(pform.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pform.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetFormA(hprinter.into_param().abi(), pformname.into_param().abi(), level, ::core::mem::transmute(pform.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pform.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetFormW<P0, P1>(hprinter: P0, pformname: P1, level: u32, pform: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1311,9 +1306,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetFormW(hprinter : super::super::Foundation:: HANDLE, pformname : ::windows_core::PCWSTR, level : u32, pform : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetFormW(hprinter.into_param().abi(), pformname.into_param().abi(), level, ::core::mem::transmute(pform.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pform.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetFormW(hprinter.into_param().abi(), pformname.into_param().abi(), level, ::core::mem::transmute(pform.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pform.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetJobA<P0>(hprinter: P0, jobid: u32, level: u32, pjob: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1321,9 +1316,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetJobA(hprinter : super::super::Foundation:: HANDLE, jobid : u32, level : u32, pjob : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetJobA(hprinter.into_param().abi(), jobid, level, ::core::mem::transmute(pjob.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pjob.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetJobA(hprinter.into_param().abi(), jobid, level, ::core::mem::transmute(pjob.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pjob.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn GetJobAttributes<P0>(pprintername: P0, pdevmode: *const super::Gdi::DEVMODEW, pattributeinfo: *mut ATTRIBUTE_INFO_3) -> super::super::Foundation::BOOL
@@ -1333,7 +1328,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn GetJobAttributes(pprintername : ::windows_core::PCWSTR, pdevmode : *const super::Gdi:: DEVMODEW, pattributeinfo : *mut ATTRIBUTE_INFO_3) -> super::super::Foundation:: BOOL);
     GetJobAttributes(pprintername.into_param().abi(), pdevmode, pattributeinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn GetJobAttributesEx<P0>(pprintername: P0, pdevmode: *const super::Gdi::DEVMODEW, dwlevel: u32, pattributeinfo: &mut [u8], dwflags: u32) -> super::super::Foundation::BOOL
@@ -1341,9 +1336,9 @@ where
     P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("spoolss.dll" "system" fn GetJobAttributesEx(pprintername : ::windows_core::PCWSTR, pdevmode : *const super::Gdi:: DEVMODEW, dwlevel : u32, pattributeinfo : *mut u8, nsize : u32, dwflags : u32) -> super::super::Foundation:: BOOL);
-    GetJobAttributesEx(pprintername.into_param().abi(), pdevmode, dwlevel, ::core::mem::transmute(pattributeinfo.as_ptr()), pattributeinfo.len() as _, dwflags)
+    GetJobAttributesEx(pprintername.into_param().abi(), pdevmode, dwlevel, ::core::mem::transmute(pattributeinfo.as_ptr()), pattributeinfo.len().try_into().unwrap(), dwflags)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetJobNamedPropertyValue<P0, P1>(hprinter: P0, jobid: u32, pszname: P1, pvalue: *mut PrintPropertyValue) -> u32
@@ -1354,7 +1349,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn GetJobNamedPropertyValue(hprinter : super::super::Foundation:: HANDLE, jobid : u32, pszname : ::windows_core::PCWSTR, pvalue : *mut PrintPropertyValue) -> u32);
     GetJobNamedPropertyValue(hprinter.into_param().abi(), jobid, pszname.into_param().abi(), pvalue)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetJobW<P0>(hprinter: P0, jobid: u32, level: u32, pjob: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1362,16 +1357,16 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetJobW(hprinter : super::super::Foundation:: HANDLE, jobid : u32, level : u32, pjob : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetJobW(hprinter.into_param().abi(), jobid, level, ::core::mem::transmute(pjob.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pjob.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetJobW(hprinter.into_param().abi(), jobid, level, ::core::mem::transmute(pjob.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pjob.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrintExecutionData(pdata: *mut PRINT_EXECUTION_DATA) -> super::super::Foundation::BOOL {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrintExecutionData(pdata : *mut PRINT_EXECUTION_DATA) -> super::super::Foundation:: BOOL);
     GetPrintExecutionData(pdata)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrintOutputInfo<P0, P1>(hwnd: P0, pszprinter: P1, phfile: *mut super::super::Foundation::HANDLE, ppszoutputfile: *mut ::windows_core::PWSTR) -> ::windows_core::Result<()>
@@ -1382,7 +1377,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn GetPrintOutputInfo(hwnd : super::super::Foundation:: HWND, pszprinter : ::windows_core::PCWSTR, phfile : *mut super::super::Foundation:: HANDLE, ppszoutputfile : *mut ::windows_core::PWSTR) -> ::windows_core::HRESULT);
     GetPrintOutputInfo(hwnd.into_param().abi(), pszprinter.into_param().abi(), phfile, ppszoutputfile).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrintProcessorDirectoryA<P0, P1>(pname: P0, penvironment: P1, level: u32, pprintprocessorinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1391,9 +1386,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrintProcessorDirectoryA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, level : u32, pprintprocessorinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrintProcessorDirectoryA(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pprintprocessorinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprintprocessorinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrintProcessorDirectoryA(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pprintprocessorinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprintprocessorinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrintProcessorDirectoryW<P0, P1>(pname: P0, penvironment: P1, level: u32, pprintprocessorinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1402,9 +1397,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrintProcessorDirectoryW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, level : u32, pprintprocessorinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrintProcessorDirectoryW(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pprintprocessorinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprintprocessorinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrintProcessorDirectoryW(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pprintprocessorinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprintprocessorinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterA<P0>(hprinter: P0, level: u32, pprinter: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()>
@@ -1412,9 +1407,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterA(hprinter : super::super::Foundation:: HANDLE, level : u32, pprinter : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrinterA(hprinter.into_param().abi(), level, ::core::mem::transmute(pprinter.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprinter.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+    GetPrinterA(hprinter.into_param().abi(), level, ::core::mem::transmute(pprinter.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprinter.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDataA<P0, P1>(hprinter: P0, pvaluename: P1, ptype: ::core::option::Option<*mut u32>, pdata: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> u32
@@ -1423,9 +1418,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDataA(hprinter : super::super::Foundation:: HANDLE, pvaluename : ::windows_core::PCSTR, ptype : *mut u32, pdata : *mut u8, nsize : u32, pcbneeded : *mut u32) -> u32);
-    GetPrinterDataA(hprinter.into_param().abi(), pvaluename.into_param().abi(), ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDataA(hprinter.into_param().abi(), pvaluename.into_param().abi(), ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDataExA<P0, P1, P2>(hprinter: P0, pkeyname: P1, pvaluename: P2, ptype: ::core::option::Option<*mut u32>, pdata: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> u32
@@ -1435,9 +1430,9 @@ where
     P2: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDataExA(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCSTR, pvaluename : ::windows_core::PCSTR, ptype : *mut u32, pdata : *mut u8, nsize : u32, pcbneeded : *mut u32) -> u32);
-    GetPrinterDataExA(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi(), ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDataExA(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi(), ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDataExW<P0, P1, P2>(hprinter: P0, pkeyname: P1, pvaluename: P2, ptype: ::core::option::Option<*mut u32>, pdata: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> u32
@@ -1447,9 +1442,9 @@ where
     P2: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDataExW(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCWSTR, pvaluename : ::windows_core::PCWSTR, ptype : *mut u32, pdata : *mut u8, nsize : u32, pcbneeded : *mut u32) -> u32);
-    GetPrinterDataExW(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi(), ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDataExW(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi(), ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDataW<P0, P1>(hprinter: P0, pvaluename: P1, ptype: ::core::option::Option<*mut u32>, pdata: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> u32
@@ -1458,9 +1453,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDataW(hprinter : super::super::Foundation:: HANDLE, pvaluename : ::windows_core::PCWSTR, ptype : *mut u32, pdata : *mut u8, nsize : u32, pcbneeded : *mut u32) -> u32);
-    GetPrinterDataW(hprinter.into_param().abi(), pvaluename.into_param().abi(), ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDataW(hprinter.into_param().abi(), pvaluename.into_param().abi(), ::core::mem::transmute(ptype.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDriver2A<P0, P1, P2>(hwnd: P0, hprinter: P1, penvironment: P2, level: u32, pdriverinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1470,9 +1465,9 @@ where
     P2: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDriver2A(hwnd : super::super::Foundation:: HWND, hprinter : super::super::Foundation:: HANDLE, penvironment : ::windows_core::PCSTR, level : u32, pdriverinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrinterDriver2A(hwnd.into_param().abi(), hprinter.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDriver2A(hwnd.into_param().abi(), hprinter.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDriver2W<P0, P1, P2>(hwnd: P0, hprinter: P1, penvironment: P2, level: u32, pdriverinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1482,9 +1477,9 @@ where
     P2: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDriver2W(hwnd : super::super::Foundation:: HWND, hprinter : super::super::Foundation:: HANDLE, penvironment : ::windows_core::PCWSTR, level : u32, pdriverinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrinterDriver2W(hwnd.into_param().abi(), hprinter.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDriver2W(hwnd.into_param().abi(), hprinter.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDriverA<P0, P1>(hprinter: P0, penvironment: P1, level: u32, pdriverinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1493,9 +1488,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDriverA(hprinter : super::super::Foundation:: HANDLE, penvironment : ::windows_core::PCSTR, level : u32, pdriverinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrinterDriverA(hprinter.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDriverA(hprinter.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDriverDirectoryA<P0, P1>(pname: P0, penvironment: P1, level: u32, pdriverdirectory: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1504,9 +1499,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDriverDirectoryA(pname : ::windows_core::PCSTR, penvironment : ::windows_core::PCSTR, level : u32, pdriverdirectory : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrinterDriverDirectoryA(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverdirectory.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverdirectory.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDriverDirectoryA(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverdirectory.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverdirectory.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDriverDirectoryW<P0, P1>(pname: P0, penvironment: P1, level: u32, pdriverdirectory: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1515,9 +1510,8 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDriverDirectoryW(pname : ::windows_core::PCWSTR, penvironment : ::windows_core::PCWSTR, level : u32, pdriverdirectory : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrinterDriverDirectoryW(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverdirectory.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverdirectory.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDriverDirectoryW(pname.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverdirectory.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverdirectory.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn GetPrinterDriverPackagePathA<P0, P1, P2, P3>(pszserver: P0, pszenvironment: P1, pszlanguage: P2, pszpackageid: P3, pszdriverpackagecab: ::core::option::Option<&mut [u8]>, pcchrequiredsize: *mut u32) -> ::windows_core::Result<()>
 where
@@ -1527,9 +1521,8 @@ where
     P3: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDriverPackagePathA(pszserver : ::windows_core::PCSTR, pszenvironment : ::windows_core::PCSTR, pszlanguage : ::windows_core::PCSTR, pszpackageid : ::windows_core::PCSTR, pszdriverpackagecab : ::windows_core::PSTR, cchdriverpackagecab : u32, pcchrequiredsize : *mut u32) -> ::windows_core::HRESULT);
-    GetPrinterDriverPackagePathA(pszserver.into_param().abi(), pszenvironment.into_param().abi(), pszlanguage.into_param().abi(), pszpackageid.into_param().abi(), ::core::mem::transmute(pszdriverpackagecab.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pszdriverpackagecab.as_deref().map_or(0, |slice| slice.len() as _), pcchrequiredsize).ok()
+    GetPrinterDriverPackagePathA(pszserver.into_param().abi(), pszenvironment.into_param().abi(), pszlanguage.into_param().abi(), pszpackageid.into_param().abi(), ::core::mem::transmute(pszdriverpackagecab.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pszdriverpackagecab.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcchrequiredsize).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn GetPrinterDriverPackagePathW<P0, P1, P2, P3>(pszserver: P0, pszenvironment: P1, pszlanguage: P2, pszpackageid: P3, pszdriverpackagecab: ::core::option::Option<&mut [u16]>, pcchrequiredsize: *mut u32) -> ::windows_core::Result<()>
 where
@@ -1539,9 +1532,9 @@ where
     P3: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDriverPackagePathW(pszserver : ::windows_core::PCWSTR, pszenvironment : ::windows_core::PCWSTR, pszlanguage : ::windows_core::PCWSTR, pszpackageid : ::windows_core::PCWSTR, pszdriverpackagecab : ::windows_core::PWSTR, cchdriverpackagecab : u32, pcchrequiredsize : *mut u32) -> ::windows_core::HRESULT);
-    GetPrinterDriverPackagePathW(pszserver.into_param().abi(), pszenvironment.into_param().abi(), pszlanguage.into_param().abi(), pszpackageid.into_param().abi(), ::core::mem::transmute(pszdriverpackagecab.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pszdriverpackagecab.as_deref().map_or(0, |slice| slice.len() as _), pcchrequiredsize).ok()
+    GetPrinterDriverPackagePathW(pszserver.into_param().abi(), pszenvironment.into_param().abi(), pszlanguage.into_param().abi(), pszpackageid.into_param().abi(), ::core::mem::transmute(pszdriverpackagecab.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pszdriverpackagecab.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcchrequiredsize).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterDriverW<P0, P1>(hprinter: P0, penvironment: P1, level: u32, pdriverinfo: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> super::super::Foundation::BOOL
@@ -1550,9 +1543,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterDriverW(hprinter : super::super::Foundation:: HANDLE, penvironment : ::windows_core::PCWSTR, level : u32, pdriverinfo : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrinterDriverW(hprinter.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded)
+    GetPrinterDriverW(hprinter.into_param().abi(), penvironment.into_param().abi(), level, ::core::mem::transmute(pdriverinfo.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pdriverinfo.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetPrinterW<P0>(hprinter: P0, level: u32, pprinter: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()>
@@ -1560,9 +1553,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn GetPrinterW(hprinter : super::super::Foundation:: HANDLE, level : u32, pprinter : *mut u8, cbbuf : u32, pcbneeded : *mut u32) -> super::super::Foundation:: BOOL);
-    GetPrinterW(hprinter.into_param().abi(), level, ::core::mem::transmute(pprinter.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprinter.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+    GetPrinterW(hprinter.into_param().abi(), level, ::core::mem::transmute(pprinter.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pprinter.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn GetSpoolFileHandle<P0>(hprinter: P0) -> ::windows_core::Result<super::super::Foundation::HANDLE>
@@ -1573,7 +1566,7 @@ where
     let result__ = GetSpoolFileHandle(hprinter.into_param().abi());
     (!result__.is_invalid()).then(|| result__).ok_or_else(::windows_core::Error::from_win32)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ImpersonatePrinterClient<P0>(htoken: P0) -> super::super::Foundation::BOOL
@@ -1583,7 +1576,6 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn ImpersonatePrinterClient(htoken : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     ImpersonatePrinterClient(htoken.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn InstallPrinterDriverFromPackageA<P0, P1, P2, P3>(pszserver: P0, pszinfpath: P1, pszdrivername: P2, pszenvironment: P3, dwflags: u32) -> ::windows_core::Result<()>
 where
@@ -1595,7 +1587,6 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn InstallPrinterDriverFromPackageA(pszserver : ::windows_core::PCSTR, pszinfpath : ::windows_core::PCSTR, pszdrivername : ::windows_core::PCSTR, pszenvironment : ::windows_core::PCSTR, dwflags : u32) -> ::windows_core::HRESULT);
     InstallPrinterDriverFromPackageA(pszserver.into_param().abi(), pszinfpath.into_param().abi(), pszdrivername.into_param().abi(), pszenvironment.into_param().abi(), dwflags).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn InstallPrinterDriverFromPackageW<P0, P1, P2, P3>(pszserver: P0, pszinfpath: P1, pszdrivername: P2, pszenvironment: P3, dwflags: u32) -> ::windows_core::Result<()>
 where
@@ -1607,21 +1598,21 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn InstallPrinterDriverFromPackageW(pszserver : ::windows_core::PCWSTR, pszinfpath : ::windows_core::PCWSTR, pszdrivername : ::windows_core::PCWSTR, pszenvironment : ::windows_core::PCWSTR, dwflags : u32) -> ::windows_core::HRESULT);
     InstallPrinterDriverFromPackageW(pszserver.into_param().abi(), pszinfpath.into_param().abi(), pszdrivername.into_param().abi(), pszenvironment.into_param().abi(), dwflags).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn IsValidDevmodeA(pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, devmodesize: usize) -> super::super::Foundation::BOOL {
     ::windows_targets::link!("winspool.drv" "system" fn IsValidDevmodeA(pdevmode : *const super::Gdi:: DEVMODEA, devmodesize : usize) -> super::super::Foundation:: BOOL);
     IsValidDevmodeA(::core::mem::transmute(pdevmode.unwrap_or(::std::ptr::null())), devmodesize)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn IsValidDevmodeW(pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEW>, devmodesize: usize) -> super::super::Foundation::BOOL {
     ::windows_targets::link!("winspool.drv" "system" fn IsValidDevmodeW(pdevmode : *const super::Gdi:: DEVMODEW, devmodesize : usize) -> super::super::Foundation:: BOOL);
     IsValidDevmodeW(::core::mem::transmute(pdevmode.unwrap_or(::std::ptr::null())), devmodesize)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn OpenPrinter2A<P0>(pprintername: P0, phprinter: *mut super::super::Foundation::HANDLE, pdefault: ::core::option::Option<*const PRINTER_DEFAULTSA>, poptions: ::core::option::Option<*const PRINTER_OPTIONSA>) -> ::windows_core::Result<()>
@@ -1631,7 +1622,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn OpenPrinter2A(pprintername : ::windows_core::PCSTR, phprinter : *mut super::super::Foundation:: HANDLE, pdefault : *const PRINTER_DEFAULTSA, poptions : *const PRINTER_OPTIONSA) -> super::super::Foundation:: BOOL);
     OpenPrinter2A(pprintername.into_param().abi(), phprinter, ::core::mem::transmute(pdefault.unwrap_or(::std::ptr::null())), ::core::mem::transmute(poptions.unwrap_or(::std::ptr::null()))).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn OpenPrinter2W<P0>(pprintername: P0, phprinter: *mut super::super::Foundation::HANDLE, pdefault: ::core::option::Option<*const PRINTER_DEFAULTSW>, poptions: ::core::option::Option<*const PRINTER_OPTIONSW>) -> ::windows_core::Result<()>
@@ -1641,7 +1632,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn OpenPrinter2W(pprintername : ::windows_core::PCWSTR, phprinter : *mut super::super::Foundation:: HANDLE, pdefault : *const PRINTER_DEFAULTSW, poptions : *const PRINTER_OPTIONSW) -> super::super::Foundation:: BOOL);
     OpenPrinter2W(pprintername.into_param().abi(), phprinter, ::core::mem::transmute(pdefault.unwrap_or(::std::ptr::null())), ::core::mem::transmute(poptions.unwrap_or(::std::ptr::null()))).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn OpenPrinterA<P0>(pprintername: P0, phprinter: *mut super::super::Foundation::HANDLE, pdefault: ::core::option::Option<*const PRINTER_DEFAULTSA>) -> ::windows_core::Result<()>
@@ -1651,7 +1642,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn OpenPrinterA(pprintername : ::windows_core::PCSTR, phprinter : *mut super::super::Foundation:: HANDLE, pdefault : *const PRINTER_DEFAULTSA) -> super::super::Foundation:: BOOL);
     OpenPrinterA(pprintername.into_param().abi(), phprinter, ::core::mem::transmute(pdefault.unwrap_or(::std::ptr::null()))).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn OpenPrinterW<P0>(pprintername: P0, phprinter: *mut super::super::Foundation::HANDLE, pdefault: ::core::option::Option<*const PRINTER_DEFAULTSW>) -> ::windows_core::Result<()>
@@ -1661,7 +1652,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn OpenPrinterW(pprintername : ::windows_core::PCWSTR, phprinter : *mut super::super::Foundation:: HANDLE, pdefault : *const PRINTER_DEFAULTSW) -> super::super::Foundation:: BOOL);
     OpenPrinterW(pprintername.into_param().abi(), phprinter, ::core::mem::transmute(pdefault.unwrap_or(::std::ptr::null()))).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn PartialReplyPrinterChangeNotification<P0>(hprinter: P0, pdatasrc: ::core::option::Option<*const PRINTER_NOTIFY_INFO_DATA>) -> super::super::Foundation::BOOL
@@ -1671,7 +1662,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn PartialReplyPrinterChangeNotification(hprinter : super::super::Foundation:: HANDLE, pdatasrc : *const PRINTER_NOTIFY_INFO_DATA) -> super::super::Foundation:: BOOL);
     PartialReplyPrinterChangeNotification(hprinter.into_param().abi(), ::core::mem::transmute(pdatasrc.unwrap_or(::std::ptr::null())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn PlayGdiScriptOnPrinterIC<P0>(hprinteric: P0, pin: &[u8], pout: &mut [u8], ul: u32) -> super::super::Foundation::BOOL
@@ -1679,9 +1670,9 @@ where
     P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn PlayGdiScriptOnPrinterIC(hprinteric : super::super::Foundation:: HANDLE, pin : *const u8, cin : u32, pout : *mut u8, cout : u32, ul : u32) -> super::super::Foundation:: BOOL);
-    PlayGdiScriptOnPrinterIC(hprinteric.into_param().abi(), ::core::mem::transmute(pin.as_ptr()), pin.len() as _, ::core::mem::transmute(pout.as_ptr()), pout.len() as _, ul)
+    PlayGdiScriptOnPrinterIC(hprinteric.into_param().abi(), ::core::mem::transmute(pin.as_ptr()), pin.len().try_into().unwrap(), ::core::mem::transmute(pout.as_ptr()), pout.len().try_into().unwrap(), ul)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn PrinterMessageBoxA<P0, P1, P2, P3>(hprinter: P0, error: u32, hwnd: P1, ptext: P2, pcaption: P3, dwtype: u32) -> u32
@@ -1694,7 +1685,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn PrinterMessageBoxA(hprinter : super::super::Foundation:: HANDLE, error : u32, hwnd : super::super::Foundation:: HWND, ptext : ::windows_core::PCSTR, pcaption : ::windows_core::PCSTR, dwtype : u32) -> u32);
     PrinterMessageBoxA(hprinter.into_param().abi(), error, hwnd.into_param().abi(), ptext.into_param().abi(), pcaption.into_param().abi(), dwtype)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn PrinterMessageBoxW<P0, P1, P2, P3>(hprinter: P0, error: u32, hwnd: P1, ptext: P2, pcaption: P3, dwtype: u32) -> u32
@@ -1707,7 +1698,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn PrinterMessageBoxW(hprinter : super::super::Foundation:: HANDLE, error : u32, hwnd : super::super::Foundation:: HWND, ptext : ::windows_core::PCWSTR, pcaption : ::windows_core::PCWSTR, dwtype : u32) -> u32);
     PrinterMessageBoxW(hprinter.into_param().abi(), error, hwnd.into_param().abi(), ptext.into_param().abi(), pcaption.into_param().abi(), dwtype)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn PrinterProperties<P0, P1>(hwnd: P0, hprinter: P1) -> super::super::Foundation::BOOL
@@ -1718,7 +1709,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn PrinterProperties(hwnd : super::super::Foundation:: HWND, hprinter : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     PrinterProperties(hwnd.into_param().abi(), hprinter.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ProvidorFindClosePrinterChangeNotification<P0>(hprinter: P0) -> super::super::Foundation::BOOL
@@ -1728,7 +1719,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn ProvidorFindClosePrinterChangeNotification(hprinter : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     ProvidorFindClosePrinterChangeNotification(hprinter.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ProvidorFindFirstPrinterChangeNotification<P0, P1>(hprinter: P0, fdwflags: u32, fdwoptions: u32, hnotify: P1, pprinternotifyoptions: ::core::option::Option<*const ::core::ffi::c_void>, pvreserved1: ::core::option::Option<*mut ::core::ffi::c_void>) -> super::super::Foundation::BOOL
@@ -1739,7 +1730,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn ProvidorFindFirstPrinterChangeNotification(hprinter : super::super::Foundation:: HANDLE, fdwflags : u32, fdwoptions : u32, hnotify : super::super::Foundation:: HANDLE, pprinternotifyoptions : *const ::core::ffi::c_void, pvreserved1 : *mut ::core::ffi::c_void) -> super::super::Foundation:: BOOL);
     ProvidorFindFirstPrinterChangeNotification(hprinter.into_param().abi(), fdwflags, fdwoptions, hnotify.into_param().abi(), ::core::mem::transmute(pprinternotifyoptions.unwrap_or(::std::ptr::null())), ::core::mem::transmute(pvreserved1.unwrap_or(::std::ptr::null_mut())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ReadPrinter<P0>(hprinter: P0, pbuf: *mut ::core::ffi::c_void, cbbuf: u32, pnobytesread: *mut u32) -> super::super::Foundation::BOOL
@@ -1749,7 +1740,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ReadPrinter(hprinter : super::super::Foundation:: HANDLE, pbuf : *mut ::core::ffi::c_void, cbbuf : u32, pnobytesread : *mut u32) -> super::super::Foundation:: BOOL);
     ReadPrinter(hprinter.into_param().abi(), pbuf, cbbuf, pnobytesread)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn RegisterForPrintAsyncNotifications<P0, P1>(pszname: P0, pnotificationtype: *const ::windows_core::GUID, euserfilter: PrintAsyncNotifyUserFilter, econversationstyle: PrintAsyncNotifyConversationStyle, pcallback: P1) -> ::windows_core::Result<super::super::Foundation::HANDLE>
@@ -1761,7 +1752,7 @@ where
     let mut result__ = ::std::mem::zeroed();
     RegisterForPrintAsyncNotifications(pszname.into_param().abi(), pnotificationtype, euserfilter, econversationstyle, pcallback.into_param().abi(), &mut result__).from_abi(result__)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn RemovePrintDeviceObject<P0>(hdeviceobject: P0) -> ::windows_core::Result<()>
@@ -1771,7 +1762,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn RemovePrintDeviceObject(hdeviceobject : super::super::Foundation:: HANDLE) -> ::windows_core::HRESULT);
     RemovePrintDeviceObject(hdeviceobject.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ReplyPrinterChangeNotification<P0>(hprinter: P0, fdwchangeflags: u32, pdwresult: ::core::option::Option<*mut u32>, pprinternotifyinfo: ::core::option::Option<*const ::core::ffi::c_void>) -> super::super::Foundation::BOOL
@@ -1781,7 +1772,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn ReplyPrinterChangeNotification(hprinter : super::super::Foundation:: HANDLE, fdwchangeflags : u32, pdwresult : *mut u32, pprinternotifyinfo : *const ::core::ffi::c_void) -> super::super::Foundation:: BOOL);
     ReplyPrinterChangeNotification(hprinter.into_param().abi(), fdwchangeflags, ::core::mem::transmute(pdwresult.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(pprinternotifyinfo.unwrap_or(::std::ptr::null())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ReplyPrinterChangeNotificationEx<P0>(hnotify: P0, dwcolor: u32, fdwflags: u32, pdwresult: *mut u32, pprinternotifyinfo: *const ::core::ffi::c_void) -> super::super::Foundation::BOOL
@@ -1791,7 +1782,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn ReplyPrinterChangeNotificationEx(hnotify : super::super::Foundation:: HANDLE, dwcolor : u32, fdwflags : u32, pdwresult : *mut u32, pprinternotifyinfo : *const ::core::ffi::c_void) -> super::super::Foundation:: BOOL);
     ReplyPrinterChangeNotificationEx(hnotify.into_param().abi(), dwcolor, fdwflags, pdwresult, pprinternotifyinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ReportJobProcessingProgress<P0>(printerhandle: P0, jobid: u32, joboperation: EPrintXPSJobOperation, jobprogress: EPrintXPSJobProgress) -> ::windows_core::Result<()>
@@ -1801,7 +1792,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ReportJobProcessingProgress(printerhandle : super::super::Foundation:: HANDLE, jobid : u32, joboperation : EPrintXPSJobOperation, jobprogress : EPrintXPSJobProgress) -> ::windows_core::HRESULT);
     ReportJobProcessingProgress(printerhandle.into_param().abi(), jobid, joboperation, jobprogress).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn ResetPrinterA<P0>(hprinter: P0, pdefault: ::core::option::Option<*const PRINTER_DEFAULTSA>) -> super::super::Foundation::BOOL
@@ -1811,7 +1802,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ResetPrinterA(hprinter : super::super::Foundation:: HANDLE, pdefault : *const PRINTER_DEFAULTSA) -> super::super::Foundation:: BOOL);
     ResetPrinterA(hprinter.into_param().abi(), ::core::mem::transmute(pdefault.unwrap_or(::std::ptr::null())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 #[inline]
 pub unsafe fn ResetPrinterW<P0>(hprinter: P0, pdefault: ::core::option::Option<*const PRINTER_DEFAULTSW>) -> super::super::Foundation::BOOL
@@ -1821,53 +1812,50 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ResetPrinterW(hprinter : super::super::Foundation:: HANDLE, pdefault : *const PRINTER_DEFAULTSW) -> super::super::Foundation:: BOOL);
     ResetPrinterW(hprinter.into_param().abi(), ::core::mem::transmute(pdefault.unwrap_or(::std::ptr::null())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn RevertToPrinterSelf() -> super::super::Foundation::HANDLE {
     ::windows_targets::link!("spoolss.dll" "system" fn RevertToPrinterSelf() -> super::super::Foundation:: HANDLE);
     RevertToPrinterSelf()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn RouterAllocBidiMem(numbytes: usize) -> *mut ::core::ffi::c_void {
     ::windows_targets::link!("spoolss.dll" "system" fn RouterAllocBidiMem(numbytes : usize) -> *mut ::core::ffi::c_void);
     RouterAllocBidiMem(numbytes)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn RouterAllocBidiResponseContainer(count: u32) -> *mut BIDI_RESPONSE_CONTAINER {
     ::windows_targets::link!("spoolss.dll" "system" fn RouterAllocBidiResponseContainer(count : u32) -> *mut BIDI_RESPONSE_CONTAINER);
     RouterAllocBidiResponseContainer(count)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn RouterAllocPrinterNotifyInfo(cprinternotifyinfodata: u32) -> *mut PRINTER_NOTIFY_INFO {
     ::windows_targets::link!("spoolss.dll" "system" fn RouterAllocPrinterNotifyInfo(cprinternotifyinfodata : u32) -> *mut PRINTER_NOTIFY_INFO);
     RouterAllocPrinterNotifyInfo(cprinternotifyinfodata)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn RouterFreeBidiMem(pmempointer: *const ::core::ffi::c_void) {
     ::windows_targets::link!("spoolss.dll" "system" fn RouterFreeBidiMem(pmempointer : *const ::core::ffi::c_void) -> ());
     RouterFreeBidiMem(pmempointer)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn RouterFreeBidiResponseContainer(pdata: *const BIDI_RESPONSE_CONTAINER) -> u32 {
     ::windows_targets::link!("winspool.drv" "system" fn RouterFreeBidiResponseContainer(pdata : *const BIDI_RESPONSE_CONTAINER) -> u32);
     RouterFreeBidiResponseContainer(pdata)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn RouterFreePrinterNotifyInfo(pinfo: ::core::option::Option<*const PRINTER_NOTIFY_INFO>) -> super::super::Foundation::BOOL {
     ::windows_targets::link!("spoolss.dll" "system" fn RouterFreePrinterNotifyInfo(pinfo : *const PRINTER_NOTIFY_INFO) -> super::super::Foundation:: BOOL);
     RouterFreePrinterNotifyInfo(::core::mem::transmute(pinfo.unwrap_or(::std::ptr::null())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn ScheduleJob<P0>(hprinter: P0, jobid: u32) -> super::super::Foundation::BOOL
@@ -1877,7 +1865,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn ScheduleJob(hprinter : super::super::Foundation:: HANDLE, jobid : u32) -> super::super::Foundation:: BOOL);
     ScheduleJob(hprinter.into_param().abi(), jobid)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetCPSUIUserData<P0>(hdlg: P0, cpsuiuserdata: usize) -> super::super::Foundation::BOOL
@@ -1887,7 +1875,7 @@ where
     ::windows_targets::link!("compstui.dll" "system" fn SetCPSUIUserData(hdlg : super::super::Foundation:: HWND, cpsuiuserdata : usize) -> super::super::Foundation:: BOOL);
     SetCPSUIUserData(hdlg.into_param().abi(), cpsuiuserdata)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetDefaultPrinterA<P0>(pszprinter: P0) -> super::super::Foundation::BOOL
@@ -1897,7 +1885,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetDefaultPrinterA(pszprinter : ::windows_core::PCSTR) -> super::super::Foundation:: BOOL);
     SetDefaultPrinterA(pszprinter.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetDefaultPrinterW<P0>(pszprinter: P0) -> super::super::Foundation::BOOL
@@ -1907,7 +1895,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetDefaultPrinterW(pszprinter : ::windows_core::PCWSTR) -> super::super::Foundation:: BOOL);
     SetDefaultPrinterW(pszprinter.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetFormA<P0, P1>(hprinter: P0, pformname: P1, level: u32, pform: *const u8) -> super::super::Foundation::BOOL
@@ -1918,7 +1906,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetFormA(hprinter : super::super::Foundation:: HANDLE, pformname : ::windows_core::PCSTR, level : u32, pform : *const u8) -> super::super::Foundation:: BOOL);
     SetFormA(hprinter.into_param().abi(), pformname.into_param().abi(), level, pform)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetFormW<P0, P1>(hprinter: P0, pformname: P1, level: u32, pform: *const u8) -> super::super::Foundation::BOOL
@@ -1929,7 +1917,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetFormW(hprinter : super::super::Foundation:: HANDLE, pformname : ::windows_core::PCWSTR, level : u32, pform : *const u8) -> super::super::Foundation:: BOOL);
     SetFormW(hprinter.into_param().abi(), pformname.into_param().abi(), level, pform)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetJobA<P0>(hprinter: P0, jobid: u32, level: u32, pjob: ::core::option::Option<*const u8>, command: u32) -> super::super::Foundation::BOOL
@@ -1939,7 +1927,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetJobA(hprinter : super::super::Foundation:: HANDLE, jobid : u32, level : u32, pjob : *const u8, command : u32) -> super::super::Foundation:: BOOL);
     SetJobA(hprinter.into_param().abi(), jobid, level, ::core::mem::transmute(pjob.unwrap_or(::std::ptr::null())), command)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetJobNamedProperty<P0>(hprinter: P0, jobid: u32, pproperty: *const PrintNamedProperty) -> u32
@@ -1949,7 +1937,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetJobNamedProperty(hprinter : super::super::Foundation:: HANDLE, jobid : u32, pproperty : *const PrintNamedProperty) -> u32);
     SetJobNamedProperty(hprinter.into_param().abi(), jobid, pproperty)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetJobW<P0>(hprinter: P0, jobid: u32, level: u32, pjob: ::core::option::Option<*const u8>, command: u32) -> super::super::Foundation::BOOL
@@ -1959,7 +1947,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetJobW(hprinter : super::super::Foundation:: HANDLE, jobid : u32, level : u32, pjob : *const u8, command : u32) -> super::super::Foundation:: BOOL);
     SetJobW(hprinter.into_param().abi(), jobid, level, ::core::mem::transmute(pjob.unwrap_or(::std::ptr::null())), command)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetPortA<P0, P1>(pname: P0, pportname: P1, dwlevel: u32, pportinfo: *const u8) -> ::windows_core::Result<()>
@@ -1970,7 +1958,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetPortA(pname : ::windows_core::PCSTR, pportname : ::windows_core::PCSTR, dwlevel : u32, pportinfo : *const u8) -> super::super::Foundation:: BOOL);
     SetPortA(pname.into_param().abi(), pportname.into_param().abi(), dwlevel, pportinfo).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetPortW<P0, P1>(pname: P0, pportname: P1, dwlevel: u32, pportinfo: *const u8) -> ::windows_core::Result<()>
@@ -1981,7 +1969,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetPortW(pname : ::windows_core::PCWSTR, pportname : ::windows_core::PCWSTR, dwlevel : u32, pportinfo : *const u8) -> super::super::Foundation:: BOOL);
     SetPortW(pname.into_param().abi(), pportname.into_param().abi(), dwlevel, pportinfo).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetPrinterA<P0>(hprinter: P0, level: u32, pprinter: ::core::option::Option<*const u8>, command: u32) -> ::windows_core::Result<()>
@@ -1991,7 +1979,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetPrinterA(hprinter : super::super::Foundation:: HANDLE, level : u32, pprinter : *const u8, command : u32) -> super::super::Foundation:: BOOL);
     SetPrinterA(hprinter.into_param().abi(), level, ::core::mem::transmute(pprinter.unwrap_or(::std::ptr::null())), command).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetPrinterDataA<P0, P1>(hprinter: P0, pvaluename: P1, r#type: u32, pdata: &[u8]) -> u32
@@ -2000,9 +1988,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn SetPrinterDataA(hprinter : super::super::Foundation:: HANDLE, pvaluename : ::windows_core::PCSTR, r#type : u32, pdata : *const u8, cbdata : u32) -> u32);
-    SetPrinterDataA(hprinter.into_param().abi(), pvaluename.into_param().abi(), r#type, ::core::mem::transmute(pdata.as_ptr()), pdata.len() as _)
+    SetPrinterDataA(hprinter.into_param().abi(), pvaluename.into_param().abi(), r#type, ::core::mem::transmute(pdata.as_ptr()), pdata.len().try_into().unwrap())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetPrinterDataExA<P0, P1, P2>(hprinter: P0, pkeyname: P1, pvaluename: P2, r#type: u32, pdata: &[u8]) -> u32
@@ -2012,9 +2000,9 @@ where
     P2: ::windows_core::IntoParam<::windows_core::PCSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn SetPrinterDataExA(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCSTR, pvaluename : ::windows_core::PCSTR, r#type : u32, pdata : *const u8, cbdata : u32) -> u32);
-    SetPrinterDataExA(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi(), r#type, ::core::mem::transmute(pdata.as_ptr()), pdata.len() as _)
+    SetPrinterDataExA(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi(), r#type, ::core::mem::transmute(pdata.as_ptr()), pdata.len().try_into().unwrap())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetPrinterDataExW<P0, P1, P2>(hprinter: P0, pkeyname: P1, pvaluename: P2, r#type: u32, pdata: &[u8]) -> u32
@@ -2024,9 +2012,9 @@ where
     P2: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn SetPrinterDataExW(hprinter : super::super::Foundation:: HANDLE, pkeyname : ::windows_core::PCWSTR, pvaluename : ::windows_core::PCWSTR, r#type : u32, pdata : *const u8, cbdata : u32) -> u32);
-    SetPrinterDataExW(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi(), r#type, ::core::mem::transmute(pdata.as_ptr()), pdata.len() as _)
+    SetPrinterDataExW(hprinter.into_param().abi(), pkeyname.into_param().abi(), pvaluename.into_param().abi(), r#type, ::core::mem::transmute(pdata.as_ptr()), pdata.len().try_into().unwrap())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetPrinterDataW<P0, P1>(hprinter: P0, pvaluename: P1, r#type: u32, pdata: &[u8]) -> u32
@@ -2035,9 +2023,9 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn SetPrinterDataW(hprinter : super::super::Foundation:: HANDLE, pvaluename : ::windows_core::PCWSTR, r#type : u32, pdata : *const u8, cbdata : u32) -> u32);
-    SetPrinterDataW(hprinter.into_param().abi(), pvaluename.into_param().abi(), r#type, ::core::mem::transmute(pdata.as_ptr()), pdata.len() as _)
+    SetPrinterDataW(hprinter.into_param().abi(), pvaluename.into_param().abi(), r#type, ::core::mem::transmute(pdata.as_ptr()), pdata.len().try_into().unwrap())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SetPrinterW<P0>(hprinter: P0, level: u32, pprinter: ::core::option::Option<*const u8>, command: u32) -> ::windows_core::Result<()>
@@ -2047,7 +2035,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn SetPrinterW(hprinter : super::super::Foundation:: HANDLE, level : u32, pprinter : *const u8, command : u32) -> super::super::Foundation:: BOOL);
     SetPrinterW(hprinter.into_param().abi(), level, ::core::mem::transmute(pprinter.unwrap_or(::std::ptr::null())), command).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SplIsSessionZero<P0>(hprinter: P0, jobid: u32, pissessionzero: *mut super::super::Foundation::BOOL) -> u32
@@ -2057,7 +2045,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn SplIsSessionZero(hprinter : super::super::Foundation:: HANDLE, jobid : u32, pissessionzero : *mut super::super::Foundation:: BOOL) -> u32);
     SplIsSessionZero(hprinter.into_param().abi(), jobid, pissessionzero)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SplPromptUIInUsersSession<P0>(hprinter: P0, jobid: u32, puiparams: *const SHOWUIPARAMS, presponse: *mut u32) -> super::super::Foundation::BOOL
@@ -2067,7 +2055,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn SplPromptUIInUsersSession(hprinter : super::super::Foundation:: HANDLE, jobid : u32, puiparams : *const SHOWUIPARAMS, presponse : *mut u32) -> super::super::Foundation:: BOOL);
     SplPromptUIInUsersSession(hprinter.into_param().abi(), jobid, puiparams, presponse)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SpoolerCopyFileEvent<P0, P1>(pszprintername: P0, pszkey: P1, dwcopyfileevent: u32) -> super::super::Foundation::BOOL
@@ -2078,7 +2066,7 @@ where
     ::windows_targets::link!("mscms.dll" "system" fn SpoolerCopyFileEvent(pszprintername : ::windows_core::PCWSTR, pszkey : ::windows_core::PCWSTR, dwcopyfileevent : u32) -> super::super::Foundation:: BOOL);
     SpoolerCopyFileEvent(pszprintername.into_param().abi(), pszkey.into_param().abi(), dwcopyfileevent)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SpoolerFindClosePrinterChangeNotification<P0>(hprinter: P0) -> super::super::Foundation::BOOL
@@ -2088,7 +2076,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn SpoolerFindClosePrinterChangeNotification(hprinter : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     SpoolerFindClosePrinterChangeNotification(hprinter.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SpoolerFindFirstPrinterChangeNotification<P0>(hprinter: P0, fdwfilterflags: u32, fdwoptions: u32, pprinternotifyoptions: *const ::core::ffi::c_void, pvreserved: ::core::option::Option<*const ::core::ffi::c_void>, pnotificationconfig: *const ::core::ffi::c_void, phnotify: ::core::option::Option<*mut super::super::Foundation::HANDLE>, phevent: ::core::option::Option<*mut super::super::Foundation::HANDLE>) -> super::super::Foundation::BOOL
@@ -2098,7 +2086,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn SpoolerFindFirstPrinterChangeNotification(hprinter : super::super::Foundation:: HANDLE, fdwfilterflags : u32, fdwoptions : u32, pprinternotifyoptions : *const ::core::ffi::c_void, pvreserved : *const ::core::ffi::c_void, pnotificationconfig : *const ::core::ffi::c_void, phnotify : *mut super::super::Foundation:: HANDLE, phevent : *mut super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     SpoolerFindFirstPrinterChangeNotification(hprinter.into_param().abi(), fdwfilterflags, fdwoptions, pprinternotifyoptions, ::core::mem::transmute(pvreserved.unwrap_or(::std::ptr::null())), pnotificationconfig, ::core::mem::transmute(phnotify.unwrap_or(::std::ptr::null_mut())), ::core::mem::transmute(phevent.unwrap_or(::std::ptr::null_mut())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SpoolerFindNextPrinterChangeNotification<P0>(hprinter: P0, pfdwchange: *mut u32, pprinternotifyoptions: ::core::option::Option<*const ::core::ffi::c_void>, ppprinternotifyinfo: ::core::option::Option<*mut *mut ::core::ffi::c_void>) -> super::super::Foundation::BOOL
@@ -2108,13 +2096,12 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn SpoolerFindNextPrinterChangeNotification(hprinter : super::super::Foundation:: HANDLE, pfdwchange : *mut u32, pprinternotifyoptions : *const ::core::ffi::c_void, ppprinternotifyinfo : *mut *mut ::core::ffi::c_void) -> super::super::Foundation:: BOOL);
     SpoolerFindNextPrinterChangeNotification(hprinter.into_param().abi(), pfdwchange, ::core::mem::transmute(pprinternotifyoptions.unwrap_or(::std::ptr::null())), ::core::mem::transmute(ppprinternotifyinfo.unwrap_or(::std::ptr::null_mut())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[inline]
 pub unsafe fn SpoolerFreePrinterNotifyInfo(pinfo: *const PRINTER_NOTIFY_INFO) {
     ::windows_targets::link!("spoolss.dll" "system" fn SpoolerFreePrinterNotifyInfo(pinfo : *const PRINTER_NOTIFY_INFO) -> ());
     SpoolerFreePrinterNotifyInfo(pinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn SpoolerRefreshPrinterChangeNotification<P0>(hprinter: P0, dwcolor: u32, poptions: *const PRINTER_NOTIFY_OPTIONS, ppinfo: ::core::option::Option<*mut *mut PRINTER_NOTIFY_INFO>) -> super::super::Foundation::BOOL
@@ -2124,7 +2111,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn SpoolerRefreshPrinterChangeNotification(hprinter : super::super::Foundation:: HANDLE, dwcolor : u32, poptions : *const PRINTER_NOTIFY_OPTIONS, ppinfo : *mut *mut PRINTER_NOTIFY_INFO) -> super::super::Foundation:: BOOL);
     SpoolerRefreshPrinterChangeNotification(hprinter.into_param().abi(), dwcolor, poptions, ::core::mem::transmute(ppinfo.unwrap_or(::std::ptr::null_mut())))
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn StartDocPrinterA<P0>(hprinter: P0, level: u32, pdocinfo: *const DOC_INFO_1A) -> u32
@@ -2134,7 +2121,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn StartDocPrinterA(hprinter : super::super::Foundation:: HANDLE, level : u32, pdocinfo : *const DOC_INFO_1A) -> u32);
     StartDocPrinterA(hprinter.into_param().abi(), level, pdocinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn StartDocPrinterW<P0>(hprinter: P0, level: u32, pdocinfo: *const DOC_INFO_1W) -> u32
@@ -2144,7 +2131,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn StartDocPrinterW(hprinter : super::super::Foundation:: HANDLE, level : u32, pdocinfo : *const DOC_INFO_1W) -> u32);
     StartDocPrinterW(hprinter.into_param().abi(), level, pdocinfo)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn StartPagePrinter<P0>(hprinter: P0) -> super::super::Foundation::BOOL
@@ -2154,7 +2141,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn StartPagePrinter(hprinter : super::super::Foundation:: HANDLE) -> super::super::Foundation:: BOOL);
     StartPagePrinter(hprinter.into_param().abi())
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn UnRegisterForPrintAsyncNotifications<P0>(param0: P0) -> ::windows_core::Result<()>
@@ -2164,7 +2151,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn UnRegisterForPrintAsyncNotifications(param0 : super::super::Foundation:: HANDLE) -> ::windows_core::HRESULT);
     UnRegisterForPrintAsyncNotifications(param0.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn UpdatePrintDeviceObject<P0, P1>(hprinter: P0, hdeviceobject: P1) -> ::windows_core::Result<()>
@@ -2175,7 +2162,7 @@ where
     ::windows_targets::link!("spoolss.dll" "system" fn UpdatePrintDeviceObject(hprinter : super::super::Foundation:: HANDLE, hdeviceobject : super::super::Foundation:: HANDLE) -> ::windows_core::HRESULT);
     UpdatePrintDeviceObject(hprinter.into_param().abi(), hdeviceobject.into_param().abi()).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn UploadPrinterDriverPackageA<P0, P1, P2, P3>(pszserver: P0, pszinfpath: P1, pszenvironment: P2, dwflags: u32, hwnd: P3, pszdestinfpath: ::windows_core::PSTR, pcchdestinfpath: *mut u32) -> ::windows_core::Result<()>
@@ -2188,7 +2175,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn UploadPrinterDriverPackageA(pszserver : ::windows_core::PCSTR, pszinfpath : ::windows_core::PCSTR, pszenvironment : ::windows_core::PCSTR, dwflags : u32, hwnd : super::super::Foundation:: HWND, pszdestinfpath : ::windows_core::PSTR, pcchdestinfpath : *mut u32) -> ::windows_core::HRESULT);
     UploadPrinterDriverPackageA(pszserver.into_param().abi(), pszinfpath.into_param().abi(), pszenvironment.into_param().abi(), dwflags, hwnd.into_param().abi(), ::core::mem::transmute(pszdestinfpath), pcchdestinfpath).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn UploadPrinterDriverPackageW<P0, P1, P2, P3>(pszserver: P0, pszinfpath: P1, pszenvironment: P2, dwflags: u32, hwnd: P3, pszdestinfpath: ::windows_core::PWSTR, pcchdestinfpath: *mut u32) -> ::windows_core::Result<()>
@@ -2201,7 +2188,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn UploadPrinterDriverPackageW(pszserver : ::windows_core::PCWSTR, pszinfpath : ::windows_core::PCWSTR, pszenvironment : ::windows_core::PCWSTR, dwflags : u32, hwnd : super::super::Foundation:: HWND, pszdestinfpath : ::windows_core::PWSTR, pcchdestinfpath : *mut u32) -> ::windows_core::HRESULT);
     UploadPrinterDriverPackageW(pszserver.into_param().abi(), pszinfpath.into_param().abi(), pszenvironment.into_param().abi(), dwflags, hwnd.into_param().abi(), ::core::mem::transmute(pszdestinfpath), pcchdestinfpath).ok()
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WaitForPrinterChange<P0>(hprinter: P0, flags: u32) -> u32
@@ -2211,7 +2198,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn WaitForPrinterChange(hprinter : super::super::Foundation:: HANDLE, flags : u32) -> u32);
     WaitForPrinterChange(hprinter.into_param().abi(), flags)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn WritePrinter<P0>(hprinter: P0, pbuf: *const ::core::ffi::c_void, cbbuf: u32, pcwritten: *mut u32) -> super::super::Foundation::BOOL
@@ -2221,7 +2208,7 @@ where
     ::windows_targets::link!("winspool.drv" "system" fn WritePrinter(hprinter : super::super::Foundation:: HANDLE, pbuf : *const ::core::ffi::c_void, cbbuf : u32, pcwritten : *mut u32) -> super::super::Foundation:: BOOL);
     WritePrinter(hprinter.into_param().abi(), pbuf, cbbuf, pcwritten)
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 #[inline]
 pub unsafe fn XcvDataW<P0, P1>(hxcv: P0, pszdataname: P1, pinputdata: ::core::option::Option<&[u8]>, poutputdata: ::core::option::Option<&mut [u8]>, pcboutputneeded: *mut u32, pdwstatus: ::core::option::Option<*mut u32>) -> super::super::Foundation::BOOL
@@ -2230,10 +2217,19 @@ where
     P1: ::windows_core::IntoParam<::windows_core::PCWSTR>,
 {
     ::windows_targets::link!("winspool.drv" "system" fn XcvDataW(hxcv : super::super::Foundation:: HANDLE, pszdataname : ::windows_core::PCWSTR, pinputdata : *const u8, cbinputdata : u32, poutputdata : *mut u8, cboutputdata : u32, pcboutputneeded : *mut u32, pdwstatus : *mut u32) -> super::super::Foundation:: BOOL);
-    XcvDataW(hxcv.into_param().abi(), pszdataname.into_param().abi(), ::core::mem::transmute(pinputdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pinputdata.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(poutputdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), poutputdata.as_deref().map_or(0, |slice| slice.len() as _), pcboutputneeded, ::core::mem::transmute(pdwstatus.unwrap_or(::std::ptr::null_mut())))
+    XcvDataW(
+        hxcv.into_param().abi(),
+        pszdataname.into_param().abi(),
+        ::core::mem::transmute(pinputdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())),
+        pinputdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()),
+        ::core::mem::transmute(poutputdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())),
+        poutputdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()),
+        pcboutputneeded,
+        ::core::mem::transmute(pdwstatus.unwrap_or(::std::ptr::null_mut())),
+    )
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAsyncGetSendNotificationCookie(::windows_core::IUnknown);
 impl IAsyncGetSendNotificationCookie {
     pub unsafe fn FinishAsyncCall(&self, param0: ::windows_core::HRESULT) -> ::windows_core::Result<()> {
@@ -2242,7 +2238,7 @@ impl IAsyncGetSendNotificationCookie {
     pub unsafe fn CancelAsyncCall(&self, param0: ::windows_core::HRESULT) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.CancelAsyncCall)(::windows_core::Interface::as_raw(self), param0).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn FinishAsyncCallWithData<P0, P1>(&self, param0: P0, param1: P1) -> ::windows_core::Result<()>
     where
@@ -2253,24 +2249,8 @@ impl IAsyncGetSendNotificationCookie {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IAsyncGetSendNotificationCookie, ::windows_core::IUnknown, IPrintAsyncCookie);
-impl ::core::cmp::PartialEq for IAsyncGetSendNotificationCookie {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IAsyncGetSendNotificationCookie {}
-impl ::core::fmt::Debug for IAsyncGetSendNotificationCookie {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAsyncGetSendNotificationCookie").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IAsyncGetSendNotificationCookie {
     type Vtable = IAsyncGetSendNotificationCookie_Vtbl;
-}
-impl ::core::clone::Clone for IAsyncGetSendNotificationCookie {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAsyncGetSendNotificationCookie {
     const IID: ::windows_core::GUID = ::windows_core::GUID::zeroed();
@@ -2284,8 +2264,8 @@ pub struct IAsyncGetSendNotificationCookie_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     FinishAsyncCallWithData: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAsyncGetSrvReferralCookie(::windows_core::IUnknown);
 impl IAsyncGetSrvReferralCookie {
     pub unsafe fn FinishAsyncCall(&self, param0: ::windows_core::HRESULT) -> ::windows_core::Result<()> {
@@ -2302,24 +2282,8 @@ impl IAsyncGetSrvReferralCookie {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IAsyncGetSrvReferralCookie, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IAsyncGetSrvReferralCookie {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IAsyncGetSrvReferralCookie {}
-impl ::core::fmt::Debug for IAsyncGetSrvReferralCookie {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAsyncGetSrvReferralCookie").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IAsyncGetSrvReferralCookie {
     type Vtable = IAsyncGetSrvReferralCookie_Vtbl;
-}
-impl ::core::clone::Clone for IAsyncGetSrvReferralCookie {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAsyncGetSrvReferralCookie {
     const IID: ::windows_core::GUID = ::windows_core::GUID::zeroed();
@@ -2332,8 +2296,8 @@ pub struct IAsyncGetSrvReferralCookie_Vtbl {
     pub CancelAsyncCall: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: ::windows_core::HRESULT) -> ::windows_core::HRESULT,
     pub FinishAsyncCallWithData: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: ::windows_core::PCWSTR) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBidiAsyncNotifyChannel(::windows_core::IUnknown);
 impl IBidiAsyncNotifyChannel {
     pub unsafe fn SendNotification<P0>(&self, pdata: P0) -> ::windows_core::Result<()>
@@ -2373,24 +2337,8 @@ impl IBidiAsyncNotifyChannel {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IBidiAsyncNotifyChannel, ::windows_core::IUnknown, IPrintAsyncNotifyChannel);
-impl ::core::cmp::PartialEq for IBidiAsyncNotifyChannel {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IBidiAsyncNotifyChannel {}
-impl ::core::fmt::Debug for IBidiAsyncNotifyChannel {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IBidiAsyncNotifyChannel").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IBidiAsyncNotifyChannel {
     type Vtable = IBidiAsyncNotifyChannel_Vtbl;
-}
-impl ::core::clone::Clone for IBidiAsyncNotifyChannel {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBidiAsyncNotifyChannel {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x532818f7_921b_4fb2_bff8_2f4fd52ebebf);
@@ -2405,8 +2353,8 @@ pub struct IBidiAsyncNotifyChannel_Vtbl {
     pub AsyncGetNotificationSendResponse: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: *mut ::core::ffi::c_void, param1: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub AsyncCloseChannel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: *mut ::core::ffi::c_void, param1: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBidiRequest(::windows_core::IUnknown);
 impl IBidiRequest {
     pub unsafe fn SetSchema<P0>(&self, pszschema: P0) -> ::windows_core::Result<()>
@@ -2431,24 +2379,8 @@ impl IBidiRequest {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IBidiRequest, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IBidiRequest {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IBidiRequest {}
-impl ::core::fmt::Debug for IBidiRequest {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IBidiRequest").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IBidiRequest {
     type Vtable = IBidiRequest_Vtbl;
-}
-impl ::core::clone::Clone for IBidiRequest {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBidiRequest {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x8f348bd7_4b47_4755_8a9d_0f422df3dc89);
@@ -2463,8 +2395,8 @@ pub struct IBidiRequest_Vtbl {
     pub GetOutputData: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, dwindex: u32, ppszschema: *mut ::windows_core::PWSTR, pdwtype: *mut u32, ppdata: *mut *mut u8, usize: *mut u32) -> ::windows_core::HRESULT,
     pub GetEnumCount: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pdwtotal: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBidiRequestContainer(::windows_core::IUnknown);
 impl IBidiRequestContainer {
     pub unsafe fn AddRequest<P0>(&self, prequest: P0) -> ::windows_core::Result<()>
@@ -2473,7 +2405,7 @@ impl IBidiRequestContainer {
     {
         (::windows_core::Interface::vtable(self).AddRequest)(::windows_core::Interface::as_raw(self), prequest.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetEnumObject(&self) -> ::windows_core::Result<super::super::System::Com::IEnumUnknown> {
         let mut result__ = ::std::mem::zeroed();
@@ -2485,24 +2417,8 @@ impl IBidiRequestContainer {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IBidiRequestContainer, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IBidiRequestContainer {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IBidiRequestContainer {}
-impl ::core::fmt::Debug for IBidiRequestContainer {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IBidiRequestContainer").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IBidiRequestContainer {
     type Vtable = IBidiRequestContainer_Vtbl;
-}
-impl ::core::clone::Clone for IBidiRequestContainer {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBidiRequestContainer {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd752f6c0_94a8_4275_a77d_8f1d1a1121ae);
@@ -2518,8 +2434,8 @@ pub struct IBidiRequestContainer_Vtbl {
     GetEnumObject: usize,
     pub GetRequestCount: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pucount: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBidiSpl(::windows_core::IUnknown);
 impl IBidiSpl {
     pub unsafe fn BindDevice<P0>(&self, pszdevicename: P0, dwaccess: u32) -> ::windows_core::Result<()>
@@ -2547,24 +2463,8 @@ impl IBidiSpl {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IBidiSpl, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IBidiSpl {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IBidiSpl {}
-impl ::core::fmt::Debug for IBidiSpl {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IBidiSpl").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IBidiSpl {
     type Vtable = IBidiSpl_Vtbl;
-}
-impl ::core::clone::Clone for IBidiSpl {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBidiSpl {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd580dc0e_de39_4649_baa8_bf0b85a03a97);
@@ -2578,8 +2478,8 @@ pub struct IBidiSpl_Vtbl {
     pub SendRecv: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pszaction: ::windows_core::PCWSTR, prequest: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub MultiSendRecv: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pszaction: ::windows_core::PCWSTR, prequestcontainer: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBidiSpl2(::windows_core::IUnknown);
 impl IBidiSpl2 {
     pub unsafe fn BindDevice<P0>(&self, pszdevicename: P0, dwaccess: u32) -> ::windows_core::Result<()>
@@ -2598,7 +2498,7 @@ impl IBidiSpl2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).SendRecvXMLString)(::windows_core::Interface::as_raw(self), bstrrequest.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SendRecvXMLStream<P0>(&self, psrequest: P0) -> ::windows_core::Result<super::super::System::Com::IStream>
     where
@@ -2609,24 +2509,8 @@ impl IBidiSpl2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IBidiSpl2, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IBidiSpl2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IBidiSpl2 {}
-impl ::core::fmt::Debug for IBidiSpl2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IBidiSpl2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IBidiSpl2 {
     type Vtable = IBidiSpl2_Vtbl;
-}
-impl ::core::clone::Clone for IBidiSpl2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBidiSpl2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0e8f51b8_8273_4906_8e7b_be453ffd2e2b);
@@ -2643,8 +2527,8 @@ pub struct IBidiSpl2_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     SendRecvXMLStream: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IFixedDocument(::windows_core::IUnknown);
 impl IFixedDocument {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -2663,24 +2547,8 @@ impl IFixedDocument {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IFixedDocument, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IFixedDocument {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IFixedDocument {}
-impl ::core::fmt::Debug for IFixedDocument {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IFixedDocument").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IFixedDocument {
     type Vtable = IFixedDocument_Vtbl;
-}
-impl ::core::clone::Clone for IFixedDocument {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IFixedDocument {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf222ca9f_9968_4db9_81bd_abaebf15f93f);
@@ -2693,8 +2561,8 @@ pub struct IFixedDocument_Vtbl {
     pub GetPrintTicket: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppprintticket: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub SetPrintTicket: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pprintticket: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IFixedDocumentSequence(::windows_core::IUnknown);
 impl IFixedDocumentSequence {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -2713,24 +2581,8 @@ impl IFixedDocumentSequence {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IFixedDocumentSequence, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IFixedDocumentSequence {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IFixedDocumentSequence {}
-impl ::core::fmt::Debug for IFixedDocumentSequence {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IFixedDocumentSequence").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IFixedDocumentSequence {
     type Vtable = IFixedDocumentSequence_Vtbl;
-}
-impl ::core::clone::Clone for IFixedDocumentSequence {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IFixedDocumentSequence {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x8028d181_2c32_4249_8493_1bfb22045574);
@@ -2743,8 +2595,8 @@ pub struct IFixedDocumentSequence_Vtbl {
     pub GetPrintTicket: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppprintticket: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub SetPrintTicket: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pprintticket: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IFixedPage(::windows_core::IUnknown);
 impl IFixedPage {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -2801,24 +2653,8 @@ impl IFixedPage {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IFixedPage, ::windows_core::IUnknown, IPartBase);
-impl ::core::cmp::PartialEq for IFixedPage {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IFixedPage {}
-impl ::core::fmt::Debug for IFixedPage {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IFixedPage").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IFixedPage {
     type Vtable = IFixedPage_Vtbl;
-}
-impl ::core::clone::Clone for IFixedPage {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IFixedPage {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3d9f6448_7e95_4cb5_94fb_0180c2883a57);
@@ -2835,18 +2671,19 @@ pub struct IFixedPage_Vtbl {
     pub DeleteResource: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, uri: ::windows_core::PCWSTR) -> ::windows_core::HRESULT,
     pub GetXpsPartIterator: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pxpspartit: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Ole\"`*"]
+#[doc = "Required features: `\"Win32_System_Ole\"`"]
 #[cfg(feature = "Win32_System_Ole")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IImgCreateErrorInfo(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Ole")]
 impl IImgCreateErrorInfo {
-    #[doc = "*Required features: `\"Win32_System_Ole\"`*"]
+    #[doc = "Required features: `\"Win32_System_Ole\"`"]
     #[cfg(feature = "Win32_System_Ole")]
     pub unsafe fn SetGUID(&self, rguid: *const ::windows_core::GUID) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetGUID)(::windows_core::Interface::as_raw(self), rguid).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Ole\"`*"]
+    #[doc = "Required features: `\"Win32_System_Ole\"`"]
     #[cfg(feature = "Win32_System_Ole")]
     pub unsafe fn SetSource<P0>(&self, szsource: P0) -> ::windows_core::Result<()>
     where
@@ -2854,7 +2691,7 @@ impl IImgCreateErrorInfo {
     {
         (::windows_core::Interface::vtable(self).base__.SetSource)(::windows_core::Interface::as_raw(self), szsource.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Ole\"`*"]
+    #[doc = "Required features: `\"Win32_System_Ole\"`"]
     #[cfg(feature = "Win32_System_Ole")]
     pub unsafe fn SetDescription<P0>(&self, szdescription: P0) -> ::windows_core::Result<()>
     where
@@ -2862,7 +2699,7 @@ impl IImgCreateErrorInfo {
     {
         (::windows_core::Interface::vtable(self).base__.SetDescription)(::windows_core::Interface::as_raw(self), szdescription.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Ole\"`*"]
+    #[doc = "Required features: `\"Win32_System_Ole\"`"]
     #[cfg(feature = "Win32_System_Ole")]
     pub unsafe fn SetHelpFile<P0>(&self, szhelpfile: P0) -> ::windows_core::Result<()>
     where
@@ -2870,7 +2707,7 @@ impl IImgCreateErrorInfo {
     {
         (::windows_core::Interface::vtable(self).base__.SetHelpFile)(::windows_core::Interface::as_raw(self), szhelpfile.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Ole\"`*"]
+    #[doc = "Required features: `\"Win32_System_Ole\"`"]
     #[cfg(feature = "Win32_System_Ole")]
     pub unsafe fn SetHelpContext(&self, dwhelpcontext: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetHelpContext)(::windows_core::Interface::as_raw(self), dwhelpcontext).ok()
@@ -2882,28 +2719,8 @@ impl IImgCreateErrorInfo {
 #[cfg(feature = "Win32_System_Ole")]
 ::windows_core::imp::interface_hierarchy!(IImgCreateErrorInfo, ::windows_core::IUnknown, super::super::System::Ole::ICreateErrorInfo);
 #[cfg(feature = "Win32_System_Ole")]
-impl ::core::cmp::PartialEq for IImgCreateErrorInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Ole")]
-impl ::core::cmp::Eq for IImgCreateErrorInfo {}
-#[cfg(feature = "Win32_System_Ole")]
-impl ::core::fmt::Debug for IImgCreateErrorInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IImgCreateErrorInfo").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Ole")]
 unsafe impl ::windows_core::Interface for IImgCreateErrorInfo {
     type Vtable = IImgCreateErrorInfo_Vtbl;
-}
-#[cfg(feature = "Win32_System_Ole")]
-impl ::core::clone::Clone for IImgCreateErrorInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Ole")]
 unsafe impl ::windows_core::ComInterface for IImgCreateErrorInfo {
@@ -2916,37 +2733,38 @@ pub struct IImgCreateErrorInfo_Vtbl {
     pub base__: super::super::System::Ole::ICreateErrorInfo_Vtbl,
     pub AttachToErrorInfo: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, perrorinfo: *mut ImgErrorInfo) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IImgErrorInfo(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IImgErrorInfo {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetGUID(&self) -> ::windows_core::Result<::windows_core::GUID> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetGUID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetSource(&self) -> ::windows_core::Result<::windows_core::BSTR> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetDescription(&self) -> ::windows_core::Result<::windows_core::BSTR> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetDescription)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetHelpFile(&self) -> ::windows_core::Result<::windows_core::BSTR> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetHelpFile)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetHelpContext(&self) -> ::windows_core::Result<u32> {
         let mut result__ = ::std::mem::zeroed();
@@ -2983,28 +2801,8 @@ impl IImgErrorInfo {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IImgErrorInfo, ::windows_core::IUnknown, super::super::System::Com::IErrorInfo);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IImgErrorInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IImgErrorInfo {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IImgErrorInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IImgErrorInfo").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IImgErrorInfo {
     type Vtable = IImgErrorInfo_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IImgErrorInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IImgErrorInfo {
@@ -3023,8 +2821,8 @@ pub struct IImgErrorInfo_Vtbl {
     pub GetExceptionId: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pexceptionid: *mut u32) -> ::windows_core::HRESULT,
     pub DetachErrorInfo: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, perrorinfo: *mut ImgErrorInfo) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInterFilterCommunicator(::windows_core::IUnknown);
 impl IInterFilterCommunicator {
     pub unsafe fn RequestReader(&self, ppireader: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()> {
@@ -3035,24 +2833,8 @@ impl IInterFilterCommunicator {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IInterFilterCommunicator, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IInterFilterCommunicator {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IInterFilterCommunicator {}
-impl ::core::fmt::Debug for IInterFilterCommunicator {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInterFilterCommunicator").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IInterFilterCommunicator {
     type Vtable = IInterFilterCommunicator_Vtbl;
-}
-impl ::core::clone::Clone for IInterFilterCommunicator {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInterFilterCommunicator {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4daf1e69_81fd_462d_940f_8cd3ddf56fca);
@@ -3064,8 +2846,8 @@ pub struct IInterFilterCommunicator_Vtbl {
     pub RequestReader: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppireader: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub RequestWriter: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppiwriter: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPartBase(::windows_core::IUnknown);
 impl IPartBase {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3085,24 +2867,8 @@ impl IPartBase {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPartBase, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPartBase {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPartBase {}
-impl ::core::fmt::Debug for IPartBase {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPartBase").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPartBase {
     type Vtable = IPartBase_Vtbl;
-}
-impl ::core::clone::Clone for IPartBase {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPartBase {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x36d51e28_369e_43ba_a666_9540c62c3f58);
@@ -3116,8 +2882,8 @@ pub struct IPartBase_Vtbl {
     pub GetPartCompression: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcompression: *mut EXpsCompressionOptions) -> ::windows_core::HRESULT,
     pub SetPartCompression: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, compression: EXpsCompressionOptions) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPartColorProfile(::windows_core::IUnknown);
 impl IPartColorProfile {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3137,24 +2903,8 @@ impl IPartColorProfile {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPartColorProfile, ::windows_core::IUnknown, IPartBase);
-impl ::core::cmp::PartialEq for IPartColorProfile {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPartColorProfile {}
-impl ::core::fmt::Debug for IPartColorProfile {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPartColorProfile").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPartColorProfile {
     type Vtable = IPartColorProfile_Vtbl;
-}
-impl ::core::clone::Clone for IPartColorProfile {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPartColorProfile {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x63cca95b_7d18_4762_b15e_98658693d24a);
@@ -3164,8 +2914,8 @@ unsafe impl ::windows_core::ComInterface for IPartColorProfile {
 pub struct IPartColorProfile_Vtbl {
     pub base__: IPartBase_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPartDiscardControl(::windows_core::IUnknown);
 impl IPartDiscardControl {
     pub unsafe fn GetDiscardProperties(&self, urisentinelpage: *mut ::windows_core::BSTR, uriparttodiscard: *mut ::windows_core::BSTR) -> ::windows_core::Result<()> {
@@ -3173,24 +2923,8 @@ impl IPartDiscardControl {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPartDiscardControl, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPartDiscardControl {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPartDiscardControl {}
-impl ::core::fmt::Debug for IPartDiscardControl {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPartDiscardControl").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPartDiscardControl {
     type Vtable = IPartDiscardControl_Vtbl;
-}
-impl ::core::clone::Clone for IPartDiscardControl {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPartDiscardControl {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcc350c00_095b_42a5_bf0f_c8780edadb3c);
@@ -3201,8 +2935,8 @@ pub struct IPartDiscardControl_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub GetDiscardProperties: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, urisentinelpage: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>, uriparttodiscard: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPartFont(::windows_core::IUnknown);
 impl IPartFont {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3234,24 +2968,8 @@ impl IPartFont {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPartFont, ::windows_core::IUnknown, IPartBase);
-impl ::core::cmp::PartialEq for IPartFont {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPartFont {}
-impl ::core::fmt::Debug for IPartFont {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPartFont").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPartFont {
     type Vtable = IPartFont_Vtbl;
-}
-impl ::core::clone::Clone for IPartFont {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPartFont {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe07fe0ab_1124_43d0_a865_e8ffb6a3ea82);
@@ -3264,8 +2982,8 @@ pub struct IPartFont_Vtbl {
     pub SetFontContent: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcontenttype: ::windows_core::PCWSTR) -> ::windows_core::HRESULT,
     pub SetFontOptions: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, options: EXpsFontOptions) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPartFont2(::windows_core::IUnknown);
 impl IPartFont2 {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3301,24 +3019,8 @@ impl IPartFont2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPartFont2, ::windows_core::IUnknown, IPartBase, IPartFont);
-impl ::core::cmp::PartialEq for IPartFont2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPartFont2 {}
-impl ::core::fmt::Debug for IPartFont2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPartFont2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPartFont2 {
     type Vtable = IPartFont2_Vtbl;
-}
-impl ::core::clone::Clone for IPartFont2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPartFont2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x511e025f_d6cb_43be_bf65_63fe88515a39);
@@ -3329,8 +3031,8 @@ pub struct IPartFont2_Vtbl {
     pub base__: IPartFont_Vtbl,
     pub GetFontRestriction: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, prestriction: *mut EXpsFontRestriction) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPartImage(::windows_core::IUnknown);
 impl IPartImage {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3360,24 +3062,8 @@ impl IPartImage {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPartImage, ::windows_core::IUnknown, IPartBase);
-impl ::core::cmp::PartialEq for IPartImage {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPartImage {}
-impl ::core::fmt::Debug for IPartImage {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPartImage").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPartImage {
     type Vtable = IPartImage_Vtbl;
-}
-impl ::core::clone::Clone for IPartImage {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPartImage {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x725f2e3c_401a_4705_9de0_fe6f1353b87f);
@@ -3389,8 +3075,8 @@ pub struct IPartImage_Vtbl {
     pub GetImageProperties: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcontenttype: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub SetImageContent: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcontenttype: ::windows_core::PCWSTR) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPartPrintTicket(::windows_core::IUnknown);
 impl IPartPrintTicket {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3410,24 +3096,8 @@ impl IPartPrintTicket {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPartPrintTicket, ::windows_core::IUnknown, IPartBase);
-impl ::core::cmp::PartialEq for IPartPrintTicket {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPartPrintTicket {}
-impl ::core::fmt::Debug for IPartPrintTicket {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPartPrintTicket").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPartPrintTicket {
     type Vtable = IPartPrintTicket_Vtbl;
-}
-impl ::core::clone::Clone for IPartPrintTicket {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPartPrintTicket {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4a0f50f6_f9a2_41f0_99e7_5ae955be8e9e);
@@ -3437,8 +3107,8 @@ unsafe impl ::windows_core::ComInterface for IPartPrintTicket {
 pub struct IPartPrintTicket_Vtbl {
     pub base__: IPartBase_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPartResourceDictionary(::windows_core::IUnknown);
 impl IPartResourceDictionary {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3458,24 +3128,8 @@ impl IPartResourceDictionary {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPartResourceDictionary, ::windows_core::IUnknown, IPartBase);
-impl ::core::cmp::PartialEq for IPartResourceDictionary {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPartResourceDictionary {}
-impl ::core::fmt::Debug for IPartResourceDictionary {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPartResourceDictionary").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPartResourceDictionary {
     type Vtable = IPartResourceDictionary_Vtbl;
-}
-impl ::core::clone::Clone for IPartResourceDictionary {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPartResourceDictionary {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x16cfce6d_e744_4fb3_b474_f1d54f024a01);
@@ -3485,8 +3139,8 @@ unsafe impl ::windows_core::ComInterface for IPartResourceDictionary {
 pub struct IPartResourceDictionary_Vtbl {
     pub base__: IPartBase_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPartThumbnail(::windows_core::IUnknown);
 impl IPartThumbnail {
     pub unsafe fn GetUri(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3516,24 +3170,8 @@ impl IPartThumbnail {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPartThumbnail, ::windows_core::IUnknown, IPartBase);
-impl ::core::cmp::PartialEq for IPartThumbnail {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPartThumbnail {}
-impl ::core::fmt::Debug for IPartThumbnail {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPartThumbnail").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPartThumbnail {
     type Vtable = IPartThumbnail_Vtbl;
-}
-impl ::core::clone::Clone for IPartThumbnail {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPartThumbnail {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x027ed1c9_ba39_4cc5_aa55_7ec3a0de171a);
@@ -3545,8 +3183,8 @@ pub struct IPartThumbnail_Vtbl {
     pub GetThumbnailProperties: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcontenttype: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub SetThumbnailContent: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcontenttype: ::windows_core::PCWSTR) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintAsyncCookie(::windows_core::IUnknown);
 impl IPrintAsyncCookie {
     pub unsafe fn FinishAsyncCall(&self, param0: ::windows_core::HRESULT) -> ::windows_core::Result<()> {
@@ -3557,24 +3195,8 @@ impl IPrintAsyncCookie {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintAsyncCookie, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintAsyncCookie {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintAsyncCookie {}
-impl ::core::fmt::Debug for IPrintAsyncCookie {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintAsyncCookie").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintAsyncCookie {
     type Vtable = IPrintAsyncCookie_Vtbl;
-}
-impl ::core::clone::Clone for IPrintAsyncCookie {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintAsyncCookie {
     const IID: ::windows_core::GUID = ::windows_core::GUID::zeroed();
@@ -3586,8 +3208,8 @@ pub struct IPrintAsyncCookie_Vtbl {
     pub FinishAsyncCall: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: ::windows_core::HRESULT) -> ::windows_core::HRESULT,
     pub CancelAsyncCall: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: ::windows_core::HRESULT) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintAsyncNewChannelCookie(::windows_core::IUnknown);
 impl IPrintAsyncNewChannelCookie {
     pub unsafe fn FinishAsyncCall(&self, param0: ::windows_core::HRESULT) -> ::windows_core::Result<()> {
@@ -3601,24 +3223,8 @@ impl IPrintAsyncNewChannelCookie {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintAsyncNewChannelCookie, ::windows_core::IUnknown, IPrintAsyncCookie);
-impl ::core::cmp::PartialEq for IPrintAsyncNewChannelCookie {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintAsyncNewChannelCookie {}
-impl ::core::fmt::Debug for IPrintAsyncNewChannelCookie {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintAsyncNewChannelCookie").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintAsyncNewChannelCookie {
     type Vtable = IPrintAsyncNewChannelCookie_Vtbl;
-}
-impl ::core::clone::Clone for IPrintAsyncNewChannelCookie {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintAsyncNewChannelCookie {
     const IID: ::windows_core::GUID = ::windows_core::GUID::zeroed();
@@ -3629,8 +3235,8 @@ pub struct IPrintAsyncNewChannelCookie_Vtbl {
     pub base__: IPrintAsyncCookie_Vtbl,
     pub FinishAsyncCallWithData: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: *const *mut ::core::ffi::c_void, param1: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintAsyncNotify(::windows_core::IUnknown);
 impl IPrintAsyncNotify {
     pub unsafe fn CreatePrintAsyncNotifyChannel<P0>(&self, param0: u32, param1: *const ::windows_core::GUID, param2: PrintAsyncNotifyUserFilter, param3: PrintAsyncNotifyConversationStyle, param4: P0) -> ::windows_core::Result<IPrintAsyncNotifyChannel>
@@ -3649,24 +3255,8 @@ impl IPrintAsyncNotify {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintAsyncNotify, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintAsyncNotify {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintAsyncNotify {}
-impl ::core::fmt::Debug for IPrintAsyncNotify {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintAsyncNotify").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintAsyncNotify {
     type Vtable = IPrintAsyncNotify_Vtbl;
-}
-impl ::core::clone::Clone for IPrintAsyncNotify {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintAsyncNotify {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x532818f7_921b_4fb2_bff8_2f4fd52ebebf);
@@ -3678,8 +3268,8 @@ pub struct IPrintAsyncNotify_Vtbl {
     pub CreatePrintAsyncNotifyChannel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: u32, param1: *const ::windows_core::GUID, param2: PrintAsyncNotifyUserFilter, param3: PrintAsyncNotifyConversationStyle, param4: *mut ::core::ffi::c_void, param5: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub CreatePrintAsyncNotifyRegistration: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: *const ::windows_core::GUID, param1: PrintAsyncNotifyUserFilter, param2: PrintAsyncNotifyConversationStyle, param3: *mut ::core::ffi::c_void, param4: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintAsyncNotifyCallback(::windows_core::IUnknown);
 impl IPrintAsyncNotifyCallback {
     pub unsafe fn OnEventNotify<P0, P1>(&self, pchannel: P0, pdata: P1) -> ::windows_core::Result<()>
@@ -3698,24 +3288,8 @@ impl IPrintAsyncNotifyCallback {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintAsyncNotifyCallback, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintAsyncNotifyCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintAsyncNotifyCallback {}
-impl ::core::fmt::Debug for IPrintAsyncNotifyCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintAsyncNotifyCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintAsyncNotifyCallback {
     type Vtable = IPrintAsyncNotifyCallback_Vtbl;
-}
-impl ::core::clone::Clone for IPrintAsyncNotifyCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintAsyncNotifyCallback {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7def34c1_9d92_4c99_b3b3_db94a9d4191b);
@@ -3727,8 +3301,8 @@ pub struct IPrintAsyncNotifyCallback_Vtbl {
     pub OnEventNotify: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pchannel: *mut ::core::ffi::c_void, pdata: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub ChannelClosed: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pchannel: *mut ::core::ffi::c_void, pdata: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintAsyncNotifyChannel(::windows_core::IUnknown);
 impl IPrintAsyncNotifyChannel {
     pub unsafe fn SendNotification<P0>(&self, pdata: P0) -> ::windows_core::Result<()>
@@ -3745,24 +3319,8 @@ impl IPrintAsyncNotifyChannel {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintAsyncNotifyChannel, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintAsyncNotifyChannel {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintAsyncNotifyChannel {}
-impl ::core::fmt::Debug for IPrintAsyncNotifyChannel {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintAsyncNotifyChannel").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintAsyncNotifyChannel {
     type Vtable = IPrintAsyncNotifyChannel_Vtbl;
-}
-impl ::core::clone::Clone for IPrintAsyncNotifyChannel {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintAsyncNotifyChannel {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4a5031b1_1f3f_4db0_a462_4530ed8b0451);
@@ -3774,8 +3332,8 @@ pub struct IPrintAsyncNotifyChannel_Vtbl {
     pub SendNotification: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pdata: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub CloseChannel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pdata: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintAsyncNotifyDataObject(::windows_core::IUnknown);
 impl IPrintAsyncNotifyDataObject {
     pub unsafe fn AcquireData(&self, ppnotificationdata: ::core::option::Option<*mut *mut u8>, psize: ::core::option::Option<*mut u32>, ppschema: ::core::option::Option<*mut *mut ::windows_core::GUID>) -> ::windows_core::Result<()> {
@@ -3786,24 +3344,8 @@ impl IPrintAsyncNotifyDataObject {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintAsyncNotifyDataObject, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintAsyncNotifyDataObject {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintAsyncNotifyDataObject {}
-impl ::core::fmt::Debug for IPrintAsyncNotifyDataObject {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintAsyncNotifyDataObject").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintAsyncNotifyDataObject {
     type Vtable = IPrintAsyncNotifyDataObject_Vtbl;
-}
-impl ::core::clone::Clone for IPrintAsyncNotifyDataObject {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintAsyncNotifyDataObject {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x77cf513e_5d49_4789_9f30_d0822b335c0d);
@@ -3815,8 +3357,8 @@ pub struct IPrintAsyncNotifyDataObject_Vtbl {
     pub AcquireData: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppnotificationdata: *mut *mut u8, psize: *mut u32, ppschema: *mut *mut ::windows_core::GUID) -> ::windows_core::HRESULT,
     pub ReleaseData: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintAsyncNotifyRegistration(::windows_core::IUnknown);
 impl IPrintAsyncNotifyRegistration {
     pub unsafe fn RegisterForNotifications(&self) -> ::windows_core::Result<()> {
@@ -3827,24 +3369,8 @@ impl IPrintAsyncNotifyRegistration {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintAsyncNotifyRegistration, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintAsyncNotifyRegistration {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintAsyncNotifyRegistration {}
-impl ::core::fmt::Debug for IPrintAsyncNotifyRegistration {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintAsyncNotifyRegistration").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintAsyncNotifyRegistration {
     type Vtable = IPrintAsyncNotifyRegistration_Vtbl;
-}
-impl ::core::clone::Clone for IPrintAsyncNotifyRegistration {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintAsyncNotifyRegistration {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0f6f27b6_6f86_4591_9203_64c3bfadedfe);
@@ -3856,8 +3382,8 @@ pub struct IPrintAsyncNotifyRegistration_Vtbl {
     pub RegisterForNotifications: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub UnregisterForNotifications: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintAsyncNotifyServerReferral(::windows_core::IUnknown);
 impl IPrintAsyncNotifyServerReferral {
     pub unsafe fn GetServerReferral(&self) -> ::windows_core::Result<::windows_core::PWSTR> {
@@ -3878,24 +3404,8 @@ impl IPrintAsyncNotifyServerReferral {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintAsyncNotifyServerReferral, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintAsyncNotifyServerReferral {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintAsyncNotifyServerReferral {}
-impl ::core::fmt::Debug for IPrintAsyncNotifyServerReferral {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintAsyncNotifyServerReferral").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintAsyncNotifyServerReferral {
     type Vtable = IPrintAsyncNotifyServerReferral_Vtbl;
-}
-impl ::core::clone::Clone for IPrintAsyncNotifyServerReferral {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintAsyncNotifyServerReferral {
     const IID: ::windows_core::GUID = ::windows_core::GUID::zeroed();
@@ -3908,8 +3418,8 @@ pub struct IPrintAsyncNotifyServerReferral_Vtbl {
     pub AsyncGetServerReferral: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub SetServerReferral: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, prmtserverreferral: ::windows_core::PCWSTR) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintBidiAsyncNotifyRegistration(::windows_core::IUnknown);
 impl IPrintBidiAsyncNotifyRegistration {
     pub unsafe fn RegisterForNotifications(&self) -> ::windows_core::Result<()> {
@@ -3926,24 +3436,8 @@ impl IPrintBidiAsyncNotifyRegistration {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintBidiAsyncNotifyRegistration, ::windows_core::IUnknown, IPrintAsyncNotifyRegistration);
-impl ::core::cmp::PartialEq for IPrintBidiAsyncNotifyRegistration {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintBidiAsyncNotifyRegistration {}
-impl ::core::fmt::Debug for IPrintBidiAsyncNotifyRegistration {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintBidiAsyncNotifyRegistration").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintBidiAsyncNotifyRegistration {
     type Vtable = IPrintBidiAsyncNotifyRegistration_Vtbl;
-}
-impl ::core::clone::Clone for IPrintBidiAsyncNotifyRegistration {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintBidiAsyncNotifyRegistration {
     const IID: ::windows_core::GUID = ::windows_core::GUID::zeroed();
@@ -3954,8 +3448,8 @@ pub struct IPrintBidiAsyncNotifyRegistration_Vtbl {
     pub base__: IPrintAsyncNotifyRegistration_Vtbl,
     pub AsyncGetNewChannel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintClassObjectFactory(::windows_core::IUnknown);
 impl IPrintClassObjectFactory {
     pub unsafe fn GetPrintClassObject<P0>(&self, pszprintername: P0, riid: *const ::windows_core::GUID, ppnewobject: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>
@@ -3966,24 +3460,8 @@ impl IPrintClassObjectFactory {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintClassObjectFactory, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintClassObjectFactory {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintClassObjectFactory {}
-impl ::core::fmt::Debug for IPrintClassObjectFactory {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintClassObjectFactory").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintClassObjectFactory {
     type Vtable = IPrintClassObjectFactory_Vtbl;
-}
-impl ::core::clone::Clone for IPrintClassObjectFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintClassObjectFactory {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9af593dd_9b02_48a8_9bad_69ace423f88b);
@@ -3994,11 +3472,11 @@ pub struct IPrintClassObjectFactory_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub GetPrintClassObject: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pszprintername: ::windows_core::PCWSTR, riid: *const ::windows_core::GUID, ppnewobject: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintCoreHelper(::windows_core::IUnknown);
 impl IPrintCoreHelper {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn GetOption<P0>(&self, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, cbsize: u32, pszfeaturerequested: P0) -> ::windows_core::Result<::windows_core::PCSTR>
     where
@@ -4007,7 +3485,7 @@ impl IPrintCoreHelper {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetOption)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pdevmode.unwrap_or(::std::ptr::null())), cbsize, pszfeaturerequested.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn SetOptions<P0>(&self, pdevmode: *mut super::Gdi::DEVMODEA, cbsize: u32, bresolveconflicts: P0, pfopairs: *const PRINT_FEATURE_OPTION, cpairs: u32, pcpairswritten: *mut u32, pdwresult: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4015,7 +3493,7 @@ impl IPrintCoreHelper {
     {
         (::windows_core::Interface::vtable(self).SetOptions)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, bresolveconflicts.into_param().abi(), pfopairs, cpairs, pcpairswritten, pdwresult).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn EnumConstrainedOptions<P0>(&self, pdevmode: *const super::Gdi::DEVMODEA, cbsize: u32, pszfeaturekeyword: P0, pconstrainedoptionlist: *const *const *const ::windows_core::PCSTR, pdwnumoptions: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4023,7 +3501,7 @@ impl IPrintCoreHelper {
     {
         (::windows_core::Interface::vtable(self).EnumConstrainedOptions)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, pszfeaturekeyword.into_param().abi(), pconstrainedoptionlist, pdwnumoptions).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn WhyConstrained<P0, P1>(&self, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, cbsize: u32, pszfeaturekeyword: P0, pszoptionkeyword: P1, ppfoconstraints: *mut *mut PRINT_FEATURE_OPTION, pdwnumoptions: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4062,24 +3540,8 @@ impl IPrintCoreHelper {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintCoreHelper, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintCoreHelper {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintCoreHelper {}
-impl ::core::fmt::Debug for IPrintCoreHelper {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintCoreHelper").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintCoreHelper {
     type Vtable = IPrintCoreHelper_Vtbl;
-}
-impl ::core::clone::Clone for IPrintCoreHelper {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintCoreHelper {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa89ec53e_3905_49c6_9c1a_c0a88117fdb6);
@@ -4110,11 +3572,11 @@ pub struct IPrintCoreHelper_Vtbl {
     pub SetFontSubstitution: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, psztruetypefontname: ::windows_core::PCWSTR, pszdevfontname: ::windows_core::PCWSTR) -> ::windows_core::HRESULT,
     pub CreateInstanceOfMSXMLObject: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, rclsid: *const ::windows_core::GUID, punkouter: *mut ::core::ffi::c_void, dwclscontext: u32, riid: *const ::windows_core::GUID, ppv: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintCoreHelperPS(::windows_core::IUnknown);
 impl IPrintCoreHelperPS {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn GetOption<P0>(&self, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, cbsize: u32, pszfeaturerequested: P0) -> ::windows_core::Result<::windows_core::PCSTR>
     where
@@ -4123,7 +3585,7 @@ impl IPrintCoreHelperPS {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetOption)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pdevmode.unwrap_or(::std::ptr::null())), cbsize, pszfeaturerequested.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn SetOptions<P0>(&self, pdevmode: *mut super::Gdi::DEVMODEA, cbsize: u32, bresolveconflicts: P0, pfopairs: *const PRINT_FEATURE_OPTION, cpairs: u32, pcpairswritten: *mut u32, pdwresult: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4131,7 +3593,7 @@ impl IPrintCoreHelperPS {
     {
         (::windows_core::Interface::vtable(self).base__.SetOptions)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, bresolveconflicts.into_param().abi(), pfopairs, cpairs, pcpairswritten, pdwresult).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn EnumConstrainedOptions<P0>(&self, pdevmode: *const super::Gdi::DEVMODEA, cbsize: u32, pszfeaturekeyword: P0, pconstrainedoptionlist: *const *const *const ::windows_core::PCSTR, pdwnumoptions: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4139,7 +3601,7 @@ impl IPrintCoreHelperPS {
     {
         (::windows_core::Interface::vtable(self).base__.EnumConstrainedOptions)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, pszfeaturekeyword.into_param().abi(), pconstrainedoptionlist, pdwnumoptions).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn WhyConstrained<P0, P1>(&self, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, cbsize: u32, pszfeaturekeyword: P0, pszoptionkeyword: P1, ppfoconstraints: *mut *mut PRINT_FEATURE_OPTION, pdwnumoptions: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4199,24 +3661,8 @@ impl IPrintCoreHelperPS {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintCoreHelperPS, ::windows_core::IUnknown, IPrintCoreHelper);
-impl ::core::cmp::PartialEq for IPrintCoreHelperPS {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintCoreHelperPS {}
-impl ::core::fmt::Debug for IPrintCoreHelperPS {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintCoreHelperPS").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintCoreHelperPS {
     type Vtable = IPrintCoreHelperPS_Vtbl;
-}
-impl ::core::clone::Clone for IPrintCoreHelperPS {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintCoreHelperPS {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc2c14f6f_95d3_4d63_96cf_6bd9e6c907c2);
@@ -4229,11 +3675,11 @@ pub struct IPrintCoreHelperPS_Vtbl {
     pub GetFeatureAttribute: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pszfeaturekeyword: ::windows_core::PCSTR, pszattribute: ::windows_core::PCSTR, pdwdatatype: *mut u32, ppbdata: *mut *mut u8, pcbsize: *mut u32) -> ::windows_core::HRESULT,
     pub GetOptionAttribute: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pszfeaturekeyword: ::windows_core::PCSTR, pszoptionkeyword: ::windows_core::PCSTR, pszattribute: ::windows_core::PCSTR, pdwdatatype: *mut u32, ppbdata: *mut *mut u8, pcbsize: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintCoreHelperUni(::windows_core::IUnknown);
 impl IPrintCoreHelperUni {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn GetOption<P0>(&self, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, cbsize: u32, pszfeaturerequested: P0) -> ::windows_core::Result<::windows_core::PCSTR>
     where
@@ -4242,7 +3688,7 @@ impl IPrintCoreHelperUni {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetOption)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pdevmode.unwrap_or(::std::ptr::null())), cbsize, pszfeaturerequested.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn SetOptions<P0>(&self, pdevmode: *mut super::Gdi::DEVMODEA, cbsize: u32, bresolveconflicts: P0, pfopairs: *const PRINT_FEATURE_OPTION, cpairs: u32, pcpairswritten: *mut u32, pdwresult: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4250,7 +3696,7 @@ impl IPrintCoreHelperUni {
     {
         (::windows_core::Interface::vtable(self).base__.SetOptions)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, bresolveconflicts.into_param().abi(), pfopairs, cpairs, pcpairswritten, pdwresult).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn EnumConstrainedOptions<P0>(&self, pdevmode: *const super::Gdi::DEVMODEA, cbsize: u32, pszfeaturekeyword: P0, pconstrainedoptionlist: *const *const *const ::windows_core::PCSTR, pdwnumoptions: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4258,7 +3704,7 @@ impl IPrintCoreHelperUni {
     {
         (::windows_core::Interface::vtable(self).base__.EnumConstrainedOptions)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, pszfeaturekeyword.into_param().abi(), pconstrainedoptionlist, pdwnumoptions).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn WhyConstrained<P0, P1>(&self, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, cbsize: u32, pszfeaturekeyword: P0, pszoptionkeyword: P1, ppfoconstraints: *mut *mut PRINT_FEATURE_OPTION, pdwnumoptions: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4295,12 +3741,12 @@ impl IPrintCoreHelperUni {
     {
         (::windows_core::Interface::vtable(self).base__.CreateInstanceOfMSXMLObject)(::windows_core::Interface::as_raw(self), rclsid, punkouter.into_param().abi(), dwclscontext, riid, ppv).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_System_Com"))]
     pub unsafe fn CreateGDLSnapshot(&self, pdevmode: *mut super::Gdi::DEVMODEA, cbsize: u32, dwflags: u32, ppsnapshotstream: *mut ::core::option::Option<super::super::System::Com::IStream>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).CreateGDLSnapshot)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, dwflags, ::core::mem::transmute(ppsnapshotstream)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateDefaultGDLSnapshot(&self, dwflags: u32) -> ::windows_core::Result<super::super::System::Com::IStream> {
         let mut result__ = ::std::mem::zeroed();
@@ -4308,24 +3754,8 @@ impl IPrintCoreHelperUni {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintCoreHelperUni, ::windows_core::IUnknown, IPrintCoreHelper);
-impl ::core::cmp::PartialEq for IPrintCoreHelperUni {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintCoreHelperUni {}
-impl ::core::fmt::Debug for IPrintCoreHelperUni {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintCoreHelperUni").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintCoreHelperUni {
     type Vtable = IPrintCoreHelperUni_Vtbl;
-}
-impl ::core::clone::Clone for IPrintCoreHelperUni {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintCoreHelperUni {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7e8e51d6_e5ee_4426_817b_958b9444eb79);
@@ -4343,11 +3773,11 @@ pub struct IPrintCoreHelperUni_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     CreateDefaultGDLSnapshot: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintCoreHelperUni2(::windows_core::IUnknown);
 impl IPrintCoreHelperUni2 {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn GetOption<P0>(&self, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, cbsize: u32, pszfeaturerequested: P0) -> ::windows_core::Result<::windows_core::PCSTR>
     where
@@ -4356,7 +3786,7 @@ impl IPrintCoreHelperUni2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.GetOption)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pdevmode.unwrap_or(::std::ptr::null())), cbsize, pszfeaturerequested.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn SetOptions<P0>(&self, pdevmode: *mut super::Gdi::DEVMODEA, cbsize: u32, bresolveconflicts: P0, pfopairs: *const PRINT_FEATURE_OPTION, cpairs: u32, pcpairswritten: *mut u32, pdwresult: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4364,7 +3794,7 @@ impl IPrintCoreHelperUni2 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetOptions)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, bresolveconflicts.into_param().abi(), pfopairs, cpairs, pcpairswritten, pdwresult).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn EnumConstrainedOptions<P0>(&self, pdevmode: *const super::Gdi::DEVMODEA, cbsize: u32, pszfeaturekeyword: P0, pconstrainedoptionlist: *const *const *const ::windows_core::PCSTR, pdwnumoptions: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4372,7 +3802,7 @@ impl IPrintCoreHelperUni2 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.EnumConstrainedOptions)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, pszfeaturekeyword.into_param().abi(), pconstrainedoptionlist, pdwnumoptions).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn WhyConstrained<P0, P1>(&self, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, cbsize: u32, pszfeaturekeyword: P0, pszoptionkeyword: P1, ppfoconstraints: *mut *mut PRINT_FEATURE_OPTION, pdwnumoptions: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4409,18 +3839,18 @@ impl IPrintCoreHelperUni2 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.CreateInstanceOfMSXMLObject)(::windows_core::Interface::as_raw(self), rclsid, punkouter.into_param().abi(), dwclscontext, riid, ppv).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_System_Com"))]
     pub unsafe fn CreateGDLSnapshot(&self, pdevmode: *mut super::Gdi::DEVMODEA, cbsize: u32, dwflags: u32, ppsnapshotstream: *mut ::core::option::Option<super::super::System::Com::IStream>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.CreateGDLSnapshot)(::windows_core::Interface::as_raw(self), pdevmode, cbsize, dwflags, ::core::mem::transmute(ppsnapshotstream)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateDefaultGDLSnapshot(&self, dwflags: u32) -> ::windows_core::Result<super::super::System::Com::IStream> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.CreateDefaultGDLSnapshot)(::windows_core::Interface::as_raw(self), dwflags, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn GetNamedCommand<P0>(&self, pdevmode: ::core::option::Option<*const super::Gdi::DEVMODEA>, cbsize: u32, pszcommandname: P0, ppcommandbytes: *mut *mut u8, pcbcommandsize: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4430,24 +3860,8 @@ impl IPrintCoreHelperUni2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintCoreHelperUni2, ::windows_core::IUnknown, IPrintCoreHelper, IPrintCoreHelperUni);
-impl ::core::cmp::PartialEq for IPrintCoreHelperUni2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintCoreHelperUni2 {}
-impl ::core::fmt::Debug for IPrintCoreHelperUni2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintCoreHelperUni2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintCoreHelperUni2 {
     type Vtable = IPrintCoreHelperUni2_Vtbl;
-}
-impl ::core::clone::Clone for IPrintCoreHelperUni2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintCoreHelperUni2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6c8afdfc_ead0_4d2d_8071_9bf0175a6c3a);
@@ -4461,8 +3875,8 @@ pub struct IPrintCoreHelperUni2_Vtbl {
     #[cfg(not(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi")))]
     GetNamedCommand: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintCoreUI2(::windows_core::IUnknown);
 impl IPrintCoreUI2 {
     pub unsafe fn DrvGetDriverSetting<P0>(&self, pci: *mut ::core::ffi::c_void, feature: P0, poutput: *mut ::core::ffi::c_void, cbsize: u32, pcbneeded: *mut u32, pdwoptionsreturned: *mut u32) -> ::windows_core::Result<()>
@@ -4471,7 +3885,7 @@ impl IPrintCoreUI2 {
     {
         (::windows_core::Interface::vtable(self).base__.DrvGetDriverSetting)(::windows_core::Interface::as_raw(self), pci, feature.into_param().abi(), poutput, cbsize, pcbneeded, pdwoptionsreturned).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DrvUpgradeRegistrySetting<P0, P1, P2>(&self, hprinter: P0, pfeature: P1, poption: P2) -> ::windows_core::Result<()>
     where
@@ -4484,52 +3898,52 @@ impl IPrintCoreUI2 {
     pub unsafe fn DrvUpdateUISetting(&self, pci: *mut ::core::ffi::c_void, poptitem: *mut ::core::ffi::c_void, dwpreviousselection: u32, dwmode: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.DrvUpdateUISetting)(::windows_core::Interface::as_raw(self), pci, poptitem, dwpreviousselection, dwmode).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetOptions(&self, poemuiobj: *const OEMUIOBJ, dwflags: u32, pmszfeaturesrequested: ::core::option::Option<&[u8]>, pmszfeatureoptionbuf: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).GetOptions)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, ::core::mem::transmute(pmszfeaturesrequested.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszfeaturesrequested.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(pmszfeatureoptionbuf.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszfeatureoptionbuf.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+        (::windows_core::Interface::vtable(self).GetOptions)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, ::core::mem::transmute(pmszfeaturesrequested.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszfeaturesrequested.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), ::core::mem::transmute(pmszfeatureoptionbuf.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszfeatureoptionbuf.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetOptions(&self, poemuiobj: *const OEMUIOBJ, dwflags: u32, pmszfeatureoptionbuf: &[u8]) -> ::windows_core::Result<u32> {
         let mut result__ = ::std::mem::zeroed();
-        (::windows_core::Interface::vtable(self).SetOptions)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, ::core::mem::transmute(pmszfeatureoptionbuf.as_ptr()), pmszfeatureoptionbuf.len() as _, &mut result__).from_abi(result__)
+        (::windows_core::Interface::vtable(self).SetOptions)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, ::core::mem::transmute(pmszfeatureoptionbuf.as_ptr()), pmszfeatureoptionbuf.len().try_into().unwrap(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EnumConstrainedOptions<P0>(&self, poemuiobj: *const OEMUIOBJ, dwflags: u32, pszfeaturekeyword: P0, pmszconstrainedoptionlist: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
     {
-        (::windows_core::Interface::vtable(self).EnumConstrainedOptions)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), ::core::mem::transmute(pmszconstrainedoptionlist.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszconstrainedoptionlist.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+        (::windows_core::Interface::vtable(self).EnumConstrainedOptions)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), ::core::mem::transmute(pmszconstrainedoptionlist.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszconstrainedoptionlist.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn WhyConstrained<P0, P1>(&self, poemuiobj: *const OEMUIOBJ, dwflags: u32, pszfeaturekeyword: P0, pszoptionkeyword: P1, pmszreasonlist: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
         P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
     {
-        (::windows_core::Interface::vtable(self).WhyConstrained)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), pszoptionkeyword.into_param().abi(), ::core::mem::transmute(pmszreasonlist.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszreasonlist.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+        (::windows_core::Interface::vtable(self).WhyConstrained)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), pszoptionkeyword.into_param().abi(), ::core::mem::transmute(pmszreasonlist.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszreasonlist.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetGlobalAttribute<P0>(&self, poemuiobj: *const OEMUIOBJ, dwflags: u32, pszattribute: P0, pdwdatatype: *mut u32, pbdata: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
     {
-        (::windows_core::Interface::vtable(self).GetGlobalAttribute)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszattribute.into_param().abi(), pdwdatatype, ::core::mem::transmute(pbdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pbdata.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+        (::windows_core::Interface::vtable(self).GetGlobalAttribute)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszattribute.into_param().abi(), pdwdatatype, ::core::mem::transmute(pbdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pbdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetFeatureAttribute<P0, P1>(&self, poemuiobj: *const OEMUIOBJ, dwflags: u32, pszfeaturekeyword: P0, pszattribute: P1, pdwdatatype: *mut u32, pbdata: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
         P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
     {
-        (::windows_core::Interface::vtable(self).GetFeatureAttribute)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), pszattribute.into_param().abi(), pdwdatatype, ::core::mem::transmute(pbdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pbdata.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+        (::windows_core::Interface::vtable(self).GetFeatureAttribute)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), pszattribute.into_param().abi(), pdwdatatype, ::core::mem::transmute(pbdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pbdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetOptionAttribute<P0, P1, P2>(&self, poemuiobj: *const OEMUIOBJ, dwflags: u32, pszfeaturekeyword: P0, pszoptionkeyword: P1, pszattribute: P2, pdwdatatype: *mut u32, pbdata: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4537,49 +3951,33 @@ impl IPrintCoreUI2 {
         P1: ::windows_core::IntoParam<::windows_core::PCSTR>,
         P2: ::windows_core::IntoParam<::windows_core::PCSTR>,
     {
-        (::windows_core::Interface::vtable(self).GetOptionAttribute)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), pszoptionkeyword.into_param().abi(), pszattribute.into_param().abi(), pdwdatatype, ::core::mem::transmute(pbdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pbdata.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+        (::windows_core::Interface::vtable(self).GetOptionAttribute)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), pszoptionkeyword.into_param().abi(), pszattribute.into_param().abi(), pdwdatatype, ::core::mem::transmute(pbdata.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pbdata.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EnumFeatures(&self, poemuiobj: *const OEMUIOBJ, dwflags: u32, pmszfeaturelist: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).EnumFeatures)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, ::core::mem::transmute(pmszfeaturelist.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszfeaturelist.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+        (::windows_core::Interface::vtable(self).EnumFeatures)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, ::core::mem::transmute(pmszfeaturelist.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszfeaturelist.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EnumOptions<P0>(&self, poemuiobj: *const OEMUIOBJ, dwflags: u32, pszfeaturekeyword: P0, pmszoptionlist: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCSTR>,
     {
-        (::windows_core::Interface::vtable(self).EnumOptions)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), ::core::mem::transmute(pmszoptionlist.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszoptionlist.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+        (::windows_core::Interface::vtable(self).EnumOptions)(::windows_core::Interface::as_raw(self), poemuiobj, dwflags, pszfeaturekeyword.into_param().abi(), ::core::mem::transmute(pmszoptionlist.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pmszoptionlist.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn QuerySimulationSupport<P0>(&self, hprinter: P0, dwlevel: u32, pcaps: ::core::option::Option<&mut [u8]>, pcbneeded: *mut u32) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<super::super::Foundation::HANDLE>,
     {
-        (::windows_core::Interface::vtable(self).QuerySimulationSupport)(::windows_core::Interface::as_raw(self), hprinter.into_param().abi(), dwlevel, ::core::mem::transmute(pcaps.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pcaps.as_deref().map_or(0, |slice| slice.len() as _), pcbneeded).ok()
+        (::windows_core::Interface::vtable(self).QuerySimulationSupport)(::windows_core::Interface::as_raw(self), hprinter.into_param().abi(), dwlevel, ::core::mem::transmute(pcaps.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), pcaps.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), pcbneeded).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintCoreUI2, ::windows_core::IUnknown, IPrintOemDriverUI);
-impl ::core::cmp::PartialEq for IPrintCoreUI2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintCoreUI2 {}
-impl ::core::fmt::Debug for IPrintCoreUI2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintCoreUI2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintCoreUI2 {
     type Vtable = IPrintCoreUI2_Vtbl;
-}
-impl ::core::clone::Clone for IPrintCoreUI2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintCoreUI2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x085ccfca_3adf_4c9e_b491_d851a6edc997);
@@ -4629,8 +4027,8 @@ pub struct IPrintCoreUI2_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     QuerySimulationSupport: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintJob(::windows_core::IUnknown);
 impl IPrintJob {
     pub unsafe fn Name(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -4662,24 +4060,8 @@ impl IPrintJob {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintJob, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintJob {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintJob {}
-impl ::core::fmt::Debug for IPrintJob {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintJob").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintJob {
     type Vtable = IPrintJob_Vtbl;
-}
-impl ::core::clone::Clone for IPrintJob {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintJob {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb771dab8_1282_41b7_858c_f206e4d20577);
@@ -4696,9 +4078,10 @@ pub struct IPrintJob_Vtbl {
     pub SubmissionTime: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, psubmissiontime: *mut f64) -> ::windows_core::HRESULT,
     pub RequestCancel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintJobCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintJobCollection {
@@ -4718,28 +4101,8 @@ impl IPrintJobCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintJobCollection, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintJobCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintJobCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintJobCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintJobCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintJobCollection {
     type Vtable = IPrintJobCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintJobCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintJobCollection {
@@ -4754,38 +4117,22 @@ pub struct IPrintJobCollection_Vtbl {
     pub GetAt: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ulindex: u32, ppjob: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppunk: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintOemCommon(::windows_core::IUnknown);
 impl IPrintOemCommon {
     pub unsafe fn GetInfo(&self, dwmode: u32, pbuffer: *mut ::core::ffi::c_void, cbsize: u32, pcbneeded: *mut u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).GetInfo)(::windows_core::Interface::as_raw(self), dwmode, pbuffer, cbsize, pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn DevMode(&self, dwmode: u32, poemdmparam: *mut OEMDMPARAM) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).DevMode)(::windows_core::Interface::as_raw(self), dwmode, poemdmparam).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintOemCommon, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintOemCommon {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintOemCommon {}
-impl ::core::fmt::Debug for IPrintOemCommon {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintOemCommon").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintOemCommon {
     type Vtable = IPrintOemCommon_Vtbl;
-}
-impl ::core::clone::Clone for IPrintOemCommon {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintOemCommon {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7f42285e_91d5_11d1_8820_00c04fb961ec);
@@ -4800,8 +4147,8 @@ pub struct IPrintOemCommon_Vtbl {
     #[cfg(not(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi")))]
     DevMode: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintOemDriverUI(::windows_core::IUnknown);
 impl IPrintOemDriverUI {
     pub unsafe fn DrvGetDriverSetting<P0>(&self, pci: *mut ::core::ffi::c_void, feature: P0, poutput: *mut ::core::ffi::c_void, cbsize: u32, pcbneeded: *mut u32, pdwoptionsreturned: *mut u32) -> ::windows_core::Result<()>
@@ -4810,7 +4157,7 @@ impl IPrintOemDriverUI {
     {
         (::windows_core::Interface::vtable(self).DrvGetDriverSetting)(::windows_core::Interface::as_raw(self), pci, feature.into_param().abi(), poutput, cbsize, pcbneeded, pdwoptionsreturned).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DrvUpgradeRegistrySetting<P0, P1, P2>(&self, hprinter: P0, pfeature: P1, poption: P2) -> ::windows_core::Result<()>
     where
@@ -4825,24 +4172,8 @@ impl IPrintOemDriverUI {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintOemDriverUI, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintOemDriverUI {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintOemDriverUI {}
-impl ::core::fmt::Debug for IPrintOemDriverUI {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintOemDriverUI").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintOemDriverUI {
     type Vtable = IPrintOemDriverUI_Vtbl;
-}
-impl ::core::clone::Clone for IPrintOemDriverUI {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintOemDriverUI {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x92b05d50_78bc_11d1_9480_00a0c90640b8);
@@ -4858,14 +4189,14 @@ pub struct IPrintOemDriverUI_Vtbl {
     DrvUpgradeRegistrySetting: usize,
     pub DrvUpdateUISetting: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pci: *mut ::core::ffi::c_void, poptitem: *mut ::core::ffi::c_void, dwpreviousselection: u32, dwmode: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintOemUI(::windows_core::IUnknown);
 impl IPrintOemUI {
     pub unsafe fn GetInfo(&self, dwmode: u32, pbuffer: *mut ::core::ffi::c_void, cbsize: u32, pcbneeded: *mut u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.GetInfo)(::windows_core::Interface::as_raw(self), dwmode, pbuffer, cbsize, pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn DevMode(&self, dwmode: u32, poemdmparam: *mut OEMDMPARAM) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.DevMode)(::windows_core::Interface::as_raw(self), dwmode, poemdmparam).ok()
@@ -4876,12 +4207,12 @@ impl IPrintOemUI {
     {
         (::windows_core::Interface::vtable(self).PublishDriverInterface)(::windows_core::Interface::as_raw(self), piunknown.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
     pub unsafe fn CommonUIProp(&self, dwmode: u32, poemcuipparam: *const OEMCUIPPARAM) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).CommonUIProp)(::windows_core::Interface::as_raw(self), dwmode, poemcuipparam).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DocumentPropertySheets<P0>(&self, ppsuiinfo: *mut PROPSHEETUI_INFO, lparam: P0) -> ::windows_core::Result<()>
     where
@@ -4889,7 +4220,7 @@ impl IPrintOemUI {
     {
         (::windows_core::Interface::vtable(self).DocumentPropertySheets)(::windows_core::Interface::as_raw(self), ppsuiinfo, lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DevicePropertySheets<P0>(&self, ppsuiinfo: *const PROPSHEETUI_INFO, lparam: P0) -> ::windows_core::Result<()>
     where
@@ -4897,12 +4228,12 @@ impl IPrintOemUI {
     {
         (::windows_core::Interface::vtable(self).DevicePropertySheets)(::windows_core::Interface::as_raw(self), ppsuiinfo, lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn DevQueryPrintEx(&self, poemuiobj: *const OEMUIOBJ, pdqpinfo: *const DEVQUERYPRINT_INFO, ppublicdm: *const super::Gdi::DEVMODEA, poemdm: *const ::core::ffi::c_void) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).DevQueryPrintEx)(::windows_core::Interface::as_raw(self), poemuiobj, pdqpinfo, ppublicdm, poemdm).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn DeviceCapabilitiesA<P0, P1>(&self, poemuiobj: *mut OEMUIOBJ, hprinter: P0, pdevicename: P1, wcapability: u16, poutput: *mut ::core::ffi::c_void, ppublicdm: *const super::Gdi::DEVMODEA, poemdm: *const ::core::ffi::c_void, dwold: u32, dwresult: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4914,7 +4245,7 @@ impl IPrintOemUI {
     pub unsafe fn UpgradePrinter(&self, dwlevel: u32, pdriverupgradeinfo: *const u8) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).UpgradePrinter)(::windows_core::Interface::as_raw(self), dwlevel, pdriverupgradeinfo).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PrinterEvent<P0, P1>(&self, pprintername: P0, idriverevent: i32, dwflags: u32, lparam: P1) -> ::windows_core::Result<()>
     where
@@ -4923,7 +4254,7 @@ impl IPrintOemUI {
     {
         (::windows_core::Interface::vtable(self).PrinterEvent)(::windows_core::Interface::as_raw(self), pprintername.into_param().abi(), idriverevent, dwflags, lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DriverEvent<P0>(&self, dwdriverevent: u32, dwlevel: u32, pdriverinfo: *const u8, lparam: P0) -> ::windows_core::Result<()>
     where
@@ -4931,7 +4262,7 @@ impl IPrintOemUI {
     {
         (::windows_core::Interface::vtable(self).DriverEvent)(::windows_core::Interface::as_raw(self), dwdriverevent, dwlevel, pdriverinfo, lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn QueryColorProfile<P0>(&self, hprinter: P0, poemuiobj: *const OEMUIOBJ, ppublicdm: *const super::Gdi::DEVMODEA, poemdm: *const ::core::ffi::c_void, ulquerymode: u32, pvprofiledata: *mut ::core::ffi::c_void, pcbprofiledata: *mut u32, pflprofiledata: *mut u32) -> ::windows_core::Result<()>
     where
@@ -4939,7 +4270,7 @@ impl IPrintOemUI {
     {
         (::windows_core::Interface::vtable(self).QueryColorProfile)(::windows_core::Interface::as_raw(self), hprinter.into_param().abi(), poemuiobj, ppublicdm, poemdm, ulquerymode, pvprofiledata, pcbprofiledata, pflprofiledata).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn FontInstallerDlgProc<P0, P1, P2>(&self, hwnd: P0, usmsg: u32, wparam: P1, lparam: P2) -> ::windows_core::Result<()>
     where
@@ -4949,7 +4280,7 @@ impl IPrintOemUI {
     {
         (::windows_core::Interface::vtable(self).FontInstallerDlgProc)(::windows_core::Interface::as_raw(self), hwnd.into_param().abi(), usmsg, wparam.into_param().abi(), lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn UpdateExternalFonts<P0, P1, P2>(&self, hprinter: P0, hheap: P1, pwstrcartridges: P2) -> ::windows_core::Result<()>
     where
@@ -4961,24 +4292,8 @@ impl IPrintOemUI {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintOemUI, ::windows_core::IUnknown, IPrintOemCommon);
-impl ::core::cmp::PartialEq for IPrintOemUI {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintOemUI {}
-impl ::core::fmt::Debug for IPrintOemUI {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintOemUI").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintOemUI {
     type Vtable = IPrintOemUI_Vtbl;
-}
-impl ::core::clone::Clone for IPrintOemUI {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintOemUI {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc6a7a9d0_774c_11d1_947f_00a0c90640b8);
@@ -5030,14 +4345,14 @@ pub struct IPrintOemUI_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     UpdateExternalFonts: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintOemUI2(::windows_core::IUnknown);
 impl IPrintOemUI2 {
     pub unsafe fn GetInfo(&self, dwmode: u32, pbuffer: *mut ::core::ffi::c_void, cbsize: u32, pcbneeded: *mut u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.base__.GetInfo)(::windows_core::Interface::as_raw(self), dwmode, pbuffer, cbsize, pcbneeded).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn DevMode(&self, dwmode: u32, poemdmparam: *mut OEMDMPARAM) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.base__.DevMode)(::windows_core::Interface::as_raw(self), dwmode, poemdmparam).ok()
@@ -5048,12 +4363,12 @@ impl IPrintOemUI2 {
     {
         (::windows_core::Interface::vtable(self).base__.PublishDriverInterface)(::windows_core::Interface::as_raw(self), piunknown.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
     pub unsafe fn CommonUIProp(&self, dwmode: u32, poemcuipparam: *const OEMCUIPPARAM) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.CommonUIProp)(::windows_core::Interface::as_raw(self), dwmode, poemcuipparam).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DocumentPropertySheets<P0>(&self, ppsuiinfo: *mut PROPSHEETUI_INFO, lparam: P0) -> ::windows_core::Result<()>
     where
@@ -5061,7 +4376,7 @@ impl IPrintOemUI2 {
     {
         (::windows_core::Interface::vtable(self).base__.DocumentPropertySheets)(::windows_core::Interface::as_raw(self), ppsuiinfo, lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DevicePropertySheets<P0>(&self, ppsuiinfo: *const PROPSHEETUI_INFO, lparam: P0) -> ::windows_core::Result<()>
     where
@@ -5069,12 +4384,12 @@ impl IPrintOemUI2 {
     {
         (::windows_core::Interface::vtable(self).base__.DevicePropertySheets)(::windows_core::Interface::as_raw(self), ppsuiinfo, lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn DevQueryPrintEx(&self, poemuiobj: *const OEMUIOBJ, pdqpinfo: *const DEVQUERYPRINT_INFO, ppublicdm: *const super::Gdi::DEVMODEA, poemdm: *const ::core::ffi::c_void) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.DevQueryPrintEx)(::windows_core::Interface::as_raw(self), poemuiobj, pdqpinfo, ppublicdm, poemdm).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn DeviceCapabilitiesA<P0, P1>(&self, poemuiobj: *mut OEMUIOBJ, hprinter: P0, pdevicename: P1, wcapability: u16, poutput: *mut ::core::ffi::c_void, ppublicdm: *const super::Gdi::DEVMODEA, poemdm: *const ::core::ffi::c_void, dwold: u32, dwresult: *mut u32) -> ::windows_core::Result<()>
     where
@@ -5086,7 +4401,7 @@ impl IPrintOemUI2 {
     pub unsafe fn UpgradePrinter(&self, dwlevel: u32, pdriverupgradeinfo: *const u8) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.UpgradePrinter)(::windows_core::Interface::as_raw(self), dwlevel, pdriverupgradeinfo).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PrinterEvent<P0, P1>(&self, pprintername: P0, idriverevent: i32, dwflags: u32, lparam: P1) -> ::windows_core::Result<()>
     where
@@ -5095,7 +4410,7 @@ impl IPrintOemUI2 {
     {
         (::windows_core::Interface::vtable(self).base__.PrinterEvent)(::windows_core::Interface::as_raw(self), pprintername.into_param().abi(), idriverevent, dwflags, lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DriverEvent<P0>(&self, dwdriverevent: u32, dwlevel: u32, pdriverinfo: *const u8, lparam: P0) -> ::windows_core::Result<()>
     where
@@ -5103,7 +4418,7 @@ impl IPrintOemUI2 {
     {
         (::windows_core::Interface::vtable(self).base__.DriverEvent)(::windows_core::Interface::as_raw(self), dwdriverevent, dwlevel, pdriverinfo, lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn QueryColorProfile<P0>(&self, hprinter: P0, poemuiobj: *const OEMUIOBJ, ppublicdm: *const super::Gdi::DEVMODEA, poemdm: *const ::core::ffi::c_void, ulquerymode: u32, pvprofiledata: *mut ::core::ffi::c_void, pcbprofiledata: *mut u32, pflprofiledata: *mut u32) -> ::windows_core::Result<()>
     where
@@ -5111,7 +4426,7 @@ impl IPrintOemUI2 {
     {
         (::windows_core::Interface::vtable(self).base__.QueryColorProfile)(::windows_core::Interface::as_raw(self), hprinter.into_param().abi(), poemuiobj, ppublicdm, poemdm, ulquerymode, pvprofiledata, pcbprofiledata, pflprofiledata).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn FontInstallerDlgProc<P0, P1, P2>(&self, hwnd: P0, usmsg: u32, wparam: P1, lparam: P2) -> ::windows_core::Result<()>
     where
@@ -5121,7 +4436,7 @@ impl IPrintOemUI2 {
     {
         (::windows_core::Interface::vtable(self).base__.FontInstallerDlgProc)(::windows_core::Interface::as_raw(self), hwnd.into_param().abi(), usmsg, wparam.into_param().abi(), lparam.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn UpdateExternalFonts<P0, P1, P2>(&self, hprinter: P0, hheap: P1, pwstrcartridges: P2) -> ::windows_core::Result<()>
     where
@@ -5131,7 +4446,7 @@ impl IPrintOemUI2 {
     {
         (::windows_core::Interface::vtable(self).base__.UpdateExternalFonts)(::windows_core::Interface::as_raw(self), hprinter.into_param().abi(), hheap.into_param().abi(), pwstrcartridges.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn QueryJobAttributes<P0>(&self, hprinter: P0, pdevmode: *const super::Gdi::DEVMODEA, dwlevel: u32, lpattributeinfo: *const u8) -> ::windows_core::Result<()>
     where
@@ -5142,7 +4457,7 @@ impl IPrintOemUI2 {
     pub unsafe fn HideStandardUI(&self, dwmode: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).HideStandardUI)(::windows_core::Interface::as_raw(self), dwmode).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn DocumentEvent<P0, P1>(&self, hprinter: P0, hdc: P1, iesc: i32, cbin: u32, pvin: *mut ::core::ffi::c_void, cbout: u32, pvout: *mut ::core::ffi::c_void, piresult: *mut i32) -> ::windows_core::Result<()>
     where
@@ -5153,24 +4468,8 @@ impl IPrintOemUI2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintOemUI2, ::windows_core::IUnknown, IPrintOemCommon, IPrintOemUI);
-impl ::core::cmp::PartialEq for IPrintOemUI2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintOemUI2 {}
-impl ::core::fmt::Debug for IPrintOemUI2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintOemUI2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintOemUI2 {
     type Vtable = IPrintOemUI2_Vtbl;
-}
-impl ::core::clone::Clone for IPrintOemUI2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintOemUI2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x292515f9_b54b_489b_9275_bab56821395e);
@@ -5189,11 +4488,11 @@ pub struct IPrintOemUI2_Vtbl {
     #[cfg(not(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi")))]
     DocumentEvent: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintOemUIMXDC(::windows_core::IUnknown);
 impl IPrintOemUIMXDC {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn AdjustImageableArea<P0>(&self, hprinter: P0, cbdevmode: u32, pdevmode: *const super::Gdi::DEVMODEA, cboemdm: u32, poemdm: *const ::core::ffi::c_void, prclimageablearea: *mut super::super::Foundation::RECTL) -> ::windows_core::Result<()>
     where
@@ -5201,7 +4500,7 @@ impl IPrintOemUIMXDC {
     {
         (::windows_core::Interface::vtable(self).AdjustImageableArea)(::windows_core::Interface::as_raw(self), hprinter.into_param().abi(), cbdevmode, pdevmode, cboemdm, poemdm, prclimageablearea).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn AdjustImageCompression<P0>(&self, hprinter: P0, cbdevmode: u32, pdevmode: *const super::Gdi::DEVMODEA, cboemdm: u32, poemdm: *const ::core::ffi::c_void, pcompressionmode: *mut i32) -> ::windows_core::Result<()>
     where
@@ -5209,7 +4508,7 @@ impl IPrintOemUIMXDC {
     {
         (::windows_core::Interface::vtable(self).AdjustImageCompression)(::windows_core::Interface::as_raw(self), hprinter.into_param().abi(), cbdevmode, pdevmode, cboemdm, poemdm, pcompressionmode).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
     pub unsafe fn AdjustDPI<P0>(&self, hprinter: P0, cbdevmode: u32, pdevmode: *const super::Gdi::DEVMODEA, cboemdm: u32, poemdm: *const ::core::ffi::c_void, pdpi: *mut i32) -> ::windows_core::Result<()>
     where
@@ -5219,24 +4518,8 @@ impl IPrintOemUIMXDC {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintOemUIMXDC, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintOemUIMXDC {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintOemUIMXDC {}
-impl ::core::fmt::Debug for IPrintOemUIMXDC {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintOemUIMXDC").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintOemUIMXDC {
     type Vtable = IPrintOemUIMXDC_Vtbl;
-}
-impl ::core::clone::Clone for IPrintOemUIMXDC {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintOemUIMXDC {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7349d725_e2c1_4dca_afb5_c13e91bc9306);
@@ -5258,8 +4541,8 @@ pub struct IPrintOemUIMXDC_Vtbl {
     #[cfg(not(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi")))]
     AdjustDPI: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintPipelineFilter(::windows_core::IUnknown);
 impl IPrintPipelineFilter {
     pub unsafe fn InitializeFilter<P0, P1, P2>(&self, pinegotiation: P0, pipropertybag: P1, pipipelinecontrol: P2) -> ::windows_core::Result<()>
@@ -5278,24 +4561,8 @@ impl IPrintPipelineFilter {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintPipelineFilter, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintPipelineFilter {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintPipelineFilter {}
-impl ::core::fmt::Debug for IPrintPipelineFilter {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintPipelineFilter").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintPipelineFilter {
     type Vtable = IPrintPipelineFilter_Vtbl;
-}
-impl ::core::clone::Clone for IPrintPipelineFilter {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintPipelineFilter {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcdb62fc0_8bed_434e_86fb_a2cae55f19ea);
@@ -5308,11 +4575,11 @@ pub struct IPrintPipelineFilter_Vtbl {
     pub ShutdownOperation: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub StartOperation: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintPipelineManagerControl(::windows_core::IUnknown);
 impl IPrintPipelineManagerControl {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn RequestShutdown<P0>(&self, hrreason: ::windows_core::HRESULT, preason: P0) -> ::windows_core::Result<()>
     where
@@ -5325,24 +4592,8 @@ impl IPrintPipelineManagerControl {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintPipelineManagerControl, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintPipelineManagerControl {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintPipelineManagerControl {}
-impl ::core::fmt::Debug for IPrintPipelineManagerControl {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintPipelineManagerControl").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintPipelineManagerControl {
     type Vtable = IPrintPipelineManagerControl_Vtbl;
-}
-impl ::core::clone::Clone for IPrintPipelineManagerControl {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintPipelineManagerControl {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xaa3e4910_5889_4681_91ef_823ad4ed4e44);
@@ -5357,8 +4608,8 @@ pub struct IPrintPipelineManagerControl_Vtbl {
     RequestShutdown: usize,
     pub FilterFinished: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintPipelineProgressReport(::windows_core::IUnknown);
 impl IPrintPipelineProgressReport {
     pub unsafe fn ReportProgress(&self, update: EXpsJobConsumption) -> ::windows_core::Result<()> {
@@ -5366,24 +4617,8 @@ impl IPrintPipelineProgressReport {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintPipelineProgressReport, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintPipelineProgressReport {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintPipelineProgressReport {}
-impl ::core::fmt::Debug for IPrintPipelineProgressReport {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintPipelineProgressReport").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintPipelineProgressReport {
     type Vtable = IPrintPipelineProgressReport_Vtbl;
-}
-impl ::core::clone::Clone for IPrintPipelineProgressReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintPipelineProgressReport {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xedc12c7c_ed40_4ea5_96a6_5e4397497a61);
@@ -5394,11 +4629,11 @@ pub struct IPrintPipelineProgressReport_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub ReportProgress: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, update: EXpsJobConsumption) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintPipelinePropertyBag(::windows_core::IUnknown);
 impl IPrintPipelinePropertyBag {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn AddProperty<P0>(&self, pszname: P0, pvar: *const super::super::System::Variant::VARIANT) -> ::windows_core::Result<()>
     where
@@ -5406,7 +4641,7 @@ impl IPrintPipelinePropertyBag {
     {
         (::windows_core::Interface::vtable(self).AddProperty)(::windows_core::Interface::as_raw(self), pszname.into_param().abi(), pvar).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn GetProperty<P0>(&self, pszname: P0) -> ::windows_core::Result<super::super::System::Variant::VARIANT>
     where
@@ -5415,7 +4650,7 @@ impl IPrintPipelinePropertyBag {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetProperty)(::windows_core::Interface::as_raw(self), pszname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeleteProperty<P0>(&self, pszname: P0) -> super::super::Foundation::BOOL
     where
@@ -5425,24 +4660,8 @@ impl IPrintPipelinePropertyBag {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintPipelinePropertyBag, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintPipelinePropertyBag {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintPipelinePropertyBag {}
-impl ::core::fmt::Debug for IPrintPipelinePropertyBag {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintPipelinePropertyBag").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintPipelinePropertyBag {
     type Vtable = IPrintPipelinePropertyBag_Vtbl;
-}
-impl ::core::clone::Clone for IPrintPipelinePropertyBag {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintPipelinePropertyBag {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x8b8c99dc_7892_4a95_8a04_57422e9fbb47);
@@ -5464,14 +4683,14 @@ pub struct IPrintPipelinePropertyBag_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     DeleteProperty: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintPreviewDxgiPackageTarget(::windows_core::IUnknown);
 impl IPrintPreviewDxgiPackageTarget {
     pub unsafe fn SetJobPageCount(&self, counttype: PageCountType, count: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).SetJobPageCount)(::windows_core::Interface::as_raw(self), counttype, count).ok()
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Dxgi\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Dxgi\"`"]
     #[cfg(feature = "Win32_Graphics_Dxgi")]
     pub unsafe fn DrawPage<P0>(&self, jobpagenumber: u32, pageimage: P0, dpix: f32, dpiy: f32) -> ::windows_core::Result<()>
     where
@@ -5484,24 +4703,8 @@ impl IPrintPreviewDxgiPackageTarget {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintPreviewDxgiPackageTarget, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintPreviewDxgiPackageTarget {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintPreviewDxgiPackageTarget {}
-impl ::core::fmt::Debug for IPrintPreviewDxgiPackageTarget {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintPreviewDxgiPackageTarget").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintPreviewDxgiPackageTarget {
     type Vtable = IPrintPreviewDxgiPackageTarget_Vtbl;
-}
-impl ::core::clone::Clone for IPrintPreviewDxgiPackageTarget {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintPreviewDxgiPackageTarget {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1a6dd0ad_1e2a_4e99_a5ba_91f17818290e);
@@ -5517,38 +4720,22 @@ pub struct IPrintPreviewDxgiPackageTarget_Vtbl {
     DrawPage: usize,
     pub InvalidatePreview: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintReadStream(::windows_core::IUnknown);
 impl IPrintReadStream {
     pub unsafe fn Seek(&self, dlibmove: i64, dworigin: u32, plibnewposition: ::core::option::Option<*mut u64>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Seek)(::windows_core::Interface::as_raw(self), dlibmove, dworigin, ::core::mem::transmute(plibnewposition.unwrap_or(::std::ptr::null_mut()))).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadBytes(&self, pvbuffer: *mut ::core::ffi::c_void, cbrequested: u32, pcbread: *mut u32, pbendoffile: *mut super::super::Foundation::BOOL) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).ReadBytes)(::windows_core::Interface::as_raw(self), pvbuffer, cbrequested, pcbread, pbendoffile).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintReadStream, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintReadStream {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintReadStream {}
-impl ::core::fmt::Debug for IPrintReadStream {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintReadStream").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintReadStream {
     type Vtable = IPrintReadStream_Vtbl;
-}
-impl ::core::clone::Clone for IPrintReadStream {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintReadStream {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4d47a67c_66cc_4430_850e_daf466fe5bc4);
@@ -5563,8 +4750,8 @@ pub struct IPrintReadStream_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     ReadBytes: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintReadStreamFactory(::windows_core::IUnknown);
 impl IPrintReadStreamFactory {
     pub unsafe fn GetStream(&self) -> ::windows_core::Result<IPrintReadStream> {
@@ -5573,24 +4760,8 @@ impl IPrintReadStreamFactory {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintReadStreamFactory, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintReadStreamFactory {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintReadStreamFactory {}
-impl ::core::fmt::Debug for IPrintReadStreamFactory {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintReadStreamFactory").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintReadStreamFactory {
     type Vtable = IPrintReadStreamFactory_Vtbl;
-}
-impl ::core::clone::Clone for IPrintReadStreamFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintReadStreamFactory {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xacb971e3_df8d_4fc2_bee6_0609d15f3cf9);
@@ -5601,9 +4772,10 @@ pub struct IPrintReadStreamFactory_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub GetStream: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppstream: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaAsyncOperation(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaAsyncOperation {
@@ -5617,28 +4789,8 @@ impl IPrintSchemaAsyncOperation {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaAsyncOperation, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaAsyncOperation {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaAsyncOperation {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaAsyncOperation {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaAsyncOperation").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaAsyncOperation {
     type Vtable = IPrintSchemaAsyncOperation_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaAsyncOperation {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaAsyncOperation {
@@ -5652,13 +4804,14 @@ pub struct IPrintSchemaAsyncOperation_Vtbl {
     pub Start: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Cancel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaAsyncOperationEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaAsyncOperationEvent {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Completed<P0>(&self, pticket: P0, hroperation: ::windows_core::HRESULT) -> ::windows_core::Result<()>
     where
@@ -5670,28 +4823,8 @@ impl IPrintSchemaAsyncOperationEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaAsyncOperationEvent, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaAsyncOperationEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaAsyncOperationEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaAsyncOperationEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaAsyncOperationEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaAsyncOperationEvent {
     type Vtable = IPrintSchemaAsyncOperationEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaAsyncOperationEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaAsyncOperationEvent {
@@ -5707,9 +4840,10 @@ pub struct IPrintSchemaAsyncOperationEvent_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Completed: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaCapabilities(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaCapabilities {
@@ -5725,7 +4859,7 @@ impl IPrintSchemaCapabilities {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.NamespaceUri)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetFeatureByKeyName<P0>(&self, bstrkeyname: P0) -> ::windows_core::Result<IPrintSchemaFeature>
     where
@@ -5734,7 +4868,7 @@ impl IPrintSchemaCapabilities {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetFeatureByKeyName)(::windows_core::Interface::as_raw(self), bstrkeyname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetFeature<P0, P1>(&self, bstrname: P0, bstrnamespaceuri: P1) -> ::windows_core::Result<IPrintSchemaFeature>
     where
@@ -5744,7 +4878,7 @@ impl IPrintSchemaCapabilities {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetFeature)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), bstrnamespaceuri.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn PageImageableSize(&self) -> ::windows_core::Result<IPrintSchemaPageImageableSize> {
         let mut result__ = ::std::mem::zeroed();
@@ -5758,7 +4892,7 @@ impl IPrintSchemaCapabilities {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).JobCopiesAllDocumentsMaxValue)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetSelectedOptionInPrintTicket<P0>(&self, pfeature: P0) -> ::windows_core::Result<IPrintSchemaOption>
     where
@@ -5767,7 +4901,7 @@ impl IPrintSchemaCapabilities {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetSelectedOptionInPrintTicket)(::windows_core::Interface::as_raw(self), pfeature.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetOptions<P0>(&self, pfeature: P0) -> ::windows_core::Result<IPrintSchemaOptionCollection>
     where
@@ -5780,28 +4914,8 @@ impl IPrintSchemaCapabilities {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaCapabilities, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaCapabilities {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaCapabilities {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaCapabilities {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaCapabilities").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaCapabilities {
     type Vtable = IPrintSchemaCapabilities_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaCapabilities {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaCapabilities {
@@ -5835,9 +4949,10 @@ pub struct IPrintSchemaCapabilities_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetOptions: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaCapabilities2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaCapabilities2 {
@@ -5853,7 +4968,7 @@ impl IPrintSchemaCapabilities2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.NamespaceUri)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetFeatureByKeyName<P0>(&self, bstrkeyname: P0) -> ::windows_core::Result<IPrintSchemaFeature>
     where
@@ -5862,7 +4977,7 @@ impl IPrintSchemaCapabilities2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetFeatureByKeyName)(::windows_core::Interface::as_raw(self), bstrkeyname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetFeature<P0, P1>(&self, bstrname: P0, bstrnamespaceuri: P1) -> ::windows_core::Result<IPrintSchemaFeature>
     where
@@ -5872,7 +4987,7 @@ impl IPrintSchemaCapabilities2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetFeature)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), bstrnamespaceuri.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn PageImageableSize(&self) -> ::windows_core::Result<IPrintSchemaPageImageableSize> {
         let mut result__ = ::std::mem::zeroed();
@@ -5886,7 +5001,7 @@ impl IPrintSchemaCapabilities2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.JobCopiesAllDocumentsMaxValue)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetSelectedOptionInPrintTicket<P0>(&self, pfeature: P0) -> ::windows_core::Result<IPrintSchemaOption>
     where
@@ -5895,7 +5010,7 @@ impl IPrintSchemaCapabilities2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetSelectedOptionInPrintTicket)(::windows_core::Interface::as_raw(self), pfeature.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetOptions<P0>(&self, pfeature: P0) -> ::windows_core::Result<IPrintSchemaOptionCollection>
     where
@@ -5904,7 +5019,7 @@ impl IPrintSchemaCapabilities2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetOptions)(::windows_core::Interface::as_raw(self), pfeature.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetParameterDefinition<P0, P1>(&self, bstrname: P0, bstrnamespaceuri: P1) -> ::windows_core::Result<IPrintSchemaParameterDefinition>
     where
@@ -5918,28 +5033,8 @@ impl IPrintSchemaCapabilities2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaCapabilities2, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement, IPrintSchemaCapabilities);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaCapabilities2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaCapabilities2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaCapabilities2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaCapabilities2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaCapabilities2 {
     type Vtable = IPrintSchemaCapabilities2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaCapabilities2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaCapabilities2 {
@@ -5955,9 +5050,10 @@ pub struct IPrintSchemaCapabilities2_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetParameterDefinition: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaDisplayableElement(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaDisplayableElement {
@@ -5981,28 +5077,8 @@ impl IPrintSchemaDisplayableElement {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaDisplayableElement, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaDisplayableElement {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaDisplayableElement {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaDisplayableElement {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaDisplayableElement").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaDisplayableElement {
     type Vtable = IPrintSchemaDisplayableElement_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaDisplayableElement {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaDisplayableElement {
@@ -6015,9 +5091,10 @@ pub struct IPrintSchemaDisplayableElement_Vtbl {
     pub base__: IPrintSchemaElement_Vtbl,
     pub DisplayName: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrdisplayname: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaElement(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaElement {
@@ -6037,28 +5114,8 @@ impl IPrintSchemaElement {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaElement, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaElement {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaElement {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaElement {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaElement").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaElement {
     type Vtable = IPrintSchemaElement_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaElement {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaElement {
@@ -6073,9 +5130,10 @@ pub struct IPrintSchemaElement_Vtbl {
     pub Name: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrname: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub NamespaceUri: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrnamespaceuri: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaFeature(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaFeature {
@@ -6095,13 +5153,13 @@ impl IPrintSchemaFeature {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DisplayName)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SelectedOption(&self) -> ::windows_core::Result<IPrintSchemaOption> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).SelectedOption)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetSelectedOption<P0>(&self, poption: P0) -> ::windows_core::Result<()>
     where
@@ -6113,7 +5171,7 @@ impl IPrintSchemaFeature {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).SelectionType)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetOption<P0, P1>(&self, bstrname: P0, bstrnamespaceuri: P1) -> ::windows_core::Result<IPrintSchemaOption>
     where
@@ -6123,7 +5181,7 @@ impl IPrintSchemaFeature {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetOption)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), bstrnamespaceuri.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DisplayUI(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6133,28 +5191,8 @@ impl IPrintSchemaFeature {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaFeature, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement, IPrintSchemaDisplayableElement);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaFeature {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaFeature {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaFeature {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaFeature").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaFeature {
     type Vtable = IPrintSchemaFeature_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaFeature {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaFeature {
@@ -6183,9 +5221,10 @@ pub struct IPrintSchemaFeature_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     DisplayUI: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaNUpOption(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaNUpOption {
@@ -6205,7 +5244,7 @@ impl IPrintSchemaNUpOption {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DisplayName)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Selected(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6231,28 +5270,8 @@ impl IPrintSchemaNUpOption {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaNUpOption, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement, IPrintSchemaDisplayableElement, IPrintSchemaOption);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaNUpOption {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaNUpOption {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaNUpOption {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaNUpOption").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaNUpOption {
     type Vtable = IPrintSchemaNUpOption_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaNUpOption {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaNUpOption {
@@ -6265,9 +5284,10 @@ pub struct IPrintSchemaNUpOption_Vtbl {
     pub base__: IPrintSchemaOption_Vtbl,
     pub PagesPerSheet: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pulpagespersheet: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaOption(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaOption {
@@ -6287,7 +5307,7 @@ impl IPrintSchemaOption {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DisplayName)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Selected(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6309,28 +5329,8 @@ impl IPrintSchemaOption {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaOption, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement, IPrintSchemaDisplayableElement);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaOption {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaOption {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaOption {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaOption").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaOption {
     type Vtable = IPrintSchemaOption_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaOption {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaOption {
@@ -6348,9 +5348,10 @@ pub struct IPrintSchemaOption_Vtbl {
     pub Constrained: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, psetting: *mut PrintSchemaConstrainedSetting) -> ::windows_core::HRESULT,
     pub GetPropertyValue: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrname: ::std::mem::MaybeUninit<::windows_core::BSTR>, bstrnamespaceuri: ::std::mem::MaybeUninit<::windows_core::BSTR>, ppxmlvaluenode: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaOptionCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaOptionCollection {
@@ -6358,7 +5359,7 @@ impl IPrintSchemaOptionCollection {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Count)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetAt(&self, ulindex: u32) -> ::windows_core::Result<IPrintSchemaOption> {
         let mut result__ = ::std::mem::zeroed();
@@ -6372,28 +5373,8 @@ impl IPrintSchemaOptionCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaOptionCollection, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaOptionCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaOptionCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaOptionCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaOptionCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaOptionCollection {
     type Vtable = IPrintSchemaOptionCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaOptionCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaOptionCollection {
@@ -6411,9 +5392,10 @@ pub struct IPrintSchemaOptionCollection_Vtbl {
     GetAt: usize,
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppunk: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaPageImageableSize(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaPageImageableSize {
@@ -6457,28 +5439,8 @@ impl IPrintSchemaPageImageableSize {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaPageImageableSize, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaPageImageableSize {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaPageImageableSize {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaPageImageableSize {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaPageImageableSize").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaPageImageableSize {
     type Vtable = IPrintSchemaPageImageableSize_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaPageImageableSize {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaPageImageableSize {
@@ -6496,9 +5458,10 @@ pub struct IPrintSchemaPageImageableSize_Vtbl {
     pub ExtentWidthInMicrons: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pulextentwidth: *mut u32) -> ::windows_core::HRESULT,
     pub ExtentHeightInMicrons: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pulextentheight: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaPageMediaSizeOption(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaPageMediaSizeOption {
@@ -6518,7 +5481,7 @@ impl IPrintSchemaPageMediaSizeOption {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DisplayName)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Selected(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6548,28 +5511,8 @@ impl IPrintSchemaPageMediaSizeOption {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaPageMediaSizeOption, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement, IPrintSchemaDisplayableElement, IPrintSchemaOption);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaPageMediaSizeOption {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaPageMediaSizeOption {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaPageMediaSizeOption {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaPageMediaSizeOption").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaPageMediaSizeOption {
     type Vtable = IPrintSchemaPageMediaSizeOption_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaPageMediaSizeOption {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaPageMediaSizeOption {
@@ -6583,9 +5526,10 @@ pub struct IPrintSchemaPageMediaSizeOption_Vtbl {
     pub WidthInMicrons: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pulwidth: *mut u32) -> ::windows_core::HRESULT,
     pub HeightInMicrons: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pulheight: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaParameterDefinition(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaParameterDefinition {
@@ -6605,7 +5549,7 @@ impl IPrintSchemaParameterDefinition {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DisplayName)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn UserInputRequired(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6631,28 +5575,8 @@ impl IPrintSchemaParameterDefinition {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaParameterDefinition, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement, IPrintSchemaDisplayableElement);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaParameterDefinition {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaParameterDefinition {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaParameterDefinition {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaParameterDefinition").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaParameterDefinition {
     type Vtable = IPrintSchemaParameterDefinition_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaParameterDefinition {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaParameterDefinition {
@@ -6672,9 +5596,10 @@ pub struct IPrintSchemaParameterDefinition_Vtbl {
     pub RangeMin: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, prangemin: *mut i32) -> ::windows_core::HRESULT,
     pub RangeMax: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, prangemax: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaParameterInitializer(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaParameterInitializer {
@@ -6690,13 +5615,13 @@ impl IPrintSchemaParameterInitializer {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.NamespaceUri)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Value(&self) -> ::windows_core::Result<super::super::System::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Value)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn SetValue(&self, pvar: *const super::super::System::Variant::VARIANT) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).SetValue)(::windows_core::Interface::as_raw(self), pvar).ok()
@@ -6705,28 +5630,8 @@ impl IPrintSchemaParameterInitializer {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaParameterInitializer, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaParameterInitializer {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaParameterInitializer {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaParameterInitializer {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaParameterInitializer").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaParameterInitializer {
     type Vtable = IPrintSchemaParameterInitializer_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaParameterInitializer {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaParameterInitializer {
@@ -6746,9 +5651,10 @@ pub struct IPrintSchemaParameterInitializer_Vtbl {
     #[cfg(not(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant")))]
     SetValue: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaTicket(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaTicket {
@@ -6764,7 +5670,7 @@ impl IPrintSchemaTicket {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.NamespaceUri)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetFeatureByKeyName<P0>(&self, bstrkeyname: P0) -> ::windows_core::Result<IPrintSchemaFeature>
     where
@@ -6773,7 +5679,7 @@ impl IPrintSchemaTicket {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetFeatureByKeyName)(::windows_core::Interface::as_raw(self), bstrkeyname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetFeature<P0, P1>(&self, bstrname: P0, bstrnamespaceuri: P1) -> ::windows_core::Result<IPrintSchemaFeature>
     where
@@ -6783,13 +5689,13 @@ impl IPrintSchemaTicket {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetFeature)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), bstrnamespaceuri.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn ValidateAsync(&self) -> ::windows_core::Result<IPrintSchemaAsyncOperation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ValidateAsync)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CommitAsync<P0>(&self, pprintticketcommit: P0) -> ::windows_core::Result<IPrintSchemaAsyncOperation>
     where
@@ -6801,7 +5707,7 @@ impl IPrintSchemaTicket {
     pub unsafe fn NotifyXmlChanged(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).NotifyXmlChanged)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetCapabilities(&self) -> ::windows_core::Result<IPrintSchemaCapabilities> {
         let mut result__ = ::std::mem::zeroed();
@@ -6818,28 +5724,8 @@ impl IPrintSchemaTicket {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaTicket, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaTicket {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaTicket {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaTicket {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaTicket").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaTicket {
     type Vtable = IPrintSchemaTicket_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaTicket {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaTicket {
@@ -6874,9 +5760,10 @@ pub struct IPrintSchemaTicket_Vtbl {
     pub JobCopiesAllDocuments: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, puljobcopiesalldocuments: *mut u32) -> ::windows_core::HRESULT,
     pub SetJobCopiesAllDocuments: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, uljobcopiesalldocuments: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintSchemaTicket2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrintSchemaTicket2 {
@@ -6892,7 +5779,7 @@ impl IPrintSchemaTicket2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.NamespaceUri)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetFeatureByKeyName<P0>(&self, bstrkeyname: P0) -> ::windows_core::Result<IPrintSchemaFeature>
     where
@@ -6901,7 +5788,7 @@ impl IPrintSchemaTicket2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetFeatureByKeyName)(::windows_core::Interface::as_raw(self), bstrkeyname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetFeature<P0, P1>(&self, bstrname: P0, bstrnamespaceuri: P1) -> ::windows_core::Result<IPrintSchemaFeature>
     where
@@ -6911,13 +5798,13 @@ impl IPrintSchemaTicket2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetFeature)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), bstrnamespaceuri.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn ValidateAsync(&self) -> ::windows_core::Result<IPrintSchemaAsyncOperation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ValidateAsync)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CommitAsync<P0>(&self, pprintticketcommit: P0) -> ::windows_core::Result<IPrintSchemaAsyncOperation>
     where
@@ -6929,7 +5816,7 @@ impl IPrintSchemaTicket2 {
     pub unsafe fn NotifyXmlChanged(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.NotifyXmlChanged)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetCapabilities(&self) -> ::windows_core::Result<IPrintSchemaCapabilities> {
         let mut result__ = ::std::mem::zeroed();
@@ -6942,7 +5829,7 @@ impl IPrintSchemaTicket2 {
     pub unsafe fn SetJobCopiesAllDocuments(&self, uljobcopiesalldocuments: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetJobCopiesAllDocuments)(::windows_core::Interface::as_raw(self), uljobcopiesalldocuments).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetParameterInitializer<P0, P1>(&self, bstrname: P0, bstrnamespaceuri: P1) -> ::windows_core::Result<IPrintSchemaParameterInitializer>
     where
@@ -6956,28 +5843,8 @@ impl IPrintSchemaTicket2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrintSchemaTicket2, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrintSchemaElement, IPrintSchemaTicket);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrintSchemaTicket2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrintSchemaTicket2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrintSchemaTicket2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintSchemaTicket2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrintSchemaTicket2 {
     type Vtable = IPrintSchemaTicket2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrintSchemaTicket2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrintSchemaTicket2 {
@@ -6993,11 +5860,11 @@ pub struct IPrintSchemaTicket2_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetParameterInitializer: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintTicketProvider(::windows_core::IUnknown);
 impl IPrintTicketProvider {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetSupportedVersions<P0>(&self, hprinter: P0, ppversions: *mut *mut i32, cversions: *mut i32) -> ::windows_core::Result<()>
     where
@@ -7005,7 +5872,7 @@ impl IPrintTicketProvider {
     {
         (::windows_core::Interface::vtable(self).GetSupportedVersions)(::windows_core::Interface::as_raw(self), hprinter.into_param().abi(), ppversions, cversions).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn BindPrinter<P0>(&self, hprinter: P0, version: i32, poptions: *mut SHIMOPTS, pdevmodeflags: *mut u32, cnamespaces: *mut i32, ppnamespaces: *mut *mut ::windows_core::BSTR) -> ::windows_core::Result<()>
     where
@@ -7016,7 +5883,7 @@ impl IPrintTicketProvider {
     pub unsafe fn QueryDeviceNamespace(&self, pdefaultnamespace: *mut ::windows_core::BSTR) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).QueryDeviceNamespace)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pdefaultnamespace)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_System_Com"))]
     pub unsafe fn ConvertPrintTicketToDevMode<P0>(&self, pprintticket: P0, cbdevmodein: u32, pdevmodein: *mut super::Gdi::DEVMODEA, pcbdevmodeout: *mut u32, ppdevmodeout: *mut *mut super::Gdi::DEVMODEA) -> ::windows_core::Result<()>
     where
@@ -7024,7 +5891,7 @@ impl IPrintTicketProvider {
     {
         (::windows_core::Interface::vtable(self).ConvertPrintTicketToDevMode)(::windows_core::Interface::as_raw(self), pprintticket.into_param().abi(), cbdevmodein, pdevmodein, pcbdevmodeout, ppdevmodeout).ok()
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_System_Com"))]
     pub unsafe fn ConvertDevModeToPrintTicket<P0>(&self, cbdevmode: u32, pdevmode: *mut super::Gdi::DEVMODEA, pprintticket: P0) -> ::windows_core::Result<()>
     where
@@ -7032,7 +5899,7 @@ impl IPrintTicketProvider {
     {
         (::windows_core::Interface::vtable(self).ConvertDevModeToPrintTicket)(::windows_core::Interface::as_raw(self), cbdevmode, pdevmode, pprintticket.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
     pub unsafe fn GetPrintCapabilities<P0>(&self, pprintticket: P0) -> ::windows_core::Result<super::super::Data::Xml::MsXml::IXMLDOMDocument2>
     where
@@ -7041,7 +5908,7 @@ impl IPrintTicketProvider {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetPrintCapabilities)(::windows_core::Interface::as_raw(self), pprintticket.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
     pub unsafe fn ValidatePrintTicket<P0>(&self, pbaseticket: P0) -> ::windows_core::Result<()>
     where
@@ -7051,24 +5918,8 @@ impl IPrintTicketProvider {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintTicketProvider, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintTicketProvider {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintTicketProvider {}
-impl ::core::fmt::Debug for IPrintTicketProvider {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintTicketProvider").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintTicketProvider {
     type Vtable = IPrintTicketProvider_Vtbl;
-}
-impl ::core::clone::Clone for IPrintTicketProvider {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintTicketProvider {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xbb5116db_0a23_4c3a_a6b6_89e5558dfb5d);
@@ -7103,11 +5954,11 @@ pub struct IPrintTicketProvider_Vtbl {
     #[cfg(not(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com")))]
     ValidatePrintTicket: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintTicketProvider2(::windows_core::IUnknown);
 impl IPrintTicketProvider2 {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetSupportedVersions<P0>(&self, hprinter: P0, ppversions: *mut *mut i32, cversions: *mut i32) -> ::windows_core::Result<()>
     where
@@ -7115,7 +5966,7 @@ impl IPrintTicketProvider2 {
     {
         (::windows_core::Interface::vtable(self).base__.GetSupportedVersions)(::windows_core::Interface::as_raw(self), hprinter.into_param().abi(), ppversions, cversions).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn BindPrinter<P0>(&self, hprinter: P0, version: i32, poptions: *mut SHIMOPTS, pdevmodeflags: *mut u32, cnamespaces: *mut i32, ppnamespaces: *mut *mut ::windows_core::BSTR) -> ::windows_core::Result<()>
     where
@@ -7126,7 +5977,7 @@ impl IPrintTicketProvider2 {
     pub unsafe fn QueryDeviceNamespace(&self, pdefaultnamespace: *mut ::windows_core::BSTR) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.QueryDeviceNamespace)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pdefaultnamespace)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_System_Com"))]
     pub unsafe fn ConvertPrintTicketToDevMode<P0>(&self, pprintticket: P0, cbdevmodein: u32, pdevmodein: *mut super::Gdi::DEVMODEA, pcbdevmodeout: *mut u32, ppdevmodeout: *mut *mut super::Gdi::DEVMODEA) -> ::windows_core::Result<()>
     where
@@ -7134,7 +5985,7 @@ impl IPrintTicketProvider2 {
     {
         (::windows_core::Interface::vtable(self).base__.ConvertPrintTicketToDevMode)(::windows_core::Interface::as_raw(self), pprintticket.into_param().abi(), cbdevmodein, pdevmodein, pcbdevmodeout, ppdevmodeout).ok()
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_System_Com"))]
     pub unsafe fn ConvertDevModeToPrintTicket<P0>(&self, cbdevmode: u32, pdevmode: *mut super::Gdi::DEVMODEA, pprintticket: P0) -> ::windows_core::Result<()>
     where
@@ -7142,7 +5993,7 @@ impl IPrintTicketProvider2 {
     {
         (::windows_core::Interface::vtable(self).base__.ConvertDevModeToPrintTicket)(::windows_core::Interface::as_raw(self), cbdevmode, pdevmode, pprintticket.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
     pub unsafe fn GetPrintCapabilities<P0>(&self, pprintticket: P0) -> ::windows_core::Result<super::super::Data::Xml::MsXml::IXMLDOMDocument2>
     where
@@ -7151,7 +6002,7 @@ impl IPrintTicketProvider2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetPrintCapabilities)(::windows_core::Interface::as_raw(self), pprintticket.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
     pub unsafe fn ValidatePrintTicket<P0>(&self, pbaseticket: P0) -> ::windows_core::Result<()>
     where
@@ -7159,7 +6010,7 @@ impl IPrintTicketProvider2 {
     {
         (::windows_core::Interface::vtable(self).base__.ValidatePrintTicket)(::windows_core::Interface::as_raw(self), pbaseticket.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
     pub unsafe fn GetPrintDeviceCapabilities<P0>(&self, pprintticket: P0) -> ::windows_core::Result<super::super::Data::Xml::MsXml::IXMLDOMDocument2>
     where
@@ -7168,7 +6019,7 @@ impl IPrintTicketProvider2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetPrintDeviceCapabilities)(::windows_core::Interface::as_raw(self), pprintticket.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
     pub unsafe fn GetPrintDeviceResources<P0, P1>(&self, pszlocalename: P0, pprintticket: P1) -> ::windows_core::Result<super::super::Data::Xml::MsXml::IXMLDOMDocument2>
     where
@@ -7180,24 +6031,8 @@ impl IPrintTicketProvider2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintTicketProvider2, ::windows_core::IUnknown, IPrintTicketProvider);
-impl ::core::cmp::PartialEq for IPrintTicketProvider2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintTicketProvider2 {}
-impl ::core::fmt::Debug for IPrintTicketProvider2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintTicketProvider2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintTicketProvider2 {
     type Vtable = IPrintTicketProvider2_Vtbl;
-}
-impl ::core::clone::Clone for IPrintTicketProvider2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintTicketProvider2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb8a70ab2_3dfc_4fec_a074_511b13c651cb);
@@ -7215,8 +6050,8 @@ pub struct IPrintTicketProvider2_Vtbl {
     #[cfg(not(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com")))]
     GetPrintDeviceResources: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintUnidiAsyncNotifyRegistration(::windows_core::IUnknown);
 impl IPrintUnidiAsyncNotifyRegistration {
     pub unsafe fn RegisterForNotifications(&self) -> ::windows_core::Result<()> {
@@ -7233,24 +6068,8 @@ impl IPrintUnidiAsyncNotifyRegistration {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintUnidiAsyncNotifyRegistration, ::windows_core::IUnknown, IPrintAsyncNotifyRegistration);
-impl ::core::cmp::PartialEq for IPrintUnidiAsyncNotifyRegistration {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintUnidiAsyncNotifyRegistration {}
-impl ::core::fmt::Debug for IPrintUnidiAsyncNotifyRegistration {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintUnidiAsyncNotifyRegistration").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintUnidiAsyncNotifyRegistration {
     type Vtable = IPrintUnidiAsyncNotifyRegistration_Vtbl;
-}
-impl ::core::clone::Clone for IPrintUnidiAsyncNotifyRegistration {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintUnidiAsyncNotifyRegistration {
     const IID: ::windows_core::GUID = ::windows_core::GUID::zeroed();
@@ -7261,8 +6080,8 @@ pub struct IPrintUnidiAsyncNotifyRegistration_Vtbl {
     pub base__: IPrintAsyncNotifyRegistration_Vtbl,
     pub AsyncGetNotification: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, param0: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintWriteStream(::windows_core::IUnknown);
 impl IPrintWriteStream {
     pub unsafe fn WriteBytes(&self, pvbuffer: *const ::core::ffi::c_void, cbbuffer: u32) -> ::windows_core::Result<u32> {
@@ -7274,24 +6093,8 @@ impl IPrintWriteStream {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintWriteStream, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintWriteStream {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintWriteStream {}
-impl ::core::fmt::Debug for IPrintWriteStream {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintWriteStream").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintWriteStream {
     type Vtable = IPrintWriteStream_Vtbl;
-}
-impl ::core::clone::Clone for IPrintWriteStream {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintWriteStream {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x65bb7f1b_371e_4571_8ac7_912f510c1a38);
@@ -7303,8 +6106,8 @@ pub struct IPrintWriteStream_Vtbl {
     pub WriteBytes: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pvbuffer: *const ::core::ffi::c_void, cbbuffer: u32, pcbwritten: *mut u32) -> ::windows_core::HRESULT,
     pub Close: unsafe extern "system" fn(this: *mut ::core::ffi::c_void),
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrintWriteStreamFlush(::windows_core::IUnknown);
 impl IPrintWriteStreamFlush {
     pub unsafe fn FlushData(&self) -> ::windows_core::Result<()> {
@@ -7312,24 +6115,8 @@ impl IPrintWriteStreamFlush {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrintWriteStreamFlush, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrintWriteStreamFlush {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrintWriteStreamFlush {}
-impl ::core::fmt::Debug for IPrintWriteStreamFlush {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrintWriteStreamFlush").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrintWriteStreamFlush {
     type Vtable = IPrintWriteStreamFlush_Vtbl;
-}
-impl ::core::clone::Clone for IPrintWriteStreamFlush {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrintWriteStreamFlush {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x07d11ff8_1753_4873_b749_6cdaf068e4c3);
@@ -7340,8 +6127,8 @@ pub struct IPrintWriteStreamFlush_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub FlushData: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterBidiSetRequestCallback(::windows_core::IUnknown);
 impl IPrinterBidiSetRequestCallback {
     pub unsafe fn Completed<P0>(&self, bstrresponse: P0, hrstatus: ::windows_core::HRESULT) -> ::windows_core::Result<()>
@@ -7352,24 +6139,8 @@ impl IPrinterBidiSetRequestCallback {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrinterBidiSetRequestCallback, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrinterBidiSetRequestCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrinterBidiSetRequestCallback {}
-impl ::core::fmt::Debug for IPrinterBidiSetRequestCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterBidiSetRequestCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrinterBidiSetRequestCallback {
     type Vtable = IPrinterBidiSetRequestCallback_Vtbl;
-}
-impl ::core::clone::Clone for IPrinterBidiSetRequestCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrinterBidiSetRequestCallback {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc52d32dd_f2b4_4052_8502_ec4305ecb71f);
@@ -7380,8 +6151,8 @@ pub struct IPrinterBidiSetRequestCallback_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub Completed: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrresponse: ::std::mem::MaybeUninit<::windows_core::BSTR>, hrstatus: ::windows_core::HRESULT) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterExtensionAsyncOperation(::windows_core::IUnknown);
 impl IPrinterExtensionAsyncOperation {
     pub unsafe fn Cancel(&self) -> ::windows_core::Result<()> {
@@ -7389,24 +6160,8 @@ impl IPrinterExtensionAsyncOperation {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrinterExtensionAsyncOperation, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrinterExtensionAsyncOperation {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrinterExtensionAsyncOperation {}
-impl ::core::fmt::Debug for IPrinterExtensionAsyncOperation {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterExtensionAsyncOperation").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrinterExtensionAsyncOperation {
     type Vtable = IPrinterExtensionAsyncOperation_Vtbl;
-}
-impl ::core::clone::Clone for IPrinterExtensionAsyncOperation {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrinterExtensionAsyncOperation {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x108d6a23_6a4b_4552_9448_68b427186acd);
@@ -7417,31 +6172,32 @@ pub struct IPrinterExtensionAsyncOperation_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub Cancel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterExtensionContext(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterExtensionContext {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn PrinterQueue(&self) -> ::windows_core::Result<IPrinterQueue> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).PrinterQueue)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn PrintSchemaTicket(&self) -> ::windows_core::Result<IPrintSchemaTicket> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).PrintSchemaTicket)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DriverProperties(&self) -> ::windows_core::Result<IPrinterPropertyBag> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).DriverProperties)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UserProperties(&self) -> ::windows_core::Result<IPrinterPropertyBag> {
         let mut result__ = ::std::mem::zeroed();
@@ -7451,28 +6207,8 @@ impl IPrinterExtensionContext {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterExtensionContext, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterExtensionContext {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterExtensionContext {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterExtensionContext {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterExtensionContext").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterExtensionContext {
     type Vtable = IPrinterExtensionContext_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterExtensionContext {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterExtensionContext {
@@ -7500,9 +6236,10 @@ pub struct IPrinterExtensionContext_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     UserProperties: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterExtensionContextCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterExtensionContextCollection {
@@ -7510,7 +6247,7 @@ impl IPrinterExtensionContextCollection {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Count)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetAt(&self, ulindex: u32) -> ::windows_core::Result<IPrinterExtensionContext> {
         let mut result__ = ::std::mem::zeroed();
@@ -7524,28 +6261,8 @@ impl IPrinterExtensionContextCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterExtensionContextCollection, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterExtensionContextCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterExtensionContextCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterExtensionContextCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterExtensionContextCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterExtensionContextCollection {
     type Vtable = IPrinterExtensionContextCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterExtensionContextCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterExtensionContextCollection {
@@ -7563,13 +6280,14 @@ pub struct IPrinterExtensionContextCollection_Vtbl {
     GetAt: usize,
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppunk: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterExtensionEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterExtensionEvent {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn OnDriverEvent<P0>(&self, peventargs: P0) -> ::windows_core::Result<()>
     where
@@ -7577,7 +6295,7 @@ impl IPrinterExtensionEvent {
     {
         (::windows_core::Interface::vtable(self).OnDriverEvent)(::windows_core::Interface::as_raw(self), peventargs.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn OnPrinterQueuesEnumerated<P0>(&self, pcontextcollection: P0) -> ::windows_core::Result<()>
     where
@@ -7589,28 +6307,8 @@ impl IPrinterExtensionEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterExtensionEvent, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterExtensionEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterExtensionEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterExtensionEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterExtensionEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterExtensionEvent {
     type Vtable = IPrinterExtensionEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterExtensionEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterExtensionEvent {
@@ -7630,31 +6328,32 @@ pub struct IPrinterExtensionEvent_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     OnPrinterQueuesEnumerated: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterExtensionEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterExtensionEventArgs {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn PrinterQueue(&self) -> ::windows_core::Result<IPrinterQueue> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.PrinterQueue)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn PrintSchemaTicket(&self) -> ::windows_core::Result<IPrintSchemaTicket> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.PrintSchemaTicket)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DriverProperties(&self) -> ::windows_core::Result<IPrinterPropertyBag> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DriverProperties)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UserProperties(&self) -> ::windows_core::Result<IPrinterPropertyBag> {
         let mut result__ = ::std::mem::zeroed();
@@ -7668,7 +6367,7 @@ impl IPrinterExtensionEventArgs {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ReasonId)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Request(&self) -> ::windows_core::Result<IPrinterExtensionRequest> {
         let mut result__ = ::std::mem::zeroed();
@@ -7682,13 +6381,13 @@ impl IPrinterExtensionEventArgs {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).DetailedReasonId)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn WindowModal(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).WindowModal)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn WindowParent(&self) -> ::windows_core::Result<super::super::Foundation::HANDLE> {
         let mut result__ = ::std::mem::zeroed();
@@ -7698,28 +6397,8 @@ impl IPrinterExtensionEventArgs {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterExtensionEventArgs, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrinterExtensionContext);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterExtensionEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterExtensionEventArgs {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterExtensionEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterExtensionEventArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterExtensionEventArgs {
     type Vtable = IPrinterExtensionEventArgs_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterExtensionEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterExtensionEventArgs {
@@ -7747,8 +6426,8 @@ pub struct IPrinterExtensionEventArgs_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     WindowParent: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterExtensionManager(::windows_core::IUnknown);
 impl IPrinterExtensionManager {
     pub unsafe fn EnableEvents(&self, printerdriverid: ::windows_core::GUID) -> ::windows_core::Result<()> {
@@ -7759,24 +6438,8 @@ impl IPrinterExtensionManager {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IPrinterExtensionManager, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IPrinterExtensionManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IPrinterExtensionManager {}
-impl ::core::fmt::Debug for IPrinterExtensionManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterExtensionManager").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IPrinterExtensionManager {
     type Vtable = IPrinterExtensionManager_Vtbl;
-}
-impl ::core::clone::Clone for IPrinterExtensionManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPrinterExtensionManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x93c6eb8c_b001_4355_9629_8e8a1b3f8e77);
@@ -7788,9 +6451,10 @@ pub struct IPrinterExtensionManager_Vtbl {
     pub EnableEvents: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, printerdriverid: ::windows_core::GUID) -> ::windows_core::HRESULT,
     pub DisableEvents: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterExtensionRequest(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterExtensionRequest {
@@ -7807,28 +6471,8 @@ impl IPrinterExtensionRequest {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterExtensionRequest, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterExtensionRequest {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterExtensionRequest {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterExtensionRequest {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterExtensionRequest").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterExtensionRequest {
     type Vtable = IPrinterExtensionRequest_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterExtensionRequest {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterExtensionRequest {
@@ -7842,13 +6486,14 @@ pub struct IPrinterExtensionRequest_Vtbl {
     pub Cancel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, hrstatus: ::windows_core::HRESULT, bstrlogmessage: ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub Complete: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterPropertyBag(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterPropertyBag {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetBool<P0>(&self, bstrname: P0) -> ::windows_core::Result<super::super::Foundation::BOOL>
     where
@@ -7857,7 +6502,7 @@ impl IPrinterPropertyBag {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetBool)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetBool<P0, P1>(&self, bstrname: P0, bvalue: P1) -> ::windows_core::Result<()>
     where
@@ -7903,9 +6548,9 @@ impl IPrinterPropertyBag {
     where
         P0: ::windows_core::IntoParam<::windows_core::BSTR>,
     {
-        (::windows_core::Interface::vtable(self).SetBytes)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), pvalue.len() as _, ::core::mem::transmute(pvalue.as_ptr())).ok()
+        (::windows_core::Interface::vtable(self).SetBytes)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), pvalue.len().try_into().unwrap(), ::core::mem::transmute(pvalue.as_ptr())).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetReadStream<P0>(&self, bstrname: P0) -> ::windows_core::Result<super::super::System::Com::IStream>
     where
@@ -7914,7 +6559,7 @@ impl IPrinterPropertyBag {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetReadStream)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetWriteStream<P0>(&self, bstrname: P0) -> ::windows_core::Result<super::super::System::Com::IStream>
     where
@@ -7927,28 +6572,8 @@ impl IPrinterPropertyBag {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterPropertyBag, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterPropertyBag {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterPropertyBag {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterPropertyBag {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterPropertyBag").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterPropertyBag {
     type Vtable = IPrinterPropertyBag_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterPropertyBag {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterPropertyBag {
@@ -7982,13 +6607,14 @@ pub struct IPrinterPropertyBag_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetWriteStream: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterQueue(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterQueue {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Handle(&self) -> ::windows_core::Result<super::super::Foundation::HANDLE> {
         let mut result__ = ::std::mem::zeroed();
@@ -8004,7 +6630,7 @@ impl IPrinterQueue {
     {
         (::windows_core::Interface::vtable(self).SendBidiQuery)(::windows_core::Interface::as_raw(self), bstrbidiquery.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetProperties(&self) -> ::windows_core::Result<IPrinterPropertyBag> {
         let mut result__ = ::std::mem::zeroed();
@@ -8014,28 +6640,8 @@ impl IPrinterQueue {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterQueue, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterQueue {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterQueue {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterQueue {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterQueue").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterQueue {
     type Vtable = IPrinterQueue_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterQueue {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterQueue {
@@ -8057,13 +6663,14 @@ pub struct IPrinterQueue_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetProperties: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterQueue2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterQueue2 {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Handle(&self) -> ::windows_core::Result<super::super::Foundation::HANDLE> {
         let mut result__ = ::std::mem::zeroed();
@@ -8079,7 +6686,7 @@ impl IPrinterQueue2 {
     {
         (::windows_core::Interface::vtable(self).base__.SendBidiQuery)(::windows_core::Interface::as_raw(self), bstrbidiquery.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetProperties(&self) -> ::windows_core::Result<IPrinterPropertyBag> {
         let mut result__ = ::std::mem::zeroed();
@@ -8093,7 +6700,7 @@ impl IPrinterQueue2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).SendBidiSetRequestAsync)(::windows_core::Interface::as_raw(self), bstrbidirequest.into_param().abi(), pcallback.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetPrinterQueueView(&self, ulviewoffset: u32, ulviewsize: u32) -> ::windows_core::Result<IPrinterQueueView> {
         let mut result__ = ::std::mem::zeroed();
@@ -8103,28 +6710,8 @@ impl IPrinterQueue2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterQueue2, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrinterQueue);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterQueue2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterQueue2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterQueue2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterQueue2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterQueue2 {
     type Vtable = IPrinterQueue2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterQueue2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterQueue2 {
@@ -8141,9 +6728,10 @@ pub struct IPrinterQueue2_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetPrinterQueueView: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterQueueEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterQueueEvent {
@@ -8157,28 +6745,8 @@ impl IPrinterQueueEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterQueueEvent, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterQueueEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterQueueEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterQueueEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterQueueEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterQueueEvent {
     type Vtable = IPrinterQueueEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterQueueEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterQueueEvent {
@@ -8191,9 +6759,10 @@ pub struct IPrinterQueueEvent_Vtbl {
     pub base__: super::super::System::Com::IDispatch_Vtbl,
     pub OnBidiResponseReceived: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrresponse: ::std::mem::MaybeUninit<::windows_core::BSTR>, hrstatus: ::windows_core::HRESULT) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterQueueView(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterQueueView {
@@ -8204,28 +6773,8 @@ impl IPrinterQueueView {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterQueueView, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterQueueView {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterQueueView {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterQueueView {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterQueueView").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterQueueView {
     type Vtable = IPrinterQueueView_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterQueueView {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterQueueView {
@@ -8238,13 +6787,14 @@ pub struct IPrinterQueueView_Vtbl {
     pub base__: super::super::System::Com::IDispatch_Vtbl,
     pub SetViewRange: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ulviewoffset: u32, ulviewsize: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterQueueViewEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterQueueViewEvent {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn OnChanged<P0>(&self, pcollection: P0, ulviewoffset: u32, ulviewsize: u32, ulcountjobsinprintqueue: u32) -> ::windows_core::Result<()>
     where
@@ -8256,28 +6806,8 @@ impl IPrinterQueueViewEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterQueueViewEvent, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterQueueViewEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterQueueViewEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterQueueViewEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterQueueViewEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterQueueViewEvent {
     type Vtable = IPrinterQueueViewEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterQueueViewEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterQueueViewEvent {
@@ -8293,25 +6823,26 @@ pub struct IPrinterQueueViewEvent_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     OnChanged: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterScriptContext(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterScriptContext {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DriverProperties(&self) -> ::windows_core::Result<IPrinterScriptablePropertyBag> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).DriverProperties)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn QueueProperties(&self) -> ::windows_core::Result<IPrinterScriptablePropertyBag> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).QueueProperties)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UserProperties(&self) -> ::windows_core::Result<IPrinterScriptablePropertyBag> {
         let mut result__ = ::std::mem::zeroed();
@@ -8321,28 +6852,8 @@ impl IPrinterScriptContext {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterScriptContext, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterScriptContext {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterScriptContext {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterScriptContext {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterScriptContext").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterScriptContext {
     type Vtable = IPrinterScriptContext_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterScriptContext {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterScriptContext {
@@ -8366,13 +6877,14 @@ pub struct IPrinterScriptContext_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     UserProperties: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterScriptablePropertyBag(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterScriptablePropertyBag {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetBool<P0>(&self, bstrname: P0) -> ::windows_core::Result<super::super::Foundation::BOOL>
     where
@@ -8381,7 +6893,7 @@ impl IPrinterScriptablePropertyBag {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetBool)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetBool<P0, P1>(&self, bstrname: P0, bvalue: P1) -> ::windows_core::Result<()>
     where
@@ -8417,7 +6929,7 @@ impl IPrinterScriptablePropertyBag {
     {
         (::windows_core::Interface::vtable(self).SetString)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), bstrvalue.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetBytes<P0>(&self, bstrname: P0) -> ::windows_core::Result<super::super::System::Com::IDispatch>
     where
@@ -8426,7 +6938,7 @@ impl IPrinterScriptablePropertyBag {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetBytes)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetBytes<P0, P1>(&self, bstrname: P0, parray: P1) -> ::windows_core::Result<()>
     where
@@ -8435,7 +6947,7 @@ impl IPrinterScriptablePropertyBag {
     {
         (::windows_core::Interface::vtable(self).SetBytes)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), parray.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetReadStream<P0>(&self, bstrname: P0) -> ::windows_core::Result<IPrinterScriptableStream>
     where
@@ -8444,7 +6956,7 @@ impl IPrinterScriptablePropertyBag {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetReadStream)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetWriteStream<P0>(&self, bstrname: P0) -> ::windows_core::Result<IPrinterScriptableStream>
     where
@@ -8457,28 +6969,8 @@ impl IPrinterScriptablePropertyBag {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterScriptablePropertyBag, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterScriptablePropertyBag {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterScriptablePropertyBag {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterScriptablePropertyBag {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterScriptablePropertyBag").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterScriptablePropertyBag {
     type Vtable = IPrinterScriptablePropertyBag_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterScriptablePropertyBag {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterScriptablePropertyBag {
@@ -8518,13 +7010,14 @@ pub struct IPrinterScriptablePropertyBag_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetWriteStream: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterScriptablePropertyBag2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterScriptablePropertyBag2 {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetBool<P0>(&self, bstrname: P0) -> ::windows_core::Result<super::super::Foundation::BOOL>
     where
@@ -8533,7 +7026,7 @@ impl IPrinterScriptablePropertyBag2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetBool)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetBool<P0, P1>(&self, bstrname: P0, bvalue: P1) -> ::windows_core::Result<()>
     where
@@ -8569,7 +7062,7 @@ impl IPrinterScriptablePropertyBag2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetString)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), bstrvalue.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetBytes<P0>(&self, bstrname: P0) -> ::windows_core::Result<super::super::System::Com::IDispatch>
     where
@@ -8578,7 +7071,7 @@ impl IPrinterScriptablePropertyBag2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetBytes)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetBytes<P0, P1>(&self, bstrname: P0, parray: P1) -> ::windows_core::Result<()>
     where
@@ -8587,7 +7080,7 @@ impl IPrinterScriptablePropertyBag2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetBytes)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), parray.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetReadStream<P0>(&self, bstrname: P0) -> ::windows_core::Result<IPrinterScriptableStream>
     where
@@ -8596,7 +7089,7 @@ impl IPrinterScriptablePropertyBag2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetReadStream)(::windows_core::Interface::as_raw(self), bstrname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetWriteStream<P0>(&self, bstrname: P0) -> ::windows_core::Result<IPrinterScriptableStream>
     where
@@ -8616,28 +7109,8 @@ impl IPrinterScriptablePropertyBag2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterScriptablePropertyBag2, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrinterScriptablePropertyBag);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterScriptablePropertyBag2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterScriptablePropertyBag2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterScriptablePropertyBag2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterScriptablePropertyBag2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterScriptablePropertyBag2 {
     type Vtable = IPrinterScriptablePropertyBag2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterScriptablePropertyBag2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterScriptablePropertyBag2 {
@@ -8650,19 +7123,20 @@ pub struct IPrinterScriptablePropertyBag2_Vtbl {
     pub base__: IPrinterScriptablePropertyBag_Vtbl,
     pub GetReadStreamAsXML: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrname: ::std::mem::MaybeUninit<::windows_core::BSTR>, ppxmlnode: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterScriptableSequentialStream(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterScriptableSequentialStream {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Read(&self, cbread: i32) -> ::windows_core::Result<super::super::System::Com::IDispatch> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Read)(::windows_core::Interface::as_raw(self), cbread, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Write<P0>(&self, parray: P0) -> ::windows_core::Result<i32>
     where
@@ -8675,28 +7149,8 @@ impl IPrinterScriptableSequentialStream {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterScriptableSequentialStream, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterScriptableSequentialStream {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterScriptableSequentialStream {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterScriptableSequentialStream {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterScriptableSequentialStream").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterScriptableSequentialStream {
     type Vtable = IPrinterScriptableSequentialStream_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterScriptableSequentialStream {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterScriptableSequentialStream {
@@ -8716,19 +7170,20 @@ pub struct IPrinterScriptableSequentialStream_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Write: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPrinterScriptableStream(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IPrinterScriptableStream {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Read(&self, cbread: i32) -> ::windows_core::Result<super::super::System::Com::IDispatch> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Read)(::windows_core::Interface::as_raw(self), cbread, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Write<P0>(&self, parray: P0) -> ::windows_core::Result<i32>
     where
@@ -8740,7 +7195,7 @@ impl IPrinterScriptableStream {
     pub unsafe fn Commit(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Commit)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Seek(&self, loffset: i32, streamseek: super::super::System::Com::STREAM_SEEK) -> ::windows_core::Result<i32> {
         let mut result__ = ::std::mem::zeroed();
@@ -8753,28 +7208,8 @@ impl IPrinterScriptableStream {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IPrinterScriptableStream, ::windows_core::IUnknown, super::super::System::Com::IDispatch, IPrinterScriptableSequentialStream);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IPrinterScriptableStream {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IPrinterScriptableStream {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IPrinterScriptableStream {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IPrinterScriptableStream").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IPrinterScriptableStream {
     type Vtable = IPrinterScriptableStream_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IPrinterScriptableStream {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IPrinterScriptableStream {
@@ -8792,8 +7227,8 @@ pub struct IPrinterScriptableStream_Vtbl {
     Seek: usize,
     pub SetSize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, lsize: i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXpsDocument(::windows_core::IUnknown);
 impl IXpsDocument {
     pub unsafe fn GetThumbnail(&self) -> ::windows_core::Result<IPartThumbnail> {
@@ -8808,24 +7243,8 @@ impl IXpsDocument {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXpsDocument, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXpsDocument {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXpsDocument {}
-impl ::core::fmt::Debug for IXpsDocument {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXpsDocument").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXpsDocument {
     type Vtable = IXpsDocument_Vtbl;
-}
-impl ::core::clone::Clone for IXpsDocument {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXpsDocument {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe8d907db_62a9_4a95_abe7_e01763dd30f8);
@@ -8837,8 +7256,8 @@ pub struct IXpsDocument_Vtbl {
     pub GetThumbnail: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppthumbnail: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub SetThumbnail: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pthumbnail: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXpsDocumentConsumer(::windows_core::IUnknown);
 impl IXpsDocumentConsumer {
     pub unsafe fn SendXpsUnknown<P0>(&self, punknown: P0) -> ::windows_core::Result<()>
@@ -8882,24 +7301,8 @@ impl IXpsDocumentConsumer {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXpsDocumentConsumer, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXpsDocumentConsumer {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXpsDocumentConsumer {}
-impl ::core::fmt::Debug for IXpsDocumentConsumer {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXpsDocumentConsumer").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXpsDocumentConsumer {
     type Vtable = IXpsDocumentConsumer_Vtbl;
-}
-impl ::core::clone::Clone for IXpsDocumentConsumer {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXpsDocumentConsumer {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4368d8a2_4181_4a9f_b295_3d9a38bb9ba0);
@@ -8916,8 +7319,8 @@ pub struct IXpsDocumentConsumer_Vtbl {
     pub CloseSender: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub GetNewEmptyPart: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, uri: ::windows_core::PCWSTR, riid: *const ::windows_core::GUID, ppnewobject: *mut *mut ::core::ffi::c_void, ppwritestream: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXpsDocumentProvider(::windows_core::IUnknown);
 impl IXpsDocumentProvider {
     pub unsafe fn GetXpsPart(&self) -> ::windows_core::Result<::windows_core::IUnknown> {
@@ -8926,24 +7329,8 @@ impl IXpsDocumentProvider {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXpsDocumentProvider, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXpsDocumentProvider {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXpsDocumentProvider {}
-impl ::core::fmt::Debug for IXpsDocumentProvider {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXpsDocumentProvider").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXpsDocumentProvider {
     type Vtable = IXpsDocumentProvider_Vtbl;
-}
-impl ::core::clone::Clone for IXpsDocumentProvider {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXpsDocumentProvider {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb8cf8530_5562_47c4_ab67_b1f69ecf961e);
@@ -8954,8 +7341,8 @@ pub struct IXpsDocumentProvider_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub GetXpsPart: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppixpspart: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXpsPartIterator(::windows_core::IUnknown);
 impl IXpsPartIterator {
     pub unsafe fn Reset(&self) {
@@ -8964,7 +7351,7 @@ impl IXpsPartIterator {
     pub unsafe fn Current(&self, puri: *mut ::windows_core::BSTR, ppxpspart: *mut ::core::option::Option<::windows_core::IUnknown>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Current)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(puri), ::core::mem::transmute(ppxpspart)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDone(&self) -> super::super::Foundation::BOOL {
         (::windows_core::Interface::vtable(self).IsDone)(::windows_core::Interface::as_raw(self))
@@ -8974,24 +7361,8 @@ impl IXpsPartIterator {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXpsPartIterator, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXpsPartIterator {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXpsPartIterator {}
-impl ::core::fmt::Debug for IXpsPartIterator {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXpsPartIterator").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXpsPartIterator {
     type Vtable = IXpsPartIterator_Vtbl;
-}
-impl ::core::clone::Clone for IXpsPartIterator {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXpsPartIterator {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0021d3cd_af6f_42ab_9999_14bc82a62d2e);
@@ -9008,11 +7379,11 @@ pub struct IXpsPartIterator_Vtbl {
     IsDone: usize,
     pub Next: unsafe extern "system" fn(this: *mut ::core::ffi::c_void),
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXpsRasterizationFactory(::windows_core::IUnknown);
 impl IXpsRasterizationFactory {
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`*"]
+    #[doc = "Required features: `\"Win32_Storage_Xps\"`"]
     #[cfg(feature = "Win32_Storage_Xps")]
     pub unsafe fn CreateRasterizer<P0>(&self, xpspage: P0, dpi: f32, nontextrenderingmode: XPSRAS_RENDERING_MODE, textrenderingmode: XPSRAS_RENDERING_MODE) -> ::windows_core::Result<IXpsRasterizer>
     where
@@ -9023,24 +7394,8 @@ impl IXpsRasterizationFactory {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXpsRasterizationFactory, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXpsRasterizationFactory {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXpsRasterizationFactory {}
-impl ::core::fmt::Debug for IXpsRasterizationFactory {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXpsRasterizationFactory").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXpsRasterizationFactory {
     type Vtable = IXpsRasterizationFactory_Vtbl;
-}
-impl ::core::clone::Clone for IXpsRasterizationFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXpsRasterizationFactory {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe094808a_24c6_482b_a3a7_c21ac9b55f17);
@@ -9054,11 +7409,11 @@ pub struct IXpsRasterizationFactory_Vtbl {
     #[cfg(not(feature = "Win32_Storage_Xps"))]
     CreateRasterizer: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXpsRasterizationFactory1(::windows_core::IUnknown);
 impl IXpsRasterizationFactory1 {
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`*"]
+    #[doc = "Required features: `\"Win32_Storage_Xps\"`"]
     #[cfg(feature = "Win32_Storage_Xps")]
     pub unsafe fn CreateRasterizer<P0>(&self, xpspage: P0, dpi: f32, nontextrenderingmode: XPSRAS_RENDERING_MODE, textrenderingmode: XPSRAS_RENDERING_MODE, pixelformat: XPSRAS_PIXEL_FORMAT) -> ::windows_core::Result<IXpsRasterizer>
     where
@@ -9069,24 +7424,8 @@ impl IXpsRasterizationFactory1 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXpsRasterizationFactory1, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXpsRasterizationFactory1 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXpsRasterizationFactory1 {}
-impl ::core::fmt::Debug for IXpsRasterizationFactory1 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXpsRasterizationFactory1").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXpsRasterizationFactory1 {
     type Vtable = IXpsRasterizationFactory1_Vtbl;
-}
-impl ::core::clone::Clone for IXpsRasterizationFactory1 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXpsRasterizationFactory1 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2d6e5f77_6414_4a1e_a8e0_d4194ce6a26f);
@@ -9100,11 +7439,11 @@ pub struct IXpsRasterizationFactory1_Vtbl {
     #[cfg(not(feature = "Win32_Storage_Xps"))]
     CreateRasterizer: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXpsRasterizationFactory2(::windows_core::IUnknown);
 impl IXpsRasterizationFactory2 {
-    #[doc = "*Required features: `\"Win32_Storage_Xps\"`*"]
+    #[doc = "Required features: `\"Win32_Storage_Xps\"`"]
     #[cfg(feature = "Win32_Storage_Xps")]
     pub unsafe fn CreateRasterizer<P0>(&self, xpspage: P0, dpix: f32, dpiy: f32, nontextrenderingmode: XPSRAS_RENDERING_MODE, textrenderingmode: XPSRAS_RENDERING_MODE, pixelformat: XPSRAS_PIXEL_FORMAT, backgroundcolor: XPSRAS_BACKGROUND_COLOR) -> ::windows_core::Result<IXpsRasterizer>
     where
@@ -9115,24 +7454,8 @@ impl IXpsRasterizationFactory2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXpsRasterizationFactory2, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXpsRasterizationFactory2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXpsRasterizationFactory2 {}
-impl ::core::fmt::Debug for IXpsRasterizationFactory2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXpsRasterizationFactory2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXpsRasterizationFactory2 {
     type Vtable = IXpsRasterizationFactory2_Vtbl;
-}
-impl ::core::clone::Clone for IXpsRasterizationFactory2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXpsRasterizationFactory2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9c16ce3e_10f5_41fd_9ddc_6826669c2ff6);
@@ -9146,11 +7469,11 @@ pub struct IXpsRasterizationFactory2_Vtbl {
     #[cfg(not(feature = "Win32_Storage_Xps"))]
     CreateRasterizer: usize,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXpsRasterizer(::windows_core::IUnknown);
 impl IXpsRasterizer {
-    #[doc = "*Required features: `\"Win32_Graphics_Imaging\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Imaging\"`"]
     #[cfg(feature = "Win32_Graphics_Imaging")]
     pub unsafe fn RasterizeRect<P0>(&self, x: i32, y: i32, width: i32, height: i32, notificationcallback: P0) -> ::windows_core::Result<super::Imaging::IWICBitmap>
     where
@@ -9164,24 +7487,8 @@ impl IXpsRasterizer {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXpsRasterizer, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXpsRasterizer {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXpsRasterizer {}
-impl ::core::fmt::Debug for IXpsRasterizer {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXpsRasterizer").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXpsRasterizer {
     type Vtable = IXpsRasterizer_Vtbl;
-}
-impl ::core::clone::Clone for IXpsRasterizer {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXpsRasterizer {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7567cfc8_c156_47a8_9dac_11a2ae5bdd6b);
@@ -9196,8 +7503,8 @@ pub struct IXpsRasterizer_Vtbl {
     RasterizeRect: usize,
     pub SetMinimalLineWidth: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, width: i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXpsRasterizerNotificationCallback(::windows_core::IUnknown);
 impl IXpsRasterizerNotificationCallback {
     pub unsafe fn Continue(&self) -> ::windows_core::Result<()> {
@@ -9205,24 +7512,8 @@ impl IXpsRasterizerNotificationCallback {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXpsRasterizerNotificationCallback, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXpsRasterizerNotificationCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXpsRasterizerNotificationCallback {}
-impl ::core::fmt::Debug for IXpsRasterizerNotificationCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXpsRasterizerNotificationCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXpsRasterizerNotificationCallback {
     type Vtable = IXpsRasterizerNotificationCallback_Vtbl;
-}
-impl ::core::clone::Clone for IXpsRasterizerNotificationCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXpsRasterizerNotificationCallback {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9ab8fd0d_cb94_49c2_9cb0_97ec1d5469d2);
@@ -9233,3169 +7524,1587 @@ pub struct IXpsRasterizerNotificationCallback_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub Continue: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ALREADY_REGISTERED: PrintAsyncNotifyError = PrintAsyncNotifyError(15i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ALREADY_UNREGISTERED: PrintAsyncNotifyError = PrintAsyncNotifyError(14i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const APD_COPY_ALL_FILES: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const APD_COPY_FROM_DIRECTORY: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const APD_COPY_NEW_FILES: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const APD_STRICT_DOWNGRADE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const APD_STRICT_UPGRADE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const APPLYCPSUI_NO_NEWDEF: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const APPLYCPSUI_OK_CANCEL_BUTTON: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ASYNC_CALL_ALREADY_PARKED: PrintAsyncNotifyError = PrintAsyncNotifyError(12i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ASYNC_CALL_IN_PROGRESS: PrintAsyncNotifyError = PrintAsyncNotifyError(17i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ASYNC_NOTIFICATION_FAILURE: PrintAsyncNotifyError = PrintAsyncNotifyError(6i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_ACCESS_ADMINISTRATOR: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_ACCESS_USER: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_ACTION_ENUM_SCHEMA: ::windows_core::PCWSTR = ::windows_core::w!("EnumSchema");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_ACTION_GET: ::windows_core::PCWSTR = ::windows_core::w!("Get");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_ACTION_GET_ALL: ::windows_core::PCWSTR = ::windows_core::w!("GetAll");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_ACTION_GET_WITH_ARGUMENT: ::windows_core::PCWSTR = ::windows_core::w!("GetWithArgument");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_ACTION_SET: ::windows_core::PCWSTR = ::windows_core::w!("Set");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_BLOB: BIDI_TYPE = BIDI_TYPE(7i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_BOOL: BIDI_TYPE = BIDI_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_ENUM: BIDI_TYPE = BIDI_TYPE(6i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_FLOAT: BIDI_TYPE = BIDI_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_INT: BIDI_TYPE = BIDI_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_NULL: BIDI_TYPE = BIDI_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_STRING: BIDI_TYPE = BIDI_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BIDI_TEXT: BIDI_TYPE = BIDI_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BOOKLET_EDGE_LEFT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BOOKLET_EDGE_RIGHT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BOOKLET_PRINT: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BORDER_PRINT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BidiRequest: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb9162a23_45f9_47cc_80f5_fe0fe9b9e1a2);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BidiRequestContainer: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfc5b8a24_db05_4a01_8388_22edf6c2bbba);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const BidiSpl: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2a614240_a4c5_4c33_bd87_1bc709331639);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_BIG5: i32 = -10i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_CP437: i32 = -1i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_CP850: i32 = -2i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_CP863: i32 = -3i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_DEFAULT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_GB2312: i32 = -16i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_ISC: i32 = -11i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_JIS: i32 = -12i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_JIS_ANK: i32 = -13i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_NOPRECNV: u32 = 65535u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_NS86: i32 = -14i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_SJIS: i32 = -17i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_TCA: i32 = -15i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CC_WANSUNG: i32 = -18i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CDM_CONVERT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CDM_CONVERT351: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CDM_DRIVER_DEFAULT: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHANNEL_ACQUIRED: PrintAsyncNotifyError = PrintAsyncNotifyError(16i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHANNEL_ALREADY_CLOSED: PrintAsyncNotifyError = PrintAsyncNotifyError(8i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHANNEL_ALREADY_OPENED: PrintAsyncNotifyError = PrintAsyncNotifyError(9i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHANNEL_CLOSED_BY_ANOTHER_LISTENER: PrintAsyncNotifyError = PrintAsyncNotifyError(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHANNEL_CLOSED_BY_SAME_LISTENER: PrintAsyncNotifyError = PrintAsyncNotifyError(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHANNEL_CLOSED_BY_SERVER: PrintAsyncNotifyError = PrintAsyncNotifyError(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHANNEL_NOT_OPENED: PrintAsyncNotifyError = PrintAsyncNotifyError(11i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHANNEL_RELEASED_BY_LISTENER: PrintAsyncNotifyError = PrintAsyncNotifyError(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHANNEL_WAITING_FOR_CLIENT_NOTIFICATION: PrintAsyncNotifyError = PrintAsyncNotifyError(10i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHKBOXS_FALSE_PDATA: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHKBOXS_FALSE_TRUE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHKBOXS_NONE_PDATA: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHKBOXS_NO_PDATA: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHKBOXS_NO_YES: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHKBOXS_OFF_ON: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CHKBOXS_OFF_PDATA: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CLSID_OEMPTPROVIDER: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x91723892_45d2_48e2_9ec9_562379daf992);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CLSID_OEMRENDER: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6d6abf26_9f38_11d1_882a_00c04fb961ec);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CLSID_OEMUI: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xabce80d7_9f46_11d1_882a_00c04fb961ec);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CLSID_OEMUIMXDC: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4e144300_5b43_4288_932a_5e4dd6d82bed);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CLSID_PTPROVIDER: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x46ac151b_8490_4531_96cc_55bf2bf19e11);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CLSID_XPSRASTERIZER_FACTORY: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x503e79bf_1d09_4764_9d72_1eb0c65967c6);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const COLOR_OPTIMIZATION: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const COPYFILE_EVENT_ADD_PRINTER_CONNECTION: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const COPYFILE_EVENT_DELETE_PRINTER: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const COPYFILE_EVENT_DELETE_PRINTER_CONNECTION: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const COPYFILE_EVENT_FILES_CHANGED: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const COPYFILE_EVENT_SET_PRINTER_DATAEX: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const COPYFILE_FLAG_CLIENT_SPOOLER: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const COPYFILE_FLAG_SERVER_SPOOLER: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_HPROPSHEETPAGE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_PCOMPROPSHEETUI: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_PCOMPROPSHEETUIA: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_PCOMPROPSHEETUIW: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_PFNPROPSHEETUI: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_PFNPROPSHEETUIA: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_PFNPROPSHEETUIW: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_PROPSHEETPAGE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_PROPSHEETPAGEA: u32 = 15u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_ADD_PROPSHEETPAGEW: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_DELETE_HCOMPROPSHEET: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_DO_APPLY_CPSUI: u32 = 25u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_GET_HPSUIPAGES: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_GET_PAGECOUNT: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_GET_PFNPROPSHEETUI_ICON: u32 = 14u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_IGNORE_CPSUI_PSN_APPLY: u32 = 24u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_INSERT_PSUIPAGE: u32 = 17u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_INSERT_PSUIPAGEA: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_INSERT_PSUIPAGEW: u32 = 17u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_LOAD_CPSUI_ICON: u32 = 13u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_LOAD_CPSUI_STRING: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_LOAD_CPSUI_STRINGA: u32 = 11u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_LOAD_CPSUI_STRINGW: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_QUERY_DATABLOCK: u32 = 22u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_SET_DATABLOCK: u32 = 21u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_SET_DMPUB_HIDEBITS: u32 = 23u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_SET_FUSION_CONTEXT: u32 = 26u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_SET_HSTARTPAGE: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_SET_PSUIPAGE_ICON: u32 = 20u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_SET_PSUIPAGE_TITLE: u32 = 19u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_SET_PSUIPAGE_TITLEA: u32 = 18u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_SET_PSUIPAGE_TITLEW: u32 = 19u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSFUNC_SET_RESULT: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_ACTION_ITEMS_APPLIED: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_ACTION_NONE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_ACTION_NO_APPLY_EXIT: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_ACTION_OPTIF_CHANGED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_ACTION_REINIT_ITEMS: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_ABOUT: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_APPLYNOW: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_DLGPROC: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_ECB_CHANGED: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_EXTPUSH: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_ITEMS_REVERTED: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_KILLACTIVE: u32 = 11u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_OPTITEM_SETFOCUS: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_PUSHBUTTON: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_SEL_CHANGED: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_SETACTIVE: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUICB_REASON_UNDO_CHANGES: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUIF_ABOUT_CALLBACK: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUIF_ICONID_AS_HICON: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUIF_UPDATE_PERMISSION: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUI_CANCEL: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUI_OK: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUI_REBOOTSYSTEM: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CPSUI_RESTARTWINDOWS: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CUSTOMPARAM_HEIGHT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CUSTOMPARAM_HEIGHTOFFSET: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CUSTOMPARAM_MAX: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CUSTOMPARAM_ORIENTATION: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CUSTOMPARAM_WIDTH: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const CUSTOMPARAM_WIDTHOFFSET: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Compression_Fast: EXpsCompressionOptions = EXpsCompressionOptions(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Compression_Normal: EXpsCompressionOptions = EXpsCompressionOptions(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Compression_NotCompressed: EXpsCompressionOptions = EXpsCompressionOptions(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Compression_Small: EXpsCompressionOptions = EXpsCompressionOptions(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DEF_PRIORITY: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_BKSP_OK: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_NOITALIC: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_NOUNDER: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_NO_BOLD: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_NO_DOUBLE_UNDERLINE: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_NO_STRIKETHRU: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_TYPE_CAPSL: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_TYPE_HPINTELLIFONT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_TYPE_OEM1: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_TYPE_OEM2: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_TYPE_PST1: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_TYPE_TRUETYPE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DF_XM_CR: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_CONTEXT: u32 = 11800u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_CONTEXTCOLLECTION: u32 = 12100u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_CONTEXTCOLLECTION_COUNT: u32 = 12101u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_CONTEXTCOLLECTION_GETAT: u32 = 12102u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_CONTEXT_DRIVERPROPERTIES: u32 = 11803u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_CONTEXT_PRINTERQUEUE: u32 = 11801u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_CONTEXT_PRINTSCHEMATICKET: u32 = 11802u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_CONTEXT_USERPROPERTIES: u32 = 11804u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENT: u32 = 12200u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENTARGS: u32 = 12000u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENTARGS_BIDINOTIFICATION: u32 = 12001u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENTARGS_DETAILEDREASONID: u32 = 12005u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENTARGS_REASONID: u32 = 12002u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENTARGS_REQUEST: u32 = 12003u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENTARGS_SOURCEAPPLICATION: u32 = 12004u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENTARGS_WINDOWMODAL: u32 = 12006u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENTARGS_WINDOWPARENT: u32 = 12007u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENT_ONDRIVEREVENT: u32 = 12201u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_EVENT_ONPRINTERQUEUESENUMERATED: u32 = 12202u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_REQUEST: u32 = 11900u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_REQUEST_CANCEL: u32 = 11901u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTEREXTENSION_REQUEST_COMPLETE: u32 = 11902u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG: u32 = 11400u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_GETBOOL: u32 = 11401u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_GETBYTES: u32 = 11407u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_GETINT32: u32 = 11403u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_GETREADSTREAM: u32 = 11409u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_GETSTRING: u32 = 11405u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_GETWRITESTREAM: u32 = 11410u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_SETBOOL: u32 = 11402u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_SETBYTES: u32 = 11408u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_SETINT32: u32 = 11404u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERPROPERTYBAG_SETSTRING: u32 = 11406u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUE: u32 = 11600u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUEEVENT: u32 = 11700u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUEEVENT_ONBIDIRESPONSERECEIVED: u32 = 11701u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUEVIEW: u32 = 12700u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUEVIEW_EVENT: u32 = 12800u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUEVIEW_EVENT_ONCHANGED: u32 = 12801u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUEVIEW_SETVIEWRANGE: u32 = 12701u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUE_GETPRINTERQUEUEVIEW: u32 = 11606u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUE_GETPROPERTIES: u32 = 11604u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUE_HANDLE: u32 = 11601u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUE_NAME: u32 = 11602u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUE_SENDBIDIQUERY: u32 = 11603u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERQUEUE_SENDBIDISETREQUESTASYNC: u32 = 11605u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG: u32 = 11500u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_GETBOOL: u32 = 11501u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_GETBYTES: u32 = 11507u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_GETINT32: u32 = 11503u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_GETREADSTREAM: u32 = 11509u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_GETSTREAMASXML: u32 = 11411u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_GETSTRING: u32 = 11505u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_GETWRITESTREAM: u32 = 11510u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_SETBOOL: u32 = 11502u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_SETBYTES: u32 = 11508u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_SETINT32: u32 = 11504u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLEPROPERTYBAG_SETSTRING: u32 = 11506u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLESEQUENTIALSTREAM: u32 = 11200u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLESEQUENTIALSTREAM_READ: u32 = 11201u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLESEQUENTIALSTREAM_WRITE: u32 = 11202u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLESTREAM: u32 = 11300u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLESTREAM_COMMIT: u32 = 11301u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLESTREAM_SEEK: u32 = 11302u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTABLESTREAM_SETSIZE: u32 = 11303u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTCONTEXT: u32 = 12300u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTCONTEXT_DRIVERPROPERTIES: u32 = 12301u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTCONTEXT_QUEUEPROPERTIES: u32 = 12302u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTERSCRIPTCONTEXT_USERPROPERTIES: u32 = 12303u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTJOBCOLLECTION: u32 = 12600u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTJOBCOLLECTION_COUNT: u32 = 12601u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTJOBCOLLECTION_GETAT: u32 = 12602u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_ASYNCOPERATION: u32 = 10900u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_ASYNCOPERATIONEVENT: u32 = 11100u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_ASYNCOPERATIONEVENT_COMPLETED: u32 = 11101u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_ASYNCOPERATION_CANCEL: u32 = 10902u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_ASYNCOPERATION_START: u32 = 10901u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_CAPABILITIES: u32 = 10800u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_CAPABILITIES_GETFEATURE: u32 = 10802u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_CAPABILITIES_GETFEATURE_KEYNAME: u32 = 10801u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_CAPABILITIES_GETOPTIONS: u32 = 10807u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_CAPABILITIES_GETPARAMETERDEFINITION: u32 = 10808u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_CAPABILITIES_GETSELECTEDOPTION: u32 = 10806u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_CAPABILITIES_JOBCOPIESMAXVALUE: u32 = 10805u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_CAPABILITIES_JOBCOPIESMINVALUE: u32 = 10804u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_CAPABILITIES_PAGEIMAGEABLESIZE: u32 = 10803u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_DISPLAYABLEELEMENT: u32 = 10100u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_DISPLAYABLEELEMENT_DISPLAYNAME: u32 = 10101u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_ELEMENT: u32 = 10000u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_ELEMENT_NAME: u32 = 10002u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_ELEMENT_NAMESPACEURI: u32 = 10003u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_ELEMENT_XMLNODE: u32 = 10001u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_FEATURE: u32 = 10600u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_FEATURE_DISPLAYUI: u32 = 10604u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_FEATURE_GETOPTION: u32 = 10603u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_FEATURE_SELECTEDOPTION: u32 = 10601u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_FEATURE_SELECTIONTYPE: u32 = 10602u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_NUPOPTION: u32 = 10400u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_NUPOPTION_PAGESPERSHEET: u32 = 10401u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_OPTION: u32 = 10200u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_OPTIONCOLLECTION: u32 = 10500u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_OPTIONCOLLECTION_COUNT: u32 = 10501u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_OPTIONCOLLECTION_GETAT: u32 = 10502u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_OPTION_CONSTRAINED: u32 = 10202u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_OPTION_GETPROPERTYVALUE: u32 = 10203u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_OPTION_SELECTED: u32 = 10201u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEIMAGEABLESIZE: u32 = 10700u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEIMAGEABLESIZE_EXTENT_HEIGHT: u32 = 10706u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEIMAGEABLESIZE_EXTENT_WIDTH: u32 = 10705u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEIMAGEABLESIZE_IMAGEABLE_HEIGHT: u32 = 10702u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEIMAGEABLESIZE_IMAGEABLE_WIDTH: u32 = 10701u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEIMAGEABLESIZE_ORIGIN_HEIGHT: u32 = 10704u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEIMAGEABLESIZE_ORIGIN_WIDTH: u32 = 10703u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEMEDIASIZEOPTION: u32 = 10300u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEMEDIASIZEOPTION_HEIGHT: u32 = 10302u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PAGEMEDIASIZEOPTION_WIDTH: u32 = 10301u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PARAMETERDEFINITION: u32 = 12500u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PARAMETERDEFINITION_DATATYPE: u32 = 12503u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PARAMETERDEFINITION_RANGEMAX: u32 = 12505u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PARAMETERDEFINITION_RANGEMIN: u32 = 12504u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PARAMETERDEFINITION_UNITTYPE: u32 = 12502u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PARAMETERDEFINITION_USERINPUTREQUIRED: u32 = 12501u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PARAMETERINITIALIZER: u32 = 12400u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_PARAMETERINITIALIZER_VALUE: u32 = 12401u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_TICKET: u32 = 11000u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_TICKET_COMMITASYNC: u32 = 11004u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_TICKET_GETCAPABILITIES: u32 = 11006u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_TICKET_GETFEATURE: u32 = 11002u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_TICKET_GETFEATURE_KEYNAME: u32 = 11001u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_TICKET_GETPARAMETERINITIALIZER: u32 = 11008u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_TICKET_JOBCOPIESALLDOCUMENTS: u32 = 11007u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_TICKET_NOTIFYXMLCHANGED: u32 = 11005u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DISPID_PRINTSCHEMA_TICKET_VALIDATEASYNC: u32 = 11003u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DI_CHANNEL: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DI_MEMORYMAP_WRITE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DI_READ_SPOOL_JOB: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_BOOKLET_EDGE: u32 = 21u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_COLOR: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_COPIES_COLLATE: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_DEFSOURCE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_DITHERTYPE: u32 = 13u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_DUPLEX: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_FIRST: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_FORMNAME: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_ICMINTENT: u32 = 11u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_ICMMETHOD: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_LAST: u32 = 21u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_MANUAL_DUPLEX: u32 = 19u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_MEDIATYPE: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_NONE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_NUP: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_NUP_DIRECTION: u32 = 18u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_OEM_GRAPHIC_ITEM: u32 = 98u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_OEM_PAPER_ITEM: u32 = 97u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_OEM_ROOT_ITEM: u32 = 99u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_ORIENTATION: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_OUTPUTBIN: u32 = 14u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_PAGEORDER: u32 = 17u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_PRINTQUALITY: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_QUALITY: u32 = 15u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_SCALE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_STAPLE: u32 = 20u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_TTOPTION: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DMPUB_USER: u32 = 100u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DM_ADVANCED: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DM_INVALIDATE_DRIVER_CACHE: u32 = 536870912u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DM_NOPERMISSION: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DM_PROMPT_NON_MODAL: u32 = 1073741824u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DM_RESERVED: u32 = 2147483648u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DM_USER_DEFAULT: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_ABORTDOC: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_CREATEDCPOST: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_CREATEDCPRE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_DELETEDC: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_ENDDOC: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_ENDDOCPOST: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_ENDDOCPRE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_ENDPAGE: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_ESCAPE: u32 = 11u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_FAILURE: i32 = -1i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_FIRST: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_LAST: u32 = 15u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_QUERYFILTER: u32 = 14u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_RESETDCPOST: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_RESETDCPRE: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_SPOOLED: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_STARTDOC: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_STARTDOCPOST: u32 = 13u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_STARTDOCPRE: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_STARTPAGE: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_SUCCESS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_UNSUPPORTED: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDDOCUMENTPOST: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDDOCUMENTPRE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDDOCUMENTPRINTTICKETPOST: u32 = 11u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDDOCUMENTPRINTTICKETPRE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDDOCUMENTSEQUENCEPOST: u32 = 13u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDDOCUMENTSEQUENCEPRE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDDOCUMENTSEQUENCEPRINTTICKETPOST: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDDOCUMENTSEQUENCEPRINTTICKETPRE: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDPAGEEPRE: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDPAGEPOST: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDPAGEPRINTTICKETPOST: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_ADDFIXEDPAGEPRINTTICKETPRE: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOCUMENTEVENT_XPS_CANCELJOB: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DOC_INFO_INTERNAL_LEVEL: u32 = 100u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DPD_DELETE_ALL_FILES: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DPD_DELETE_SPECIFIC_VERSION: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DPD_DELETE_UNUSED_FILES: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DPF_ICONID_AS_HICON: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DPF_USE_HDLGTEMPLATE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DPS_NOPERMISSION: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DP_STD_DOCPROPPAGE1: u32 = 65533u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DP_STD_DOCPROPPAGE2: u32 = 65534u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DP_STD_RESERVED_START: u32 = 65520u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DP_STD_TREEVIEWPAGE: u32 = 65535u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DRIVER_EVENT_DELETE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DRIVER_EVENT_INITIALIZE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DRIVER_KERNELMODE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DRIVER_USERMODE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DSPRINT_PENDING: u32 = 2147483648u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DSPRINT_PUBLISH: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DSPRINT_REPUBLISH: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DSPRINT_UNPUBLISH: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const DSPRINT_UPDATE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ECBF_CHECKNAME_AT_FRONT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ECBF_CHECKNAME_ONLY: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ECBF_CHECKNAME_ONLY_ENABLED: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ECBF_ICONID_AS_HICON: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ECBF_MASK: u32 = 255u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ECBF_OVERLAY_ECBICON_IF_CHECKED: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ECBF_OVERLAY_NO_ICON: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ECBF_OVERLAY_STOP_ICON: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ECBF_OVERLAY_WARNING_ICON: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EMF_PP_COLOR_OPTIMIZATION: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EPF_ICONID_AS_HICON: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EPF_INCL_SETUP_TITLE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EPF_MASK: u32 = 255u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EPF_NO_DOT_DOT_DOT: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EPF_OVERLAY_NO_ICON: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EPF_OVERLAY_STOP_ICON: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EPF_OVERLAY_WARNING_ICON: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EPF_PUSH_TYPE_DLGPROC: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const EPF_USE_HDLGTEMPLATE: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_DEVICE_CONFIG_UNCHANGED: u32 = 13014u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_DEVICE_OFFLINE: u32 = 13004u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_ERROR_BASE: u32 = 13000u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_GET_ARGUMENT_NOT_SUPPORTED: u32 = 13012u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_GET_MISSING_ARGUMENT: u32 = 13013u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_GET_REQUIRES_ARGUMENT: u32 = 13011u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_NO_BIDI_SCHEMA_EXTENSIONS: u32 = 13016u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_NO_LOCALIZED_RESOURCES: u32 = 13015u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_SCHEMA_NOT_SUPPORTED: u32 = 13005u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_SCHEMA_READ_ONLY: u32 = 13002u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_SCHEMA_WRITE_ONLY: u32 = 13010u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_SERVER_OFFLINE: u32 = 13003u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_SET_DIFFERENT_TYPE: u32 = 13006u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_SET_INVALID_SCHEMAPATH: u32 = 13008u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_SET_MULTIPLE_SCHEMAPATH: u32 = 13007u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_SET_UNKNOWN_FAILURE: u32 = 13009u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_STATUS_OK: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_STATUS_WARNING: u32 = 13001u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_UNSUPPORTED_CLIENT_LANGUAGE: u32 = 13017u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERROR_BIDI_UNSUPPORTED_RESOURCE_FORMAT: u32 = 13018u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_ALLOCMEM_FAILED: i32 = -2i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_CREATEPROPPAGE_FAILED: i32 = -10i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_CREATE_IMAGELIST_FAILED: i32 = -33i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_CREATE_TRACKBAR_FAILED: i32 = -31i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_CREATE_UDARROW_FAILED: i32 = -32i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_DMCOPIES_USE_EXTPUSH: i32 = -43i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_FUNCTION_NOT_IMPLEMENTED: i32 = -9999i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_GETLASTERROR: i32 = -1i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INTERNAL_ERROR: i32 = -10000i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_DLGPAGEIDX: i32 = -16i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_DLGPAGE_CBSIZE: i32 = -14i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_DMPUBID: i32 = -29i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_DMPUB_TVOT: i32 = -30i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_ECB_CBSIZE: i32 = -26i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_EDITBOX_BUF_SIZE: i32 = -25i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_EDITBOX_PSEL: i32 = -24i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_EXTPUSH_CBSIZE: i32 = -39i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_LBCB_TYPE: i32 = -35i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_LPARAM: i32 = -4i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_OPTITEM_CBSIZE: i32 = -19i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_OPTPARAM_CBSIZE: i32 = -23i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_OPTTYPE_CBSIZE: i32 = -20i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_OPTTYPE_COUNT: i32 = -21i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_PDATA: i32 = -3i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_PDLGPAGE: i32 = -13i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_PUSHBUTTON_TYPE: i32 = -38i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_INVALID_TVOT_TYPE: i32 = -34i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_MORE_THAN_ONE_STDPAGE: i32 = -12i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_MORE_THAN_ONE_TVPAGE: i32 = -11i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NO_EXTPUSH_DLGTEMPLATEID: i32 = -41i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NO_PROPSHEETPAGE: i32 = -8i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NULL_CALLERNAME: i32 = -6i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NULL_ECB_PCHECKEDNAME: i32 = -28i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NULL_ECB_PTITLE: i32 = -27i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NULL_EXTPUSH_CALLBACK: i32 = -42i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NULL_EXTPUSH_DLGPROC: i32 = -40i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NULL_HINST: i32 = -5i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NULL_OPTITEMNAME: i32 = -7i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NULL_POPTITEM: i32 = -18i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_NULL_POPTPARAM: i32 = -22i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_SUBITEM_DIFF_DLGPAGEIDX: i32 = -17i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_SUBITEM_DIFF_OPTIF_HIDE: i32 = -36i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_TOO_MANY_DLGPAGES: i32 = -15i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_TOO_MANY_PROPSHEETPAGES: i32 = -9i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ERR_CPSUI_ZERO_OPTITEM: i32 = -44i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const E_VERSION_NOT_SUPPORTED: u32 = 2147745793u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FG_CANCHANGE: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FILL_WITH_DEFAULTS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FMTID_PrinterPropertyBag: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x75f9adca_097d_45c3_a6e4_bab29e276f3e);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_CURRENTFONTID: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_FONTBOLD: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_FONTHEIGHT: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_FONTITALIC: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_FONTMAXWIDTH: u32 = 13u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_FONTSTRIKETHRU: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_FONTUNDERLINE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_FONTWIDTH: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_GRAYPERCENTAGE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_MAX: u32 = 14u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_NEXTFONTID: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_NEXTGLYPH: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_PRINTDIRINCCDEGREES: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_TEXTXRES: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FNT_INFO_TEXTYRES: u32 = 11u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FONT_DIR_SORTED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FONT_FL_DEVICEFONT: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FONT_FL_GLYPHSET_GTT: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FONT_FL_GLYPHSET_RLE: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FONT_FL_IFI: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FONT_FL_PERMANENT_SF: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FONT_FL_RESERVED: u32 = 32768u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FONT_FL_SOFTFONT: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FONT_FL_UFM: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FORM_BUILTIN: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FORM_PRINTER: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FORM_USER: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const FinalPageCount: PageCountType = PageCountType(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Font_Normal: EXpsFontOptions = EXpsFontOptions(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Font_Obfusticate: EXpsFontOptions = EXpsFontOptions(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const GPD_OEMCUSTOMDATA: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const GUID_DEVINTERFACE_IPPUSB_PRINT: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf2f40381_f46d_4e51_bce7_62de6cf2d098);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const GUID_DEVINTERFACE_USBPRINT: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x28d78fad_5a12_11d1_ae5b_0000f803a8c2);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ADVANCE: u32 = 64058u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_AUTOSEL: u32 = 64025u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_COLLATE: u32 = 64030u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_COLOR: u32 = 64040u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_COPY: u32 = 64046u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DEVICE: u32 = 64060u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DEVICE2: u32 = 64061u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DEVICE_FEATURE: u32 = 64080u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DITHER_COARSE: u32 = 64042u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DITHER_FINE: u32 = 64043u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DITHER_LINEART: u32 = 64044u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DITHER_NONE: u32 = 64041u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DOCUMENT: u32 = 64059u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DUPLEX_HORZ: u32 = 64032u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DUPLEX_HORZ_L: u32 = 64085u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DUPLEX_NONE: u32 = 64031u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DUPLEX_NONE_L: u32 = 64084u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DUPLEX_VERT: u32 = 64033u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_DUPLEX_VERT_L: u32 = 64086u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_EMPTY: u32 = 64000u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ENVELOPE: u32 = 64010u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ENVELOPE_FEED: u32 = 64097u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ERROR: u32 = 64050u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_FALSE: u32 = 64005u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_FAX: u32 = 64095u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_FONTCART: u32 = 64013u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_FONTCARTHDR: u32 = 64012u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_FONTCART_SLOT: u32 = 64098u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_FONTSUB: u32 = 64081u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_FORMTRAYASSIGN: u32 = 64076u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_GENERIC_ITEM: u32 = 64073u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_GENERIC_OPTION: u32 = 64072u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_GRAPHIC: u32 = 64057u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_HALFTONE_SETUP: u32 = 64048u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_HTCLRADJ: u32 = 64047u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_HT_DEVICE: u32 = 64017u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_HT_HOST: u32 = 64016u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ICM_INTENT: u32 = 64053u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ICM_METHOD: u32 = 64052u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ICM_OPTION: u32 = 64051u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ICONID_FIRST: u32 = 64000u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ICONID_LAST: u32 = 64111u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_INSTALLABLE_OPTION: u32 = 64078u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LANDSCAPE: u32 = 64023u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LAYOUT_BMP_ARROWL: u32 = 64100u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LAYOUT_BMP_ARROWLR: u32 = 64104u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LAYOUT_BMP_ARROWS: u32 = 64101u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LAYOUT_BMP_BOOKLETL: u32 = 64102u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LAYOUT_BMP_BOOKLETL_NB: u32 = 64106u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LAYOUT_BMP_BOOKLETP: u32 = 64103u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LAYOUT_BMP_BOOKLETP_NB: u32 = 64107u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LAYOUT_BMP_PORTRAIT: u32 = 64099u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LAYOUT_BMP_ROT_PORT: u32 = 64105u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LF_PEN_PLOTTER: u32 = 64087u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_LF_RASTER_PLOTTER: u32 = 64089u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_MANUAL_FEED: u32 = 64094u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_MEM: u32 = 64011u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_MONO: u32 = 64039u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_NO: u32 = 64003u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_NOTINSTALLED: u32 = 64069u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_NUP_BORDER: u32 = 64111u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_OFF: u32 = 64007u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ON: u32 = 64008u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_OPTION: u32 = 64066u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_OPTION2: u32 = 64067u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_OUTBIN: u32 = 64055u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_OUTPUT: u32 = 64056u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PAGE_PROTECT: u32 = 64096u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PAPER_OUTPUT: u32 = 64009u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PAPER_TRAY: u32 = 64026u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PAPER_TRAY2: u32 = 64027u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PAPER_TRAY3: u32 = 64028u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PEN_CARROUSEL: u32 = 64092u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PLOTTER_PEN: u32 = 64093u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PORTRAIT: u32 = 64022u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_POSTSCRIPT: u32 = 64082u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PRINTER: u32 = 64062u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PRINTER2: u32 = 64063u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PRINTER3: u32 = 64064u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PRINTER4: u32 = 64065u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PRINTER_FEATURE: u32 = 64079u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_PRINTER_FOLDER: u32 = 64077u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_QUESTION: u32 = 64075u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_RES_DRAFT: u32 = 64034u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_RES_HIGH: u32 = 64037u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_RES_LOW: u32 = 64035u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_RES_MEDIUM: u32 = 64036u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_RES_PRESENTATION: u32 = 64038u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ROLL_PAPER: u32 = 64091u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ROT_LAND: u32 = 64024u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_ROT_PORT: u32 = 64110u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_RUN_DIALOG: u32 = 64074u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_SCALING: u32 = 64045u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_SEL_NONE: u32 = 64001u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_SF_PEN_PLOTTER: u32 = 64088u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_SF_RASTER_PLOTTER: u32 = 64090u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_STAPLER_OFF: u32 = 64015u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_STAPLER_ON: u32 = 64014u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_STD_FORM: u32 = 64054u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_STOP: u32 = 64068u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_STOP_WARNING_OVERLAY: u32 = 64071u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_TELEPHONE: u32 = 64083u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_TRANSPARENT: u32 = 64029u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_TRUE: u32 = 64006u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_TT_DOWNLOADSOFT: u32 = 64019u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_TT_DOWNLOADVECT: u32 = 64020u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_TT_PRINTASGRAPHIC: u32 = 64018u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_TT_SUBDEV: u32 = 64021u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_WARNING: u32 = 64002u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_WARNING_OVERLAY: u32 = 64070u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_WATERMARK: u32 = 64049u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDI_CPSUI_YES: u32 = 64004u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ABOUT: u32 = 64848u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ADVANCED: u32 = 64722u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ADVANCEDOCUMENT: u32 = 64716u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ALL: u32 = 64841u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_AUTOSELECT: u32 = 64718u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_BACKTOFRONT: u32 = 64857u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_BOND: u32 = 64786u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_BOOKLET: u32 = 64873u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_BOOKLET_EDGE: u32 = 64888u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_BOOKLET_EDGE_LEFT: u32 = 64889u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_BOOKLET_EDGE_RIGHT: u32 = 64890u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_CASSETTE_TRAY: u32 = 64810u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_CHANGE: u32 = 64702u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_CHANGED: u32 = 64846u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_CHANGES: u32 = 64845u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_COARSE: u32 = 64787u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_COLLATE: u32 = 64756u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_COLLATED: u32 = 64757u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_COLON_SEP: u32 = 64707u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_COLOR: u32 = 64764u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_COLOR_APPERANCE: u32 = 64744u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_COPIES: u32 = 64831u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_COPY: u32 = 64830u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DEFAULT: u32 = 64732u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DEFAULTDOCUMENT: u32 = 64714u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DEFAULT_TRAY: u32 = 64811u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DEVICE: u32 = 64842u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DEVICEOPTIONS: u32 = 64725u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DEVICE_SETTINGS: u32 = 64852u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DITHERING: u32 = 64752u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DOCUMENT: u32 = 64715u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DOWN_THEN_LEFT: u32 = 64882u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DOWN_THEN_RIGHT: u32 = 64880u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DRAFT: u32 = 64759u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_DUPLEX: u32 = 64745u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ENVELOPE_TRAY: u32 = 64804u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ENVMANUAL_TRAY: u32 = 64805u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ERRDIFFUSE: u32 = 64790u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ERROR: u32 = 64733u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_EXIST: u32 = 64736u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_FALSE: u32 = 64726u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_FAST: u32 = 64838u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_FAX: u32 = 64835u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_FINE: u32 = 64788u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_FORMNAME: u32 = 64747u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_FORMSOURCE: u32 = 64812u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_FORMTRAYASSIGN: u32 = 64798u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_FRONTTOBACK: u32 = 64856u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_GLOSSY: u32 = 64783u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_GRAPHIC: u32 = 64720u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_GRAYSCALE: u32 = 64765u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_HALFTONE: u32 = 64791u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_HALFTONE_SETUP: u32 = 64817u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_HIGH: u32 = 64762u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_HORIZONTAL: u32 = 64768u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_HTCLRADJ: u32 = 64792u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ICM: u32 = 64748u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ICMINTENT: u32 = 64750u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ICMMETHOD: u32 = 64749u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ICM_BLACKWHITE: u32 = 64776u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ICM_COLORMETRIC: u32 = 64781u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ICM_CONTRAST: u32 = 64780u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ICM_NO: u32 = 64777u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ICM_SATURATION: u32 = 64779u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ICM_YES: u32 = 64778u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_INSTFONTCART: u32 = 64818u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LANDSCAPE: u32 = 64754u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LARGECAP_TRAY: u32 = 64809u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LARGEFMT_TRAY: u32 = 64808u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LBCB_NOSEL: u32 = 64712u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LEFT_ANGLE: u32 = 64708u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LEFT_SLOT: u32 = 64823u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LEFT_THEN_DOWN: u32 = 64881u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LINEART: u32 = 64789u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LONG_SIDE: u32 = 64770u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LOW: u32 = 64760u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_LOWER_TRAY: u32 = 64801u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MAILBOX: u32 = 64829u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MAKE: u32 = 64833u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MANUALFEED: u32 = 64813u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MANUAL_DUPLEX: u32 = 64883u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MANUAL_DUPLEX_OFF: u32 = 64885u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MANUAL_DUPLEX_ON: u32 = 64884u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MANUAL_TRAY: u32 = 64803u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MEDIA: u32 = 64751u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MEDIUM: u32 = 64761u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MIDDLE_TRAY: u32 = 64802u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MONOCHROME: u32 = 64766u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_MORE: u32 = 64701u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NO: u32 = 64728u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NONE: u32 = 64734u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NOT: u32 = 64735u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NOTINSTALLED: u32 = 64737u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NO_NAME: u32 = 64850u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUM_OF_COPIES: u32 = 64740u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP: u32 = 64864u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP_BORDER: u32 = 64891u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP_BORDERED: u32 = 64892u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP_DIRECTION: u32 = 64878u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP_FOURUP: u32 = 64867u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP_NINEUP: u32 = 64869u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP_NORMAL: u32 = 64865u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP_SIXTEENUP: u32 = 64870u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP_SIXUP: u32 = 64868u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_NUP_TWOUP: u32 = 64866u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_OF: u32 = 64704u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_OFF: u32 = 64730u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ON: u32 = 64731u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ONLYONE: u32 = 64800u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_OPTION: u32 = 64703u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_OPTIONS: u32 = 64721u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ORIENTATION: u32 = 64738u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_OUTBINASSIGN: u32 = 64796u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_OUTPUTBIN: u32 = 64863u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PAGEORDER: u32 = 64855u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PAGEPROTECT: u32 = 64816u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PAPER_OUTPUT: u32 = 64719u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PERCENT: u32 = 64711u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PLOT: u32 = 64836u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PORTRAIT: u32 = 64753u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_POSTER: u32 = 64874u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_POSTER_2x2: u32 = 64875u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_POSTER_3x3: u32 = 64876u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_POSTER_4x4: u32 = 64877u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PRESENTATION: u32 = 64763u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PRINT: u32 = 64834u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PRINTER: u32 = 64717u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PRINTERMEM_KB: u32 = 64814u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PRINTERMEM_MB: u32 = 64815u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PRINTFLDSETTING: u32 = 64758u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PRINTQUALITY: u32 = 64742u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_PROPERTIES: u32 = 64713u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_QUALITY_BEST: u32 = 64861u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_QUALITY_BETTER: u32 = 64860u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_QUALITY_CUSTOM: u32 = 64862u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_QUALITY_DRAFT: u32 = 64859u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_QUALITY_SETTINGS: u32 = 64858u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_RANGE_FROM: u32 = 64705u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_REGULAR: u32 = 64785u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_RESET: u32 = 64840u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_RESOLUTION: u32 = 64743u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_REVERT: u32 = 64844u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_RIGHT_ANGLE: u32 = 64709u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_RIGHT_SLOT: u32 = 64824u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_RIGHT_THEN_DOWN: u32 = 64879u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ROTATED: u32 = 64839u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ROT_LAND: u32 = 64755u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_ROT_PORT: u32 = 64886u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SCALING: u32 = 64739u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SETTING: u32 = 64851u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SETTINGS: u32 = 64843u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SETUP: u32 = 64700u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SHORT_SIDE: u32 = 64771u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SIDE1: u32 = 64871u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SIDE2: u32 = 64872u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SIMPLEX: u32 = 64767u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SLASH_SEP: u32 = 64710u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SLOT1: u32 = 64819u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SLOT2: u32 = 64820u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SLOT3: u32 = 64821u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SLOT4: u32 = 64822u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SLOW: u32 = 64837u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SMALLFMT_TRAY: u32 = 64807u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_SOURCE: u32 = 64741u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STACKER: u32 = 64828u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STANDARD: u32 = 64782u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STAPLE: u32 = 64887u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STAPLER: u32 = 64825u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STAPLER_OFF: u32 = 64827u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STAPLER_ON: u32 = 64826u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STDDOCPROPTAB: u32 = 64723u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STDDOCPROPTAB1: u32 = 64853u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STDDOCPROPTAB2: u32 = 64854u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STDDOCPROPTVTAB: u32 = 64724u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STRID_FIRST: u32 = 64700u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_STRID_LAST: u32 = 64892u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TO: u32 = 64706u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TOTAL: u32 = 64832u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TRACTOR_TRAY: u32 = 64806u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TRANSPARENCY: u32 = 64784u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TRUE: u32 = 64727u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TTOPTION: u32 = 64746u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TT_DOWNLOADSOFT: u32 = 64773u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TT_DOWNLOADVECT: u32 = 64774u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TT_PRINTASGRAPHIC: u32 = 64772u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_TT_SUBDEV: u32 = 64775u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_UPPER_TRAY: u32 = 64799u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_USE_DEVICE_HT: u32 = 64794u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_USE_HOST_HT: u32 = 64793u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_USE_PRINTER_HT: u32 = 64795u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_VERSION: u32 = 64849u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_VERTICAL: u32 = 64769u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_WARNING: u32 = 64847u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_WATERMARK: u32 = 64797u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IDS_CPSUI_YES: u32 = 64729u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const INSPSUIPAGE_MODE_AFTER: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const INSPSUIPAGE_MODE_BEFORE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const INSPSUIPAGE_MODE_FIRST_CHILD: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const INSPSUIPAGE_MODE_INDEX: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const INSPSUIPAGE_MODE_LAST_CHILD: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const INTERNAL_NOTIFICATION_QUEUE_IS_FULL: PrintAsyncNotifyError = PrintAsyncNotifyError(19i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const INVALID_NOTIFICATION_TYPE: PrintAsyncNotifyError = PrintAsyncNotifyError(20i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_ADD_CHILD_DEVICE: u32 = 2228316u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_ADD_MSIPP_COMPAT_ID: u32 = 2228308u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_CYCLE_PORT: u32 = 2228320u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_GET_1284_ID: u32 = 2228276u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_GET_INTERFACE_TYPE: u32 = 2228300u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_GET_LPT_STATUS: u32 = 2228272u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_GET_PROTOCOL: u32 = 2228292u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_SET_DEVICE_ID: u32 = 2228312u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_SET_PORT_NUMBER: u32 = 2228304u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_SET_PROTOCOL: u32 = 2228296u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_SOFT_RESET: u32 = 2228288u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_VENDOR_GET_COMMAND: u32 = 2228284u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IOCTL_USBPRINT_VENDOR_SET_COMMAND: u32 = 2228280u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IPDFP_COPY_ALL_FILES: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const IntermediatePageCount: PageCountType = PageCountType(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_ACCESS_ADMINISTER: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_ACCESS_READ: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_CANCEL: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_DELETE: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_LAST_PAGE_EJECTED: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_PAUSE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_RELEASE: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_RESTART: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_RESUME: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_RETAIN: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_SEND_TOAST: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_CONTROL_SENT_TO_PRINTER: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_BYTES_PRINTED: u32 = 23u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_DATATYPE: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_DEVMODE: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_DOCUMENT: u32 = 13u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_DRIVER_NAME: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_MACHINE_NAME: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_NOTIFY_NAME: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_PAGES_PRINTED: u32 = 21u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_PARAMETERS: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_PORT_NAME: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_POSITION: u32 = 15u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_PRINTER_NAME: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_PRINT_PROCESSOR: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_PRIORITY: u32 = 14u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_REMOTE_JOB_ID: u32 = 24u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_SECURITY_DESCRIPTOR: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_START_TIME: u32 = 17u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_STATUS: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_STATUS_STRING: u32 = 11u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_SUBMITTED: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_TIME: u32 = 19u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_TOTAL_BYTES: u32 = 22u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_TOTAL_PAGES: u32 = 20u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_UNTIL_TIME: u32 = 18u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_FIELD_USER_NAME: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_NOTIFY_TYPE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_POSITION_UNSPECIFIED: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_BLOCKED_DEVQ: u32 = 512u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_COMPLETE: u32 = 4096u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_DELETED: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_DELETING: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_ERROR: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_OFFLINE: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_PAPEROUT: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_PAUSED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_PRINTED: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_PRINTING: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_RENDERING_LOCALLY: u32 = 16384u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_RESTART: u32 = 2048u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_RETAINED: u32 = 8192u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_SPOOLING: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const JOB_STATUS_USER_INTERVENTION: u32 = 1024u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const LOCAL_ONLY_REGISTRATION: PrintAsyncNotifyError = PrintAsyncNotifyError(23i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const LPR: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_ADDRESS_STR_LEN: u32 = 13u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_CHANNEL_COUNT_EXCEEDED: PrintAsyncNotifyError = PrintAsyncNotifyError(22i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_CPSFUNC_INDEX: u32 = 26u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_DEVICEDESCRIPTION_STR_LEN: u32 = 257u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_DLGPAGE_COUNT: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_FORM_KEYWORD_LENGTH: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_IPADDR_STR_LEN: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_NETWORKNAME2_LEN: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_NETWORKNAME_LEN: u32 = 49u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_NOTIFICATION_SIZE_EXCEEDED: PrintAsyncNotifyError = PrintAsyncNotifyError(18i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_PORTNAME_LEN: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_PRIORITY: u32 = 99u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_PROPSHEETUI_REASON_INDEX: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_PSUIPAGEINSERT_INDEX: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_QUEUENAME_LEN: u32 = 33u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_REGISTRATION_COUNT_EXCEEDED: PrintAsyncNotifyError = PrintAsyncNotifyError(21i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_RES_STR_CHARS: u32 = 160u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MAX_SNMP_COMMUNITY_STR_LEN: u32 = 33u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MIN_PRIORITY: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MS_PRINT_JOB_OUTPUT_FILE: ::windows_core::PCWSTR = ::windows_core::w!("MsPrintJobOutputFile");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_ADD: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_COMPOSE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_DIRECT: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_DISABLE: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_DOUBLE: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_DOUBLEBYTECHAR_MASK: u32 = 24u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_FORMAT_MASK: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_PAIRED: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_PREDEFIN_MASK: u32 = 224u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_REPLACE: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MTYPE_SINGLE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MV_GRAPHICS: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MV_PHYSICAL: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MV_RELATIVE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MV_SENDXMOVECMD: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MV_SENDYMOVECMD: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MV_UPDATE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDCOP_GET_FILENAME: u32 = 14u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDCOP_PRINTTICKET_FIXED_DOC: u32 = 24u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDCOP_PRINTTICKET_FIXED_DOC_SEQ: u32 = 22u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDCOP_PRINTTICKET_FIXED_PAGE: u32 = 26u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDCOP_SET_S0PAGE: u32 = 28u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDCOP_SET_S0PAGE_RESOURCE: u32 = 30u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDCOP_SET_XPSPASSTHRU_MODE: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_ESCAPE: u32 = 4122u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_IMAGETYPE_JPEGHIGH_COMPRESSION: MXDC_IMAGE_TYPE_ENUMS = MXDC_IMAGE_TYPE_ENUMS(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_IMAGETYPE_JPEGLOW_COMPRESSION: MXDC_IMAGE_TYPE_ENUMS = MXDC_IMAGE_TYPE_ENUMS(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_IMAGETYPE_JPEGMEDIUM_COMPRESSION: MXDC_IMAGE_TYPE_ENUMS = MXDC_IMAGE_TYPE_ENUMS(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_IMAGETYPE_PNG: MXDC_IMAGE_TYPE_ENUMS = MXDC_IMAGE_TYPE_ENUMS(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_LANDSCAPE_ROTATE_COUNTERCLOCKWISE_270_DEGREES: MXDC_LANDSCAPE_ROTATION_ENUMS = MXDC_LANDSCAPE_ROTATION_ENUMS(-90i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_LANDSCAPE_ROTATE_COUNTERCLOCKWISE_90_DEGREES: MXDC_LANDSCAPE_ROTATION_ENUMS = MXDC_LANDSCAPE_ROTATION_ENUMS(90i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_LANDSCAPE_ROTATE_NONE: MXDC_LANDSCAPE_ROTATION_ENUMS = MXDC_LANDSCAPE_ROTATION_ENUMS(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_DICTIONARY: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(5i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_ICC_PROFILE: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(6i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_JPEG: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_JPEG_THUMBNAIL: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(7i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_MAX: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(9i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_PNG: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_PNG_THUMBNAIL: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(8i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_TIFF: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_TTF: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const MXDC_RESOURCE_WDP: MXDC_S0_PAGE_ENUMS = MXDC_S0_PAGE_ENUMS(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NORMAL_PRINT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NOTIFICATION_COMMAND_CONTEXT_ACQUIRE: NOTIFICATION_CALLBACK_COMMANDS = NOTIFICATION_CALLBACK_COMMANDS(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NOTIFICATION_COMMAND_CONTEXT_RELEASE: NOTIFICATION_CALLBACK_COMMANDS = NOTIFICATION_CALLBACK_COMMANDS(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NOTIFICATION_COMMAND_NOTIFY: NOTIFICATION_CALLBACK_COMMANDS = NOTIFICATION_CALLBACK_COMMANDS(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NOTIFICATION_CONFIG_ASYNC_CHANNEL: NOTIFICATION_CONFIG_FLAGS = NOTIFICATION_CONFIG_FLAGS(8i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NOTIFICATION_CONFIG_CREATE_EVENT: NOTIFICATION_CONFIG_FLAGS = NOTIFICATION_CONFIG_FLAGS(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NOTIFICATION_CONFIG_EVENT_TRIGGER: NOTIFICATION_CONFIG_FLAGS = NOTIFICATION_CONFIG_FLAGS(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NOTIFICATION_CONFIG_REGISTER_CALLBACK: NOTIFICATION_CONFIG_FLAGS = NOTIFICATION_CONFIG_FLAGS(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NOTIFICATION_RELEASE: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xba9a5027_a70e_4ae7_9b7d_eb3e06ad4157);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NOT_REGISTERED: PrintAsyncNotifyError = PrintAsyncNotifyError(13i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NO_BORDER_PRINT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NO_COLOR_OPTIMIZATION: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NO_LISTENERS: PrintAsyncNotifyError = PrintAsyncNotifyError(7i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const NO_PRIORITY: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMCUIP_DOCPROP: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMCUIP_PRNPROP: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMDM_CONVERT: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMDM_DEFAULT: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMDM_MERGE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMDM_SIZE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_FREEMEM: u32 = 32769u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_JOBTIMEOUT: u32 = 32770u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_MAX: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_MAXBITMAP: u32 = 32774u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_MINOUTLINE: u32 = 32773u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_MIN_DOCSTICKY: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_MIN_PRINTERSTICKY: u32 = 32768u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_PRINTFLAGS: u32 = 32768u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_PROTOCOL: u32 = 32772u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_PSDM_CUSTOMSIZE: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_PSDM_DIALECT: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_PSDM_FLAGS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_PSDM_NUP: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_PSDM_PSLEVEL: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_PSDM_TTDLFMT: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_UNIDM_FLAGS: u32 = 16385u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_UNIDM_GPDVER: u32 = 16384u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGDS_WAITTIMEOUT: u32 = 32771u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGI_GETINTERFACEVERSION: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGI_GETPUBLISHERINFO: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGI_GETREQUESTEDHELPERINTERFACES: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGI_GETSIGNATURE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMGI_GETVERSION: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMPUBLISH_DEFAULT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMPUBLISH_IPRINTCOREHELPER: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMTTY_INFO_CODEPAGE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMTTY_INFO_MARGINS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMTTY_INFO_NUM_UFMS: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEMTTY_INFO_UFM_IDS: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OEM_MODE_PUBLISHER: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OIEXTF_ANSI_STRING: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTCF_HIDE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTCF_MASK: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_CALLBACK: i32 = 4i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_CHANGED: i32 = 8i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_CHANGEONCE: i32 = 16i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_COLLAPSE: i32 = 1i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_DISABLED: i32 = 32i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_ECB_CHECKED: i32 = 64i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_EXT_DISABLED: i32 = 256i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_EXT_HIDE: i32 = 128i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_EXT_IS_EXTPUSH: i32 = 1024i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_HAS_POIEXT: i32 = 65536i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_HIDE: i32 = 2i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_INITIAL_TVITEM: i32 = 32768i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_MASK: i32 = 131071i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_NO_GROUPBOX_NAME: i32 = 2048i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_OVERLAY_NO_ICON: i32 = 16384i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_OVERLAY_STOP_ICON: i32 = 8192i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_OVERLAY_WARNING_ICON: i32 = 4096i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTIF_SEL_AS_HICON: i32 = 512i32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTPF_DISABLED: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTPF_HIDE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTPF_ICONID_AS_HICON: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTPF_MASK: u32 = 127u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTPF_OVERLAY_NO_ICON: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTPF_OVERLAY_STOP_ICON: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTPF_OVERLAY_WARNING_ICON: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTPF_USE_HDLGTEMPLATE: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTTF_MASK: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTTF_NOSPACE_BEFORE_POSTFIX: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OPTTF_TYPE_DISABLED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OTS_LBCB_INCL_ITEM_NONE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OTS_LBCB_NO_ICON16_IN_ITEM: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OTS_LBCB_PROPPAGE_CBUSELB: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OTS_LBCB_PROPPAGE_LBUSECB: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OTS_LBCB_SORT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OTS_MASK: u32 = 255u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OTS_PUSH_ENABLE_ALWAYS: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OTS_PUSH_INCL_SETUP_TITLE: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const OTS_PUSH_NO_DOT_DOT_DOT: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PDEV_ADJUST_PAPER_MARGIN_TYPE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PDEV_HOSTFONT_ENABLED_TYPE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PDEV_USE_TRUE_COLOR_TYPE: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_DOOR_OPEN: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_NO_TONER: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_OFFLINE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_OUTPUT_BIN_FULL: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_OUT_OF_MEMORY: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_PAPER_JAM: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_PAPER_OUT: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_PAPER_PROBLEM: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_POWER_SAVE: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_TONER_LOW: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_TYPE_ERROR: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_TYPE_INFO: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_TYPE_WARNING: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_USER_INTERVENTION: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_STATUS_WARMING_UP: u32 = 11u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_TYPE_NET_ATTACHED: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_TYPE_READ: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_TYPE_REDIRECTED: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PORT_TYPE_WRITE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PPCAPS_BOOKLET_EDGE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PPCAPS_BORDER_PRINT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PPCAPS_REVERSE_PAGES_FOR_REVERSE_DUPLEX: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PPCAPS_RIGHT_THEN_DOWN: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PPCAPS_SQUARE_SCALING: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ACCESS_ADMINISTER: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(4u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ACCESS_MANAGE_LIMITED: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(64u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ACCESS_USE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(8u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ALL_ACCESS: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(983052u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_DEFAULT: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_DIRECT: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_DO_COMPLETE_FIRST: u32 = 512u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_ENABLE_BIDI: u32 = 2048u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_ENABLE_DEVQ: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_ENTERPRISE_CLOUD: u32 = 8388608u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_FAX: u32 = 16384u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_FRIENDLY_NAME: u32 = 1048576u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_HIDDEN: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_KEEPPRINTEDJOBS: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_LOCAL: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_MACHINE: u32 = 524288u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_NETWORK: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_PER_USER: u32 = 4194304u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_PUBLISHED: u32 = 8192u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_PUSHED_MACHINE: u32 = 262144u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_PUSHED_USER: u32 = 131072u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_QUEUED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_RAW_ONLY: u32 = 4096u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_SHARED: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_TS: u32 = 32768u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_TS_GENERIC_DRIVER: u32 = 2097152u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ATTRIBUTE_WORK_OFFLINE: u32 = 1024u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_ADD_FORM: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_ADD_JOB: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_ADD_PORT: u32 = 1048576u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_ADD_PRINTER: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_ADD_PRINTER_DRIVER: u32 = 268435456u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_ADD_PRINT_PROCESSOR: u32 = 16777216u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_ALL: u32 = 2138570751u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_CONFIGURE_PORT: u32 = 2097152u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_DELETE_FORM: u32 = 262144u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_DELETE_JOB: u32 = 1024u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_DELETE_PORT: u32 = 4194304u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_DELETE_PRINTER: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_DELETE_PRINTER_DRIVER: u32 = 1073741824u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_DELETE_PRINT_PROCESSOR: u32 = 67108864u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_FAILED_CONNECTION_PRINTER: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_FORM: u32 = 458752u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_JOB: u32 = 65280u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_PORT: u32 = 7340032u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_PRINTER: u32 = 255u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_PRINTER_DRIVER: u32 = 1879048192u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_PRINT_PROCESSOR: u32 = 117440512u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_SERVER: u32 = 134217728u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_SET_FORM: u32 = 131072u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_SET_JOB: u32 = 512u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_SET_PRINTER: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_SET_PRINTER_DRIVER: u32 = 536870912u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_TIMEOUT: u32 = 2147483648u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CHANGE_WRITE_JOB: u32 = 2048u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CONNECTION_MISMATCH: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CONNECTION_NO_UI: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CONTROL_PAUSE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CONTROL_PURGE: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CONTROL_RESUME: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_CONTROL_SET_STATUS: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DELETE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(65536u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_CATEGORY_3D: u32 = 4096u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_CATEGORY_CLOUD: u32 = 8192u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_CATEGORY_FAX: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_CATEGORY_FILE: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_CATEGORY_SERVICE: u32 = 512u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_CATEGORY_VIRTUAL: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_CLASS: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_DERIVED: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_NOT_SHAREABLE: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_PACKAGE_AWARE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_SANDBOX_DISABLED: u32 = 2048u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_SANDBOX_ENABLED: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_SOFT_RESET_REQUIRED: u32 = 1024u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_DRIVER_XPS: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_CATEGORY_3D: u32 = 67108864u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_CATEGORY_ALL: u32 = 33554432u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_CONNECTIONS: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_CONTAINER: u32 = 32768u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_DEFAULT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_EXPAND: u32 = 16384u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_FAVORITE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_HIDE: u32 = 16777216u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_ICON1: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_ICON2: u32 = 131072u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_ICON3: u32 = 262144u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_ICON4: u32 = 524288u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_ICON5: u32 = 1048576u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_ICON6: u32 = 2097152u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_ICON7: u32 = 4194304u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_ICON8: u32 = 8388608u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_ICONMASK: u32 = 16711680u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_LOCAL: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_NAME: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_NETWORK: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_REMOTE: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ENUM_SHARED: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ERROR_INFORMATION: u32 = 2147483648u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ERROR_JAM: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ERROR_OUTOFPAPER: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ERROR_OUTOFTONER: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ERROR_SEVERE: u32 = 536870912u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_ERROR_WARNING: u32 = 1073741824u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_ADD_CONNECTION: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_ADD_CONNECTION_NO_UI: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_ATTRIBUTES_CHANGED: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_CACHE_DELETE: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_CACHE_REFRESH: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_CONFIGURATION_CHANGE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_CONFIGURATION_UPDATE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_DELETE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_DELETE_CONNECTION: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_DELETE_CONNECTION_NO_UI: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_FLAG_NO_UI: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EVENT_INITIALIZE: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EXECUTE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131080u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EXTENSION_DETAILEDREASON_PRINTER_STATUS: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x5d5a1704_dfd1_4181_8eee_815c86edad31);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EXTENSION_REASON_DRIVER_EVENT: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x23bb1328_63de_4293_915b_a6a23d929acb);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_EXTENSION_REASON_PRINT_PREFERENCES: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xec8f261f_267c_469f_b5d6_3933023c29cc);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_CATEGORY_3D: u32 = 8192u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_CATEGORY_ALL: u32 = 4096u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_ATTRIBUTES: u32 = 13u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_AVERAGE_PPM: u32 = 21u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_BRANCH_OFFICE_PRINTING: u32 = 28u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_BYTES_PRINTED: u32 = 25u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_CJOBS: u32 = 20u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_COMMENT: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_DATATYPE: u32 = 11u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_DEFAULT_PRIORITY: u32 = 15u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_DEVMODE: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_DRIVER_NAME: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_FRIENDLY_NAME: u32 = 27u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_LOCATION: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_OBJECT_GUID: u32 = 26u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_PAGES_PRINTED: u32 = 23u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_PARAMETERS: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_PORT_NAME: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_PRINTER_NAME: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_PRINT_PROCESSOR: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_PRIORITY: u32 = 14u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_SECURITY_DESCRIPTOR: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_SEPFILE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_SERVER_NAME: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_SHARE_NAME: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_START_TIME: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_STATUS: u32 = 18u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_STATUS_STRING: u32 = 19u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_TOTAL_BYTES: u32 = 24u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_TOTAL_PAGES: u32 = 22u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_FIELD_UNTIL_TIME: u32 = 17u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_INFO_DATA_COMPACT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_INFO_DISCARDED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_OPTIONS_REFRESH: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_STATUS_ENDPOINT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_STATUS_INFO: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_STATUS_POLL: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_NOTIFY_TYPE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_OEMINTF_VERSION: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_OPTION_CACHE: PRINTER_OPTION_FLAGS = PRINTER_OPTION_FLAGS(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_OPTION_CLIENT_CHANGE: PRINTER_OPTION_FLAGS = PRINTER_OPTION_FLAGS(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_OPTION_NO_CACHE: PRINTER_OPTION_FLAGS = PRINTER_OPTION_FLAGS(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_OPTION_NO_CLIENT_DATA: PRINTER_OPTION_FLAGS = PRINTER_OPTION_FLAGS(8i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_READ: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131080u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_READ_CONTROL: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131072u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STANDARD_RIGHTS_EXECUTE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131072u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STANDARD_RIGHTS_READ: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131072u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STANDARD_RIGHTS_REQUIRED: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(983040u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STANDARD_RIGHTS_WRITE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131072u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_BUSY: u32 = 512u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_DOOR_OPEN: u32 = 4194304u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_DRIVER_UPDATE_NEEDED: u32 = 67108864u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_ERROR: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_INITIALIZING: u32 = 32768u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_IO_ACTIVE: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_MANUAL_FEED: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_NOT_AVAILABLE: u32 = 4096u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_NO_TONER: u32 = 262144u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_OFFLINE: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_OUTPUT_BIN_FULL: u32 = 2048u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_OUT_OF_MEMORY: u32 = 2097152u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_PAGE_PUNT: u32 = 524288u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_PAPER_JAM: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_PAPER_OUT: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_PAPER_PROBLEM: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_PAUSED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_PENDING_DELETION: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_POWER_SAVE: u32 = 16777216u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_PRINTING: u32 = 1024u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_PROCESSING: u32 = 16384u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_SERVER_OFFLINE: u32 = 33554432u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_SERVER_UNKNOWN: u32 = 8388608u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_TONER_LOW: u32 = 131072u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_USER_INTERVENTION: u32 = 1048576u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_WAITING: u32 = 8192u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_STATUS_WARMING_UP: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_SYNCHRONIZE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(1048576u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_WRITE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131080u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_WRITE_DAC: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(262144u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINTER_WRITE_OWNER: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(524288u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINT_APP_BIDI_NOTIFY_CHANNEL: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2abad223_b994_4aca_82fc_4571b1b585ac);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINT_EXECUTION_CONTEXT_APPLICATION: PRINT_EXECUTION_CONTEXT = PRINT_EXECUTION_CONTEXT(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINT_EXECUTION_CONTEXT_FILTER_PIPELINE: PRINT_EXECUTION_CONTEXT = PRINT_EXECUTION_CONTEXT(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINT_EXECUTION_CONTEXT_SPOOLER_ISOLATION_HOST: PRINT_EXECUTION_CONTEXT = PRINT_EXECUTION_CONTEXT(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINT_EXECUTION_CONTEXT_SPOOLER_SERVICE: PRINT_EXECUTION_CONTEXT = PRINT_EXECUTION_CONTEXT(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINT_EXECUTION_CONTEXT_WOW64: PRINT_EXECUTION_CONTEXT = PRINT_EXECUTION_CONTEXT(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PRINT_PORT_MONITOR_NOTIFY_CHANNEL: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x25df3b0e_74a9_47f5_80ce_79b4b1eb5c58);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROPSHEETUI_INFO_VERSION: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROPSHEETUI_REASON_BEFORE_INIT: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROPSHEETUI_REASON_DESTROY: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROPSHEETUI_REASON_GET_ICON: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROPSHEETUI_REASON_GET_INFO_HEADER: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROPSHEETUI_REASON_INIT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROPSHEETUI_REASON_SET_RESULT: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROTOCOL_LPR_TYPE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROTOCOL_RAWTCP_TYPE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PROTOCOL_UNKNOWN_TYPE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIHDRF_DEFTITLE: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIHDRF_EXACT_PTITLE: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIHDRF_NOAPPLYNOW: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIHDRF_OBSOLETE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIHDRF_PROPTITLE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIHDRF_USEHICON: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIINFO_UNICODE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIPAGEINSERT_DLL: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIPAGEINSERT_GROUP_PARENT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIPAGEINSERT_HPROPSHEETPAGE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIPAGEINSERT_PCOMPROPSHEETUI: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIPAGEINSERT_PFNPROPSHEETUI: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PSUIPAGEINSERT_PROPSHEETPAGE: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PTSHIM_DEFAULT: SHIMOPTS = SHIMOPTS(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PTSHIM_NOSNAPSHOT: SHIMOPTS = SHIMOPTS(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PUSHBUTTON_TYPE_CALLBACK: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PUSHBUTTON_TYPE_DLGPROC: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PUSHBUTTON_TYPE_HTCLRADJ: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PUSHBUTTON_TYPE_HTSETUP: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_BlockedDeviceQueue: PrintJobStatus = PrintJobStatus(512i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Complete: PrintJobStatus = PrintJobStatus(4096i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Deleted: PrintJobStatus = PrintJobStatus(256i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Deleting: PrintJobStatus = PrintJobStatus(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Error: PrintJobStatus = PrintJobStatus(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Offline: PrintJobStatus = PrintJobStatus(32i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_PaperOut: PrintJobStatus = PrintJobStatus(64i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Paused: PrintJobStatus = PrintJobStatus(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Printed: PrintJobStatus = PrintJobStatus(128i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Printing: PrintJobStatus = PrintJobStatus(16i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Restarted: PrintJobStatus = PrintJobStatus(2048i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Retained: PrintJobStatus = PrintJobStatus(8192i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_Spooling: PrintJobStatus = PrintJobStatus(8i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintJobStatus_UserIntervention: PrintJobStatus = PrintJobStatus(1024i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaAsyncOperation: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x43b2f83d_10f2_48ab_831b_55fdbdbd34a4);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaConstrainedSetting_Admin: PrintSchemaConstrainedSetting = PrintSchemaConstrainedSetting(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaConstrainedSetting_Device: PrintSchemaConstrainedSetting = PrintSchemaConstrainedSetting(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaConstrainedSetting_None: PrintSchemaConstrainedSetting = PrintSchemaConstrainedSetting(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaConstrainedSetting_PrintTicket: PrintSchemaConstrainedSetting = PrintSchemaConstrainedSetting(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaParameterDataType_Integer: PrintSchemaParameterDataType = PrintSchemaParameterDataType(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaParameterDataType_NumericString: PrintSchemaParameterDataType = PrintSchemaParameterDataType(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaParameterDataType_String: PrintSchemaParameterDataType = PrintSchemaParameterDataType(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaSelectionType_PickMany: PrintSchemaSelectionType = PrintSchemaSelectionType(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrintSchemaSelectionType_PickOne: PrintSchemaSelectionType = PrintSchemaSelectionType(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrinterExtensionManager: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x331b60da_9e90_4dd0_9c84_eac4e659b61f);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrinterQueue: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xeb54c230_798c_4c9e_b461_29fad04039b1);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const PrinterQueueView: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xeb54c231_798c_4c9e_b461_29fad04039b1);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const QCP_DEVICEPROFILE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const QCP_PROFILEDISK: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const QCP_PROFILEMEMORY: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const QCP_SOURCEPROFILE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const RAWTCP: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const REMOTE_ONLY_REGISTRATION: PrintAsyncNotifyError = PrintAsyncNotifyError(24i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const REVERSE_PAGES_FOR_REVERSE_DUPLEX: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const REVERSE_PRINT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const RIGHT_THEN_DOWN: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ROUTER_STOP_ROUTING: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ROUTER_SUCCESS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const ROUTER_UNKNOWN: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SERVER_ACCESS_ADMINISTER: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(1u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SERVER_ACCESS_ENUMERATE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(2u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SERVER_ALL_ACCESS: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(983043u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SERVER_EXECUTE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131074u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SERVER_NOTIFY_FIELD_PRINT_DRIVER_ISOLATION_GROUP: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SERVER_NOTIFY_TYPE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SERVER_READ: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131074u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SERVER_WRITE: PRINTER_ACCESS_RIGHTS = PRINTER_ACCESS_RIGHTS(131075u32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SETOPTIONS_FLAG_KEEP_CONFLICT: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SETOPTIONS_FLAG_RESOLVE_CONFLICT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SETOPTIONS_RESULT_CONFLICT_REMAINED: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SETOPTIONS_RESULT_CONFLICT_RESOLVED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SETOPTIONS_RESULT_NO_CONFLICT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_ASSET_NUMBER: ::windows_core::PCWSTR = ::windows_core::w!("assetNumber");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_BYTES_PER_MINUTE: ::windows_core::PCWSTR = ::windows_core::w!("bytesPerMinute");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_DESCRIPTION: ::windows_core::PCWSTR = ::windows_core::w!("description");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_DRIVER_KEY: ::windows_core::PCWSTR = ::windows_core::w!("DsDriver");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_DRIVER_NAME: ::windows_core::PCWSTR = ::windows_core::w!("driverName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_DRIVER_VERSION: ::windows_core::PCWSTR = ::windows_core::w!("driverVersion");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_FLAGS: ::windows_core::PCWSTR = ::windows_core::w!("flags");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_LOCATION: ::windows_core::PCWSTR = ::windows_core::w!("location");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PORT_NAME: ::windows_core::PCWSTR = ::windows_core::w!("portName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINTER_CLASS: ::windows_core::PCWSTR = ::windows_core::w!("printQueue");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINTER_LOCATIONS: ::windows_core::PCWSTR = ::windows_core::w!("printerLocations");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINTER_MODEL: ::windows_core::PCWSTR = ::windows_core::w!("printerModel");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINTER_NAME: ::windows_core::PCWSTR = ::windows_core::w!("printerName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINTER_NAME_ALIASES: ::windows_core::PCWSTR = ::windows_core::w!("printerNameAliases");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_ATTRIBUTES: ::windows_core::PCWSTR = ::windows_core::w!("printAttributes");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_BIN_NAMES: ::windows_core::PCWSTR = ::windows_core::w!("printBinNames");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_COLLATE: ::windows_core::PCWSTR = ::windows_core::w!("printCollate");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_COLOR: ::windows_core::PCWSTR = ::windows_core::w!("printColor");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_DUPLEX_SUPPORTED: ::windows_core::PCWSTR = ::windows_core::w!("printDuplexSupported");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_END_TIME: ::windows_core::PCWSTR = ::windows_core::w!("printEndTime");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_KEEP_PRINTED_JOBS: ::windows_core::PCWSTR = ::windows_core::w!("printKeepPrintedJobs");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_LANGUAGE: ::windows_core::PCWSTR = ::windows_core::w!("printLanguage");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_MAC_ADDRESS: ::windows_core::PCWSTR = ::windows_core::w!("printMACAddress");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_MAX_RESOLUTION_SUPPORTED: ::windows_core::PCWSTR = ::windows_core::w!("printMaxResolutionSupported");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_MAX_X_EXTENT: ::windows_core::PCWSTR = ::windows_core::w!("printMaxXExtent");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_MAX_Y_EXTENT: ::windows_core::PCWSTR = ::windows_core::w!("printMaxYExtent");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_MEDIA_READY: ::windows_core::PCWSTR = ::windows_core::w!("printMediaReady");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_MEDIA_SUPPORTED: ::windows_core::PCWSTR = ::windows_core::w!("printMediaSupported");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_MEMORY: ::windows_core::PCWSTR = ::windows_core::w!("printMemory");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_MIN_X_EXTENT: ::windows_core::PCWSTR = ::windows_core::w!("printMinXExtent");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_MIN_Y_EXTENT: ::windows_core::PCWSTR = ::windows_core::w!("printMinYExtent");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_NETWORK_ADDRESS: ::windows_core::PCWSTR = ::windows_core::w!("printNetworkAddress");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_NOTIFY: ::windows_core::PCWSTR = ::windows_core::w!("printNotify");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_NUMBER_UP: ::windows_core::PCWSTR = ::windows_core::w!("printNumberUp");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_ORIENTATIONS_SUPPORTED: ::windows_core::PCWSTR = ::windows_core::w!("printOrientationsSupported");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_OWNER: ::windows_core::PCWSTR = ::windows_core::w!("printOwner");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_PAGES_PER_MINUTE: ::windows_core::PCWSTR = ::windows_core::w!("printPagesPerMinute");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_RATE: ::windows_core::PCWSTR = ::windows_core::w!("printRate");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_RATE_UNIT: ::windows_core::PCWSTR = ::windows_core::w!("printRateUnit");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_SEPARATOR_FILE: ::windows_core::PCWSTR = ::windows_core::w!("printSeparatorFile");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_SHARE_NAME: ::windows_core::PCWSTR = ::windows_core::w!("printShareName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_SPOOLING: ::windows_core::PCWSTR = ::windows_core::w!("printSpooling");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_STAPLING_SUPPORTED: ::windows_core::PCWSTR = ::windows_core::w!("printStaplingSupported");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_START_TIME: ::windows_core::PCWSTR = ::windows_core::w!("printStartTime");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRINT_STATUS: ::windows_core::PCWSTR = ::windows_core::w!("printStatus");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_PRIORITY: ::windows_core::PCWSTR = ::windows_core::w!("priority");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_SERVER_NAME: ::windows_core::PCWSTR = ::windows_core::w!("serverName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_SHORT_SERVER_NAME: ::windows_core::PCWSTR = ::windows_core::w!("shortServerName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_SPOOLER_KEY: ::windows_core::PCWSTR = ::windows_core::w!("DsSpooler");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_UNC_NAME: ::windows_core::PCWSTR = ::windows_core::w!("uNCName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_URL: ::windows_core::PCWSTR = ::windows_core::w!("url");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_USER_KEY: ::windows_core::PCWSTR = ::windows_core::w!("DsUser");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLDS_VERSION_NUMBER: ::windows_core::PCWSTR = ::windows_core::w!("versionNumber");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLPRINTER_USER_MODE_PRINTER_DRIVER: ::windows_core::PCWSTR = ::windows_core::w!("SPLUserModePrinterDriver");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_ALLOW_USER_MANAGEFORMS: ::windows_core::PCWSTR = ::windows_core::w!("AllowUserManageForms");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_ARCHITECTURE: ::windows_core::PCWSTR = ::windows_core::w!("Architecture");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_BEEP_ENABLED: ::windows_core::PCWSTR = ::windows_core::w!("BeepEnabled");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_DEFAULT_SPOOL_DIRECTORY: ::windows_core::PCWSTR = ::windows_core::w!("DefaultSpoolDirectory");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_DNS_MACHINE_NAME: ::windows_core::PCWSTR = ::windows_core::w!("DNSMachineName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_DS_PRESENT: ::windows_core::PCWSTR = ::windows_core::w!("DsPresent");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_DS_PRESENT_FOR_USER: ::windows_core::PCWSTR = ::windows_core::w!("DsPresentForUser");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_EVENT_LOG: ::windows_core::PCWSTR = ::windows_core::w!("EventLog");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_MAJOR_VERSION: ::windows_core::PCWSTR = ::windows_core::w!("MajorVersion");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_MINOR_VERSION: ::windows_core::PCWSTR = ::windows_core::w!("MinorVersion");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_NET_POPUP: ::windows_core::PCWSTR = ::windows_core::w!("NetPopup");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_NET_POPUP_TO_COMPUTER: ::windows_core::PCWSTR = ::windows_core::w!("NetPopupToComputer");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_OS_VERSION: ::windows_core::PCWSTR = ::windows_core::w!("OSVersion");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_OS_VERSIONEX: ::windows_core::PCWSTR = ::windows_core::w!("OSVersionEx");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_PORT_THREAD_PRIORITY: ::windows_core::PCWSTR = ::windows_core::w!("PortThreadPriority");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_PORT_THREAD_PRIORITY_DEFAULT: ::windows_core::PCWSTR = ::windows_core::w!("PortThreadPriorityDefault");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_PRINT_DRIVER_ISOLATION_EXECUTION_POLICY: ::windows_core::PCWSTR = ::windows_core::w!("PrintDriverIsolationExecutionPolicy");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_PRINT_DRIVER_ISOLATION_GROUPS: ::windows_core::PCWSTR = ::windows_core::w!("PrintDriverIsolationGroups");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_PRINT_DRIVER_ISOLATION_IDLE_TIMEOUT: ::windows_core::PCWSTR = ::windows_core::w!("PrintDriverIsolationIdleTimeout");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_PRINT_DRIVER_ISOLATION_MAX_OBJECTS_BEFORE_RECYCLE: ::windows_core::PCWSTR = ::windows_core::w!("PrintDriverIsolationMaxobjsBeforeRecycle");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_PRINT_DRIVER_ISOLATION_OVERRIDE_POLICY: ::windows_core::PCWSTR = ::windows_core::w!("PrintDriverIsolationOverrideCompat");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_PRINT_DRIVER_ISOLATION_TIME_BEFORE_RECYCLE: ::windows_core::PCWSTR = ::windows_core::w!("PrintDriverIsolationTimeBeforeRecycle");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_PRINT_QUEUE_V4_DRIVER_DIRECTORY: ::windows_core::PCWSTR = ::windows_core::w!("PrintQueueV4DriverDirectory");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_REMOTE_FAX: ::windows_core::PCWSTR = ::windows_core::w!("RemoteFax");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_RESTART_JOB_ON_POOL_ENABLED: ::windows_core::PCWSTR = ::windows_core::w!("RestartJobOnPoolEnabled");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_RESTART_JOB_ON_POOL_ERROR: ::windows_core::PCWSTR = ::windows_core::w!("RestartJobOnPoolError");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_RETRY_POPUP: ::windows_core::PCWSTR = ::windows_core::w!("RetryPopup");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_SCHEDULER_THREAD_PRIORITY: ::windows_core::PCWSTR = ::windows_core::w!("SchedulerThreadPriority");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_SCHEDULER_THREAD_PRIORITY_DEFAULT: ::windows_core::PCWSTR = ::windows_core::w!("SchedulerThreadPriorityDefault");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPLREG_WEBSHAREMGMT: ::windows_core::PCWSTR = ::windows_core::w!("WebShareMgmt");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPOOL_FILE_PERSISTENT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SPOOL_FILE_TEMPORARY: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SR_OWNER: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SR_OWNER_PARENT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SSP_STDPAGE1: u32 = 10001u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SSP_STDPAGE2: u32 = 10002u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const SSP_TVPAGE: u32 = 10000u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const STRING_LANGPAIR: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const STRING_MUIDLL: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const STRING_NONE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const S_CONFLICT_RESOLVED: u32 = 262146u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const S_DEVCAP_OUTPUT_FULL_REPLACEMENT: ::windows_core::HRESULT = ::windows_core::HRESULT(318465i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const S_NO_CONFLICT: u32 = 262145u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TTDOWNLOAD_BITMAP: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TTDOWNLOAD_DONTCARE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TTDOWNLOAD_GRAPHICS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TTDOWNLOAD_TTOUTLINE: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_2STATES: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_3STATES: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_CHKBOX: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_COMBOBOX: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_EDITBOX: u32 = 7u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_LISTBOX: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_NSTATES_EX: u32 = 10u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_PUSHBUTTON: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_SCROLLBAR: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_TRACKBAR: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TVOT_UDARROW: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TYPE_GLYPHHANDLE: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TYPE_GLYPHID: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TYPE_TRANSDATA: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const TYPE_UNICODE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFF_VERSION_NUMBER: u32 = 65537u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFM_CART: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFM_SCALABLE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFM_SOFT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFOFLAG_TTDOWNLOAD_BITMAP: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFOFLAG_TTDOWNLOAD_TTOUTLINE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFOFLAG_TTFONT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFOFLAG_TTOUTLINE_BOLD_SIM: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFOFLAG_TTOUTLINE_ITALIC_SIM: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFOFLAG_TTOUTLINE_VERTICAL: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFOFLAG_TTSUBSTITUTED: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFO_GETINFO_FONTOBJ: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFO_GETINFO_GLYPHBITMAP: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFO_GETINFO_GLYPHSTRING: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFO_GETINFO_GLYPHWIDTH: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFO_GETINFO_MEMORY: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UFO_GETINFO_STDVARIABLE: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UNIFM_VERSION_1_0: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UNIRECTIONAL_NOTIFICATION_LOST: PrintAsyncNotifyError = PrintAsyncNotifyError(5i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UNI_GLYPHSETDATA_VERSION_1_0: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UNKNOWN_PROTOCOL: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UPDP_CHECK_DRIVERSTORE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UPDP_SILENT_UPLOAD: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const UPDP_UPLOAD_ALWAYS: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const USBPRINT_IOCTL_INDEX: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const USB_PRINTER_INTERFACE_CLASSIC: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const USB_PRINTER_INTERFACE_DUAL: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const USB_PRINTER_INTERFACE_IPP: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const WM_FI_FILENAME: u32 = 900u32;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPSRAS_BACKGROUND_COLOR_OPAQUE: XPSRAS_BACKGROUND_COLOR = XPSRAS_BACKGROUND_COLOR(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPSRAS_BACKGROUND_COLOR_TRANSPARENT: XPSRAS_BACKGROUND_COLOR = XPSRAS_BACKGROUND_COLOR(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPSRAS_PIXEL_FORMAT_128BPP_PRGBA_FLOAT_SCRGB: XPSRAS_PIXEL_FORMAT = XPSRAS_PIXEL_FORMAT(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPSRAS_PIXEL_FORMAT_32BPP_PBGRA_UINT_SRGB: XPSRAS_PIXEL_FORMAT = XPSRAS_PIXEL_FORMAT(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPSRAS_PIXEL_FORMAT_64BPP_PRGBA_HALF_SCRGB: XPSRAS_PIXEL_FORMAT = XPSRAS_PIXEL_FORMAT(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPSRAS_RENDERING_MODE_ALIASED: XPSRAS_RENDERING_MODE = XPSRAS_RENDERING_MODE(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPSRAS_RENDERING_MODE_ANTIALIASED: XPSRAS_RENDERING_MODE = XPSRAS_RENDERING_MODE(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_DRIVER_PROPERTY_BAG: ::windows_core::PCWSTR = ::windows_core::w!("DriverPropertyBag");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_JOB_ID: ::windows_core::PCWSTR = ::windows_core::w!("PrintJobId");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_JOB_LEVEL_PRINTTICKET: ::windows_core::PCWSTR = ::windows_core::w!("JobPrintTicket");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_MERGED_DATAFILE_PATH: ::windows_core::PCWSTR = ::windows_core::w!("MergedDataFilePath");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_MS_CONTENT_TYPE: ::windows_core::PCWSTR = ::windows_core::w!("DriverMultiContentType");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_MS_CONTENT_TYPE_OPENXPS: ::windows_core::PCWSTR = ::windows_core::w!("OpenXPS");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_MS_CONTENT_TYPE_XPS: ::windows_core::PCWSTR = ::windows_core::w!("XPS");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_OUTPUT_FILE: ::windows_core::PCWSTR = ::windows_core::w!("PrintOutputFileName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_PRINTDEVICECAPABILITIES: ::windows_core::PCWSTR = ::windows_core::w!("PrintDeviceCapabilities");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_PRINTER_HANDLE: ::windows_core::PCWSTR = ::windows_core::w!("PrinterHandle");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_PRINTER_NAME: ::windows_core::PCWSTR = ::windows_core::w!("PrinterName");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_PRINT_CLASS_FACTORY: ::windows_core::PCWSTR = ::windows_core::w!("PrintClassFactory");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_PROGRESS_REPORT: ::windows_core::PCWSTR = ::windows_core::w!("ProgressReport");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_QUEUE_PROPERTY_BAG: ::windows_core::PCWSTR = ::windows_core::w!("QueuePropertyBag");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_RESOURCE_DLL_PATHS: ::windows_core::PCWSTR = ::windows_core::w!("ResourceDLLPaths");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_USER_PRINT_TICKET: ::windows_core::PCWSTR = ::windows_core::w!("PerUserPrintTicket");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XPS_FP_USER_TOKEN: ::windows_core::PCWSTR = ::windows_core::w!("UserSecurityToken");
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XpsJob_DocumentSequenceAdded: EXpsJobConsumption = EXpsJobConsumption(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XpsJob_FixedDocumentAdded: EXpsJobConsumption = EXpsJobConsumption(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const XpsJob_FixedPageAdded: EXpsJobConsumption = EXpsJobConsumption(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Xps_Restricted_Font_Editable: EXpsFontRestriction = EXpsFontRestriction(8i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Xps_Restricted_Font_Installable: EXpsFontRestriction = EXpsFontRestriction(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Xps_Restricted_Font_NoEmbedding: EXpsFontRestriction = EXpsFontRestriction(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const Xps_Restricted_Font_PreviewPrint: EXpsFontRestriction = EXpsFontRestriction(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_ASCII: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(5i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_BINARY: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(7i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_BOOL: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_CUSTOMSIZEPARAMS: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(10i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_DWORD: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_INT: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_LONG: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_RECT: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(9i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_SIZE: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(8i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_UNICODE: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(6i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kADT_UNKNOWN: EATTRIBUTE_DATATYPE = EATTRIBUTE_DATATYPE(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kAddingDocumentSequence: EPrintXPSJobProgress = EPrintXPSJobProgress(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kAddingFixedDocument: EPrintXPSJobProgress = EPrintXPSJobProgress(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kAddingFixedPage: EPrintXPSJobProgress = EPrintXPSJobProgress(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kAllUsers: PrintAsyncNotifyUserFilter = PrintAsyncNotifyUserFilter(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kBiDirectional: PrintAsyncNotifyConversationStyle = PrintAsyncNotifyConversationStyle(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kDocumentSequenceAdded: EPrintXPSJobProgress = EPrintXPSJobProgress(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kFixedDocumentAdded: EPrintXPSJobProgress = EPrintXPSJobProgress(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kFixedPageAdded: EPrintXPSJobProgress = EPrintXPSJobProgress(5i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kFontAdded: EPrintXPSJobProgress = EPrintXPSJobProgress(7i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kImageAdded: EPrintXPSJobProgress = EPrintXPSJobProgress(8i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kInvalidJobState: EBranchOfficeJobEventType = EBranchOfficeJobEventType(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kJobConsumption: EPrintXPSJobOperation = EPrintXPSJobOperation(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kJobProduction: EPrintXPSJobOperation = EPrintXPSJobOperation(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kLogJobError: EBranchOfficeJobEventType = EBranchOfficeJobEventType(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kLogJobPipelineError: EBranchOfficeJobEventType = EBranchOfficeJobEventType(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kLogJobPrinted: EBranchOfficeJobEventType = EBranchOfficeJobEventType(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kLogJobRendered: EBranchOfficeJobEventType = EBranchOfficeJobEventType(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kLogOfflineFileFull: EBranchOfficeJobEventType = EBranchOfficeJobEventType(5i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kMessageBox: UI_TYPE = UI_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPerUser: PrintAsyncNotifyUserFilter = PrintAsyncNotifyUserFilter(0i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeBuffer: EPrintPropertyType = EPrintPropertyType(10i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeByte: EPrintPropertyType = EPrintPropertyType(4i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeDevMode: EPrintPropertyType = EPrintPropertyType(6i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeInt32: EPrintPropertyType = EPrintPropertyType(2i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeInt64: EPrintPropertyType = EPrintPropertyType(3i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeNotificationOptions: EPrintPropertyType = EPrintPropertyType(9i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeNotificationReply: EPrintPropertyType = EPrintPropertyType(8i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeSD: EPrintPropertyType = EPrintPropertyType(7i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeString: EPrintPropertyType = EPrintPropertyType(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kPropertyTypeTime: EPrintPropertyType = EPrintPropertyType(5i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kResourceAdded: EPrintXPSJobProgress = EPrintXPSJobProgress(6i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kUniDirectional: PrintAsyncNotifyConversationStyle = PrintAsyncNotifyConversationStyle(1i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub const kXpsDocumentCommitted: EPrintXPSJobProgress = EPrintXPSJobProgress(9i32);
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct BIDI_TYPE(pub i32);
@@ -12418,7 +9127,6 @@ impl ::core::fmt::Debug for BIDI_TYPE {
         f.debug_tuple("BIDI_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EATTRIBUTE_DATATYPE(pub i32);
@@ -12441,7 +9149,6 @@ impl ::core::fmt::Debug for EATTRIBUTE_DATATYPE {
         f.debug_tuple("EATTRIBUTE_DATATYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EBranchOfficeJobEventType(pub i32);
@@ -12464,7 +9171,6 @@ impl ::core::fmt::Debug for EBranchOfficeJobEventType {
         f.debug_tuple("EBranchOfficeJobEventType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EPrintPropertyType(pub i32);
@@ -12487,7 +9193,6 @@ impl ::core::fmt::Debug for EPrintPropertyType {
         f.debug_tuple("EPrintPropertyType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EPrintXPSJobOperation(pub i32);
@@ -12510,7 +9215,6 @@ impl ::core::fmt::Debug for EPrintXPSJobOperation {
         f.debug_tuple("EPrintXPSJobOperation").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EPrintXPSJobProgress(pub i32);
@@ -12533,7 +9237,6 @@ impl ::core::fmt::Debug for EPrintXPSJobProgress {
         f.debug_tuple("EPrintXPSJobProgress").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EXpsCompressionOptions(pub i32);
@@ -12556,7 +9259,6 @@ impl ::core::fmt::Debug for EXpsCompressionOptions {
         f.debug_tuple("EXpsCompressionOptions").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EXpsFontOptions(pub i32);
@@ -12579,7 +9281,6 @@ impl ::core::fmt::Debug for EXpsFontOptions {
         f.debug_tuple("EXpsFontOptions").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EXpsFontRestriction(pub i32);
@@ -12602,7 +9303,6 @@ impl ::core::fmt::Debug for EXpsFontRestriction {
         f.debug_tuple("EXpsFontRestriction").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EXpsJobConsumption(pub i32);
@@ -12625,7 +9325,6 @@ impl ::core::fmt::Debug for EXpsJobConsumption {
         f.debug_tuple("EXpsJobConsumption").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MXDC_IMAGE_TYPE_ENUMS(pub i32);
@@ -12648,7 +9347,6 @@ impl ::core::fmt::Debug for MXDC_IMAGE_TYPE_ENUMS {
         f.debug_tuple("MXDC_IMAGE_TYPE_ENUMS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MXDC_LANDSCAPE_ROTATION_ENUMS(pub i32);
@@ -12671,7 +9369,6 @@ impl ::core::fmt::Debug for MXDC_LANDSCAPE_ROTATION_ENUMS {
         f.debug_tuple("MXDC_LANDSCAPE_ROTATION_ENUMS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MXDC_S0_PAGE_ENUMS(pub i32);
@@ -12694,7 +9391,6 @@ impl ::core::fmt::Debug for MXDC_S0_PAGE_ENUMS {
         f.debug_tuple("MXDC_S0_PAGE_ENUMS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct NOTIFICATION_CALLBACK_COMMANDS(pub i32);
@@ -12717,7 +9413,6 @@ impl ::core::fmt::Debug for NOTIFICATION_CALLBACK_COMMANDS {
         f.debug_tuple("NOTIFICATION_CALLBACK_COMMANDS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct NOTIFICATION_CONFIG_FLAGS(pub i32);
@@ -12740,7 +9435,6 @@ impl ::core::fmt::Debug for NOTIFICATION_CONFIG_FLAGS {
         f.debug_tuple("NOTIFICATION_CONFIG_FLAGS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PRINTER_ACCESS_RIGHTS(pub u32);
@@ -12796,7 +9490,6 @@ impl ::core::ops::Not for PRINTER_ACCESS_RIGHTS {
         Self(self.0.not())
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PRINTER_OPTION_FLAGS(pub i32);
@@ -12819,7 +9512,6 @@ impl ::core::fmt::Debug for PRINTER_OPTION_FLAGS {
         f.debug_tuple("PRINTER_OPTION_FLAGS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PRINT_EXECUTION_CONTEXT(pub i32);
@@ -12842,7 +9534,6 @@ impl ::core::fmt::Debug for PRINT_EXECUTION_CONTEXT {
         f.debug_tuple("PRINT_EXECUTION_CONTEXT").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PageCountType(pub i32);
@@ -12865,7 +9556,6 @@ impl ::core::fmt::Debug for PageCountType {
         f.debug_tuple("PageCountType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PrintAsyncNotifyConversationStyle(pub i32);
@@ -12888,7 +9578,6 @@ impl ::core::fmt::Debug for PrintAsyncNotifyConversationStyle {
         f.debug_tuple("PrintAsyncNotifyConversationStyle").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PrintAsyncNotifyError(pub i32);
@@ -12911,7 +9600,6 @@ impl ::core::fmt::Debug for PrintAsyncNotifyError {
         f.debug_tuple("PrintAsyncNotifyError").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PrintAsyncNotifyUserFilter(pub i32);
@@ -12934,7 +9622,6 @@ impl ::core::fmt::Debug for PrintAsyncNotifyUserFilter {
         f.debug_tuple("PrintAsyncNotifyUserFilter").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PrintJobStatus(pub i32);
@@ -12957,7 +9644,6 @@ impl ::core::fmt::Debug for PrintJobStatus {
         f.debug_tuple("PrintJobStatus").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PrintSchemaConstrainedSetting(pub i32);
@@ -12980,7 +9666,6 @@ impl ::core::fmt::Debug for PrintSchemaConstrainedSetting {
         f.debug_tuple("PrintSchemaConstrainedSetting").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PrintSchemaParameterDataType(pub i32);
@@ -13003,7 +9688,6 @@ impl ::core::fmt::Debug for PrintSchemaParameterDataType {
         f.debug_tuple("PrintSchemaParameterDataType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PrintSchemaSelectionType(pub i32);
@@ -13026,7 +9710,6 @@ impl ::core::fmt::Debug for PrintSchemaSelectionType {
         f.debug_tuple("PrintSchemaSelectionType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SHIMOPTS(pub i32);
@@ -13049,7 +9732,6 @@ impl ::core::fmt::Debug for SHIMOPTS {
         f.debug_tuple("SHIMOPTS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UI_TYPE(pub i32);
@@ -13072,7 +9754,6 @@ impl ::core::fmt::Debug for UI_TYPE {
         f.debug_tuple("UI_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct XPSRAS_BACKGROUND_COLOR(pub i32);
@@ -13095,7 +9776,6 @@ impl ::core::fmt::Debug for XPSRAS_BACKGROUND_COLOR {
         f.debug_tuple("XPSRAS_BACKGROUND_COLOR").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct XPSRAS_PIXEL_FORMAT(pub i32);
@@ -13118,7 +9798,6 @@ impl ::core::fmt::Debug for XPSRAS_PIXEL_FORMAT {
         f.debug_tuple("XPSRAS_PIXEL_FORMAT").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct XPSRAS_RENDERING_MODE(pub i32);
@@ -13142,7 +9821,6 @@ impl ::core::fmt::Debug for XPSRAS_RENDERING_MODE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct ADDJOB_INFO_1A {
     pub Path: ::windows_core::PSTR,
     pub JobId: u32,
@@ -13173,7 +9851,6 @@ impl ::core::default::Default for ADDJOB_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct ADDJOB_INFO_1W {
     pub Path: ::windows_core::PWSTR,
     pub JobId: u32,
@@ -13204,7 +9881,6 @@ impl ::core::default::Default for ADDJOB_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct ATTRIBUTE_INFO_1 {
     pub dwJobNumberOfPagesPerSide: u32,
     pub dwDrvNumberOfPagesPerSide: u32,
@@ -13240,7 +9916,6 @@ impl ::core::default::Default for ATTRIBUTE_INFO_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct ATTRIBUTE_INFO_2 {
     pub dwJobNumberOfPagesPerSide: u32,
     pub dwDrvNumberOfPagesPerSide: u32,
@@ -13286,7 +9961,6 @@ impl ::core::default::Default for ATTRIBUTE_INFO_2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct ATTRIBUTE_INFO_3 {
     pub dwJobNumberOfPagesPerSide: u32,
     pub dwDrvNumberOfPagesPerSide: u32,
@@ -13336,7 +10010,6 @@ impl ::core::default::Default for ATTRIBUTE_INFO_3 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct ATTRIBUTE_INFO_4 {
     pub dwJobNumberOfPagesPerSide: u32,
     pub dwDrvNumberOfPagesPerSide: u32,
@@ -13410,7 +10083,7 @@ impl ::core::default::Default for ATTRIBUTE_INFO_4 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct BIDI_DATA {
     pub dwBidiType: u32,
@@ -13435,7 +10108,7 @@ impl ::core::default::Default for BIDI_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub union BIDI_DATA_0 {
     pub bData: super::super::Foundation::BOOL,
@@ -13463,7 +10136,7 @@ impl ::core::default::Default for BIDI_DATA_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct BIDI_REQUEST_CONTAINER {
     pub Version: u32,
@@ -13490,7 +10163,7 @@ impl ::core::default::Default for BIDI_REQUEST_CONTAINER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct BIDI_REQUEST_DATA {
     pub dwReqNumber: u32,
@@ -13516,7 +10189,7 @@ impl ::core::default::Default for BIDI_REQUEST_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct BIDI_RESPONSE_CONTAINER {
     pub Version: u32,
@@ -13543,7 +10216,7 @@ impl ::core::default::Default for BIDI_RESPONSE_CONTAINER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct BIDI_RESPONSE_DATA {
     pub dwResult: u32,
@@ -13570,7 +10243,6 @@ impl ::core::default::Default for BIDI_RESPONSE_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct BINARY_CONTAINER {
     pub cbBuf: u32,
     pub pData: *mut u8,
@@ -13601,7 +10273,6 @@ impl ::core::default::Default for BINARY_CONTAINER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct BranchOfficeJobData {
     pub eEventType: EBranchOfficeJobEventType,
     pub JobId: u32,
@@ -13622,7 +10293,6 @@ impl ::core::default::Default for BranchOfficeJobData {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub union BranchOfficeJobData_0 {
     pub LogJobPrinted: BranchOfficeJobDataPrinted,
     pub LogJobRendered: BranchOfficeJobDataRendered,
@@ -13645,7 +10315,6 @@ impl ::core::default::Default for BranchOfficeJobData_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct BranchOfficeJobDataContainer {
     pub cJobDataEntries: u32,
     pub JobData: [BranchOfficeJobData; 1],
@@ -13665,7 +10334,6 @@ impl ::core::default::Default for BranchOfficeJobDataContainer {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct BranchOfficeJobDataError {
     pub LastError: u32,
     pub pDocumentName: ::windows_core::PWSTR,
@@ -13719,7 +10387,6 @@ impl ::core::default::Default for BranchOfficeJobDataError {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct BranchOfficeJobDataPipelineFailed {
     pub pDocumentName: ::windows_core::PWSTR,
     pub pPrinterName: ::windows_core::PWSTR,
@@ -13751,7 +10418,6 @@ impl ::core::default::Default for BranchOfficeJobDataPipelineFailed {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct BranchOfficeJobDataPrinted {
     pub Status: u32,
     pub pDocumentName: ::windows_core::PWSTR,
@@ -13788,7 +10454,6 @@ impl ::core::default::Default for BranchOfficeJobDataPrinted {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct BranchOfficeJobDataRendered {
     pub Size: i64,
     pub ICMMethod: u32,
@@ -13824,7 +10489,6 @@ impl ::core::default::Default for BranchOfficeJobDataRendered {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct BranchOfficeLogOfflineFileFull {
     pub pMachineName: ::windows_core::PWSTR,
 }
@@ -13854,7 +10518,7 @@ impl ::core::default::Default for BranchOfficeLogOfflineFileFull {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub struct COMPROPSHEETUI {
     pub cbSize: u16,
@@ -13915,7 +10579,6 @@ impl ::core::default::Default for COMPROPSHEETUI {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct CONFIG_INFO_DATA_1 {
     pub Reserved: [u8; 128],
     pub dwVersion: u32,
@@ -13946,7 +10609,7 @@ impl ::core::default::Default for CONFIG_INFO_DATA_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CORE_PRINTER_DRIVERA {
     pub CoreDriverGUID: ::windows_core::GUID,
@@ -13987,7 +10650,7 @@ impl ::core::default::Default for CORE_PRINTER_DRIVERA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct CORE_PRINTER_DRIVERW {
     pub CoreDriverGUID: ::windows_core::GUID,
@@ -14028,7 +10691,7 @@ impl ::core::default::Default for CORE_PRINTER_DRIVERW {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub struct CPSUICBPARAM {
     pub cbSize: u16,
@@ -14061,7 +10724,7 @@ impl ::core::default::Default for CPSUICBPARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub union CPSUICBPARAM_0 {
     pub OldSel: i32,
@@ -14086,7 +10749,6 @@ impl ::core::default::Default for CPSUICBPARAM_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct CPSUIDATABLOCK {
     pub cbData: u32,
     pub pbData: *mut u8,
@@ -14117,7 +10779,6 @@ impl ::core::default::Default for CPSUIDATABLOCK {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct CUSTOMSIZEPARAM {
     pub dwOrder: i32,
     pub lMinVal: i32,
@@ -14149,7 +10810,6 @@ impl ::core::default::Default for CUSTOMSIZEPARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DATATYPES_INFO_1A {
     pub pName: ::windows_core::PSTR,
 }
@@ -14179,7 +10839,6 @@ impl ::core::default::Default for DATATYPES_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DATATYPES_INFO_1W {
     pub pName: ::windows_core::PWSTR,
 }
@@ -14209,7 +10868,6 @@ impl ::core::default::Default for DATATYPES_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DATA_HEADER {
     pub dwSignature: u32,
     pub wSize: u16,
@@ -14243,7 +10901,6 @@ impl ::core::default::Default for DATA_HEADER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DELETE_PORT_DATA_1 {
     pub psztPortName: [u16; 64],
     pub Reserved: [u8; 98],
@@ -14276,7 +10933,7 @@ impl ::core::default::Default for DELETE_PORT_DATA_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DEVICEPROPERTYHEADER {
     pub cbSize: u16,
@@ -14317,7 +10974,7 @@ impl ::core::default::Default for DEVICEPROPERTYHEADER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct DEVQUERYPRINT_INFO {
     pub cbSize: u16,
@@ -14361,7 +11018,7 @@ impl ::core::default::Default for DEVQUERYPRINT_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub struct DLGPAGE {
     pub cbSize: u16,
@@ -14390,7 +11047,7 @@ impl ::core::default::Default for DLGPAGE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub union DLGPAGE_0 {
     pub DlgTemplateID: u16,
@@ -14415,7 +11072,7 @@ impl ::core::default::Default for DLGPAGE_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct DOCEVENT_CREATEDCPRE {
     pub pszDriver: ::windows_core::PWSTR,
@@ -14456,7 +11113,6 @@ impl ::core::default::Default for DOCEVENT_CREATEDCPRE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DOCEVENT_ESCAPE {
     pub iEscape: i32,
     pub cjInput: i32,
@@ -14488,7 +11144,6 @@ impl ::core::default::Default for DOCEVENT_ESCAPE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DOCEVENT_FILTER {
     pub cbSize: u32,
     pub cElementsAllocated: u32,
@@ -14522,7 +11177,7 @@ impl ::core::default::Default for DOCEVENT_FILTER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct DOCUMENTPROPERTYHEADER {
     pub cbSize: u16,
@@ -14567,7 +11222,6 @@ impl ::core::default::Default for DOCUMENTPROPERTYHEADER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DOC_INFO_1A {
     pub pDocName: ::windows_core::PSTR,
     pub pOutputFile: ::windows_core::PSTR,
@@ -14599,7 +11253,6 @@ impl ::core::default::Default for DOC_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DOC_INFO_1W {
     pub pDocName: ::windows_core::PWSTR,
     pub pOutputFile: ::windows_core::PWSTR,
@@ -14631,7 +11284,6 @@ impl ::core::default::Default for DOC_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DOC_INFO_2A {
     pub pDocName: ::windows_core::PSTR,
     pub pOutputFile: ::windows_core::PSTR,
@@ -14665,7 +11317,6 @@ impl ::core::default::Default for DOC_INFO_2A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DOC_INFO_2W {
     pub pDocName: ::windows_core::PWSTR,
     pub pOutputFile: ::windows_core::PWSTR,
@@ -14699,7 +11350,6 @@ impl ::core::default::Default for DOC_INFO_2W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DOC_INFO_3A {
     pub pDocName: ::windows_core::PSTR,
     pub pOutputFile: ::windows_core::PSTR,
@@ -14732,7 +11382,6 @@ impl ::core::default::Default for DOC_INFO_3A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DOC_INFO_3W {
     pub pDocName: ::windows_core::PWSTR,
     pub pOutputFile: ::windows_core::PWSTR,
@@ -14765,7 +11414,7 @@ impl ::core::default::Default for DOC_INFO_3W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DOC_INFO_INTERNAL {
     pub pDocName: *mut i8,
@@ -14807,7 +11456,6 @@ impl ::core::default::Default for DOC_INFO_INTERNAL {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_1A {
     pub pName: ::windows_core::PSTR,
 }
@@ -14837,7 +11485,6 @@ impl ::core::default::Default for DRIVER_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_1W {
     pub pName: ::windows_core::PWSTR,
 }
@@ -14867,7 +11514,6 @@ impl ::core::default::Default for DRIVER_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_2A {
     pub cVersion: u32,
     pub pName: ::windows_core::PSTR,
@@ -14902,7 +11548,6 @@ impl ::core::default::Default for DRIVER_INFO_2A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_2W {
     pub cVersion: u32,
     pub pName: ::windows_core::PWSTR,
@@ -14937,7 +11582,6 @@ impl ::core::default::Default for DRIVER_INFO_2W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_3A {
     pub cVersion: u32,
     pub pName: ::windows_core::PSTR,
@@ -14976,7 +11620,6 @@ impl ::core::default::Default for DRIVER_INFO_3A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_3W {
     pub cVersion: u32,
     pub pName: ::windows_core::PWSTR,
@@ -15015,7 +11658,6 @@ impl ::core::default::Default for DRIVER_INFO_3W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_4A {
     pub cVersion: u32,
     pub pName: ::windows_core::PSTR,
@@ -15067,7 +11709,6 @@ impl ::core::default::Default for DRIVER_INFO_4A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_4W {
     pub cVersion: u32,
     pub pName: ::windows_core::PWSTR,
@@ -15119,7 +11760,6 @@ impl ::core::default::Default for DRIVER_INFO_4W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_5A {
     pub cVersion: u32,
     pub pName: ::windows_core::PSTR,
@@ -15157,7 +11797,6 @@ impl ::core::default::Default for DRIVER_INFO_5A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_INFO_5W {
     pub cVersion: u32,
     pub pName: ::windows_core::PWSTR,
@@ -15195,7 +11834,7 @@ impl ::core::default::Default for DRIVER_INFO_5W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DRIVER_INFO_6A {
     pub cVersion: u32,
@@ -15267,7 +11906,7 @@ impl ::core::default::Default for DRIVER_INFO_6A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DRIVER_INFO_6W {
     pub cVersion: u32,
@@ -15339,7 +11978,7 @@ impl ::core::default::Default for DRIVER_INFO_6W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DRIVER_INFO_8A {
     pub cVersion: u32,
@@ -15451,7 +12090,7 @@ impl ::core::default::Default for DRIVER_INFO_8A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct DRIVER_INFO_8W {
     pub cVersion: u32,
@@ -15563,7 +12202,6 @@ impl ::core::default::Default for DRIVER_INFO_8W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_UPGRADE_INFO_1 {
     pub pPrinterName: *mut i8,
     pub pOldDriverDirectory: *mut i8,
@@ -15594,7 +12232,6 @@ impl ::core::default::Default for DRIVER_UPGRADE_INFO_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct DRIVER_UPGRADE_INFO_2 {
     pub pPrinterName: *mut i8,
     pub pOldDriverDirectory: *mut i8,
@@ -15650,7 +12287,6 @@ impl ::core::default::Default for DRIVER_UPGRADE_INFO_2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct EXTCHKBOX {
     pub cbSize: u16,
     pub Flags: u16,
@@ -15687,7 +12323,7 @@ impl ::core::default::Default for EXTCHKBOX {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub struct EXTPUSH {
     pub cbSize: u16,
@@ -15717,7 +12353,7 @@ impl ::core::default::Default for EXTPUSH {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub union EXTPUSH_0 {
     pub DlgProc: super::super::UI::WindowsAndMessaging::DLGPROC,
@@ -15742,7 +12378,7 @@ impl ::core::default::Default for EXTPUSH_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub union EXTPUSH_1 {
     pub DlgTemplateID: u16,
@@ -15767,7 +12403,6 @@ impl ::core::default::Default for EXTPUSH_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct EXTTEXTMETRIC {
     pub emSize: i16,
     pub emPointSize: i16,
@@ -15874,7 +12509,7 @@ impl ::core::default::Default for EXTTEXTMETRIC {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct FORM_INFO_1A {
     pub Flags: u32,
@@ -15915,7 +12550,7 @@ impl ::core::default::Default for FORM_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct FORM_INFO_1W {
     pub Flags: u32,
@@ -15956,7 +12591,7 @@ impl ::core::default::Default for FORM_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct FORM_INFO_2A {
     pub Flags: u32,
@@ -16003,7 +12638,7 @@ impl ::core::default::Default for FORM_INFO_2A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct FORM_INFO_2W {
     pub Flags: u32,
@@ -16050,7 +12685,6 @@ impl ::core::default::Default for FORM_INFO_2W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct GLYPHRUN {
     pub wcLow: u16,
     pub wGlyphCount: u16,
@@ -16081,7 +12715,6 @@ impl ::core::default::Default for GLYPHRUN {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct INSERTPSUIPAGE_INFO {
     pub cbSize: u16,
     pub Type: u8,
@@ -16116,7 +12749,6 @@ impl ::core::default::Default for INSERTPSUIPAGE_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct INVOC {
     pub dwCount: u32,
     pub loOffset: u32,
@@ -16147,7 +12779,6 @@ impl ::core::default::Default for INVOC {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct ImgErrorInfo {
     pub description: ::std::mem::ManuallyDrop<::windows_core::BSTR>,
     pub guid: ::windows_core::GUID,
@@ -16186,7 +12817,7 @@ impl ::core::default::Default for ImgErrorInfo {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct JOB_INFO_1A {
     pub JobId: u32,
@@ -16250,7 +12881,7 @@ impl ::core::default::Default for JOB_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct JOB_INFO_1W {
     pub JobId: u32,
@@ -16314,7 +12945,7 @@ impl ::core::default::Default for JOB_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_Security"))]
 pub struct JOB_INFO_2A {
     pub JobId: u32,
@@ -16420,7 +13051,7 @@ impl ::core::default::Default for JOB_INFO_2A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_Security"))]
 pub struct JOB_INFO_2W {
     pub JobId: u32,
@@ -16526,7 +13157,6 @@ impl ::core::default::Default for JOB_INFO_2W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct JOB_INFO_3 {
     pub JobId: u32,
     pub NextJobId: u32,
@@ -16558,7 +13188,7 @@ impl ::core::default::Default for JOB_INFO_3 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_Security"))]
 pub struct JOB_INFO_4A {
     pub JobId: u32,
@@ -16667,7 +13297,7 @@ impl ::core::default::Default for JOB_INFO_4A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_Security"))]
 pub struct JOB_INFO_4W {
     pub JobId: u32,
@@ -16776,7 +13406,7 @@ impl ::core::default::Default for JOB_INFO_4W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Devices_Display\"`*"]
+#[doc = "Required features: `\"Win32_Devices_Display\"`"]
 #[cfg(feature = "Win32_Devices_Display")]
 pub struct KERNDATA {
     pub dwSize: u32,
@@ -16816,7 +13446,6 @@ impl ::core::default::Default for KERNDATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MAPTABLE {
     pub dwSize: u32,
     pub dwGlyphNum: u32,
@@ -16837,7 +13466,7 @@ impl ::core::default::Default for MAPTABLE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct MESSAGEBOX_PARAMS {
     pub cbSize: u32,
@@ -16880,7 +13509,7 @@ impl ::core::default::Default for MESSAGEBOX_PARAMS {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`*"]
+#[doc = "Required features: `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`"]
 #[cfg(all(feature = "Win32_Devices_Communication", feature = "Win32_Foundation", feature = "Win32_System_Power"))]
 pub struct MONITOR {
     pub pfnEnumPorts: PFN_PRINTING_ENUMPORTS,
@@ -16926,7 +13555,7 @@ impl ::core::default::Default for MONITOR {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`*"]
+#[doc = "Required features: `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`"]
 #[cfg(all(feature = "Win32_Devices_Communication", feature = "Win32_Foundation", feature = "Win32_System_Power"))]
 pub struct MONITOR2 {
     pub cbSize: u32,
@@ -16978,7 +13607,7 @@ impl ::core::default::Default for MONITOR2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`*"]
+#[doc = "Required features: `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`"]
 #[cfg(all(feature = "Win32_Devices_Communication", feature = "Win32_Foundation", feature = "Win32_System_Power"))]
 pub struct MONITOREX {
     pub dwMonitorSize: u32,
@@ -17009,7 +13638,7 @@ impl ::core::default::Default for MONITOREX {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_System_Registry\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Registry\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Registry"))]
 pub struct MONITORINIT {
     pub cbSize: u32,
@@ -17052,7 +13681,6 @@ impl ::core::default::Default for MONITORINIT {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MONITORREG {
     pub cbSize: u32,
     pub fpCreateKey: isize,
@@ -17092,7 +13720,6 @@ impl ::core::default::Default for MONITORREG {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MONITORUI {
     pub dwMonitorUISize: u32,
     pub pfnAddPortUI: isize,
@@ -17125,7 +13752,6 @@ impl ::core::default::Default for MONITORUI {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MONITOR_INFO_1A {
     pub pName: ::windows_core::PSTR,
 }
@@ -17155,7 +13781,6 @@ impl ::core::default::Default for MONITOR_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MONITOR_INFO_1W {
     pub pName: ::windows_core::PWSTR,
 }
@@ -17185,7 +13810,6 @@ impl ::core::default::Default for MONITOR_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MONITOR_INFO_2A {
     pub pName: ::windows_core::PSTR,
     pub pEnvironment: ::windows_core::PSTR,
@@ -17217,7 +13841,6 @@ impl ::core::default::Default for MONITOR_INFO_2A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MONITOR_INFO_2W {
     pub pName: ::windows_core::PWSTR,
     pub pEnvironment: ::windows_core::PWSTR,
@@ -17249,7 +13872,6 @@ impl ::core::default::Default for MONITOR_INFO_2W {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MXDC_ESCAPE_HEADER_T {
     pub cbInput: u32,
     pub cbOutput: u32,
@@ -17270,7 +13892,6 @@ impl ::core::default::Default for MXDC_ESCAPE_HEADER_T {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MXDC_GET_FILENAME_DATA_T {
     pub cbOutput: u32,
     pub wszData: [u16; 1],
@@ -17290,7 +13911,6 @@ impl ::core::default::Default for MXDC_GET_FILENAME_DATA_T {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MXDC_PRINTTICKET_DATA_T {
     pub dwDataSize: u32,
     pub bData: [u8; 1],
@@ -17310,7 +13930,6 @@ impl ::core::default::Default for MXDC_PRINTTICKET_DATA_T {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MXDC_PRINTTICKET_ESCAPE_T {
     pub mxdcEscape: MXDC_ESCAPE_HEADER_T,
     pub printTicketData: MXDC_PRINTTICKET_DATA_T,
@@ -17330,7 +13949,6 @@ impl ::core::default::Default for MXDC_PRINTTICKET_ESCAPE_T {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MXDC_S0PAGE_DATA_T {
     pub dwSize: u32,
     pub bData: [u8; 1],
@@ -17350,7 +13968,6 @@ impl ::core::default::Default for MXDC_S0PAGE_DATA_T {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MXDC_S0PAGE_PASSTHROUGH_ESCAPE_T {
     pub mxdcEscape: MXDC_ESCAPE_HEADER_T,
     pub xpsS0PageData: MXDC_S0PAGE_DATA_T,
@@ -17370,7 +13987,6 @@ impl ::core::default::Default for MXDC_S0PAGE_PASSTHROUGH_ESCAPE_T {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MXDC_S0PAGE_RESOURCE_ESCAPE_T {
     pub mxdcEscape: MXDC_ESCAPE_HEADER_T,
     pub xpsS0PageResourcePassthrough: MXDC_XPS_S0PAGE_RESOURCE_T,
@@ -17390,7 +14006,6 @@ impl ::core::default::Default for MXDC_S0PAGE_RESOURCE_ESCAPE_T {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct MXDC_XPS_S0PAGE_RESOURCE_T {
     pub dwSize: u32,
     pub dwResourceType: u32,
@@ -17413,7 +14028,7 @@ impl ::core::default::Default for MXDC_XPS_S0PAGE_RESOURCE_T {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct NOTIFICATION_CONFIG_1 {
     pub cbSize: u32,
@@ -17446,7 +14061,7 @@ impl ::core::default::Default for NOTIFICATION_CONFIG_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
 pub struct OEMCUIPPARAM {
     pub cbSize: u32,
@@ -17505,7 +14120,7 @@ impl ::core::default::Default for OEMCUIPPARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct OEMDMPARAM {
     pub cbSize: u32,
@@ -17551,7 +14166,7 @@ impl ::core::default::Default for OEMDMPARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct OEMFONTINSTPARAM {
     pub cbSize: u32,
@@ -17594,7 +14209,7 @@ impl ::core::default::Default for OEMFONTINSTPARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct OEMUIOBJ {
     pub cbSize: u32,
@@ -17633,7 +14248,7 @@ impl ::core::default::Default for OEMUIOBJ {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct OEMUIPROCS {
     pub DrvGetDriverSetting: PFN_DrvGetDriverSetting,
@@ -17664,7 +14279,7 @@ impl ::core::default::Default for OEMUIPROCS {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct OEMUIPSPARAM {
     pub cbSize: u32,
@@ -17712,7 +14327,6 @@ impl ::core::default::Default for OEMUIPSPARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct OEM_DMEXTRAHEADER {
     pub dwSize: u32,
     pub dwSignature: u32,
@@ -17744,7 +14358,7 @@ impl ::core::default::Default for OEM_DMEXTRAHEADER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct OIEXT {
     pub cbSize: u16,
@@ -17786,7 +14400,7 @@ impl ::core::default::Default for OIEXT {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct OPTCOMBO {
     pub cbSize: u16,
@@ -17829,7 +14443,7 @@ impl ::core::default::Default for OPTCOMBO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub struct OPTITEM {
     pub cbSize: u16,
@@ -17867,7 +14481,7 @@ impl ::core::default::Default for OPTITEM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub union OPTITEM_0 {
     pub Sel: i32,
@@ -17892,7 +14506,7 @@ impl ::core::default::Default for OPTITEM_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub union OPTITEM_1 {
     pub pExtChkBox: *mut EXTCHKBOX,
@@ -17917,7 +14531,7 @@ impl ::core::default::Default for OPTITEM_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct OPTPARAM {
     pub cbSize: u16,
@@ -17961,7 +14575,7 @@ impl ::core::default::Default for OPTPARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct OPTTYPE {
     pub cbSize: u16,
@@ -18007,7 +14621,6 @@ impl ::core::default::Default for OPTTYPE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PORT_DATA_1 {
     pub sztPortName: [u16; 64],
     pub dwVersion: u32,
@@ -18065,7 +14678,6 @@ impl ::core::default::Default for PORT_DATA_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PORT_DATA_2 {
     pub sztPortName: [u16; 64],
     pub dwVersion: u32,
@@ -18123,7 +14735,6 @@ impl ::core::default::Default for PORT_DATA_2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PORT_DATA_LIST_1 {
     pub dwVersion: u32,
     pub cPortData: u32,
@@ -18155,7 +14766,6 @@ impl ::core::default::Default for PORT_DATA_LIST_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PORT_INFO_1A {
     pub pName: ::windows_core::PSTR,
 }
@@ -18185,7 +14795,6 @@ impl ::core::default::Default for PORT_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PORT_INFO_1W {
     pub pName: ::windows_core::PWSTR,
 }
@@ -18215,7 +14824,6 @@ impl ::core::default::Default for PORT_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PORT_INFO_2A {
     pub pPortName: ::windows_core::PSTR,
     pub pMonitorName: ::windows_core::PSTR,
@@ -18249,7 +14857,6 @@ impl ::core::default::Default for PORT_INFO_2A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PORT_INFO_2W {
     pub pPortName: ::windows_core::PWSTR,
     pub pMonitorName: ::windows_core::PWSTR,
@@ -18283,7 +14890,6 @@ impl ::core::default::Default for PORT_INFO_2W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PORT_INFO_3A {
     pub dwStatus: u32,
     pub pszStatus: ::windows_core::PSTR,
@@ -18315,7 +14921,6 @@ impl ::core::default::Default for PORT_INFO_3A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PORT_INFO_3W {
     pub dwStatus: u32,
     pub pszStatus: ::windows_core::PWSTR,
@@ -18347,7 +14952,6 @@ impl ::core::default::Default for PORT_INFO_3W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_CONNECTION_INFO_1A {
     pub dwFlags: u32,
     pub pszDriverName: ::windows_core::PSTR,
@@ -18378,7 +14982,6 @@ impl ::core::default::Default for PRINTER_CONNECTION_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_CONNECTION_INFO_1W {
     pub dwFlags: u32,
     pub pszDriverName: ::windows_core::PWSTR,
@@ -18409,7 +15012,7 @@ impl ::core::default::Default for PRINTER_CONNECTION_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct PRINTER_DEFAULTSA {
     pub pDatatype: ::windows_core::PSTR,
@@ -18449,7 +15052,7 @@ impl ::core::default::Default for PRINTER_DEFAULTSA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct PRINTER_DEFAULTSW {
     pub pDatatype: ::windows_core::PWSTR,
@@ -18489,7 +15092,6 @@ impl ::core::default::Default for PRINTER_DEFAULTSW {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_ENUM_VALUESA {
     pub pValueName: ::windows_core::PSTR,
     pub cbValueName: u32,
@@ -18523,7 +15125,6 @@ impl ::core::default::Default for PRINTER_ENUM_VALUESA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_ENUM_VALUESW {
     pub pValueName: ::windows_core::PWSTR,
     pub cbValueName: u32,
@@ -18557,7 +15158,6 @@ impl ::core::default::Default for PRINTER_ENUM_VALUESW {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_EVENT_ATTRIBUTES_INFO {
     pub cbSize: u32,
     pub dwOldAttributes: u32,
@@ -18589,7 +15189,6 @@ impl ::core::default::Default for PRINTER_EVENT_ATTRIBUTES_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_INFO_1A {
     pub Flags: u32,
     pub pDescription: ::windows_core::PSTR,
@@ -18622,7 +15221,6 @@ impl ::core::default::Default for PRINTER_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_INFO_1W {
     pub Flags: u32,
     pub pDescription: ::windows_core::PWSTR,
@@ -18655,7 +15253,7 @@ impl ::core::default::Default for PRINTER_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_Security"))]
 pub struct PRINTER_INFO_2A {
     pub pServerName: ::windows_core::PSTR,
@@ -18755,7 +15353,7 @@ impl ::core::default::Default for PRINTER_INFO_2A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_Security"))]
 pub struct PRINTER_INFO_2W {
     pub pServerName: ::windows_core::PWSTR,
@@ -18855,7 +15453,7 @@ impl ::core::default::Default for PRINTER_INFO_2W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Security\"`*"]
+#[doc = "Required features: `\"Win32_Security\"`"]
 #[cfg(feature = "Win32_Security")]
 pub struct PRINTER_INFO_3 {
     pub pSecurityDescriptor: super::super::Security::PSECURITY_DESCRIPTOR,
@@ -18893,7 +15491,6 @@ impl ::core::default::Default for PRINTER_INFO_3 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_INFO_4A {
     pub pPrinterName: ::windows_core::PSTR,
     pub pServerName: ::windows_core::PSTR,
@@ -18925,7 +15522,6 @@ impl ::core::default::Default for PRINTER_INFO_4A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_INFO_4W {
     pub pPrinterName: ::windows_core::PWSTR,
     pub pServerName: ::windows_core::PWSTR,
@@ -18957,7 +15553,6 @@ impl ::core::default::Default for PRINTER_INFO_4W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_INFO_5A {
     pub pPrinterName: ::windows_core::PSTR,
     pub pPortName: ::windows_core::PSTR,
@@ -18991,7 +15586,6 @@ impl ::core::default::Default for PRINTER_INFO_5A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_INFO_5W {
     pub pPrinterName: ::windows_core::PWSTR,
     pub pPortName: ::windows_core::PWSTR,
@@ -19025,7 +15619,6 @@ impl ::core::default::Default for PRINTER_INFO_5W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_INFO_6 {
     pub dwStatus: u32,
 }
@@ -19055,7 +15648,6 @@ impl ::core::default::Default for PRINTER_INFO_6 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_INFO_7A {
     pub pszObjectGUID: ::windows_core::PSTR,
     pub dwAction: u32,
@@ -19086,7 +15678,6 @@ impl ::core::default::Default for PRINTER_INFO_7A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_INFO_7W {
     pub pszObjectGUID: ::windows_core::PWSTR,
     pub dwAction: u32,
@@ -19117,7 +15708,7 @@ impl ::core::default::Default for PRINTER_INFO_7W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct PRINTER_INFO_8A {
     pub pDevMode: *mut super::Gdi::DEVMODEA,
@@ -19155,7 +15746,7 @@ impl ::core::default::Default for PRINTER_INFO_8A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct PRINTER_INFO_8W {
     pub pDevMode: *mut super::Gdi::DEVMODEW,
@@ -19193,7 +15784,7 @@ impl ::core::default::Default for PRINTER_INFO_8W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct PRINTER_INFO_9A {
     pub pDevMode: *mut super::Gdi::DEVMODEA,
@@ -19231,7 +15822,7 @@ impl ::core::default::Default for PRINTER_INFO_9A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct PRINTER_INFO_9W {
     pub pDevMode: *mut super::Gdi::DEVMODEW,
@@ -19269,7 +15860,6 @@ impl ::core::default::Default for PRINTER_INFO_9W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_NOTIFY_INFO {
     pub Version: u32,
     pub Flags: u32,
@@ -19291,7 +15881,6 @@ impl ::core::default::Default for PRINTER_NOTIFY_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_NOTIFY_INFO_DATA {
     pub Type: u16,
     pub Field: u16,
@@ -19314,7 +15903,6 @@ impl ::core::default::Default for PRINTER_NOTIFY_INFO_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub union PRINTER_NOTIFY_INFO_DATA_0 {
     pub adwData: [u32; 2],
     pub Data: PRINTER_NOTIFY_INFO_DATA_0_0,
@@ -19334,7 +15922,6 @@ impl ::core::default::Default for PRINTER_NOTIFY_INFO_DATA_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_NOTIFY_INFO_DATA_0_0 {
     pub cbBuf: u32,
     pub pBuf: *mut ::core::ffi::c_void,
@@ -19365,7 +15952,6 @@ impl ::core::default::Default for PRINTER_NOTIFY_INFO_DATA_0_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_NOTIFY_INIT {
     pub Size: u32,
     pub Reserved: u32,
@@ -19397,7 +15983,6 @@ impl ::core::default::Default for PRINTER_NOTIFY_INIT {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_NOTIFY_OPTIONS {
     pub Version: u32,
     pub Flags: u32,
@@ -19430,7 +16015,6 @@ impl ::core::default::Default for PRINTER_NOTIFY_OPTIONS {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_NOTIFY_OPTIONS_TYPE {
     pub Type: u16,
     pub Reserved0: u16,
@@ -19465,7 +16049,6 @@ impl ::core::default::Default for PRINTER_NOTIFY_OPTIONS_TYPE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_OPTIONSA {
     pub cbSize: u32,
     pub dwFlags: u32,
@@ -19496,7 +16079,6 @@ impl ::core::default::Default for PRINTER_OPTIONSA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTER_OPTIONSW {
     pub cbSize: u32,
     pub dwFlags: u32,
@@ -19527,7 +16109,7 @@ impl ::core::default::Default for PRINTER_OPTIONSW {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct PRINTIFI32 {
     pub cjThis: u32,
@@ -19741,7 +16323,7 @@ impl ::core::default::Default for PRINTIFI32 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub struct PRINTPROCESSOROPENDATA {
     pub pDevMode: *mut super::Gdi::DEVMODEA,
@@ -19785,7 +16367,6 @@ impl ::core::default::Default for PRINTPROCESSOROPENDATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTPROCESSOR_CAPS_1 {
     pub dwLevel: u32,
     pub dwNupOptions: u32,
@@ -19818,7 +16399,6 @@ impl ::core::default::Default for PRINTPROCESSOR_CAPS_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTPROCESSOR_CAPS_2 {
     pub dwLevel: u32,
     pub dwNupOptions: u32,
@@ -19866,7 +16446,6 @@ impl ::core::default::Default for PRINTPROCESSOR_CAPS_2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTPROCESSOR_INFO_1A {
     pub pName: ::windows_core::PSTR,
 }
@@ -19896,7 +16475,6 @@ impl ::core::default::Default for PRINTPROCESSOR_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTPROCESSOR_INFO_1W {
     pub pName: ::windows_core::PWSTR,
 }
@@ -19926,7 +16504,6 @@ impl ::core::default::Default for PRINTPROCESSOR_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINTPROVIDOR {
     pub fpOpenPrinter: isize,
     pub fpSetJob: isize,
@@ -20279,7 +16856,6 @@ impl ::core::default::Default for PRINTPROVIDOR {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINT_EXECUTION_DATA {
     pub context: PRINT_EXECUTION_CONTEXT,
     pub clientAppPID: u32,
@@ -20310,7 +16886,6 @@ impl ::core::default::Default for PRINT_EXECUTION_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PRINT_FEATURE_OPTION {
     pub pszFeature: ::windows_core::PCSTR,
     pub pszOption: ::windows_core::PCSTR,
@@ -20341,7 +16916,7 @@ impl ::core::default::Default for PRINT_FEATURE_OPTION {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(feature = "Win32_UI_WindowsAndMessaging")]
 pub struct PROPSHEETUI_GETICON_INFO {
     pub cbSize: u16,
@@ -20383,7 +16958,7 @@ impl ::core::default::Default for PROPSHEETUI_GETICON_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct PROPSHEETUI_INFO {
     pub cbSize: u16,
@@ -20421,7 +16996,7 @@ impl ::core::default::Default for PROPSHEETUI_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub struct PROPSHEETUI_INFO_HEADER {
     pub cbSize: u16,
@@ -20450,7 +17025,7 @@ impl ::core::default::Default for PROPSHEETUI_INFO_HEADER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub union PROPSHEETUI_INFO_HEADER_0 {
     pub hIcon: super::super::UI::WindowsAndMessaging::HICON,
@@ -20475,7 +17050,6 @@ impl ::core::default::Default for PROPSHEETUI_INFO_HEADER_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PROVIDOR_INFO_1A {
     pub pName: ::windows_core::PSTR,
     pub pEnvironment: ::windows_core::PSTR,
@@ -20507,7 +17081,6 @@ impl ::core::default::Default for PROVIDOR_INFO_1A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PROVIDOR_INFO_1W {
     pub pName: ::windows_core::PWSTR,
     pub pEnvironment: ::windows_core::PWSTR,
@@ -20539,7 +17112,6 @@ impl ::core::default::Default for PROVIDOR_INFO_1W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PROVIDOR_INFO_2A {
     pub pOrder: ::windows_core::PSTR,
 }
@@ -20569,7 +17141,6 @@ impl ::core::default::Default for PROVIDOR_INFO_2A {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PROVIDOR_INFO_2W {
     pub pOrder: ::windows_core::PWSTR,
 }
@@ -20599,7 +17170,6 @@ impl ::core::default::Default for PROVIDOR_INFO_2W {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PSCRIPT5_PRIVATE_DEVMODE {
     pub wReserved: [u16; 57],
     pub wSize: u16,
@@ -20630,7 +17200,7 @@ impl ::core::default::Default for PSCRIPT5_PRIVATE_DEVMODE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct PSPINFO {
     pub cbSize: u16,
@@ -20664,7 +17234,6 @@ impl ::core::default::Default for PSPINFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PUBLISHERINFO {
     pub dwMode: u32,
     pub wMinoutlinePPEM: u16,
@@ -20696,7 +17265,6 @@ impl ::core::default::Default for PUBLISHERINFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PrintNamedProperty {
     pub propertyName: ::windows_core::PWSTR,
     pub propertyValue: PrintPropertyValue,
@@ -20716,7 +17284,6 @@ impl ::core::default::Default for PrintNamedProperty {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PrintPropertiesCollection {
     pub numberOfProperties: u32,
     pub propertiesCollection: *mut PrintNamedProperty,
@@ -20747,7 +17314,6 @@ impl ::core::default::Default for PrintPropertiesCollection {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PrintPropertyValue {
     pub ePropertyType: EPrintPropertyType,
     pub value: PrintPropertyValue_0,
@@ -20767,7 +17333,6 @@ impl ::core::default::Default for PrintPropertyValue {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub union PrintPropertyValue_0 {
     pub propertyByte: u8,
     pub propertyString: ::windows_core::PWSTR,
@@ -20790,7 +17355,6 @@ impl ::core::default::Default for PrintPropertyValue_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct PrintPropertyValue_0_0 {
     pub cbBuf: u32,
     pub pBuf: *mut ::core::ffi::c_void,
@@ -20821,7 +17385,7 @@ impl ::core::default::Default for PrintPropertyValue_0_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct SETRESULT_INFO {
     pub cbSize: u16,
@@ -20862,7 +17426,7 @@ impl ::core::default::Default for SETRESULT_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct SHOWUIPARAMS {
     pub UIType: UI_TYPE,
@@ -20901,7 +17465,6 @@ impl ::core::default::Default for SHOWUIPARAMS {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct SIMULATE_CAPS_1 {
     pub dwLevel: u32,
     pub dwPageOrderFlags: u32,
@@ -20935,7 +17498,6 @@ impl ::core::default::Default for SIMULATE_CAPS_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct SPLCLIENT_INFO_1 {
     pub dwSize: u32,
     pub pMachineName: ::windows_core::PWSTR,
@@ -20971,7 +17533,6 @@ impl ::core::default::Default for SPLCLIENT_INFO_1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct SPLCLIENT_INFO_2_W2K {
     pub hSplPrinter: usize,
 }
@@ -21001,7 +17562,6 @@ impl ::core::default::Default for SPLCLIENT_INFO_2_W2K {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[cfg(any(target_arch = "aarch64", target_arch = "x86_64"))]
 pub struct SPLCLIENT_INFO_2_WINXP {
     pub hSplPrinter: u64,
@@ -21039,7 +17599,6 @@ impl ::core::default::Default for SPLCLIENT_INFO_2_WINXP {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 #[cfg(target_arch = "x86")]
 pub struct SPLCLIENT_INFO_2_WINXP {
     pub hSplPrinter: u32,
@@ -21077,7 +17636,6 @@ impl ::core::default::Default for SPLCLIENT_INFO_2_WINXP {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct SPLCLIENT_INFO_3_VISTA {
     pub cbSize: u32,
     pub dwFlags: u32,
@@ -21116,7 +17674,6 @@ impl ::core::default::Default for SPLCLIENT_INFO_3_VISTA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct TRANSDATA {
     pub ubCodePageID: u8,
     pub ubType: u8,
@@ -21137,7 +17694,6 @@ impl ::core::default::Default for TRANSDATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub union TRANSDATA_0 {
     pub sCode: i16,
     pub ubCode: u8,
@@ -21158,7 +17714,6 @@ impl ::core::default::Default for TRANSDATA_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct UFF_FILEHEADER {
     pub dwSignature: u32,
     pub dwVersion: u32,
@@ -21196,7 +17751,6 @@ impl ::core::default::Default for UFF_FILEHEADER {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct UFF_FONTDIRECTORY {
     pub dwSignature: u32,
     pub wSize: u16,
@@ -21236,7 +17790,6 @@ impl ::core::default::Default for UFF_FONTDIRECTORY {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct UNIDRVINFO {
     pub dwSize: u32,
     pub flGenFlags: u32,
@@ -21278,7 +17831,6 @@ impl ::core::default::Default for UNIDRVINFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct UNIDRV_PRIVATE_DEVMODE {
     pub wReserved: [u16; 4],
     pub wSize: u16,
@@ -21309,7 +17861,6 @@ impl ::core::default::Default for UNIDRV_PRIVATE_DEVMODE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct UNIFM_HDR {
     pub dwSize: u32,
     pub dwVersion: u32,
@@ -21348,7 +17899,6 @@ impl ::core::default::Default for UNIFM_HDR {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct UNI_CODEPAGEINFO {
     pub dwCodePage: u32,
     pub SelectSymbolSet: INVOC,
@@ -21380,7 +17930,6 @@ impl ::core::default::Default for UNI_CODEPAGEINFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct UNI_GLYPHSETDATA {
     pub dwSize: u32,
     pub dwVersion: u32,
@@ -21432,7 +17981,6 @@ impl ::core::default::Default for UNI_GLYPHSETDATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct USERDATA {
     pub dwSize: u32,
     pub dwItemID: usize,
@@ -21465,7 +18013,6 @@ impl ::core::default::Default for USERDATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct WIDTHRUN {
     pub wStartGlyph: u16,
     pub wGlyphCount: u16,
@@ -21497,7 +18044,6 @@ impl ::core::default::Default for WIDTHRUN {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct WIDTHTABLE {
     pub dwSize: u32,
     pub dwRunNum: u32,
@@ -21529,7 +18075,6 @@ impl ::core::default::Default for WIDTHTABLE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`*"]
 pub struct _SPLCLIENT_INFO_2_V3 {
     pub hSplPrinter: u64,
 }
@@ -21558,148 +18103,148 @@ impl ::core::default::Default for _SPLCLIENT_INFO_2_V3 {
         unsafe { ::core::mem::zeroed() }
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub type EMFPLAYPROC = ::core::option::Option<unsafe extern "system" fn(param0: super::Gdi::HDC, param1: i32, param2: super::super::Foundation::HANDLE) -> i32>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_UI_WindowsAndMessaging"))]
 pub type OEMCUIPCALLBACK = ::core::option::Option<unsafe extern "system" fn(param0: *mut CPSUICBPARAM, param1: *mut OEMCUIPPARAM) -> i32>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFNCOMPROPSHEET = ::core::option::Option<unsafe extern "system" fn(hcompropsheet: super::super::Foundation::HANDLE, function: u32, lparam1: super::super::Foundation::LPARAM, lparam2: super::super::Foundation::LPARAM) -> isize>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFNPROPSHEETUI = ::core::option::Option<unsafe extern "system" fn(ppsuiinfo: *mut PROPSHEETUI_INFO, lparam: super::super::Foundation::LPARAM) -> i32>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_DrvGetDriverSetting = ::core::option::Option<unsafe extern "system" fn(pdriverobj: *mut ::core::ffi::c_void, feature: ::windows_core::PCSTR, poutput: *mut ::core::ffi::c_void, cbsize: u32, pcbneeded: *mut u32, pdwoptionsreturned: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_DrvUpdateUISetting = ::core::option::Option<unsafe extern "system" fn(pdriverobj: *mut ::core::ffi::c_void, poptitem: *mut ::core::ffi::c_void, dwpreviousselection: u32, dwmode: u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_DrvUpgradeRegistrySetting = ::core::option::Option<unsafe extern "system" fn(hprinter: super::super::Foundation::HANDLE, pfeature: ::windows_core::PCSTR, poption: ::windows_core::PCSTR) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_ADDPORT = ::core::option::Option<unsafe extern "system" fn(param0: ::windows_core::PCWSTR, param1: super::super::Foundation::HWND, param2: ::windows_core::PCWSTR) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_ADDPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: super::super::Foundation::HWND, param3: ::windows_core::PCWSTR) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_ADDPORTEX = ::core::option::Option<unsafe extern "system" fn(param0: ::windows_core::PCWSTR, param1: u32, param2: *const u8, param3: ::windows_core::PCWSTR) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_ADDPORTEX2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: u32, param3: *const u8, param4: ::windows_core::PCWSTR) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_CLOSEPORT = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_CLOSEPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_CONFIGUREPORT = ::core::option::Option<unsafe extern "system" fn(param0: ::windows_core::PCWSTR, param1: super::super::Foundation::HWND, param2: ::windows_core::PCWSTR) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_CONFIGUREPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: super::super::Foundation::HWND, param3: ::windows_core::PCWSTR) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_DELETEPORT = ::core::option::Option<unsafe extern "system" fn(param0: ::windows_core::PCWSTR, param1: super::super::Foundation::HWND, param2: ::windows_core::PCWSTR) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_DELETEPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: super::super::Foundation::HWND, param3: ::windows_core::PCWSTR) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_ENDDOCPORT = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_ENDDOCPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_ENUMPORTS = ::core::option::Option<unsafe extern "system" fn(param0: ::windows_core::PCWSTR, param1: u32, param2: *mut u8, param3: u32, param4: *mut u32, param5: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_ENUMPORTS2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: u32, param3: *mut u8, param4: u32, param5: *mut u32, param6: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_GETPRINTERDATAFROMPORT = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: u32, param2: ::windows_core::PCWSTR, param3: ::windows_core::PCWSTR, param4: u32, param5: ::windows_core::PCWSTR, param6: u32, param7: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_GETPRINTERDATAFROMPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: u32, param2: ::windows_core::PCWSTR, param3: ::windows_core::PCWSTR, param4: u32, param5: ::windows_core::PCWSTR, param6: u32, param7: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_NOTIFYUNUSEDPORTS2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: u32, param2: ::windows_core::PCWSTR) -> u32>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_NOTIFYUSEDPORTS2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: u32, param2: ::windows_core::PCWSTR) -> u32>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_OPENPORT = ::core::option::Option<unsafe extern "system" fn(param0: ::windows_core::PCWSTR, param1: *mut super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_OPENPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: *mut super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`*"]
+#[doc = "Required features: `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`"]
 #[cfg(all(feature = "Win32_Devices_Communication", feature = "Win32_Foundation", feature = "Win32_System_Power"))]
 pub type PFN_PRINTING_OPENPORTEX = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: ::windows_core::PCWSTR, param3: *mut super::super::Foundation::HANDLE, param4: *const MONITOR2) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`*"]
+#[doc = "Required features: `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`"]
 #[cfg(all(feature = "Win32_Devices_Communication", feature = "Win32_Foundation", feature = "Win32_System_Power"))]
 pub type PFN_PRINTING_OPENPORTEX2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: super::super::Foundation::HANDLE, param2: ::windows_core::PCWSTR, param3: ::windows_core::PCWSTR, param4: *mut super::super::Foundation::HANDLE, param5: *const MONITOR2) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_System_Power\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Power\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Power"))]
 pub type PFN_PRINTING_POWEREVENT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: u32, param2: *const super::super::System::Power::POWERBROADCAST_SETTING) -> u32>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_READPORT = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: *mut u8, param2: u32, param3: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_READPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: *mut u8, param2: u32, param3: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_SENDRECVBIDIDATAFROMPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: u32, param2: ::windows_core::PCWSTR, param3: *const BIDI_REQUEST_CONTAINER, param4: *mut *mut BIDI_RESPONSE_CONTAINER) -> u32>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`"]
 #[cfg(all(feature = "Win32_Devices_Communication", feature = "Win32_Foundation"))]
 pub type PFN_PRINTING_SETPORTTIMEOUTS = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: *const super::super::Devices::Communication::COMMTIMEOUTS, param2: u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Devices_Communication\"`, `\"Win32_Foundation\"`"]
 #[cfg(all(feature = "Win32_Devices_Communication", feature = "Win32_Foundation"))]
 pub type PFN_PRINTING_SETPORTTIMEOUTS2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: *const super::super::Devices::Communication::COMMTIMEOUTS, param2: u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_SHUTDOWN2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE) -> ()>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_STARTDOCPORT = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: u32, param3: u32, param4: *const u8) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_STARTDOCPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: u32, param3: u32, param4: *const u8) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_WRITEPORT = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: *const u8, param2: u32, param3: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_WRITEPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: *const u8, param2: u32, param3: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_XCVCLOSEPORT = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_XCVCLOSEPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_XCVDATAPORT = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: *const u8, param3: u32, param4: *mut u8, param5: u32, param6: *mut u32) -> u32>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_XCVDATAPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: *const u8, param3: u32, param4: *mut u8, param5: u32, param6: *mut u32) -> u32>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_XCVOPENPORT = ::core::option::Option<unsafe extern "system" fn(param0: ::windows_core::PCWSTR, param1: u32, param2: *mut super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type PFN_PRINTING_XCVOPENPORT2 = ::core::option::Option<unsafe extern "system" fn(param0: super::super::Foundation::HANDLE, param1: ::windows_core::PCWSTR, param2: u32, param3: *mut super::super::Foundation::HANDLE) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub type ROUTER_NOTIFY_CALLBACK = ::core::option::Option<unsafe extern "system" fn(dwcommand: u32, pcontext: *const ::core::ffi::c_void, dwcolor: u32, pnofityinfo: *const PRINTER_NOTIFY_INFO, fdwflags: u32, pdwresult: *mut u32) -> super::super::Foundation::BOOL>;
-#[doc = "*Required features: `\"Win32_Graphics_Printing\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub type _CPSUICALLBACK = ::core::option::Option<unsafe extern "system" fn(pcpsuicbparam: *mut CPSUICBPARAM) -> i32>;
 #[cfg(feature = "implement")]

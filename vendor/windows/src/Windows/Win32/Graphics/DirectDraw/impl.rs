@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDDVideoPortContainer_Impl: Sized {
     fn CreateVideoPort(&self, param0: u32, param1: *mut DDVIDEOPORTDESC, param2: *mut ::core::option::Option<IDirectDrawVideoPort>, param3: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<()>;
@@ -39,11 +39,11 @@ impl IDDVideoPortContainer_Vtbl {
             QueryVideoPortStatus: QueryVideoPortStatus::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDDVideoPortContainer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDDVideoPortContainer as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDraw_Impl: Sized {
     fn Compact(&self) -> ::windows_core::Result<()>;
@@ -60,7 +60,7 @@ pub trait IDirectDraw_Impl: Sized {
     fn GetGDISurface(&self) -> ::windows_core::Result<IDirectDrawSurface>;
     fn GetMonitorFrequency(&self, param0: *mut u32) -> ::windows_core::Result<()>;
     fn GetScanLine(&self, param0: *mut u32) -> ::windows_core::Result<()>;
-    fn GetVerticalBlankStatus(&self, param0: *mut i32) -> ::windows_core::Result<()>;
+    fn GetVerticalBlankStatus(&self, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
     fn Initialize(&self, param0: *mut ::windows_core::GUID) -> ::windows_core::Result<()>;
     fn RestoreDisplayMode(&self) -> ::windows_core::Result<()>;
     fn SetCooperativeLevel(&self, param0: super::super::Foundation::HWND, param1: u32) -> ::windows_core::Result<()>;
@@ -154,7 +154,7 @@ impl IDirectDraw_Vtbl {
             let this = (*this).get_impl();
             this.GetScanLine(::core::mem::transmute_copy(&param0)).into()
         }
-        unsafe extern "system" fn GetVerticalBlankStatus<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDraw_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut i32) -> ::windows_core::HRESULT {
+        unsafe extern "system" fn GetVerticalBlankStatus<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDraw_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::HRESULT {
             let this = (this as *const *const ()).offset(OFFSET) as *const Identity;
             let this = (*this).get_impl();
             this.GetVerticalBlankStatus(::core::mem::transmute_copy(&param0)).into()
@@ -208,11 +208,11 @@ impl IDirectDraw_Vtbl {
             WaitForVerticalBlank: WaitForVerticalBlank::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDraw as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDraw as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDraw2_Impl: Sized {
     fn Compact(&self) -> ::windows_core::Result<()>;
@@ -229,7 +229,7 @@ pub trait IDirectDraw2_Impl: Sized {
     fn GetGDISurface(&self) -> ::windows_core::Result<IDirectDrawSurface>;
     fn GetMonitorFrequency(&self, param0: *mut u32) -> ::windows_core::Result<()>;
     fn GetScanLine(&self, param0: *mut u32) -> ::windows_core::Result<()>;
-    fn GetVerticalBlankStatus(&self, param0: *mut i32) -> ::windows_core::Result<()>;
+    fn GetVerticalBlankStatus(&self, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
     fn Initialize(&self, param0: *mut ::windows_core::GUID) -> ::windows_core::Result<()>;
     fn RestoreDisplayMode(&self) -> ::windows_core::Result<()>;
     fn SetCooperativeLevel(&self, param0: super::super::Foundation::HWND, param1: u32) -> ::windows_core::Result<()>;
@@ -324,7 +324,7 @@ impl IDirectDraw2_Vtbl {
             let this = (*this).get_impl();
             this.GetScanLine(::core::mem::transmute_copy(&param0)).into()
         }
-        unsafe extern "system" fn GetVerticalBlankStatus<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDraw2_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut i32) -> ::windows_core::HRESULT {
+        unsafe extern "system" fn GetVerticalBlankStatus<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDraw2_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::HRESULT {
             let this = (this as *const *const ()).offset(OFFSET) as *const Identity;
             let this = (*this).get_impl();
             this.GetVerticalBlankStatus(::core::mem::transmute_copy(&param0)).into()
@@ -384,11 +384,11 @@ impl IDirectDraw2_Vtbl {
             GetAvailableVidMem: GetAvailableVidMem::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDraw2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDraw2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDraw4_Impl: Sized {
     fn Compact(&self) -> ::windows_core::Result<()>;
@@ -405,7 +405,7 @@ pub trait IDirectDraw4_Impl: Sized {
     fn GetGDISurface(&self) -> ::windows_core::Result<IDirectDrawSurface4>;
     fn GetMonitorFrequency(&self, param0: *mut u32) -> ::windows_core::Result<()>;
     fn GetScanLine(&self, param0: *mut u32) -> ::windows_core::Result<()>;
-    fn GetVerticalBlankStatus(&self, param0: *mut i32) -> ::windows_core::Result<()>;
+    fn GetVerticalBlankStatus(&self, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
     fn Initialize(&self, param0: *mut ::windows_core::GUID) -> ::windows_core::Result<()>;
     fn RestoreDisplayMode(&self) -> ::windows_core::Result<()>;
     fn SetCooperativeLevel(&self, param0: super::super::Foundation::HWND, param1: u32) -> ::windows_core::Result<()>;
@@ -504,7 +504,7 @@ impl IDirectDraw4_Vtbl {
             let this = (*this).get_impl();
             this.GetScanLine(::core::mem::transmute_copy(&param0)).into()
         }
-        unsafe extern "system" fn GetVerticalBlankStatus<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDraw4_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut i32) -> ::windows_core::HRESULT {
+        unsafe extern "system" fn GetVerticalBlankStatus<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDraw4_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::HRESULT {
             let this = (this as *const *const ()).offset(OFFSET) as *const Identity;
             let this = (*this).get_impl();
             this.GetVerticalBlankStatus(::core::mem::transmute_copy(&param0)).into()
@@ -594,11 +594,11 @@ impl IDirectDraw4_Vtbl {
             GetDeviceIdentifier: GetDeviceIdentifier::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDraw4 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDraw4 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDraw7_Impl: Sized {
     fn Compact(&self) -> ::windows_core::Result<()>;
@@ -615,7 +615,7 @@ pub trait IDirectDraw7_Impl: Sized {
     fn GetGDISurface(&self) -> ::windows_core::Result<IDirectDrawSurface7>;
     fn GetMonitorFrequency(&self, param0: *mut u32) -> ::windows_core::Result<()>;
     fn GetScanLine(&self, param0: *mut u32) -> ::windows_core::Result<()>;
-    fn GetVerticalBlankStatus(&self, param0: *mut i32) -> ::windows_core::Result<()>;
+    fn GetVerticalBlankStatus(&self, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
     fn Initialize(&self, param0: *mut ::windows_core::GUID) -> ::windows_core::Result<()>;
     fn RestoreDisplayMode(&self) -> ::windows_core::Result<()>;
     fn SetCooperativeLevel(&self, param0: super::super::Foundation::HWND, param1: u32) -> ::windows_core::Result<()>;
@@ -716,7 +716,7 @@ impl IDirectDraw7_Vtbl {
             let this = (*this).get_impl();
             this.GetScanLine(::core::mem::transmute_copy(&param0)).into()
         }
-        unsafe extern "system" fn GetVerticalBlankStatus<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDraw7_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut i32) -> ::windows_core::HRESULT {
+        unsafe extern "system" fn GetVerticalBlankStatus<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDraw7_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::HRESULT {
             let this = (this as *const *const ()).offset(OFFSET) as *const Identity;
             let this = (*this).get_impl();
             this.GetVerticalBlankStatus(::core::mem::transmute_copy(&param0)).into()
@@ -818,11 +818,11 @@ impl IDirectDraw7_Vtbl {
             EvaluateMode: EvaluateMode::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDraw7 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDraw7 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDrawClipper_Impl: Sized {
     fn GetClipList(&self, param0: *mut super::super::Foundation::RECT, param1: *mut super::Gdi::RGNDATA, param2: *mut u32) -> ::windows_core::Result<()>;
@@ -877,11 +877,10 @@ impl IDirectDrawClipper_Vtbl {
             SetHWnd: SetHWnd::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawClipper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawClipper as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"implement\"`*"]
 pub trait IDirectDrawColorControl_Impl: Sized {
     fn GetColorControls(&self, param0: *mut DDCOLORCONTROL) -> ::windows_core::Result<()>;
     fn SetColorControls(&self, param0: *mut DDCOLORCONTROL) -> ::windows_core::Result<()>;
@@ -905,11 +904,10 @@ impl IDirectDrawColorControl_Vtbl {
             SetColorControls: SetColorControls::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawColorControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawColorControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"implement\"`*"]
 pub trait IDirectDrawGammaControl_Impl: Sized {
     fn GetGammaRamp(&self, param0: u32, param1: *mut DDGAMMARAMP) -> ::windows_core::Result<()>;
     fn SetGammaRamp(&self, param0: u32, param1: *mut DDGAMMARAMP) -> ::windows_core::Result<()>;
@@ -933,11 +931,10 @@ impl IDirectDrawGammaControl_Vtbl {
             SetGammaRamp: SetGammaRamp::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawGammaControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawGammaControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"implement\"`*"]
 pub trait IDirectDrawKernel_Impl: Sized {
     fn GetCaps(&self, param0: *mut DDKERNELCAPS) -> ::windows_core::Result<()>;
     fn GetKernelHandle(&self, param0: *mut usize) -> ::windows_core::Result<()>;
@@ -968,11 +965,11 @@ impl IDirectDrawKernel_Vtbl {
             ReleaseKernelHandle: ReleaseKernelHandle::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawKernel as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawKernel as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Graphics_Gdi\"`"]
 #[cfg(feature = "Win32_Graphics_Gdi")]
 pub trait IDirectDrawPalette_Impl: Sized {
     fn GetCaps(&self, param0: *mut u32) -> ::windows_core::Result<()>;
@@ -1013,11 +1010,11 @@ impl IDirectDrawPalette_Vtbl {
             SetEntries: SetEntries::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawPalette as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawPalette as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDrawSurface_Impl: Sized {
     fn AddAttachedSurface(&self, param0: ::core::option::Option<&IDirectDrawSurface>) -> ::windows_core::Result<()>;
@@ -1273,11 +1270,11 @@ impl IDirectDrawSurface_Vtbl {
             UpdateOverlayZOrder: UpdateOverlayZOrder::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawSurface as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawSurface as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDrawSurface2_Impl: Sized {
     fn AddAttachedSurface(&self, param0: ::core::option::Option<&IDirectDrawSurface2>) -> ::windows_core::Result<()>;
@@ -1554,11 +1551,11 @@ impl IDirectDrawSurface2_Vtbl {
             PageUnlock: PageUnlock::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawSurface2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawSurface2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDrawSurface3_Impl: Sized {
     fn AddAttachedSurface(&self, param0: ::core::option::Option<&IDirectDrawSurface3>) -> ::windows_core::Result<()>;
@@ -1842,11 +1839,11 @@ impl IDirectDrawSurface3_Vtbl {
             SetSurfaceDesc: SetSurfaceDesc::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawSurface3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawSurface3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDrawSurface4_Impl: Sized {
     fn AddAttachedSurface(&self, param0: ::core::option::Option<&IDirectDrawSurface4>) -> ::windows_core::Result<()>;
@@ -2165,11 +2162,11 @@ impl IDirectDrawSurface4_Vtbl {
             ChangeUniquenessValue: ChangeUniquenessValue::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawSurface4 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawSurface4 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi"))]
 pub trait IDirectDrawSurface7_Impl: Sized {
     fn AddAttachedSurface(&self, param0: ::core::option::Option<&IDirectDrawSurface7>) -> ::windows_core::Result<()>;
@@ -2516,11 +2513,10 @@ impl IDirectDrawSurface7_Vtbl {
             GetLOD: GetLOD::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawSurface7 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawSurface7 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"implement\"`*"]
 pub trait IDirectDrawSurfaceKernel_Impl: Sized {
     fn GetKernelHandle(&self, param0: *mut usize) -> ::windows_core::Result<()>;
     fn ReleaseKernelHandle(&self) -> ::windows_core::Result<()>;
@@ -2544,11 +2540,11 @@ impl IDirectDrawSurfaceKernel_Vtbl {
             ReleaseKernelHandle: ReleaseKernelHandle::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawSurfaceKernel as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawSurfaceKernel as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDirectDrawVideoPort_Impl: Sized {
     fn Flip(&self, param0: ::core::option::Option<&IDirectDrawSurface>, param1: u32) -> ::windows_core::Result<()>;
@@ -2556,7 +2552,7 @@ pub trait IDirectDrawVideoPort_Impl: Sized {
     fn GetColorControls(&self, param0: *mut DDCOLORCONTROL) -> ::windows_core::Result<()>;
     fn GetInputFormats(&self, lpnumformats: *mut u32, param1: *mut DDPIXELFORMAT, param2: u32) -> ::windows_core::Result<()>;
     fn GetOutputFormats(&self, param0: *mut DDPIXELFORMAT, lpnumformats: *mut u32, param2: *mut DDPIXELFORMAT, param3: u32) -> ::windows_core::Result<()>;
-    fn GetFieldPolarity(&self, param0: *mut i32) -> ::windows_core::Result<()>;
+    fn GetFieldPolarity(&self, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
     fn GetVideoLine(&self, param0: *mut u32) -> ::windows_core::Result<()>;
     fn GetVideoSignalStatus(&self, param0: *mut u32) -> ::windows_core::Result<()>;
     fn SetColorControls(&self, param0: *mut DDCOLORCONTROL) -> ::windows_core::Result<()>;
@@ -2596,7 +2592,7 @@ impl IDirectDrawVideoPort_Vtbl {
             let this = (*this).get_impl();
             this.GetOutputFormats(::core::mem::transmute_copy(&param0), ::core::mem::transmute_copy(&lpnumformats), ::core::mem::transmute_copy(&param2), ::core::mem::transmute_copy(&param3)).into()
         }
-        unsafe extern "system" fn GetFieldPolarity<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDrawVideoPort_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut i32) -> ::windows_core::HRESULT {
+        unsafe extern "system" fn GetFieldPolarity<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectDrawVideoPort_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, param0: *mut super::super::Foundation::BOOL) -> ::windows_core::HRESULT {
             let this = (this as *const *const ()).offset(OFFSET) as *const Identity;
             let this = (*this).get_impl();
             this.GetFieldPolarity(::core::mem::transmute_copy(&param0)).into()
@@ -2659,11 +2655,11 @@ impl IDirectDrawVideoPort_Vtbl {
             WaitForSync: WaitForSync::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawVideoPort as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawVideoPort as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Graphics_DirectDraw\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDirectDrawVideoPortNotify_Impl: Sized {
     fn AcquireNotification(&self, param0: *mut super::super::Foundation::HANDLE, param1: *mut DDVIDEOPORTNOTIFY) -> ::windows_core::Result<()>;
@@ -2690,7 +2686,7 @@ impl IDirectDrawVideoPortNotify_Vtbl {
             ReleaseNotification: ReleaseNotification::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectDrawVideoPortNotify as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectDrawVideoPortNotify as ::windows_core::ComInterface>::IID
     }
 }

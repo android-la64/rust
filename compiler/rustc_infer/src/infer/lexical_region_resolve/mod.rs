@@ -98,6 +98,8 @@ pub enum RegionResolutionError<'tcx> {
         SubregionOrigin<'tcx>, // cause of the constraint
         Region<'tcx>,          // the placeholder `'b`
     ),
+
+    CannotNormalize(Ty<'tcx>, SubregionOrigin<'tcx>),
 }
 
 impl<'tcx> RegionResolutionError<'tcx> {
@@ -106,7 +108,8 @@ impl<'tcx> RegionResolutionError<'tcx> {
             RegionResolutionError::ConcreteFailure(origin, _, _)
             | RegionResolutionError::GenericBoundFailure(origin, _, _)
             | RegionResolutionError::SubSupConflict(_, _, origin, _, _, _, _)
-            | RegionResolutionError::UpperBoundUniverseConflict(_, _, _, origin, _) => origin,
+            | RegionResolutionError::UpperBoundUniverseConflict(_, _, _, origin, _)
+            | RegionResolutionError::CannotNormalize(_, origin) => origin,
         }
     }
 }
@@ -134,6 +137,10 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
         errors: &mut Vec<RegionResolutionError<'tcx>>,
     ) -> LexicalRegionResolutions<'tcx> {
         let mut var_data = self.construct_var_data();
+
+        // Deduplicating constraints is shown to have a positive perf impact.
+        self.data.constraints.sort_by_key(|(constraint, _)| *constraint);
+        self.data.constraints.dedup_by_key(|(constraint, _)| *constraint);
 
         if cfg!(debug_assertions) {
             self.dump_constraints();
@@ -181,7 +188,7 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
         let mut constraints = IndexVec::from_elem(Vec::new(), &var_values.values);
         // Tracks the changed region vids.
         let mut changes = Vec::new();
-        for constraint in self.data.constraints.keys() {
+        for (constraint, _) in &self.data.constraints {
             match *constraint {
                 Constraint::RegSubVar(a_region, b_vid) => {
                     let b_data = var_values.value_mut(b_vid);
@@ -676,7 +683,7 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
         let dummy_source = graph.add_node(());
         let dummy_sink = graph.add_node(());
 
-        for constraint in self.data.constraints.keys() {
+        for (constraint, _) in &self.data.constraints {
             match *constraint {
                 Constraint::VarSubVar(a_id, b_id) => {
                     graph.add_edge(NodeIndex(a_id.index()), NodeIndex(b_id.index()), *constraint);
@@ -796,7 +803,7 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
 
         // Errors in earlier passes can yield error variables without
         // resolution errors here; delay ICE in favor of those errors.
-        self.tcx().sess.span_delayed_bug(
+        self.tcx().dcx().span_delayed_bug(
             self.var_infos[node_idx].origin.span(),
             format!(
                 "collect_error_for_expanding_node() could not find \
@@ -883,9 +890,11 @@ impl<'cx, 'tcx> LexicalResolver<'cx, 'tcx> {
                     }
 
                     Constraint::RegSubVar(region, _) | Constraint::VarSubReg(_, region) => {
+                        let constraint_idx =
+                            this.constraints.binary_search_by(|(c, _)| c.cmp(&edge.data)).unwrap();
                         state.result.push(RegionAndOrigin {
                             region,
-                            origin: this.constraints.get(&edge.data).unwrap().clone(),
+                            origin: this.constraints[constraint_idx].1.clone(),
                         });
                     }
 

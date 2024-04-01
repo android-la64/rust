@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-protocol"
-version = "0.42.0"
+version = "0.43.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -68,24 +68,26 @@ version = "0.3.16"
 optional = true
 
 [dependencies.futures-lite]
-version = "1.12.0"
+version = "2.1.0"
+features = ["std"]
 optional = true
+default-features = false
 
 [dependencies.gix-credentials]
-version = "^0.22.0"
+version = "^0.23.1"
 
 [dependencies.gix-date]
-version = "^0.8.1"
+version = "^0.8.3"
 
 [dependencies.gix-features]
-version = "^0.36.1"
+version = "^0.37.1"
 features = ["progress"]
 
 [dependencies.gix-hash]
-version = "^0.13.2"
+version = "^0.14.1"
 
 [dependencies.gix-transport]
-version = "^0.39.0"
+version = "^0.40.1"
 
 [dependencies.maybe-async]
 version = "0.2.6"
@@ -108,7 +110,7 @@ version = "1.9.0"
 features = ["attributes"]
 
 [dev-dependencies.gix-packetline]
-version = "^0.17.0"
+version = "^0.17.2"
 
 [features]
 async-client = [

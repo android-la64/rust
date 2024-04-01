@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Security_Authentication_Web_Provider\"`, `\"Security_Authentication_Web_Core\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Security_Authentication_Web_Core\"`"]
 #[cfg(feature = "Security_Authentication_Web_Core")]
 pub trait IWebAccountProviderBaseReportOperation_Impl: Sized {
     fn ReportCompleted(&self) -> ::windows_core::Result<()>;
@@ -27,11 +27,10 @@ impl IWebAccountProviderBaseReportOperation_Vtbl {
             ReportError: ReportError::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebAccountProviderBaseReportOperation as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebAccountProviderBaseReportOperation as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Security_Authentication_Web_Provider\"`, `\"implement\"`*"]
 pub trait IWebAccountProviderOperation_Impl: Sized {
     fn Kind(&self) -> ::windows_core::Result<WebAccountProviderOperationKind>;
 }
@@ -53,11 +52,11 @@ impl IWebAccountProviderOperation_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IWebAccountProviderOperation, OFFSET>(), Kind: Kind::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebAccountProviderOperation as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebAccountProviderOperation as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Security_Authentication_Web_Provider\"`, `\"Security_Authentication_Web_Core\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Security_Authentication_Web_Core\"`"]
 #[cfg(feature = "Security_Authentication_Web_Core")]
 pub trait IWebAccountProviderSilentReportOperation_Impl: Sized + IWebAccountProviderBaseReportOperation_Impl {
     fn ReportUserInteractionRequired(&self) -> ::windows_core::Result<()>;
@@ -86,11 +85,10 @@ impl IWebAccountProviderSilentReportOperation_Vtbl {
             ReportUserInteractionRequiredWithError: ReportUserInteractionRequiredWithError::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebAccountProviderSilentReportOperation as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebAccountProviderSilentReportOperation as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Security_Authentication_Web_Provider\"`, `\"implement\"`*"]
 pub trait IWebAccountProviderTokenObjects_Impl: Sized {
     fn Operation(&self) -> ::windows_core::Result<IWebAccountProviderOperation>;
 }
@@ -116,11 +114,11 @@ impl IWebAccountProviderTokenObjects_Vtbl {
             Operation: Operation::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebAccountProviderTokenObjects as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebAccountProviderTokenObjects as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Security_Authentication_Web_Provider\"`, `\"System\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"System\"`"]
 #[cfg(feature = "System")]
 pub trait IWebAccountProviderTokenObjects2_Impl: Sized + IWebAccountProviderTokenObjects_Impl {
     fn User(&self) -> ::windows_core::Result<super::super::super::super::System::User>;
@@ -146,11 +144,11 @@ impl IWebAccountProviderTokenObjects2_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IWebAccountProviderTokenObjects2, OFFSET>(), User: User::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebAccountProviderTokenObjects2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebAccountProviderTokenObjects2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Security_Authentication_Web_Provider\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`"]
 #[cfg(feature = "Foundation_Collections")]
 pub trait IWebAccountProviderTokenOperation_Impl: Sized + IWebAccountProviderOperation_Impl {
     fn ProviderRequest(&self) -> ::windows_core::Result<WebProviderTokenRequest>;
@@ -213,11 +211,11 @@ impl IWebAccountProviderTokenOperation_Vtbl {
             CacheExpirationTime: CacheExpirationTime::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebAccountProviderTokenOperation as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebAccountProviderTokenOperation as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Security_Authentication_Web_Provider\"`, `\"Security_Authentication_Web_Core\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Security_Authentication_Web_Core\"`"]
 #[cfg(feature = "Security_Authentication_Web_Core")]
 pub trait IWebAccountProviderUIReportOperation_Impl: Sized + IWebAccountProviderBaseReportOperation_Impl {
     fn ReportUserCanceled(&self) -> ::windows_core::Result<()>;
@@ -239,7 +237,7 @@ impl IWebAccountProviderUIReportOperation_Vtbl {
             ReportUserCanceled: ReportUserCanceled::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebAccountProviderUIReportOperation as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebAccountProviderUIReportOperation as ::windows_core::ComInterface>::IID
     }
 }

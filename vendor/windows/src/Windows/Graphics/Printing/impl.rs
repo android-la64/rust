@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Graphics_Printing\"`, `\"implement\"`*"]
 pub trait IPrintDocumentSource_Impl: Sized {}
 impl ::windows_core::RuntimeName for IPrintDocumentSource {
     const NAME: &'static str = "Windows.Graphics.Printing.IPrintDocumentSource";
@@ -7,11 +6,11 @@ impl IPrintDocumentSource_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IPrintDocumentSource_Impl, const OFFSET: isize>() -> IPrintDocumentSource_Vtbl {
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IPrintDocumentSource, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPrintDocumentSource as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPrintDocumentSource as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Graphics_Printing\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IPrintTaskOptionsCore_Impl: Sized {
     fn GetPageDescription(&self, jobpagenumber: u32) -> ::windows_core::Result<PrintPageDescription>;
@@ -39,11 +38,10 @@ impl IPrintTaskOptionsCore_Vtbl {
             GetPageDescription: GetPageDescription::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPrintTaskOptionsCore as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPrintTaskOptionsCore as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Graphics_Printing\"`, `\"implement\"`*"]
 pub trait IPrintTaskOptionsCoreProperties_Impl: Sized {
     fn SetMediaSize(&self, value: PrintMediaSize) -> ::windows_core::Result<()>;
     fn MediaSize(&self) -> ::windows_core::Result<PrintMediaSize>;
@@ -301,11 +299,11 @@ impl IPrintTaskOptionsCoreProperties_Vtbl {
             NumberOfCopies: NumberOfCopies::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPrintTaskOptionsCoreProperties as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPrintTaskOptionsCoreProperties as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Graphics_Printing\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`"]
 #[cfg(feature = "Foundation_Collections")]
 pub trait IPrintTaskOptionsCoreUIConfiguration_Impl: Sized {
     fn DisplayedOptions(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<::windows_core::HSTRING>>;
@@ -334,7 +332,7 @@ impl IPrintTaskOptionsCoreUIConfiguration_Vtbl {
             DisplayedOptions: DisplayedOptions::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPrintTaskOptionsCoreUIConfiguration as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPrintTaskOptionsCoreUIConfiguration as ::windows_core::ComInterface>::IID
     }
 }

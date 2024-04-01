@@ -285,30 +285,36 @@ impl AssertMessage {
             AssertMessage::RemainderByZero(_) => {
                 Ok("attempt to calculate the remainder with a divisor of zero")
             }
-            AssertMessage::ResumedAfterReturn(CoroutineKind::Coroutine) => {
+            AssertMessage::ResumedAfterReturn(CoroutineKind::Coroutine(_)) => {
                 Ok("coroutine resumed after completion")
             }
-            AssertMessage::ResumedAfterReturn(CoroutineKind::Async(_)) => {
-                Ok("`async fn` resumed after completion")
-            }
-            AssertMessage::ResumedAfterReturn(CoroutineKind::Gen(_)) => {
-                Ok("`async gen fn` resumed after completion")
-            }
-            AssertMessage::ResumedAfterReturn(CoroutineKind::AsyncGen(_)) => {
-                Ok("`gen fn` should just keep returning `AssertMessage::None` after completion")
-            }
-            AssertMessage::ResumedAfterPanic(CoroutineKind::Coroutine) => {
+            AssertMessage::ResumedAfterReturn(CoroutineKind::Desugared(
+                CoroutineDesugaring::Async,
+                _,
+            )) => Ok("`async fn` resumed after completion"),
+            AssertMessage::ResumedAfterReturn(CoroutineKind::Desugared(
+                CoroutineDesugaring::Gen,
+                _,
+            )) => Ok("`async gen fn` resumed after completion"),
+            AssertMessage::ResumedAfterReturn(CoroutineKind::Desugared(
+                CoroutineDesugaring::AsyncGen,
+                _,
+            )) => Ok("`gen fn` should just keep returning `AssertMessage::None` after completion"),
+            AssertMessage::ResumedAfterPanic(CoroutineKind::Coroutine(_)) => {
                 Ok("coroutine resumed after panicking")
             }
-            AssertMessage::ResumedAfterPanic(CoroutineKind::Async(_)) => {
-                Ok("`async fn` resumed after panicking")
-            }
-            AssertMessage::ResumedAfterPanic(CoroutineKind::Gen(_)) => {
-                Ok("`async gen fn` resumed after panicking")
-            }
-            AssertMessage::ResumedAfterPanic(CoroutineKind::AsyncGen(_)) => {
-                Ok("`gen fn` should just keep returning `AssertMessage::None` after panicking")
-            }
+            AssertMessage::ResumedAfterPanic(CoroutineKind::Desugared(
+                CoroutineDesugaring::Async,
+                _,
+            )) => Ok("`async fn` resumed after panicking"),
+            AssertMessage::ResumedAfterPanic(CoroutineKind::Desugared(
+                CoroutineDesugaring::Gen,
+                _,
+            )) => Ok("`async gen fn` resumed after panicking"),
+            AssertMessage::ResumedAfterPanic(CoroutineKind::Desugared(
+                CoroutineDesugaring::AsyncGen,
+                _,
+            )) => Ok("`gen fn` should just keep returning `AssertMessage::None` after panicking"),
 
             AssertMessage::BoundsCheck { .. } => Ok("index out of bounds"),
             AssertMessage::MisalignedPointerDereference { .. } => {
@@ -392,10 +398,8 @@ pub enum UnOp {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CoroutineKind {
-    Async(CoroutineSource),
-    Coroutine,
-    Gen(CoroutineSource),
-    AsyncGen(CoroutineSource),
+    Desugared(CoroutineDesugaring, CoroutineSource),
+    Coroutine(Movability),
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -403,6 +407,15 @@ pub enum CoroutineSource {
     Block,
     Closure,
     Fn,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum CoroutineDesugaring {
+    Async,
+
+    Gen,
+
+    AsyncGen,
 }
 
 pub(crate) type LocalDefId = Opaque;
@@ -649,6 +662,7 @@ pub enum AggregateKind {
     Tuple,
     Adt(AdtDef, VariantIdx, GenericArgs, Option<UserTypeAnnotationIndex>, Option<FieldIdx>),
     Closure(ClosureDef, GenericArgs),
+    // FIXME(stable_mir): Movability here is redundant
     Coroutine(CoroutineDef, GenericArgs, Movability),
 }
 
@@ -949,7 +963,7 @@ pub enum PointerCoercion {
     /// Go from a safe fn pointer to an unsafe fn pointer.
     UnsafeFnPointer,
 
-    /// Go from a non-capturing closure to an fn pointer or an unsafe fn pointer.
+    /// Go from a non-capturing closure to a fn pointer or an unsafe fn pointer.
     /// It cannot convert a closure that requires unsafe.
     ClosureFnPointer(Safety),
 
@@ -1023,21 +1037,24 @@ impl Place {
     /// locals from the function body where this place originates from.
     pub fn ty(&self, locals: &[LocalDecl]) -> Result<Ty, Error> {
         let start_ty = locals[self.local].ty;
-        self.projection.iter().fold(Ok(start_ty), |place_ty, elem| {
-            let ty = place_ty?;
-            match elem {
-                ProjectionElem::Deref => Self::deref_ty(ty),
-                ProjectionElem::Field(_idx, fty) => Ok(*fty),
-                ProjectionElem::Index(_) | ProjectionElem::ConstantIndex { .. } => {
-                    Self::index_ty(ty)
-                }
-                ProjectionElem::Subslice { from, to, from_end } => {
-                    Self::subslice_ty(ty, from, to, from_end)
-                }
-                ProjectionElem::Downcast(_) => Ok(ty),
-                ProjectionElem::OpaqueCast(ty) | ProjectionElem::Subtype(ty) => Ok(*ty),
+        self.projection.iter().fold(Ok(start_ty), |place_ty, elem| elem.ty(place_ty?))
+    }
+}
+
+impl ProjectionElem {
+    /// Get the expected type after applying this projection to a given place type.
+    pub fn ty(&self, place_ty: Ty) -> Result<Ty, Error> {
+        let ty = place_ty;
+        match &self {
+            ProjectionElem::Deref => Self::deref_ty(ty),
+            ProjectionElem::Field(_idx, fty) => Ok(*fty),
+            ProjectionElem::Index(_) | ProjectionElem::ConstantIndex { .. } => Self::index_ty(ty),
+            ProjectionElem::Subslice { from, to, from_end } => {
+                Self::subslice_ty(ty, from, to, from_end)
             }
-        })
+            ProjectionElem::Downcast(_) => Ok(ty),
+            ProjectionElem::OpaqueCast(ty) | ProjectionElem::Subtype(ty) => Ok(*ty),
+        }
     }
 
     fn index_ty(ty: Ty) -> Result<Ty, Error> {

@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Devices_Lights_Effects\"`, `\"implement\"`*"]
 pub trait ILampArrayEffect_Impl: Sized {
     fn ZIndex(&self) -> ::windows_core::Result<i32>;
     fn SetZIndex(&self, value: i32) -> ::windows_core::Result<()>;
@@ -30,7 +29,7 @@ impl ILampArrayEffect_Vtbl {
             SetZIndex: SetZIndex::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ILampArrayEffect as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ILampArrayEffect as ::windows_core::ComInterface>::IID
     }
 }

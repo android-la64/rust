@@ -65,6 +65,10 @@ impl std::ops::BitAnd<Qop> for QopSet {
 
 /// Client for a `Digest` challenge, as in [RFC 7616](https://datatracker.ietf.org/doc/html/rfc7616).
 ///
+/// This can be constructed by the `TryFrom<&ChallengeRef<'_>>` impl. However,
+/// in most cases this client should be used only indirectly through the more
+/// abstract [`crate::PasswordClient`].
+///
 /// Most of the information here is taken from the `WWW-Authenticate` or
 /// `Proxy-Authenticate` header. This also internally maintains a nonce counter.
 ///
@@ -257,7 +261,6 @@ impl DigestClient {
     /// We don't simply implement this as `respond_with_testing_cnonce` and have
     /// `respond` delegate to that method because it'd be confusing/alarming if
     /// that method name ever shows up in production stack traces.
-    /// and have `respond` delegate to the testing version. We don't do that because
     fn respond_inner(&mut self, p: &PasswordParams, cnonce: &str) -> Result<String, String> {
         let realm = self.realm();
         let mut h_a1 = self.algorithm.h(&[
@@ -489,6 +492,7 @@ impl std::fmt::Debug for DigestClient {
 }
 
 /// Helper for `DigestClient::try_from` which stashes away a `&ParamValue`.
+#[inline(never)]
 fn store_param<'v, 'tmp>(
     k: &'tmp str,
     v: &'v ParamValue<'v>,
@@ -529,6 +533,7 @@ fn append_extended_key_value(out: &mut String, key: &str, value: &str) {
     out.push_str(", ");
 }
 
+#[inline(never)]
 fn append_unquoted_key_value(out: &mut String, key: &str, value: &str) {
     out.push_str(key);
     out.push('=');
@@ -536,6 +541,7 @@ fn append_unquoted_key_value(out: &mut String, key: &str, value: &str) {
     out.push_str(", ");
 }
 
+#[inline(never)]
 fn append_quoted_key_value(out: &mut String, key: &str, value: &str) -> Result<(), String> {
     out.push_str(key);
     out.push_str("=\"");
@@ -543,7 +549,7 @@ fn append_quoted_key_value(out: &mut String, key: &str, value: &str) -> Result<(
     let bytes = value.as_bytes();
     for (i, &b) in bytes.iter().enumerate() {
         // Note that bytes >= 128 are in neither C_QDTEXT nor C_ESCAPABLE, so every allowed byte
-        // is a full character.
+        // is a full UTF-8 code point.
         let class = char_classes(b);
         if (class & C_QDTEXT) != 0 {
             // Just advance.
@@ -589,6 +595,7 @@ impl Algorithm {
         })
     }
 
+    #[inline(never)]
     fn as_str(&self, session: bool) -> &'static str {
         match (self, session) {
             (Algorithm::Md5, false) => "MD5",
@@ -600,6 +607,7 @@ impl Algorithm {
         }
     }
 
+    #[inline(never)]
     fn h(&self, items: &[&[u8]]) -> String {
         match self {
             Algorithm::Md5 => h(md5::Md5::new(), items),

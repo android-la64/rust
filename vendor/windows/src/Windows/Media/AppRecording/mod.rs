@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppRecordingManager(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppRecordingManager {
     type Vtable = IAppRecordingManager_Vtbl;
-}
-impl ::core::clone::Clone for IAppRecordingManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppRecordingManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe7e26076_a044_48e2_a512_3094d574c7cc);
@@ -36,14 +32,10 @@ pub struct IAppRecordingManager_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppRecordingManagerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppRecordingManagerStatics {
     type Vtable = IAppRecordingManagerStatics_Vtbl;
-}
-impl ::core::clone::Clone for IAppRecordingManagerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppRecordingManagerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x50e709f7_38ce_4bd3_9db2_e72bbe9de11d);
@@ -56,14 +48,10 @@ pub struct IAppRecordingManagerStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppRecordingResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppRecordingResult {
     type Vtable = IAppRecordingResult_Vtbl;
-}
-impl ::core::clone::Clone for IAppRecordingResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppRecordingResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3a900864_c66d_46f9_b2d9_5bc2dad070d7);
@@ -82,14 +70,10 @@ pub struct IAppRecordingResult_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppRecordingSaveScreenshotResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppRecordingSaveScreenshotResult {
     type Vtable = IAppRecordingSaveScreenshotResult_Vtbl;
-}
-impl ::core::clone::Clone for IAppRecordingSaveScreenshotResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppRecordingSaveScreenshotResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9c5b8d0a_0abb_4457_aaee_24f9c12ec778);
@@ -107,14 +91,10 @@ pub struct IAppRecordingSaveScreenshotResult_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppRecordingSavedScreenshotInfo(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppRecordingSavedScreenshotInfo {
     type Vtable = IAppRecordingSavedScreenshotInfo_Vtbl;
-}
-impl ::core::clone::Clone for IAppRecordingSavedScreenshotInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppRecordingSavedScreenshotInfo {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9b642d0a_189a_4d00_bf25_e1bb1249d594);
@@ -131,14 +111,10 @@ pub struct IAppRecordingSavedScreenshotInfo_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppRecordingStatus(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppRecordingStatus {
     type Vtable = IAppRecordingStatus_Vtbl;
-}
-impl ::core::clone::Clone for IAppRecordingStatus {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppRecordingStatus {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1d0cc82c_bc18_4b8a_a6ef_127efab3b5d9);
@@ -157,14 +133,10 @@ pub struct IAppRecordingStatus_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppRecordingStatusDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppRecordingStatusDetails {
     type Vtable = IAppRecordingStatusDetails_Vtbl;
-}
-impl ::core::clone::Clone for IAppRecordingStatusDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppRecordingStatusDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb538a9b0_14ed_4412_ac45_6d672c9c9949);
@@ -183,8 +155,8 @@ pub struct IAppRecordingStatusDetails_Vtbl {
     pub IsDisabledByUser: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut bool) -> ::windows_core::HRESULT,
     pub IsDisabledBySystem: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut bool) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Media_AppRecording\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AppRecordingManager(::windows_core::IUnknown);
 impl AppRecordingManager {
     pub fn GetStatus(&self) -> ::windows_core::Result<AppRecordingStatus> {
@@ -194,7 +166,7 @@ impl AppRecordingManager {
             (::windows_core::Interface::vtable(this).GetStatus)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"Storage\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"Storage\"`"]
     #[cfg(all(feature = "Foundation", feature = "Storage"))]
     pub fn StartRecordingToFileAsync<P0>(&self, file: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<AppRecordingResult>>
     where
@@ -206,7 +178,7 @@ impl AppRecordingManager {
             (::windows_core::Interface::vtable(this).StartRecordingToFileAsync)(::windows_core::Interface::as_raw(this), file.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"Storage\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"Storage\"`"]
     #[cfg(all(feature = "Foundation", feature = "Storage"))]
     pub fn RecordTimeSpanToFileAsync<P0>(&self, starttime: super::super::Foundation::DateTime, duration: super::super::Foundation::TimeSpan, file: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<AppRecordingResult>>
     where
@@ -218,7 +190,7 @@ impl AppRecordingManager {
             (::windows_core::Interface::vtable(this).RecordTimeSpanToFileAsync)(::windows_core::Interface::as_raw(this), starttime, duration, file.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn SupportedScreenshotMediaEncodingSubtypes(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -227,7 +199,7 @@ impl AppRecordingManager {
             (::windows_core::Interface::vtable(this).SupportedScreenshotMediaEncodingSubtypes)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`, `\"Storage\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`, `\"Storage\"`"]
     #[cfg(all(feature = "Foundation_Collections", feature = "Storage"))]
     pub fn SaveScreenshotToFilesAsync<P0, P1>(&self, folder: P0, filenameprefix: &::windows_core::HSTRING, option: AppRecordingSaveScreenshotOption, requestedformats: P1) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<AppRecordingSaveScreenshotResult>>
     where
@@ -252,24 +224,8 @@ impl AppRecordingManager {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for AppRecordingManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AppRecordingManager {}
-impl ::core::fmt::Debug for AppRecordingManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AppRecordingManager").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AppRecordingManager {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.AppRecording.AppRecordingManager;{e7e26076-a044-48e2-a512-3094d574c7cc})");
-}
-impl ::core::clone::Clone for AppRecordingManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AppRecordingManager {
     type Vtable = IAppRecordingManager_Vtbl;
@@ -283,8 +239,8 @@ impl ::windows_core::RuntimeName for AppRecordingManager {
 ::windows_core::imp::interface_hierarchy!(AppRecordingManager, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AppRecordingManager {}
 unsafe impl ::core::marker::Sync for AppRecordingManager {}
-#[doc = "*Required features: `\"Media_AppRecording\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AppRecordingResult(::windows_core::IUnknown);
 impl AppRecordingResult {
     pub fn Succeeded(&self) -> ::windows_core::Result<bool> {
@@ -301,7 +257,7 @@ impl AppRecordingResult {
             (::windows_core::Interface::vtable(this).ExtendedError)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Duration(&self) -> ::windows_core::Result<super::super::Foundation::TimeSpan> {
         let this = self;
@@ -318,24 +274,8 @@ impl AppRecordingResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for AppRecordingResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AppRecordingResult {}
-impl ::core::fmt::Debug for AppRecordingResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AppRecordingResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AppRecordingResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.AppRecording.AppRecordingResult;{3a900864-c66d-46f9-b2d9-5bc2dad070d7})");
-}
-impl ::core::clone::Clone for AppRecordingResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AppRecordingResult {
     type Vtable = IAppRecordingResult_Vtbl;
@@ -349,8 +289,8 @@ impl ::windows_core::RuntimeName for AppRecordingResult {
 ::windows_core::imp::interface_hierarchy!(AppRecordingResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AppRecordingResult {}
 unsafe impl ::core::marker::Sync for AppRecordingResult {}
-#[doc = "*Required features: `\"Media_AppRecording\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AppRecordingSaveScreenshotResult(::windows_core::IUnknown);
 impl AppRecordingSaveScreenshotResult {
     pub fn Succeeded(&self) -> ::windows_core::Result<bool> {
@@ -367,7 +307,7 @@ impl AppRecordingSaveScreenshotResult {
             (::windows_core::Interface::vtable(this).ExtendedError)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn SavedScreenshotInfos(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVectorView<AppRecordingSavedScreenshotInfo>> {
         let this = self;
@@ -377,24 +317,8 @@ impl AppRecordingSaveScreenshotResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for AppRecordingSaveScreenshotResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AppRecordingSaveScreenshotResult {}
-impl ::core::fmt::Debug for AppRecordingSaveScreenshotResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AppRecordingSaveScreenshotResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AppRecordingSaveScreenshotResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.AppRecording.AppRecordingSaveScreenshotResult;{9c5b8d0a-0abb-4457-aaee-24f9c12ec778})");
-}
-impl ::core::clone::Clone for AppRecordingSaveScreenshotResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AppRecordingSaveScreenshotResult {
     type Vtable = IAppRecordingSaveScreenshotResult_Vtbl;
@@ -408,11 +332,11 @@ impl ::windows_core::RuntimeName for AppRecordingSaveScreenshotResult {
 ::windows_core::imp::interface_hierarchy!(AppRecordingSaveScreenshotResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AppRecordingSaveScreenshotResult {}
 unsafe impl ::core::marker::Sync for AppRecordingSaveScreenshotResult {}
-#[doc = "*Required features: `\"Media_AppRecording\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AppRecordingSavedScreenshotInfo(::windows_core::IUnknown);
 impl AppRecordingSavedScreenshotInfo {
-    #[doc = "*Required features: `\"Storage\"`*"]
+    #[doc = "Required features: `\"Storage\"`"]
     #[cfg(feature = "Storage")]
     pub fn File(&self) -> ::windows_core::Result<super::super::Storage::StorageFile> {
         let this = self;
@@ -429,24 +353,8 @@ impl AppRecordingSavedScreenshotInfo {
         }
     }
 }
-impl ::core::cmp::PartialEq for AppRecordingSavedScreenshotInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AppRecordingSavedScreenshotInfo {}
-impl ::core::fmt::Debug for AppRecordingSavedScreenshotInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AppRecordingSavedScreenshotInfo").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AppRecordingSavedScreenshotInfo {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.AppRecording.AppRecordingSavedScreenshotInfo;{9b642d0a-189a-4d00-bf25-e1bb1249d594})");
-}
-impl ::core::clone::Clone for AppRecordingSavedScreenshotInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AppRecordingSavedScreenshotInfo {
     type Vtable = IAppRecordingSavedScreenshotInfo_Vtbl;
@@ -460,8 +368,8 @@ impl ::windows_core::RuntimeName for AppRecordingSavedScreenshotInfo {
 ::windows_core::imp::interface_hierarchy!(AppRecordingSavedScreenshotInfo, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AppRecordingSavedScreenshotInfo {}
 unsafe impl ::core::marker::Sync for AppRecordingSavedScreenshotInfo {}
-#[doc = "*Required features: `\"Media_AppRecording\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AppRecordingStatus(::windows_core::IUnknown);
 impl AppRecordingStatus {
     pub fn CanRecord(&self) -> ::windows_core::Result<bool> {
@@ -478,7 +386,7 @@ impl AppRecordingStatus {
             (::windows_core::Interface::vtable(this).CanRecordTimeSpan)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn HistoricalBufferDuration(&self) -> ::windows_core::Result<super::super::Foundation::TimeSpan> {
         let this = self;
@@ -495,24 +403,8 @@ impl AppRecordingStatus {
         }
     }
 }
-impl ::core::cmp::PartialEq for AppRecordingStatus {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AppRecordingStatus {}
-impl ::core::fmt::Debug for AppRecordingStatus {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AppRecordingStatus").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AppRecordingStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.AppRecording.AppRecordingStatus;{1d0cc82c-bc18-4b8a-a6ef-127efab3b5d9})");
-}
-impl ::core::clone::Clone for AppRecordingStatus {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AppRecordingStatus {
     type Vtable = IAppRecordingStatus_Vtbl;
@@ -526,8 +418,8 @@ impl ::windows_core::RuntimeName for AppRecordingStatus {
 ::windows_core::imp::interface_hierarchy!(AppRecordingStatus, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AppRecordingStatus {}
 unsafe impl ::core::marker::Sync for AppRecordingStatus {}
-#[doc = "*Required features: `\"Media_AppRecording\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AppRecordingStatusDetails(::windows_core::IUnknown);
 impl AppRecordingStatusDetails {
     pub fn IsAnyAppBroadcasting(&self) -> ::windows_core::Result<bool> {
@@ -594,24 +486,8 @@ impl AppRecordingStatusDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for AppRecordingStatusDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AppRecordingStatusDetails {}
-impl ::core::fmt::Debug for AppRecordingStatusDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AppRecordingStatusDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AppRecordingStatusDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.AppRecording.AppRecordingStatusDetails;{b538a9b0-14ed-4412-ac45-6d672c9c9949})");
-}
-impl ::core::clone::Clone for AppRecordingStatusDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AppRecordingStatusDetails {
     type Vtable = IAppRecordingStatusDetails_Vtbl;
@@ -625,7 +501,6 @@ impl ::windows_core::RuntimeName for AppRecordingStatusDetails {
 ::windows_core::imp::interface_hierarchy!(AppRecordingStatusDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AppRecordingStatusDetails {}
 unsafe impl ::core::marker::Sync for AppRecordingStatusDetails {}
-#[doc = "*Required features: `\"Media_AppRecording\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AppRecordingSaveScreenshotOption(pub i32);

@@ -6,8 +6,8 @@ use std::{
 use crate::fluent_generated as fluent;
 use rustc_ast::Label;
 use rustc_errors::{
-    error_code, AddToDiagnostic, Applicability, Diagnostic, DiagnosticSymbolList, ErrorGuaranteed,
-    IntoDiagnostic, MultiSpan,
+    codes::*, AddToDiagnostic, Applicability, DiagCtxt, Diagnostic, DiagnosticBuilder,
+    DiagnosticSymbolList, EmissionGuarantee, IntoDiagnostic, Level, MultiSpan,
 };
 use rustc_hir::{self as hir, ExprKind, Target};
 use rustc_macros::{Diagnostic, LintDiagnostic, Subdiagnostic};
@@ -55,7 +55,7 @@ pub struct IgnoredInlineAttrFnProto;
 pub struct IgnoredInlineAttrConstants;
 
 #[derive(Diagnostic)]
-#[diag(passes_inline_not_fn_or_closure, code = "E0518")]
+#[diag(passes_inline_not_fn_or_closure, code = E0518)]
 pub struct InlineNotFnOrClosure {
     #[primary_span]
     pub attr_span: Span,
@@ -76,7 +76,7 @@ pub struct IgnoredCoveragePropagate;
 pub struct IgnoredCoverageFnDefn;
 
 #[derive(Diagnostic)]
-#[diag(passes_coverage_not_coverable, code = "E0788")]
+#[diag(passes_coverage_not_coverable, code = E0788)]
 pub struct IgnoredCoverageNotCoverable {
     #[primary_span]
     pub attr_span: Span,
@@ -95,14 +95,14 @@ pub struct AttrShouldBeAppliedToFn {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_naked_tracked_caller, code = "E0736")]
+#[diag(passes_naked_tracked_caller, code = E0736)]
 pub struct NakedTrackedCaller {
     #[primary_span]
     pub attr_span: Span,
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_should_be_applied_to_fn, code = "E0739")]
+#[diag(passes_should_be_applied_to_fn, code = E0739)]
 pub struct TrackedCallerWrongLocation {
     #[primary_span]
     pub attr_span: Span,
@@ -112,7 +112,7 @@ pub struct TrackedCallerWrongLocation {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_should_be_applied_to_struct_enum, code = "E0701")]
+#[diag(passes_should_be_applied_to_struct_enum, code = E0701)]
 pub struct NonExhaustiveWrongLocation {
     #[primary_span]
     pub attr_span: Span,
@@ -370,28 +370,28 @@ pub struct HasIncoherentInherentImpl {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_both_ffi_const_and_pure, code = "E0757")]
+#[diag(passes_both_ffi_const_and_pure, code = E0757)]
 pub struct BothFfiConstAndPure {
     #[primary_span]
     pub attr_span: Span,
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_ffi_pure_invalid_target, code = "E0755")]
+#[diag(passes_ffi_pure_invalid_target, code = E0755)]
 pub struct FfiPureInvalidTarget {
     #[primary_span]
     pub attr_span: Span,
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_ffi_const_invalid_target, code = "E0756")]
+#[diag(passes_ffi_const_invalid_target, code = E0756)]
 pub struct FfiConstInvalidTarget {
     #[primary_span]
     pub attr_span: Span,
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_ffi_returns_twice_invalid_target, code = "E0724")]
+#[diag(passes_ffi_returns_twice_invalid_target, code = E0724)]
 pub struct FfiReturnsTwiceInvalidTarget {
     #[primary_span]
     pub attr_span: Span,
@@ -552,21 +552,21 @@ pub struct NoMangle {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_repr_ident, code = "E0565")]
+#[diag(passes_repr_ident, code = E0565)]
 pub struct ReprIdent {
     #[primary_span]
     pub span: Span,
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_repr_conflicting, code = "E0566")]
+#[diag(passes_repr_conflicting, code = E0566)]
 pub struct ReprConflicting {
     #[primary_span]
     pub hint_spans: Vec<Span>,
 }
 
 #[derive(LintDiagnostic)]
-#[diag(passes_repr_conflicting, code = "E0566")]
+#[diag(passes_repr_conflicting, code = E0566)]
 pub struct ReprConflictingLint;
 
 #[derive(Diagnostic)]
@@ -667,7 +667,7 @@ pub(crate) struct EmptyConfusables {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_incorrect_meta_item, code = "E0539")]
+#[diag(passes_incorrect_meta_item, code = E0539)]
 pub(crate) struct IncorrectMetaItem {
     #[primary_span]
     pub span: Span,
@@ -737,7 +737,7 @@ pub struct Unused {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_non_exported_macro_invalid_attrs, code = "E0518")]
+#[diag(passes_non_exported_macro_invalid_attrs, code = E0518)]
 pub struct NonExportedMacroInvalidAttrs {
     #[primary_span]
     #[label]
@@ -801,7 +801,7 @@ pub struct DeprecatedAnnotationHasNoEffect {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_unknown_external_lang_item, code = "E0264")]
+#[diag(passes_unknown_external_lang_item, code = E0264)]
 pub struct UnknownExternLangItem {
     #[primary_span]
     pub span: Span,
@@ -811,6 +811,12 @@ pub struct UnknownExternLangItem {
 #[derive(Diagnostic)]
 #[diag(passes_missing_panic_handler)]
 pub struct MissingPanicHandler;
+
+#[derive(Diagnostic)]
+#[diag(passes_panic_unwind_without_std)]
+#[help]
+#[note]
+pub struct PanicUnwindWithoutStd;
 
 #[derive(Diagnostic)]
 #[diag(passes_missing_lang_item)]
@@ -831,7 +837,7 @@ pub struct LangItemWithTargetFeature {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_lang_item_on_incorrect_target, code = "E0718")]
+#[diag(passes_lang_item_on_incorrect_target, code = E0718)]
 pub struct LangItemOnIncorrectTarget {
     #[primary_span]
     #[label]
@@ -842,7 +848,7 @@ pub struct LangItemOnIncorrectTarget {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_unknown_lang_item, code = "E0522")]
+#[diag(passes_unknown_lang_item, code = E0522)]
 pub struct UnknownLangItem {
     #[primary_span]
     #[label]
@@ -863,15 +869,13 @@ pub struct ItemFollowingInnerAttr {
     pub kind: &'static str,
 }
 
-impl IntoDiagnostic<'_> for InvalidAttrAtCrateLevel {
+impl<G: EmissionGuarantee> IntoDiagnostic<'_, G> for InvalidAttrAtCrateLevel {
     #[track_caller]
-    fn into_diagnostic(
-        self,
-        dcx: &'_ rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'_, ErrorGuaranteed> {
-        let mut diag = dcx.struct_err(fluent::passes_invalid_attr_at_crate_level);
-        diag.set_span(self.span);
-        diag.set_arg("name", self.name);
+    fn into_diagnostic(self, dcx: &'_ DiagCtxt, level: Level) -> DiagnosticBuilder<'_, G> {
+        let mut diag =
+            DiagnosticBuilder::new(dcx, level, fluent::passes_invalid_attr_at_crate_level);
+        diag.span(self.span);
+        diag.arg("name", self.name);
         // Only emit an error with a suggestion if we can create a string out
         // of the attribute span
         if let Some(span) = self.sugg_span {
@@ -879,11 +883,11 @@ impl IntoDiagnostic<'_> for InvalidAttrAtCrateLevel {
                 span,
                 fluent::passes_suggestion,
                 String::new(),
-                rustc_errors::Applicability::MachineApplicable,
+                Applicability::MachineApplicable,
             );
         }
         if let Some(item) = self.item {
-            diag.set_arg("kind", item.kind);
+            diag.arg("kind", item.kind);
             diag.span_label(item.span, fluent::passes_invalid_attr_at_crate_level_item);
         }
         diag
@@ -986,7 +990,7 @@ pub struct UnrecognizedField {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_feature_stable_twice, code = "E0711")]
+#[diag(passes_feature_stable_twice, code = E0711)]
 pub struct FeatureStableTwice {
     #[primary_span]
     pub span: Span,
@@ -996,7 +1000,7 @@ pub struct FeatureStableTwice {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_feature_previously_declared, code = "E0711")]
+#[diag(passes_feature_previously_declared, code = E0711)]
 pub struct FeaturePreviouslyDeclared<'a, 'b> {
     #[primary_span]
     pub span: Span,
@@ -1016,18 +1020,13 @@ pub struct BreakNonLoop<'a> {
     pub break_expr_span: Span,
 }
 
-impl<'a> IntoDiagnostic<'_> for BreakNonLoop<'a> {
+impl<'a, G: EmissionGuarantee> IntoDiagnostic<'_, G> for BreakNonLoop<'a> {
     #[track_caller]
-    fn into_diagnostic(
-        self,
-        dcx: &rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'_, ErrorGuaranteed> {
-        let mut diag = dcx.struct_span_err_with_code(
-            self.span,
-            fluent::passes_break_non_loop,
-            error_code!(E0571),
-        );
-        diag.set_arg("kind", self.kind);
+    fn into_diagnostic(self, dcx: &DiagCtxt, level: Level) -> DiagnosticBuilder<'_, G> {
+        let mut diag = DiagnosticBuilder::new(dcx, level, fluent::passes_break_non_loop);
+        diag.span(self.span);
+        diag.code(E0571);
+        diag.arg("kind", self.kind);
         diag.span_label(self.span, fluent::passes_label);
         if let Some(head) = self.head {
             diag.span_label(head, fluent::passes_label2);
@@ -1047,7 +1046,7 @@ impl<'a> IntoDiagnostic<'_> for BreakNonLoop<'a> {
                     // This error is redundant, we will have already emitted a
                     // suggestion to use the label when `segment` wasn't found
                     // (hence the `Res::Err` check).
-                    diag.delay_as_bug();
+                    diag.downgrade_to_delayed_bug();
                 }
                 _ => {
                     diag.span_suggestion(
@@ -1064,7 +1063,7 @@ impl<'a> IntoDiagnostic<'_> for BreakNonLoop<'a> {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_continue_labeled_block, code = "E0696")]
+#[diag(passes_continue_labeled_block, code = E0696)]
 pub struct ContinueLabeledBlock {
     #[primary_span]
     #[label]
@@ -1074,7 +1073,7 @@ pub struct ContinueLabeledBlock {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_break_inside_closure, code = "E0267")]
+#[diag(passes_break_inside_closure, code = E0267)]
 pub struct BreakInsideClosure<'a> {
     #[primary_span]
     #[label]
@@ -1085,7 +1084,7 @@ pub struct BreakInsideClosure<'a> {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_break_inside_async_block, code = "E0267")]
+#[diag(passes_break_inside_async_block, code = E0267)]
 pub struct BreakInsideAsyncBlock<'a> {
     #[primary_span]
     #[label]
@@ -1096,7 +1095,7 @@ pub struct BreakInsideAsyncBlock<'a> {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_outside_loop, code = "E0268")]
+#[diag(passes_outside_loop, code = E0268)]
 pub struct OutsideLoop<'a> {
     #[primary_span]
     #[label]
@@ -1116,7 +1115,7 @@ pub struct OutsideLoopSuggestion {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_unlabeled_in_labeled_block, code = "E0695")]
+#[diag(passes_unlabeled_in_labeled_block, code = E0695)]
 pub struct UnlabeledInLabeledBlock<'a> {
     #[primary_span]
     #[label]
@@ -1125,7 +1124,7 @@ pub struct UnlabeledInLabeledBlock<'a> {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_unlabeled_cf_in_while_condition, code = "E0590")]
+#[diag(passes_unlabeled_cf_in_while_condition, code = E0590)]
 pub struct UnlabeledCfInWhileCondition<'a> {
     #[primary_span]
     #[label]
@@ -1165,17 +1164,12 @@ pub struct NakedFunctionsAsmBlock {
     pub non_asms: Vec<Span>,
 }
 
-impl IntoDiagnostic<'_> for NakedFunctionsAsmBlock {
+impl<G: EmissionGuarantee> IntoDiagnostic<'_, G> for NakedFunctionsAsmBlock {
     #[track_caller]
-    fn into_diagnostic(
-        self,
-        dcx: &rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'_, ErrorGuaranteed> {
-        let mut diag = dcx.struct_span_err_with_code(
-            self.span,
-            fluent::passes_naked_functions_asm_block,
-            error_code!(E0787),
-        );
+    fn into_diagnostic(self, dcx: &DiagCtxt, level: Level) -> DiagnosticBuilder<'_, G> {
+        let mut diag = DiagnosticBuilder::new(dcx, level, fluent::passes_naked_functions_asm_block);
+        diag.span(self.span);
+        diag.code(E0787);
         for span in self.multiple_asms.iter() {
             diag.span_label(*span, fluent::passes_label_multiple_asm);
         }
@@ -1187,14 +1181,14 @@ impl IntoDiagnostic<'_> for NakedFunctionsAsmBlock {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_naked_functions_operands, code = "E0787")]
+#[diag(passes_naked_functions_operands, code = E0787)]
 pub struct NakedFunctionsOperands {
     #[primary_span]
     pub unsupported_operands: Vec<Span>,
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_naked_functions_asm_options, code = "E0787")]
+#[diag(passes_naked_functions_asm_options, code = E0787)]
 pub struct NakedFunctionsAsmOptions {
     #[primary_span]
     pub span: Span,
@@ -1202,7 +1196,7 @@ pub struct NakedFunctionsAsmOptions {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_naked_functions_must_use_noreturn, code = "E0787")]
+#[diag(passes_naked_functions_must_use_noreturn, code = E0787)]
 pub struct NakedFunctionsMustUseNoreturn {
     #[primary_span]
     pub span: Span,
@@ -1235,7 +1229,7 @@ pub struct AttrOnlyInFunctions {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_multiple_rustc_main, code = "E0137")]
+#[diag(passes_multiple_rustc_main, code = E0137)]
 pub struct MultipleRustcMain {
     #[primary_span]
     pub span: Span,
@@ -1246,7 +1240,7 @@ pub struct MultipleRustcMain {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_multiple_start_functions, code = "E0138")]
+#[diag(passes_multiple_start_functions, code = E0138)]
 pub struct MultipleStartFunctions {
     #[primary_span]
     pub span: Span,
@@ -1281,20 +1275,15 @@ pub struct NoMainErr {
     pub add_teach_note: bool,
 }
 
-impl<'a> IntoDiagnostic<'a> for NoMainErr {
+impl<'a, G: EmissionGuarantee> IntoDiagnostic<'a, G> for NoMainErr {
     #[track_caller]
-    fn into_diagnostic(
-        self,
-        dcx: &'a rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'a, ErrorGuaranteed> {
-        let mut diag = dcx.struct_span_err_with_code(
-            DUMMY_SP,
-            fluent::passes_no_main_function,
-            error_code!(E0601),
-        );
-        diag.set_arg("crate_name", self.crate_name);
-        diag.set_arg("filename", self.filename);
-        diag.set_arg("has_filename", self.has_filename);
+    fn into_diagnostic(self, dcx: &'a DiagCtxt, level: Level) -> DiagnosticBuilder<'a, G> {
+        let mut diag = DiagnosticBuilder::new(dcx, level, fluent::passes_no_main_function);
+        diag.span(DUMMY_SP);
+        diag.code(E0601);
+        diag.arg("crate_name", self.crate_name);
+        diag.arg("filename", self.filename);
+        diag.arg("has_filename", self.has_filename);
         let note = if !self.non_main_fns.is_empty() {
             for &span in &self.non_main_fns {
                 diag.span_note(span, fluent::passes_here_is_main);
@@ -1311,7 +1300,7 @@ impl<'a> IntoDiagnostic<'a> for NoMainErr {
         if self.file_empty {
             diag.note(note);
         } else {
-            diag.set_span(self.sp.shrink_to_hi());
+            diag.span(self.sp.shrink_to_hi());
             diag.span_label(self.sp.shrink_to_hi(), note);
         }
 
@@ -1344,29 +1333,28 @@ pub struct DuplicateLangItem {
     pub(crate) duplicate: Duplicate,
 }
 
-impl IntoDiagnostic<'_> for DuplicateLangItem {
+impl<G: EmissionGuarantee> IntoDiagnostic<'_, G> for DuplicateLangItem {
     #[track_caller]
-    fn into_diagnostic(
-        self,
-        dcx: &rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'_, ErrorGuaranteed> {
-        let mut diag = dcx.struct_err_with_code(
+    fn into_diagnostic(self, dcx: &DiagCtxt, level: Level) -> DiagnosticBuilder<'_, G> {
+        let mut diag = DiagnosticBuilder::new(
+            dcx,
+            level,
             match self.duplicate {
                 Duplicate::Plain => fluent::passes_duplicate_lang_item,
                 Duplicate::Crate => fluent::passes_duplicate_lang_item_crate,
                 Duplicate::CrateDepends => fluent::passes_duplicate_lang_item_crate_depends,
             },
-            error_code!(E0152),
         );
-        diag.set_arg("lang_item_name", self.lang_item_name);
-        diag.set_arg("crate_name", self.crate_name);
-        diag.set_arg("dependency_of", self.dependency_of);
-        diag.set_arg("path", self.path);
-        diag.set_arg("orig_crate_name", self.orig_crate_name);
-        diag.set_arg("orig_dependency_of", self.orig_dependency_of);
-        diag.set_arg("orig_path", self.orig_path);
+        diag.code(E0152);
+        diag.arg("lang_item_name", self.lang_item_name);
+        diag.arg("crate_name", self.crate_name);
+        diag.arg("dependency_of", self.dependency_of);
+        diag.arg("path", self.path);
+        diag.arg("orig_crate_name", self.orig_crate_name);
+        diag.arg("orig_dependency_of", self.orig_dependency_of);
+        diag.arg("orig_path", self.orig_path);
         if let Some(span) = self.local_span {
-            diag.set_span(span);
+            diag.span(span);
         }
         if let Some(span) = self.first_defined_span {
             diag.span_note(span, fluent::passes_first_defined_span);
@@ -1394,7 +1382,7 @@ impl IntoDiagnostic<'_> for DuplicateLangItem {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_incorrect_target, code = "E0718")]
+#[diag(passes_incorrect_target, code = E0718)]
 pub struct IncorrectTarget<'a> {
     #[primary_span]
     pub span: Span,
@@ -1430,7 +1418,7 @@ pub struct ObjectLifetimeErr {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_unrecognized_repr_hint, code = "E0552")]
+#[diag(passes_unrecognized_repr_hint, code = E0552)]
 #[help]
 pub struct UnrecognizedReprHint {
     #[primary_span]
@@ -1439,35 +1427,35 @@ pub struct UnrecognizedReprHint {
 
 #[derive(Diagnostic)]
 pub enum AttrApplication {
-    #[diag(passes_attr_application_enum, code = "E0517")]
+    #[diag(passes_attr_application_enum, code = E0517)]
     Enum {
         #[primary_span]
         hint_span: Span,
         #[label]
         span: Span,
     },
-    #[diag(passes_attr_application_struct, code = "E0517")]
+    #[diag(passes_attr_application_struct, code = E0517)]
     Struct {
         #[primary_span]
         hint_span: Span,
         #[label]
         span: Span,
     },
-    #[diag(passes_attr_application_struct_union, code = "E0517")]
+    #[diag(passes_attr_application_struct_union, code = E0517)]
     StructUnion {
         #[primary_span]
         hint_span: Span,
         #[label]
         span: Span,
     },
-    #[diag(passes_attr_application_struct_enum_union, code = "E0517")]
+    #[diag(passes_attr_application_struct_enum_union, code = E0517)]
     StructEnumUnion {
         #[primary_span]
         hint_span: Span,
         #[label]
         span: Span,
     },
-    #[diag(passes_attr_application_struct_enum_function_method_union, code = "E0517")]
+    #[diag(passes_attr_application_struct_enum_function_method_union, code = E0517)]
     StructEnumFunctionMethodUnion {
         #[primary_span]
         hint_span: Span,
@@ -1477,7 +1465,7 @@ pub enum AttrApplication {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_transparent_incompatible, code = "E0692")]
+#[diag(passes_transparent_incompatible, code = E0692)]
 pub struct TransparentIncompatible {
     #[primary_span]
     pub hint_spans: Vec<Span>,
@@ -1485,7 +1473,7 @@ pub struct TransparentIncompatible {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_deprecated_attribute, code = "E0549")]
+#[diag(passes_deprecated_attribute, code = E0549)]
 pub struct DeprecatedAttribute {
     #[primary_span]
     pub span: Span,
@@ -1536,7 +1524,7 @@ pub struct TraitImplConstStable {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_feature_only_on_nightly, code = "E0554")]
+#[diag(passes_feature_only_on_nightly, code = E0554)]
 pub struct FeatureOnlyOnNightly {
     #[primary_span]
     pub span: Span,
@@ -1544,7 +1532,7 @@ pub struct FeatureOnlyOnNightly {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_unknown_feature, code = "E0635")]
+#[diag(passes_unknown_feature, code = E0635)]
 pub struct UnknownFeature {
     #[primary_span]
     pub span: Span,
@@ -1561,7 +1549,7 @@ pub struct ImpliedFeatureNotExist {
 }
 
 #[derive(Diagnostic)]
-#[diag(passes_duplicate_feature_err, code = "E0636")]
+#[diag(passes_duplicate_feature_err, code = E0636)]
 pub struct DuplicateFeatureErr {
     #[primary_span]
     pub span: Span,

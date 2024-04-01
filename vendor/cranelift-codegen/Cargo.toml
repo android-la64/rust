@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen"
-version = "0.102.0"
+version = "0.104.0"
 authors = ["The Cranelift Project Developers"]
 build = "build.rs"
 description = "Low-level code generator library"
@@ -47,16 +47,16 @@ version = "0.9.0"
 optional = true
 
 [dependencies.cranelift-bforest]
-version = "0.102.0"
+version = "0.104.0"
 
 [dependencies.cranelift-codegen-shared]
-version = "0.102.0"
+version = "0.104.0"
 
 [dependencies.cranelift-control]
-version = "0.102.0"
+version = "0.104.0"
 
 [dependencies.cranelift-entity]
-version = "0.102.0"
+version = "0.104.0"
 
 [dependencies.gimli]
 version = "0.28.0"
@@ -114,10 +114,10 @@ features = ["html_reports"]
 version = "2.1.0"
 
 [build-dependencies.cranelift-codegen-meta]
-version = "0.102.0"
+version = "0.104.0"
 
 [build-dependencies.cranelift-isle]
-version = "=0.102.0"
+version = "=0.104.0"
 
 [features]
 all-arch = [
@@ -132,6 +132,7 @@ default = [
     "std",
     "unwind",
     "host-arch",
+    "timing",
 ]
 disas = [
     "anyhow",
@@ -159,6 +160,16 @@ souper-harvest = [
     "souper-ir/stringify",
 ]
 std = []
+timing = []
 trace-log = []
 unwind = ["gimli"]
 x86 = []
+
+[lints.clippy]
+all = "allow"
+
+[lints.rust]
+trivial_numeric_casts = "warn"
+unstable_features = "warn"
+unused_extern_crates = "warn"
+unused_import_braces = "warn"

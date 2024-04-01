@@ -1,45 +1,37 @@
 #[cfg(feature = "Graphics_Capture")]
+#[doc = "Required features: `\"Graphics_Capture\"`"]
 pub mod Capture;
 #[cfg(feature = "Graphics_DirectX")]
+#[doc = "Required features: `\"Graphics_DirectX\"`"]
 pub mod DirectX;
 #[cfg(feature = "Graphics_Display")]
+#[doc = "Required features: `\"Graphics_Display\"`"]
 pub mod Display;
 #[cfg(feature = "Graphics_Effects")]
+#[doc = "Required features: `\"Graphics_Effects\"`"]
 pub mod Effects;
 #[cfg(feature = "Graphics_Holographic")]
+#[doc = "Required features: `\"Graphics_Holographic\"`"]
 pub mod Holographic;
 #[cfg(feature = "Graphics_Imaging")]
+#[doc = "Required features: `\"Graphics_Imaging\"`"]
 pub mod Imaging;
 #[cfg(feature = "Graphics_Printing")]
+#[doc = "Required features: `\"Graphics_Printing\"`"]
 pub mod Printing;
 #[cfg(feature = "Graphics_Printing3D")]
+#[doc = "Required features: `\"Graphics_Printing3D\"`"]
 pub mod Printing3D;
-#[doc = "*Required features: `\"Graphics\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IGeometrySource2D(::windows_core::IUnknown);
 impl IGeometrySource2D {}
 ::windows_core::imp::interface_hierarchy!(IGeometrySource2D, ::windows_core::IUnknown, ::windows_core::IInspectable);
-impl ::core::cmp::PartialEq for IGeometrySource2D {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IGeometrySource2D {}
-impl ::core::fmt::Debug for IGeometrySource2D {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IGeometrySource2D").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for IGeometrySource2D {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"{caff7902-670c-4181-a624-da977203b845}");
 }
 unsafe impl ::windows_core::Interface for IGeometrySource2D {
     type Vtable = IGeometrySource2D_Vtbl;
-}
-impl ::core::clone::Clone for IGeometrySource2D {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IGeometrySource2D {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcaff7902_670c_4181_a624_da977203b845);
@@ -50,7 +42,6 @@ pub struct IGeometrySource2D_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Graphics\"`*"]
 pub struct DisplayAdapterId {
     pub LowPart: u32,
     pub HighPart: i32,
@@ -84,7 +75,6 @@ impl ::core::default::Default for DisplayAdapterId {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Graphics\"`*"]
 pub struct DisplayId {
     pub Value: u64,
 }
@@ -117,7 +107,6 @@ impl ::core::default::Default for DisplayId {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Graphics\"`*"]
 pub struct PointInt32 {
     pub X: i32,
     pub Y: i32,
@@ -151,7 +140,6 @@ impl ::core::default::Default for PointInt32 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Graphics\"`*"]
 pub struct RectInt32 {
     pub X: i32,
     pub Y: i32,
@@ -187,7 +175,6 @@ impl ::core::default::Default for RectInt32 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Graphics\"`*"]
 pub struct SizeInt32 {
     pub Width: i32,
     pub Height: i32,

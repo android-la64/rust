@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Media_Playback\"`, `\"deprecated\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 pub trait IMediaEnginePlaybackSource_Impl: Sized {
     fn CurrentItem(&self) -> ::windows_core::Result<MediaPlaybackItem>;
@@ -34,11 +34,10 @@ impl IMediaEnginePlaybackSource_Vtbl {
             SetPlaybackSource: SetPlaybackSource::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IMediaEnginePlaybackSource as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IMediaEnginePlaybackSource as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Media_Playback\"`, `\"implement\"`*"]
 pub trait IMediaPlaybackSource_Impl: Sized {}
 impl ::windows_core::RuntimeName for IMediaPlaybackSource {
     const NAME: &'static str = "Windows.Media.Playback.IMediaPlaybackSource";
@@ -47,7 +46,7 @@ impl IMediaPlaybackSource_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IMediaPlaybackSource_Impl, const OFFSET: isize>() -> IMediaPlaybackSource_Vtbl {
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IMediaPlaybackSource, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IMediaPlaybackSource as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IMediaPlaybackSource as ::windows_core::ComInterface>::IID
     }
 }

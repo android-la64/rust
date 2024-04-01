@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAccessoryManager(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAccessoryManager {
     type Vtable = IAccessoryManager_Vtbl;
-}
-impl ::core::clone::Clone for IAccessoryManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAccessoryManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0d04a12c_883d_4aa7_bca7_fa4bb8bffee6);
@@ -78,14 +74,10 @@ pub struct IAccessoryManager_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAccessoryManager2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAccessoryManager2 {
     type Vtable = IAccessoryManager2_Vtbl;
-}
-impl ::core::clone::Clone for IAccessoryManager2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAccessoryManager2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xbacad44d_d393_46c6_b80c_15fdf44d5386);
@@ -124,14 +116,10 @@ pub struct IAccessoryManager2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAccessoryManager3(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAccessoryManager3 {
     type Vtable = IAccessoryManager3_Vtbl;
-}
-impl ::core::clone::Clone for IAccessoryManager3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAccessoryManager3 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x81f75137_edc7_47e0_b2f7_7e577c833f7d);
@@ -145,11 +133,11 @@ pub struct IAccessoryManager3_Vtbl {
     pub SnoozeReminderByInstanceId: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, instanceid: ::std::mem::MaybeUninit<::windows_core::HSTRING>) -> ::windows_core::HRESULT,
     pub DismissReminderByInstanceId: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, instanceid: ::std::mem::MaybeUninit<::windows_core::HSTRING>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAccessoryNotificationTriggerDetails(::windows_core::IUnknown);
 impl IAccessoryNotificationTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -192,27 +180,11 @@ impl IAccessoryNotificationTriggerDetails {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IAccessoryNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
-impl ::core::cmp::PartialEq for IAccessoryNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IAccessoryNotificationTriggerDetails {}
-impl ::core::fmt::Debug for IAccessoryNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAccessoryNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for IAccessoryNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"{6968a7d4-e3ca-49cb-8c87-2c11cdff9646}");
 }
 unsafe impl ::windows_core::Interface for IAccessoryNotificationTriggerDetails {
     type Vtable = IAccessoryNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IAccessoryNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAccessoryNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6968a7d4_e3ca_49cb_8c87_2c11cdff9646);
@@ -233,14 +205,10 @@ pub struct IAccessoryNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAlarmNotificationTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAlarmNotificationTriggerDetails {
     type Vtable = IAlarmNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IAlarmNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAlarmNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x38f5fa30_c738_4da2_908c_775d83c36abb);
@@ -259,14 +227,10 @@ pub struct IAlarmNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAlarmNotificationTriggerDetails2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAlarmNotificationTriggerDetails2 {
     type Vtable = IAlarmNotificationTriggerDetails2_Vtbl;
-}
-impl ::core::clone::Clone for IAlarmNotificationTriggerDetails2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAlarmNotificationTriggerDetails2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcf16e06a_7155_40fe_a9c2_7bd2127ef853);
@@ -279,14 +243,10 @@ pub struct IAlarmNotificationTriggerDetails2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppNotificationInfo(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppNotificationInfo {
     type Vtable = IAppNotificationInfo_Vtbl;
-}
-impl ::core::clone::Clone for IAppNotificationInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppNotificationInfo {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2157bea5_e286_45d3_9bea_f790fc216e0e);
@@ -300,14 +260,10 @@ pub struct IAppNotificationInfo_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBinaryId(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IBinaryId {
     type Vtable = IBinaryId_Vtbl;
-}
-impl ::core::clone::Clone for IBinaryId {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBinaryId {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4f0da531_5595_44b4_9181_ce4efa3fc168);
@@ -321,14 +277,10 @@ pub struct IBinaryId_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICalendarChangedNotificationTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICalendarChangedNotificationTriggerDetails {
     type Vtable = ICalendarChangedNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for ICalendarChangedNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICalendarChangedNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4b8a3bfc_279d_42ab_9c68_3e87977bf216);
@@ -342,14 +294,10 @@ pub struct ICalendarChangedNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICortanaTileNotificationTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICortanaTileNotificationTriggerDetails {
     type Vtable = ICortanaTileNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for ICortanaTileNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICortanaTileNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xdc0f01d5_1489_46bb_b73b_7f90067ecf27);
@@ -371,14 +319,10 @@ pub struct ICortanaTileNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IEmailAccountInfo(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IEmailAccountInfo {
     type Vtable = IEmailAccountInfo_Vtbl;
-}
-impl ::core::clone::Clone for IEmailAccountInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IEmailAccountInfo {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xdfbc02ab_bda0_4568_927e_b2ede35818a1);
@@ -392,14 +336,10 @@ pub struct IEmailAccountInfo_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IEmailFolderInfo(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IEmailFolderInfo {
     type Vtable = IEmailFolderInfo_Vtbl;
-}
-impl ::core::clone::Clone for IEmailFolderInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IEmailFolderInfo {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc207150e_e237_46d6_90e6_4f529eeac1e2);
@@ -413,14 +353,10 @@ pub struct IEmailFolderInfo_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IEmailNotificationTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IEmailNotificationTriggerDetails {
     type Vtable = IEmailNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IEmailNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IEmailNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf3b82612_46cf_4e70_8e0d_7b2e04ab492b);
@@ -444,14 +380,10 @@ pub struct IEmailNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IEmailNotificationTriggerDetails2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IEmailNotificationTriggerDetails2 {
     type Vtable = IEmailNotificationTriggerDetails2_Vtbl;
-}
-impl ::core::clone::Clone for IEmailNotificationTriggerDetails2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IEmailNotificationTriggerDetails2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x168067e3_c56f_4ec7_bed1_f734e08de5b2);
@@ -464,14 +396,10 @@ pub struct IEmailNotificationTriggerDetails2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IEmailReadNotificationTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IEmailReadNotificationTriggerDetails {
     type Vtable = IEmailReadNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IEmailReadNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IEmailReadNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf5b7a087_06f3_4e3e_8c42_325e67010413);
@@ -487,14 +415,10 @@ pub struct IEmailReadNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaControlsTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaControlsTriggerDetails {
     type Vtable = IMediaControlsTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IMediaControlsTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaControlsTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfab4648b_ae45_4548_91ca_4ab0548e33b5);
@@ -508,14 +432,10 @@ pub struct IMediaControlsTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaMetadata(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaMetadata {
     type Vtable = IMediaMetadata_Vtbl;
-}
-impl ::core::clone::Clone for IMediaMetadata {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaMetadata {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9b50ddf7_bb6c_4330_b3cd_0704a54cdb80);
@@ -540,14 +460,10 @@ pub struct IMediaMetadata_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneCallDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPhoneCallDetails {
     type Vtable = IPhoneCallDetails_Vtbl;
-}
-impl ::core::clone::Clone for IPhoneCallDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPhoneCallDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0c1b6f53_f071_483e_bf33_ebd44b724447);
@@ -580,14 +496,10 @@ pub struct IPhoneCallDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneLineDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPhoneLineDetails {
     type Vtable = IPhoneLineDetails_Vtbl;
-}
-impl ::core::clone::Clone for IPhoneLineDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPhoneLineDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x47eb32dc_33ed_49b9_995c_a296bac82b77);
@@ -605,14 +517,10 @@ pub struct IPhoneLineDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneLineDetails2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPhoneLineDetails2 {
     type Vtable = IPhoneLineDetails2_Vtbl;
-}
-impl ::core::clone::Clone for IPhoneLineDetails2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPhoneLineDetails2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb30cd77d_0147_498c_8241_bf0cabc60a25);
@@ -625,14 +533,10 @@ pub struct IPhoneLineDetails2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneNotificationTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPhoneNotificationTriggerDetails {
     type Vtable = IPhoneNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IPhoneNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPhoneNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xccc2fdf7_09c3_4118_91bc_ca6323a8d383);
@@ -647,14 +551,10 @@ pub struct IPhoneNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IReminderNotificationTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IReminderNotificationTriggerDetails {
     type Vtable = IReminderNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IReminderNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IReminderNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x5bddaa5d_9f61_4bf0_9feb_10502bc0b0c2);
@@ -679,14 +579,10 @@ pub struct IReminderNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IReminderNotificationTriggerDetails2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IReminderNotificationTriggerDetails2 {
     type Vtable = IReminderNotificationTriggerDetails2_Vtbl;
-}
-impl ::core::clone::Clone for IReminderNotificationTriggerDetails2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IReminderNotificationTriggerDetails2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe715f9c0_504d_4c0f_a6b3_bcb9722c6cdd);
@@ -699,14 +595,10 @@ pub struct IReminderNotificationTriggerDetails2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISpeedDialEntry(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISpeedDialEntry {
     type Vtable = ISpeedDialEntry_Vtbl;
-}
-impl ::core::clone::Clone for ISpeedDialEntry {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISpeedDialEntry {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9240b6db_872c_46dc_b62a_be4541b166f8);
@@ -721,14 +613,10 @@ pub struct ISpeedDialEntry_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ITextResponse(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ITextResponse {
     type Vtable = ITextResponse_Vtbl;
-}
-impl ::core::clone::Clone for ITextResponse {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ITextResponse {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe9cb74c3_2457_4cdb_8110_72f5e8e883e8);
@@ -742,14 +630,10 @@ pub struct ITextResponse_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IToastNotificationTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IToastNotificationTriggerDetails {
     type Vtable = IToastNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IToastNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IToastNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc9314895_4e6d_4e9d_afec_9e921b875ae8);
@@ -766,14 +650,10 @@ pub struct IToastNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IToastNotificationTriggerDetails2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IToastNotificationTriggerDetails2 {
     type Vtable = IToastNotificationTriggerDetails2_Vtbl;
-}
-impl ::core::clone::Clone for IToastNotificationTriggerDetails2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IToastNotificationTriggerDetails2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3e0479dd_cac4_4f60_afa3_b925d9d83c93);
@@ -786,14 +666,10 @@ pub struct IToastNotificationTriggerDetails2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IVolumeInfo(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IVolumeInfo {
     type Vtable = IVolumeInfo_Vtbl;
-}
-impl ::core::clone::Clone for IVolumeInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IVolumeInfo {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x944dd118_7704_4481_b92e_d3ed3ece6322);
@@ -808,7 +684,6 @@ pub struct IVolumeInfo_Vtbl {
     pub IsMuted: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut bool) -> ::windows_core::HRESULT,
     pub IsVibrateEnabled: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut VibrateState) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 pub struct AccessoryManager;
 impl AccessoryManager {
     pub fn RegisterAccessoryApp() -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -829,7 +704,7 @@ impl AccessoryManager {
     {
         Self::IAccessoryManager(|this| unsafe { (::windows_core::Interface::vtable(this).ProcessTriggerDetails)(::windows_core::Interface::as_raw(this), pdetails.try_into_param()?.abi()).ok() })
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn PhoneLineDetails() -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<PhoneLineDetails>> {
         Self::IAccessoryManager(|this| unsafe {
@@ -903,7 +778,7 @@ impl AccessoryManager {
     pub fn SnoozeAlarm(alarmid: ::windows_core::GUID) -> ::windows_core::Result<()> {
         Self::IAccessoryManager(|this| unsafe { (::windows_core::Interface::vtable(this).SnoozeAlarm)(::windows_core::Interface::as_raw(this), alarmid).ok() })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SnoozeAlarmForSpecifiedTime(alarmid: ::windows_core::GUID, timespan: super::super::super::Foundation::TimeSpan) -> ::windows_core::Result<()> {
         Self::IAccessoryManager(|this| unsafe { (::windows_core::Interface::vtable(this).SnoozeAlarmForSpecifiedTime)(::windows_core::Interface::as_raw(this), alarmid, timespan).ok() })
@@ -914,7 +789,7 @@ impl AccessoryManager {
     pub fn SnoozeReminder(reminderid: ::windows_core::GUID) -> ::windows_core::Result<()> {
         Self::IAccessoryManager(|this| unsafe { (::windows_core::Interface::vtable(this).SnoozeReminder)(::windows_core::Interface::as_raw(this), reminderid).ok() })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SnoozeReminderForSpecifiedTime(reminderid: ::windows_core::GUID, timespan: super::super::super::Foundation::TimeSpan) -> ::windows_core::Result<()> {
         Self::IAccessoryManager(|this| unsafe { (::windows_core::Interface::vtable(this).SnoozeReminderForSpecifiedTime)(::windows_core::Interface::as_raw(this), reminderid, timespan).ok() })
@@ -961,7 +836,7 @@ impl AccessoryManager {
             (::windows_core::Interface::vtable(this).BatterySaverState)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn GetApps() -> ::windows_core::Result<super::super::super::Foundation::Collections::IMapView<::windows_core::HSTRING, AppNotificationInfo>> {
         Self::IAccessoryManager(|this| unsafe {
@@ -999,7 +874,7 @@ impl AccessoryManager {
             (::windows_core::Interface::vtable(this).GetUserConsent)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn GetAppIcon(appid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Storage::Streams::IRandomAccessStreamReference> {
         Self::IAccessoryManager(|this| unsafe {
@@ -1010,7 +885,7 @@ impl AccessoryManager {
     pub fn RingDevice() -> ::windows_core::Result<()> {
         Self::IAccessoryManager2(|this| unsafe { (::windows_core::Interface::vtable(this).RingDevice)(::windows_core::Interface::as_raw(this)).ok() })
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn SpeedDialList() -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<SpeedDialEntry>> {
         Self::IAccessoryManager2(|this| unsafe {
@@ -1045,7 +920,7 @@ impl AccessoryManager {
             (::windows_core::Interface::vtable(this).VolumeInfo)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn GetAllEmailAccounts() -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<EmailAccountInfo>> {
         Self::IAccessoryManager2(|this| unsafe {
@@ -1053,7 +928,7 @@ impl AccessoryManager {
             (::windows_core::Interface::vtable(this).GetAllEmailAccounts)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn GetFolders(emailaccount: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<EmailFolderInfo>> {
         Self::IAccessoryManager2(|this| unsafe {
@@ -1067,7 +942,7 @@ impl AccessoryManager {
     pub fn DisableEmailNotificationEmailAccount(emailaccount: &::windows_core::HSTRING) -> ::windows_core::Result<()> {
         Self::IAccessoryManager2(|this| unsafe { (::windows_core::Interface::vtable(this).DisableEmailNotificationEmailAccount)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(emailaccount)).ok() })
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn EnableEmailNotificationFolderFilter<P0>(emailaccount: &::windows_core::HSTRING, folders: P0) -> ::windows_core::Result<()>
     where
@@ -1112,11 +987,11 @@ impl AccessoryManager {
 impl ::windows_core::RuntimeName for AccessoryManager {
     const NAME: &'static str = "Windows.Phone.Notification.Management.AccessoryManager";
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AlarmNotificationTriggerDetails(::windows_core::IUnknown);
 impl AlarmNotificationTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = &::windows_core::ComInterface::cast::<IAccessoryNotificationTriggerDetails>(self)?;
@@ -1171,7 +1046,7 @@ impl AlarmNotificationTriggerDetails {
             (::windows_core::Interface::vtable(this).Title)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Timestamp(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -1195,24 +1070,8 @@ impl AlarmNotificationTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for AlarmNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AlarmNotificationTriggerDetails {}
-impl ::core::fmt::Debug for AlarmNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AlarmNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AlarmNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.AlarmNotificationTriggerDetails;{38f5fa30-c738-4da2-908c-775d83c36abb})");
-}
-impl ::core::clone::Clone for AlarmNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AlarmNotificationTriggerDetails {
     type Vtable = IAlarmNotificationTriggerDetails_Vtbl;
@@ -1225,8 +1084,8 @@ impl ::windows_core::RuntimeName for AlarmNotificationTriggerDetails {
 }
 ::windows_core::imp::interface_hierarchy!(AlarmNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 impl ::windows_core::CanTryInto<IAccessoryNotificationTriggerDetails> for AlarmNotificationTriggerDetails {}
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AppNotificationInfo(::windows_core::IUnknown);
 impl AppNotificationInfo {
     pub fn Id(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -1244,24 +1103,8 @@ impl AppNotificationInfo {
         }
     }
 }
-impl ::core::cmp::PartialEq for AppNotificationInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AppNotificationInfo {}
-impl ::core::fmt::Debug for AppNotificationInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AppNotificationInfo").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AppNotificationInfo {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.AppNotificationInfo;{2157bea5-e286-45d3-9bea-f790fc216e0e})");
-}
-impl ::core::clone::Clone for AppNotificationInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AppNotificationInfo {
     type Vtable = IAppNotificationInfo_Vtbl;
@@ -1273,8 +1116,8 @@ impl ::windows_core::RuntimeName for AppNotificationInfo {
     const NAME: &'static str = "Windows.Phone.Notification.Management.AppNotificationInfo";
 }
 ::windows_core::imp::interface_hierarchy!(AppNotificationInfo, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct BinaryId(::windows_core::IUnknown);
 impl BinaryId {
     pub fn Id(&self) -> ::windows_core::Result<u8> {
@@ -1292,24 +1135,8 @@ impl BinaryId {
         }
     }
 }
-impl ::core::cmp::PartialEq for BinaryId {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for BinaryId {}
-impl ::core::fmt::Debug for BinaryId {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("BinaryId").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for BinaryId {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.BinaryId;{4f0da531-5595-44b4-9181-ce4efa3fc168})");
-}
-impl ::core::clone::Clone for BinaryId {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for BinaryId {
     type Vtable = IBinaryId_Vtbl;
@@ -1321,11 +1148,11 @@ impl ::windows_core::RuntimeName for BinaryId {
     const NAME: &'static str = "Windows.Phone.Notification.Management.BinaryId";
 }
 ::windows_core::imp::interface_hierarchy!(BinaryId, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CalendarChangedNotificationTriggerDetails(::windows_core::IUnknown);
 impl CalendarChangedNotificationTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = &::windows_core::ComInterface::cast::<IAccessoryNotificationTriggerDetails>(self)?;
@@ -1381,24 +1208,8 @@ impl CalendarChangedNotificationTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for CalendarChangedNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CalendarChangedNotificationTriggerDetails {}
-impl ::core::fmt::Debug for CalendarChangedNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CalendarChangedNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CalendarChangedNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.CalendarChangedNotificationTriggerDetails;{4b8a3bfc-279d-42ab-9c68-3e87977bf216})");
-}
-impl ::core::clone::Clone for CalendarChangedNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CalendarChangedNotificationTriggerDetails {
     type Vtable = ICalendarChangedNotificationTriggerDetails_Vtbl;
@@ -1411,11 +1222,11 @@ impl ::windows_core::RuntimeName for CalendarChangedNotificationTriggerDetails {
 }
 ::windows_core::imp::interface_hierarchy!(CalendarChangedNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 impl ::windows_core::CanTryInto<IAccessoryNotificationTriggerDetails> for CalendarChangedNotificationTriggerDetails {}
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CortanaTileNotificationTriggerDetails(::windows_core::IUnknown);
 impl CortanaTileNotificationTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = &::windows_core::ComInterface::cast::<IAccessoryNotificationTriggerDetails>(self)?;
@@ -1527,24 +1338,8 @@ impl CortanaTileNotificationTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for CortanaTileNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CortanaTileNotificationTriggerDetails {}
-impl ::core::fmt::Debug for CortanaTileNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CortanaTileNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CortanaTileNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.CortanaTileNotificationTriggerDetails;{dc0f01d5-1489-46bb-b73b-7f90067ecf27})");
-}
-impl ::core::clone::Clone for CortanaTileNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CortanaTileNotificationTriggerDetails {
     type Vtable = ICortanaTileNotificationTriggerDetails_Vtbl;
@@ -1557,8 +1352,8 @@ impl ::windows_core::RuntimeName for CortanaTileNotificationTriggerDetails {
 }
 ::windows_core::imp::interface_hierarchy!(CortanaTileNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 impl ::windows_core::CanTryInto<IAccessoryNotificationTriggerDetails> for CortanaTileNotificationTriggerDetails {}
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct EmailAccountInfo(::windows_core::IUnknown);
 impl EmailAccountInfo {
     pub fn DisplayName(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -1576,24 +1371,8 @@ impl EmailAccountInfo {
         }
     }
 }
-impl ::core::cmp::PartialEq for EmailAccountInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for EmailAccountInfo {}
-impl ::core::fmt::Debug for EmailAccountInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("EmailAccountInfo").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for EmailAccountInfo {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.EmailAccountInfo;{dfbc02ab-bda0-4568-927e-b2ede35818a1})");
-}
-impl ::core::clone::Clone for EmailAccountInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for EmailAccountInfo {
     type Vtable = IEmailAccountInfo_Vtbl;
@@ -1605,8 +1384,8 @@ impl ::windows_core::RuntimeName for EmailAccountInfo {
     const NAME: &'static str = "Windows.Phone.Notification.Management.EmailAccountInfo";
 }
 ::windows_core::imp::interface_hierarchy!(EmailAccountInfo, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct EmailFolderInfo(::windows_core::IUnknown);
 impl EmailFolderInfo {
     pub fn DisplayName(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -1624,24 +1403,8 @@ impl EmailFolderInfo {
         }
     }
 }
-impl ::core::cmp::PartialEq for EmailFolderInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for EmailFolderInfo {}
-impl ::core::fmt::Debug for EmailFolderInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("EmailFolderInfo").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for EmailFolderInfo {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.EmailFolderInfo;{c207150e-e237-46d6-90e6-4f529eeac1e2})");
-}
-impl ::core::clone::Clone for EmailFolderInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for EmailFolderInfo {
     type Vtable = IEmailFolderInfo_Vtbl;
@@ -1653,11 +1416,11 @@ impl ::windows_core::RuntimeName for EmailFolderInfo {
     const NAME: &'static str = "Windows.Phone.Notification.Management.EmailFolderInfo";
 }
 ::windows_core::imp::interface_hierarchy!(EmailFolderInfo, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct EmailNotificationTriggerDetails(::windows_core::IUnknown);
 impl EmailNotificationTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = &::windows_core::ComInterface::cast::<IAccessoryNotificationTriggerDetails>(self)?;
@@ -1726,7 +1489,7 @@ impl EmailNotificationTriggerDetails {
             (::windows_core::Interface::vtable(this).SenderAddress)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel_Email\"`*"]
+    #[doc = "Required features: `\"ApplicationModel_Email\"`"]
     #[cfg(feature = "ApplicationModel_Email")]
     pub fn EmailMessage(&self) -> ::windows_core::Result<super::super::super::ApplicationModel::Email::EmailMessage> {
         let this = self;
@@ -1735,7 +1498,7 @@ impl EmailNotificationTriggerDetails {
             (::windows_core::Interface::vtable(this).EmailMessage)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Timestamp(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -1752,24 +1515,8 @@ impl EmailNotificationTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for EmailNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for EmailNotificationTriggerDetails {}
-impl ::core::fmt::Debug for EmailNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("EmailNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for EmailNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.EmailNotificationTriggerDetails;{f3b82612-46cf-4e70-8e0d-7b2e04ab492b})");
-}
-impl ::core::clone::Clone for EmailNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for EmailNotificationTriggerDetails {
     type Vtable = IEmailNotificationTriggerDetails_Vtbl;
@@ -1782,11 +1529,11 @@ impl ::windows_core::RuntimeName for EmailNotificationTriggerDetails {
 }
 ::windows_core::imp::interface_hierarchy!(EmailNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 impl ::windows_core::CanTryInto<IAccessoryNotificationTriggerDetails> for EmailNotificationTriggerDetails {}
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct EmailReadNotificationTriggerDetails(::windows_core::IUnknown);
 impl EmailReadNotificationTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = &::windows_core::ComInterface::cast::<IAccessoryNotificationTriggerDetails>(self)?;
@@ -1856,24 +1603,8 @@ impl EmailReadNotificationTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for EmailReadNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for EmailReadNotificationTriggerDetails {}
-impl ::core::fmt::Debug for EmailReadNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("EmailReadNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for EmailReadNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.EmailReadNotificationTriggerDetails;{f5b7a087-06f3-4e3e-8c42-325e67010413})");
-}
-impl ::core::clone::Clone for EmailReadNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for EmailReadNotificationTriggerDetails {
     type Vtable = IEmailReadNotificationTriggerDetails_Vtbl;
@@ -1886,11 +1617,11 @@ impl ::windows_core::RuntimeName for EmailReadNotificationTriggerDetails {
 }
 ::windows_core::imp::interface_hierarchy!(EmailReadNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 impl ::windows_core::CanTryInto<IAccessoryNotificationTriggerDetails> for EmailReadNotificationTriggerDetails {}
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaControlsTriggerDetails(::windows_core::IUnknown);
 impl MediaControlsTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = &::windows_core::ComInterface::cast::<IAccessoryNotificationTriggerDetails>(self)?;
@@ -1946,24 +1677,8 @@ impl MediaControlsTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for MediaControlsTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaControlsTriggerDetails {}
-impl ::core::fmt::Debug for MediaControlsTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaControlsTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaControlsTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.MediaControlsTriggerDetails;{fab4648b-ae45-4548-91ca-4ab0548e33b5})");
-}
-impl ::core::clone::Clone for MediaControlsTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaControlsTriggerDetails {
     type Vtable = IMediaControlsTriggerDetails_Vtbl;
@@ -1976,8 +1691,8 @@ impl ::windows_core::RuntimeName for MediaControlsTriggerDetails {
 }
 ::windows_core::imp::interface_hierarchy!(MediaControlsTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 impl ::windows_core::CanTryInto<IAccessoryNotificationTriggerDetails> for MediaControlsTriggerDetails {}
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaMetadata(::windows_core::IUnknown);
 impl MediaMetadata {
     pub fn Title(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -2015,7 +1730,7 @@ impl MediaMetadata {
             (::windows_core::Interface::vtable(this).Track)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Duration(&self) -> ::windows_core::Result<super::super::super::Foundation::TimeSpan> {
         let this = self;
@@ -2024,7 +1739,7 @@ impl MediaMetadata {
             (::windows_core::Interface::vtable(this).Duration)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn Thumbnail(&self) -> ::windows_core::Result<super::super::super::Storage::Streams::IRandomAccessStreamReference> {
         let this = self;
@@ -2034,24 +1749,8 @@ impl MediaMetadata {
         }
     }
 }
-impl ::core::cmp::PartialEq for MediaMetadata {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaMetadata {}
-impl ::core::fmt::Debug for MediaMetadata {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaMetadata").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaMetadata {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.MediaMetadata;{9b50ddf7-bb6c-4330-b3cd-0704a54cdb80})");
-}
-impl ::core::clone::Clone for MediaMetadata {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaMetadata {
     type Vtable = IMediaMetadata_Vtbl;
@@ -2063,8 +1762,8 @@ impl ::windows_core::RuntimeName for MediaMetadata {
     const NAME: &'static str = "Windows.Phone.Notification.Management.MediaMetadata";
 }
 ::windows_core::imp::interface_hierarchy!(MediaMetadata, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneCallDetails(::windows_core::IUnknown);
 impl PhoneCallDetails {
     pub fn PhoneLine(&self) -> ::windows_core::Result<::windows_core::GUID> {
@@ -2116,7 +1815,7 @@ impl PhoneCallDetails {
             (::windows_core::Interface::vtable(this).ConferenceCallId)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn StartTime(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -2125,7 +1824,7 @@ impl PhoneCallDetails {
             (::windows_core::Interface::vtable(this).StartTime)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn EndTime(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -2148,7 +1847,7 @@ impl PhoneCallDetails {
             (::windows_core::Interface::vtable(this).ContactName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn PresetTextResponses(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<TextResponse>> {
         let this = self;
@@ -2158,24 +1857,8 @@ impl PhoneCallDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for PhoneCallDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PhoneCallDetails {}
-impl ::core::fmt::Debug for PhoneCallDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneCallDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PhoneCallDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.PhoneCallDetails;{0c1b6f53-f071-483e-bf33-ebd44b724447})");
-}
-impl ::core::clone::Clone for PhoneCallDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PhoneCallDetails {
     type Vtable = IPhoneCallDetails_Vtbl;
@@ -2187,8 +1870,8 @@ impl ::windows_core::RuntimeName for PhoneCallDetails {
     const NAME: &'static str = "Windows.Phone.Notification.Management.PhoneCallDetails";
 }
 ::windows_core::imp::interface_hierarchy!(PhoneCallDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneLineDetails(::windows_core::IUnknown);
 impl PhoneLineDetails {
     pub fn LineId(&self) -> ::windows_core::Result<::windows_core::GUID> {
@@ -2241,24 +1924,8 @@ impl PhoneLineDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for PhoneLineDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PhoneLineDetails {}
-impl ::core::fmt::Debug for PhoneLineDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneLineDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PhoneLineDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.PhoneLineDetails;{47eb32dc-33ed-49b9-995c-a296bac82b77})");
-}
-impl ::core::clone::Clone for PhoneLineDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PhoneLineDetails {
     type Vtable = IPhoneLineDetails_Vtbl;
@@ -2270,11 +1937,11 @@ impl ::windows_core::RuntimeName for PhoneLineDetails {
     const NAME: &'static str = "Windows.Phone.Notification.Management.PhoneLineDetails";
 }
 ::windows_core::imp::interface_hierarchy!(PhoneLineDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneNotificationTriggerDetails(::windows_core::IUnknown);
 impl PhoneNotificationTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = &::windows_core::ComInterface::cast::<IAccessoryNotificationTriggerDetails>(self)?;
@@ -2337,24 +2004,8 @@ impl PhoneNotificationTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for PhoneNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PhoneNotificationTriggerDetails {}
-impl ::core::fmt::Debug for PhoneNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PhoneNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.PhoneNotificationTriggerDetails;{ccc2fdf7-09c3-4118-91bc-ca6323a8d383})");
-}
-impl ::core::clone::Clone for PhoneNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PhoneNotificationTriggerDetails {
     type Vtable = IPhoneNotificationTriggerDetails_Vtbl;
@@ -2367,11 +2018,11 @@ impl ::windows_core::RuntimeName for PhoneNotificationTriggerDetails {
 }
 ::windows_core::imp::interface_hierarchy!(PhoneNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 impl ::windows_core::CanTryInto<IAccessoryNotificationTriggerDetails> for PhoneNotificationTriggerDetails {}
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ReminderNotificationTriggerDetails(::windows_core::IUnknown);
 impl ReminderNotificationTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = &::windows_core::ComInterface::cast::<IAccessoryNotificationTriggerDetails>(self)?;
@@ -2440,7 +2091,7 @@ impl ReminderNotificationTriggerDetails {
             (::windows_core::Interface::vtable(this).Details)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Timestamp(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -2449,7 +2100,7 @@ impl ReminderNotificationTriggerDetails {
             (::windows_core::Interface::vtable(this).Timestamp)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel_Appointments\"`*"]
+    #[doc = "Required features: `\"ApplicationModel_Appointments\"`"]
     #[cfg(feature = "ApplicationModel_Appointments")]
     pub fn Appointment(&self) -> ::windows_core::Result<super::super::super::ApplicationModel::Appointments::Appointment> {
         let this = self;
@@ -2473,24 +2124,8 @@ impl ReminderNotificationTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for ReminderNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ReminderNotificationTriggerDetails {}
-impl ::core::fmt::Debug for ReminderNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ReminderNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for ReminderNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.ReminderNotificationTriggerDetails;{5bddaa5d-9f61-4bf0-9feb-10502bc0b0c2})");
-}
-impl ::core::clone::Clone for ReminderNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for ReminderNotificationTriggerDetails {
     type Vtable = IReminderNotificationTriggerDetails_Vtbl;
@@ -2503,8 +2138,8 @@ impl ::windows_core::RuntimeName for ReminderNotificationTriggerDetails {
 }
 ::windows_core::imp::interface_hierarchy!(ReminderNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 impl ::windows_core::CanTryInto<IAccessoryNotificationTriggerDetails> for ReminderNotificationTriggerDetails {}
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SpeedDialEntry(::windows_core::IUnknown);
 impl SpeedDialEntry {
     pub fn PhoneNumber(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -2529,24 +2164,8 @@ impl SpeedDialEntry {
         }
     }
 }
-impl ::core::cmp::PartialEq for SpeedDialEntry {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SpeedDialEntry {}
-impl ::core::fmt::Debug for SpeedDialEntry {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SpeedDialEntry").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SpeedDialEntry {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.SpeedDialEntry;{9240b6db-872c-46dc-b62a-be4541b166f8})");
-}
-impl ::core::clone::Clone for SpeedDialEntry {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SpeedDialEntry {
     type Vtable = ISpeedDialEntry_Vtbl;
@@ -2558,8 +2177,8 @@ impl ::windows_core::RuntimeName for SpeedDialEntry {
     const NAME: &'static str = "Windows.Phone.Notification.Management.SpeedDialEntry";
 }
 ::windows_core::imp::interface_hierarchy!(SpeedDialEntry, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct TextResponse(::windows_core::IUnknown);
 impl TextResponse {
     pub fn Id(&self) -> ::windows_core::Result<u32> {
@@ -2577,24 +2196,8 @@ impl TextResponse {
         }
     }
 }
-impl ::core::cmp::PartialEq for TextResponse {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for TextResponse {}
-impl ::core::fmt::Debug for TextResponse {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("TextResponse").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for TextResponse {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.TextResponse;{e9cb74c3-2457-4cdb-8110-72f5e8e883e8})");
-}
-impl ::core::clone::Clone for TextResponse {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for TextResponse {
     type Vtable = ITextResponse_Vtbl;
@@ -2606,11 +2209,11 @@ impl ::windows_core::RuntimeName for TextResponse {
     const NAME: &'static str = "Windows.Phone.Notification.Management.TextResponse";
 }
 ::windows_core::imp::interface_hierarchy!(TextResponse, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ToastNotificationTriggerDetails(::windows_core::IUnknown);
 impl ToastNotificationTriggerDetails {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = &::windows_core::ComInterface::cast::<IAccessoryNotificationTriggerDetails>(self)?;
@@ -2694,24 +2297,8 @@ impl ToastNotificationTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for ToastNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ToastNotificationTriggerDetails {}
-impl ::core::fmt::Debug for ToastNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ToastNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for ToastNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.ToastNotificationTriggerDetails;{c9314895-4e6d-4e9d-afec-9e921b875ae8})");
-}
-impl ::core::clone::Clone for ToastNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for ToastNotificationTriggerDetails {
     type Vtable = IToastNotificationTriggerDetails_Vtbl;
@@ -2724,8 +2311,8 @@ impl ::windows_core::RuntimeName for ToastNotificationTriggerDetails {
 }
 ::windows_core::imp::interface_hierarchy!(ToastNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 impl ::windows_core::CanTryInto<IAccessoryNotificationTriggerDetails> for ToastNotificationTriggerDetails {}
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct VolumeInfo(::windows_core::IUnknown);
 impl VolumeInfo {
     pub fn SystemVolume(&self) -> ::windows_core::Result<u32> {
@@ -2764,24 +2351,8 @@ impl VolumeInfo {
         }
     }
 }
-impl ::core::cmp::PartialEq for VolumeInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for VolumeInfo {}
-impl ::core::fmt::Debug for VolumeInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("VolumeInfo").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for VolumeInfo {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.Notification.Management.VolumeInfo;{944dd118-7704-4481-b92e-d3ed3ece6322})");
-}
-impl ::core::clone::Clone for VolumeInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for VolumeInfo {
     type Vtable = IVolumeInfo_Vtbl;
@@ -2793,7 +2364,6 @@ impl ::windows_core::RuntimeName for VolumeInfo {
     const NAME: &'static str = "Windows.Phone.Notification.Management.VolumeInfo";
 }
 ::windows_core::imp::interface_hierarchy!(VolumeInfo, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AccessoryNotificationType(pub u32);
@@ -2870,7 +2440,6 @@ impl ::core::ops::Not for AccessoryNotificationType {
 impl ::windows_core::RuntimeType for AccessoryNotificationType {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.AccessoryNotificationType;u4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CalendarChangedEvent(pub i32);
@@ -2905,7 +2474,6 @@ impl ::core::fmt::Debug for CalendarChangedEvent {
 impl ::windows_core::RuntimeType for CalendarChangedEvent {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.CalendarChangedEvent;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneCallAudioEndpoint(pub i32);
@@ -2936,7 +2504,6 @@ impl ::core::fmt::Debug for PhoneCallAudioEndpoint {
 impl ::windows_core::RuntimeType for PhoneCallAudioEndpoint {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PhoneCallAudioEndpoint;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneCallDirection(pub i32);
@@ -2966,7 +2533,6 @@ impl ::core::fmt::Debug for PhoneCallDirection {
 impl ::windows_core::RuntimeType for PhoneCallDirection {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PhoneCallDirection;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneCallState(pub i32);
@@ -2999,7 +2565,6 @@ impl ::core::fmt::Debug for PhoneCallState {
 impl ::windows_core::RuntimeType for PhoneCallState {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PhoneCallState;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneCallTransport(pub i32);
@@ -3029,7 +2594,6 @@ impl ::core::fmt::Debug for PhoneCallTransport {
 impl ::windows_core::RuntimeType for PhoneCallTransport {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PhoneCallTransport;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneLineRegistrationState(pub i32);
@@ -3060,7 +2624,6 @@ impl ::core::fmt::Debug for PhoneLineRegistrationState {
 impl ::windows_core::RuntimeType for PhoneLineRegistrationState {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PhoneLineRegistrationState;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneMediaType(pub i32);
@@ -3090,7 +2653,6 @@ impl ::core::fmt::Debug for PhoneMediaType {
 impl ::windows_core::RuntimeType for PhoneMediaType {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PhoneMediaType;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneNotificationType(pub i32);
@@ -3123,7 +2685,6 @@ impl ::core::fmt::Debug for PhoneNotificationType {
 impl ::windows_core::RuntimeType for PhoneNotificationType {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PhoneNotificationType;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PlaybackCapability(pub u32);
@@ -3195,7 +2756,6 @@ impl ::core::ops::Not for PlaybackCapability {
 impl ::windows_core::RuntimeType for PlaybackCapability {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PlaybackCapability;u4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PlaybackCommand(pub i32);
@@ -3233,7 +2793,6 @@ impl ::core::fmt::Debug for PlaybackCommand {
 impl ::windows_core::RuntimeType for PlaybackCommand {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PlaybackCommand;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PlaybackStatus(pub i32);
@@ -3266,7 +2825,6 @@ impl ::core::fmt::Debug for PlaybackStatus {
 impl ::windows_core::RuntimeType for PlaybackStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.PlaybackStatus;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ReminderState(pub i32);
@@ -3297,7 +2855,6 @@ impl ::core::fmt::Debug for ReminderState {
 impl ::windows_core::RuntimeType for ReminderState {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Phone.Notification.Management.ReminderState;i4)");
 }
-#[doc = "*Required features: `\"Phone_Notification_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct VibrateState(pub i32);

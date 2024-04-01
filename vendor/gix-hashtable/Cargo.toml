@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-hashtable"
-version = "0.4.1"
+version = "0.5.1"
 authors = ["Pascal Kuthe <pascal.kuthe@semimod.de>"]
 include = [
     "src/**/*",
@@ -27,7 +27,7 @@ repository = "https://github.com/Byron/gitoxide"
 doctest = false
 
 [dependencies.gix-hash]
-version = "^0.13.2"
+version = "^0.14.1"
 
 [dependencies.hashbrown]
 version = "0.14.0"

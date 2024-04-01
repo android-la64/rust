@@ -259,16 +259,16 @@ impl<T: ?Sized> NonNull<T> {
     #[rustc_const_unstable(feature = "ptr_metadata", issue = "81513")]
     #[inline]
     pub const fn from_raw_parts(
-        data_address: NonNull<()>,
+        data_pointer: NonNull<()>,
         metadata: <T as super::Pointee>::Metadata,
     ) -> NonNull<T> {
-        // SAFETY: The result of `ptr::from::raw_parts_mut` is non-null because `data_address` is.
+        // SAFETY: The result of `ptr::from::raw_parts_mut` is non-null because `data_pointer` is.
         unsafe {
-            NonNull::new_unchecked(super::from_raw_parts_mut(data_address.as_ptr(), metadata))
+            NonNull::new_unchecked(super::from_raw_parts_mut(data_pointer.as_ptr(), metadata))
         }
     }
 
-    /// Decompose a (possibly wide) pointer into its address and metadata components.
+    /// Decompose a (possibly wide) pointer into its data pointer and metadata components.
     ///
     /// The pointer can be later reconstructed with [`NonNull::from_raw_parts`].
     #[unstable(feature = "ptr_metadata", issue = "81513")]
@@ -1791,7 +1791,7 @@ impl<T: ?Sized> Eq for NonNull<T> {}
 #[stable(feature = "nonnull", since = "1.25.0")]
 impl<T: ?Sized> PartialEq for NonNull<T> {
     #[inline]
-    #[cfg_attr(not(bootstrap), allow(ambiguous_wide_pointer_comparisons))]
+    #[allow(ambiguous_wide_pointer_comparisons)]
     fn eq(&self, other: &Self) -> bool {
         self.as_ptr() == other.as_ptr()
     }

@@ -1,3 +1,10 @@
+### 0.6.8
+
+__Date:__ December 12, 2023.
+
+- Bump MSRV to `1.70`.
+- Add `Claims::set_expires_in()` ([#107](https://github.com/brycx/pasetors/pull/107), credits: @franklx).
+
 ### 0.6.7
 
 __Date:__ June 10, 2023.

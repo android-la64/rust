@@ -42,6 +42,9 @@ information during the build:
 
 The output goes to stdout in the JSON object per line format. The `reason` field
 distinguishes different kinds of messages.
+The `package_id` field is a unique identifier for referring to the package, and
+as the `--package` argument to many commands. The syntax grammar can be found in
+chapter [Package ID Specifications].
 
 The `--message-format` option can also take additional formatting values which
 alter the way the JSON messages are computed and rendered. See the description
@@ -53,6 +56,7 @@ messages.
 
 [build command documentation]: ../commands/cargo-build.md
 [cargo_metadata]: https://crates.io/crates/cargo_metadata
+[Package ID Specifications]: ./pkgid-spec.md
 
 ### Compiler messages
 
@@ -66,7 +70,7 @@ structure:
     /* The "reason" indicates the kind of message. */
     "reason": "compiler-message",
     /* The Package ID, a unique identifier for referring to the package. */
-    "package_id": "my-package 0.1.0 (path+file:///path/to/my-package)",
+    "package_id": "file:///path/to/my-package#0.1.0",
     /* Absolute path to the package manifest. */
     "manifest_path": "/path/to/my-package/Cargo.toml",
     /* The Cargo target (lib, bin, example, etc.) that generated the message. */
@@ -135,7 +139,7 @@ following structure:
     /* The "reason" indicates the kind of message. */
     "reason": "compiler-artifact",
     /* The Package ID, a unique identifier for referring to the package. */
-    "package_id": "my-package 0.1.0 (path+file:///path/to/my-package)",
+    "package_id": "file:///path/to/my-package#0.1.0",
     /* Absolute path to the package manifest. */
     "manifest_path": "/path/to/my-package/Cargo.toml",
     /* The Cargo target (lib, bin, example, etc.) that generated the artifacts.
@@ -204,23 +208,23 @@ may be found in [the chapter on build scripts](build-scripts.md).
     /* The "reason" indicates the kind of message. */
     "reason": "build-script-executed",
     /* The Package ID, a unique identifier for referring to the package. */
-    "package_id": "my-package 0.1.0 (path+file:///path/to/my-package)",
-    /* Array of libraries to link, as indicated by the `cargo:rustc-link-lib`
+    "package_id": "file:///path/to/my-package#0.1.0",
+    /* Array of libraries to link, as indicated by the `cargo::rustc-link-lib`
        instruction. Note that this may include a "KIND=" prefix in the string
        where KIND is the library kind.
     */
     "linked_libs": ["foo", "static=bar"],
     /* Array of paths to include in the library search path, as indicated by
-       the `cargo:rustc-link-search` instruction. Note that this may include a
+       the `cargo::rustc-link-search` instruction. Note that this may include a
        "KIND=" prefix in the string where KIND is the library kind.
     */
     "linked_paths": ["/some/path", "native=/another/path"],
-    /* Array of cfg values to enable, as indicated by the `cargo:rustc-cfg`
+    /* Array of cfg values to enable, as indicated by the `cargo::rustc-cfg`
        instruction.
     */
     "cfgs": ["cfg1", "cfg2=\"string\""],
     /* Array of [KEY, VALUE] arrays of environment variables to set, as
-       indicated by the `cargo:rustc-env` instruction.
+       indicated by the `cargo::rustc-env` instruction.
     */
     "env": [
         ["SOME_KEY", "some value"],
@@ -264,6 +268,10 @@ Cargo itself. This is achieved by translating a cargo invocation of the form
 cargo `(?<command>[^ ]+)` into an invocation of an external tool
 `cargo-${command}`. The external tool must be present in one of the user's
 `$PATH` directories.
+
+> **Note**: Cargo defaults to prioritizing external tools in `$CARGO_HOME/bin`
+> over `$PATH`. Users can override this precedence by adding `$CARGO_HOME/bin`
+> to `$PATH`.
 
 When Cargo invokes a custom subcommand, the first argument to the subcommand
 will be the filename of the custom subcommand, as usual. The second argument

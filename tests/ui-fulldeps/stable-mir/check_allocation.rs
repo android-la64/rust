@@ -12,17 +12,14 @@
 #![feature(assert_matches)]
 #![feature(control_flow_enum)]
 #![feature(ascii_char, ascii_char_variants)]
-#![feature(c_str_literals)]
 
 extern crate rustc_hir;
-extern crate rustc_middle;
 #[macro_use]
 extern crate rustc_smir;
 extern crate rustc_driver;
 extern crate rustc_interface;
 extern crate stable_mir;
 
-use rustc_middle::ty::TyCtxt;
 use rustc_smir::rustc_internal;
 use stable_mir::crate_def::CrateDef;
 use stable_mir::mir::alloc::GlobalAlloc;
@@ -41,7 +38,7 @@ use std::ops::ControlFlow;
 const CRATE_NAME: &str = "input";
 
 /// This function uses the Stable MIR APIs to get information about the test crate.
-fn test_stable_mir(_tcx: TyCtxt<'_>) -> ControlFlow<()> {
+fn test_stable_mir() -> ControlFlow<()> {
     // Find items in the local crate.
     let items = stable_mir::all_local_items();
     check_foo(*get_item(&items, (ItemKind::Static, "FOO")).unwrap());
@@ -112,7 +109,7 @@ fn check_other_consts(item: CrateItem) {
     // Instance body will force constant evaluation.
     let body = Instance::try_from(item).unwrap().body().unwrap();
     let assigns = collect_consts(&body);
-    assert_eq!(assigns.len(), 9);
+    assert_eq!(assigns.len(), 8);
     for (name, alloc) in assigns {
         match name.as_str() {
             "_max_u128" => {
@@ -231,7 +228,7 @@ fn main() {
         CRATE_NAME.to_string(),
         path.to_string(),
     ];
-    run!(args, tcx, test_stable_mir(tcx)).unwrap();
+    run!(args, test_stable_mir).unwrap();
 }
 
 fn generate_input(path: &str) -> std::io::Result<()> {
@@ -240,7 +237,6 @@ fn generate_input(path: &str) -> std::io::Result<()> {
         file,
         r#"
     #![feature(core_intrinsics)]
-    #![feature(c_str_literals)]
     use std::intrinsics::type_id;
 
     static LEN: usize = 2;

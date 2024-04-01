@@ -353,15 +353,13 @@ fn cargo_compile_with_invalid_manifest2() {
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to parse manifest at `[..]`
-
-Caused by:
-  TOML parse error at line 3, column 23
-    |
-  3 |                 foo = bar
-    |                       ^
-  invalid string
-  expected `\"`, `'`
+[ERROR] invalid string
+expected `\"`, `'`
+ --> Cargo.toml:3:23
+  |
+3 |                 foo = bar
+  |                       ^
+  |
 ",
         )
         .run();
@@ -375,15 +373,13 @@ fn cargo_compile_with_invalid_manifest3() {
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to parse manifest at `[..]`
-
-Caused by:
-  TOML parse error at line 1, column 5
-    |
-  1 | a = bar
-    |     ^
-  invalid string
-  expected `\"`, `'`
+[ERROR] invalid string
+expected `\"`, `'`
+ --> src/Cargo.toml:1:5
+  |
+1 | a = bar
+  |     ^
+  |
 ",
         )
         .run();
@@ -434,14 +430,12 @@ fn cargo_compile_with_invalid_version() {
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to parse manifest at `[..]`
-
-Caused by:
-  TOML parse error at line 4, column 19
-    |
-  4 |         version = \"1.0\"
-    |                   ^^^^^
-  unexpected end of input while parsing minor version number
+[ERROR] unexpected end of input while parsing minor version number
+ --> Cargo.toml:4:19
+  |
+4 |         version = \"1.0\"
+  |                   ^^^^^
+  |
 ",
         )
         .run();
@@ -457,14 +451,12 @@ fn cargo_compile_with_empty_package_name() {
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to parse manifest at `[..]`
-
-Caused by:
-  TOML parse error at line 3, column 16
-    |
-  3 |         name = \"\"
-    |                ^^
-  package name cannot be empty
+[ERROR] package name cannot be empty
+ --> Cargo.toml:3:16
+  |
+3 |         name = \"\"
+  |                ^^
+  |
 ",
         )
         .run();
@@ -480,14 +472,12 @@ fn cargo_compile_with_invalid_package_name() {
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] failed to parse manifest at `[..]`
-
-Caused by:
-  TOML parse error at line 3, column 16
-    |
-  3 |         name = \"foo::bar\"
-    |                ^^^^^^^^^^
-  invalid character `:` in package name: `foo::bar`, [..]
+[ERROR] invalid character `:` in package name: `foo::bar`, characters must be Unicode XID characters (numbers, `-`, `_`, or most letters)
+ --> Cargo.toml:3:16
+  |
+3 |         name = \"foo::bar\"
+  |                ^^^^^^^^^^
+  |
 ",
         )
         .run();
@@ -1187,14 +1177,12 @@ fn cargo_compile_with_invalid_dep_rename() {
         .with_status(101)
         .with_stderr(
             "\
-error: failed to parse manifest at `[..]`
-
-Caused by:
-  TOML parse error at line 7, column 17
-    |
-  7 |                 \"haha this isn't a valid name 🐛\" = { package = \"libc\", version = \"0.1\" }
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  invalid character ` ` in package name: `haha this isn't a valid name 🐛`, characters must be Unicode XID characters (numbers, `-`, `_`, or most letters)
+[ERROR] invalid character ` ` in package name: `haha this isn't a valid name 🐛`, characters must be Unicode XID characters (numbers, `-`, `_`, or most letters)
+ --> Cargo.toml:7:17
+  |
+7 |                 \"haha this isn't a valid name 🐛\" = { package = \"libc\", version = \"0.1\" }
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
 ",
         )
         .run();
@@ -4161,7 +4149,7 @@ fn compiler_json_error_format() {
         )
         .file(
             "build.rs",
-            "fn main() { println!(\"cargo:rustc-cfg=xyz\") }",
+            "fn main() { println!(\"cargo::rustc-cfg=xyz\") }",
         )
         .file("src/main.rs", "fn main() { let unused = 92; }")
         .file("bar/Cargo.toml", &basic_manifest("bar", "0.5.0"))
@@ -4172,7 +4160,7 @@ fn compiler_json_error_format() {
         r#"
             {
                 "reason":"compiler-artifact",
-                "package_id":"foo 0.5.0 ([..])",
+                "package_id":"path+file:///[..]/foo#0.5.0",
                 "manifest_path": "[..]",
                 "target":{
                     "kind":["custom-build"],
@@ -4199,7 +4187,7 @@ fn compiler_json_error_format() {
 
             {
                 "reason":"compiler-message",
-                "package_id":"bar 0.5.0 ([..])",
+                "package_id":"path+file:///[..]/bar#0.5.0",
                 "manifest_path": "[..]",
                 "target":{
                     "kind":["lib"],
@@ -4225,7 +4213,7 @@ fn compiler_json_error_format() {
                 },
                 "executable": null,
                 "features": [],
-                "package_id":"bar 0.5.0 ([..])",
+                "package_id":"path+file:///[..]/bar#0.5.0",
                 "manifest_path": "[..]",
                 "target":{
                     "kind":["lib"],
@@ -4246,7 +4234,7 @@ fn compiler_json_error_format() {
 
             {
                 "reason":"build-script-executed",
-                "package_id":"foo 0.5.0 ([..])",
+                "package_id":"path+file:///[..]/foo#0.5.0",
                 "linked_libs":[],
                 "linked_paths":[],
                 "env":[],
@@ -4256,7 +4244,7 @@ fn compiler_json_error_format() {
 
             {
                 "reason":"compiler-message",
-                "package_id":"foo 0.5.0 ([..])",
+                "package_id":"path+file:///[..]/foo#0.5.0",
                 "manifest_path": "[..]",
                 "target":{
                     "kind":["bin"],
@@ -4273,7 +4261,7 @@ fn compiler_json_error_format() {
 
             {
                 "reason":"compiler-artifact",
-                "package_id":"foo 0.5.0 ([..])",
+                "package_id":"path+file:///[..]/foo#0.5.0",
                 "manifest_path": "[..]",
                 "target":{
                     "kind":["bin"],
@@ -4344,7 +4332,7 @@ fn message_format_json_forward_stderr() {
             r#"
                 {
                     "reason":"compiler-message",
-                    "package_id":"foo 0.5.0 ([..])",
+                    "package_id":"path+file:///[..]/foo#0.5.0",
                     "manifest_path": "[..]",
                     "target":{
                         "kind":["bin"],
@@ -4361,7 +4349,7 @@ fn message_format_json_forward_stderr() {
 
                 {
                     "reason":"compiler-artifact",
-                    "package_id":"foo 0.5.0 ([..])",
+                    "package_id":"path+file:///[..]/foo#0.5.0",
                     "manifest_path": "[..]",
                     "target":{
                         "kind":["bin"],
@@ -5314,11 +5302,11 @@ fn deterministic_cfg_flags() {
             "build.rs",
             r#"
                 fn main() {
-                    println!("cargo:rustc-cfg=cfg_a");
-                    println!("cargo:rustc-cfg=cfg_b");
-                    println!("cargo:rustc-cfg=cfg_c");
-                    println!("cargo:rustc-cfg=cfg_d");
-                    println!("cargo:rustc-cfg=cfg_e");
+                    println!("cargo::rustc-cfg=cfg_a");
+                    println!("cargo::rustc-cfg=cfg_b");
+                    println!("cargo::rustc-cfg=cfg_c");
+                    println!("cargo::rustc-cfg=cfg_d");
+                    println!("cargo::rustc-cfg=cfg_e");
                 }
             "#,
         )

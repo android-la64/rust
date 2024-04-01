@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILanguageFont(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ILanguageFont {
     type Vtable = ILanguageFont_Vtbl;
-}
-impl ::core::clone::Clone for ILanguageFont {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ILanguageFont {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb12e5c3a_b76d_459b_beeb_901151cd77d1);
@@ -33,14 +29,10 @@ pub struct ILanguageFont_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILanguageFontGroup(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ILanguageFontGroup {
     type Vtable = ILanguageFontGroup_Vtbl;
-}
-impl ::core::clone::Clone for ILanguageFontGroup {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ILanguageFontGroup {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf33a7fc3_3a5c_4aea_b9ff_b39fb242f7f6);
@@ -63,14 +55,10 @@ pub struct ILanguageFontGroup_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILanguageFontGroupFactory(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ILanguageFontGroupFactory {
     type Vtable = ILanguageFontGroupFactory_Vtbl;
-}
-impl ::core::clone::Clone for ILanguageFontGroupFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ILanguageFontGroupFactory {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfcaeac67_4e77_49c7_b856_dde934fc735b);
@@ -81,8 +69,8 @@ pub struct ILanguageFontGroupFactory_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
     pub CreateLanguageFontGroup: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, languagetag: ::std::mem::MaybeUninit<::windows_core::HSTRING>, result__: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Globalization_Fonts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct LanguageFont(::windows_core::IUnknown);
 impl LanguageFont {
     pub fn FontFamily(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -92,7 +80,7 @@ impl LanguageFont {
             (::windows_core::Interface::vtable(this).FontFamily)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"UI_Text\"`*"]
+    #[doc = "Required features: `\"UI_Text\"`"]
     #[cfg(feature = "UI_Text")]
     pub fn FontWeight(&self) -> ::windows_core::Result<super::super::UI::Text::FontWeight> {
         let this = self;
@@ -101,7 +89,7 @@ impl LanguageFont {
             (::windows_core::Interface::vtable(this).FontWeight)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"UI_Text\"`*"]
+    #[doc = "Required features: `\"UI_Text\"`"]
     #[cfg(feature = "UI_Text")]
     pub fn FontStretch(&self) -> ::windows_core::Result<super::super::UI::Text::FontStretch> {
         let this = self;
@@ -110,7 +98,7 @@ impl LanguageFont {
             (::windows_core::Interface::vtable(this).FontStretch)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"UI_Text\"`*"]
+    #[doc = "Required features: `\"UI_Text\"`"]
     #[cfg(feature = "UI_Text")]
     pub fn FontStyle(&self) -> ::windows_core::Result<super::super::UI::Text::FontStyle> {
         let this = self;
@@ -127,24 +115,8 @@ impl LanguageFont {
         }
     }
 }
-impl ::core::cmp::PartialEq for LanguageFont {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for LanguageFont {}
-impl ::core::fmt::Debug for LanguageFont {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("LanguageFont").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for LanguageFont {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Globalization.Fonts.LanguageFont;{b12e5c3a-b76d-459b-beeb-901151cd77d1})");
-}
-impl ::core::clone::Clone for LanguageFont {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for LanguageFont {
     type Vtable = ILanguageFont_Vtbl;
@@ -158,8 +130,8 @@ impl ::windows_core::RuntimeName for LanguageFont {
 ::windows_core::imp::interface_hierarchy!(LanguageFont, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for LanguageFont {}
 unsafe impl ::core::marker::Sync for LanguageFont {}
-#[doc = "*Required features: `\"Globalization_Fonts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct LanguageFontGroup(::windows_core::IUnknown);
 impl LanguageFontGroup {
     pub fn UITextFont(&self) -> ::windows_core::Result<LanguageFont> {
@@ -251,24 +223,8 @@ impl LanguageFontGroup {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for LanguageFontGroup {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for LanguageFontGroup {}
-impl ::core::fmt::Debug for LanguageFontGroup {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("LanguageFontGroup").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for LanguageFontGroup {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Globalization.Fonts.LanguageFontGroup;{f33a7fc3-3a5c-4aea-b9ff-b39fb242f7f6})");
-}
-impl ::core::clone::Clone for LanguageFontGroup {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for LanguageFontGroup {
     type Vtable = ILanguageFontGroup_Vtbl;

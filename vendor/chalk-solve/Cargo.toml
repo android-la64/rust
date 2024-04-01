@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "chalk-solve"
-version = "0.95.0"
+version = "0.96.0"
 authors = [
     "Rust Compiler Team",
     "Chalk developers",
@@ -28,10 +28,10 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/chalk"
 
 [dependencies.chalk-derive]
-version = "=0.95.0"
+version = "=0.96.0"
 
 [dependencies.chalk-ir]
-version = "=0.95.0"
+version = "=0.96.0"
 
 [dependencies.ena]
 version = "0.14.0"

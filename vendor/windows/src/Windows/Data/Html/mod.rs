@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHtmlUtilities(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHtmlUtilities {
     type Vtable = IHtmlUtilities_Vtbl;
-}
-impl ::core::clone::Clone for IHtmlUtilities {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHtmlUtilities {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfec00add_2399_4fac_b5a7_05e9acd7181d);
@@ -18,7 +14,6 @@ pub struct IHtmlUtilities_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
     pub ConvertToText: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, html: ::std::mem::MaybeUninit<::windows_core::HSTRING>, result__: *mut ::std::mem::MaybeUninit<::windows_core::HSTRING>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Data_Html\"`*"]
 pub struct HtmlUtilities;
 impl HtmlUtilities {
     pub fn ConvertToText(html: &::windows_core::HSTRING) -> ::windows_core::Result<::windows_core::HSTRING> {

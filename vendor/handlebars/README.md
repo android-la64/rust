@@ -5,6 +5,7 @@ handlebars-rust
 in Rust and for Rust.
 
 [![CI](https://github.com/sunng87/handlebars-rust/actions/workflows/main.yml/badge.svg)](https://github.com/sunng87/handlebars-rust/actions/workflows/main.yml)
+[![Coverage Status](https://coveralls.io/repos/github/sunng87/handlebars-rust/badge.svg?branch=master)](https://coveralls.io/github/sunng87/handlebars-rust?branch=master)
 [![](https://img.shields.io/crates/v/handlebars)](https://crates.io/crates/handlebars)
 [![](https://img.shields.io/crates/d/handlebars.svg)](https://crates.io/crates/handlebars)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
@@ -18,6 +19,7 @@ in Rust and for Rust.
 ```rust
 use handlebars::Handlebars;
 use serde_json::json;
+use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut reg = Handlebars::new();
@@ -65,13 +67,19 @@ Examples are provided in source tree to demo usage of various api.
   a web server hosts handlebars in `dev_mode`, you can edit the template and see the change
   without restarting your server.
 
+### Web Playground
+
+We have github action to compile latest `master` branch into WebAssembly and
+serve it on [github pages](https://sunng87.github.io/handlebars-rust/). You can
+test and verify your template with both handlebars-rust and handlebarjs.
+
 ## Minimum Rust Version Policy
 
 Handlebars will track Rust nightly and stable channel. When dropping
 support for previous stable versions, I will bump **patch** version
 and clarify in CHANGELOG.
 
-## Document
+## Docs
 
 [Rust doc](https://docs.rs/crate/handlebars/).
 

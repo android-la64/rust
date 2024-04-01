@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.57.0"
 name = "http-auth"
-version = "0.1.8"
+version = "0.1.9"
 description = "HTTP authentication: parse challenge lists, respond to Basic and Digest challenges. Likely to be extended with server support and additional auth schemes."
 readme = "README.md"
 keywords = [
@@ -32,11 +32,11 @@ repository = "https://github.com/scottlamb/http-auth"
 resolver = "2"
 
 [package.metadata.docs.rs]
+all-features = true
 rustdoc-args = [
     "--cfg",
     "docsrs",
 ]
-all-features = true
 
 [[example]]
 name = "reqwest"
@@ -57,6 +57,11 @@ optional = true
 [dependencies.http]
 version = "0.2.5"
 optional = true
+
+[dependencies.http10]
+version = "1.0.0"
+optional = true
+package = "http"
 
 [dependencies.log]
 version = "0.4"

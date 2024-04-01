@@ -248,7 +248,7 @@ pub struct InferArg {
 }
 
 impl InferArg {
-    pub fn to_ty(&self) -> Ty<'_> {
+    pub fn to_ty(&self) -> Ty<'static> {
         Ty { kind: TyKind::Infer, span: self.span, hir_id: self.hir_id }
     }
 }
@@ -417,13 +417,18 @@ pub enum GenericArgsParentheses {
     ParenSugar,
 }
 
-/// A modifier on a bound, currently this is only used for `?Sized`, where the
-/// modifier is `Maybe`. Negative bounds should also be handled here.
+/// A modifier on a trait bound.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, HashStable_Generic)]
 pub enum TraitBoundModifier {
+    /// `Type: Trait`
     None,
+    /// `Type: !Trait`
     Negative,
+    /// `Type: ?Trait`
     Maybe,
+    /// `Type: const Trait`
+    Const,
+    /// `Type: ~const Trait`
     MaybeConst,
 }
 
@@ -836,7 +841,7 @@ pub struct OwnerNodes<'tcx> {
 }
 
 impl<'tcx> OwnerNodes<'tcx> {
-    fn node(&self) -> OwnerNode<'tcx> {
+    pub fn node(&self) -> OwnerNode<'tcx> {
         use rustc_index::Idx;
         let node = self.nodes[ItemLocalId::new(0)].as_ref().unwrap().node;
         let node = node.as_owner().unwrap(); // Indexing must ensure it is an OwnerNode.
@@ -946,7 +951,18 @@ pub struct Closure<'hir> {
     pub fn_decl_span: Span,
     /// The span of the argument block `|...|`
     pub fn_arg_span: Option<Span>,
-    pub movability: Option<Movability>,
+    pub kind: ClosureKind,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Copy, Hash, HashStable_Generic, Encodable, Decodable)]
+pub enum ClosureKind {
+    /// This is a plain closure expression.
+    Closure,
+    /// This is a coroutine expression -- i.e. a closure expression in which
+    /// we've found a `yield`. These can arise either from "plain" coroutine
+    ///  usage (e.g. `let x = || { yield (); }`) or from a desugared expression
+    /// (e.g. `async` and `gen` blocks).
+    Coroutine(CoroutineKind),
 }
 
 /// A block of statements `{ .. }`, which may have a label (in this case the
@@ -999,7 +1015,7 @@ impl<'hir> Pat<'hir> {
 
         use PatKind::*;
         match self.kind {
-            Wild | Never | Lit(_) | Range(..) | Binding(.., None) | Path(_) => true,
+            Wild | Never | Lit(_) | Range(..) | Binding(.., None) | Path(_) | Err(_) => true,
             Box(s) | Ref(s, _) | Binding(.., Some(s)) => s.walk_short_(it),
             Struct(_, fields, _) => fields.iter().all(|field| field.pat.walk_short_(it)),
             TupleStruct(_, s, _) | Tuple(s, _) | Or(s) => s.iter().all(|p| p.walk_short_(it)),
@@ -1026,7 +1042,7 @@ impl<'hir> Pat<'hir> {
 
         use PatKind::*;
         match self.kind {
-            Wild | Never | Lit(_) | Range(..) | Binding(.., None) | Path(_) => {}
+            Wild | Never | Lit(_) | Range(..) | Binding(.., None) | Path(_) | Err(_) => {}
             Box(s) | Ref(s, _) | Binding(.., Some(s)) => s.walk_(it),
             Struct(_, fields, _) => fields.iter().for_each(|field| field.pat.walk_(it)),
             TupleStruct(_, s, _) | Tuple(s, _) | Or(s) => s.iter().for_each(|p| p.walk_(it)),
@@ -1189,6 +1205,9 @@ pub enum PatKind<'hir> {
     /// PatKind::Slice([Binding(a), Binding(b)], Some(Wild), [Binding(c), Binding(d)])
     /// ```
     Slice(&'hir [Pat<'hir>], Option<&'hir Pat<'hir>>, &'hir [Pat<'hir>]),
+
+    /// A placeholder for a pattern that wasn't well formed in some way.
+    Err(ErrorGuaranteed),
 }
 
 /// A statement.
@@ -1242,7 +1261,7 @@ pub struct Arm<'hir> {
     /// If this pattern and the optional guard matches, then `body` is evaluated.
     pub pat: &'hir Pat<'hir>,
     /// Optional guard clause.
-    pub guard: Option<Guard<'hir>>,
+    pub guard: Option<&'hir Expr<'hir>>,
     /// The expression the arm evaluates to if this arm matches.
     pub body: &'hir Expr<'hir>,
 }
@@ -1254,7 +1273,6 @@ pub struct Arm<'hir> {
 /// desugaring to if-let. Only let-else supports the type annotation at present.
 #[derive(Debug, Clone, Copy, HashStable_Generic)]
 pub struct Let<'hir> {
-    pub hir_id: HirId,
     pub span: Span,
     pub pat: &'hir Pat<'hir>,
     pub ty: Option<&'hir Ty<'hir>>,
@@ -1262,26 +1280,6 @@ pub struct Let<'hir> {
     /// `Some` when this let expressions is not in a syntanctically valid location.
     /// Used to prevent building MIR in such situations.
     pub is_recovered: Option<ErrorGuaranteed>,
-}
-
-#[derive(Debug, Clone, Copy, HashStable_Generic)]
-pub enum Guard<'hir> {
-    If(&'hir Expr<'hir>),
-    IfLet(&'hir Let<'hir>),
-}
-
-impl<'hir> Guard<'hir> {
-    /// Returns the body of the guard
-    ///
-    /// In other words, returns the e in either of the following:
-    ///
-    /// - `if e`
-    /// - `if let x = e`
-    pub fn body(&self) -> &'hir Expr<'hir> {
-        match self {
-            Guard::If(e) | Guard::IfLet(Let { init: e, .. }) => e,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, HashStable_Generic)]
@@ -1306,7 +1304,7 @@ pub enum UnsafeSource {
     UserProvided,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, HashStable_Generic)]
 pub struct BodyId {
     pub hir_id: HirId,
 }
@@ -1336,64 +1334,49 @@ pub struct BodyId {
 pub struct Body<'hir> {
     pub params: &'hir [Param<'hir>],
     pub value: &'hir Expr<'hir>,
-    pub coroutine_kind: Option<CoroutineKind>,
 }
 
 impl<'hir> Body<'hir> {
     pub fn id(&self) -> BodyId {
         BodyId { hir_id: self.value.hir_id }
     }
-
-    pub fn coroutine_kind(&self) -> Option<CoroutineKind> {
-        self.coroutine_kind
-    }
 }
 
 /// The type of source expression that caused this coroutine to be created.
 #[derive(Clone, PartialEq, Eq, Debug, Copy, Hash, HashStable_Generic, Encodable, Decodable)]
 pub enum CoroutineKind {
-    /// An explicit `async` block or the body of an `async` function.
-    Async(CoroutineSource),
-
-    /// An explicit `gen` block or the body of a `gen` function.
-    Gen(CoroutineSource),
-
-    /// An explicit `async gen` block or the body of an `async gen` function,
-    /// which is able to both `yield` and `.await`.
-    AsyncGen(CoroutineSource),
+    /// A coroutine that comes from a desugaring.
+    Desugared(CoroutineDesugaring, CoroutineSource),
 
     /// A coroutine literal created via a `yield` inside a closure.
-    Coroutine,
+    Coroutine(Movability),
+}
+
+impl CoroutineKind {
+    pub fn movability(self) -> Movability {
+        match self {
+            CoroutineKind::Desugared(CoroutineDesugaring::Async, _)
+            | CoroutineKind::Desugared(CoroutineDesugaring::AsyncGen, _) => Movability::Static,
+            CoroutineKind::Desugared(CoroutineDesugaring::Gen, _) => Movability::Movable,
+            CoroutineKind::Coroutine(mov) => mov,
+        }
+    }
+}
+
+impl CoroutineKind {
+    pub fn is_fn_like(self) -> bool {
+        matches!(self, CoroutineKind::Desugared(_, CoroutineSource::Fn))
+    }
 }
 
 impl fmt::Display for CoroutineKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CoroutineKind::Async(k) => {
-                if f.alternate() {
-                    f.write_str("`async` ")?;
-                } else {
-                    f.write_str("async ")?
-                }
+            CoroutineKind::Desugared(d, k) => {
+                d.fmt(f)?;
                 k.fmt(f)
             }
-            CoroutineKind::Coroutine => f.write_str("coroutine"),
-            CoroutineKind::Gen(k) => {
-                if f.alternate() {
-                    f.write_str("`gen` ")?;
-                } else {
-                    f.write_str("gen ")?
-                }
-                k.fmt(f)
-            }
-            CoroutineKind::AsyncGen(k) => {
-                if f.alternate() {
-                    f.write_str("`async gen` ")?;
-                } else {
-                    f.write_str("async gen ")?
-                }
-                k.fmt(f)
-            }
+            CoroutineKind::Coroutine(_) => f.write_str("coroutine"),
         }
     }
 }
@@ -1423,6 +1406,49 @@ impl fmt::Display for CoroutineSource {
             CoroutineSource::Fn => "fn body",
         }
         .fmt(f)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Copy, Hash, HashStable_Generic, Encodable, Decodable)]
+pub enum CoroutineDesugaring {
+    /// An explicit `async` block or the body of an `async` function.
+    Async,
+
+    /// An explicit `gen` block or the body of a `gen` function.
+    Gen,
+
+    /// An explicit `async gen` block or the body of an `async gen` function,
+    /// which is able to both `yield` and `.await`.
+    AsyncGen,
+}
+
+impl fmt::Display for CoroutineDesugaring {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CoroutineDesugaring::Async => {
+                if f.alternate() {
+                    f.write_str("`async` ")?;
+                } else {
+                    f.write_str("async ")?
+                }
+            }
+            CoroutineDesugaring::Gen => {
+                if f.alternate() {
+                    f.write_str("`gen` ")?;
+                } else {
+                    f.write_str("gen ")?
+                }
+            }
+            CoroutineDesugaring::AsyncGen => {
+                if f.alternate() {
+                    f.write_str("`async gen` ")?;
+                } else {
+                    f.write_str("async gen ")?
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -1505,14 +1531,16 @@ pub type Lit = Spanned<LitKind>;
 
 #[derive(Copy, Clone, Debug, HashStable_Generic)]
 pub enum ArrayLen {
-    Infer(HirId, Span),
+    Infer(InferArg),
     Body(AnonConst),
 }
 
 impl ArrayLen {
     pub fn hir_id(&self) -> HirId {
         match self {
-            &ArrayLen::Infer(hir_id, _) | &ArrayLen::Body(AnonConst { hir_id, .. }) => hir_id,
+            ArrayLen::Infer(InferArg { hir_id, .. }) | ArrayLen::Body(AnonConst { hir_id, .. }) => {
+                *hir_id
+            }
         }
     }
 }
@@ -1979,7 +2007,7 @@ pub enum LocalSource {
     AsyncFn,
     /// A desugared `<expr>.await`.
     AwaitDesugar,
-    /// A desugared `expr = expr`, where the LHS is a tuple, struct or array.
+    /// A desugared `expr = expr`, where the LHS is a tuple, struct, array or underscore expression.
     /// The span is that of the `=` sign.
     AssignDesugar(Span),
 }
@@ -2070,12 +2098,6 @@ pub enum YieldSource {
     Await { expr: Option<HirId> },
     /// A plain `yield`.
     Yield,
-}
-
-impl YieldSource {
-    pub fn is_await(&self) -> bool {
-        matches!(self, YieldSource::Await { .. })
-    }
 }
 
 impl fmt::Display for YieldSource {
@@ -2387,6 +2409,39 @@ impl<'hir> Ty<'hir> {
         my_visitor.visit_ty(self);
         my_visitor.0
     }
+
+    /// Whether `ty` is a type with `_` placeholders that can be inferred. Used in diagnostics only to
+    /// use inference to provide suggestions for the appropriate type if possible.
+    pub fn is_suggestable_infer_ty(&self) -> bool {
+        fn are_suggestable_generic_args(generic_args: &[GenericArg<'_>]) -> bool {
+            generic_args.iter().any(|arg| match arg {
+                GenericArg::Type(ty) => ty.is_suggestable_infer_ty(),
+                GenericArg::Infer(_) => true,
+                _ => false,
+            })
+        }
+        debug!(?self);
+        match &self.kind {
+            TyKind::Infer => true,
+            TyKind::Slice(ty) => ty.is_suggestable_infer_ty(),
+            TyKind::Array(ty, length) => {
+                ty.is_suggestable_infer_ty() || matches!(length, ArrayLen::Infer(..))
+            }
+            TyKind::Tup(tys) => tys.iter().any(Self::is_suggestable_infer_ty),
+            TyKind::Ptr(mut_ty) | TyKind::Ref(_, mut_ty) => mut_ty.ty.is_suggestable_infer_ty(),
+            TyKind::OpaqueDef(_, generic_args, _) => are_suggestable_generic_args(generic_args),
+            TyKind::Path(QPath::TypeRelative(ty, segment)) => {
+                ty.is_suggestable_infer_ty() || are_suggestable_generic_args(segment.args().args)
+            }
+            TyKind::Path(QPath::Resolved(ty_opt, Path { segments, .. })) => {
+                ty_opt.is_some_and(Self::is_suggestable_infer_ty)
+                    || segments
+                        .iter()
+                        .any(|segment| are_suggestable_generic_args(segment.args().args))
+            }
+            _ => false,
+        }
+    }
 }
 
 /// Not represented directly in the AST; referred to by name through a `ty_path`.
@@ -2520,9 +2575,17 @@ pub enum OpaqueTyOrigin {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, HashStable_Generic)]
+pub enum InferDelegationKind {
+    Input(usize),
+    Output,
+}
+
 /// The various kinds of types recognized by the compiler.
 #[derive(Debug, Clone, Copy, HashStable_Generic)]
 pub enum TyKind<'hir> {
+    /// Actual type should be inherited from `DefId` signature
+    InferDelegation(DefId, InferDelegationKind),
     /// A variable length slice (i.e., `[T]`).
     Slice(&'hir Ty<'hir>),
     /// A fixed length array (i.e., `[T; n]`).
@@ -2717,13 +2780,22 @@ pub enum FnRetTy<'hir> {
     Return(&'hir Ty<'hir>),
 }
 
-impl FnRetTy<'_> {
+impl<'hir> FnRetTy<'hir> {
     #[inline]
     pub fn span(&self) -> Span {
         match *self {
             Self::DefaultReturn(span) => span,
             Self::Return(ref ty) => ty.span,
         }
+    }
+
+    pub fn get_infer_ret_ty(&self) -> Option<&'hir Ty<'hir>> {
+        if let Self::Return(ty) = self {
+            if ty.is_suggestable_infer_ty() {
+                return Some(*ty);
+            }
+        }
+        None
     }
 }
 
@@ -3646,7 +3718,7 @@ mod size_asserts {
     use super::*;
     // tidy-alphabetical-start
     static_assert_size!(Block<'_>, 48);
-    static_assert_size!(Body<'_>, 32);
+    static_assert_size!(Body<'_>, 24);
     static_assert_size!(Expr<'_>, 64);
     static_assert_size!(ExprKind<'_>, 48);
     static_assert_size!(FnDecl<'_>, 40);

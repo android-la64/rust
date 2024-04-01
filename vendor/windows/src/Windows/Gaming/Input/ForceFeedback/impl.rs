@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Gaming_Input_ForceFeedback\"`, `\"implement\"`*"]
 pub trait IForceFeedbackEffect_Impl: Sized {
     fn Gain(&self) -> ::windows_core::Result<f64>;
     fn SetGain(&self, value: f64) -> ::windows_core::Result<()>;
@@ -57,7 +56,7 @@ impl IForceFeedbackEffect_Vtbl {
             Stop: Stop::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IForceFeedbackEffect as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IForceFeedbackEffect as ::windows_core::ComInterface>::IID
     }
 }

@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICorePerceptionAutomationStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICorePerceptionAutomationStatics {
     type Vtable = ICorePerceptionAutomationStatics_Vtbl;
-}
-impl ::core::clone::Clone for ICorePerceptionAutomationStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICorePerceptionAutomationStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0bb04541_4ce2_4923_9a76_8187ecc59112);
@@ -21,10 +17,9 @@ pub struct ICorePerceptionAutomationStatics_Vtbl {
     #[cfg(not(feature = "Foundation"))]
     SetActivationFactoryProvider: usize,
 }
-#[doc = "*Required features: `\"Perception_Automation_Core\"`*"]
 pub struct CorePerceptionAutomation;
 impl CorePerceptionAutomation {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetActivationFactoryProvider<P0>(provider: P0) -> ::windows_core::Result<()>
     where

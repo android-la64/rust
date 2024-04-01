@@ -10,11 +10,13 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2021"
 name = "xattr"
-version = "0.2.3"
+version = "1.2.0"
 authors = ["Steven Allen <steven@stebalien.com>"]
 description = "unix extended filesystem attributes"
 documentation = "https://docs.rs/xattr"
+readme = "README.md"
 keywords = [
     "xattr",
     "filesystem",
@@ -23,8 +25,18 @@ keywords = [
 license = "MIT/Apache-2.0"
 repository = "https://github.com/Stebalien/xattr"
 
-[dependencies.libc]
-version = "0.2"
+[dependencies.rustix]
+version = "0.38.28"
+features = [
+    "fs",
+    "std",
+]
+default-features = false
+
+[dev-dependencies.rustix]
+version = "0.38.28"
+features = ["net"]
+default-features = false
 
 [dev-dependencies.tempfile]
 version = "3"
@@ -32,3 +44,11 @@ version = "3"
 [features]
 default = ["unsupported"]
 unsupported = []
+
+[target."cfg(any(target_os = \"macos\", target_os = \"freebsd\", target_os = \"netbsd\"))".dependencies.libc]
+version = "0.2.150"
+
+[target."cfg(target_os = \"linux\")".dependencies.linux-raw-sys]
+version = "0.4.11"
+features = ["std"]
+default-features = false

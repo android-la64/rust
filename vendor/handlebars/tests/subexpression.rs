@@ -5,7 +5,10 @@ extern crate serde_json;
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Arc;
 
-use handlebars::{Context, Handlebars, Helper, HelperDef, RenderContext, RenderError, ScopedJson};
+use handlebars::{
+    Context, Handlebars, Helper, HelperDef, RenderContext, RenderError, RenderErrorReason,
+    ScopedJson,
+};
 
 #[test]
 fn test_subexpression() {
@@ -78,10 +81,9 @@ fn invalid_json_path() {
     let hbs = Handlebars::new();
 
     let error = hbs.render_template("{{x[]@this}}", &data).unwrap_err();
+    let cause = error.reason();
 
-    let expected = "Error rendering \"Unnamed template\" line 1, col 1: Helper not defined: \"x\"";
-
-    assert_eq!(format!("{}", error), expected);
+    assert!(matches!(cause, RenderErrorReason::HelperNotFound(_)));
 }
 
 struct MyHelper;
@@ -89,11 +91,11 @@ struct MyHelper;
 impl HelperDef for MyHelper {
     fn call_inner<'reg: 'rc, 'rc>(
         &self,
-        _: &Helper<'reg, 'rc>,
+        _: &Helper<'rc>,
         _: &'reg Handlebars,
         _: &'rc Context,
         _: &mut RenderContext<'reg, 'rc>,
-    ) -> Result<ScopedJson<'reg, 'rc>, RenderError> {
+    ) -> Result<ScopedJson<'rc>, RenderError> {
         Ok(ScopedJson::Derived(json!({
             "a": 1,
             "b": 2,
@@ -121,11 +123,11 @@ struct CallCounterHelper {
 impl HelperDef for CallCounterHelper {
     fn call_inner<'reg: 'rc, 'rc>(
         &self,
-        h: &Helper<'reg, 'rc>,
+        h: &Helper<'rc>,
         _: &'reg Handlebars,
         _: &'rc Context,
         _: &mut RenderContext<'reg, 'rc>,
-    ) -> Result<ScopedJson<'reg, 'rc>, RenderError> {
+    ) -> Result<ScopedJson<'rc>, RenderError> {
         // inc counter
         self.c.fetch_add(1, Ordering::SeqCst);
 

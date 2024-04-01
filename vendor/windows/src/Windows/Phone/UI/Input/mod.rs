@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBackPressedEventArgs(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IBackPressedEventArgs {
     type Vtable = IBackPressedEventArgs_Vtbl;
-}
-impl ::core::clone::Clone for IBackPressedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBackPressedEventArgs {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf6f555ff_64ec_42a2_b93b_2fbc0c36a121);
@@ -21,14 +17,10 @@ pub struct IBackPressedEventArgs_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICameraEventArgs(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICameraEventArgs {
     type Vtable = ICameraEventArgs_Vtbl;
-}
-impl ::core::clone::Clone for ICameraEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICameraEventArgs {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb4063bda_201f_473d_bc69_e9e4ac57c9d0);
@@ -40,14 +32,10 @@ pub struct ICameraEventArgs_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHardwareButtonsStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHardwareButtonsStatics {
     type Vtable = IHardwareButtonsStatics_Vtbl;
-}
-impl ::core::clone::Clone for IHardwareButtonsStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHardwareButtonsStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x594b8780_da66_4fd8_a776_7506bd0cbfa7);
@@ -67,14 +55,10 @@ pub struct IHardwareButtonsStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHardwareButtonsStatics2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHardwareButtonsStatics2 {
     type Vtable = IHardwareButtonsStatics2_Vtbl;
-}
-impl ::core::clone::Clone for IHardwareButtonsStatics2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHardwareButtonsStatics2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x39c6c274_993f_40dd_854c_831a8934b92e);
@@ -108,8 +92,8 @@ pub struct IHardwareButtonsStatics2_Vtbl {
     #[cfg(not(feature = "Foundation"))]
     RemoveCameraReleased: usize,
 }
-#[doc = "*Required features: `\"Phone_UI_Input\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct BackPressedEventArgs(::windows_core::IUnknown);
 impl BackPressedEventArgs {
     pub fn Handled(&self) -> ::windows_core::Result<bool> {
@@ -124,24 +108,8 @@ impl BackPressedEventArgs {
         unsafe { (::windows_core::Interface::vtable(this).SetHandled)(::windows_core::Interface::as_raw(this), value).ok() }
     }
 }
-impl ::core::cmp::PartialEq for BackPressedEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for BackPressedEventArgs {}
-impl ::core::fmt::Debug for BackPressedEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("BackPressedEventArgs").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for BackPressedEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.UI.Input.BackPressedEventArgs;{f6f555ff-64ec-42a2-b93b-2fbc0c36a121})");
-}
-impl ::core::clone::Clone for BackPressedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for BackPressedEventArgs {
     type Vtable = IBackPressedEventArgs_Vtbl;
@@ -155,28 +123,12 @@ impl ::windows_core::RuntimeName for BackPressedEventArgs {
 ::windows_core::imp::interface_hierarchy!(BackPressedEventArgs, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for BackPressedEventArgs {}
 unsafe impl ::core::marker::Sync for BackPressedEventArgs {}
-#[doc = "*Required features: `\"Phone_UI_Input\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CameraEventArgs(::windows_core::IUnknown);
 impl CameraEventArgs {}
-impl ::core::cmp::PartialEq for CameraEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CameraEventArgs {}
-impl ::core::fmt::Debug for CameraEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CameraEventArgs").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CameraEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Phone.UI.Input.CameraEventArgs;{b4063bda-201f-473d-bc69-e9e4ac57c9d0})");
-}
-impl ::core::clone::Clone for CameraEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CameraEventArgs {
     type Vtable = ICameraEventArgs_Vtbl;
@@ -190,10 +142,9 @@ impl ::windows_core::RuntimeName for CameraEventArgs {
 ::windows_core::imp::interface_hierarchy!(CameraEventArgs, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CameraEventArgs {}
 unsafe impl ::core::marker::Sync for CameraEventArgs {}
-#[doc = "*Required features: `\"Phone_UI_Input\"`*"]
 pub struct HardwareButtons;
 impl HardwareButtons {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn BackPressed<P0>(handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -204,12 +155,12 @@ impl HardwareButtons {
             (::windows_core::Interface::vtable(this).BackPressed)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveBackPressed(token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         Self::IHardwareButtonsStatics(|this| unsafe { (::windows_core::Interface::vtable(this).RemoveBackPressed)(::windows_core::Interface::as_raw(this), token).ok() })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CameraHalfPressed<P0>(handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -220,12 +171,12 @@ impl HardwareButtons {
             (::windows_core::Interface::vtable(this).CameraHalfPressed)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveCameraHalfPressed(token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         Self::IHardwareButtonsStatics2(|this| unsafe { (::windows_core::Interface::vtable(this).RemoveCameraHalfPressed)(::windows_core::Interface::as_raw(this), token).ok() })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CameraPressed<P0>(handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -236,12 +187,12 @@ impl HardwareButtons {
             (::windows_core::Interface::vtable(this).CameraPressed)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveCameraPressed(token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         Self::IHardwareButtonsStatics2(|this| unsafe { (::windows_core::Interface::vtable(this).RemoveCameraPressed)(::windows_core::Interface::as_raw(this), token).ok() })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CameraReleased<P0>(handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -252,7 +203,7 @@ impl HardwareButtons {
             (::windows_core::Interface::vtable(this).CameraReleased)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveCameraReleased(token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         Self::IHardwareButtonsStatics2(|this| unsafe { (::windows_core::Interface::vtable(this).RemoveCameraReleased)(::windows_core::Interface::as_raw(this), token).ok() })

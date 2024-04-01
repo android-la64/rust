@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-prompt"
-version = "0.8.0"
+version = "0.8.2"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -29,10 +29,10 @@ repository = "https://github.com/Byron/gitoxide"
 doctest = false
 
 [dependencies.gix-command]
-version = "^0.3.0"
+version = "^0.3.2"
 
 [dependencies.gix-config-value]
-version = "^0.14.1"
+version = "^0.14.3"
 
 [dependencies.parking_lot]
 version = "0.12.1"

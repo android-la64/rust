@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"ApplicationModel_Chat\"`, `\"implement\"`*"]
 pub trait IChatItem_Impl: Sized {
     fn ItemKind(&self) -> ::windows_core::Result<ChatItemKind>;
 }
@@ -20,7 +19,7 @@ impl IChatItem_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IChatItem, OFFSET>(), ItemKind: ItemKind::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IChatItem as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IChatItem as ::windows_core::ComInterface>::IID
     }
 }

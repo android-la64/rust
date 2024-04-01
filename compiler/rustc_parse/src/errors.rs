@@ -2,7 +2,10 @@ use std::borrow::Cow;
 
 use rustc_ast::token::Token;
 use rustc_ast::{Path, Visibility};
-use rustc_errors::{AddToDiagnostic, Applicability, ErrorGuaranteed, IntoDiagnostic};
+use rustc_errors::{
+    codes::*, AddToDiagnostic, Applicability, DiagCtxt, DiagnosticBuilder, IntoDiagnostic, Level,
+    SubdiagnosticMessage,
+};
 use rustc_macros::{Diagnostic, Subdiagnostic};
 use rustc_session::errors::ExprParenthesesNeeded;
 use rustc_span::edition::{Edition, LATEST_STABLE_EDITION};
@@ -22,7 +25,7 @@ pub(crate) struct AmbiguousPlus {
 }
 
 #[derive(Diagnostic)]
-#[diag(parse_maybe_recover_from_bad_type_plus, code = "E0178")]
+#[diag(parse_maybe_recover_from_bad_type_plus, code = E0178)]
 pub(crate) struct BadTypePlus {
     pub ty: String,
     #[primary_span]
@@ -719,19 +722,32 @@ pub(crate) struct LabeledLoopInBreak {
     #[primary_span]
     pub span: Span,
     #[subdiagnostic]
-    pub sub: WrapExpressionInParentheses,
+    pub sub: WrapInParentheses,
 }
 
 #[derive(Subdiagnostic)]
-#[multipart_suggestion(
-    parse_sugg_wrap_expression_in_parentheses,
-    applicability = "machine-applicable"
-)]
-pub(crate) struct WrapExpressionInParentheses {
-    #[suggestion_part(code = "(")]
-    pub left: Span,
-    #[suggestion_part(code = ")")]
-    pub right: Span,
+
+pub(crate) enum WrapInParentheses {
+    #[multipart_suggestion(
+        parse_sugg_wrap_expression_in_parentheses,
+        applicability = "machine-applicable"
+    )]
+    Expression {
+        #[suggestion_part(code = "(")]
+        left: Span,
+        #[suggestion_part(code = ")")]
+        right: Span,
+    },
+    #[multipart_suggestion(
+        parse_sugg_wrap_macro_in_parentheses,
+        applicability = "machine-applicable"
+    )]
+    MacroArgs {
+        #[suggestion_part(code = "(")]
+        left: Span,
+        #[suggestion_part(code = ")")]
+        right: Span,
+    },
 }
 
 #[derive(Diagnostic)]
@@ -791,7 +807,7 @@ pub(crate) struct InclusiveRangeMatchArrow {
 }
 
 #[derive(Diagnostic)]
-#[diag(parse_inclusive_range_no_end, code = "E0586")]
+#[diag(parse_inclusive_range_no_end, code = E0586)]
 #[note]
 pub(crate) struct InclusiveRangeNoEnd {
     #[primary_span]
@@ -885,7 +901,7 @@ pub(crate) struct MismatchedClosingDelimiter {
 }
 
 #[derive(Diagnostic)]
-#[diag(parse_incorrect_visibility_restriction, code = "E0704")]
+#[diag(parse_incorrect_visibility_restriction, code = E0704)]
 #[help]
 pub(crate) struct IncorrectVisibilityRestriction {
     #[primary_span]
@@ -909,7 +925,7 @@ pub(crate) struct ExpectedStatementAfterOuterAttr {
 }
 
 #[derive(Diagnostic)]
-#[diag(parse_doc_comment_does_not_document_anything, code = "E0585")]
+#[diag(parse_doc_comment_does_not_document_anything, code = E0585)]
 #[help]
 pub(crate) struct DocCommentDoesNotDocumentAnything {
     #[primary_span]
@@ -933,7 +949,7 @@ pub(crate) struct InvalidExpressionInLetElse {
     pub span: Span,
     pub operator: &'static str,
     #[subdiagnostic]
-    pub sugg: WrapExpressionInParentheses,
+    pub sugg: WrapInParentheses,
 }
 
 #[derive(Diagnostic)]
@@ -942,7 +958,7 @@ pub(crate) struct InvalidCurlyInLetElse {
     #[primary_span]
     pub span: Span,
     #[subdiagnostic]
-    pub sugg: WrapExpressionInParentheses,
+    pub sugg: WrapInParentheses,
 }
 
 #[derive(Diagnostic)]
@@ -968,6 +984,25 @@ pub(crate) struct InvalidMetaItem {
     #[primary_span]
     pub span: Span,
     pub token: Token,
+}
+
+#[derive(Diagnostic)]
+#[diag(parse_invalid_meta_item_unquoted_ident)]
+pub(crate) struct InvalidMetaItemUnquotedIdent {
+    #[primary_span]
+    pub span: Span,
+    pub token: Token,
+    #[subdiagnostic]
+    pub sugg: InvalidMetaItemSuggQuoteIdent,
+}
+
+#[derive(Subdiagnostic)]
+#[multipart_suggestion(parse_suggestion, applicability = "machine-applicable")]
+pub(crate) struct InvalidMetaItemSuggQuoteIdent {
+    #[suggestion_part(code = "\"")]
+    pub before: Span,
+    #[suggestion_part(code = "\"")]
+    pub after: Span,
 }
 
 #[derive(Subdiagnostic)]
@@ -1040,27 +1075,30 @@ pub(crate) struct ExpectedIdentifier {
 
 impl<'a> IntoDiagnostic<'a> for ExpectedIdentifier {
     #[track_caller]
-    fn into_diagnostic(
-        self,
-        dcx: &'a rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'a, ErrorGuaranteed> {
+    fn into_diagnostic(self, dcx: &'a DiagCtxt, level: Level) -> DiagnosticBuilder<'a> {
         let token_descr = TokenDescription::from_token(&self.token);
 
-        let mut diag = dcx.struct_err(match token_descr {
-            Some(TokenDescription::ReservedIdentifier) => {
-                fluent::parse_expected_identifier_found_reserved_identifier_str
-            }
-            Some(TokenDescription::Keyword) => fluent::parse_expected_identifier_found_keyword_str,
-            Some(TokenDescription::ReservedKeyword) => {
-                fluent::parse_expected_identifier_found_reserved_keyword_str
-            }
-            Some(TokenDescription::DocComment) => {
-                fluent::parse_expected_identifier_found_doc_comment_str
-            }
-            None => fluent::parse_expected_identifier_found_str,
-        });
-        diag.set_span(self.span);
-        diag.set_arg("token", self.token);
+        let mut diag = DiagnosticBuilder::new(
+            dcx,
+            level,
+            match token_descr {
+                Some(TokenDescription::ReservedIdentifier) => {
+                    fluent::parse_expected_identifier_found_reserved_identifier_str
+                }
+                Some(TokenDescription::Keyword) => {
+                    fluent::parse_expected_identifier_found_keyword_str
+                }
+                Some(TokenDescription::ReservedKeyword) => {
+                    fluent::parse_expected_identifier_found_reserved_keyword_str
+                }
+                Some(TokenDescription::DocComment) => {
+                    fluent::parse_expected_identifier_found_doc_comment_str
+                }
+                None => fluent::parse_expected_identifier_found_str,
+            },
+        );
+        diag.span(self.span);
+        diag.arg("token", self.token);
 
         if let Some(sugg) = self.suggest_raw {
             sugg.add_to_diagnostic(&mut diag);
@@ -1097,25 +1135,28 @@ pub(crate) struct ExpectedSemi {
 
 impl<'a> IntoDiagnostic<'a> for ExpectedSemi {
     #[track_caller]
-    fn into_diagnostic(
-        self,
-        dcx: &'a rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'a, ErrorGuaranteed> {
+    fn into_diagnostic(self, dcx: &'a DiagCtxt, level: Level) -> DiagnosticBuilder<'a> {
         let token_descr = TokenDescription::from_token(&self.token);
 
-        let mut diag = dcx.struct_err(match token_descr {
-            Some(TokenDescription::ReservedIdentifier) => {
-                fluent::parse_expected_semi_found_reserved_identifier_str
-            }
-            Some(TokenDescription::Keyword) => fluent::parse_expected_semi_found_keyword_str,
-            Some(TokenDescription::ReservedKeyword) => {
-                fluent::parse_expected_semi_found_reserved_keyword_str
-            }
-            Some(TokenDescription::DocComment) => fluent::parse_expected_semi_found_doc_comment_str,
-            None => fluent::parse_expected_semi_found_str,
-        });
-        diag.set_span(self.span);
-        diag.set_arg("token", self.token);
+        let mut diag = DiagnosticBuilder::new(
+            dcx,
+            level,
+            match token_descr {
+                Some(TokenDescription::ReservedIdentifier) => {
+                    fluent::parse_expected_semi_found_reserved_identifier_str
+                }
+                Some(TokenDescription::Keyword) => fluent::parse_expected_semi_found_keyword_str,
+                Some(TokenDescription::ReservedKeyword) => {
+                    fluent::parse_expected_semi_found_reserved_keyword_str
+                }
+                Some(TokenDescription::DocComment) => {
+                    fluent::parse_expected_semi_found_doc_comment_str
+                }
+                None => fluent::parse_expected_semi_found_str,
+            },
+        );
+        diag.span(self.span);
+        diag.arg("token", self.token);
 
         if let Some(unexpected_token_label) = self.unexpected_token_label {
             diag.span_label(unexpected_token_label, fluent::parse_label_unexpected_token);
@@ -1316,7 +1357,7 @@ pub(crate) struct AttributeOnParamType {
 }
 
 #[derive(Diagnostic)]
-#[diag(parse_pattern_method_param_without_body, code = "E0642")]
+#[diag(parse_pattern_method_param_without_body, code = E0642)]
 pub(crate) struct PatternMethodParamWithoutBody {
     #[primary_span]
     #[suggestion(code = "_", applicability = "machine-applicable")]
@@ -1436,10 +1477,7 @@ pub(crate) struct FnTraitMissingParen {
 impl AddToDiagnostic for FnTraitMissingParen {
     fn add_to_diagnostic_with<F>(self, diag: &mut rustc_errors::Diagnostic, _: F)
     where
-        F: Fn(
-            &mut rustc_errors::Diagnostic,
-            rustc_errors::SubdiagnosticMessage,
-        ) -> rustc_errors::SubdiagnosticMessage,
+        F: Fn(&mut rustc_errors::Diagnostic, SubdiagnosticMessage) -> SubdiagnosticMessage,
     {
         diag.span_label(self.span, crate::fluent_generated::parse_fn_trait_missing_paren);
         let applicability = if self.machine_applicable {
@@ -1527,7 +1565,7 @@ pub(crate) struct WhereClauseBeforeTupleStructBodySugg {
 }
 
 #[derive(Diagnostic)]
-#[diag(parse_async_fn_in_2015, code = "E0670")]
+#[diag(parse_async_fn_in_2015, code = E0670)]
 pub(crate) struct AsyncFnIn2015 {
     #[primary_span]
     #[label]
@@ -1891,7 +1929,7 @@ pub struct CrDocComment {
 }
 
 #[derive(Diagnostic)]
-#[diag(parse_no_digits_literal, code = "E0768")]
+#[diag(parse_no_digits_literal, code = E0768)]
 pub struct NoDigitsLiteral {
     #[primary_span]
     pub span: Span,
@@ -2138,6 +2176,11 @@ pub enum UnescapeError {
         #[subdiagnostic]
         suggestion: MoreThanOneCharSugg,
     },
+    #[diag(parse_nul_in_c_str)]
+    NulInCStr {
+        #[primary_span]
+        span: Span,
+    },
 }
 
 #[derive(Subdiagnostic)]
@@ -2373,6 +2416,39 @@ pub(crate) struct ExpectedCommaAfterPatternField {
 }
 
 #[derive(Diagnostic)]
+#[diag(parse_unexpected_expr_in_pat)]
+pub(crate) struct UnexpectedExpressionInPattern {
+    #[primary_span]
+    #[label]
+    pub span: Span,
+    /// Was a `RangePatternBound` expected?
+    pub is_bound: bool,
+    /// Was the unexpected expression a `MethodCallExpression`?
+    pub is_method_call: bool,
+}
+
+#[derive(Diagnostic)]
+#[diag(parse_unexpected_paren_in_range_pat)]
+pub(crate) struct UnexpectedParenInRangePat {
+    #[primary_span]
+    pub span: Vec<Span>,
+    #[subdiagnostic]
+    pub sugg: UnexpectedParenInRangePatSugg,
+}
+
+#[derive(Subdiagnostic)]
+#[multipart_suggestion(
+    parse_unexpected_paren_in_range_pat_sugg,
+    applicability = "machine-applicable"
+)]
+pub(crate) struct UnexpectedParenInRangePatSugg {
+    #[suggestion_part(code = "")]
+    pub start_span: Span,
+    #[suggestion_part(code = "")]
+    pub end_span: Span,
+}
+
+#[derive(Diagnostic)]
 #[diag(parse_return_types_use_thin_arrow)]
 pub(crate) struct ReturnTypesUseThinArrow {
     #[primary_span]
@@ -2435,7 +2511,7 @@ pub(crate) struct FnPointerCannotBeAsync {
 }
 
 #[derive(Diagnostic)]
-#[diag(parse_nested_c_variadic_type, code = "E0743")]
+#[diag(parse_nested_c_variadic_type, code = E0743)]
 pub(crate) struct NestedCVariadicType {
     #[primary_span]
     pub span: Span,
@@ -2550,19 +2626,12 @@ pub(crate) struct AssocLifetime {
 }
 
 #[derive(Diagnostic)]
-#[diag(parse_tilde_const_lifetime)]
-pub(crate) struct TildeConstLifetime {
-    #[primary_span]
-    pub span: Span,
-}
-
-#[derive(Diagnostic)]
 #[diag(parse_modifier_lifetime)]
 pub(crate) struct ModifierLifetime {
     #[primary_span]
     #[suggestion(style = "tool-only", applicability = "maybe-incorrect", code = "")]
     pub span: Span,
-    pub sigil: &'static str,
+    pub modifier: &'static str,
 }
 
 #[derive(Diagnostic)]
@@ -2573,15 +2642,6 @@ pub(crate) struct ParenthesizedLifetime {
     #[suggestion(style = "short", applicability = "machine-applicable", code = "{snippet}")]
     pub sugg: Option<Span>,
     pub snippet: String,
-}
-
-#[derive(Diagnostic)]
-#[diag(parse_const_bounds_missing_tilde)]
-pub(crate) struct ConstMissingTilde {
-    #[primary_span]
-    pub span: Span,
-    #[suggestion(code = "~", applicability = "machine-applicable")]
-    pub start: Span,
 }
 
 #[derive(Diagnostic)]
@@ -2897,3 +2957,11 @@ pub(crate) struct TransposeDynOrImplSugg<'a> {
     pub insertion_span: Span,
     pub kw: &'a str,
 }
+
+#[derive(Diagnostic)]
+#[diag(parse_array_index_offset_of)]
+pub(crate) struct ArrayIndexInOffsetOf(#[primary_span] pub Span);
+
+#[derive(Diagnostic)]
+#[diag(parse_invalid_offset_of)]
+pub(crate) struct InvalidOffsetOf(#[primary_span] pub Span);

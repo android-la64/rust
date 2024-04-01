@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "prodash"
-version = "26.2.2"
+version = "28.0.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -45,17 +45,6 @@ required-features = [
 ]
 
 [[example]]
-name = "dashboard-termion"
-path = "examples/dashboard.rs"
-required-features = [
-    "render-tui",
-    "render-tui-termion",
-    "render-line",
-    "render-line-termion",
-    "progress-tree",
-]
-
-[[example]]
 name = "units"
 path = "examples/units.rs"
 required-features = [
@@ -75,19 +64,15 @@ path = "benches/usage.rs"
 harness = false
 
 [dependencies.async-io]
-version = "1.0.0"
+version = "2.2.1"
 optional = true
 
 [dependencies.bytesize]
 version = "1.0.1"
 optional = true
 
-[dependencies.compound_duration]
-version = "1.2.0"
-optional = true
-
 [dependencies.crosstermion]
-version = "0.11.0"
+version = "0.13.0"
 optional = true
 default-features = false
 
@@ -108,7 +93,7 @@ optional = true
 default-features = false
 
 [dependencies.futures-lite]
-version = "1.5.0"
+version = "2.1.0"
 optional = true
 
 [dependencies.human_format]
@@ -116,7 +101,7 @@ version = "1.0.3"
 optional = true
 
 [dependencies.humantime]
-version = "2.0.0"
+version = "2.1.0"
 optional = true
 
 [dependencies.is-terminal]
@@ -148,13 +133,13 @@ optional = true
 default-features = false
 
 [dependencies.tui]
-version = "0.20.1"
+version = "0.25.0"
 optional = true
 default-features = false
 package = "ratatui"
 
 [dependencies.tui-react]
-version = "0.20.0"
+version = "0.22.0"
 optional = true
 
 [dependencies.unicode-segmentation]
@@ -172,7 +157,7 @@ version = "0.1.3"
 version = "1.1.0"
 
 [dev-dependencies.async-io]
-version = "1.1.0"
+version = "2.2.1"
 
 [dev-dependencies.blocking]
 version = "1.0.0"
@@ -219,7 +204,6 @@ render-line = [
 ]
 render-line-autoconfigure = ["is-terminal"]
 render-line-crossterm = ["crosstermion/crossterm"]
-render-line-termion = ["crosstermion/termion"]
 render-tui = [
     "tui",
     "unicode-segmentation",
@@ -235,7 +219,6 @@ render-tui-crossterm = [
     "crosstermion/tui-react-crossterm",
     "crosstermion/input-async-crossterm",
 ]
-render-tui-termion = ["crosstermion/tui-react-termion"]
 unit-bytes = ["bytesize"]
-unit-duration = ["compound_duration"]
+unit-duration = ["humantime"]
 unit-human = ["human_format"]

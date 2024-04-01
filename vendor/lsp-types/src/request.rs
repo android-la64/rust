@@ -3,8 +3,8 @@ use super::*;
 use serde::{de::DeserializeOwned, Serialize};
 
 pub trait Request {
-    type Params: DeserializeOwned + Serialize;
-    type Result: DeserializeOwned + Serialize;
+    type Params: DeserializeOwned + Serialize + Send + Sync + 'static;
+    type Result: DeserializeOwned + Serialize + Send + Sync + 'static;
     const METHOD: &'static str;
 }
 
@@ -30,6 +30,9 @@ macro_rules! lsp_request {
 
     ("workspace/symbol") => {
         $crate::request::WorkspaceSymbolRequest
+    };
+    ("workspaceSymbol/resolve") => {
+        $crate::request::WorkspaceSymbolResolve
     };
     ("workspace/executeCommand") => {
         $crate::request::ExecuteCommand
@@ -158,6 +161,15 @@ macro_rules! lsp_request {
     };
     ("textDocument/inlineValue") => {
         $crate::request::InlineValueRequest
+    };
+    ("textDocument/diagnostic") => {
+        $crate::request::DocumentDiagnosticRequest
+    };
+    ("workspace/diagnostic") => {
+        $crate::request::WorkspaceDiagnosticRequest
+    };
+    ("workspace/diagnostic/refresh") => {
+        $crate::request::WorkspaceDiagnosticRefresh
     };
     ("typeHierarchy/supertypes") => {
         $crate::request::TypeHierarchySupertypes
@@ -498,7 +510,7 @@ impl Request for CodeActionRequest {
 /// This is usually used to compute the `edit` property of a code action to avoid its unnecessary computation
 /// during the `textDocument/codeAction` request.
 ///
-/// since 3.16.0
+/// @since 3.16.0
 #[derive(Debug)]
 pub enum CodeActionResolveRequest {}
 
@@ -648,6 +660,17 @@ impl Request for PrepareRenameRequest {
     const METHOD: &'static str = "textDocument/prepareRename";
 }
 
+#[derive(Debug)]
+#[cfg(feature = "proposed")]
+pub enum InlineCompletionRequest {}
+
+#[cfg(feature = "proposed")]
+impl Request for InlineCompletionRequest {
+    type Params = InlineCompletionParams;
+    type Result = Option<InlineCompletionResponse>;
+    const METHOD: &'static str = "textDocument/inlineCompletion";
+}
+
 /// The workspace/workspaceFolders request is sent from the server to the client to fetch the current open list of
 /// workspace folders. Returns null in the response if only a single file is open in the tool.
 /// Returns an empty array if a workspace is open but no folders are configured.
@@ -661,7 +684,7 @@ impl Request for WorkspaceFoldersRequest {
 }
 
 /// The `window/workDoneProgress/create` request is sent from the server
-/// to the clientto ask the client to create a work done progress.
+/// to the client to ask the client to create a work done progress.
 #[derive(Debug)]
 pub enum WorkDoneProgressCreate {}
 
@@ -866,6 +889,46 @@ impl Request for InlineValueRefreshRequest {
     const METHOD: &'static str = "workspace/inlineValue/refresh";
 }
 
+/// The text document diagnostic request is sent from the client to the server to ask the server to
+/// compute the diagnostics for a given document. As with other pull requests the server is asked
+/// to compute the diagnostics for the currently synced version of the document.
+#[derive(Debug)]
+pub enum DocumentDiagnosticRequest {}
+
+impl Request for DocumentDiagnosticRequest {
+    type Params = DocumentDiagnosticParams;
+    type Result = DocumentDiagnosticReportResult;
+    const METHOD: &'static str = "textDocument/diagnostic";
+}
+
+/// The workspace diagnostic request is sent from the client to the server to ask the server to
+/// compute workspace wide diagnostics which previously where pushed from the server to the client.
+/// In contrast to the document diagnostic request the workspace request can be long running and is
+/// not bound to a specific workspace or document state. If the client supports streaming for the
+/// workspace diagnostic pull it is legal to provide a document diagnostic report multiple times
+/// for the same document URI. The last one reported will win over previous reports.
+#[derive(Debug)]
+pub enum WorkspaceDiagnosticRequest {}
+
+impl Request for WorkspaceDiagnosticRequest {
+    type Params = WorkspaceDiagnosticParams;
+    const METHOD: &'static str = "workspace/diagnostic";
+    type Result = WorkspaceDiagnosticReportResult;
+}
+
+/// The `workspace/diagnostic/refresh` request is sent from the server to the client. Servers can
+/// use it to ask clients to refresh all needed document and workspace diagnostics. This is useful
+/// if a server detects a project wide configuration change which requires a re-calculation of all
+/// diagnostics.
+#[derive(Debug)]
+pub enum WorkspaceDiagnosticRefresh {}
+
+impl Request for WorkspaceDiagnosticRefresh {
+    type Params = ();
+    type Result = ();
+    const METHOD: &'static str = "workspace/diagnostic/refresh";
+}
+
 /// The type hierarchy request is sent from the client to the server to return a type hierarchy for
 /// the language element of given text document positions. Will return null if the server couldn’t
 /// infer a valid type from the position. The type hierarchy requests are executed in two steps:
@@ -919,7 +982,7 @@ mod test {
 
     macro_rules! check_macro {
         ($name:tt) => {
-            // check whethe the macro name matches the method
+            // check whether the macro name matches the method
             assert_eq!(<lsp_request!($name) as Request>::METHOD, $name);
             // test whether type checking passes for each component
             fake_call::<lsp_request!($name)>();
@@ -970,11 +1033,14 @@ mod test {
         check_macro!("textDocument/semanticTokens/range");
         check_macro!("textDocument/inlayHint");
         check_macro!("textDocument/inlineValue");
+        check_macro!("textDocument/diagnostic");
 
         check_macro!("workspace/applyEdit");
         check_macro!("workspace/symbol");
         check_macro!("workspace/executeCommand");
         check_macro!("workspace/configuration");
+        check_macro!("workspace/diagnostic");
+        check_macro!("workspace/diagnostic/refresh");
         check_macro!("workspace/willCreateFiles");
         check_macro!("workspace/willRenameFiles");
         check_macro!("workspace/willDeleteFiles");
@@ -993,6 +1059,7 @@ mod test {
         check_macro!("inlayHint/resolve");
         check_macro!("typeHierarchy/subtypes");
         check_macro!("typeHierarchy/supertypes");
+        check_macro!("workspaceSymbol/resolve");
     }
 
     #[test]

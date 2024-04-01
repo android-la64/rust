@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IActionOnCLREvent_Impl: Sized {
     fn OnEvent(&self, event: EClrEvent, data: *const ::core::ffi::c_void) -> ::windows_core::Result<()>;
 }
@@ -12,11 +11,10 @@ impl IActionOnCLREvent_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnEvent: OnEvent::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IActionOnCLREvent as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IActionOnCLREvent as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IApartmentCallback_Impl: Sized {
     fn DoCallback(&self, pfunc: usize, pdata: usize) -> ::windows_core::Result<()>;
 }
@@ -30,11 +28,10 @@ impl IApartmentCallback_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), DoCallback: DoCallback::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IApartmentCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IApartmentCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IAppDomainBinding_Impl: Sized {
     fn OnAppDomain(&self, pappdomain: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<()>;
 }
@@ -48,11 +45,10 @@ impl IAppDomainBinding_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnAppDomain: OnAppDomain::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppDomainBinding as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppDomainBinding as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRAppDomainResourceMonitor_Impl: Sized {
     fn GetCurrentAllocated(&self, dwappdomainid: u32, pbytesallocated: *mut u64) -> ::windows_core::Result<()>;
     fn GetCurrentSurvived(&self, dwappdomainid: u32, pappdomainbytessurvived: *mut u64, ptotalbytessurvived: *mut u64) -> ::windows_core::Result<()>;
@@ -83,11 +79,11 @@ impl ICLRAppDomainResourceMonitor_Vtbl {
             GetCurrentCpuTime: GetCurrentCpuTime::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRAppDomainResourceMonitor as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRAppDomainResourceMonitor as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait ICLRAssemblyIdentityManager_Impl: Sized {
     fn GetCLRAssemblyReferenceList(&self, ppwzassemblyreferences: *const ::windows_core::PCWSTR, dwnumofreferences: u32) -> ::windows_core::Result<ICLRAssemblyReferenceList>;
@@ -179,11 +175,10 @@ impl ICLRAssemblyIdentityManager_Vtbl {
             IsStronglyNamed: IsStronglyNamed::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRAssemblyIdentityManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRAssemblyIdentityManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRAssemblyReferenceList_Impl: Sized {
     fn IsStringAssemblyReferenceInList(&self, pwzassemblyname: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
     fn IsAssemblyReferenceInList(&self, pname: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<()>;
@@ -207,11 +202,10 @@ impl ICLRAssemblyReferenceList_Vtbl {
             IsAssemblyReferenceInList: IsAssemblyReferenceInList::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRAssemblyReferenceList as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRAssemblyReferenceList as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRControl_Impl: Sized {
     fn GetCLRManager(&self, riid: *const ::windows_core::GUID, ppobject: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
     fn SetAppDomainManagerType(&self, pwzappdomainmanagerassembly: &::windows_core::PCWSTR, pwzappdomainmanagertype: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -235,11 +229,11 @@ impl ICLRControl_Vtbl {
             SetAppDomainManagerType: SetAppDomainManagerType::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"Win32_Security\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Security\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Security"))]
 pub trait ICLRDebugManager_Impl: Sized {
     fn BeginConnection(&self, dwconnectionid: u32, szconnectionname: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -313,11 +307,11 @@ impl ICLRDebugManager_Vtbl {
             SetSymbolReadingPolicy: SetSymbolReadingPolicy::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRDebugManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRDebugManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICLRDebugging_Impl: Sized {
     fn OpenVirtualProcess(&self, modulebaseaddress: u64, pdatatarget: ::core::option::Option<&::windows_core::IUnknown>, plibraryprovider: ::core::option::Option<&ICLRDebuggingLibraryProvider>, pmaxdebuggersupportedversion: *const CLR_DEBUGGING_VERSION, riidprocess: *const ::windows_core::GUID, ppprocess: *mut ::core::option::Option<::windows_core::IUnknown>, pversion: *mut CLR_DEBUGGING_VERSION, pdwflags: *mut CLR_DEBUGGING_PROCESS_FLAGS) -> ::windows_core::Result<()>;
@@ -344,11 +338,11 @@ impl ICLRDebugging_Vtbl {
             CanUnloadNow: CanUnloadNow::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRDebugging as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRDebugging as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICLRDebuggingLibraryProvider_Impl: Sized {
     fn ProvideLibrary(&self, pwszfilename: &::windows_core::PCWSTR, dwtimestamp: u32, dwsizeofimage: u32) -> ::windows_core::Result<super::super::Foundation::HMODULE>;
@@ -371,11 +365,10 @@ impl ICLRDebuggingLibraryProvider_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), ProvideLibrary: ProvideLibrary::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRDebuggingLibraryProvider as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRDebuggingLibraryProvider as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRDomainManager_Impl: Sized {
     fn SetAppDomainManagerType(&self, wszappdomainmanagerassembly: &::windows_core::PCWSTR, wszappdomainmanagertype: &::windows_core::PCWSTR, dwinitializedomainflags: EInitializeNewDomainFlags) -> ::windows_core::Result<()>;
     fn SetPropertiesForDefaultAppDomain(&self, nproperties: u32, pwszpropertynames: *const ::windows_core::PCWSTR, pwszpropertyvalues: *const ::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -399,11 +392,11 @@ impl ICLRDomainManager_Vtbl {
             SetPropertiesForDefaultAppDomain: SetPropertiesForDefaultAppDomain::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRDomainManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRDomainManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICLRErrorReportingManager_Impl: Sized {
     fn GetBucketParametersForCurrentException(&self, pparams: *mut BucketParameters) -> ::windows_core::Result<()>;
@@ -437,11 +430,10 @@ impl ICLRErrorReportingManager_Vtbl {
             EndCustomDump: EndCustomDump::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRErrorReportingManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRErrorReportingManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRGCManager_Impl: Sized {
     fn Collect(&self, generation: i32) -> ::windows_core::Result<()>;
     fn GetStats(&self, pstats: *mut COR_GC_STATS) -> ::windows_core::Result<()>;
@@ -472,11 +464,10 @@ impl ICLRGCManager_Vtbl {
             SetGCStartupLimits: SetGCStartupLimits::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRGCManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRGCManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRGCManager2_Impl: Sized + ICLRGCManager_Impl {
     fn SetGCStartupLimitsEx(&self, segmentsize: usize, maxgen0size: usize) -> ::windows_core::Result<()>;
 }
@@ -490,11 +481,10 @@ impl ICLRGCManager2_Vtbl {
         }
         Self { base__: ICLRGCManager_Vtbl::new::<Identity, Impl, OFFSET>(), SetGCStartupLimitsEx: SetGCStartupLimitsEx::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRGCManager2 as ::windows_core::ComInterface>::IID || iid == &<ICLRGCManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRGCManager2 as ::windows_core::ComInterface>::IID || *iid == <ICLRGCManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRHostBindingPolicyManager_Impl: Sized {
     fn ModifyApplicationPolicy(&self, pwzsourceassemblyidentity: &::windows_core::PCWSTR, pwztargetassemblyidentity: &::windows_core::PCWSTR, pbapplicationpolicy: *const u8, cbapppolicysize: u32, dwpolicymodifyflags: u32, pbnewapplicationpolicy: *mut u8, pcbnewapppolicysize: *mut u32) -> ::windows_core::Result<()>;
     fn EvaluatePolicy(&self, pwzreferenceidentity: &::windows_core::PCWSTR, pbapplicationpolicy: *const u8, cbapppolicysize: u32, pwzpostpolicyreferenceidentity: ::windows_core::PWSTR, pcchpostpolicyreferenceidentity: *mut u32, pdwpoliciesapplied: *mut u32) -> ::windows_core::Result<()>;
@@ -518,11 +508,10 @@ impl ICLRHostBindingPolicyManager_Vtbl {
             EvaluatePolicy: EvaluatePolicy::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRHostBindingPolicyManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRHostBindingPolicyManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRHostProtectionManager_Impl: Sized {
     fn SetProtectedCategories(&self, categories: EApiCategories) -> ::windows_core::Result<()>;
     fn SetEagerSerializeGrantSets(&self) -> ::windows_core::Result<()>;
@@ -546,11 +535,10 @@ impl ICLRHostProtectionManager_Vtbl {
             SetEagerSerializeGrantSets: SetEagerSerializeGrantSets::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRHostProtectionManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRHostProtectionManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRIoCompletionManager_Impl: Sized {
     fn OnComplete(&self, dwerrorcode: u32, numberofbytestransferred: u32, pvoverlapped: *const ::core::ffi::c_void) -> ::windows_core::Result<()>;
 }
@@ -564,11 +552,10 @@ impl ICLRIoCompletionManager_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnComplete: OnComplete::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRIoCompletionManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRIoCompletionManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRMemoryNotificationCallback_Impl: Sized {
     fn OnMemoryNotification(&self, ememoryavailable: EMemoryAvailable) -> ::windows_core::Result<()>;
 }
@@ -582,11 +569,11 @@ impl ICLRMemoryNotificationCallback_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnMemoryNotification: OnMemoryNotification::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRMemoryNotificationCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRMemoryNotificationCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait ICLRMetaHost_Impl: Sized {
     fn GetRuntime(&self, pwzversion: &::windows_core::PCWSTR, riid: *const ::windows_core::GUID, ppruntime: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
@@ -660,11 +647,11 @@ impl ICLRMetaHost_Vtbl {
             ExitProcess: ExitProcess::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRMetaHost as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRMetaHost as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait ICLRMetaHostPolicy_Impl: Sized {
     fn GetRequestedRuntime(&self, dwpolicyflags: METAHOST_POLICY_FLAGS, pwzbinary: &::windows_core::PCWSTR, pcfgstream: ::core::option::Option<&super::Com::IStream>, pwzversion: &::windows_core::PWSTR, pcchversion: *mut u32, pwzimageversion: ::windows_core::PWSTR, pcchimageversion: *mut u32, pdwconfigflags: *mut u32, riid: *const ::windows_core::GUID, ppruntime: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
@@ -681,11 +668,10 @@ impl ICLRMetaHostPolicy_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetRequestedRuntime: GetRequestedRuntime::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRMetaHostPolicy as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRMetaHostPolicy as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLROnEventManager_Impl: Sized {
     fn RegisterActionOnEvent(&self, event: EClrEvent, paction: ::core::option::Option<&IActionOnCLREvent>) -> ::windows_core::Result<()>;
     fn UnregisterActionOnEvent(&self, event: EClrEvent, paction: ::core::option::Option<&IActionOnCLREvent>) -> ::windows_core::Result<()>;
@@ -709,11 +695,10 @@ impl ICLROnEventManager_Vtbl {
             UnregisterActionOnEvent: UnregisterActionOnEvent::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLROnEventManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLROnEventManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRPolicyManager_Impl: Sized {
     fn SetDefaultAction(&self, operation: EClrOperation, action: EPolicyAction) -> ::windows_core::Result<()>;
     fn SetTimeout(&self, operation: EClrOperation, dwmilliseconds: u32) -> ::windows_core::Result<()>;
@@ -765,11 +750,10 @@ impl ICLRPolicyManager_Vtbl {
             SetUnhandledExceptionPolicy: SetUnhandledExceptionPolicy::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRPolicyManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRPolicyManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRProbingAssemblyEnum_Impl: Sized {
     fn Get(&self, dwindex: u32, pwzbuffer: ::windows_core::PWSTR, pcchbuffersize: *mut u32) -> ::windows_core::Result<()>;
 }
@@ -783,11 +767,10 @@ impl ICLRProbingAssemblyEnum_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Get: Get::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRProbingAssemblyEnum as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRProbingAssemblyEnum as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRProfiling_Impl: Sized {
     fn AttachProfiler(&self, dwprofileeprocessid: u32, dwmillisecondsmax: u32, pclsidprofiler: *const ::windows_core::GUID, wszprofilerpath: &::windows_core::PCWSTR, pvclientdata: *const ::core::ffi::c_void, cbclientdata: u32) -> ::windows_core::Result<()>;
 }
@@ -801,11 +784,10 @@ impl ICLRProfiling_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), AttachProfiler: AttachProfiler::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRProfiling as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRProfiling as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRReferenceAssemblyEnum_Impl: Sized {
     fn Get(&self, dwindex: u32, pwzbuffer: ::windows_core::PWSTR, pcchbuffersize: *mut u32) -> ::windows_core::Result<()>;
 }
@@ -819,11 +801,11 @@ impl ICLRReferenceAssemblyEnum_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Get: Get::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRReferenceAssemblyEnum as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRReferenceAssemblyEnum as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICLRRuntimeHost_Impl: Sized {
     fn Start(&self) -> ::windows_core::Result<()>;
@@ -923,11 +905,11 @@ impl ICLRRuntimeHost_Vtbl {
             ExecuteInDefaultAppDomain: ExecuteInDefaultAppDomain::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRRuntimeHost as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRRuntimeHost as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICLRRuntimeInfo_Impl: Sized {
     fn GetVersionString(&self, pwzbuffer: ::windows_core::PWSTR, pcchbuffer: *mut u32) -> ::windows_core::Result<()>;
@@ -1048,11 +1030,11 @@ impl ICLRRuntimeInfo_Vtbl {
             IsStarted: IsStarted::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRRuntimeInfo as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRRuntimeInfo as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICLRStrongName_Impl: Sized {
     fn GetHashFromAssemblyFile(&self, pszfilepath: &::windows_core::PCSTR, pihashalg: *mut u32, pbhash: *mut u8, cchhash: u32, pchhash: *mut u32) -> ::windows_core::Result<()>;
@@ -1270,11 +1252,11 @@ impl ICLRStrongName_Vtbl {
             StrongNameTokenFromPublicKey: StrongNameTokenFromPublicKey::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRStrongName as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRStrongName as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICLRStrongName2_Impl: Sized {
     fn StrongNameGetPublicKeyEx(&self, pwzkeycontainer: &::windows_core::PCWSTR, pbkeyblob: *const u8, cbkeyblob: u32, ppbpublickeyblob: *mut *mut u8, pcbpublickeyblob: *mut u32, uhashalgid: u32, ureserved: u32) -> ::windows_core::Result<()>;
@@ -1307,11 +1289,10 @@ impl ICLRStrongName2_Vtbl {
             StrongNameSignatureVerificationEx2: StrongNameSignatureVerificationEx2::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRStrongName2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRStrongName2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRStrongName3_Impl: Sized {
     fn StrongNameDigestGenerate(&self, wszfilepath: &::windows_core::PCWSTR, ppbdigestblob: *mut *mut u8, pcbdigestblob: *mut u32, dwflags: u32) -> ::windows_core::Result<()>;
     fn StrongNameDigestSign(&self, wszkeycontainer: &::windows_core::PCWSTR, pbkeyblob: *const u8, cbkeyblob: u32, pbdigestblob: *const u8, cbdigestblob: u32, hashalgid: u32, ppbsignatureblob: *mut *mut u8, pcbsignatureblob: *mut u32, dwflags: u32) -> ::windows_core::Result<()>;
@@ -1342,11 +1323,10 @@ impl ICLRStrongName3_Vtbl {
             StrongNameDigestEmbed: StrongNameDigestEmbed::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRStrongName3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRStrongName3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRSyncManager_Impl: Sized {
     fn GetMonitorOwner(&self, cookie: usize) -> ::windows_core::Result<IHostTask>;
     fn CreateRWLockOwnerIterator(&self, cookie: usize) -> ::windows_core::Result<usize>;
@@ -1402,11 +1382,11 @@ impl ICLRSyncManager_Vtbl {
             DeleteRWLockOwnerIterator: DeleteRWLockOwnerIterator::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRSyncManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRSyncManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICLRTask_Impl: Sized {
     fn SwitchIn(&self, threadhandle: super::super::Foundation::HANDLE) -> ::windows_core::Result<()>;
@@ -1514,11 +1494,11 @@ impl ICLRTask_Vtbl {
             SetTaskIdentifier: SetTaskIdentifier::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRTask as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRTask as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICLRTask2_Impl: Sized + ICLRTask_Impl {
     fn BeginPreventAsyncAbort(&self) -> ::windows_core::Result<()>;
@@ -1545,11 +1525,10 @@ impl ICLRTask2_Vtbl {
             EndPreventAsyncAbort: EndPreventAsyncAbort::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRTask2 as ::windows_core::ComInterface>::IID || iid == &<ICLRTask as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRTask2 as ::windows_core::ComInterface>::IID || *iid == <ICLRTask as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICLRTaskManager_Impl: Sized {
     fn CreateTask(&self) -> ::windows_core::Result<ICLRTask>;
     fn GetCurrentTask(&self) -> ::windows_core::Result<ICLRTask>;
@@ -1612,11 +1591,10 @@ impl ICLRTaskManager_Vtbl {
             GetCurrentTaskType: GetCurrentTaskType::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICLRTaskManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICLRTaskManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICatalogServices_Impl: Sized {
     fn Autodone(&self) -> ::windows_core::Result<()>;
     fn NotAutodone(&self) -> ::windows_core::Result<()>;
@@ -1640,11 +1618,10 @@ impl ICatalogServices_Vtbl {
             NotAutodone: NotAutodone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICatalogServices as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICatalogServices as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ICorConfiguration_Impl: Sized {
     fn SetGCThreadControl(&self, pgcthreadcontrol: ::core::option::Option<&IGCThreadControl>) -> ::windows_core::Result<()>;
     fn SetGCHostControl(&self, pgchostcontrol: ::core::option::Option<&IGCHostControl>) -> ::windows_core::Result<()>;
@@ -1682,11 +1659,11 @@ impl ICorConfiguration_Vtbl {
             AddDebuggerSpecialThread: AddDebuggerSpecialThread::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICorConfiguration as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICorConfiguration as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICorRuntimeHost_Impl: Sized {
     fn CreateLogicalThreadState(&self) -> ::windows_core::Result<()>;
@@ -1898,11 +1875,11 @@ impl ICorRuntimeHost_Vtbl {
             CurrentDomain: CurrentDomain::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICorRuntimeHost as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICorRuntimeHost as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"Win32_System_IO\"`, `\"Win32_System_Threading\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_IO\"`, `\"Win32_System_Threading\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_IO", feature = "Win32_System_Threading"))]
 pub trait ICorThreadpool_Impl: Sized {
     fn CorRegisterWaitForSingleObject(&self, phnewwaitobject: *const super::super::Foundation::HANDLE, hwaitobject: super::super::Foundation::HANDLE, callback: super::Threading::WAITORTIMERCALLBACK, context: *const ::core::ffi::c_void, timeout: u32, executeonlyonce: super::super::Foundation::BOOL) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -2034,11 +2011,11 @@ impl ICorThreadpool_Vtbl {
             CorGetAvailableThreads: CorGetAvailableThreads::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICorThreadpool as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICorThreadpool as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDebuggerInfo_Impl: Sized {
     fn IsDebuggerAttached(&self) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -2061,11 +2038,10 @@ impl IDebuggerInfo_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), IsDebuggerAttached: IsDebuggerAttached::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDebuggerInfo as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDebuggerInfo as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IDebuggerThreadControl_Impl: Sized {
     fn ThreadIsBlockingForDebugger(&self) -> ::windows_core::Result<()>;
     fn ReleaseAllRuntimeThreads(&self) -> ::windows_core::Result<()>;
@@ -2096,11 +2072,10 @@ impl IDebuggerThreadControl_Vtbl {
             StartBlockingForDebugger: StartBlockingForDebugger::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDebuggerThreadControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDebuggerThreadControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IGCHost_Impl: Sized {
     fn SetGCStartupLimits(&self, segmentsize: u32, maxgen0size: u32) -> ::windows_core::Result<()>;
     fn Collect(&self, generation: i32) -> ::windows_core::Result<()>;
@@ -2145,11 +2120,10 @@ impl IGCHost_Vtbl {
             SetVirtualMemLimit: SetVirtualMemLimit::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IGCHost as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IGCHost as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IGCHost2_Impl: Sized + IGCHost_Impl {
     fn SetGCStartupLimitsEx(&self, segmentsize: usize, maxgen0size: usize) -> ::windows_core::Result<()>;
 }
@@ -2163,11 +2137,10 @@ impl IGCHost2_Vtbl {
         }
         Self { base__: IGCHost_Vtbl::new::<Identity, Impl, OFFSET>(), SetGCStartupLimitsEx: SetGCStartupLimitsEx::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IGCHost2 as ::windows_core::ComInterface>::IID || iid == &<IGCHost as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IGCHost2 as ::windows_core::ComInterface>::IID || *iid == <IGCHost as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IGCHostControl_Impl: Sized {
     fn RequestVirtualMemLimit(&self, sztmaxvirtualmemmb: usize, psztnewmaxvirtualmemmb: *mut usize) -> ::windows_core::Result<()>;
 }
@@ -2181,11 +2154,10 @@ impl IGCHostControl_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), RequestVirtualMemLimit: RequestVirtualMemLimit::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IGCHostControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IGCHostControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IGCThreadControl_Impl: Sized {
     fn ThreadIsBlockingForSuspension(&self) -> ::windows_core::Result<()>;
     fn SuspensionStarting(&self) -> ::windows_core::Result<()>;
@@ -2216,11 +2188,10 @@ impl IGCThreadControl_Vtbl {
             SuspensionEnding: SuspensionEnding::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IGCThreadControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IGCThreadControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostAssemblyManager_Impl: Sized {
     fn GetNonHostStoreAssemblies(&self) -> ::windows_core::Result<ICLRAssemblyReferenceList>;
     fn GetAssemblyStore(&self) -> ::windows_core::Result<IHostAssemblyStore>;
@@ -2256,11 +2227,11 @@ impl IHostAssemblyManager_Vtbl {
             GetAssemblyStore: GetAssemblyStore::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostAssemblyManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostAssemblyManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IHostAssemblyStore_Impl: Sized {
     fn ProvideAssembly(&self, pbindinfo: *const AssemblyBindInfo, passemblyid: *mut u64, pcontext: *mut u64, ppstmassemblyimage: *mut ::core::option::Option<super::Com::IStream>, ppstmpdb: *mut ::core::option::Option<super::Com::IStream>) -> ::windows_core::Result<()>;
@@ -2287,11 +2258,10 @@ impl IHostAssemblyStore_Vtbl {
             ProvideModule: ProvideModule::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostAssemblyStore as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostAssemblyStore as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostAutoEvent_Impl: Sized {
     fn Wait(&self, dwmilliseconds: u32, option: u32) -> ::windows_core::Result<()>;
     fn Set(&self) -> ::windows_core::Result<()>;
@@ -2311,11 +2281,10 @@ impl IHostAutoEvent_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Wait: Wait::<Identity, Impl, OFFSET>, Set: Set::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostAutoEvent as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostAutoEvent as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostControl_Impl: Sized {
     fn GetHostManager(&self, riid: *const ::windows_core::GUID, ppobject: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
     fn SetAppDomainManager(&self, dwappdomainid: u32, punkappdomainmanager: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<()>;
@@ -2339,11 +2308,11 @@ impl IHostControl_Vtbl {
             SetAppDomainManager: SetAppDomainManager::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IHostCrst_Impl: Sized {
     fn Enter(&self, option: u32) -> ::windows_core::Result<()>;
@@ -2390,11 +2359,10 @@ impl IHostCrst_Vtbl {
             SetSpinCount: SetSpinCount::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostCrst as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostCrst as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostGCManager_Impl: Sized {
     fn ThreadIsBlockingForSuspension(&self) -> ::windows_core::Result<()>;
     fn SuspensionStarting(&self) -> ::windows_core::Result<()>;
@@ -2425,11 +2393,11 @@ impl IHostGCManager_Vtbl {
             SuspensionEnding: SuspensionEnding::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostGCManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostGCManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IHostIoCompletionManager_Impl: Sized {
     fn CreateIoCompletionPort(&self) -> ::windows_core::Result<super::super::Foundation::HANDLE>;
@@ -2549,11 +2517,10 @@ impl IHostIoCompletionManager_Vtbl {
             GetMinThreads: GetMinThreads::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostIoCompletionManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostIoCompletionManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostMalloc_Impl: Sized {
     fn Alloc(&self, cbsize: usize, ecriticallevel: EMemoryCriticalLevel, ppmem: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
     fn DebugAlloc(&self, cbsize: usize, ecriticallevel: EMemoryCriticalLevel, pszfilename: *const u8, ilineno: i32, ppmem: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
@@ -2584,11 +2551,10 @@ impl IHostMalloc_Vtbl {
             Free: Free::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostMalloc as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostMalloc as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostManualEvent_Impl: Sized {
     fn Wait(&self, dwmilliseconds: u32, option: u32) -> ::windows_core::Result<()>;
     fn Reset(&self) -> ::windows_core::Result<()>;
@@ -2619,11 +2585,10 @@ impl IHostManualEvent_Vtbl {
             Set: Set::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostManualEvent as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostManualEvent as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostMemoryManager_Impl: Sized {
     fn CreateMalloc(&self, dwmalloctype: u32) -> ::windows_core::Result<IHostMalloc>;
     fn VirtualAlloc(&self, paddress: *const ::core::ffi::c_void, dwsize: usize, flallocationtype: u32, flprotect: u32, ecriticallevel: EMemoryCriticalLevel, ppmem: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
@@ -2715,11 +2680,10 @@ impl IHostMemoryManager_Vtbl {
             ReleasedVirtualAddressSpace: ReleasedVirtualAddressSpace::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostMemoryManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostMemoryManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostPolicyManager_Impl: Sized {
     fn OnDefaultAction(&self, operation: EClrOperation, action: EPolicyAction) -> ::windows_core::Result<()>;
     fn OnTimeout(&self, operation: EClrOperation, action: EPolicyAction) -> ::windows_core::Result<()>;
@@ -2750,11 +2714,10 @@ impl IHostPolicyManager_Vtbl {
             OnFailure: OnFailure::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostPolicyManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostPolicyManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostSecurityContext_Impl: Sized {
     fn Capture(&self) -> ::windows_core::Result<IHostSecurityContext>;
 }
@@ -2774,11 +2737,11 @@ impl IHostSecurityContext_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Capture: Capture::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostSecurityContext as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostSecurityContext as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IHostSecurityManager_Impl: Sized {
     fn ImpersonateLoggedOnUser(&self, htoken: super::super::Foundation::HANDLE) -> ::windows_core::Result<()>;
@@ -2845,11 +2808,10 @@ impl IHostSecurityManager_Vtbl {
             SetSecurityContext: SetSecurityContext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostSecurityManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostSecurityManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostSemaphore_Impl: Sized {
     fn Wait(&self, dwmilliseconds: u32, option: u32) -> ::windows_core::Result<()>;
     fn ReleaseSemaphore(&self, lreleasecount: i32) -> ::windows_core::Result<i32>;
@@ -2879,11 +2841,11 @@ impl IHostSemaphore_Vtbl {
             ReleaseSemaphore: ReleaseSemaphore::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostSemaphore as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostSemaphore as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IHostSyncManager_Impl: Sized {
     fn SetCLRSyncManager(&self, pmanager: ::core::option::Option<&ICLRSyncManager>) -> ::windows_core::Result<()>;
@@ -3007,11 +2969,10 @@ impl IHostSyncManager_Vtbl {
             CreateSemaphoreA: CreateSemaphoreA::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostSyncManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostSyncManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IHostTask_Impl: Sized {
     fn Start(&self) -> ::windows_core::Result<()>;
     fn Alert(&self) -> ::windows_core::Result<()>;
@@ -3069,11 +3030,11 @@ impl IHostTask_Vtbl {
             SetCLRTask: SetCLRTask::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostTask as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostTask as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"Win32_System_Threading\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Threading\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Threading"))]
 pub trait IHostTaskManager_Impl: Sized {
     fn GetCurrentTask(&self) -> ::windows_core::Result<IHostTask>;
@@ -3236,11 +3197,11 @@ impl IHostTaskManager_Vtbl {
             SetCLRTaskManager: SetCLRTaskManager::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostTaskManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostTaskManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_System_Threading\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Threading\"`"]
 #[cfg(feature = "Win32_System_Threading")]
 pub trait IHostThreadpoolManager_Impl: Sized {
     fn QueueUserWorkItem(&self, function: super::Threading::LPTHREAD_START_ROUTINE, context: *const ::core::ffi::c_void, flags: u32) -> ::windows_core::Result<()>;
@@ -3313,11 +3274,10 @@ impl IHostThreadpoolManager_Vtbl {
             GetMinThreads: GetMinThreads::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHostThreadpoolManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHostThreadpoolManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait IManagedObject_Impl: Sized {
     fn GetSerializedBuffer(&self) -> ::windows_core::Result<::windows_core::BSTR>;
     fn GetObjectIdentity(&self, pbstrguid: *mut ::windows_core::BSTR, appdomainid: *mut i32, pccw: *mut i32) -> ::windows_core::Result<()>;
@@ -3347,11 +3307,11 @@ impl IManagedObject_Vtbl {
             GetObjectIdentity: GetObjectIdentity::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IManagedObject as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IManagedObject as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IObjectHandle_Impl: Sized {
     fn Unwrap(&self) -> ::windows_core::Result<super::Variant::VARIANT>;
@@ -3374,11 +3334,10 @@ impl IObjectHandle_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Unwrap: Unwrap::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IObjectHandle as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IObjectHandle as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ITypeName_Impl: Sized {
     fn GetNameCount(&self) -> ::windows_core::Result<u32>;
     fn GetNames(&self, count: u32, rgbsznames: *mut ::windows_core::BSTR, pcount: *mut u32) -> ::windows_core::Result<()>;
@@ -3461,11 +3420,10 @@ impl ITypeName_Vtbl {
             GetAssemblyName: GetAssemblyName::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITypeName as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITypeName as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ITypeNameBuilder_Impl: Sized {
     fn OpenGenericArguments(&self) -> ::windows_core::Result<()>;
     fn CloseGenericArguments(&self) -> ::windows_core::Result<()>;
@@ -3565,11 +3523,10 @@ impl ITypeNameBuilder_Vtbl {
             Clear: Clear::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITypeNameBuilder as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITypeNameBuilder as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ClrHosting\"`, `\"implement\"`*"]
 pub trait ITypeNameFactory_Impl: Sized {
     fn ParseTypeName(&self, szname: &::windows_core::PCWSTR, perror: *mut u32, pptypename: *mut ::core::option::Option<ITypeName>) -> ::windows_core::Result<()>;
     fn GetTypeNameBuilder(&self) -> ::windows_core::Result<ITypeNameBuilder>;
@@ -3599,7 +3556,7 @@ impl ITypeNameFactory_Vtbl {
             GetTypeNameBuilder: GetTypeNameBuilder::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITypeNameFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITypeNameFactory as ::windows_core::ComInterface>::IID
     }
 }

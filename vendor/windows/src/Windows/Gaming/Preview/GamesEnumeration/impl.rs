@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Gaming_Preview_GamesEnumeration\"`, `\"ApplicationModel\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
 #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
 pub trait IGameListEntry_Impl: Sized {
     fn DisplayInfo(&self) -> ::windows_core::Result<super::super::super::ApplicationModel::AppDisplayInfo>;
@@ -82,7 +82,7 @@ impl IGameListEntry_Vtbl {
             SetCategoryAsync: SetCategoryAsync::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IGameListEntry as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IGameListEntry as ::windows_core::ComInterface>::IID
     }
 }

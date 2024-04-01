@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"ApplicationModel_Appointments\"`, `\"implement\"`*"]
 pub trait IAppointmentParticipant_Impl: Sized {
     fn DisplayName(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
     fn SetDisplayName(&self, value: &::windows_core::HSTRING) -> ::windows_core::Result<()>;
@@ -52,7 +51,7 @@ impl IAppointmentParticipant_Vtbl {
             SetAddress: SetAddress::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppointmentParticipant as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppointmentParticipant as ::windows_core::ComInterface>::IID
     }
 }

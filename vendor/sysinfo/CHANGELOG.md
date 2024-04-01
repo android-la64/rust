@@ -1,3 +1,115 @@
+# 0.30.5
+
+ * Windows: Correctly retrieve processes name on 32 bits platforms.
+ * Windows: Fix swap memory computation.
+
+# 0.30.4
+
+ * Windows: Fix misaligned read.
+
+# 0.30.3
+
+ * Improve dependency stack by updating the `windows` dependency.
+
+# 0.30.2
+
+ * Add `ThreadKind` enum.
+ * Add `Process::thread_kind` method.
+
+# 0.30.1
+
+ * Linux: Fix invalid memory information retrieval (virtual and resident set size were reversed).
+
+# 0.30.0
+
+ * Split `System` into subtypes: `Components`, `Disks`, `Networks` and `Users`.
+ * `brand`, `vendor_id` and `frequency` information is not set anymore on the global CPU.
+ * Unix: Fix endless loop in user groups retrieval.
+ * Unix/Windows: Fix infinite loop when retrieving various information because of bad usage
+   of `Vec::reserve`.
+ * Unix: Fix invalid usage of NULL pointer when retrieving user group name.
+ * Linux: Fix CPU name retrieval.
+ * Linux: Remove cgroup usage from memory computation.
+ * Linux: Add `linux-netdevs` feature to allow to retrieve network devices.
+ * Linux: Improve system memory information retrieval (using `statm` file instead of `stat`).
+ * Linux: Tasks are listed in processes.
+ * macOS: Correctly retrieve process root directory.
+ * Windows: Add warning that `System::load_average` is not working in documentation.
+ * Windows: Fix invalid use of NULL pointer when retrieving users groups.
+ * Windows: Correctly retrieve process root directory.
+ * Create new `System::cgroup_limits` method.
+ * Remove `System::refresh_system` method.
+ * `Disk::file_system` and `Disk::name` now return an `Option<&OsStr>`.
+ * Implement `Display` trait on `DiskKind`.
+ * Move from `winapi` to `windows` crate.
+ * Add `System::cpu_arch`.
+ * Add `System::refresh_pids` and `System::refresh_pids_specifics`.
+ * `System::boot_time`, `System::cpu_arch`, `System::distribution_id`, `System::host_name`,
+   `System::kernel_version`, `System::load_average`, `System::long_os_version`, `System::name`,
+   `System::os_version` and `System::uptime` are static methods.
+ * `ProcessRefreshKind` has a lot more of possibilities for better control over updates.
+ * Add new `UpdateKind` enum.
+ * Add new `MemoryRefreshKind` struct.
+ * Add new `System::refresh_memory_specifics` method.
+ * `Process::exe`, `Process::cwd` and `Process::root` return an `Option<&Path>`.
+ * `Process::tasks` method is available on all platforms.
+ * `Process::tasks` method returns a `HashSet<Pid>`.
+ * Move `System::IS_SUPPORTED`, `System::SUPPORTED_SIGNALS` and
+   `System::MINIMUM_CPU_UPDATE_INTERVAL` constants out of `System` directly at the crate top-level.
+ * Rename `IS_SUPPORTED` into `IS_SUPPORTED_SYSTEM`.
+ * Fix `serde` serialization.
+ * Add `System::refresh_cpu_frequency` and `System::refresh_cpu_all`.
+ * Fix `sysinfo.h` and C wrapper.
+ * Add a migration guide.
+
+# 0.29.11
+
+ * macOS: Fix bug when a user group doesn't have a name.
+
+# 0.29.10
+
+ * Linux: Correctly handle max memory value for cgroups.
+
+# 0.29.9
+
+ * Linux: Fix memory usage retrieval for cgroups.
+
+# 0.29.8
+
+ * Linux: Fix overflow bug.
+
+# 0.29.7
+
+ * macOS: Fix CPU frequency retrieval for M1 and M2.
+ * Linux: Add support for cgroups v1/v2 for memory.
+ * Windows: Fix processes name encoding issues.
+
+# 0.29.6
+
+ * Update minimum rust version to 1.63.
+ * Windows: Fix memory corruption when listing processes.
+ * Windows: Fix name inconsistency between `refresh_processes` and `refresh_process`.
+ * `Cargo.lock` is now included to prevent minimum rust version disruptions.
+
+# 0.29.5
+
+ * Windows: Remove some undefined behaviour when listing processes.
+ * <docs.rs>: Use `--generate-link-to-definition` option to have better source code pages.
+
+# 0.29.4
+
+ * Windows: Improve code to retrieve network interfaces.
+ * Improve serde documentation example.
+ * Fix some clippy lints.
+
+# 0.29.3
+
+ * Fix some documentation examples.
+
+# 0.29.2
+
+ * <docs.rs>: Generate documentation for all supported platforms.
+
 # 0.29.1
 
  * Update `libc` version to 0.2.144.
@@ -105,7 +217,7 @@
 # 0.26.6
 
  * Add `Process::wait`.
- * Add "Good pratice" entry into the crate level documentation and in the README.
+ * Add "Good practice" entry into the crate level documentation and in the README.
  * Linux: More precise used memory computation.
 
 # 0.26.5
@@ -180,7 +292,7 @@
 
 # 0.24.4
 
- * Windows: Fix `System::refresh_process` when required higher priviledges.
+ * Windows: Fix `System::refresh_process` when required higher privileges.
 
 # 0.24.3
 
@@ -477,7 +589,7 @@
 
 # 0.16.0
 
- * Windows: show removeable drives on Windows.
+ * Windows: show removable drives on Windows.
  * Switched to Rust 2018 edition.
  * Split `SystemExt::get_version` into `SystemExt::get_kernel_version` and `SystemExt::get_os_version`.
  * Windows: added support for `get_kernel_version` and `get_os_version`.

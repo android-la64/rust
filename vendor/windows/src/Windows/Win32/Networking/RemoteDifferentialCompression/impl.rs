@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"implement\"`*"]
 pub trait IFindSimilarResults_Impl: Sized {
     fn GetSize(&self) -> ::windows_core::Result<u32>;
     fn GetNextFileId(&self, numtraitsmatched: *mut u32, similarityfileid: *mut SimilarityFileId) -> ::windows_core::Result<()>;
@@ -28,11 +27,11 @@ impl IFindSimilarResults_Vtbl {
             GetNextFileId: GetNextFileId::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IFindSimilarResults as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IFindSimilarResults as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IRdcComparator_Impl: Sized {
     fn Process(&self, endofinput: super::super::Foundation::BOOL, endofoutput: *mut super::super::Foundation::BOOL, inputbuffer: *mut RdcBufferPointer, outputbuffer: *mut RdcNeedPointer, rdc_errorcode: *mut RDC_ErrorCode) -> ::windows_core::Result<()>;
@@ -49,11 +48,11 @@ impl IRdcComparator_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Process: Process::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRdcComparator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRdcComparator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IRdcFileReader_Impl: Sized {
     fn GetFileSize(&self) -> ::windows_core::Result<u64>;
@@ -99,11 +98,11 @@ impl IRdcFileReader_Vtbl {
             GetFilePosition: GetFilePosition::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRdcFileReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRdcFileReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IRdcFileWriter_Impl: Sized + IRdcFileReader_Impl {
     fn Write(&self, offsetfilestart: u64, bytestowrite: u32) -> ::windows_core::Result<u8>;
@@ -143,11 +142,11 @@ impl IRdcFileWriter_Vtbl {
             DeleteOnClose: DeleteOnClose::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRdcFileWriter as ::windows_core::ComInterface>::IID || iid == &<IRdcFileReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRdcFileWriter as ::windows_core::ComInterface>::IID || *iid == <IRdcFileReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IRdcGenerator_Impl: Sized {
     fn GetGeneratorParameters(&self, level: u32) -> ::windows_core::Result<IRdcGeneratorParameters>;
@@ -180,11 +179,10 @@ impl IRdcGenerator_Vtbl {
             Process: Process::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRdcGenerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRdcGenerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"implement\"`*"]
 pub trait IRdcGeneratorFilterMaxParameters_Impl: Sized {
     fn GetHorizonSize(&self) -> ::windows_core::Result<u32>;
     fn SetHorizonSize(&self, horizonsize: u32) -> ::windows_core::Result<()>;
@@ -234,11 +232,10 @@ impl IRdcGeneratorFilterMaxParameters_Vtbl {
             SetHashWindowSize: SetHashWindowSize::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRdcGeneratorFilterMaxParameters as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRdcGeneratorFilterMaxParameters as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"implement\"`*"]
 pub trait IRdcGeneratorParameters_Impl: Sized {
     fn GetGeneratorParametersType(&self) -> ::windows_core::Result<GeneratorParametersType>;
     fn GetParametersVersion(&self, currentversion: *mut u32, minimumcompatibleappversion: *mut u32) -> ::windows_core::Result<()>;
@@ -288,11 +285,10 @@ impl IRdcGeneratorParameters_Vtbl {
             Serialize: Serialize::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRdcGeneratorParameters as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRdcGeneratorParameters as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"implement\"`*"]
 pub trait IRdcLibrary_Impl: Sized {
     fn ComputeDefaultRecursionDepth(&self, filesize: u64) -> ::windows_core::Result<u32>;
     fn CreateGeneratorParameters(&self, parameterstype: GeneratorParametersType, level: u32) -> ::windows_core::Result<IRdcGeneratorParameters>;
@@ -387,11 +383,11 @@ impl IRdcLibrary_Vtbl {
             GetRDCVersion: GetRDCVersion::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRdcLibrary as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRdcLibrary as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IRdcSignatureReader_Impl: Sized {
     fn ReadHeader(&self) -> ::windows_core::Result<RDC_ErrorCode>;
@@ -424,11 +420,10 @@ impl IRdcSignatureReader_Vtbl {
             ReadSignatures: ReadSignatures::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRdcSignatureReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRdcSignatureReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"implement\"`*"]
 pub trait IRdcSimilarityGenerator_Impl: Sized {
     fn EnableSimilarity(&self) -> ::windows_core::Result<()>;
     fn Results(&self) -> ::windows_core::Result<SimilarityData>;
@@ -458,11 +453,11 @@ impl IRdcSimilarityGenerator_Vtbl {
             Results: Results::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRdcSimilarityGenerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRdcSimilarityGenerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ISimilarity_Impl: Sized {
     fn CreateTable(&self, path: &::windows_core::PCWSTR, truncate: super::super::Foundation::BOOL, securitydescriptor: *const u8, recordsize: u32) -> ::windows_core::Result<RdcCreatedTables>;
@@ -548,11 +543,11 @@ impl ISimilarity_Vtbl {
             GetRecordCount: GetRecordCount::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISimilarity as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISimilarity as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ISimilarityFileIdTable_Impl: Sized {
     fn CreateTable(&self, path: &::windows_core::PCWSTR, truncate: super::super::Foundation::BOOL, securitydescriptor: *const u8, recordsize: u32) -> ::windows_core::Result<RdcCreatedTables>;
@@ -638,11 +633,10 @@ impl ISimilarityFileIdTable_Vtbl {
             GetRecordCount: GetRecordCount::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISimilarityFileIdTable as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISimilarityFileIdTable as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"implement\"`*"]
 pub trait ISimilarityReportProgress_Impl: Sized {
     fn ReportProgress(&self, percentcompleted: u32) -> ::windows_core::Result<()>;
 }
@@ -656,11 +650,11 @@ impl ISimilarityReportProgress_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), ReportProgress: ReportProgress::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISimilarityReportProgress as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISimilarityReportProgress as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ISimilarityTableDumpState_Impl: Sized {
     fn GetNextData(&self, resultssize: u32, resultsused: *mut u32, eof: *mut super::super::Foundation::BOOL, results: *mut SimilarityDumpData) -> ::windows_core::Result<()>;
@@ -677,11 +671,11 @@ impl ISimilarityTableDumpState_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetNextData: GetNextData::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISimilarityTableDumpState as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISimilarityTableDumpState as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ISimilarityTraitsMappedView_Impl: Sized {
     fn Flush(&self) -> ::windows_core::Result<()>;
@@ -728,11 +722,10 @@ impl ISimilarityTraitsMappedView_Vtbl {
             GetView: GetView::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISimilarityTraitsMappedView as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISimilarityTraitsMappedView as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"implement\"`*"]
 pub trait ISimilarityTraitsMapping_Impl: Sized {
     fn CloseMapping(&self);
     fn SetFileSize(&self, filesize: u64) -> ::windows_core::Result<()>;
@@ -815,11 +808,11 @@ impl ISimilarityTraitsMapping_Vtbl {
             CreateView: CreateView::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISimilarityTraitsMapping as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISimilarityTraitsMapping as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ISimilarityTraitsTable_Impl: Sized {
     fn CreateTable(&self, path: &::windows_core::PCWSTR, truncate: super::super::Foundation::BOOL, securitydescriptor: *const u8) -> ::windows_core::Result<RdcCreatedTables>;
@@ -905,7 +898,7 @@ impl ISimilarityTraitsTable_Vtbl {
             GetLastIndex: GetLastIndex::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISimilarityTraitsTable as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISimilarityTraitsTable as ::windows_core::ComInterface>::IID
     }
 }

@@ -6,6 +6,7 @@
 
 static mut n_mut: usize = 0;
 
-static n: &'static usize = unsafe{ &n_mut };
+static n: &'static usize = unsafe { &n_mut };
+//~^ WARN shared reference to mutable static is discouraged [static_mut_refs]
 
 fn main() {}

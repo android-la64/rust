@@ -11,6 +11,7 @@ use std::str::FromStr;
 
 use anyhow::Context as _;
 use cargo_util::paths;
+use cargo_util_schemas::manifest::RustVersion;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use toml_edit::Item as TomlItem;
@@ -35,7 +36,6 @@ use crate::util::toml_mut::dependency::WorkspaceSource;
 use crate::util::toml_mut::is_sorted;
 use crate::util::toml_mut::manifest::DepTable;
 use crate::util::toml_mut::manifest::LocalManifest;
-use crate::util_schemas::manifest::RustVersion;
 use crate::CargoResult;
 use crate::Config;
 use crate_spec::CrateSpec;
@@ -934,7 +934,7 @@ fn populate_available_features(
     }
 
     let possibilities = loop {
-        match registry.query_vec(&query, QueryKind::Fuzzy) {
+        match registry.query_vec(&query, QueryKind::Exact) {
             std::task::Poll::Ready(res) => {
                 break res?;
             }

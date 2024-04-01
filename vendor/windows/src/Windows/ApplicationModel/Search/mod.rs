@@ -1,15 +1,12 @@
 #[cfg(feature = "ApplicationModel_Search_Core")]
+#[doc = "Required features: `\"ApplicationModel_Search_Core\"`"]
 pub mod Core;
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILocalContentSuggestionSettings(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ILocalContentSuggestionSettings {
     type Vtable = ILocalContentSuggestionSettings_Vtbl;
-}
-impl ::core::clone::Clone for ILocalContentSuggestionSettings {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ILocalContentSuggestionSettings {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xeeaeb062_743d_456e_84a3_23f06f2d15d7);
@@ -34,16 +31,11 @@ pub struct ILocalContentSuggestionSettings_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPane(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPane {
     type Vtable = ISearchPane_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPane {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPane {
@@ -155,13 +147,14 @@ pub struct ISearchPane_Vtbl {
     #[cfg(not(feature = "deprecated"))]
     TrySetQueryText: usize,
 }
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneQueryChangedEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl ISearchPaneQueryChangedEventArgs {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn QueryText(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -170,7 +163,7 @@ impl ISearchPaneQueryChangedEventArgs {
             (::windows_core::Interface::vtable(this).QueryText)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Language(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -179,7 +172,7 @@ impl ISearchPaneQueryChangedEventArgs {
             (::windows_core::Interface::vtable(this).Language)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn LinguisticDetails(&self) -> ::windows_core::Result<SearchPaneQueryLinguisticDetails> {
         let this = self;
@@ -192,32 +185,12 @@ impl ISearchPaneQueryChangedEventArgs {
 #[cfg(feature = "deprecated")]
 ::windows_core::imp::interface_hierarchy!(ISearchPaneQueryChangedEventArgs, ::windows_core::IUnknown, ::windows_core::IInspectable);
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for ISearchPaneQueryChangedEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for ISearchPaneQueryChangedEventArgs {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for ISearchPaneQueryChangedEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISearchPaneQueryChangedEventArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for ISearchPaneQueryChangedEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"{3c064fe9-2351-4248-a529-7110f464a785}");
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneQueryChangedEventArgs {
     type Vtable = ISearchPaneQueryChangedEventArgs_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneQueryChangedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneQueryChangedEventArgs {
@@ -243,14 +216,10 @@ pub struct ISearchPaneQueryChangedEventArgs_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneQueryLinguisticDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISearchPaneQueryLinguisticDetails {
     type Vtable = ISearchPaneQueryLinguisticDetails_Vtbl;
-}
-impl ::core::clone::Clone for ISearchPaneQueryLinguisticDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISearchPaneQueryLinguisticDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x82fb460e_0940_4b6d_b8d0_642b30989e15);
@@ -269,16 +238,11 @@ pub struct ISearchPaneQueryLinguisticDetails_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneQuerySubmittedEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneQuerySubmittedEventArgs {
     type Vtable = ISearchPaneQuerySubmittedEventArgs_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneQuerySubmittedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneQuerySubmittedEventArgs {
@@ -301,16 +265,11 @@ pub struct ISearchPaneQuerySubmittedEventArgs_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneQuerySubmittedEventArgsWithLinguisticDetails(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneQuerySubmittedEventArgsWithLinguisticDetails {
     type Vtable = ISearchPaneQuerySubmittedEventArgsWithLinguisticDetails_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneQuerySubmittedEventArgsWithLinguisticDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneQuerySubmittedEventArgsWithLinguisticDetails {
@@ -329,16 +288,11 @@ pub struct ISearchPaneQuerySubmittedEventArgsWithLinguisticDetails_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneResultSuggestionChosenEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneResultSuggestionChosenEventArgs {
     type Vtable = ISearchPaneResultSuggestionChosenEventArgs_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneResultSuggestionChosenEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneResultSuggestionChosenEventArgs {
@@ -357,16 +311,11 @@ pub struct ISearchPaneResultSuggestionChosenEventArgs_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneStatics(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneStatics {
     type Vtable = ISearchPaneStatics_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneStatics {
@@ -385,16 +334,11 @@ pub struct ISearchPaneStatics_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneStaticsWithHideThisApplication(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneStaticsWithHideThisApplication {
     type Vtable = ISearchPaneStaticsWithHideThisApplication_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneStaticsWithHideThisApplication {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneStaticsWithHideThisApplication {
@@ -413,16 +357,11 @@ pub struct ISearchPaneStaticsWithHideThisApplication_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneSuggestionsRequest(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneSuggestionsRequest {
     type Vtable = ISearchPaneSuggestionsRequest_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneSuggestionsRequest {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneSuggestionsRequest {
@@ -449,16 +388,11 @@ pub struct ISearchPaneSuggestionsRequest_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneSuggestionsRequestDeferral(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneSuggestionsRequestDeferral {
     type Vtable = ISearchPaneSuggestionsRequestDeferral_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneSuggestionsRequestDeferral {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneSuggestionsRequestDeferral {
@@ -477,16 +411,11 @@ pub struct ISearchPaneSuggestionsRequestDeferral_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneSuggestionsRequestedEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneSuggestionsRequestedEventArgs {
     type Vtable = ISearchPaneSuggestionsRequestedEventArgs_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneSuggestionsRequestedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneSuggestionsRequestedEventArgs {
@@ -505,16 +434,11 @@ pub struct ISearchPaneSuggestionsRequestedEventArgs_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchPaneVisibilityChangedEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for ISearchPaneVisibilityChangedEventArgs {
     type Vtable = ISearchPaneVisibilityChangedEventArgs_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for ISearchPaneVisibilityChangedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for ISearchPaneVisibilityChangedEventArgs {
@@ -532,14 +456,10 @@ pub struct ISearchPaneVisibilityChangedEventArgs_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchQueryLinguisticDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISearchQueryLinguisticDetails {
     type Vtable = ISearchQueryLinguisticDetails_Vtbl;
-}
-impl ::core::clone::Clone for ISearchQueryLinguisticDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISearchQueryLinguisticDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x46a1205b_69c9_4745_b72f_a8a4fc8f24ae);
@@ -557,14 +477,10 @@ pub struct ISearchQueryLinguisticDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchQueryLinguisticDetailsFactory(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISearchQueryLinguisticDetailsFactory {
     type Vtable = ISearchQueryLinguisticDetailsFactory_Vtbl;
-}
-impl ::core::clone::Clone for ISearchQueryLinguisticDetailsFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISearchQueryLinguisticDetailsFactory {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcac6c3b8_3c64_4dfd_ad9f_479e4d4065a4);
@@ -580,14 +496,10 @@ pub struct ISearchQueryLinguisticDetailsFactory_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchSuggestionCollection(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISearchSuggestionCollection {
     type Vtable = ISearchSuggestionCollection_Vtbl;
-}
-impl ::core::clone::Clone for ISearchSuggestionCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISearchSuggestionCollection {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x323a8a4b_fbea_4446_abbc_3da7915fdd3a);
@@ -610,14 +522,10 @@ pub struct ISearchSuggestionCollection_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchSuggestionsRequest(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISearchSuggestionsRequest {
     type Vtable = ISearchSuggestionsRequest_Vtbl;
-}
-impl ::core::clone::Clone for ISearchSuggestionsRequest {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISearchSuggestionsRequest {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4e4e26a7_44e5_4039_9099_6000ead1f0c6);
@@ -632,14 +540,10 @@ pub struct ISearchSuggestionsRequest_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchSuggestionsRequestDeferral(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISearchSuggestionsRequestDeferral {
     type Vtable = ISearchSuggestionsRequestDeferral_Vtbl;
-}
-impl ::core::clone::Clone for ISearchSuggestionsRequestDeferral {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISearchSuggestionsRequestDeferral {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb71598a9_c065_456d_a845_1eccec5dc28b);
@@ -650,8 +554,8 @@ pub struct ISearchSuggestionsRequestDeferral_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
     pub Complete: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"ApplicationModel_Search\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct LocalContentSuggestionSettings(::windows_core::IUnknown);
 impl LocalContentSuggestionSettings {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -672,7 +576,7 @@ impl LocalContentSuggestionSettings {
             (::windows_core::Interface::vtable(this).Enabled)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`, `\"Storage\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`, `\"Storage\"`"]
     #[cfg(all(feature = "Foundation_Collections", feature = "Storage"))]
     pub fn Locations(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Storage::StorageFolder>> {
         let this = self;
@@ -692,7 +596,7 @@ impl LocalContentSuggestionSettings {
             (::windows_core::Interface::vtable(this).AqsFilter)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn PropertiesToMatch(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = self;
@@ -702,24 +606,8 @@ impl LocalContentSuggestionSettings {
         }
     }
 }
-impl ::core::cmp::PartialEq for LocalContentSuggestionSettings {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for LocalContentSuggestionSettings {}
-impl ::core::fmt::Debug for LocalContentSuggestionSettings {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("LocalContentSuggestionSettings").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for LocalContentSuggestionSettings {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.LocalContentSuggestionSettings;{eeaeb062-743d-456e-84a3-23f06f2d15d7})");
-}
-impl ::core::clone::Clone for LocalContentSuggestionSettings {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for LocalContentSuggestionSettings {
     type Vtable = ILocalContentSuggestionSettings_Vtbl;
@@ -731,19 +619,20 @@ impl ::windows_core::RuntimeName for LocalContentSuggestionSettings {
     const NAME: &'static str = "Windows.ApplicationModel.Search.LocalContentSuggestionSettings";
 }
 ::windows_core::imp::interface_hierarchy!(LocalContentSuggestionSettings, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchPane(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl SearchPane {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetSearchHistoryEnabled(&self, value: bool) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetSearchHistoryEnabled)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SearchHistoryEnabled(&self) -> ::windows_core::Result<bool> {
         let this = self;
@@ -752,13 +641,13 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).SearchHistoryEnabled)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetSearchHistoryContext(&self, value: &::windows_core::HSTRING) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetSearchHistoryContext)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SearchHistoryContext(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -767,13 +656,13 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).SearchHistoryContext)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetPlaceholderText(&self, value: &::windows_core::HSTRING) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetPlaceholderText)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn PlaceholderText(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -782,7 +671,7 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).PlaceholderText)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn QueryText(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -791,7 +680,7 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).QueryText)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Language(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -800,7 +689,7 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).Language)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Visible(&self) -> ::windows_core::Result<bool> {
         let this = self;
@@ -809,7 +698,7 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).Visible)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn VisibilityChanged<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -821,13 +710,13 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).VisibilityChanged)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn RemoveVisibilityChanged(&self, token: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveVisibilityChanged)(::windows_core::Interface::as_raw(this), token).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn QueryChanged<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -839,13 +728,13 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).QueryChanged)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn RemoveQueryChanged(&self, token: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveQueryChanged)(::windows_core::Interface::as_raw(this), token).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn SuggestionsRequested<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -857,13 +746,13 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).SuggestionsRequested)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn RemoveSuggestionsRequested(&self, token: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveSuggestionsRequested)(::windows_core::Interface::as_raw(this), token).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn QuerySubmitted<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -875,13 +764,13 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).QuerySubmitted)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn RemoveQuerySubmitted(&self, token: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveQuerySubmitted)(::windows_core::Interface::as_raw(this), token).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn ResultSuggestionChosen<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -893,13 +782,13 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).ResultSuggestionChosen)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn RemoveResultSuggestionChosen(&self, token: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveResultSuggestionChosen)(::windows_core::Interface::as_raw(this), token).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetLocalContentSuggestionSettings<P0>(&self, settings: P0) -> ::windows_core::Result<()>
     where
@@ -908,25 +797,25 @@ impl SearchPane {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetLocalContentSuggestionSettings)(::windows_core::Interface::as_raw(this), settings.into_param().abi()).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn ShowOverloadDefault(&self) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).ShowOverloadDefault)(::windows_core::Interface::as_raw(this)).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn ShowOverloadWithQuery(&self, query: &::windows_core::HSTRING) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).ShowOverloadWithQuery)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(query)).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetShowOnKeyboardInput(&self, value: bool) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetShowOnKeyboardInput)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn ShowOnKeyboardInput(&self) -> ::windows_core::Result<bool> {
         let this = self;
@@ -935,7 +824,7 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).ShowOnKeyboardInput)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn TrySetQueryText(&self, query: &::windows_core::HSTRING) -> ::windows_core::Result<bool> {
         let this = self;
@@ -944,7 +833,7 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).TrySetQueryText)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(query), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn GetForCurrentView() -> ::windows_core::Result<SearchPane> {
         Self::ISearchPaneStatics(|this| unsafe {
@@ -952,7 +841,7 @@ impl SearchPane {
             (::windows_core::Interface::vtable(this).GetForCurrentView)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn HideThisApplication() -> ::windows_core::Result<()> {
         Self::ISearchPaneStaticsWithHideThisApplication(|this| unsafe { (::windows_core::Interface::vtable(this).HideThisApplication)(::windows_core::Interface::as_raw(this)).ok() })
@@ -971,28 +860,8 @@ impl SearchPane {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for SearchPane {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for SearchPane {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for SearchPane {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchPane").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for SearchPane {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchPane;{fdacec38-3700-4d73-91a1-2f998674238a})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for SearchPane {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for SearchPane {
@@ -1008,13 +877,14 @@ impl ::windows_core::RuntimeName for SearchPane {
 }
 #[cfg(feature = "deprecated")]
 ::windows_core::imp::interface_hierarchy!(SearchPane, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchPaneQueryChangedEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl SearchPaneQueryChangedEventArgs {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn QueryText(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -1023,7 +893,7 @@ impl SearchPaneQueryChangedEventArgs {
             (::windows_core::Interface::vtable(this).QueryText)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Language(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -1032,7 +902,7 @@ impl SearchPaneQueryChangedEventArgs {
             (::windows_core::Interface::vtable(this).Language)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn LinguisticDetails(&self) -> ::windows_core::Result<SearchPaneQueryLinguisticDetails> {
         let this = self;
@@ -1043,28 +913,8 @@ impl SearchPaneQueryChangedEventArgs {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for SearchPaneQueryChangedEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for SearchPaneQueryChangedEventArgs {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for SearchPaneQueryChangedEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchPaneQueryChangedEventArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for SearchPaneQueryChangedEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchPaneQueryChangedEventArgs;{3c064fe9-2351-4248-a529-7110f464a785})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for SearchPaneQueryChangedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for SearchPaneQueryChangedEventArgs {
@@ -1086,11 +936,11 @@ impl ::windows_core::CanTryInto<ISearchPaneQueryChangedEventArgs> for SearchPane
 unsafe impl ::core::marker::Send for SearchPaneQueryChangedEventArgs {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for SearchPaneQueryChangedEventArgs {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchPaneQueryLinguisticDetails(::windows_core::IUnknown);
 impl SearchPaneQueryLinguisticDetails {
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn QueryTextAlternatives(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -1114,24 +964,8 @@ impl SearchPaneQueryLinguisticDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for SearchPaneQueryLinguisticDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SearchPaneQueryLinguisticDetails {}
-impl ::core::fmt::Debug for SearchPaneQueryLinguisticDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchPaneQueryLinguisticDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SearchPaneQueryLinguisticDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchPaneQueryLinguisticDetails;{82fb460e-0940-4b6d-b8d0-642b30989e15})");
-}
-impl ::core::clone::Clone for SearchPaneQueryLinguisticDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SearchPaneQueryLinguisticDetails {
     type Vtable = ISearchPaneQueryLinguisticDetails_Vtbl;
@@ -1145,13 +979,14 @@ impl ::windows_core::RuntimeName for SearchPaneQueryLinguisticDetails {
 ::windows_core::imp::interface_hierarchy!(SearchPaneQueryLinguisticDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for SearchPaneQueryLinguisticDetails {}
 unsafe impl ::core::marker::Sync for SearchPaneQueryLinguisticDetails {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchPaneQuerySubmittedEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl SearchPaneQuerySubmittedEventArgs {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn QueryText(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -1160,7 +995,7 @@ impl SearchPaneQuerySubmittedEventArgs {
             (::windows_core::Interface::vtable(this).QueryText)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Language(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -1169,7 +1004,7 @@ impl SearchPaneQuerySubmittedEventArgs {
             (::windows_core::Interface::vtable(this).Language)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn LinguisticDetails(&self) -> ::windows_core::Result<SearchPaneQueryLinguisticDetails> {
         let this = &::windows_core::ComInterface::cast::<ISearchPaneQuerySubmittedEventArgsWithLinguisticDetails>(self)?;
@@ -1180,28 +1015,8 @@ impl SearchPaneQuerySubmittedEventArgs {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for SearchPaneQuerySubmittedEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for SearchPaneQuerySubmittedEventArgs {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for SearchPaneQuerySubmittedEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchPaneQuerySubmittedEventArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for SearchPaneQuerySubmittedEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchPaneQuerySubmittedEventArgs;{143ba4fc-e9c5-4736-91b2-e8eb9cb88356})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for SearchPaneQuerySubmittedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for SearchPaneQuerySubmittedEventArgs {
@@ -1221,13 +1036,14 @@ impl ::windows_core::RuntimeName for SearchPaneQuerySubmittedEventArgs {
 unsafe impl ::core::marker::Send for SearchPaneQuerySubmittedEventArgs {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for SearchPaneQuerySubmittedEventArgs {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchPaneResultSuggestionChosenEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl SearchPaneResultSuggestionChosenEventArgs {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Tag(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -1238,28 +1054,8 @@ impl SearchPaneResultSuggestionChosenEventArgs {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for SearchPaneResultSuggestionChosenEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for SearchPaneResultSuggestionChosenEventArgs {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for SearchPaneResultSuggestionChosenEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchPaneResultSuggestionChosenEventArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for SearchPaneResultSuggestionChosenEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchPaneResultSuggestionChosenEventArgs;{c8316cc0-aed2-41e0-bce0-c26ca74f85ec})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for SearchPaneResultSuggestionChosenEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for SearchPaneResultSuggestionChosenEventArgs {
@@ -1279,13 +1075,14 @@ impl ::windows_core::RuntimeName for SearchPaneResultSuggestionChosenEventArgs {
 unsafe impl ::core::marker::Send for SearchPaneResultSuggestionChosenEventArgs {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for SearchPaneResultSuggestionChosenEventArgs {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchPaneSuggestionsRequest(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl SearchPaneSuggestionsRequest {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn IsCanceled(&self) -> ::windows_core::Result<bool> {
         let this = self;
@@ -1294,7 +1091,7 @@ impl SearchPaneSuggestionsRequest {
             (::windows_core::Interface::vtable(this).IsCanceled)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SearchSuggestionCollection(&self) -> ::windows_core::Result<SearchSuggestionCollection> {
         let this = self;
@@ -1303,7 +1100,7 @@ impl SearchPaneSuggestionsRequest {
             (::windows_core::Interface::vtable(this).SearchSuggestionCollection)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn GetDeferral(&self) -> ::windows_core::Result<SearchPaneSuggestionsRequestDeferral> {
         let this = self;
@@ -1314,28 +1111,8 @@ impl SearchPaneSuggestionsRequest {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for SearchPaneSuggestionsRequest {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for SearchPaneSuggestionsRequest {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for SearchPaneSuggestionsRequest {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchPaneSuggestionsRequest").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for SearchPaneSuggestionsRequest {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchPaneSuggestionsRequest;{81b10b1c-e561-4093-9b4d-2ad482794a53})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for SearchPaneSuggestionsRequest {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for SearchPaneSuggestionsRequest {
@@ -1355,13 +1132,14 @@ impl ::windows_core::RuntimeName for SearchPaneSuggestionsRequest {
 unsafe impl ::core::marker::Send for SearchPaneSuggestionsRequest {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for SearchPaneSuggestionsRequest {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchPaneSuggestionsRequestDeferral(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl SearchPaneSuggestionsRequestDeferral {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Complete(&self) -> ::windows_core::Result<()> {
         let this = self;
@@ -1369,28 +1147,8 @@ impl SearchPaneSuggestionsRequestDeferral {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for SearchPaneSuggestionsRequestDeferral {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for SearchPaneSuggestionsRequestDeferral {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for SearchPaneSuggestionsRequestDeferral {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchPaneSuggestionsRequestDeferral").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for SearchPaneSuggestionsRequestDeferral {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchPaneSuggestionsRequestDeferral;{a0d009f7-8748-4ee2-ad44-afa6be997c51})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for SearchPaneSuggestionsRequestDeferral {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for SearchPaneSuggestionsRequestDeferral {
@@ -1410,13 +1168,14 @@ impl ::windows_core::RuntimeName for SearchPaneSuggestionsRequestDeferral {
 unsafe impl ::core::marker::Send for SearchPaneSuggestionsRequestDeferral {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for SearchPaneSuggestionsRequestDeferral {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchPaneSuggestionsRequestedEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl SearchPaneSuggestionsRequestedEventArgs {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn QueryText(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = &::windows_core::ComInterface::cast::<ISearchPaneQueryChangedEventArgs>(self)?;
@@ -1425,7 +1184,7 @@ impl SearchPaneSuggestionsRequestedEventArgs {
             (::windows_core::Interface::vtable(this).QueryText)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Language(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = &::windows_core::ComInterface::cast::<ISearchPaneQueryChangedEventArgs>(self)?;
@@ -1434,7 +1193,7 @@ impl SearchPaneSuggestionsRequestedEventArgs {
             (::windows_core::Interface::vtable(this).Language)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn LinguisticDetails(&self) -> ::windows_core::Result<SearchPaneQueryLinguisticDetails> {
         let this = &::windows_core::ComInterface::cast::<ISearchPaneQueryChangedEventArgs>(self)?;
@@ -1443,7 +1202,7 @@ impl SearchPaneSuggestionsRequestedEventArgs {
             (::windows_core::Interface::vtable(this).LinguisticDetails)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Request(&self) -> ::windows_core::Result<SearchPaneSuggestionsRequest> {
         let this = self;
@@ -1454,28 +1213,8 @@ impl SearchPaneSuggestionsRequestedEventArgs {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for SearchPaneSuggestionsRequestedEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for SearchPaneSuggestionsRequestedEventArgs {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for SearchPaneSuggestionsRequestedEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchPaneSuggestionsRequestedEventArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for SearchPaneSuggestionsRequestedEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchPaneSuggestionsRequestedEventArgs;{c89b8a2f-ac56-4460-8d2f-80023bec4fc5})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for SearchPaneSuggestionsRequestedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for SearchPaneSuggestionsRequestedEventArgs {
@@ -1497,13 +1236,14 @@ impl ::windows_core::CanTryInto<ISearchPaneQueryChangedEventArgs> for SearchPane
 unsafe impl ::core::marker::Send for SearchPaneSuggestionsRequestedEventArgs {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for SearchPaneSuggestionsRequestedEventArgs {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchPaneVisibilityChangedEventArgs(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl SearchPaneVisibilityChangedEventArgs {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Visible(&self) -> ::windows_core::Result<bool> {
         let this = self;
@@ -1514,28 +1254,8 @@ impl SearchPaneVisibilityChangedEventArgs {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for SearchPaneVisibilityChangedEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for SearchPaneVisibilityChangedEventArgs {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for SearchPaneVisibilityChangedEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchPaneVisibilityChangedEventArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for SearchPaneVisibilityChangedEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchPaneVisibilityChangedEventArgs;{3c4d3046-ac4b-49f2-97d6-020e6182cb9c})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for SearchPaneVisibilityChangedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for SearchPaneVisibilityChangedEventArgs {
@@ -1555,11 +1275,11 @@ impl ::windows_core::RuntimeName for SearchPaneVisibilityChangedEventArgs {
 unsafe impl ::core::marker::Send for SearchPaneVisibilityChangedEventArgs {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for SearchPaneVisibilityChangedEventArgs {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchQueryLinguisticDetails(::windows_core::IUnknown);
 impl SearchQueryLinguisticDetails {
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn QueryTextAlternatives(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -1582,7 +1302,7 @@ impl SearchQueryLinguisticDetails {
             (::windows_core::Interface::vtable(this).QueryTextCompositionLength)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn CreateInstance<P0>(querytextalternatives: P0, querytextcompositionstart: u32, querytextcompositionlength: u32) -> ::windows_core::Result<SearchQueryLinguisticDetails>
     where
@@ -1599,24 +1319,8 @@ impl SearchQueryLinguisticDetails {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for SearchQueryLinguisticDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SearchQueryLinguisticDetails {}
-impl ::core::fmt::Debug for SearchQueryLinguisticDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchQueryLinguisticDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SearchQueryLinguisticDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchQueryLinguisticDetails;{46a1205b-69c9-4745-b72f-a8a4fc8f24ae})");
-}
-impl ::core::clone::Clone for SearchQueryLinguisticDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SearchQueryLinguisticDetails {
     type Vtable = ISearchQueryLinguisticDetails_Vtbl;
@@ -1630,8 +1334,8 @@ impl ::windows_core::RuntimeName for SearchQueryLinguisticDetails {
 ::windows_core::imp::interface_hierarchy!(SearchQueryLinguisticDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for SearchQueryLinguisticDetails {}
 unsafe impl ::core::marker::Sync for SearchQueryLinguisticDetails {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchSuggestionCollection(::windows_core::IUnknown);
 impl SearchSuggestionCollection {
     pub fn Size(&self) -> ::windows_core::Result<u32> {
@@ -1645,7 +1349,7 @@ impl SearchSuggestionCollection {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).AppendQuerySuggestion)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(text)).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn AppendQuerySuggestions<P0>(&self, suggestions: P0) -> ::windows_core::Result<()>
     where
@@ -1654,7 +1358,7 @@ impl SearchSuggestionCollection {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).AppendQuerySuggestions)(::windows_core::Interface::as_raw(this), suggestions.try_into_param()?.abi()).ok() }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn AppendResultSuggestion<P0>(&self, text: &::windows_core::HSTRING, detailtext: &::windows_core::HSTRING, tag: &::windows_core::HSTRING, image: P0, imagealternatetext: &::windows_core::HSTRING) -> ::windows_core::Result<()>
     where
@@ -1668,24 +1372,8 @@ impl SearchSuggestionCollection {
         unsafe { (::windows_core::Interface::vtable(this).AppendSearchSeparator)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(label)).ok() }
     }
 }
-impl ::core::cmp::PartialEq for SearchSuggestionCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SearchSuggestionCollection {}
-impl ::core::fmt::Debug for SearchSuggestionCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchSuggestionCollection").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SearchSuggestionCollection {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchSuggestionCollection;{323a8a4b-fbea-4446-abbc-3da7915fdd3a})");
-}
-impl ::core::clone::Clone for SearchSuggestionCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SearchSuggestionCollection {
     type Vtable = ISearchSuggestionCollection_Vtbl;
@@ -1699,8 +1387,8 @@ impl ::windows_core::RuntimeName for SearchSuggestionCollection {
 ::windows_core::imp::interface_hierarchy!(SearchSuggestionCollection, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for SearchSuggestionCollection {}
 unsafe impl ::core::marker::Sync for SearchSuggestionCollection {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchSuggestionsRequest(::windows_core::IUnknown);
 impl SearchSuggestionsRequest {
     pub fn IsCanceled(&self) -> ::windows_core::Result<bool> {
@@ -1725,24 +1413,8 @@ impl SearchSuggestionsRequest {
         }
     }
 }
-impl ::core::cmp::PartialEq for SearchSuggestionsRequest {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SearchSuggestionsRequest {}
-impl ::core::fmt::Debug for SearchSuggestionsRequest {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchSuggestionsRequest").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SearchSuggestionsRequest {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchSuggestionsRequest;{4e4e26a7-44e5-4039-9099-6000ead1f0c6})");
-}
-impl ::core::clone::Clone for SearchSuggestionsRequest {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SearchSuggestionsRequest {
     type Vtable = ISearchSuggestionsRequest_Vtbl;
@@ -1756,8 +1428,8 @@ impl ::windows_core::RuntimeName for SearchSuggestionsRequest {
 ::windows_core::imp::interface_hierarchy!(SearchSuggestionsRequest, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for SearchSuggestionsRequest {}
 unsafe impl ::core::marker::Sync for SearchSuggestionsRequest {}
-#[doc = "*Required features: `\"ApplicationModel_Search\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SearchSuggestionsRequestDeferral(::windows_core::IUnknown);
 impl SearchSuggestionsRequestDeferral {
     pub fn Complete(&self) -> ::windows_core::Result<()> {
@@ -1765,24 +1437,8 @@ impl SearchSuggestionsRequestDeferral {
         unsafe { (::windows_core::Interface::vtable(this).Complete)(::windows_core::Interface::as_raw(this)).ok() }
     }
 }
-impl ::core::cmp::PartialEq for SearchSuggestionsRequestDeferral {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SearchSuggestionsRequestDeferral {}
-impl ::core::fmt::Debug for SearchSuggestionsRequestDeferral {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SearchSuggestionsRequestDeferral").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SearchSuggestionsRequestDeferral {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Search.SearchSuggestionsRequestDeferral;{b71598a9-c065-456d-a845-1eccec5dc28b})");
-}
-impl ::core::clone::Clone for SearchSuggestionsRequestDeferral {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SearchSuggestionsRequestDeferral {
     type Vtable = ISearchSuggestionsRequestDeferral_Vtbl;

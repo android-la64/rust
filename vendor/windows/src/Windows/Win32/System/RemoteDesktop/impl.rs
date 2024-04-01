@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IADsTSUserEx_Impl: Sized + super::Com::IDispatch_Impl {
     fn TerminalServicesProfilePath(&self) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -311,11 +311,11 @@ impl IADsTSUserEx_Vtbl {
             SetTerminalServicesInitialProgram: SetTerminalServicesInitialProgram::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IADsTSUserEx as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IADsTSUserEx as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAudioDeviceEndpoint_Impl: Sized {
     fn SetBuffer(&self, maxperiod: i64, u32latencycoefficient: u32) -> ::windows_core::Result<()>;
@@ -368,11 +368,11 @@ impl IAudioDeviceEndpoint_Vtbl {
             WriteExclusiveModeParametersToSharedMemory: WriteExclusiveModeParametersToSharedMemory::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioDeviceEndpoint as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioDeviceEndpoint as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_Media_Audio\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Media_Audio\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Media_Audio"))]
 pub trait IAudioEndpoint_Impl: Sized {
     fn GetFrameFormat(&self) -> ::windows_core::Result<*mut super::super::Media::Audio::WAVEFORMATEX>;
@@ -438,11 +438,10 @@ impl IAudioEndpoint_Vtbl {
             SetEventHandle: SetEventHandle::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpoint as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpoint as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IAudioEndpointControl_Impl: Sized {
     fn Start(&self) -> ::windows_core::Result<()>;
     fn Reset(&self) -> ::windows_core::Result<()>;
@@ -473,11 +472,10 @@ impl IAudioEndpointControl_Vtbl {
             Stop: Stop::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IAudioEndpointRT_Impl: Sized {
     fn GetCurrentPadding(&self, ppadding: *mut i64, paecurrentposition: *mut AE_CURRENT_POSITION);
     fn ProcessingComplete(&self);
@@ -515,11 +513,11 @@ impl IAudioEndpointRT_Vtbl {
             SetPinActive: SetPinActive::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointRT as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointRT as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Media_Audio_Apo\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Media_Audio_Apo\"`"]
 #[cfg(feature = "Win32_Media_Audio_Apo")]
 pub trait IAudioInputEndpointRT_Impl: Sized {
     fn GetInputDataPointer(&self, pconnectionproperty: *mut super::super::Media::Audio::Apo::APO_CONNECTION_PROPERTY, paetimestamp: *mut AE_CURRENT_POSITION);
@@ -553,11 +551,11 @@ impl IAudioInputEndpointRT_Vtbl {
             PulseEndpoint: PulseEndpoint::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioInputEndpointRT as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioInputEndpointRT as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Media_Audio_Apo\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Media_Audio_Apo\"`"]
 #[cfg(feature = "Win32_Media_Audio_Apo")]
 pub trait IAudioOutputEndpointRT_Impl: Sized {
     fn GetOutputDataPointer(&self, u32framecount: u32, paetimestamp: *const AE_CURRENT_POSITION) -> usize;
@@ -591,11 +589,11 @@ impl IAudioOutputEndpointRT_Vtbl {
             PulseEndpoint: PulseEndpoint::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioOutputEndpointRT as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioOutputEndpointRT as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IRemoteDesktopClient_Impl: Sized + super::Com::IDispatch_Impl {
     fn Connect(&self) -> ::windows_core::Result<()>;
@@ -696,11 +694,11 @@ impl IRemoteDesktopClient_Vtbl {
             detachEvent: detachEvent::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRemoteDesktopClient as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRemoteDesktopClient as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IRemoteDesktopClientActions_Impl: Sized + super::Com::IDispatch_Impl {
     fn SuspendScreenUpdates(&self) -> ::windows_core::Result<()>;
@@ -747,11 +745,11 @@ impl IRemoteDesktopClientActions_Vtbl {
             GetSnapshot: GetSnapshot::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRemoteDesktopClientActions as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRemoteDesktopClientActions as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IRemoteDesktopClientSettings_Impl: Sized + super::Com::IDispatch_Impl {
     fn ApplySettings(&self, rdpfilecontents: &::windows_core::BSTR) -> ::windows_core::Result<()>;
@@ -804,11 +802,11 @@ impl IRemoteDesktopClientSettings_Vtbl {
             SetRdpProperty: SetRdpProperty::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRemoteDesktopClientSettings as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRemoteDesktopClientSettings as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IRemoteDesktopClientTouchPointer_Impl: Sized + super::Com::IDispatch_Impl {
     fn SetEnabled(&self, enabled: super::super::Foundation::VARIANT_BOOL) -> ::windows_core::Result<()>;
@@ -881,11 +879,10 @@ impl IRemoteDesktopClientTouchPointer_Vtbl {
             PointerSpeed: PointerSpeed::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRemoteDesktopClientTouchPointer as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRemoteDesktopClientTouchPointer as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IRemoteSystemAdditionalInfoProvider_Impl: Sized {
     fn GetAdditionalInfo(&self, deduplicationid: *mut ::windows_core::HSTRING, riid: *const ::windows_core::GUID, mapview: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
 }
@@ -899,11 +896,10 @@ impl IRemoteSystemAdditionalInfoProvider_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetAdditionalInfo: GetAdditionalInfo::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRemoteSystemAdditionalInfoProvider as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRemoteSystemAdditionalInfoProvider as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITSGAccountingEngine_Impl: Sized {
     fn DoAccounting(&self, accountingdatatype: AAAccountingDataType, accountingdata: &AAAccountingData) -> ::windows_core::Result<()>;
 }
@@ -917,11 +913,11 @@ impl ITSGAccountingEngine_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), DoAccounting: DoAccounting::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITSGAccountingEngine as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITSGAccountingEngine as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITSGAuthenticateUserSink_Impl: Sized {
     fn OnUserAuthenticated(&self, username: &::windows_core::BSTR, userdomain: &::windows_core::BSTR, context: usize, usertoken: super::super::Foundation::HANDLE_PTR) -> ::windows_core::Result<()>;
@@ -962,11 +958,10 @@ impl ITSGAuthenticateUserSink_Vtbl {
             DisconnectUser: DisconnectUser::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITSGAuthenticateUserSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITSGAuthenticateUserSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITSGAuthenticationEngine_Impl: Sized {
     fn AuthenticateUser(&self, mainsessionid: &::windows_core::GUID, cookiedata: *const u8, numcookiebytes: u32, context: usize, psink: ::core::option::Option<&ITSGAuthenticateUserSink>) -> ::windows_core::Result<()>;
     fn CancelAuthentication(&self, mainsessionid: &::windows_core::GUID, context: usize) -> ::windows_core::Result<()>;
@@ -990,11 +985,10 @@ impl ITSGAuthenticationEngine_Vtbl {
             CancelAuthentication: CancelAuthentication::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITSGAuthenticationEngine as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITSGAuthenticationEngine as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITSGAuthorizeConnectionSink_Impl: Sized {
     fn OnConnectionAuthorized(&self, hrin: ::windows_core::HRESULT, mainsessionid: &::windows_core::GUID, cbsohresponse: u32, pbsohresponse: *const u8, idletimeout: u32, sessiontimeout: u32, sessiontimeoutaction: SESSION_TIMEOUT_ACTION_TYPE, trustclass: AATrustClassID, policyattributes: *const u32) -> ::windows_core::Result<()>;
 }
@@ -1008,11 +1002,10 @@ impl ITSGAuthorizeConnectionSink_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnConnectionAuthorized: OnConnectionAuthorized::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITSGAuthorizeConnectionSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITSGAuthorizeConnectionSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITSGAuthorizeResourceSink_Impl: Sized {
     fn OnChannelAuthorized(&self, hrin: ::windows_core::HRESULT, mainsessionid: &::windows_core::GUID, subsessionid: i32, allowedresourcenames: *const ::windows_core::BSTR, numallowedresourcenames: u32, failedresourcenames: *const ::windows_core::BSTR, numfailedresourcenames: u32) -> ::windows_core::Result<()>;
 }
@@ -1026,11 +1019,11 @@ impl ITSGAuthorizeResourceSink_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnChannelAuthorized: OnChannelAuthorized::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITSGAuthorizeResourceSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITSGAuthorizeResourceSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITSGPolicyEngine_Impl: Sized {
     fn AuthorizeConnection(&self, mainsessionid: &::windows_core::GUID, username: &::windows_core::BSTR, authtype: AAAuthSchemes, clientmachineip: &::windows_core::BSTR, clientmachinename: &::windows_core::BSTR, sohdata: *const u8, numsohbytes: u32, cookiedata: *const u8, numcookiebytes: u32, usertoken: super::super::Foundation::HANDLE_PTR, psink: ::core::option::Option<&ITSGAuthorizeConnectionSink>) -> ::windows_core::Result<()>;
@@ -1092,11 +1085,10 @@ impl ITSGPolicyEngine_Vtbl {
             IsQuarantineEnabled: IsQuarantineEnabled::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITSGPolicyEngine as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITSGPolicyEngine as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITsSbBaseNotifySink_Impl: Sized {
     fn OnError(&self, hrerror: ::windows_core::HRESULT) -> ::windows_core::Result<()>;
     fn OnReportStatus(&self, messagetype: CLIENT_MESSAGE_TYPE, messageid: u32) -> ::windows_core::Result<()>;
@@ -1120,11 +1112,11 @@ impl ITsSbBaseNotifySink_Vtbl {
             OnReportStatus: OnReportStatus::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITsSbClientConnection_Impl: Sized {
     fn UserName(&self) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -1320,11 +1312,11 @@ impl ITsSbClientConnection_Vtbl {
             GetDisconnectedSession: GetDisconnectedSession::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbClientConnection as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbClientConnection as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITsSbClientConnectionPropertySet_Impl: Sized + ITsSbPropertySet_Impl {}
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
@@ -1334,11 +1326,11 @@ impl ITsSbClientConnectionPropertySet_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: ITsSbClientConnectionPropertySet_Impl, const OFFSET: isize>() -> ITsSbClientConnectionPropertySet_Vtbl {
         Self { base__: ITsSbPropertySet_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbClientConnectionPropertySet as ::windows_core::ComInterface>::IID || iid == &<super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID || iid == &<ITsSbPropertySet as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbClientConnectionPropertySet as ::windows_core::ComInterface>::IID || *iid == <super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID || *iid == <ITsSbPropertySet as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbEnvironment_Impl: Sized {
     fn Name(&self) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -1397,11 +1389,11 @@ impl ITsSbEnvironment_Vtbl {
             SetEnvironmentPropertySet: SetEnvironmentPropertySet::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbEnvironment as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbEnvironment as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITsSbEnvironmentPropertySet_Impl: Sized + ITsSbPropertySet_Impl {}
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
@@ -1411,11 +1403,11 @@ impl ITsSbEnvironmentPropertySet_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: ITsSbEnvironmentPropertySet_Impl, const OFFSET: isize>() -> ITsSbEnvironmentPropertySet_Vtbl {
         Self { base__: ITsSbPropertySet_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbEnvironmentPropertySet as ::windows_core::ComInterface>::IID || iid == &<super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID || iid == &<ITsSbPropertySet as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbEnvironmentPropertySet as ::windows_core::ComInterface>::IID || *iid == <super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID || *iid == <ITsSbPropertySet as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbFilterPluginStore_Impl: Sized {
     fn SaveProperties(&self, ppropertyset: ::core::option::Option<&ITsSbPropertySet>) -> ::windows_core::Result<()>;
@@ -1455,11 +1447,11 @@ impl ITsSbFilterPluginStore_Vtbl {
             DeleteProperties: DeleteProperties::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbFilterPluginStore as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbFilterPluginStore as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITsSbGenericNotifySink_Impl: Sized {
     fn OnCompleted(&self, status: ::windows_core::HRESULT) -> ::windows_core::Result<()>;
@@ -1492,11 +1484,11 @@ impl ITsSbGenericNotifySink_Vtbl {
             GetWaitTimeout: GetWaitTimeout::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbGenericNotifySink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbGenericNotifySink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITsSbGlobalStore_Impl: Sized {
     fn QueryTarget(&self, providername: &::windows_core::BSTR, targetname: &::windows_core::BSTR, farmname: &::windows_core::BSTR) -> ::windows_core::Result<ITsSbTarget>;
@@ -1570,11 +1562,10 @@ impl ITsSbGlobalStore_Vtbl {
             GetFarmProperty: GetFarmProperty::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbGlobalStore as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbGlobalStore as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITsSbLoadBalanceResult_Impl: Sized {
     fn TargetName(&self) -> ::windows_core::Result<::windows_core::BSTR>;
 }
@@ -1594,11 +1585,11 @@ impl ITsSbLoadBalanceResult_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), TargetName: TargetName::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbLoadBalanceResult as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbLoadBalanceResult as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbLoadBalancing_Impl: Sized + ITsSbPlugin_Impl {
     fn GetMostSuitableTarget(&self, pconnection: ::core::option::Option<&ITsSbClientConnection>, plbsink: ::core::option::Option<&ITsSbLoadBalancingNotifySink>) -> ::windows_core::Result<()>;
@@ -1615,11 +1606,11 @@ impl ITsSbLoadBalancing_Vtbl {
         }
         Self { base__: ITsSbPlugin_Vtbl::new::<Identity, Impl, OFFSET>(), GetMostSuitableTarget: GetMostSuitableTarget::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbLoadBalancing as ::windows_core::ComInterface>::IID || iid == &<ITsSbPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbLoadBalancing as ::windows_core::ComInterface>::IID || *iid == <ITsSbPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITsSbLoadBalancingNotifySink_Impl: Sized + ITsSbBaseNotifySink_Impl {
     fn OnGetMostSuitableTarget(&self, plbresult: ::core::option::Option<&ITsSbLoadBalanceResult>, fisnewconnection: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -1636,11 +1627,11 @@ impl ITsSbLoadBalancingNotifySink_Vtbl {
         }
         Self { base__: ITsSbBaseNotifySink_Vtbl::new::<Identity, Impl, OFFSET>(), OnGetMostSuitableTarget: OnGetMostSuitableTarget::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbLoadBalancingNotifySink as ::windows_core::ComInterface>::IID || iid == &<ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbLoadBalancingNotifySink as ::windows_core::ComInterface>::IID || *iid == <ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbOrchestration_Impl: Sized + ITsSbPlugin_Impl {
     fn PrepareTargetForConnect(&self, pconnection: ::core::option::Option<&ITsSbClientConnection>, porchestrationnotifysink: ::core::option::Option<&ITsSbOrchestrationNotifySink>) -> ::windows_core::Result<()>;
@@ -1657,11 +1648,10 @@ impl ITsSbOrchestration_Vtbl {
         }
         Self { base__: ITsSbPlugin_Vtbl::new::<Identity, Impl, OFFSET>(), PrepareTargetForConnect: PrepareTargetForConnect::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbOrchestration as ::windows_core::ComInterface>::IID || iid == &<ITsSbPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbOrchestration as ::windows_core::ComInterface>::IID || *iid == <ITsSbPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITsSbOrchestrationNotifySink_Impl: Sized + ITsSbBaseNotifySink_Impl {
     fn OnReadyToConnect(&self, ptarget: ::core::option::Option<&ITsSbTarget>) -> ::windows_core::Result<()>;
 }
@@ -1675,11 +1665,11 @@ impl ITsSbOrchestrationNotifySink_Vtbl {
         }
         Self { base__: ITsSbBaseNotifySink_Vtbl::new::<Identity, Impl, OFFSET>(), OnReadyToConnect: OnReadyToConnect::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbOrchestrationNotifySink as ::windows_core::ComInterface>::IID || iid == &<ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbOrchestrationNotifySink as ::windows_core::ComInterface>::IID || *iid == <ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbPlacement_Impl: Sized + ITsSbPlugin_Impl {
     fn QueryEnvironmentForTarget(&self, pconnection: ::core::option::Option<&ITsSbClientConnection>, pplacementsink: ::core::option::Option<&ITsSbPlacementNotifySink>) -> ::windows_core::Result<()>;
@@ -1696,11 +1686,10 @@ impl ITsSbPlacement_Vtbl {
         }
         Self { base__: ITsSbPlugin_Vtbl::new::<Identity, Impl, OFFSET>(), QueryEnvironmentForTarget: QueryEnvironmentForTarget::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbPlacement as ::windows_core::ComInterface>::IID || iid == &<ITsSbPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbPlacement as ::windows_core::ComInterface>::IID || *iid == <ITsSbPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITsSbPlacementNotifySink_Impl: Sized + ITsSbBaseNotifySink_Impl {
     fn OnQueryEnvironmentCompleted(&self, penvironment: ::core::option::Option<&ITsSbEnvironment>) -> ::windows_core::Result<()>;
 }
@@ -1717,11 +1706,11 @@ impl ITsSbPlacementNotifySink_Vtbl {
             OnQueryEnvironmentCompleted: OnQueryEnvironmentCompleted::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbPlacementNotifySink as ::windows_core::ComInterface>::IID || iid == &<ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbPlacementNotifySink as ::windows_core::ComInterface>::IID || *iid == <ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbPlugin_Impl: Sized {
     fn Initialize(&self, pprovider: ::core::option::Option<&ITsSbProvider>, pnotifysink: ::core::option::Option<&ITsSbPluginNotifySink>, ppropertyset: ::core::option::Option<&ITsSbPluginPropertySet>) -> ::windows_core::Result<()>;
@@ -1748,11 +1737,10 @@ impl ITsSbPlugin_Vtbl {
             Terminate: Terminate::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITsSbPluginNotifySink_Impl: Sized + ITsSbBaseNotifySink_Impl {
     fn OnInitialized(&self, hr: ::windows_core::HRESULT) -> ::windows_core::Result<()>;
     fn OnTerminated(&self) -> ::windows_core::Result<()>;
@@ -1776,11 +1764,11 @@ impl ITsSbPluginNotifySink_Vtbl {
             OnTerminated: OnTerminated::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbPluginNotifySink as ::windows_core::ComInterface>::IID || iid == &<ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbPluginNotifySink as ::windows_core::ComInterface>::IID || *iid == <ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITsSbPluginPropertySet_Impl: Sized + ITsSbPropertySet_Impl {}
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
@@ -1790,11 +1778,11 @@ impl ITsSbPluginPropertySet_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: ITsSbPluginPropertySet_Impl, const OFFSET: isize>() -> ITsSbPluginPropertySet_Vtbl {
         Self { base__: ITsSbPropertySet_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbPluginPropertySet as ::windows_core::ComInterface>::IID || iid == &<super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID || iid == &<ITsSbPropertySet as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbPluginPropertySet as ::windows_core::ComInterface>::IID || *iid == <super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID || *iid == <ITsSbPropertySet as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITsSbPropertySet_Impl: Sized + super::Com::StructuredStorage::IPropertyBag_Impl {}
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
@@ -1804,11 +1792,11 @@ impl ITsSbPropertySet_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: ITsSbPropertySet_Impl, const OFFSET: isize>() -> ITsSbPropertySet_Vtbl {
         Self { base__: super::Com::StructuredStorage::IPropertyBag_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbPropertySet as ::windows_core::ComInterface>::IID || iid == &<super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbPropertySet as ::windows_core::ComInterface>::IID || *iid == <super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbProvider_Impl: Sized {
     fn CreateTargetObject(&self, targetname: &::windows_core::BSTR, environmentname: &::windows_core::BSTR) -> ::windows_core::Result<ITsSbTarget>;
@@ -1965,11 +1953,11 @@ impl ITsSbProvider_Vtbl {
             CreateEnvironmentPropertySetObject: CreateEnvironmentPropertySetObject::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbProvider as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbProvider as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbProvisioning_Impl: Sized + ITsSbPlugin_Impl {
     fn CreateVirtualMachines(&self, jobxmlstring: &::windows_core::BSTR, jobguid: &::windows_core::BSTR, psink: ::core::option::Option<&ITsSbProvisioningPluginNotifySink>) -> ::windows_core::Result<()>;
@@ -2010,11 +1998,10 @@ impl ITsSbProvisioning_Vtbl {
             CancelJob: CancelJob::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbProvisioning as ::windows_core::ComInterface>::IID || iid == &<ITsSbPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbProvisioning as ::windows_core::ComInterface>::IID || *iid == <ITsSbPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITsSbProvisioningPluginNotifySink_Impl: Sized {
     fn OnJobCreated(&self, pvmnotifyinfo: *const VM_NOTIFY_INFO) -> ::windows_core::Result<()>;
     fn OnVirtualMachineStatusChanged(&self, pvmnotifyentry: *const VM_NOTIFY_ENTRY, vmnotifystatus: VM_NOTIFY_STATUS, errorcode: ::windows_core::HRESULT, errordescr: &::windows_core::BSTR) -> ::windows_core::Result<()>;
@@ -2066,11 +2053,10 @@ impl ITsSbProvisioningPluginNotifySink_Vtbl {
             OnVirtualMachineHostStatusChanged: OnVirtualMachineHostStatusChanged::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbProvisioningPluginNotifySink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbProvisioningPluginNotifySink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITsSbResourceNotification_Impl: Sized {
     fn NotifySessionChange(&self, changetype: TSSESSION_STATE, psession: ::core::option::Option<&ITsSbSession>) -> ::windows_core::Result<()>;
     fn NotifyTargetChange(&self, targetchangetype: u32, ptarget: ::core::option::Option<&ITsSbTarget>) -> ::windows_core::Result<()>;
@@ -2101,11 +2087,10 @@ impl ITsSbResourceNotification_Vtbl {
             NotifyClientConnectionStateChange: NotifyClientConnectionStateChange::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbResourceNotification as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbResourceNotification as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITsSbResourceNotificationEx_Impl: Sized {
     fn NotifySessionChangeEx(&self, targetname: &::windows_core::BSTR, username: &::windows_core::BSTR, domain: &::windows_core::BSTR, sessionid: u32, sessionstate: TSSESSION_STATE) -> ::windows_core::Result<()>;
     fn NotifyTargetChangeEx(&self, targetname: &::windows_core::BSTR, targetchangetype: u32) -> ::windows_core::Result<()>;
@@ -2136,11 +2121,11 @@ impl ITsSbResourceNotificationEx_Vtbl {
             NotifyClientConnectionStateChangeEx: NotifyClientConnectionStateChangeEx::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbResourceNotificationEx as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbResourceNotificationEx as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbResourcePlugin_Impl: Sized + ITsSbPlugin_Impl {}
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
@@ -2150,11 +2135,11 @@ impl ITsSbResourcePlugin_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: ITsSbResourcePlugin_Impl, const OFFSET: isize>() -> ITsSbResourcePlugin_Vtbl {
         Self { base__: ITsSbPlugin_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbResourcePlugin as ::windows_core::ComInterface>::IID || iid == &<ITsSbPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbResourcePlugin as ::windows_core::ComInterface>::IID || *iid == <ITsSbPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITsSbResourcePluginStore_Impl: Sized {
     fn QueryTarget(&self, targetname: &::windows_core::BSTR, farmname: &::windows_core::BSTR) -> ::windows_core::Result<ITsSbTarget>;
@@ -2405,11 +2390,10 @@ impl ITsSbResourcePluginStore_Vtbl {
             SetServerDrainMode: SetServerDrainMode::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbResourcePluginStore as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbResourcePluginStore as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ITsSbServiceNotification_Impl: Sized {
     fn NotifyServiceFailure(&self) -> ::windows_core::Result<()>;
     fn NotifyServiceSuccess(&self) -> ::windows_core::Result<()>;
@@ -2433,11 +2417,11 @@ impl ITsSbServiceNotification_Vtbl {
             NotifyServiceSuccess: NotifyServiceSuccess::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbServiceNotification as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbServiceNotification as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITsSbSession_Impl: Sized {
     fn SessionId(&self) -> ::windows_core::Result<u32>;
@@ -2629,11 +2613,11 @@ impl ITsSbSession_Vtbl {
             SetProtocolType: SetProtocolType::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbSession as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbSession as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbTarget_Impl: Sized {
     fn TargetName(&self) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -2839,11 +2823,11 @@ impl ITsSbTarget_Vtbl {
             TargetLoad: TargetLoad::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbTarget as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbTarget as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITsSbTargetPropertySet_Impl: Sized + ITsSbPropertySet_Impl {}
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
@@ -2853,11 +2837,11 @@ impl ITsSbTargetPropertySet_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: ITsSbTargetPropertySet_Impl, const OFFSET: isize>() -> ITsSbTargetPropertySet_Vtbl {
         Self { base__: ITsSbPropertySet_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbTargetPropertySet as ::windows_core::ComInterface>::IID || iid == &<super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID || iid == &<ITsSbPropertySet as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbTargetPropertySet as ::windows_core::ComInterface>::IID || *iid == <super::Com::StructuredStorage::IPropertyBag as ::windows_core::ComInterface>::IID || *iid == <ITsSbPropertySet as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait ITsSbTaskInfo_Impl: Sized {
     fn TargetId(&self) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -2987,11 +2971,11 @@ impl ITsSbTaskInfo_Vtbl {
             Status: Status::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbTaskInfo as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbTaskInfo as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait ITsSbTaskPlugin_Impl: Sized + ITsSbPlugin_Impl {
     fn InitializeTaskPlugin(&self, pitssbtaskpluginnotifysink: ::core::option::Option<&ITsSbTaskPluginNotifySink>) -> ::windows_core::Result<()>;
@@ -3018,11 +3002,11 @@ impl ITsSbTaskPlugin_Vtbl {
             SetTaskQueue: SetTaskQueue::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbTaskPlugin as ::windows_core::ComInterface>::IID || iid == &<ITsSbPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbTaskPlugin as ::windows_core::ComInterface>::IID || *iid == <ITsSbPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait ITsSbTaskPluginNotifySink_Impl: Sized + ITsSbBaseNotifySink_Impl {
     fn OnSetTaskTime(&self, sztargetname: &::windows_core::BSTR, taskstarttime: &super::super::Foundation::FILETIME, taskendtime: &super::super::Foundation::FILETIME, taskdeadline: &super::super::Foundation::FILETIME, sztasklabel: &::windows_core::BSTR, sztaskidentifier: &::windows_core::BSTR, sztaskplugin: &::windows_core::BSTR, dwtaskstatus: u32, sacontext: *const super::Com::SAFEARRAY) -> ::windows_core::Result<()>;
@@ -3063,11 +3047,10 @@ impl ITsSbTaskPluginNotifySink_Vtbl {
             OnReportTasks: OnReportTasks::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITsSbTaskPluginNotifySink as ::windows_core::ComInterface>::IID || iid == &<ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITsSbTaskPluginNotifySink as ::windows_core::ComInterface>::IID || *iid == <ITsSbBaseNotifySink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWRdsEnhancedFastReconnectArbitrator_Impl: Sized {
     fn GetSessionForEnhancedFastReconnect(&self, psessionidarray: *const i32, dwsessioncount: u32) -> ::windows_core::Result<i32>;
 }
@@ -3090,11 +3073,10 @@ impl IWRdsEnhancedFastReconnectArbitrator_Vtbl {
             GetSessionForEnhancedFastReconnect: GetSessionForEnhancedFastReconnect::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsEnhancedFastReconnectArbitrator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsEnhancedFastReconnectArbitrator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWRdsGraphicsChannel_Impl: Sized {
     fn Write(&self, cbsize: u32, pbuffer: *const u8, pcontext: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<()>;
     fn Close(&self) -> ::windows_core::Result<()>;
@@ -3125,11 +3107,11 @@ impl IWRdsGraphicsChannel_Vtbl {
             Open: Open::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsGraphicsChannel as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsGraphicsChannel as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWRdsGraphicsChannelEvents_Impl: Sized {
     fn OnDataReceived(&self, cbsize: u32, pbuffer: *const u8) -> ::windows_core::Result<()>;
@@ -3177,11 +3159,10 @@ impl IWRdsGraphicsChannelEvents_Vtbl {
             OnMetricsUpdate: OnMetricsUpdate::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsGraphicsChannelEvents as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsGraphicsChannelEvents as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWRdsGraphicsChannelManager_Impl: Sized {
     fn CreateChannel(&self, pszchannelname: *const u8, channeltype: WRdsGraphicsChannelType) -> ::windows_core::Result<IWRdsGraphicsChannel>;
 }
@@ -3201,11 +3182,11 @@ impl IWRdsGraphicsChannelManager_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), CreateChannel: CreateChannel::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsGraphicsChannelManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsGraphicsChannelManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWRdsProtocolConnection_Impl: Sized {
     fn GetLogonErrorRedirector(&self) -> ::windows_core::Result<IWRdsProtocolLogonErrorRedirector>;
@@ -3422,11 +3403,10 @@ impl IWRdsProtocolConnection_Vtbl {
             NotifyCommandProcessCreated: NotifyCommandProcessCreated::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolConnection as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolConnection as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWRdsProtocolConnectionCallback_Impl: Sized {
     fn OnReady(&self) -> ::windows_core::Result<()>;
     fn BrokenConnection(&self, reason: u32, source: u32) -> ::windows_core::Result<()>;
@@ -3477,11 +3457,10 @@ impl IWRdsProtocolConnectionCallback_Vtbl {
             GetConnectionId: GetConnectionId::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolConnectionCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolConnectionCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWRdsProtocolConnectionSettings_Impl: Sized {
     fn SetConnectionSetting(&self, propertyid: &::windows_core::GUID, ppropertyentriesin: *const WTS_PROPERTY_VALUE) -> ::windows_core::Result<()>;
     fn GetConnectionSetting(&self, propertyid: &::windows_core::GUID, ppropertyentriesout: *mut WTS_PROPERTY_VALUE) -> ::windows_core::Result<()>;
@@ -3505,11 +3484,11 @@ impl IWRdsProtocolConnectionSettings_Vtbl {
             GetConnectionSetting: GetConnectionSetting::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolConnectionSettings as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolConnectionSettings as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWRdsProtocolLicenseConnection_Impl: Sized {
     fn RequestLicensingCapabilities(&self, pplicensecapabilities: *mut WTS_LICENSE_CAPABILITIES, pcblicensecapabilities: *mut u32) -> ::windows_core::Result<()>;
@@ -3550,11 +3529,10 @@ impl IWRdsProtocolLicenseConnection_Vtbl {
             ProtocolComplete: ProtocolComplete::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolLicenseConnection as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolLicenseConnection as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWRdsProtocolListener_Impl: Sized {
     fn GetSettings(&self, wrdslistenersettinglevel: WRDS_LISTENER_SETTING_LEVEL) -> ::windows_core::Result<WRDS_LISTENER_SETTINGS>;
     fn StartListen(&self, pcallback: ::core::option::Option<&IWRdsProtocolListenerCallback>) -> ::windows_core::Result<()>;
@@ -3591,11 +3569,11 @@ impl IWRdsProtocolListener_Vtbl {
             StopListen: StopListen::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolListener as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolListener as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWRdsProtocolListenerCallback_Impl: Sized {
     fn OnConnected(&self, pconnection: ::core::option::Option<&IWRdsProtocolConnection>, pwrdsconnectionsettings: *const WRDS_CONNECTION_SETTINGS) -> ::windows_core::Result<IWRdsProtocolConnectionCallback>;
@@ -3618,11 +3596,10 @@ impl IWRdsProtocolListenerCallback_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnConnected: OnConnected::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolListenerCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolListenerCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWRdsProtocolLogonErrorRedirector_Impl: Sized {
     fn OnBeginPainting(&self) -> ::windows_core::Result<()>;
     fn RedirectStatus(&self, pszmessage: &::windows_core::PCWSTR) -> ::windows_core::Result<WTS_LOGON_ERROR_REDIRECTOR_RESPONSE>;
@@ -3678,11 +3655,11 @@ impl IWRdsProtocolLogonErrorRedirector_Vtbl {
             RedirectLogonError: RedirectLogonError::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolLogonErrorRedirector as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolLogonErrorRedirector as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWRdsProtocolManager_Impl: Sized {
     fn Initialize(&self, piwrdssettings: ::core::option::Option<&IWRdsProtocolSettings>, pwrdssettings: *const WRDS_SETTINGS) -> ::windows_core::Result<()>;
@@ -3757,11 +3734,11 @@ impl IWRdsProtocolManager_Vtbl {
             Uninitialize: Uninitialize::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWRdsProtocolSettings_Impl: Sized {
     fn GetSettings(&self, wrdssettingtype: WRDS_SETTING_TYPE, wrdssettinglevel: WRDS_SETTING_LEVEL, pwrdssettings: *mut WRDS_SETTINGS) -> ::windows_core::Result<()>;
@@ -3788,11 +3765,10 @@ impl IWRdsProtocolSettings_Vtbl {
             MergeSettings: MergeSettings::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolSettings as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolSettings as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWRdsProtocolShadowCallback_Impl: Sized {
     fn StopShadow(&self) -> ::windows_core::Result<()>;
     fn InvokeTargetShadow(&self, ptargetservername: &::windows_core::PCWSTR, targetsessionid: u32, pparam1: *const u8, param1size: u32, pparam2: *const u8, param2size: u32, pparam3: *const u8, param3size: u32, pparam4: *const u8, param4size: u32, pclientname: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -3817,11 +3793,10 @@ impl IWRdsProtocolShadowCallback_Vtbl {
             InvokeTargetShadow: InvokeTargetShadow::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolShadowCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolShadowCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWRdsProtocolShadowConnection_Impl: Sized {
     fn Start(&self, ptargetservername: &::windows_core::PCWSTR, targetsessionid: u32, hotkeyvk: u8, hotkeymodifiers: u16, pshadowcallback: ::core::option::Option<&IWRdsProtocolShadowCallback>) -> ::windows_core::Result<()>;
     fn Stop(&self) -> ::windows_core::Result<()>;
@@ -3852,11 +3827,11 @@ impl IWRdsProtocolShadowConnection_Vtbl {
             DoTarget: DoTarget::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsProtocolShadowConnection as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsProtocolShadowConnection as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWRdsWddmIddProps_Impl: Sized {
     fn GetHardwareId(&self, pdisplaydriverhardwareid: &::windows_core::PCWSTR, count: u32) -> ::windows_core::Result<()>;
@@ -3897,11 +3872,10 @@ impl IWRdsWddmIddProps_Vtbl {
             EnableWddmIdd: EnableWddmIdd::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWRdsWddmIddProps as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWRdsWddmIddProps as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSBitmapRenderService_Impl: Sized {
     fn GetMappedRenderer(&self, mappingid: u64, pmappedrenderercallback: ::core::option::Option<&IWTSBitmapRendererCallback>) -> ::windows_core::Result<IWTSBitmapRenderer>;
 }
@@ -3921,11 +3895,10 @@ impl IWTSBitmapRenderService_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetMappedRenderer: GetMappedRenderer::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSBitmapRenderService as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSBitmapRenderService as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSBitmapRenderer_Impl: Sized {
     fn Render(&self, imageformat: &::windows_core::GUID, dwwidth: u32, dwheight: u32, cbstride: i32, cbimagebuffer: u32, pimagebuffer: *const u8) -> ::windows_core::Result<()>;
     fn GetRendererStatistics(&self) -> ::windows_core::Result<BITMAP_RENDERER_STATISTICS>;
@@ -3962,11 +3935,11 @@ impl IWTSBitmapRenderer_Vtbl {
             RemoveMapping: RemoveMapping::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSBitmapRenderer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSBitmapRenderer as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWTSBitmapRendererCallback_Impl: Sized {
     fn OnTargetSizeChanged(&self, rcnewsize: &super::super::Foundation::RECT) -> ::windows_core::Result<()>;
@@ -3983,11 +3956,11 @@ impl IWTSBitmapRendererCallback_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnTargetSizeChanged: OnTargetSizeChanged::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSBitmapRendererCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSBitmapRendererCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(feature = "Win32_System_Com_StructuredStorage")]
 pub trait IWTSListener_Impl: Sized {
     fn GetConfiguration(&self) -> ::windows_core::Result<super::Com::StructuredStorage::IPropertyBag>;
@@ -4010,11 +3983,11 @@ impl IWTSListener_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetConfiguration: GetConfiguration::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSListener as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSListener as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWTSListenerCallback_Impl: Sized {
     fn OnNewChannelConnection(&self, pchannel: ::core::option::Option<&IWTSVirtualChannel>, data: &::windows_core::BSTR, pbaccept: *mut super::super::Foundation::BOOL, ppcallback: *mut ::core::option::Option<IWTSVirtualChannelCallback>) -> ::windows_core::Result<()>;
@@ -4031,11 +4004,10 @@ impl IWTSListenerCallback_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnNewChannelConnection: OnNewChannelConnection::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSListenerCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSListenerCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSPlugin_Impl: Sized {
     fn Initialize(&self, pchannelmgr: ::core::option::Option<&IWTSVirtualChannelManager>) -> ::windows_core::Result<()>;
     fn Connected(&self) -> ::windows_core::Result<()>;
@@ -4073,11 +4045,10 @@ impl IWTSPlugin_Vtbl {
             Terminated: Terminated::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSPluginServiceProvider_Impl: Sized {
     fn GetService(&self, serviceid: &::windows_core::GUID) -> ::windows_core::Result<::windows_core::IUnknown>;
 }
@@ -4097,11 +4068,11 @@ impl IWTSPluginServiceProvider_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetService: GetService::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSPluginServiceProvider as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSPluginServiceProvider as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWTSProtocolConnection_Impl: Sized {
     fn GetLogonErrorRedirector(&self) -> ::windows_core::Result<IWTSProtocolLogonErrorRedirector>;
@@ -4305,11 +4276,10 @@ impl IWTSProtocolConnection_Vtbl {
             GetShadowConnection: GetShadowConnection::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSProtocolConnection as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSProtocolConnection as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSProtocolConnectionCallback_Impl: Sized {
     fn OnReady(&self) -> ::windows_core::Result<()>;
     fn BrokenConnection(&self, reason: u32, source: u32) -> ::windows_core::Result<()>;
@@ -4354,11 +4324,11 @@ impl IWTSProtocolConnectionCallback_Vtbl {
             DisplayIOCtl: DisplayIOCtl::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSProtocolConnectionCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSProtocolConnectionCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWTSProtocolLicenseConnection_Impl: Sized {
     fn RequestLicensingCapabilities(&self, pplicensecapabilities: *mut WTS_LICENSE_CAPABILITIES, pcblicensecapabilities: *mut u32) -> ::windows_core::Result<()>;
@@ -4399,11 +4369,10 @@ impl IWTSProtocolLicenseConnection_Vtbl {
             ProtocolComplete: ProtocolComplete::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSProtocolLicenseConnection as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSProtocolLicenseConnection as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSProtocolListener_Impl: Sized {
     fn StartListen(&self, pcallback: ::core::option::Option<&IWTSProtocolListenerCallback>) -> ::windows_core::Result<()>;
     fn StopListen(&self) -> ::windows_core::Result<()>;
@@ -4427,11 +4396,10 @@ impl IWTSProtocolListener_Vtbl {
             StopListen: StopListen::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSProtocolListener as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSProtocolListener as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSProtocolListenerCallback_Impl: Sized {
     fn OnConnected(&self, pconnection: ::core::option::Option<&IWTSProtocolConnection>) -> ::windows_core::Result<IWTSProtocolConnectionCallback>;
 }
@@ -4451,11 +4419,10 @@ impl IWTSProtocolListenerCallback_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnConnected: OnConnected::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSProtocolListenerCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSProtocolListenerCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSProtocolLogonErrorRedirector_Impl: Sized {
     fn OnBeginPainting(&self) -> ::windows_core::Result<()>;
     fn RedirectStatus(&self, pszmessage: &::windows_core::PCWSTR) -> ::windows_core::Result<WTS_LOGON_ERROR_REDIRECTOR_RESPONSE>;
@@ -4511,11 +4478,10 @@ impl IWTSProtocolLogonErrorRedirector_Vtbl {
             RedirectLogonError: RedirectLogonError::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSProtocolLogonErrorRedirector as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSProtocolLogonErrorRedirector as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSProtocolManager_Impl: Sized {
     fn CreateListener(&self, wszlistenername: &::windows_core::PCWSTR) -> ::windows_core::Result<IWTSProtocolListener>;
     fn NotifyServiceStateChange(&self, ptsservicestatechange: *const WTS_SERVICE_STATE) -> ::windows_core::Result<()>;
@@ -4566,11 +4532,10 @@ impl IWTSProtocolManager_Vtbl {
             NotifySessionStateChange: NotifySessionStateChange::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSProtocolManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSProtocolManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSProtocolShadowCallback_Impl: Sized {
     fn StopShadow(&self) -> ::windows_core::Result<()>;
     fn InvokeTargetShadow(&self, ptargetservername: &::windows_core::PCWSTR, targetsessionid: u32, pparam1: *const u8, param1size: u32, pparam2: *const u8, param2size: u32, pparam3: *const u8, param3size: u32, pparam4: *const u8, param4size: u32, pclientname: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -4595,11 +4560,10 @@ impl IWTSProtocolShadowCallback_Vtbl {
             InvokeTargetShadow: InvokeTargetShadow::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSProtocolShadowCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSProtocolShadowCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSProtocolShadowConnection_Impl: Sized {
     fn Start(&self, ptargetservername: &::windows_core::PCWSTR, targetsessionid: u32, hotkeyvk: u8, hotkeymodifiers: u16, pshadowcallback: ::core::option::Option<&IWTSProtocolShadowCallback>) -> ::windows_core::Result<()>;
     fn Stop(&self) -> ::windows_core::Result<()>;
@@ -4630,11 +4594,11 @@ impl IWTSProtocolShadowConnection_Vtbl {
             DoTarget: DoTarget::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSProtocolShadowConnection as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSProtocolShadowConnection as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWTSSBPlugin_Impl: Sized {
     fn Initialize(&self) -> ::windows_core::Result<u32>;
@@ -4695,11 +4659,10 @@ impl IWTSSBPlugin_Vtbl {
             WTSSBX_GetUserExternalSession: WTSSBX_GetUserExternalSession::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSSBPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSSBPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSVirtualChannel_Impl: Sized {
     fn Write(&self, cbsize: u32, pbuffer: *const u8, preserved: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<()>;
     fn Close(&self) -> ::windows_core::Result<()>;
@@ -4719,11 +4682,10 @@ impl IWTSVirtualChannel_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Write: Write::<Identity, Impl, OFFSET>, Close: Close::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSVirtualChannel as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSVirtualChannel as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSVirtualChannelCallback_Impl: Sized {
     fn OnDataReceived(&self, cbsize: u32, pbuffer: *const u8) -> ::windows_core::Result<()>;
     fn OnClose(&self) -> ::windows_core::Result<()>;
@@ -4747,11 +4709,10 @@ impl IWTSVirtualChannelCallback_Vtbl {
             OnClose: OnClose::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSVirtualChannelCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSVirtualChannelCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWTSVirtualChannelManager_Impl: Sized {
     fn CreateListener(&self, pszchannelname: &::windows_core::PCSTR, uflags: u32, plistenercallback: ::core::option::Option<&IWTSListenerCallback>) -> ::windows_core::Result<IWTSListener>;
 }
@@ -4771,11 +4732,11 @@ impl IWTSVirtualChannelManager_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), CreateListener: CreateListener::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWTSVirtualChannelManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWTSVirtualChannelManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IWorkspace_Impl: Sized {
     fn GetWorkspaceNames(&self) -> ::windows_core::Result<*mut super::Com::SAFEARRAY>;
@@ -4821,11 +4782,11 @@ impl IWorkspace_Vtbl {
             GetProcessId: GetProcessId::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspace as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspace as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IWorkspace2_Impl: Sized + IWorkspace_Impl {
     fn StartRemoteApplicationEx(&self, bstrworkspaceid: &::windows_core::BSTR, bstrrequestingappid: &::windows_core::BSTR, bstrrequestingappfamilyname: &::windows_core::BSTR, blaunchintoimmersiveclient: super::super::Foundation::VARIANT_BOOL, bstrimmersiveclientactivationcontext: &::windows_core::BSTR, psaparams: *const super::Com::SAFEARRAY) -> ::windows_core::Result<()>;
@@ -4842,11 +4803,11 @@ impl IWorkspace2_Vtbl {
         }
         Self { base__: IWorkspace_Vtbl::new::<Identity, Impl, OFFSET>(), StartRemoteApplicationEx: StartRemoteApplicationEx::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspace2 as ::windows_core::ComInterface>::IID || iid == &<IWorkspace as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspace2 as ::windows_core::ComInterface>::IID || *iid == <IWorkspace as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IWorkspace3_Impl: Sized + IWorkspace2_Impl {
     fn GetClaimsToken2(&self, bstrclaimshint: &::windows_core::BSTR, bstruserhint: &::windows_core::BSTR, claimcookie: u32, hwndcreduiparent: u32, rectcreduiparent: &super::super::Foundation::RECT) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -4879,11 +4840,10 @@ impl IWorkspace3_Vtbl {
             SetClaimsToken: SetClaimsToken::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspace3 as ::windows_core::ComInterface>::IID || iid == &<IWorkspace as ::windows_core::ComInterface>::IID || iid == &<IWorkspace2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspace3 as ::windows_core::ComInterface>::IID || *iid == <IWorkspace as ::windows_core::ComInterface>::IID || *iid == <IWorkspace2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWorkspaceClientExt_Impl: Sized {
     fn GetResourceId(&self) -> ::windows_core::Result<::windows_core::BSTR>;
     fn GetResourceDisplayName(&self) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -4926,11 +4886,10 @@ impl IWorkspaceClientExt_Vtbl {
             IssueDisconnect: IssueDisconnect::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspaceClientExt as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspaceClientExt as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWorkspaceRegistration_Impl: Sized {
     fn AddResource(&self, punk: ::core::option::Option<&IWorkspaceClientExt>) -> ::windows_core::Result<u32>;
     fn RemoveResource(&self, dwcookieconnection: u32) -> ::windows_core::Result<()>;
@@ -4960,11 +4919,10 @@ impl IWorkspaceRegistration_Vtbl {
             RemoveResource: RemoveResource::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspaceRegistration as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspaceRegistration as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait IWorkspaceRegistration2_Impl: Sized + IWorkspaceRegistration_Impl {
     fn AddResourceEx(&self, punk: ::core::option::Option<&IWorkspaceClientExt>, bstreventloguploadaddress: &::windows_core::BSTR, pdwcookie: *mut u32, correlationid: &::windows_core::GUID) -> ::windows_core::Result<()>;
     fn RemoveResourceEx(&self, dwcookieconnection: u32, correlationid: &::windows_core::GUID) -> ::windows_core::Result<()>;
@@ -4988,11 +4946,11 @@ impl IWorkspaceRegistration2_Vtbl {
             RemoveResourceEx: RemoveResourceEx::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspaceRegistration2 as ::windows_core::ComInterface>::IID || iid == &<IWorkspaceRegistration as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspaceRegistration2 as ::windows_core::ComInterface>::IID || *iid == <IWorkspaceRegistration as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWorkspaceReportMessage_Impl: Sized {
     fn RegisterErrorLogMessage(&self, bstrmessage: &::windows_core::BSTR) -> ::windows_core::Result<()>;
@@ -5032,11 +4990,11 @@ impl IWorkspaceReportMessage_Vtbl {
             RegisterErrorEvent: RegisterErrorEvent::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspaceReportMessage as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspaceReportMessage as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IWorkspaceResTypeRegistry_Impl: Sized + super::Com::IDispatch_Impl {
     fn AddResourceType(&self, fmachinewide: super::super::Foundation::VARIANT_BOOL, bstrfileextension: &::windows_core::BSTR, bstrlauncher: &::windows_core::BSTR) -> ::windows_core::Result<()>;
@@ -5096,11 +5054,11 @@ impl IWorkspaceResTypeRegistry_Vtbl {
             ModifyResourceType: ModifyResourceType::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspaceResTypeRegistry as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspaceResTypeRegistry as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IWorkspaceScriptable_Impl: Sized + super::Com::IDispatch_Impl {
     fn DisconnectWorkspace(&self, bstrworkspaceid: &::windows_core::BSTR) -> ::windows_core::Result<()>;
@@ -5174,11 +5132,11 @@ impl IWorkspaceScriptable_Vtbl {
             DisconnectWorkspaceByFriendlyName: DisconnectWorkspaceByFriendlyName::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspaceScriptable as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspaceScriptable as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IWorkspaceScriptable2_Impl: Sized + IWorkspaceScriptable_Impl {
     fn StartWorkspaceEx(&self, bstrworkspaceid: &::windows_core::BSTR, bstrworkspacefriendlyname: &::windows_core::BSTR, bstrredirectorname: &::windows_core::BSTR, bstrusername: &::windows_core::BSTR, bstrpassword: &::windows_core::BSTR, bstrappcontainer: &::windows_core::BSTR, bstrworkspaceparams: &::windows_core::BSTR, ltimeout: i32, lflags: i32) -> ::windows_core::Result<()>;
@@ -5205,11 +5163,11 @@ impl IWorkspaceScriptable2_Vtbl {
             ResourceDismissed: ResourceDismissed::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspaceScriptable2 as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID || iid == &<IWorkspaceScriptable as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspaceScriptable2 as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID || *iid == <IWorkspaceScriptable as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IWorkspaceScriptable3_Impl: Sized + IWorkspaceScriptable2_Impl {
     fn StartWorkspaceEx2(&self, bstrworkspaceid: &::windows_core::BSTR, bstrworkspacefriendlyname: &::windows_core::BSTR, bstrredirectorname: &::windows_core::BSTR, bstrusername: &::windows_core::BSTR, bstrpassword: &::windows_core::BSTR, bstrappcontainer: &::windows_core::BSTR, bstrworkspaceparams: &::windows_core::BSTR, ltimeout: i32, lflags: i32, bstreventloguploadaddress: &::windows_core::BSTR, correlationid: &::windows_core::GUID) -> ::windows_core::Result<()>;
@@ -5240,11 +5198,10 @@ impl IWorkspaceScriptable3_Vtbl {
         }
         Self { base__: IWorkspaceScriptable2_Vtbl::new::<Identity, Impl, OFFSET>(), StartWorkspaceEx2: StartWorkspaceEx2::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWorkspaceScriptable3 as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID || iid == &<IWorkspaceScriptable as ::windows_core::ComInterface>::IID || iid == &<IWorkspaceScriptable2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWorkspaceScriptable3 as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID || *iid == <IWorkspaceScriptable as ::windows_core::ComInterface>::IID || *iid == <IWorkspaceScriptable2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ItsPubPlugin_Impl: Sized {
     fn GetResourceList(&self, userid: &::windows_core::PCWSTR, pceapplistsize: *mut i32, resourcelist: *mut *mut pluginResource) -> ::windows_core::Result<()>;
     fn GetResource(&self, alias: &::windows_core::PCWSTR, flags: i32, resource: *mut pluginResource) -> ::windows_core::Result<()>;
@@ -5314,11 +5271,10 @@ impl ItsPubPlugin_Vtbl {
             ResolveResource: ResolveResource::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ItsPubPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ItsPubPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"implement\"`*"]
 pub trait ItsPubPlugin2_Impl: Sized + ItsPubPlugin_Impl {
     fn GetResource2List(&self, userid: &::windows_core::PCWSTR, pceapplistsize: *mut i32, resourcelist: *mut *mut pluginResource2) -> ::windows_core::Result<()>;
     fn GetResource2(&self, alias: &::windows_core::PCWSTR, flags: i32, resource: *mut pluginResource2) -> ::windows_core::Result<()>;
@@ -5356,11 +5312,11 @@ impl ItsPubPlugin2_Vtbl {
             DeletePersonalDesktopAssignment: DeletePersonalDesktopAssignment::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ItsPubPlugin2 as ::windows_core::ComInterface>::IID || iid == &<ItsPubPlugin as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ItsPubPlugin2 as ::windows_core::ComInterface>::IID || *iid == <ItsPubPlugin as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_RemoteDesktop\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait _ITSWkspEvents_Impl: Sized + super::Com::IDispatch_Impl {}
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
@@ -5370,7 +5326,7 @@ impl _ITSWkspEvents_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: _ITSWkspEvents_Impl, const OFFSET: isize>() -> _ITSWkspEvents_Vtbl {
         Self { base__: super::Com::IDispatch_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<_ITSWkspEvents as ::windows_core::ComInterface>::IID || iid == &<super::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <_ITSWkspEvents as ::windows_core::ComInterface>::IID || *iid == <super::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }

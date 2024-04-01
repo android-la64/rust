@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Media_Effects\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`"]
 #[cfg(feature = "Foundation_Collections")]
 pub trait IAudioEffectDefinition_Impl: Sized {
     fn ActivatableClassId(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -41,11 +41,11 @@ impl IAudioEffectDefinition_Vtbl {
             Properties: Properties::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEffectDefinition as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEffectDefinition as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Media_Effects\"`, `\"Foundation_Collections\"`, `\"Media_MediaProperties\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`, `\"Media_MediaProperties\"`"]
 #[cfg(all(feature = "Foundation_Collections", feature = "Media_MediaProperties"))]
 pub trait IBasicAudioEffect_Impl: Sized + super::IMediaExtension_Impl {
     fn UseInputFrameForOutput(&self) -> ::windows_core::Result<bool>;
@@ -115,11 +115,11 @@ impl IBasicAudioEffect_Vtbl {
             DiscardQueuedFrames: DiscardQueuedFrames::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBasicAudioEffect as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBasicAudioEffect as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Media_Effects\"`, `\"Foundation_Collections\"`, `\"Graphics_DirectX_Direct3D11\"`, `\"Media_MediaProperties\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`, `\"Graphics_DirectX_Direct3D11\"`, `\"Media_MediaProperties\"`"]
 #[cfg(all(feature = "Foundation_Collections", feature = "Graphics_DirectX_Direct3D11", feature = "Media_MediaProperties"))]
 pub trait IBasicVideoEffect_Impl: Sized + super::IMediaExtension_Impl {
     fn IsReadOnly(&self) -> ::windows_core::Result<bool>;
@@ -215,11 +215,11 @@ impl IBasicVideoEffect_Vtbl {
             DiscardQueuedFrames: DiscardQueuedFrames::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBasicVideoEffect as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBasicVideoEffect as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Media_Effects\"`, `\"Foundation_Collections\"`, `\"Graphics_DirectX_Direct3D11\"`, `\"Media_MediaProperties\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`, `\"Graphics_DirectX_Direct3D11\"`, `\"Media_MediaProperties\"`"]
 #[cfg(all(feature = "Foundation_Collections", feature = "Graphics_DirectX_Direct3D11", feature = "Media_MediaProperties"))]
 pub trait IVideoCompositor_Impl: Sized + super::IMediaExtension_Impl {
     fn TimeIndependent(&self) -> ::windows_core::Result<bool>;
@@ -275,11 +275,11 @@ impl IVideoCompositor_Vtbl {
             DiscardQueuedFrames: DiscardQueuedFrames::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IVideoCompositor as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IVideoCompositor as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Media_Effects\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`"]
 #[cfg(feature = "Foundation_Collections")]
 pub trait IVideoCompositorDefinition_Impl: Sized {
     fn ActivatableClassId(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -322,11 +322,11 @@ impl IVideoCompositorDefinition_Vtbl {
             Properties: Properties::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IVideoCompositorDefinition as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IVideoCompositorDefinition as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Media_Effects\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`"]
 #[cfg(feature = "Foundation_Collections")]
 pub trait IVideoEffectDefinition_Impl: Sized {
     fn ActivatableClassId(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -369,7 +369,7 @@ impl IVideoEffectDefinition_Vtbl {
             Properties: Properties::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IVideoEffectDefinition as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IVideoEffectDefinition as ::windows_core::ComInterface>::IID
     }
 }

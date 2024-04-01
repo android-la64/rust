@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Devices_I2c\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait II2cDeviceStatics_Impl: Sized {
     fn GetDeviceSelector(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -55,7 +55,7 @@ impl II2cDeviceStatics_Vtbl {
             FromIdAsync: FromIdAsync::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<II2cDeviceStatics as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <II2cDeviceStatics as ::windows_core::ComInterface>::IID
     }
 }

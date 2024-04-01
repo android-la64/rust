@@ -1,5 +1,8 @@
 //! Offers an easy way to build a rustc sysroot from source.
-#![allow(clippy::needless_borrow)]
+
+// We prefer to always borrow rather than having to figure out whether we can move or borrow (which
+// depends on whether the variable is used again later).
+#![allow(clippy::needless_borrows_for_generic_args)]
 
 use std::collections::hash_map::DefaultHasher;
 use std::env;
@@ -59,6 +62,21 @@ pub fn encode_rustflags(flags: &[OsString]) -> OsString {
 }
 
 /// Make a file writeable.
+#[cfg(unix)]
+fn make_writeable(p: &Path) -> Result<()> {
+    // On Unix we avoid `set_readonly(false)`, see
+    // <https://rust-lang.github.io/rust-clippy/master/index.html#permissions_set_readonly_false>.
+    use std::fs::Permissions;
+    use std::os::unix::fs::PermissionsExt;
+
+    let perms = fs::metadata(p)?.permissions();
+    let perms = Permissions::from_mode(perms.mode() | 0o600); // read/write for owner
+    fs::set_permissions(p, perms).context("cannot set permissions")?;
+    Ok(())
+}
+
+/// Make a file writeable.
+#[cfg(not(unix))]
 fn make_writeable(p: &Path) -> Result<()> {
     let mut perms = fs::metadata(p)?.permissions();
     perms.set_readonly(false);
@@ -143,12 +161,20 @@ impl SysrootBuilder {
     }
 
     /// Appends the given flag.
+    ///
+    /// If no `--cap-lints` argument is configured, we will add `--cap-lints=warn`.
+    /// This emulates the usual behavior of Cargo: Lints are normally capped when building
+    /// dependencies, except that they are not capped when building path dependencies, except that
+    /// path dependencies are still capped if they are part of `-Zbuild-std`.
     pub fn rustflag(mut self, rustflag: impl Into<OsString>) -> Self {
         self.rustflags.push(rustflag.into());
         self
     }
 
     /// Appends the given flags.
+    ///
+    /// If no `--cap-lints` argument is configured, we will add `--cap-lints=warn`. See
+    /// [`SysrootBuilder::rustflag`] for more explanation.
     pub fn rustflags(mut self, rustflags: impl IntoIterator<Item = impl Into<OsString>>) -> Self {
         self.rustflags.extend(rustflags.into_iter().map(Into::into));
         self
@@ -166,19 +192,27 @@ impl SysrootBuilder {
         self
     }
 
+    /// Our configured target can be either a built-in target name, or a path to a target file.
+    /// We use the same logic as rustc to tell which is which:
+    /// https://github.com/rust-lang/rust/blob/8d39ec1825024f3014e1f847942ac5bbfcf055b0/compiler/rustc_session/src/config.rs#L2252-L2263
     fn target_name(&self) -> &OsStr {
         let path = Path::new(&self.target);
-        // If this is a filename, the name is obtained by stripping directory and extension.
-        // That will also work fine for built-in target names.
-        path.file_stem()
-            .expect("target name must contain a file name")
+        if path.extension().and_then(OsStr::to_str) == Some("json") {
+            // Path::file_stem and Path::extension are the last component of the path split on the
+            // rightmost '.' so if we have an extension we must have a file_stem.
+            path.file_stem().unwrap()
+        } else {
+            // The configured target doesn't end in ".json", so we assume that this is a builtin
+            // target.
+            &self.target
+        }
     }
 
-    fn target_dir(&self) -> PathBuf {
+    fn target_sysroot_dir(&self) -> PathBuf {
         self.sysroot_dir
             .join("lib")
             .join("rustlib")
-            .join(&self.target_name())
+            .join(self.target_name())
     }
 
     /// Computes the hash for the sysroot, so that we know whether we have to rebuild.
@@ -201,53 +235,13 @@ impl SysrootBuilder {
     }
 
     fn sysroot_read_hash(&self) -> Option<u64> {
-        let hash_file = self.target_dir().join("lib").join(HASH_FILE_NAME);
+        let hash_file = self.target_sysroot_dir().join("lib").join(HASH_FILE_NAME);
         let hash = fs::read_to_string(&hash_file).ok()?;
         hash.parse().ok()
     }
 
-    /// Build the `self` sysroot from the given sources.
-    ///
-    /// `src_dir` must be the `library` source folder, i.e., the one that contains `std/Cargo.toml`.
-    pub fn build_from_source(mut self, src_dir: &Path) -> Result<()> {
-        // A bit of preparation.
-        if !src_dir.join("std").join("Cargo.toml").exists() {
-            bail!(
-                "{:?} does not seem to be a rust library source folder: `src/Cargo.toml` not found",
-                src_dir
-            );
-        }
-        let target_lib_dir = self.target_dir().join("lib");
-        let target_name = self.target_name().to_owned();
-        let cargo = self.cargo.take().unwrap_or_else(|| {
-            Command::new(env::var_os("CARGO").unwrap_or_else(|| OsString::from("cargo")))
-        });
-        let rustc_version = match self.rustc_version.take() {
-            Some(v) => v,
-            None => rustc_version::version_meta()?,
-        };
-
-        // Check if we even need to do anything.
-        let cur_hash = self.sysroot_compute_hash(src_dir, &rustc_version);
-        if self.sysroot_read_hash() == Some(cur_hash) {
-            // Already done!
-            return Ok(());
-        }
-
-        // Prepare a workspace for cargo
-        let build_dir = TempDir::new().context("failed to create tempdir")?;
-        let lock_file = build_dir.path().join("Cargo.lock");
-        let manifest_file = build_dir.path().join("Cargo.toml");
-        let lib_file = build_dir.path().join("lib.rs");
-        fs::copy(
-            src_dir
-                .parent()
-                .expect("src_dir must have a parent")
-                .join("Cargo.lock"),
-            &lock_file,
-        )
-        .context("failed to copy lockfile from sysroot source")?;
-        make_writeable(&lock_file).context("failed to make lockfile writeable")?;
+    /// Generate the contents of the manifest file for the sysroot build.
+    fn gen_manifest(&self, src_dir: &Path) -> String {
         let have_sysroot_crate = src_dir.join("sysroot").exists();
         let crates = match &self.config {
             SysrootConfig::NoStd => format!(
@@ -289,7 +283,37 @@ path = {src_dir_test:?}
                 src_dir_test = src_dir.join("test"),
             ),
         };
-        let manifest = format!(
+
+        // If we include a patch for rustc-std-workspace-std for no_std sysroot builds, we get a
+        // warning from Cargo that the patch is unused. If this patching ever breaks that lint will
+        // probably be very helpful, so it would be best to not disable it.
+        // Currently the only user of rustc-std-workspace-alloc is std_detect, which is only used
+        // by std. So we only need to patch rustc-std-workspace-core in no_std sysroot builds, or
+        // that patch also produces a warning.
+        let patches = match &self.config {
+            SysrootConfig::NoStd => format!(
+                r#"
+[patch.crates-io.rustc-std-workspace-core]
+path = {src_dir_workspace_core:?}
+                "#,
+                src_dir_workspace_core = src_dir.join("rustc-std-workspace-core"),
+            ),
+            SysrootConfig::WithStd { .. } => format!(
+                r#"
+[patch.crates-io.rustc-std-workspace-core]
+path = {src_dir_workspace_core:?}
+[patch.crates-io.rustc-std-workspace-alloc]
+path = {src_dir_workspace_alloc:?}
+[patch.crates-io.rustc-std-workspace-std]
+path = {src_dir_workspace_std:?}
+                "#,
+                src_dir_workspace_core = src_dir.join("rustc-std-workspace-core"),
+                src_dir_workspace_alloc = src_dir.join("rustc-std-workspace-alloc"),
+                src_dir_workspace_std = src_dir.join("rustc-std-workspace-std"),
+            ),
+        };
+
+        format!(
             r#"
 [package]
 authors = ["rustc-build-sysroot"]
@@ -302,18 +326,73 @@ path = "lib.rs"
 
 {crates}
 
-[patch.crates-io.rustc-std-workspace-core]
-path = {src_dir_workspace_core:?}
-[patch.crates-io.rustc-std-workspace-alloc]
-path = {src_dir_workspace_alloc:?}
-[patch.crates-io.rustc-std-workspace-std]
-path = {src_dir_workspace_std:?}
-            "#,
-            crates = crates,
-            src_dir_workspace_core = src_dir.join("rustc-std-workspace-core"),
-            src_dir_workspace_alloc = src_dir.join("rustc-std-workspace-alloc"),
-            src_dir_workspace_std = src_dir.join("rustc-std-workspace-std"),
-        );
+{patches}
+            "#
+        )
+    }
+
+    /// Build the `self` sysroot from the given sources.
+    ///
+    /// `src_dir` must be the `library` source folder, i.e., the one that contains `std/Cargo.toml`.
+    pub fn build_from_source(mut self, src_dir: &Path) -> Result<()> {
+        // A bit of preparation.
+        if !src_dir.join("std").join("Cargo.toml").exists() {
+            bail!(
+                "{:?} does not seem to be a rust library source folder: `src/Cargo.toml` not found",
+                src_dir
+            );
+        }
+        let sysroot_lib_dir = self.target_sysroot_dir().join("lib");
+        let target_name = self.target_name().to_owned();
+        let cargo = self.cargo.take().unwrap_or_else(|| {
+            Command::new(env::var_os("CARGO").unwrap_or_else(|| OsString::from("cargo")))
+        });
+        let rustc_version = match self.rustc_version.take() {
+            Some(v) => v,
+            None => rustc_version::version_meta()?,
+        };
+
+        // The whole point of this crate is to build the standard library in nonstandard
+        // configurations, which may trip lints due to untested combinations of cfgs.
+        // Cargo applies --cap-lints=allow or --cap-lints=warn when handling -Zbuild-std, which we
+        // of course are not using:
+        // https://github.com/rust-lang/cargo/blob/2ce45605d9db521b5fd6c1211ce8de6055fdb24e/src/cargo/core/compiler/mod.rs#L899
+        // https://github.com/rust-lang/cargo/blob/2ce45605d9db521b5fd6c1211ce8de6055fdb24e/src/cargo/core/compiler/unit.rs#L102-L109
+        // All the standard library crates are path dependencies, and they also sometimes pull in
+        // separately-maintained crates like backtrace by treating their crate roots as module
+        // roots. If we do not cap lints, we can get lint failures outside core or std.
+        // We cannot set --cap-lints=allow because Cargo needs to parse warnings to understand the
+        // output of --print=file-names for crate-types that the target does not support.
+        if !self.rustflags.iter().any(|flag| {
+            // FIXME: OsStr::as_encoded_bytes is cleaner here
+            flag.to_str()
+                .map_or(false, |f| f.starts_with("--cap-lints"))
+        }) {
+            self.rustflags.push("--cap-lints=warn".into());
+        }
+
+        // Check if we even need to do anything.
+        let cur_hash = self.sysroot_compute_hash(src_dir, &rustc_version);
+        if self.sysroot_read_hash() == Some(cur_hash) {
+            // Already done!
+            return Ok(());
+        }
+
+        // Prepare a workspace for cargo
+        let build_dir = TempDir::new().context("failed to create tempdir")?;
+        let lock_file = build_dir.path().join("Cargo.lock");
+        let manifest_file = build_dir.path().join("Cargo.toml");
+        let lib_file = build_dir.path().join("lib.rs");
+        fs::copy(
+            src_dir
+                .parent()
+                .expect("src_dir must have a parent")
+                .join("Cargo.lock"),
+            &lock_file,
+        )
+        .context("failed to copy lockfile from sysroot source")?;
+        make_writeable(&lock_file).context("failed to make lockfile writeable")?;
+        let manifest = self.gen_manifest(src_dir);
         fs::write(&manifest_file, manifest.as_bytes()).context("failed to write manifest file")?;
         let lib = match self.config {
             SysrootConfig::NoStd => r#"#![no_std]"#,
@@ -377,17 +456,17 @@ path = {src_dir_workspace_std:?}
         .context("failed to write hash file")?;
 
         // Atomic copy to final destination via rename.
-        if target_lib_dir.exists() {
+        if sysroot_lib_dir.exists() {
             // Remove potentially outdated files.
-            fs::remove_dir_all(&target_lib_dir).context("failed to clean sysroot target dir")?;
+            fs::remove_dir_all(&sysroot_lib_dir).context("failed to clean sysroot target dir")?;
         }
         fs::create_dir_all(
-            target_lib_dir
+            sysroot_lib_dir
                 .parent()
                 .expect("target/lib dir must have a parent"),
         )
         .context("failed to create target directory")?;
-        fs::rename(staging_dir.path(), target_lib_dir).context("failed installing sysroot")?;
+        fs::rename(staging_dir.path(), sysroot_lib_dir).context("failed installing sysroot")?;
 
         Ok(())
     }

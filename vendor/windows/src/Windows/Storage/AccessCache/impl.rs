@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Storage_AccessCache\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`"]
 #[cfg(feature = "Foundation_Collections")]
 pub trait IStorageItemAccessList_Impl: Sized {
     fn AddOverloadDefaultMetadata(&self, file: ::core::option::Option<&super::IStorageItem>) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -206,7 +206,7 @@ impl IStorageItemAccessList_Vtbl {
             MaximumItemsAllowed: MaximumItemsAllowed::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IStorageItemAccessList as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IStorageItemAccessList as ::windows_core::ComInterface>::IID
     }
 }

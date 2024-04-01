@@ -1,7 +1,5 @@
-#![doc(html_root_url = "https://docs.rs/handlebars/4.3.7")]
+#![doc(html_root_url = "https://docs.rs/handlebars/5.0.0")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![allow(unknown_lints)]
-#![allow(clippy::result_large_err)]
 //! # Handlebars
 //!
 //! [Handlebars](http://handlebarsjs.com/) is a modern and extensible templating solution originally created in the JavaScript world. It's used by many popular frameworks like [Ember.js](http://emberjs.com) and Chaplin. It's also ported to some other platforms such as [Java](https://github.com/jknack/handlebars.java).
@@ -14,7 +12,7 @@
 //! use std::collections::BTreeMap;
 //! use handlebars::Handlebars;
 //!
-//! fn main() {
+//! # fn main() {
 //!   // create the handlebars registry
 //!   let mut handlebars = Handlebars::new();
 //!
@@ -28,7 +26,7 @@
 //!   let mut data = BTreeMap::new();
 //!   data.insert("world".to_string(), "世界!".to_string());
 //!   assert_eq!(handlebars.render("t1", &data).unwrap(), "hello 世界!");
-//! }
+//! # }
 //! ```
 //!
 //! In this example, we created a template registry and registered a template named `t1`.
@@ -256,7 +254,7 @@
 //! ```
 //! use std::io::Write;
 //! # use std::error::Error;
-//! use handlebars::{Handlebars, HelperDef, RenderContext, Helper, Context, JsonRender, HelperResult, Output, RenderError};
+//! use handlebars::*;
 //!
 //! // implement by a structure impls HelperDef
 //! #[derive(Clone, Copy)]
@@ -289,7 +287,8 @@
 //!   // via closure
 //!   handlebars.register_helper("closure-helper",
 //!       Box::new(|h: &Helper, r: &Handlebars, _: &Context, rc: &mut RenderContext, out: &mut dyn Output| -> HelperResult {
-//!           let param = h.param(0).ok_or(RenderError::new("param not found"))?;
+//!           let param =
+//!           h.param(0).ok_or(RenderErrorReason::ParamNotFoundForIndex("closure-helper", 0))?;
 //!
 //!           out.write("3rd helper: ")?;
 //!           out.write(param.value().render().as_ref())?;
@@ -367,6 +366,30 @@
 //! Handlebars.js' partial system is fully supported in this implementation.
 //! Check [example](https://github.com/sunng87/handlebars-rust/blob/master/examples/partials.rs#L49) for details.
 //!
+//! ### String (or Case) Helpers
+//!
+//! [Handlebars] supports helpers for converting string cases for example converting a value to
+//! 'camelCase or 'kebab-case' etc. This can be useful during generating code using Handlebars.
+//! This can be enabled by selecting the feature-flag `string_helpers`.  Currently the case
+//! conversions from the [`heck`](https://docs.rs/heck/latest/heck) crate are supported.
+//!
+//! ```
+//! # #[cfg(feature = "string_helpers")] {
+//! # use std::error::Error;
+//! # extern crate handlebars;
+//! use handlebars::Handlebars;
+//!
+//! # fn main() -> Result<(), Box<dyn Error>> {
+//!
+//!   let mut handlebars = Handlebars::new();
+//!
+//!   let data = serde_json::json!({"value": "lower camel case"});
+//!   assert_eq!(handlebars.render_template("This is {{lowerCamelCase value}}", &data)?,
+//!       "This is lowerCamelCase".to_owned());
+//! # Ok(())
+//! # }
+//! # }
+//! ```
 //!
 
 #![allow(dead_code, clippy::upper_case_acronyms)]
@@ -390,11 +413,14 @@ extern crate serde_json;
 pub use self::block::{BlockContext, BlockParams};
 pub use self::context::Context;
 pub use self::decorators::DecoratorDef;
-pub use self::error::{RenderError, TemplateError};
+pub use self::error::{RenderError, RenderErrorReason, TemplateError, TemplateErrorReason};
 pub use self::helpers::{HelperDef, HelperResult};
 pub use self::json::path::Path;
-pub use self::json::value::{to_json, JsonRender, PathAndJson, ScopedJson};
+pub use self::json::value::{to_json, JsonRender, JsonTruthy, PathAndJson, ScopedJson};
+pub use self::local_vars::LocalVars;
 pub use self::output::{Output, StringOutput};
+#[cfg(feature = "dir_source")]
+pub use self::registry::DirectorySourceOptions;
 pub use self::registry::{html_escape, no_escape, EscapeFn, Registry as Handlebars};
 pub use self::render::{Decorator, Evaluable, Helper, RenderContext, Renderable};
 pub use self::template::Template;

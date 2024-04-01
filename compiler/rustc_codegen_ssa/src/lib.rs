@@ -7,11 +7,8 @@
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(negative_impls)]
-#![feature(never_type)]
 #![feature(strict_provenance)]
 #![feature(try_blocks)]
-#![recursion_limit = "256"]
-#![allow(rustc::potential_query_instability)]
 
 //! This crate contains codegen code that is used by all codegen backends (LLVM and others).
 //! The backend-agnostic functions of this crate use functions defined in various traits that
@@ -110,6 +107,7 @@ pub enum ModuleKind {
 }
 
 bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct MemFlags: u8 {
         const VOLATILE = 1 << 0;
         const NONTEMPORAL = 1 << 1;

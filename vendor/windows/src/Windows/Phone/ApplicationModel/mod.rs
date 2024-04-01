@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IApplicationProfileStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IApplicationProfileStatics {
     type Vtable = IApplicationProfileStatics_Vtbl;
-}
-impl ::core::clone::Clone for IApplicationProfileStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IApplicationProfileStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd5008ab4_7e7a_11e1_a7f2_b0a14824019b);
@@ -18,7 +14,6 @@ pub struct IApplicationProfileStatics_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
     pub Modes: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut ApplicationProfileModes) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Phone_ApplicationModel\"`*"]
 pub struct ApplicationProfile;
 impl ApplicationProfile {
     pub fn Modes() -> ::windows_core::Result<ApplicationProfileModes> {
@@ -36,7 +31,6 @@ impl ApplicationProfile {
 impl ::windows_core::RuntimeName for ApplicationProfile {
     const NAME: &'static str = "Windows.Phone.ApplicationModel.ApplicationProfile";
 }
-#[doc = "*Required features: `\"Phone_ApplicationModel\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ApplicationProfileModes(pub u32);

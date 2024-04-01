@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"UI_Input\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IPointerPointTransform_Impl: Sized {
     fn Inverse(&self) -> ::windows_core::Result<IPointerPointTransform>;
@@ -53,7 +53,7 @@ impl IPointerPointTransform_Vtbl {
             TransformBounds: TransformBounds::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPointerPointTransform as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPointerPointTransform as ::windows_core::ComInterface>::IID
     }
 }

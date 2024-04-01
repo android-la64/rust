@@ -1,15 +1,12 @@
 #[cfg(feature = "System_RemoteDesktop_Input")]
+#[doc = "Required features: `\"System_RemoteDesktop_Input\"`"]
 pub mod Input;
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInteractiveSessionStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IInteractiveSessionStatics {
     type Vtable = IInteractiveSessionStatics_Vtbl;
-}
-impl ::core::clone::Clone for IInteractiveSessionStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInteractiveSessionStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x60884631_dd3a_4576_9c8d_e8027618bdce);
@@ -20,7 +17,6 @@ pub struct IInteractiveSessionStatics_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
     pub IsRemote: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut bool) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"System_RemoteDesktop\"`*"]
 pub struct InteractiveSession;
 impl InteractiveSession {
     pub fn IsRemote() -> ::windows_core::Result<bool> {

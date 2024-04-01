@@ -119,6 +119,10 @@ impl<'ll, 'tcx> IntrinsicCallMethods<'tcx> for Builder<'_, 'll, 'tcx> {
             sym::likely => {
                 self.call_intrinsic("llvm.expect.i1", &[args[0].immediate(), self.const_bool(true)])
             }
+            sym::is_val_statically_known => self.call_intrinsic(
+                &format!("llvm.is.constant.{:?}", args[0].layout.immediate_llvm_type(self.cx)),
+                &[args[0].immediate()],
+            ),
             sym::unlikely => self
                 .call_intrinsic("llvm.expect.i1", &[args[0].immediate(), self.const_bool(false)]),
             kw::Try => {
@@ -179,7 +183,10 @@ impl<'ll, 'tcx> IntrinsicCallMethods<'tcx> for Builder<'_, 'll, 'tcx> {
                 unsafe {
                     llvm::LLVMSetAlignment(load, align);
                 }
-                self.to_immediate(load, self.layout_of(tp_ty))
+                if !result.layout.is_zst() {
+                    self.store(load, result.llval, result.align);
+                }
+                return;
             }
             sym::volatile_store => {
                 let dst = args[0].deref(self.cx());
@@ -285,7 +292,7 @@ impl<'ll, 'tcx> IntrinsicCallMethods<'tcx> for Builder<'_, 'll, 'tcx> {
                         _ => bug!(),
                     },
                     None => {
-                        tcx.sess.emit_err(InvalidMonomorphization::BasicIntegerType {
+                        tcx.dcx().emit_err(InvalidMonomorphization::BasicIntegerType {
                             span,
                             name,
                             ty,
@@ -921,7 +928,7 @@ fn generic_simd_intrinsic<'ll, 'tcx>(
 ) -> Result<&'ll Value, ()> {
     macro_rules! return_error {
         ($diag: expr) => {{
-            bx.sess().emit_err($diag);
+            bx.sess().dcx().emit_err($diag);
             return Err(());
         }};
     }
@@ -1059,7 +1066,7 @@ fn generic_simd_intrinsic<'ll, 'tcx>(
             .map(|(arg_idx, val)| {
                 let idx = val.unwrap_leaf().try_to_i32().unwrap();
                 if idx >= i32::try_from(total_len).unwrap() {
-                    bx.sess().emit_err(InvalidMonomorphization::ShuffleIndexOutOfBounds {
+                    bx.sess().dcx().emit_err(InvalidMonomorphization::ShuffleIndexOutOfBounds {
                         span,
                         name,
                         arg_idx: arg_idx as u64,
@@ -1118,20 +1125,24 @@ fn generic_simd_intrinsic<'ll, 'tcx>(
                 let val = bx.const_get_elt(vector, i as u64);
                 match bx.const_to_opt_u128(val, true) {
                     None => {
-                        bx.sess().emit_err(InvalidMonomorphization::ShuffleIndexNotConstant {
-                            span,
-                            name,
-                            arg_idx,
-                        });
+                        bx.sess().dcx().emit_err(
+                            InvalidMonomorphization::ShuffleIndexNotConstant {
+                                span,
+                                name,
+                                arg_idx,
+                            },
+                        );
                         None
                     }
                     Some(idx) if idx >= total_len => {
-                        bx.sess().emit_err(InvalidMonomorphization::ShuffleIndexOutOfBounds {
-                            span,
-                            name,
-                            arg_idx,
-                            total_len,
-                        });
+                        bx.sess().dcx().emit_err(
+                            InvalidMonomorphization::ShuffleIndexOutOfBounds {
+                                span,
+                                name,
+                                arg_idx,
+                                total_len,
+                            },
+                        );
                         None
                     }
                     Some(idx) => Some(bx.const_i32(idx as i32)),
@@ -1276,7 +1287,7 @@ fn generic_simd_intrinsic<'ll, 'tcx>(
     ) -> Result<&'ll Value, ()> {
         macro_rules! return_error {
             ($diag: expr) => {{
-                bx.sess().emit_err($diag);
+                bx.sess().dcx().emit_err($diag);
                 return Err(());
             }};
         }

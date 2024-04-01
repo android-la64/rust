@@ -16,11 +16,20 @@ impl crate::io_nostd::Read for std::fs::File {
             } else {
                 crate::io_nostd::Error::new(
                     crate::io_nostd::ErrorKind::Other,
-                    e.into_inner().unwrap(),
+                    alloc::boxed::Box::new(e.into_inner().unwrap()),
                 )
             }
         })
     }
+}
+
+#[cfg(all(test, feature = "std"))]
+#[allow(dead_code)]
+fn assure_error_impl() {
+    // not a real test just there to throw an compiler error if Error is not derived correctly
+
+    use crate::frame_decoder::FrameDecoderError;
+    let _err: &dyn std::error::Error = &FrameDecoderError::NotYetInitialized;
 }
 
 #[test]
@@ -351,8 +360,7 @@ fn test_streaming_no_std() {
     let mut stream = crate::streaming_decoder::StreamingDecoder::new(&mut content).unwrap();
 
     let original = include_bytes!("../../decodecorpus_files/z000088");
-    let mut result = Vec::new();
-    result.resize(original.len(), 0);
+    let mut result = vec![0; original.len()];
     Read::read_exact(&mut stream, &mut result).unwrap();
 
     if original.len() != result.len() {
@@ -391,8 +399,7 @@ fn test_streaming_no_std() {
             .unwrap();
 
     let original = include_bytes!("../../decodecorpus_files/z000068");
-    let mut result = Vec::new();
-    result.resize(original.len(), 0);
+    let mut result = vec![0; original.len()];
     Read::read_exact(&mut stream, &mut result).unwrap();
 
     std::println!("Results for file:");

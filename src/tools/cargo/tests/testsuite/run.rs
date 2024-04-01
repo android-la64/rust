@@ -735,7 +735,9 @@ fn one_bin_multiple_examples() {
         .run();
 }
 
+// Temporarily disabled on Windows due to https://github.com/rust-lang/rust/issues/122857
 #[cargo_test]
+#[cfg(not(windows))]
 fn example_with_release_flag() {
     let p = project()
         .file(
@@ -790,6 +792,7 @@ fn example_with_release_flag() {
         -C opt-level=3[..]\
         -C metadata=[..] \
         --out-dir [CWD]/target/release/deps \
+        -C strip=debuginfo \
         -L dependency=[CWD]/target/release/deps`
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc --crate-name a examples/a.rs [..]--crate-type bin \
@@ -797,6 +800,7 @@ fn example_with_release_flag() {
         -C opt-level=3[..]\
         -C metadata=[..] \
         --out-dir [CWD]/target/release/examples \
+        -C strip=debuginfo \
         -L dependency=[CWD]/target/release/deps \
          --extern bar=[CWD]/target/release/deps/libbar-[..].rlib`
 [FINISHED] release [optimized] target(s) in [..]
@@ -1202,8 +1206,8 @@ fn run_with_library_paths() {
             &format!(
                 r##"
                     fn main() {{
-                        println!(r#"cargo:rustc-link-search=native={}"#);
-                        println!(r#"cargo:rustc-link-search={}"#);
+                        println!(r#"cargo::rustc-link-search=native={}"#);
+                        println!(r#"cargo::rustc-link-search={}"#);
                     }}
                 "##,
                 dir1.display(),
@@ -1261,9 +1265,9 @@ fn library_paths_sorted_alphabetically() {
             &format!(
                 r##"
                     fn main() {{
-                        println!(r#"cargo:rustc-link-search=native={}"#);
-                        println!(r#"cargo:rustc-link-search=native={}"#);
-                        println!(r#"cargo:rustc-link-search=native={}"#);
+                        println!(r#"cargo::rustc-link-search=native={}"#);
+                        println!(r#"cargo::rustc-link-search=native={}"#);
+                        println!(r#"cargo::rustc-link-search=native={}"#);
                     }}
                 "##,
                 dir1.display(),
@@ -1535,8 +1539,8 @@ fn run_link_system_path_macos() {
             &format!(
                 r#"
                 fn main() {{
-                    println!("cargo:rustc-link-lib=foo");
-                    println!("cargo:rustc-link-search={}");
+                    println!("cargo::rustc-link-lib=foo");
+                    println!("cargo::rustc-link-search={}");
                 }}
                 "#,
                 p.target_debug_dir().display()

@@ -1,15 +1,12 @@
 #[cfg(feature = "UI_Input_Preview_Injection")]
+#[doc = "Required features: `\"UI_Input_Preview_Injection\"`"]
 pub mod Injection;
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInputActivationListenerPreviewStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IInputActivationListenerPreviewStatics {
     type Vtable = IInputActivationListenerPreviewStatics_Vtbl;
-}
-impl ::core::clone::Clone for IInputActivationListenerPreviewStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInputActivationListenerPreviewStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf0551ce5_0de6_5be0_a589_f737201a4582);
@@ -23,10 +20,9 @@ pub struct IInputActivationListenerPreviewStatics_Vtbl {
     #[cfg(not(feature = "UI_WindowManagement"))]
     CreateForApplicationWindow: usize,
 }
-#[doc = "*Required features: `\"UI_Input_Preview\"`*"]
 pub struct InputActivationListenerPreview;
 impl InputActivationListenerPreview {
-    #[doc = "*Required features: `\"UI_WindowManagement\"`*"]
+    #[doc = "Required features: `\"UI_WindowManagement\"`"]
     #[cfg(feature = "UI_WindowManagement")]
     pub fn CreateForApplicationWindow<P0>(window: P0) -> ::windows_core::Result<super::InputActivationListener>
     where

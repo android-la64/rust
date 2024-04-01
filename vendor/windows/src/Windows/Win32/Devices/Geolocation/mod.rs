@@ -1,18 +1,18 @@
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICivicAddressReport(::windows_core::IUnknown);
 impl ICivicAddressReport {
     pub unsafe fn GetSensorID(&self) -> ::windows_core::Result<::windows_core::GUID> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetSensorID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetTimestamp(&self) -> ::windows_core::Result<super::super::Foundation::SYSTEMTIME> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetTimestamp)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Variant\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Variant\"`, `\"Win32_UI_Shell_PropertiesSystem\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Variant", feature = "Win32_UI_Shell_PropertiesSystem"))]
     pub unsafe fn GetValue(&self, pkey: *const super::super::UI::Shell::PropertiesSystem::PROPERTYKEY) -> ::windows_core::Result<super::super::System::Com::StructuredStorage::PROPVARIANT> {
         let mut result__ = ::std::mem::zeroed();
@@ -48,24 +48,8 @@ impl ICivicAddressReport {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ICivicAddressReport, ::windows_core::IUnknown, ILocationReport);
-impl ::core::cmp::PartialEq for ICivicAddressReport {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ICivicAddressReport {}
-impl ::core::fmt::Debug for ICivicAddressReport {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ICivicAddressReport").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ICivicAddressReport {
     type Vtable = ICivicAddressReport_Vtbl;
-}
-impl ::core::clone::Clone for ICivicAddressReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICivicAddressReport {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc0b19f70_4adf_445d_87f2_cad8fd711792);
@@ -82,9 +66,10 @@ pub struct ICivicAddressReport_Vtbl {
     pub GetCountryRegion: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrcountryregion: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub GetDetailLevel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pdetaillevel: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICivicAddressReportFactory(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl ICivicAddressReportFactory {
@@ -115,7 +100,7 @@ impl ICivicAddressReportFactory {
     pub unsafe fn RequestPermissions(&self, hwnd: *const u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.RequestPermissions)(::windows_core::Interface::as_raw(self), hwnd).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CivicAddressReport(&self) -> ::windows_core::Result<IDispCivicAddressReport> {
         let mut result__ = ::std::mem::zeroed();
@@ -125,28 +110,8 @@ impl ICivicAddressReportFactory {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(ICivicAddressReportFactory, ::windows_core::IUnknown, super::super::System::Com::IDispatch, ILocationReportFactory);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for ICivicAddressReportFactory {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for ICivicAddressReportFactory {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for ICivicAddressReportFactory {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ICivicAddressReportFactory").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for ICivicAddressReportFactory {
     type Vtable = ICivicAddressReportFactory_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for ICivicAddressReportFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for ICivicAddressReportFactory {
@@ -162,8 +127,8 @@ pub struct ICivicAddressReportFactory_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     CivicAddressReport: usize,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDefaultLocation(::windows_core::IUnknown);
 impl IDefaultLocation {
     pub unsafe fn SetReport<P0>(&self, reporttype: *const ::windows_core::GUID, plocationreport: P0) -> ::windows_core::Result<()>
@@ -178,24 +143,8 @@ impl IDefaultLocation {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IDefaultLocation, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IDefaultLocation {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IDefaultLocation {}
-impl ::core::fmt::Debug for IDefaultLocation {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDefaultLocation").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IDefaultLocation {
     type Vtable = IDefaultLocation_Vtbl;
-}
-impl ::core::clone::Clone for IDefaultLocation {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDefaultLocation {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa65af77e_969a_4a2e_8aca_33bb7cbb1235);
@@ -207,9 +156,10 @@ pub struct IDefaultLocation_Vtbl {
     pub SetReport: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, reporttype: *const ::windows_core::GUID, plocationreport: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub GetReport: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, reporttype: *const ::windows_core::GUID, pplocationreport: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDispCivicAddressReport(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IDispCivicAddressReport {
@@ -249,28 +199,8 @@ impl IDispCivicAddressReport {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IDispCivicAddressReport, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IDispCivicAddressReport {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IDispCivicAddressReport {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IDispCivicAddressReport {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDispCivicAddressReport").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IDispCivicAddressReport {
     type Vtable = IDispCivicAddressReport_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IDispCivicAddressReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IDispCivicAddressReport {
@@ -290,9 +220,10 @@ pub struct IDispCivicAddressReport_Vtbl {
     pub DetailLevel: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pdetaillevel: *mut u32) -> ::windows_core::HRESULT,
     pub Timestamp: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pval: *mut f64) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDispLatLongReport(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IDispLatLongReport {
@@ -324,28 +255,8 @@ impl IDispLatLongReport {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IDispLatLongReport, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IDispLatLongReport {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IDispLatLongReport {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IDispLatLongReport {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDispLatLongReport").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IDispLatLongReport {
     type Vtable = IDispLatLongReport_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IDispLatLongReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IDispLatLongReport {
@@ -363,21 +274,21 @@ pub struct IDispLatLongReport_Vtbl {
     pub AltitudeError: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pval: *mut f64) -> ::windows_core::HRESULT,
     pub Timestamp: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pval: *mut f64) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILatLongReport(::windows_core::IUnknown);
 impl ILatLongReport {
     pub unsafe fn GetSensorID(&self) -> ::windows_core::Result<::windows_core::GUID> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetSensorID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetTimestamp(&self) -> ::windows_core::Result<super::super::Foundation::SYSTEMTIME> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetTimestamp)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Variant\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Variant\"`, `\"Win32_UI_Shell_PropertiesSystem\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Variant", feature = "Win32_UI_Shell_PropertiesSystem"))]
     pub unsafe fn GetValue(&self, pkey: *const super::super::UI::Shell::PropertiesSystem::PROPERTYKEY) -> ::windows_core::Result<super::super::System::Com::StructuredStorage::PROPVARIANT> {
         let mut result__ = ::std::mem::zeroed();
@@ -405,24 +316,8 @@ impl ILatLongReport {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ILatLongReport, ::windows_core::IUnknown, ILocationReport);
-impl ::core::cmp::PartialEq for ILatLongReport {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ILatLongReport {}
-impl ::core::fmt::Debug for ILatLongReport {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ILatLongReport").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ILatLongReport {
     type Vtable = ILatLongReport_Vtbl;
-}
-impl ::core::clone::Clone for ILatLongReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ILatLongReport {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7fed806d_0ef8_4f07_80ac_36a0beae3134);
@@ -437,9 +332,10 @@ pub struct ILatLongReport_Vtbl {
     pub GetAltitude: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, paltitude: *mut f64) -> ::windows_core::HRESULT,
     pub GetAltitudeError: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, paltitudeerror: *mut f64) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILatLongReportFactory(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl ILatLongReportFactory {
@@ -470,7 +366,7 @@ impl ILatLongReportFactory {
     pub unsafe fn RequestPermissions(&self, hwnd: *const u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.RequestPermissions)(::windows_core::Interface::as_raw(self), hwnd).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn LatLongReport(&self) -> ::windows_core::Result<IDispLatLongReport> {
         let mut result__ = ::std::mem::zeroed();
@@ -480,28 +376,8 @@ impl ILatLongReportFactory {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(ILatLongReportFactory, ::windows_core::IUnknown, super::super::System::Com::IDispatch, ILocationReportFactory);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for ILatLongReportFactory {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for ILatLongReportFactory {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for ILatLongReportFactory {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ILatLongReportFactory").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for ILatLongReportFactory {
     type Vtable = ILatLongReportFactory_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for ILatLongReportFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for ILatLongReportFactory {
@@ -517,8 +393,8 @@ pub struct ILatLongReportFactory_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     LatLongReport: usize,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILocation(::windows_core::IUnknown);
 impl ILocation {
     pub unsafe fn RegisterForReport<P0>(&self, pevents: P0, reporttype: *const ::windows_core::GUID, dwrequestedreportinterval: u32) -> ::windows_core::Result<()>
@@ -545,46 +421,30 @@ impl ILocation {
     pub unsafe fn SetReportInterval(&self, reporttype: *const ::windows_core::GUID, millisecondsrequested: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).SetReportInterval)(::windows_core::Interface::as_raw(self), reporttype, millisecondsrequested).ok()
     }
-    #[doc = "*Required features: `\"Win32_Devices_Sensors\"`*"]
+    #[doc = "Required features: `\"Win32_Devices_Sensors\"`"]
     #[cfg(feature = "Win32_Devices_Sensors")]
     pub unsafe fn GetDesiredAccuracy(&self, reporttype: *const ::windows_core::GUID) -> ::windows_core::Result<super::Sensors::LOCATION_DESIRED_ACCURACY> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetDesiredAccuracy)(::windows_core::Interface::as_raw(self), reporttype, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Devices_Sensors\"`*"]
+    #[doc = "Required features: `\"Win32_Devices_Sensors\"`"]
     #[cfg(feature = "Win32_Devices_Sensors")]
     pub unsafe fn SetDesiredAccuracy(&self, reporttype: *const ::windows_core::GUID, desiredaccuracy: super::Sensors::LOCATION_DESIRED_ACCURACY) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).SetDesiredAccuracy)(::windows_core::Interface::as_raw(self), reporttype, desiredaccuracy).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RequestPermissions<P0, P1>(&self, hparent: P0, preporttypes: &[::windows_core::GUID], fmodal: P1) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<super::super::Foundation::HWND>,
         P1: ::windows_core::IntoParam<super::super::Foundation::BOOL>,
     {
-        (::windows_core::Interface::vtable(self).RequestPermissions)(::windows_core::Interface::as_raw(self), hparent.into_param().abi(), ::core::mem::transmute(preporttypes.as_ptr()), preporttypes.len() as _, fmodal.into_param().abi()).ok()
+        (::windows_core::Interface::vtable(self).RequestPermissions)(::windows_core::Interface::as_raw(self), hparent.into_param().abi(), ::core::mem::transmute(preporttypes.as_ptr()), preporttypes.len().try_into().unwrap(), fmodal.into_param().abi()).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(ILocation, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ILocation {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ILocation {}
-impl ::core::fmt::Debug for ILocation {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ILocation").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ILocation {
     type Vtable = ILocation_Vtbl;
-}
-impl ::core::clone::Clone for ILocation {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ILocation {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xab2ece69_56d9_4f28_b525_de1b0ee44237);
@@ -612,8 +472,8 @@ pub struct ILocation_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     RequestPermissions: usize,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILocationEvents(::windows_core::IUnknown);
 impl ILocationEvents {
     pub unsafe fn OnLocationChanged<P0>(&self, reporttype: *const ::windows_core::GUID, plocationreport: P0) -> ::windows_core::Result<()>
@@ -627,24 +487,8 @@ impl ILocationEvents {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ILocationEvents, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ILocationEvents {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ILocationEvents {}
-impl ::core::fmt::Debug for ILocationEvents {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ILocationEvents").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ILocationEvents {
     type Vtable = ILocationEvents_Vtbl;
-}
-impl ::core::clone::Clone for ILocationEvents {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ILocationEvents {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcae02bbf_798b_4508_a207_35a7906dc73d);
@@ -656,8 +500,8 @@ pub struct ILocationEvents_Vtbl {
     pub OnLocationChanged: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, reporttype: *const ::windows_core::GUID, plocationreport: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub OnStatusChanged: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, reporttype: *const ::windows_core::GUID, newstatus: LOCATION_REPORT_STATUS) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILocationPower(::windows_core::IUnknown);
 impl ILocationPower {
     pub unsafe fn Connect(&self) -> ::windows_core::Result<()> {
@@ -668,24 +512,8 @@ impl ILocationPower {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ILocationPower, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ILocationPower {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ILocationPower {}
-impl ::core::fmt::Debug for ILocationPower {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ILocationPower").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ILocationPower {
     type Vtable = ILocationPower_Vtbl;
-}
-impl ::core::clone::Clone for ILocationPower {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ILocationPower {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x193e7729_ab6b_4b12_8617_7596e1bb191c);
@@ -697,21 +525,21 @@ pub struct ILocationPower_Vtbl {
     pub Connect: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Disconnect: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILocationReport(::windows_core::IUnknown);
 impl ILocationReport {
     pub unsafe fn GetSensorID(&self) -> ::windows_core::Result<::windows_core::GUID> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetSensorID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetTimestamp(&self) -> ::windows_core::Result<super::super::Foundation::SYSTEMTIME> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetTimestamp)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Variant\"`, `\"Win32_UI_Shell_PropertiesSystem\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Variant\"`, `\"Win32_UI_Shell_PropertiesSystem\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Variant", feature = "Win32_UI_Shell_PropertiesSystem"))]
     pub unsafe fn GetValue(&self, pkey: *const super::super::UI::Shell::PropertiesSystem::PROPERTYKEY) -> ::windows_core::Result<super::super::System::Com::StructuredStorage::PROPVARIANT> {
         let mut result__ = ::std::mem::zeroed();
@@ -719,24 +547,8 @@ impl ILocationReport {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ILocationReport, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ILocationReport {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ILocationReport {}
-impl ::core::fmt::Debug for ILocationReport {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ILocationReport").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ILocationReport {
     type Vtable = ILocationReport_Vtbl;
-}
-impl ::core::clone::Clone for ILocationReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ILocationReport {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc8b7f7ee_75d0_4db9_b62d_7a0f369ca456);
@@ -755,9 +567,10 @@ pub struct ILocationReport_Vtbl {
     #[cfg(not(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Variant", feature = "Win32_UI_Shell_PropertiesSystem")))]
     GetValue: usize,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ILocationReportFactory(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl ILocationReportFactory {
@@ -792,28 +605,8 @@ impl ILocationReportFactory {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(ILocationReportFactory, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for ILocationReportFactory {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for ILocationReportFactory {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for ILocationReportFactory {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ILocationReportFactory").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for ILocationReportFactory {
     type Vtable = ILocationReportFactory_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for ILocationReportFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for ILocationReportFactory {
@@ -833,37 +626,18 @@ pub struct ILocationReportFactory_Vtbl {
     pub SetDesiredAccuracy: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, desiredaccuracy: u32) -> ::windows_core::HRESULT,
     pub RequestPermissions: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, hwnd: *const u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct _ICivicAddressReportFactoryEvents(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl _ICivicAddressReportFactoryEvents {}
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(_ICivicAddressReportFactoryEvents, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for _ICivicAddressReportFactoryEvents {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for _ICivicAddressReportFactoryEvents {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for _ICivicAddressReportFactoryEvents {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("_ICivicAddressReportFactoryEvents").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for _ICivicAddressReportFactoryEvents {
     type Vtable = _ICivicAddressReportFactoryEvents_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for _ICivicAddressReportFactoryEvents {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for _ICivicAddressReportFactoryEvents {
@@ -875,37 +649,18 @@ unsafe impl ::windows_core::ComInterface for _ICivicAddressReportFactoryEvents {
 pub struct _ICivicAddressReportFactoryEvents_Vtbl {
     pub base__: super::super::System::Com::IDispatch_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct _ILatLongReportFactoryEvents(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl _ILatLongReportFactoryEvents {}
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(_ILatLongReportFactoryEvents, ::windows_core::IUnknown, super::super::System::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for _ILatLongReportFactoryEvents {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for _ILatLongReportFactoryEvents {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for _ILatLongReportFactoryEvents {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("_ILatLongReportFactoryEvents").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for _ILatLongReportFactoryEvents {
     type Vtable = _ILatLongReportFactoryEvents_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for _ILatLongReportFactoryEvents {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for _ILatLongReportFactoryEvents {
@@ -917,273 +672,139 @@ unsafe impl ::windows_core::ComInterface for _ILatLongReportFactoryEvents {
 pub struct _ILatLongReportFactoryEvents_Vtbl {
     pub base__: super::super::System::Com::IDispatch_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const BREADCRUMBING_UNSUPPORTED: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const BREADCRUMBING_VERSION_1: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const CivicAddressReport: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd39e7bdd_7d05_46b8_8721_80cf035f57d7);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const CivicAddressReportFactory: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2a11f42c_3e81_4ad4_9cbe_45579d89671a);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const DefaultLocation: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x8b7fbfe0_5cd7_494a_af8c_283a65707506);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const DispCivicAddressReport: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4c596aec_8544_4082_ba9f_eb0a7d8e65c6);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const DispLatLongReport: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7a7c3277_8f84_4636_95b2_ebb5507ff77e);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSSFORMAT_LTO: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSSFORMAT_XTRA1: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSSFORMAT_XTRA2: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSSFORMAT_XTRA3: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSSFORMAT_XTRA3_1: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSSFORMAT_XTRA3_2: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSSFORMAT_XTRA_INT: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSS_BlobInjection: GNSS_AGNSS_REQUEST_TYPE = GNSS_AGNSS_REQUEST_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSS_PositionInjection: GNSS_AGNSS_REQUEST_TYPE = GNSS_AGNSS_REQUEST_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_AGNSS_TimeInjection: GNSS_AGNSS_REQUEST_TYPE = GNSS_AGNSS_REQUEST_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_ClearAgnssData: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(10i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_CustomCommand: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(256i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_DRIVER_VERSION_1: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_DRIVER_VERSION_2: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_DRIVER_VERSION_3: u32 = 3u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_DRIVER_VERSION_4: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_DRIVER_VERSION_5: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_DRIVER_VERSION_6: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_BreadcrumbAlertEvent: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(17i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_Custom: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(32768i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_DriverRequest: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(16i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_Error: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_FixAvailable: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_FixAvailable_2: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(18i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_GeofenceAlertData: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(14i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_GeofencesTrackingStatus: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(15i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_NiRequest: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(12i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_NmeaData: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(13i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Event_RequireAgnss: GNSS_EVENT_TYPE = GNSS_EVENT_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_FIXDETAIL_ACCURACY: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_FIXDETAIL_BASIC: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_FIXDETAIL_SATELLITE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_FixSession_ContinuousTracking: GNSS_FIXSESSIONTYPE = GNSS_FIXSESSIONTYPE(3i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_FixSession_DistanceTracking: GNSS_FIXSESSIONTYPE = GNSS_FIXSESSIONTYPE(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_FixSession_LKG: GNSS_FIXSESSIONTYPE = GNSS_FIXSESSIONTYPE(4i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_FixSession_SingleShot: GNSS_FIXSESSIONTYPE = GNSS_FIXSESSIONTYPE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_ForceOperationMode: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_ForceSatelliteSystem: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_GEOFENCESUPPORT_CIRCLE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_GEOFENCESUPPORT_SUPPORTED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_GeoRegion_Circle: GNSS_GEOREGIONTYPE = GNSS_GEOREGIONTYPE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_GeofenceState_Entered: GNSS_GEOFENCE_STATE = GNSS_GEOFENCE_STATE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_GeofenceState_Exited: GNSS_GEOFENCE_STATE = GNSS_GEOFENCE_STATE(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_GeofenceState_Unknown: GNSS_GEOFENCE_STATE = GNSS_GEOFENCE_STATE(0i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_MAXSATELLITE: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_CP: GNSS_NI_PLANE_TYPE = GNSS_NI_PLANE_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_NoNotifyNoVerify: GNSS_NI_NOTIFICATION_TYPE = GNSS_NI_NOTIFICATION_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_NotifyOnly: GNSS_NI_NOTIFICATION_TYPE = GNSS_NI_NOTIFICATION_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_NotifyVerifyDefaultAllow: GNSS_NI_NOTIFICATION_TYPE = GNSS_NI_NOTIFICATION_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_NotifyVerifyDefaultNotAllow: GNSS_NI_NOTIFICATION_TYPE = GNSS_NI_NOTIFICATION_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_PrivacyOverride: GNSS_NI_NOTIFICATION_TYPE = GNSS_NI_NOTIFICATION_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_Request_AreaTrigger: GNSS_NI_REQUEST_TYPE = GNSS_NI_REQUEST_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_Request_SingleShot: GNSS_NI_REQUEST_TYPE = GNSS_NI_REQUEST_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_SUPL: GNSS_NI_PLANE_TYPE = GNSS_NI_PLANE_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NI_V2UPL: GNSS_NI_PLANE_TYPE = GNSS_NI_PLANE_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NMEALOGGING_ALL: u32 = 255u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_NMEALOGGING_NONE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Ni_UserResponseAccept: GNSS_NI_USER_RESPONSE = GNSS_NI_USER_RESPONSE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Ni_UserResponseDeny: GNSS_NI_USER_RESPONSE = GNSS_NI_USER_RESPONSE(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Ni_UserResponseTimeout: GNSS_NI_USER_RESPONSE = GNSS_NI_USER_RESPONSE(3i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_OPERMODE_AFLT: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_OPERMODE_ANY: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_OPERMODE_CELLID: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_OPERMODE_MSA: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_OPERMODE_MSB: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_OPERMODE_MSS: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_OPERMODE_OTDOA: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_ResetEngine: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(9i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_ResetGeofencesTracking: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(16i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SATELLITE_ANY: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SATELLITE_BEIDOU: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SATELLITE_GALILEO: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SATELLITE_GLONASS: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SATELLITE_GPS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SetLocationNIRequestAllowed: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SetLocationServiceEnabled: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SetNMEALogging: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(13i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SetNiTimeoutInterval: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(15i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SetSuplVersion: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(12i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SetSuplVersion2: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(17i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_SetUplServerAccessInterval: GNSS_DRIVERCOMMAND_TYPE = GNSS_DRIVERCOMMAND_TYPE(14i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Supl_Cert_Delete: GNSS_SUPL_CERT_ACTION = GNSS_SUPL_CERT_ACTION(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Supl_Cert_Inject: GNSS_SUPL_CERT_ACTION = GNSS_SUPL_CERT_ACTION(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GNSS_Supl_Cert_Purge: GNSS_SUPL_CERT_ACTION = GNSS_SUPL_CERT_ACTION(3i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const GUID_DEVINTERFACE_GNSS: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3336e5e4_018a_4669_84c5_bd05f3bd368b);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_CONFIG_SUPL_CERT: u32 = 2228488u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_CREATE_GEOFENCE: u32 = 2228544u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_DELETE_GEOFENCE: u32 = 2228548u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_EXECUTE_CWTEST: u32 = 2228496u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_EXECUTE_SELFTEST: u32 = 2228500u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_GET_CHIPSETINFO: u32 = 2228504u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_GET_DEVICE_CAPABILITY: u32 = 2228232u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_GET_FIXDATA: u32 = 2228300u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_INJECT_AGNSS: u32 = 2228352u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_LISTEN_AGNSS: u32 = 2228416u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_LISTEN_BREADCRUMBING_ALERT: u32 = 2228680u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_LISTEN_DRIVER_REQUEST: u32 = 2228608u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_LISTEN_ERROR: u32 = 2228420u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_LISTEN_GEOFENCES_TRACKINGSTATUS: u32 = 2228556u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_LISTEN_GEOFENCE_ALERT: u32 = 2228552u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_LISTEN_NI: u32 = 2228480u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_LISTEN_NMEA: u32 = 2228508u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_MODIFY_FIXSESSION: u32 = 2228292u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_POP_BREADCRUMBS: u32 = 2228684u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_RESPOND_NI: u32 = 2228492u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_SEND_DRIVERCOMMAND: u32 = 2228236u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_SEND_PLATFORM_CAPABILITY: u32 = 2228228u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_SET_SUPL_HSLP: u32 = 2228484u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_SET_V2UPL_CONFIG: u32 = 2228512u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_START_BREADCRUMBING: u32 = 2228672u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_START_FIXSESSION: u32 = 2228288u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_STOP_BREADCRUMBING: u32 = 2228676u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const IOCTL_GNSS_STOP_FIXSESSION: u32 = 2228296u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const LOCATION_API_VERSION: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const LatLongReport: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xed81c073_1f84_4ca8_a161_183c776bc651);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const LatLongReportFactory: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9dcc3cc8_8609_4863_bad4_03601f4c65e8);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const Location: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe5b8e079_ee6d_4e33_a438_c87f2e959254);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const MAX_SERVER_URL_NAME: u32 = 260u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const MIN_BREADCRUMBS_SUPPORTED: u32 = 120u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const MIN_GEOFENCES_REQUIRED: u32 = 100u32;
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const REPORT_ACCESS_DENIED: LOCATION_REPORT_STATUS = LOCATION_REPORT_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const REPORT_ERROR: LOCATION_REPORT_STATUS = LOCATION_REPORT_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const REPORT_INITIALIZING: LOCATION_REPORT_STATUS = LOCATION_REPORT_STATUS(3i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const REPORT_NOT_SUPPORTED: LOCATION_REPORT_STATUS = LOCATION_REPORT_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const REPORT_RUNNING: LOCATION_REPORT_STATUS = LOCATION_REPORT_STATUS(4i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub const SUPL_CONFIG_DATA: GNSS_DRIVER_REQUEST = GNSS_DRIVER_REQUEST(1i32);
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_AGNSS_REQUEST_TYPE(pub i32);
@@ -1206,7 +827,6 @@ impl ::core::fmt::Debug for GNSS_AGNSS_REQUEST_TYPE {
         f.debug_tuple("GNSS_AGNSS_REQUEST_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_DRIVERCOMMAND_TYPE(pub i32);
@@ -1229,7 +849,6 @@ impl ::core::fmt::Debug for GNSS_DRIVERCOMMAND_TYPE {
         f.debug_tuple("GNSS_DRIVERCOMMAND_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_DRIVER_REQUEST(pub i32);
@@ -1252,7 +871,6 @@ impl ::core::fmt::Debug for GNSS_DRIVER_REQUEST {
         f.debug_tuple("GNSS_DRIVER_REQUEST").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_EVENT_TYPE(pub i32);
@@ -1275,7 +893,6 @@ impl ::core::fmt::Debug for GNSS_EVENT_TYPE {
         f.debug_tuple("GNSS_EVENT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_FIXSESSIONTYPE(pub i32);
@@ -1298,7 +915,6 @@ impl ::core::fmt::Debug for GNSS_FIXSESSIONTYPE {
         f.debug_tuple("GNSS_FIXSESSIONTYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_GEOFENCE_STATE(pub i32);
@@ -1321,7 +937,6 @@ impl ::core::fmt::Debug for GNSS_GEOFENCE_STATE {
         f.debug_tuple("GNSS_GEOFENCE_STATE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_GEOREGIONTYPE(pub i32);
@@ -1344,7 +959,6 @@ impl ::core::fmt::Debug for GNSS_GEOREGIONTYPE {
         f.debug_tuple("GNSS_GEOREGIONTYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_NI_NOTIFICATION_TYPE(pub i32);
@@ -1367,7 +981,6 @@ impl ::core::fmt::Debug for GNSS_NI_NOTIFICATION_TYPE {
         f.debug_tuple("GNSS_NI_NOTIFICATION_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_NI_PLANE_TYPE(pub i32);
@@ -1390,7 +1003,6 @@ impl ::core::fmt::Debug for GNSS_NI_PLANE_TYPE {
         f.debug_tuple("GNSS_NI_PLANE_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_NI_REQUEST_TYPE(pub i32);
@@ -1413,7 +1025,6 @@ impl ::core::fmt::Debug for GNSS_NI_REQUEST_TYPE {
         f.debug_tuple("GNSS_NI_REQUEST_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_NI_USER_RESPONSE(pub i32);
@@ -1436,7 +1047,6 @@ impl ::core::fmt::Debug for GNSS_NI_USER_RESPONSE {
         f.debug_tuple("GNSS_NI_USER_RESPONSE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GNSS_SUPL_CERT_ACTION(pub i32);
@@ -1459,7 +1069,6 @@ impl ::core::fmt::Debug for GNSS_SUPL_CERT_ACTION {
         f.debug_tuple("GNSS_SUPL_CERT_ACTION").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct LOCATION_REPORT_STATUS(pub i32);
@@ -1483,7 +1092,7 @@ impl ::core::fmt::Debug for LOCATION_REPORT_STATUS {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_AGNSS_INJECT {
     pub Size: u32,
@@ -1513,7 +1122,7 @@ impl ::core::default::Default for GNSS_AGNSS_INJECT {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub union GNSS_AGNSS_INJECT_0 {
     pub Time: GNSS_AGNSS_INJECTTIME,
@@ -1539,7 +1148,6 @@ impl ::core::default::Default for GNSS_AGNSS_INJECT_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_AGNSS_INJECTBLOB {
     pub Size: u32,
     pub Version: u32,
@@ -1575,7 +1183,6 @@ impl ::core::default::Default for GNSS_AGNSS_INJECTBLOB {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_AGNSS_INJECTPOSITION {
     pub Size: u32,
     pub Version: u32,
@@ -1609,7 +1216,7 @@ impl ::core::default::Default for GNSS_AGNSS_INJECTPOSITION {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_AGNSS_INJECTTIME {
     pub Size: u32,
@@ -1650,7 +1257,6 @@ impl ::core::default::Default for GNSS_AGNSS_INJECTTIME {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_AGNSS_REQUEST_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -1683,7 +1289,6 @@ impl ::core::default::Default for GNSS_AGNSS_REQUEST_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_BREADCRUMBING_ALERT_DATA {
     pub Size: u32,
     pub Version: u32,
@@ -1715,7 +1320,6 @@ impl ::core::default::Default for GNSS_BREADCRUMBING_ALERT_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_BREADCRUMBING_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -1750,7 +1354,7 @@ impl ::core::default::Default for GNSS_BREADCRUMBING_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_BREADCRUMB_LIST {
     pub Size: u32,
@@ -1777,7 +1381,7 @@ impl ::core::default::Default for GNSS_BREADCRUMB_LIST {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub union GNSS_BREADCRUMB_LIST_0 {
     pub v1: [GNSS_BREADCRUMB_V1; 50],
@@ -1801,7 +1405,7 @@ impl ::core::default::Default for GNSS_BREADCRUMB_LIST_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_BREADCRUMB_V1 {
     pub FixTimeStamp: super::super::Foundation::FILETIME,
@@ -1861,7 +1465,6 @@ impl ::core::default::Default for GNSS_BREADCRUMB_V1 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_CHIPSETINFO {
     pub Size: u32,
     pub Version: u32,
@@ -1896,7 +1499,6 @@ impl ::core::default::Default for GNSS_CHIPSETINFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_CONTINUOUSTRACKING_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -1928,7 +1530,6 @@ impl ::core::default::Default for GNSS_CONTINUOUSTRACKING_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_CP_NI_INFO {
     pub Size: u32,
     pub Version: u32,
@@ -1961,7 +1562,7 @@ impl ::core::default::Default for GNSS_CP_NI_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_CWTESTDATA {
     pub Size: u32,
@@ -2004,7 +1605,7 @@ impl ::core::default::Default for GNSS_CWTESTDATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_DEVICE_CAPABILITY {
     pub Size: u32,
@@ -2122,7 +1723,6 @@ impl ::core::default::Default for GNSS_DEVICE_CAPABILITY {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_DISTANCETRACKING_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -2154,7 +1754,6 @@ impl ::core::default::Default for GNSS_DISTANCETRACKING_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_DRIVERCOMMAND_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -2190,7 +1789,6 @@ impl ::core::default::Default for GNSS_DRIVERCOMMAND_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_DRIVER_REQUEST_DATA {
     pub Size: u32,
     pub Version: u32,
@@ -2223,7 +1821,7 @@ impl ::core::default::Default for GNSS_DRIVER_REQUEST_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_ERRORINFO {
     pub Size: u32,
@@ -2266,7 +1864,7 @@ impl ::core::default::Default for GNSS_ERRORINFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_EVENT {
     pub Size: u32,
@@ -2295,7 +1893,7 @@ impl ::core::default::Default for GNSS_EVENT {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub union GNSS_EVENT_0 {
     pub FixData: GNSS_FIXDATA,
@@ -2328,7 +1926,7 @@ impl ::core::default::Default for GNSS_EVENT_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_EVENT_2 {
     pub Size: u32,
@@ -2357,7 +1955,7 @@ impl ::core::default::Default for GNSS_EVENT_2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub union GNSS_EVENT_2_0 {
     pub FixData: GNSS_FIXDATA,
@@ -2391,7 +1989,7 @@ impl ::core::default::Default for GNSS_EVENT_2_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_FIXDATA {
     pub Size: u32,
@@ -2438,7 +2036,7 @@ impl ::core::default::Default for GNSS_FIXDATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_FIXDATA_2 {
     pub Size: u32,
@@ -2485,7 +2083,6 @@ impl ::core::default::Default for GNSS_FIXDATA_2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_FIXDATA_ACCURACY {
     pub Size: u32,
     pub Version: u32,
@@ -2562,7 +2159,6 @@ impl ::core::default::Default for GNSS_FIXDATA_ACCURACY {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_FIXDATA_ACCURACY_2 {
     pub Size: u32,
     pub Version: u32,
@@ -2645,7 +2241,6 @@ impl ::core::default::Default for GNSS_FIXDATA_ACCURACY_2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_FIXDATA_BASIC {
     pub Size: u32,
     pub Version: u32,
@@ -2681,7 +2276,6 @@ impl ::core::default::Default for GNSS_FIXDATA_BASIC {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_FIXDATA_BASIC_2 {
     pub Size: u32,
     pub Version: u32,
@@ -2718,7 +2312,7 @@ impl ::core::default::Default for GNSS_FIXDATA_BASIC_2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_FIXDATA_SATELLITE {
     pub Size: u32,
@@ -2759,7 +2353,6 @@ impl ::core::default::Default for GNSS_FIXDATA_SATELLITE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_FIXSESSION_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -2787,7 +2380,6 @@ impl ::core::default::Default for GNSS_FIXSESSION_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub union GNSS_FIXSESSION_PARAM_0 {
     pub SingleShotParam: GNSS_SINGLESHOT_PARAM,
     pub DistanceParam: GNSS_DISTANCETRACKING_PARAM,
@@ -2810,7 +2402,7 @@ impl ::core::default::Default for GNSS_FIXSESSION_PARAM_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_GEOFENCES_TRACKINGSTATUS_DATA {
     pub Size: u32,
@@ -2852,7 +2444,6 @@ impl ::core::default::Default for GNSS_GEOFENCES_TRACKINGSTATUS_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_GEOFENCE_ALERT_DATA {
     pub Size: u32,
     pub Version: u32,
@@ -2888,7 +2479,6 @@ impl ::core::default::Default for GNSS_GEOFENCE_ALERT_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_GEOFENCE_CREATE_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -2912,7 +2502,7 @@ impl ::core::default::Default for GNSS_GEOFENCE_CREATE_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_GEOFENCE_CREATE_RESPONSE {
     pub Size: u32,
@@ -2954,7 +2544,6 @@ impl ::core::default::Default for GNSS_GEOFENCE_CREATE_RESPONSE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_GEOFENCE_DELETE_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -2987,7 +2576,6 @@ impl ::core::default::Default for GNSS_GEOFENCE_DELETE_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_GEOREGION {
     pub Size: u32,
     pub Version: u32,
@@ -3009,7 +2597,6 @@ impl ::core::default::Default for GNSS_GEOREGION {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub union GNSS_GEOREGION_0 {
     pub Circle: GNSS_GEOREGION_CIRCLE,
     pub Unused: [u8; 512],
@@ -3029,7 +2616,6 @@ impl ::core::default::Default for GNSS_GEOREGION_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_GEOREGION_CIRCLE {
     pub Latitude: f64,
     pub Longitude: f64,
@@ -3061,7 +2647,6 @@ impl ::core::default::Default for GNSS_GEOREGION_CIRCLE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_LKGFIX_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -3092,7 +2677,7 @@ impl ::core::default::Default for GNSS_LKGFIX_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_NI_REQUEST_PARAM {
     pub Size: u32,
@@ -3124,7 +2709,7 @@ impl ::core::default::Default for GNSS_NI_REQUEST_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub union GNSS_NI_REQUEST_PARAM_0 {
     pub SuplNiInfo: GNSS_SUPL_NI_INFO,
@@ -3150,7 +2735,6 @@ impl ::core::default::Default for GNSS_NI_REQUEST_PARAM_0 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_NI_RESPONSE {
     pub Size: u32,
     pub Version: u32,
@@ -3183,7 +2767,6 @@ impl ::core::default::Default for GNSS_NI_RESPONSE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_NMEA_DATA {
     pub Size: u32,
     pub Version: u32,
@@ -3215,7 +2798,7 @@ impl ::core::default::Default for GNSS_NMEA_DATA {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_PLATFORM_CAPABILITY {
     pub Size: u32,
@@ -3257,7 +2840,7 @@ impl ::core::default::Default for GNSS_PLATFORM_CAPABILITY {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_SATELLITEINFO {
     pub SatelliteId: u32,
@@ -3299,7 +2882,6 @@ impl ::core::default::Default for GNSS_SATELLITEINFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_SELFTESTCONFIG {
     pub Size: u32,
     pub Version: u32,
@@ -3334,7 +2916,7 @@ impl ::core::default::Default for GNSS_SELFTESTCONFIG {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct GNSS_SELFTESTRESULT {
     pub Size: u32,
@@ -3379,7 +2961,6 @@ impl ::core::default::Default for GNSS_SELFTESTRESULT {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_SINGLESHOT_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -3411,7 +2992,6 @@ impl ::core::default::Default for GNSS_SINGLESHOT_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_STOPFIXSESSION_PARAM {
     pub Size: u32,
     pub Version: u32,
@@ -3444,7 +3024,6 @@ impl ::core::default::Default for GNSS_STOPFIXSESSION_PARAM {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_SUPL_CERT_CONFIG {
     pub Size: u32,
     pub Version: u32,
@@ -3480,7 +3059,6 @@ impl ::core::default::Default for GNSS_SUPL_CERT_CONFIG {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_SUPL_HSLP_CONFIG {
     pub Size: u32,
     pub Version: u32,
@@ -3515,7 +3093,6 @@ impl ::core::default::Default for GNSS_SUPL_HSLP_CONFIG {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_SUPL_NI_INFO {
     pub Size: u32,
     pub Version: u32,
@@ -3549,7 +3126,6 @@ impl ::core::default::Default for GNSS_SUPL_NI_INFO {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_SUPL_VERSION {
     pub MajorVersion: u32,
     pub MinorVersion: u32,
@@ -3580,7 +3156,6 @@ impl ::core::default::Default for GNSS_SUPL_VERSION {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_SUPL_VERSION_2 {
     pub MajorVersion: u32,
     pub MinorVersion: u32,
@@ -3612,7 +3187,6 @@ impl ::core::default::Default for GNSS_SUPL_VERSION_2 {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_V2UPL_CONFIG {
     pub Size: u32,
     pub Version: u32,
@@ -3647,7 +3221,6 @@ impl ::core::default::Default for GNSS_V2UPL_CONFIG {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Devices_Geolocation\"`*"]
 pub struct GNSS_V2UPL_NI_INFO {
     pub Size: u32,
     pub Version: u32,

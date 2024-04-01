@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPlatformTelemetryClientStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPlatformTelemetryClientStatics {
     type Vtable = IPlatformTelemetryClientStatics_Vtbl;
-}
-impl ::core::clone::Clone for IPlatformTelemetryClientStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPlatformTelemetryClientStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9bf3f25d_d5c3_4eea_8dbe_9c8dbb0d9d8f);
@@ -21,14 +17,10 @@ pub struct IPlatformTelemetryClientStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPlatformTelemetryRegistrationResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPlatformTelemetryRegistrationResult {
     type Vtable = IPlatformTelemetryRegistrationResult_Vtbl;
-}
-impl ::core::clone::Clone for IPlatformTelemetryRegistrationResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPlatformTelemetryRegistrationResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4d8518ab_2292_49bd_a15a_3d71d2145112);
@@ -41,14 +33,10 @@ pub struct IPlatformTelemetryRegistrationResult_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPlatformTelemetryRegistrationSettings(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPlatformTelemetryRegistrationSettings {
     type Vtable = IPlatformTelemetryRegistrationSettings_Vtbl;
-}
-impl ::core::clone::Clone for IPlatformTelemetryRegistrationSettings {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPlatformTelemetryRegistrationSettings {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x819a8582_ca19_415e_bb79_9c224bfa3a73);
@@ -62,7 +50,6 @@ pub struct IPlatformTelemetryRegistrationSettings_Vtbl {
     pub UploadQuotaSize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut u32) -> ::windows_core::HRESULT,
     pub SetUploadQuotaSize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, value: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"System_Diagnostics_Telemetry\"`*"]
 pub struct PlatformTelemetryClient;
 impl PlatformTelemetryClient {
     pub fn Register(id: &::windows_core::HSTRING) -> ::windows_core::Result<PlatformTelemetryRegistrationResult> {
@@ -89,8 +76,8 @@ impl PlatformTelemetryClient {
 impl ::windows_core::RuntimeName for PlatformTelemetryClient {
     const NAME: &'static str = "Windows.System.Diagnostics.Telemetry.PlatformTelemetryClient";
 }
-#[doc = "*Required features: `\"System_Diagnostics_Telemetry\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PlatformTelemetryRegistrationResult(::windows_core::IUnknown);
 impl PlatformTelemetryRegistrationResult {
     pub fn Status(&self) -> ::windows_core::Result<PlatformTelemetryRegistrationStatus> {
@@ -101,24 +88,8 @@ impl PlatformTelemetryRegistrationResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for PlatformTelemetryRegistrationResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PlatformTelemetryRegistrationResult {}
-impl ::core::fmt::Debug for PlatformTelemetryRegistrationResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PlatformTelemetryRegistrationResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PlatformTelemetryRegistrationResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.System.Diagnostics.Telemetry.PlatformTelemetryRegistrationResult;{4d8518ab-2292-49bd-a15a-3d71d2145112})");
-}
-impl ::core::clone::Clone for PlatformTelemetryRegistrationResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PlatformTelemetryRegistrationResult {
     type Vtable = IPlatformTelemetryRegistrationResult_Vtbl;
@@ -132,8 +103,8 @@ impl ::windows_core::RuntimeName for PlatformTelemetryRegistrationResult {
 ::windows_core::imp::interface_hierarchy!(PlatformTelemetryRegistrationResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PlatformTelemetryRegistrationResult {}
 unsafe impl ::core::marker::Sync for PlatformTelemetryRegistrationResult {}
-#[doc = "*Required features: `\"System_Diagnostics_Telemetry\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PlatformTelemetryRegistrationSettings(::windows_core::IUnknown);
 impl PlatformTelemetryRegistrationSettings {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -166,24 +137,8 @@ impl PlatformTelemetryRegistrationSettings {
         unsafe { (::windows_core::Interface::vtable(this).SetUploadQuotaSize)(::windows_core::Interface::as_raw(this), value).ok() }
     }
 }
-impl ::core::cmp::PartialEq for PlatformTelemetryRegistrationSettings {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PlatformTelemetryRegistrationSettings {}
-impl ::core::fmt::Debug for PlatformTelemetryRegistrationSettings {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PlatformTelemetryRegistrationSettings").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PlatformTelemetryRegistrationSettings {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.System.Diagnostics.Telemetry.PlatformTelemetryRegistrationSettings;{819a8582-ca19-415e-bb79-9c224bfa3a73})");
-}
-impl ::core::clone::Clone for PlatformTelemetryRegistrationSettings {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PlatformTelemetryRegistrationSettings {
     type Vtable = IPlatformTelemetryRegistrationSettings_Vtbl;
@@ -197,7 +152,6 @@ impl ::windows_core::RuntimeName for PlatformTelemetryRegistrationSettings {
 ::windows_core::imp::interface_hierarchy!(PlatformTelemetryRegistrationSettings, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PlatformTelemetryRegistrationSettings {}
 unsafe impl ::core::marker::Sync for PlatformTelemetryRegistrationSettings {}
-#[doc = "*Required features: `\"System_Diagnostics_Telemetry\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PlatformTelemetryRegistrationStatus(pub i32);

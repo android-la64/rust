@@ -1,15 +1,12 @@
 #[cfg(feature = "Management_Deployment_Preview")]
+#[doc = "Required features: `\"Management_Deployment_Preview\"`"]
 pub mod Preview;
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAddPackageOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAddPackageOptions {
     type Vtable = IAddPackageOptions_Vtbl;
-}
-impl ::core::clone::Clone for IAddPackageOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAddPackageOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x05cee018_f68f_422b_95a4_66679ec77fc0);
@@ -69,14 +66,10 @@ pub struct IAddPackageOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAddPackageOptions2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAddPackageOptions2 {
     type Vtable = IAddPackageOptions2_Vtbl;
-}
-impl ::core::clone::Clone for IAddPackageOptions2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAddPackageOptions2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xee515828_bf33_40f7_84af_1b6fad2919d7);
@@ -94,14 +87,10 @@ pub struct IAddPackageOptions2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppInstallerManager(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppInstallerManager {
     type Vtable = IAppInstallerManager_Vtbl;
-}
-impl ::core::clone::Clone for IAppInstallerManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppInstallerManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe7ee21c3_2103_53ee_9b18_68afeab0033d);
@@ -119,14 +108,10 @@ pub struct IAppInstallerManager_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAppInstallerManagerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAppInstallerManagerStatics {
     type Vtable = IAppInstallerManagerStatics_Vtbl;
-}
-impl ::core::clone::Clone for IAppInstallerManagerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAppInstallerManagerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc95a6ed5_fc59_5336_9b2e_2b07c5e61434);
@@ -140,14 +125,10 @@ pub struct IAppInstallerManagerStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAutoUpdateSettingsOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAutoUpdateSettingsOptions {
     type Vtable = IAutoUpdateSettingsOptions_Vtbl;
-}
-impl ::core::clone::Clone for IAutoUpdateSettingsOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAutoUpdateSettingsOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x67491d87_35e1_512a_8968_1ae88d1be6d3);
@@ -205,14 +186,10 @@ pub struct IAutoUpdateSettingsOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAutoUpdateSettingsOptionsStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAutoUpdateSettingsOptionsStatics {
     type Vtable = IAutoUpdateSettingsOptionsStatics_Vtbl;
-}
-impl ::core::clone::Clone for IAutoUpdateSettingsOptionsStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAutoUpdateSettingsOptionsStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x887b337d_0c05_54d0_bd49_3bb7a2c084cb);
@@ -228,14 +205,10 @@ pub struct IAutoUpdateSettingsOptionsStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICreateSharedPackageContainerOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICreateSharedPackageContainerOptions {
     type Vtable = ICreateSharedPackageContainerOptions_Vtbl;
-}
-impl ::core::clone::Clone for ICreateSharedPackageContainerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICreateSharedPackageContainerOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc2ab6ece_f664_5c8e_a4b3_2a33276d3dde);
@@ -255,14 +228,10 @@ pub struct ICreateSharedPackageContainerOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICreateSharedPackageContainerResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICreateSharedPackageContainerResult {
     type Vtable = ICreateSharedPackageContainerResult_Vtbl;
-}
-impl ::core::clone::Clone for ICreateSharedPackageContainerResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICreateSharedPackageContainerResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xce8810bf_151c_5707_b936_497e564afc7a);
@@ -277,14 +246,10 @@ pub struct ICreateSharedPackageContainerResult_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDeleteSharedPackageContainerOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDeleteSharedPackageContainerOptions {
     type Vtable = IDeleteSharedPackageContainerOptions_Vtbl;
-}
-impl ::core::clone::Clone for IDeleteSharedPackageContainerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDeleteSharedPackageContainerOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9d81865f_986e_5138_8b5d_384d8e66ed6c);
@@ -300,14 +265,10 @@ pub struct IDeleteSharedPackageContainerOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDeleteSharedPackageContainerResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDeleteSharedPackageContainerResult {
     type Vtable = IDeleteSharedPackageContainerResult_Vtbl;
-}
-impl ::core::clone::Clone for IDeleteSharedPackageContainerResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDeleteSharedPackageContainerResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x35398884_5736_517b_85bc_e598c81ab284);
@@ -321,14 +282,10 @@ pub struct IDeleteSharedPackageContainerResult_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDeploymentResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDeploymentResult {
     type Vtable = IDeploymentResult_Vtbl;
-}
-impl ::core::clone::Clone for IDeploymentResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDeploymentResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2563b9ae_b77d_4c1f_8a7b_20e6ad515ef3);
@@ -343,14 +300,10 @@ pub struct IDeploymentResult_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDeploymentResult2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDeploymentResult2 {
     type Vtable = IDeploymentResult2_Vtbl;
-}
-impl ::core::clone::Clone for IDeploymentResult2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDeploymentResult2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfc0e715c_5a01_4bd7_bcf1_381c8c82e04a);
@@ -363,14 +316,10 @@ pub struct IDeploymentResult2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IFindSharedPackageContainerOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IFindSharedPackageContainerOptions {
     type Vtable = IFindSharedPackageContainerOptions_Vtbl;
-}
-impl ::core::clone::Clone for IFindSharedPackageContainerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IFindSharedPackageContainerOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb40fc8fe_8384_54cc_817d_ae09d3b6a606);
@@ -386,14 +335,10 @@ pub struct IFindSharedPackageContainerOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageAllUserProvisioningOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageAllUserProvisioningOptions {
     type Vtable = IPackageAllUserProvisioningOptions_Vtbl;
-}
-impl ::core::clone::Clone for IPackageAllUserProvisioningOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageAllUserProvisioningOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xda35aa22_1de0_5d3e_99ff_d24f3118bf5e);
@@ -413,14 +358,10 @@ pub struct IPackageAllUserProvisioningOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager {
     type Vtable = IPackageManager_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9a7d4b65_5e8f_4fc7_a2e5_7f6925cb8b53);
@@ -493,14 +434,10 @@ pub struct IPackageManager_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager10(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager10 {
     type Vtable = IPackageManager10_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager10 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager10 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa7d7d07e_2e66_4093_aed5_e093ed87b3bb);
@@ -516,14 +453,10 @@ pub struct IPackageManager10_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager2 {
     type Vtable = IPackageManager2_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf7aad08d_0840_46f2_b5d8_cad47693a095);
@@ -575,14 +508,10 @@ pub struct IPackageManager2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager3(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager3 {
     type Vtable = IPackageManager3_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager3 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xdaad9948_36f1_41a7_9188_bc263e0dcb72);
@@ -639,14 +568,10 @@ pub struct IPackageManager3_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager4(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager4 {
     type Vtable = IPackageManager4_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager4 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager4 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3c719963_bab6_46bf_8ff7_da4719230ae6);
@@ -662,14 +587,10 @@ pub struct IPackageManager4_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager5(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager5 {
     type Vtable = IPackageManager5_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager5 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager5 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x711f3117_1afd_4313_978c_9bb6e1b864a7);
@@ -694,14 +615,10 @@ pub struct IPackageManager5_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager6(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager6 {
     type Vtable = IPackageManager6_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager6 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager6 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0847e909_53cd_4e4f_832e_57d180f6e447);
@@ -737,14 +654,10 @@ pub struct IPackageManager6_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager7(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager7 {
     type Vtable = IPackageManager7_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager7 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager7 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf28654f4_2ba7_4b80_88d6_be15f9a23fba);
@@ -760,14 +673,10 @@ pub struct IPackageManager7_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager8(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager8 {
     type Vtable = IPackageManager8_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager8 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager8 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb8575330_1298_4ee2_80ee_7f659c5d2782);
@@ -783,14 +692,10 @@ pub struct IPackageManager8_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManager9(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManager9 {
     type Vtable = IPackageManager9_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManager9 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManager9 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1aa79035_cc71_4b2e_80a6_c7041d8579a7);
@@ -824,14 +729,10 @@ pub struct IPackageManager9_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageManagerDebugSettings(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageManagerDebugSettings {
     type Vtable = IPackageManagerDebugSettings_Vtbl;
-}
-impl ::core::clone::Clone for IPackageManagerDebugSettings {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageManagerDebugSettings {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1a611683_a988_4fcf_8f0f_ce175898e8eb);
@@ -851,14 +752,10 @@ pub struct IPackageManagerDebugSettings_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageUserInformation(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageUserInformation {
     type Vtable = IPackageUserInformation_Vtbl;
-}
-impl ::core::clone::Clone for IPackageUserInformation {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageUserInformation {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf6383423_fa09_4cbc_9055_15ca275e2e7e);
@@ -872,14 +769,10 @@ pub struct IPackageUserInformation_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageVolume(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageVolume {
     type Vtable = IPackageVolume_Vtbl;
-}
-impl ::core::clone::Clone for IPackageVolume {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageVolume {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcf2672c3_1a40_4450_9739_2ace2e898853);
@@ -953,14 +846,10 @@ pub struct IPackageVolume_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPackageVolume2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPackageVolume2 {
     type Vtable = IPackageVolume2_Vtbl;
-}
-impl ::core::clone::Clone for IPackageVolume2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPackageVolume2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x46abcf2e_9dd4_47a2_ab8c_c6408349bcd8);
@@ -978,14 +867,10 @@ pub struct IPackageVolume2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRegisterPackageOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IRegisterPackageOptions {
     type Vtable = IRegisterPackageOptions_Vtbl;
-}
-impl ::core::clone::Clone for IRegisterPackageOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRegisterPackageOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x677112a7_50d4_496c_8415_0602b4c6d3bf);
@@ -1031,14 +916,10 @@ pub struct IRegisterPackageOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRegisterPackageOptions2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IRegisterPackageOptions2 {
     type Vtable = IRegisterPackageOptions2_Vtbl;
-}
-impl ::core::clone::Clone for IRegisterPackageOptions2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRegisterPackageOptions2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3dfa9743_86ff_4a11_bc93_434eb6be3a0b);
@@ -1054,14 +935,10 @@ pub struct IRegisterPackageOptions2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISharedPackageContainer(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISharedPackageContainer {
     type Vtable = ISharedPackageContainer_Vtbl;
-}
-impl ::core::clone::Clone for ISharedPackageContainer {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISharedPackageContainer {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x177f1aa9_151e_5ef7_b1d9_2fba0b4b0d17);
@@ -1081,14 +958,10 @@ pub struct ISharedPackageContainer_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISharedPackageContainerManager(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISharedPackageContainerManager {
     type Vtable = ISharedPackageContainerManager_Vtbl;
-}
-impl ::core::clone::Clone for ISharedPackageContainerManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISharedPackageContainerManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xbe353068_1ef7_5ac8_ab3f_0b9f612f0274);
@@ -1111,14 +984,10 @@ pub struct ISharedPackageContainerManager_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISharedPackageContainerManagerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISharedPackageContainerManagerStatics {
     type Vtable = ISharedPackageContainerManagerStatics_Vtbl;
-}
-impl ::core::clone::Clone for ISharedPackageContainerManagerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISharedPackageContainerManagerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2ef56348_838a_5f55_a89e_1198a2c627e6);
@@ -1133,14 +1002,10 @@ pub struct ISharedPackageContainerManagerStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISharedPackageContainerMember(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISharedPackageContainerMember {
     type Vtable = ISharedPackageContainerMember_Vtbl;
-}
-impl ::core::clone::Clone for ISharedPackageContainerMember {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISharedPackageContainerMember {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfe0d0438_43c9_5426_b89c_f79bf85ddff4);
@@ -1153,14 +1018,10 @@ pub struct ISharedPackageContainerMember_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISharedPackageContainerMemberFactory(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISharedPackageContainerMemberFactory {
     type Vtable = ISharedPackageContainerMemberFactory_Vtbl;
-}
-impl ::core::clone::Clone for ISharedPackageContainerMemberFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISharedPackageContainerMemberFactory {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x49b0ceeb_498f_5a62_b738_b3ca0d436704);
@@ -1173,14 +1034,10 @@ pub struct ISharedPackageContainerMemberFactory_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IStagePackageOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IStagePackageOptions {
     type Vtable = IStagePackageOptions_Vtbl;
-}
-impl ::core::clone::Clone for IStagePackageOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IStagePackageOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0b110c9c_b95d_4c56_bd36_6d656800d06b);
@@ -1232,14 +1089,10 @@ pub struct IStagePackageOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IStagePackageOptions2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IStagePackageOptions2 {
     type Vtable = IStagePackageOptions2_Vtbl;
-}
-impl ::core::clone::Clone for IStagePackageOptions2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IStagePackageOptions2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x990c4ccc_6226_4192_ba92_79875fce0d9c);
@@ -1255,14 +1108,10 @@ pub struct IStagePackageOptions2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateSharedPackageContainerOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUpdateSharedPackageContainerOptions {
     type Vtable = IUpdateSharedPackageContainerOptions_Vtbl;
-}
-impl ::core::clone::Clone for IUpdateSharedPackageContainerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUpdateSharedPackageContainerOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x80672e83_7194_59f9_b5b9_daa5375f130a);
@@ -1278,14 +1127,10 @@ pub struct IUpdateSharedPackageContainerOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateSharedPackageContainerResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUpdateSharedPackageContainerResult {
     type Vtable = IUpdateSharedPackageContainerResult_Vtbl;
-}
-impl ::core::clone::Clone for IUpdateSharedPackageContainerResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUpdateSharedPackageContainerResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xaa407df7_c72d_5458_aea3_4645b6a8ee99);
@@ -1297,8 +1142,8 @@ pub struct IUpdateSharedPackageContainerResult_Vtbl {
     pub Status: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut SharedPackageContainerOperationStatus) -> ::windows_core::HRESULT,
     pub ExtendedError: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut ::windows_core::HRESULT) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AddPackageOptions(::windows_core::IUnknown);
 impl AddPackageOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -1308,7 +1153,7 @@ impl AddPackageOptions {
         static SHARED: ::windows_core::imp::FactoryCache<AddPackageOptions, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn DependencyPackageUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -1331,7 +1176,7 @@ impl AddPackageOptions {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetTargetVolume)(::windows_core::Interface::as_raw(this), value.into_param().abi()).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn OptionalPackageFamilyNames(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = self;
@@ -1340,7 +1185,7 @@ impl AddPackageOptions {
             (::windows_core::Interface::vtable(this).OptionalPackageFamilyNames)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn OptionalPackageUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -1349,7 +1194,7 @@ impl AddPackageOptions {
             (::windows_core::Interface::vtable(this).OptionalPackageUris)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RelatedPackageUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -1358,7 +1203,7 @@ impl AddPackageOptions {
             (::windows_core::Interface::vtable(this).RelatedPackageUris)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ExternalLocationUri(&self) -> ::windows_core::Result<super::super::Foundation::Uri> {
         let this = self;
@@ -1367,7 +1212,7 @@ impl AddPackageOptions {
             (::windows_core::Interface::vtable(this).ExternalLocationUri)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetExternalLocationUri<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -1497,7 +1342,7 @@ impl AddPackageOptions {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetDeferRegistrationWhenPackagesAreInUse)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn ExpectedDigests(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IMap<super::super::Foundation::Uri, ::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<IAddPackageOptions2>(self)?;
@@ -1518,24 +1363,8 @@ impl AddPackageOptions {
         unsafe { (::windows_core::Interface::vtable(this).SetLimitToExistingPackages)(::windows_core::Interface::as_raw(this), value).ok() }
     }
 }
-impl ::core::cmp::PartialEq for AddPackageOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AddPackageOptions {}
-impl ::core::fmt::Debug for AddPackageOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AddPackageOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AddPackageOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.AddPackageOptions;{05cee018-f68f-422b-95a4-66679ec77fc0})");
-}
-impl ::core::clone::Clone for AddPackageOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AddPackageOptions {
     type Vtable = IAddPackageOptions_Vtbl;
@@ -1549,8 +1378,8 @@ impl ::windows_core::RuntimeName for AddPackageOptions {
 ::windows_core::imp::interface_hierarchy!(AddPackageOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AddPackageOptions {}
 unsafe impl ::core::marker::Sync for AddPackageOptions {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AppInstallerManager(::windows_core::IUnknown);
 impl AppInstallerManager {
     pub fn SetAutoUpdateSettings<P0>(&self, packagefamilyname: &::windows_core::HSTRING, appinstallerinfo: P0) -> ::windows_core::Result<()>
@@ -1564,7 +1393,7 @@ impl AppInstallerManager {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).ClearAutoUpdateSettings)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefamilyname)).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn PauseAutoUpdatesUntil(&self, packagefamilyname: &::windows_core::HSTRING, datetime: super::super::Foundation::DateTime) -> ::windows_core::Result<()> {
         let this = self;
@@ -1588,24 +1417,8 @@ impl AppInstallerManager {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for AppInstallerManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AppInstallerManager {}
-impl ::core::fmt::Debug for AppInstallerManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AppInstallerManager").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AppInstallerManager {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.AppInstallerManager;{e7ee21c3-2103-53ee-9b18-68afeab0033d})");
-}
-impl ::core::clone::Clone for AppInstallerManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AppInstallerManager {
     type Vtable = IAppInstallerManager_Vtbl;
@@ -1619,8 +1432,8 @@ impl ::windows_core::RuntimeName for AppInstallerManager {
 ::windows_core::imp::interface_hierarchy!(AppInstallerManager, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AppInstallerManager {}
 unsafe impl ::core::marker::Sync for AppInstallerManager {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AutoUpdateSettingsOptions(::windows_core::IUnknown);
 impl AutoUpdateSettingsOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -1630,7 +1443,7 @@ impl AutoUpdateSettingsOptions {
         static SHARED: ::windows_core::imp::FactoryCache<AutoUpdateSettingsOptions, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`"]
     #[cfg(feature = "ApplicationModel")]
     pub fn Version(&self) -> ::windows_core::Result<super::super::ApplicationModel::PackageVersion> {
         let this = self;
@@ -1639,13 +1452,13 @@ impl AutoUpdateSettingsOptions {
             (::windows_core::Interface::vtable(this).Version)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`"]
     #[cfg(feature = "ApplicationModel")]
     pub fn SetVersion(&self, value: super::super::ApplicationModel::PackageVersion) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetVersion)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn AppInstallerUri(&self) -> ::windows_core::Result<super::super::Foundation::Uri> {
         let this = self;
@@ -1654,7 +1467,7 @@ impl AutoUpdateSettingsOptions {
             (::windows_core::Interface::vtable(this).AppInstallerUri)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetAppInstallerUri<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -1740,7 +1553,7 @@ impl AutoUpdateSettingsOptions {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetIsAutoRepairEnabled)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn UpdateUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -1749,7 +1562,7 @@ impl AutoUpdateSettingsOptions {
             (::windows_core::Interface::vtable(this).UpdateUris)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RepairUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -1758,7 +1571,7 @@ impl AutoUpdateSettingsOptions {
             (::windows_core::Interface::vtable(this).RepairUris)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn DependencyPackageUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -1767,7 +1580,7 @@ impl AutoUpdateSettingsOptions {
             (::windows_core::Interface::vtable(this).DependencyPackageUris)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn OptionalPackageUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -1776,7 +1589,7 @@ impl AutoUpdateSettingsOptions {
             (::windows_core::Interface::vtable(this).OptionalPackageUris)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`"]
     #[cfg(feature = "ApplicationModel")]
     pub fn CreateFromAppInstallerInfo<P0>(appinstallerinfo: P0) -> ::windows_core::Result<AutoUpdateSettingsOptions>
     where
@@ -1793,24 +1606,8 @@ impl AutoUpdateSettingsOptions {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for AutoUpdateSettingsOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AutoUpdateSettingsOptions {}
-impl ::core::fmt::Debug for AutoUpdateSettingsOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AutoUpdateSettingsOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AutoUpdateSettingsOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.AutoUpdateSettingsOptions;{67491d87-35e1-512a-8968-1ae88d1be6d3})");
-}
-impl ::core::clone::Clone for AutoUpdateSettingsOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AutoUpdateSettingsOptions {
     type Vtable = IAutoUpdateSettingsOptions_Vtbl;
@@ -1824,8 +1621,8 @@ impl ::windows_core::RuntimeName for AutoUpdateSettingsOptions {
 ::windows_core::imp::interface_hierarchy!(AutoUpdateSettingsOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AutoUpdateSettingsOptions {}
 unsafe impl ::core::marker::Sync for AutoUpdateSettingsOptions {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CreateSharedPackageContainerOptions(::windows_core::IUnknown);
 impl CreateSharedPackageContainerOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -1835,7 +1632,7 @@ impl CreateSharedPackageContainerOptions {
         static SHARED: ::windows_core::imp::FactoryCache<CreateSharedPackageContainerOptions, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Members(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<SharedPackageContainerMember>> {
         let this = self;
@@ -1867,24 +1664,8 @@ impl CreateSharedPackageContainerOptions {
         unsafe { (::windows_core::Interface::vtable(this).SetCreateCollisionOption)(::windows_core::Interface::as_raw(this), value).ok() }
     }
 }
-impl ::core::cmp::PartialEq for CreateSharedPackageContainerOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CreateSharedPackageContainerOptions {}
-impl ::core::fmt::Debug for CreateSharedPackageContainerOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CreateSharedPackageContainerOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CreateSharedPackageContainerOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.CreateSharedPackageContainerOptions;{c2ab6ece-f664-5c8e-a4b3-2a33276d3dde})");
-}
-impl ::core::clone::Clone for CreateSharedPackageContainerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CreateSharedPackageContainerOptions {
     type Vtable = ICreateSharedPackageContainerOptions_Vtbl;
@@ -1898,8 +1679,8 @@ impl ::windows_core::RuntimeName for CreateSharedPackageContainerOptions {
 ::windows_core::imp::interface_hierarchy!(CreateSharedPackageContainerOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CreateSharedPackageContainerOptions {}
 unsafe impl ::core::marker::Sync for CreateSharedPackageContainerOptions {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CreateSharedPackageContainerResult(::windows_core::IUnknown);
 impl CreateSharedPackageContainerResult {
     pub fn Container(&self) -> ::windows_core::Result<SharedPackageContainer> {
@@ -1924,24 +1705,8 @@ impl CreateSharedPackageContainerResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for CreateSharedPackageContainerResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CreateSharedPackageContainerResult {}
-impl ::core::fmt::Debug for CreateSharedPackageContainerResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CreateSharedPackageContainerResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CreateSharedPackageContainerResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.CreateSharedPackageContainerResult;{ce8810bf-151c-5707-b936-497e564afc7a})");
-}
-impl ::core::clone::Clone for CreateSharedPackageContainerResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CreateSharedPackageContainerResult {
     type Vtable = ICreateSharedPackageContainerResult_Vtbl;
@@ -1955,8 +1720,8 @@ impl ::windows_core::RuntimeName for CreateSharedPackageContainerResult {
 ::windows_core::imp::interface_hierarchy!(CreateSharedPackageContainerResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CreateSharedPackageContainerResult {}
 unsafe impl ::core::marker::Sync for CreateSharedPackageContainerResult {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct DeleteSharedPackageContainerOptions(::windows_core::IUnknown);
 impl DeleteSharedPackageContainerOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -1989,24 +1754,8 @@ impl DeleteSharedPackageContainerOptions {
         unsafe { (::windows_core::Interface::vtable(this).SetAllUsers)(::windows_core::Interface::as_raw(this), value).ok() }
     }
 }
-impl ::core::cmp::PartialEq for DeleteSharedPackageContainerOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for DeleteSharedPackageContainerOptions {}
-impl ::core::fmt::Debug for DeleteSharedPackageContainerOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("DeleteSharedPackageContainerOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for DeleteSharedPackageContainerOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.DeleteSharedPackageContainerOptions;{9d81865f-986e-5138-8b5d-384d8e66ed6c})");
-}
-impl ::core::clone::Clone for DeleteSharedPackageContainerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for DeleteSharedPackageContainerOptions {
     type Vtable = IDeleteSharedPackageContainerOptions_Vtbl;
@@ -2020,8 +1769,8 @@ impl ::windows_core::RuntimeName for DeleteSharedPackageContainerOptions {
 ::windows_core::imp::interface_hierarchy!(DeleteSharedPackageContainerOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for DeleteSharedPackageContainerOptions {}
 unsafe impl ::core::marker::Sync for DeleteSharedPackageContainerOptions {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct DeleteSharedPackageContainerResult(::windows_core::IUnknown);
 impl DeleteSharedPackageContainerResult {
     pub fn Status(&self) -> ::windows_core::Result<SharedPackageContainerOperationStatus> {
@@ -2039,24 +1788,8 @@ impl DeleteSharedPackageContainerResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for DeleteSharedPackageContainerResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for DeleteSharedPackageContainerResult {}
-impl ::core::fmt::Debug for DeleteSharedPackageContainerResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("DeleteSharedPackageContainerResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for DeleteSharedPackageContainerResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.DeleteSharedPackageContainerResult;{35398884-5736-517b-85bc-e598c81ab284})");
-}
-impl ::core::clone::Clone for DeleteSharedPackageContainerResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for DeleteSharedPackageContainerResult {
     type Vtable = IDeleteSharedPackageContainerResult_Vtbl;
@@ -2070,8 +1803,8 @@ impl ::windows_core::RuntimeName for DeleteSharedPackageContainerResult {
 ::windows_core::imp::interface_hierarchy!(DeleteSharedPackageContainerResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for DeleteSharedPackageContainerResult {}
 unsafe impl ::core::marker::Sync for DeleteSharedPackageContainerResult {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct DeploymentResult(::windows_core::IUnknown);
 impl DeploymentResult {
     pub fn ErrorText(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -2103,24 +1836,8 @@ impl DeploymentResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for DeploymentResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for DeploymentResult {}
-impl ::core::fmt::Debug for DeploymentResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("DeploymentResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for DeploymentResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.DeploymentResult;{2563b9ae-b77d-4c1f-8a7b-20e6ad515ef3})");
-}
-impl ::core::clone::Clone for DeploymentResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for DeploymentResult {
     type Vtable = IDeploymentResult_Vtbl;
@@ -2134,8 +1851,8 @@ impl ::windows_core::RuntimeName for DeploymentResult {
 ::windows_core::imp::interface_hierarchy!(DeploymentResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for DeploymentResult {}
 unsafe impl ::core::marker::Sync for DeploymentResult {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct FindSharedPackageContainerOptions(::windows_core::IUnknown);
 impl FindSharedPackageContainerOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -2168,24 +1885,8 @@ impl FindSharedPackageContainerOptions {
         unsafe { (::windows_core::Interface::vtable(this).SetPackageFamilyName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
 }
-impl ::core::cmp::PartialEq for FindSharedPackageContainerOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for FindSharedPackageContainerOptions {}
-impl ::core::fmt::Debug for FindSharedPackageContainerOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("FindSharedPackageContainerOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for FindSharedPackageContainerOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.FindSharedPackageContainerOptions;{b40fc8fe-8384-54cc-817d-ae09d3b6a606})");
-}
-impl ::core::clone::Clone for FindSharedPackageContainerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for FindSharedPackageContainerOptions {
     type Vtable = IFindSharedPackageContainerOptions_Vtbl;
@@ -2199,8 +1900,8 @@ impl ::windows_core::RuntimeName for FindSharedPackageContainerOptions {
 ::windows_core::imp::interface_hierarchy!(FindSharedPackageContainerOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for FindSharedPackageContainerOptions {}
 unsafe impl ::core::marker::Sync for FindSharedPackageContainerOptions {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PackageAllUserProvisioningOptions(::windows_core::IUnknown);
 impl PackageAllUserProvisioningOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -2210,7 +1911,7 @@ impl PackageAllUserProvisioningOptions {
         static SHARED: ::windows_core::imp::FactoryCache<PackageAllUserProvisioningOptions, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn OptionalPackageFamilyNames(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = self;
@@ -2219,7 +1920,7 @@ impl PackageAllUserProvisioningOptions {
             (::windows_core::Interface::vtable(this).OptionalPackageFamilyNames)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn ProjectionOrderPackageFamilyNames(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = self;
@@ -2229,24 +1930,8 @@ impl PackageAllUserProvisioningOptions {
         }
     }
 }
-impl ::core::cmp::PartialEq for PackageAllUserProvisioningOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PackageAllUserProvisioningOptions {}
-impl ::core::fmt::Debug for PackageAllUserProvisioningOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PackageAllUserProvisioningOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PackageAllUserProvisioningOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.PackageAllUserProvisioningOptions;{da35aa22-1de0-5d3e-99ff-d24f3118bf5e})");
-}
-impl ::core::clone::Clone for PackageAllUserProvisioningOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PackageAllUserProvisioningOptions {
     type Vtable = IPackageAllUserProvisioningOptions_Vtbl;
@@ -2260,8 +1945,8 @@ impl ::windows_core::RuntimeName for PackageAllUserProvisioningOptions {
 ::windows_core::imp::interface_hierarchy!(PackageAllUserProvisioningOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PackageAllUserProvisioningOptions {}
 unsafe impl ::core::marker::Sync for PackageAllUserProvisioningOptions {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PackageManager(::windows_core::IUnknown);
 impl PackageManager {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -2271,7 +1956,7 @@ impl PackageManager {
         static SHARED: ::windows_core::imp::FactoryCache<PackageManager, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn AddPackageAsync<P0, P1>(&self, packageuri: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2284,7 +1969,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).AddPackageAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), deploymentoptions, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn UpdatePackageAsync<P0, P1>(&self, packageuri: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2297,7 +1982,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).UpdatePackageAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), deploymentoptions, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemovePackageAsync(&self, packagefullname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>> {
         let this = self;
@@ -2306,7 +1991,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).RemovePackageAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn StagePackageAsync<P0, P1>(&self, packageuri: P0, dependencypackageuris: P1) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2319,7 +2004,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).StagePackageAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RegisterPackageAsync<P0, P1>(&self, manifesturi: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2332,7 +2017,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).RegisterPackageAsync)(::windows_core::Interface::as_raw(this), manifesturi.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), deploymentoptions, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackages(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -2341,7 +2026,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackages)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityId(&self, usersecurityid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -2350,7 +2035,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityId)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByNamePublisher(&self, packagename: &::windows_core::HSTRING, packagepublisher: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -2359,7 +2044,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByNamePublisher)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagename), ::core::mem::transmute_copy(packagepublisher), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdNamePublisher(&self, usersecurityid: &::windows_core::HSTRING, packagename: &::windows_core::HSTRING, packagepublisher: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -2368,7 +2053,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdNamePublisher)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), ::core::mem::transmute_copy(packagename), ::core::mem::transmute_copy(packagepublisher), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn FindUsers(&self, packagefullname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<PackageUserInformation>> {
         let this = self;
@@ -2381,7 +2066,7 @@ impl PackageManager {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetPackageState)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), packagestate).ok() }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`"]
     #[cfg(feature = "ApplicationModel")]
     pub fn FindPackageByPackageFullName(&self, packagefullname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::ApplicationModel::Package> {
         let this = self;
@@ -2390,7 +2075,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackageByPackageFullName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CleanupPackageForUserAsync(&self, packagename: &::windows_core::HSTRING, usersecurityid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>> {
         let this = self;
@@ -2399,7 +2084,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).CleanupPackageForUserAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagename), ::core::mem::transmute_copy(usersecurityid), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByPackageFamilyName(&self, packagefamilyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -2408,7 +2093,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByPackageFamilyName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefamilyname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdPackageFamilyName(&self, usersecurityid: &::windows_core::HSTRING, packagefamilyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -2417,7 +2102,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdPackageFamilyName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), ::core::mem::transmute_copy(packagefamilyname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`"]
     #[cfg(feature = "ApplicationModel")]
     pub fn FindPackageByUserSecurityIdPackageFullName(&self, usersecurityid: &::windows_core::HSTRING, packagefullname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::ApplicationModel::Package> {
         let this = self;
@@ -2426,7 +2111,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackageByUserSecurityIdPackageFullName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), ::core::mem::transmute_copy(packagefullname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ProvisionPackageForAllUsersWithOptionsAsync<P0>(&self, mainpackagefamilyname: &::windows_core::HSTRING, options: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2438,7 +2123,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).ProvisionPackageForAllUsersWithOptionsAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(mainpackagefamilyname), options.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemovePackageWithOptionsAsync(&self, packagefullname: &::windows_core::HSTRING, removaloptions: RemovalOptions) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager2>(self)?;
@@ -2447,7 +2132,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).RemovePackageWithOptionsAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), removaloptions, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn StagePackageWithOptionsAsync<P0, P1>(&self, packageuri: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2460,7 +2145,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).StagePackageWithOptionsAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), deploymentoptions, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RegisterPackageByFullNameAsync<P0>(&self, mainpackagefullname: &::windows_core::HSTRING, dependencypackagefullnames: P0, deploymentoptions: DeploymentOptions) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2472,7 +2157,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).RegisterPackageByFullNameAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(mainpackagefullname), dependencypackagefullnames.try_into_param()?.abi(), deploymentoptions, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesWithPackageTypes(&self, packagetypes: PackageTypes) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager2>(self)?;
@@ -2481,7 +2166,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesWithPackageTypes)(::windows_core::Interface::as_raw(this), packagetypes, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdWithPackageTypes(&self, usersecurityid: &::windows_core::HSTRING, packagetypes: PackageTypes) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager2>(self)?;
@@ -2490,7 +2175,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdWithPackageTypes)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), packagetypes, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByNamePublisherWithPackageTypes(&self, packagename: &::windows_core::HSTRING, packagepublisher: &::windows_core::HSTRING, packagetypes: PackageTypes) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager2>(self)?;
@@ -2499,7 +2184,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByNamePublisherWithPackageTypes)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagename), ::core::mem::transmute_copy(packagepublisher), packagetypes, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdNamePublisherWithPackageTypes(&self, usersecurityid: &::windows_core::HSTRING, packagename: &::windows_core::HSTRING, packagepublisher: &::windows_core::HSTRING, packagetypes: PackageTypes) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager2>(self)?;
@@ -2508,7 +2193,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdNamePublisherWithPackageTypes)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), ::core::mem::transmute_copy(packagename), ::core::mem::transmute_copy(packagepublisher), packagetypes, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByPackageFamilyNameWithPackageTypes(&self, packagefamilyname: &::windows_core::HSTRING, packagetypes: PackageTypes) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager2>(self)?;
@@ -2517,7 +2202,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByPackageFamilyNameWithPackageTypes)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefamilyname), packagetypes, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdPackageFamilyNameWithPackageTypes(&self, usersecurityid: &::windows_core::HSTRING, packagefamilyname: &::windows_core::HSTRING, packagetypes: PackageTypes) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<super::super::ApplicationModel::Package>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager2>(self)?;
@@ -2526,7 +2211,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdPackageFamilyNameWithPackageTypes)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), ::core::mem::transmute_copy(packagefamilyname), packagetypes, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn StageUserDataAsync(&self, packagefullname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager2>(self)?;
@@ -2535,7 +2220,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).StageUserDataAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn AddPackageVolumeAsync(&self, packagestorepath: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<PackageVolume>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager3>(self)?;
@@ -2544,7 +2229,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).AddPackageVolumeAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagestorepath), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn AddPackageToVolumeAsync<P0, P1, P2>(&self, packageuri: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions, targetvolume: P2) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2562,7 +2247,7 @@ impl PackageManager {
         let this = &::windows_core::ComInterface::cast::<IPackageManager3>(self)?;
         unsafe { (::windows_core::Interface::vtable(this).ClearPackageStatus)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), status).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RegisterPackageWithAppDataVolumeAsync<P0, P1, P2>(&self, manifesturi: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions, appdatavolume: P2) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2583,7 +2268,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindPackageVolumeByName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(volumename), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn FindPackageVolumes(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IIterable<PackageVolume>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager3>(self)?;
@@ -2599,7 +2284,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).GetDefaultPackageVolume)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn MovePackageToVolumeAsync<P0>(&self, packagefullname: &::windows_core::HSTRING, deploymentoptions: DeploymentOptions, targetvolume: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2611,7 +2296,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).MovePackageToVolumeAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), deploymentoptions, targetvolume.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemovePackageVolumeAsync<P0>(&self, volume: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2634,7 +2319,7 @@ impl PackageManager {
         let this = &::windows_core::ComInterface::cast::<IPackageManager3>(self)?;
         unsafe { (::windows_core::Interface::vtable(this).SetPackageStatus)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), status).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetPackageVolumeOfflineAsync<P0>(&self, packagevolume: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2646,7 +2331,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).SetPackageVolumeOfflineAsync)(::windows_core::Interface::as_raw(this), packagevolume.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetPackageVolumeOnlineAsync<P0>(&self, packagevolume: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2658,7 +2343,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).SetPackageVolumeOnlineAsync)(::windows_core::Interface::as_raw(this), packagevolume.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn StagePackageToVolumeAsync<P0, P1, P2>(&self, packageuri: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions, targetvolume: P2) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2672,7 +2357,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).StagePackageToVolumeAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), deploymentoptions, targetvolume.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn StageUserDataWithOptionsAsync(&self, packagefullname: &::windows_core::HSTRING, deploymentoptions: DeploymentOptions) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager3>(self)?;
@@ -2681,7 +2366,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).StageUserDataWithOptionsAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), deploymentoptions, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn GetPackageVolumesAsync(&self) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<super::super::Foundation::Collections::IVectorView<PackageVolume>>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager4>(self)?;
@@ -2690,7 +2375,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).GetPackageVolumesAsync)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn AddPackageToVolumeAndOptionalPackagesAsync<P0, P1, P2, P3, P4>(&self, packageuri: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions, targetvolume: P2, optionalpackagefamilynames: P3, externalpackageuris: P4) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2706,7 +2391,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).AddPackageToVolumeAndOptionalPackagesAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), deploymentoptions, targetvolume.into_param().abi(), optionalpackagefamilynames.try_into_param()?.abi(), externalpackageuris.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn StagePackageToVolumeAndOptionalPackagesAsync<P0, P1, P2, P3, P4>(&self, packageuri: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions, targetvolume: P2, optionalpackagefamilynames: P3, externalpackageuris: P4) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2722,7 +2407,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).StagePackageToVolumeAndOptionalPackagesAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), deploymentoptions, targetvolume.into_param().abi(), optionalpackagefamilynames.try_into_param()?.abi(), externalpackageuris.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RegisterPackageByFamilyNameAndOptionalPackagesAsync<P0, P1, P2>(&self, mainpackagefamilyname: &::windows_core::HSTRING, dependencypackagefamilynames: P0, deploymentoptions: DeploymentOptions, appdatavolume: P1, optionalpackagefamilynames: P2) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2743,7 +2428,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).DebugSettings)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ProvisionPackageForAllUsersAsync(&self, packagefamilyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager6>(self)?;
@@ -2752,7 +2437,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).ProvisionPackageForAllUsersAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefamilyname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn AddPackageByAppInstallerFileAsync<P0, P1>(&self, appinstallerfileuri: P0, options: AddPackageByAppInstallerOptions, targetvolume: P1) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2765,7 +2450,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).AddPackageByAppInstallerFileAsync)(::windows_core::Interface::as_raw(this), appinstallerfileuri.into_param().abi(), options, targetvolume.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RequestAddPackageByAppInstallerFileAsync<P0, P1>(&self, appinstallerfileuri: P0, options: AddPackageByAppInstallerOptions, targetvolume: P1) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2778,7 +2463,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).RequestAddPackageByAppInstallerFileAsync)(::windows_core::Interface::as_raw(this), appinstallerfileuri.into_param().abi(), options, targetvolume.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn AddPackageToVolumeAndRelatedSetAsync<P0, P1, P2, P3, P4, P5>(&self, packageuri: P0, dependencypackageuris: P1, options: DeploymentOptions, targetvolume: P2, optionalpackagefamilynames: P3, packageuristoinstall: P4, relatedpackageuris: P5) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2795,7 +2480,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).AddPackageToVolumeAndRelatedSetAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), options, targetvolume.into_param().abi(), optionalpackagefamilynames.try_into_param()?.abi(), packageuristoinstall.try_into_param()?.abi(), relatedpackageuris.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn StagePackageToVolumeAndRelatedSetAsync<P0, P1, P2, P3, P4, P5>(&self, packageuri: P0, dependencypackageuris: P1, options: DeploymentOptions, targetvolume: P2, optionalpackagefamilynames: P3, packageuristoinstall: P4, relatedpackageuris: P5) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2812,7 +2497,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).StagePackageToVolumeAndRelatedSetAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), options, targetvolume.into_param().abi(), optionalpackagefamilynames.try_into_param()?.abi(), packageuristoinstall.try_into_param()?.abi(), relatedpackageuris.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RequestAddPackageAsync<P0, P1, P2, P3, P4>(&self, packageuri: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions, targetvolume: P2, optionalpackagefamilynames: P3, relatedpackageuris: P4) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2828,7 +2513,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).RequestAddPackageAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), deploymentoptions, targetvolume.into_param().abi(), optionalpackagefamilynames.try_into_param()?.abi(), relatedpackageuris.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RequestAddPackageAndRelatedSetAsync<P0, P1, P2, P3, P4, P5>(&self, packageuri: P0, dependencypackageuris: P1, deploymentoptions: DeploymentOptions, targetvolume: P2, optionalpackagefamilynames: P3, relatedpackageuris: P4, packageuristoinstall: P5) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2845,7 +2530,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).RequestAddPackageAndRelatedSetAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), dependencypackageuris.try_into_param()?.abi(), deploymentoptions, targetvolume.into_param().abi(), optionalpackagefamilynames.try_into_param()?.abi(), relatedpackageuris.try_into_param()?.abi(), packageuristoinstall.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn DeprovisionPackageForAllUsersAsync(&self, packagefamilyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager8>(self)?;
@@ -2854,7 +2539,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).DeprovisionPackageForAllUsersAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefamilyname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindProvisionedPackages(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = &::windows_core::ComInterface::cast::<IPackageManager9>(self)?;
@@ -2863,7 +2548,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).FindProvisionedPackages)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn AddPackageByUriAsync<P0, P1>(&self, packageuri: P0, options: P1) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2876,7 +2561,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).AddPackageByUriAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), options.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn StagePackageByUriAsync<P0, P1>(&self, packageuri: P0, options: P1) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2889,7 +2574,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).StagePackageByUriAsync)(::windows_core::Interface::as_raw(this), packageuri.into_param().abi(), options.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RegisterPackageByUriAsync<P0, P1>(&self, manifesturi: P0, options: P1) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2902,7 +2587,7 @@ impl PackageManager {
             (::windows_core::Interface::vtable(this).RegisterPackageByUriAsync)(::windows_core::Interface::as_raw(this), manifesturi.into_param().abi(), options.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RegisterPackagesByFullNameAsync<P0, P1>(&self, packagefullnames: P0, options: P1) -> ::windows_core::Result<super::super::Foundation::IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>>
     where
@@ -2927,24 +2612,8 @@ impl PackageManager {
         }
     }
 }
-impl ::core::cmp::PartialEq for PackageManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PackageManager {}
-impl ::core::fmt::Debug for PackageManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PackageManager").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PackageManager {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.PackageManager;{9a7d4b65-5e8f-4fc7-a2e5-7f6925cb8b53})");
-}
-impl ::core::clone::Clone for PackageManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PackageManager {
     type Vtable = IPackageManager_Vtbl;
@@ -2958,11 +2627,11 @@ impl ::windows_core::RuntimeName for PackageManager {
 ::windows_core::imp::interface_hierarchy!(PackageManager, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PackageManager {}
 unsafe impl ::core::marker::Sync for PackageManager {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PackageManagerDebugSettings(::windows_core::IUnknown);
 impl PackageManagerDebugSettings {
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation"))]
     pub fn SetContentGroupStateAsync<P0>(&self, package: P0, contentgroupname: &::windows_core::HSTRING, state: super::super::ApplicationModel::PackageContentGroupState) -> ::windows_core::Result<super::super::Foundation::IAsyncAction>
     where
@@ -2974,7 +2643,7 @@ impl PackageManagerDebugSettings {
             (::windows_core::Interface::vtable(this).SetContentGroupStateAsync)(::windows_core::Interface::as_raw(this), package.into_param().abi(), ::core::mem::transmute_copy(contentgroupname), state, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation"))]
     pub fn SetContentGroupStateWithPercentageAsync<P0>(&self, package: P0, contentgroupname: &::windows_core::HSTRING, state: super::super::ApplicationModel::PackageContentGroupState, completionpercentage: f64) -> ::windows_core::Result<super::super::Foundation::IAsyncAction>
     where
@@ -2987,24 +2656,8 @@ impl PackageManagerDebugSettings {
         }
     }
 }
-impl ::core::cmp::PartialEq for PackageManagerDebugSettings {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PackageManagerDebugSettings {}
-impl ::core::fmt::Debug for PackageManagerDebugSettings {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PackageManagerDebugSettings").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PackageManagerDebugSettings {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.PackageManagerDebugSettings;{1a611683-a988-4fcf-8f0f-ce175898e8eb})");
-}
-impl ::core::clone::Clone for PackageManagerDebugSettings {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PackageManagerDebugSettings {
     type Vtable = IPackageManagerDebugSettings_Vtbl;
@@ -3018,8 +2671,8 @@ impl ::windows_core::RuntimeName for PackageManagerDebugSettings {
 ::windows_core::imp::interface_hierarchy!(PackageManagerDebugSettings, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PackageManagerDebugSettings {}
 unsafe impl ::core::marker::Sync for PackageManagerDebugSettings {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PackageUserInformation(::windows_core::IUnknown);
 impl PackageUserInformation {
     pub fn UserSecurityId(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -3037,24 +2690,8 @@ impl PackageUserInformation {
         }
     }
 }
-impl ::core::cmp::PartialEq for PackageUserInformation {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PackageUserInformation {}
-impl ::core::fmt::Debug for PackageUserInformation {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PackageUserInformation").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PackageUserInformation {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.PackageUserInformation;{f6383423-fa09-4cbc-9055-15ca275e2e7e})");
-}
-impl ::core::clone::Clone for PackageUserInformation {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PackageUserInformation {
     type Vtable = IPackageUserInformation_Vtbl;
@@ -3068,8 +2705,8 @@ impl ::windows_core::RuntimeName for PackageUserInformation {
 ::windows_core::imp::interface_hierarchy!(PackageUserInformation, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PackageUserInformation {}
 unsafe impl ::core::marker::Sync for PackageUserInformation {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PackageVolume(::windows_core::IUnknown);
 impl PackageVolume {
     pub fn IsOffline(&self) -> ::windows_core::Result<bool> {
@@ -3114,7 +2751,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).SupportsHardLinks)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackages(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3123,7 +2760,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackages)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByNamePublisher(&self, packagename: &::windows_core::HSTRING, packagepublisher: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3132,7 +2769,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByNamePublisher)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagename), ::core::mem::transmute_copy(packagepublisher), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByPackageFamilyName(&self, packagefamilyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3141,7 +2778,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByPackageFamilyName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefamilyname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesWithPackageTypes(&self, packagetypes: PackageTypes) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3150,7 +2787,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesWithPackageTypes)(::windows_core::Interface::as_raw(this), packagetypes, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByNamePublisherWithPackagesTypes(&self, packagetypes: PackageTypes, packagename: &::windows_core::HSTRING, packagepublisher: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3159,7 +2796,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByNamePublisherWithPackagesTypes)(::windows_core::Interface::as_raw(this), packagetypes, ::core::mem::transmute_copy(packagename), ::core::mem::transmute_copy(packagepublisher), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByPackageFamilyNameWithPackageTypes(&self, packagetypes: PackageTypes, packagefamilyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3168,7 +2805,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByPackageFamilyNameWithPackageTypes)(::windows_core::Interface::as_raw(this), packagetypes, ::core::mem::transmute_copy(packagefamilyname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackageByPackageFullName(&self, packagefullname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3177,7 +2814,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackageByPackageFullName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(packagefullname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityId(&self, usersecurityid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3186,7 +2823,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityId)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdNamePublisher(&self, usersecurityid: &::windows_core::HSTRING, packagename: &::windows_core::HSTRING, packagepublisher: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3195,7 +2832,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdNamePublisher)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), ::core::mem::transmute_copy(packagename), ::core::mem::transmute_copy(packagepublisher), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdPackageFamilyName(&self, usersecurityid: &::windows_core::HSTRING, packagefamilyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3204,7 +2841,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdPackageFamilyName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), ::core::mem::transmute_copy(packagefamilyname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdWithPackageTypes(&self, usersecurityid: &::windows_core::HSTRING, packagetypes: PackageTypes) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3213,7 +2850,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdWithPackageTypes)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), packagetypes, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdNamePublisherWithPackageTypes(&self, usersecurityid: &::windows_core::HSTRING, packagetypes: PackageTypes, packagename: &::windows_core::HSTRING, packagepublisher: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3222,7 +2859,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdNamePublisherWithPackageTypes)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), packagetypes, ::core::mem::transmute_copy(packagename), ::core::mem::transmute_copy(packagepublisher), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackagesByUserSecurityIdPackageFamilyNameWithPackagesTypes(&self, usersecurityid: &::windows_core::HSTRING, packagetypes: PackageTypes, packagefamilyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3231,7 +2868,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).FindPackagesByUserSecurityIdPackageFamilyNameWithPackagesTypes)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(usersecurityid), packagetypes, ::core::mem::transmute_copy(packagefamilyname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"ApplicationModel\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "ApplicationModel", feature = "Foundation_Collections"))]
     pub fn FindPackageByUserSecurityIdPackageFullName(&self, usersecurityid: &::windows_core::HSTRING, packagefullname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::ApplicationModel::Package>> {
         let this = self;
@@ -3254,7 +2891,7 @@ impl PackageVolume {
             (::windows_core::Interface::vtable(this).IsAppxInstallSupported)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn GetAvailableSpaceAsync(&self) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<u64>> {
         let this = &::windows_core::ComInterface::cast::<IPackageVolume2>(self)?;
@@ -3264,24 +2901,8 @@ impl PackageVolume {
         }
     }
 }
-impl ::core::cmp::PartialEq for PackageVolume {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PackageVolume {}
-impl ::core::fmt::Debug for PackageVolume {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PackageVolume").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PackageVolume {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.PackageVolume;{cf2672c3-1a40-4450-9739-2ace2e898853})");
-}
-impl ::core::clone::Clone for PackageVolume {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PackageVolume {
     type Vtable = IPackageVolume_Vtbl;
@@ -3295,8 +2916,8 @@ impl ::windows_core::RuntimeName for PackageVolume {
 ::windows_core::imp::interface_hierarchy!(PackageVolume, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PackageVolume {}
 unsafe impl ::core::marker::Sync for PackageVolume {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct RegisterPackageOptions(::windows_core::IUnknown);
 impl RegisterPackageOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -3306,7 +2927,7 @@ impl RegisterPackageOptions {
         static SHARED: ::windows_core::imp::FactoryCache<RegisterPackageOptions, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn DependencyPackageUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -3329,7 +2950,7 @@ impl RegisterPackageOptions {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetAppDataVolume)(::windows_core::Interface::as_raw(this), value.into_param().abi()).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn OptionalPackageFamilyNames(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = self;
@@ -3338,7 +2959,7 @@ impl RegisterPackageOptions {
             (::windows_core::Interface::vtable(this).OptionalPackageFamilyNames)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ExternalLocationUri(&self) -> ::windows_core::Result<super::super::Foundation::Uri> {
         let this = self;
@@ -3347,7 +2968,7 @@ impl RegisterPackageOptions {
             (::windows_core::Interface::vtable(this).ExternalLocationUri)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetExternalLocationUri<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -3444,7 +3065,7 @@ impl RegisterPackageOptions {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetDeferRegistrationWhenPackagesAreInUse)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn ExpectedDigests(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IMap<super::super::Foundation::Uri, ::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<IRegisterPackageOptions2>(self)?;
@@ -3454,24 +3075,8 @@ impl RegisterPackageOptions {
         }
     }
 }
-impl ::core::cmp::PartialEq for RegisterPackageOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for RegisterPackageOptions {}
-impl ::core::fmt::Debug for RegisterPackageOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("RegisterPackageOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for RegisterPackageOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.RegisterPackageOptions;{677112a7-50d4-496c-8415-0602b4c6d3bf})");
-}
-impl ::core::clone::Clone for RegisterPackageOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for RegisterPackageOptions {
     type Vtable = IRegisterPackageOptions_Vtbl;
@@ -3485,8 +3090,8 @@ impl ::windows_core::RuntimeName for RegisterPackageOptions {
 ::windows_core::imp::interface_hierarchy!(RegisterPackageOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for RegisterPackageOptions {}
 unsafe impl ::core::marker::Sync for RegisterPackageOptions {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SharedPackageContainer(::windows_core::IUnknown);
 impl SharedPackageContainer {
     pub fn Name(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -3503,7 +3108,7 @@ impl SharedPackageContainer {
             (::windows_core::Interface::vtable(this).Id)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn GetMembers(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<SharedPackageContainerMember>> {
         let this = self;
@@ -3530,24 +3135,8 @@ impl SharedPackageContainer {
         }
     }
 }
-impl ::core::cmp::PartialEq for SharedPackageContainer {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SharedPackageContainer {}
-impl ::core::fmt::Debug for SharedPackageContainer {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SharedPackageContainer").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SharedPackageContainer {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.SharedPackageContainer;{177f1aa9-151e-5ef7-b1d9-2fba0b4b0d17})");
-}
-impl ::core::clone::Clone for SharedPackageContainer {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SharedPackageContainer {
     type Vtable = ISharedPackageContainer_Vtbl;
@@ -3561,8 +3150,8 @@ impl ::windows_core::RuntimeName for SharedPackageContainer {
 ::windows_core::imp::interface_hierarchy!(SharedPackageContainer, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for SharedPackageContainer {}
 unsafe impl ::core::marker::Sync for SharedPackageContainer {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SharedPackageContainerManager(::windows_core::IUnknown);
 impl SharedPackageContainerManager {
     pub fn CreateContainer<P0>(&self, name: &::windows_core::HSTRING, options: P0) -> ::windows_core::Result<CreateSharedPackageContainerResult>
@@ -3592,7 +3181,7 @@ impl SharedPackageContainerManager {
             (::windows_core::Interface::vtable(this).GetContainer)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(id), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn FindContainers(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<SharedPackageContainer>> {
         let this = self;
@@ -3601,7 +3190,7 @@ impl SharedPackageContainerManager {
             (::windows_core::Interface::vtable(this).FindContainers)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn FindContainersWithOptions<P0>(&self, options: P0) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<SharedPackageContainer>>
     where
@@ -3637,24 +3226,8 @@ impl SharedPackageContainerManager {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for SharedPackageContainerManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SharedPackageContainerManager {}
-impl ::core::fmt::Debug for SharedPackageContainerManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SharedPackageContainerManager").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SharedPackageContainerManager {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.SharedPackageContainerManager;{be353068-1ef7-5ac8-ab3f-0b9f612f0274})");
-}
-impl ::core::clone::Clone for SharedPackageContainerManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SharedPackageContainerManager {
     type Vtable = ISharedPackageContainerManager_Vtbl;
@@ -3668,8 +3241,8 @@ impl ::windows_core::RuntimeName for SharedPackageContainerManager {
 ::windows_core::imp::interface_hierarchy!(SharedPackageContainerManager, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for SharedPackageContainerManager {}
 unsafe impl ::core::marker::Sync for SharedPackageContainerManager {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SharedPackageContainerMember(::windows_core::IUnknown);
 impl SharedPackageContainerMember {
     pub fn PackageFamilyName(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -3691,24 +3264,8 @@ impl SharedPackageContainerMember {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for SharedPackageContainerMember {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SharedPackageContainerMember {}
-impl ::core::fmt::Debug for SharedPackageContainerMember {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SharedPackageContainerMember").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SharedPackageContainerMember {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.SharedPackageContainerMember;{fe0d0438-43c9-5426-b89c-f79bf85ddff4})");
-}
-impl ::core::clone::Clone for SharedPackageContainerMember {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SharedPackageContainerMember {
     type Vtable = ISharedPackageContainerMember_Vtbl;
@@ -3722,8 +3279,8 @@ impl ::windows_core::RuntimeName for SharedPackageContainerMember {
 ::windows_core::imp::interface_hierarchy!(SharedPackageContainerMember, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for SharedPackageContainerMember {}
 unsafe impl ::core::marker::Sync for SharedPackageContainerMember {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct StagePackageOptions(::windows_core::IUnknown);
 impl StagePackageOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -3733,7 +3290,7 @@ impl StagePackageOptions {
         static SHARED: ::windows_core::imp::FactoryCache<StagePackageOptions, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn DependencyPackageUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -3756,7 +3313,7 @@ impl StagePackageOptions {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetTargetVolume)(::windows_core::Interface::as_raw(this), value.into_param().abi()).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn OptionalPackageFamilyNames(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = self;
@@ -3765,7 +3322,7 @@ impl StagePackageOptions {
             (::windows_core::Interface::vtable(this).OptionalPackageFamilyNames)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn OptionalPackageUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -3774,7 +3331,7 @@ impl StagePackageOptions {
             (::windows_core::Interface::vtable(this).OptionalPackageUris)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn RelatedPackageUris(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVector<super::super::Foundation::Uri>> {
         let this = self;
@@ -3783,7 +3340,7 @@ impl StagePackageOptions {
             (::windows_core::Interface::vtable(this).RelatedPackageUris)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ExternalLocationUri(&self) -> ::windows_core::Result<super::super::Foundation::Uri> {
         let this = self;
@@ -3792,7 +3349,7 @@ impl StagePackageOptions {
             (::windows_core::Interface::vtable(this).ExternalLocationUri)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetExternalLocationUri<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -3878,7 +3435,7 @@ impl StagePackageOptions {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetAllowUnsigned)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn ExpectedDigests(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IMap<super::super::Foundation::Uri, ::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<IStagePackageOptions2>(self)?;
@@ -3888,24 +3445,8 @@ impl StagePackageOptions {
         }
     }
 }
-impl ::core::cmp::PartialEq for StagePackageOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for StagePackageOptions {}
-impl ::core::fmt::Debug for StagePackageOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("StagePackageOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for StagePackageOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.StagePackageOptions;{0b110c9c-b95d-4c56-bd36-6d656800d06b})");
-}
-impl ::core::clone::Clone for StagePackageOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for StagePackageOptions {
     type Vtable = IStagePackageOptions_Vtbl;
@@ -3919,8 +3460,8 @@ impl ::windows_core::RuntimeName for StagePackageOptions {
 ::windows_core::imp::interface_hierarchy!(StagePackageOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for StagePackageOptions {}
 unsafe impl ::core::marker::Sync for StagePackageOptions {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct UpdateSharedPackageContainerOptions(::windows_core::IUnknown);
 impl UpdateSharedPackageContainerOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -3953,24 +3494,8 @@ impl UpdateSharedPackageContainerOptions {
         unsafe { (::windows_core::Interface::vtable(this).SetRequirePackagesPresent)(::windows_core::Interface::as_raw(this), value).ok() }
     }
 }
-impl ::core::cmp::PartialEq for UpdateSharedPackageContainerOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for UpdateSharedPackageContainerOptions {}
-impl ::core::fmt::Debug for UpdateSharedPackageContainerOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("UpdateSharedPackageContainerOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for UpdateSharedPackageContainerOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.UpdateSharedPackageContainerOptions;{80672e83-7194-59f9-b5b9-daa5375f130a})");
-}
-impl ::core::clone::Clone for UpdateSharedPackageContainerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for UpdateSharedPackageContainerOptions {
     type Vtable = IUpdateSharedPackageContainerOptions_Vtbl;
@@ -3984,8 +3509,8 @@ impl ::windows_core::RuntimeName for UpdateSharedPackageContainerOptions {
 ::windows_core::imp::interface_hierarchy!(UpdateSharedPackageContainerOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for UpdateSharedPackageContainerOptions {}
 unsafe impl ::core::marker::Sync for UpdateSharedPackageContainerOptions {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct UpdateSharedPackageContainerResult(::windows_core::IUnknown);
 impl UpdateSharedPackageContainerResult {
     pub fn Status(&self) -> ::windows_core::Result<SharedPackageContainerOperationStatus> {
@@ -4003,24 +3528,8 @@ impl UpdateSharedPackageContainerResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for UpdateSharedPackageContainerResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for UpdateSharedPackageContainerResult {}
-impl ::core::fmt::Debug for UpdateSharedPackageContainerResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("UpdateSharedPackageContainerResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for UpdateSharedPackageContainerResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Deployment.UpdateSharedPackageContainerResult;{aa407df7-c72d-5458-aea3-4645b6a8ee99})");
-}
-impl ::core::clone::Clone for UpdateSharedPackageContainerResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for UpdateSharedPackageContainerResult {
     type Vtable = IUpdateSharedPackageContainerResult_Vtbl;
@@ -4034,7 +3543,6 @@ impl ::windows_core::RuntimeName for UpdateSharedPackageContainerResult {
 ::windows_core::imp::interface_hierarchy!(UpdateSharedPackageContainerResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for UpdateSharedPackageContainerResult {}
 unsafe impl ::core::marker::Sync for UpdateSharedPackageContainerResult {}
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AddPackageByAppInstallerOptions(pub u32);
@@ -4100,7 +3608,6 @@ impl ::core::ops::Not for AddPackageByAppInstallerOptions {
 impl ::windows_core::RuntimeType for AddPackageByAppInstallerOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.AddPackageByAppInstallerOptions;u4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DeploymentOptions(pub u32);
@@ -4170,7 +3677,6 @@ impl ::core::ops::Not for DeploymentOptions {
 impl ::windows_core::RuntimeType for DeploymentOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.DeploymentOptions;u4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DeploymentProgressState(pub i32);
@@ -4200,7 +3706,6 @@ impl ::core::fmt::Debug for DeploymentProgressState {
 impl ::windows_core::RuntimeType for DeploymentProgressState {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.DeploymentProgressState;i4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PackageInstallState(pub i32);
@@ -4232,7 +3737,6 @@ impl ::core::fmt::Debug for PackageInstallState {
 impl ::windows_core::RuntimeType for PackageInstallState {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.PackageInstallState;i4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PackageState(pub i32);
@@ -4264,7 +3768,6 @@ impl ::core::fmt::Debug for PackageState {
 impl ::windows_core::RuntimeType for PackageState {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.PackageState;i4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PackageStatus(pub u32);
@@ -4330,7 +3833,6 @@ impl ::core::ops::Not for PackageStatus {
 impl ::windows_core::RuntimeType for PackageStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.PackageStatus;u4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PackageStubPreference(pub i32);
@@ -4360,7 +3862,6 @@ impl ::core::fmt::Debug for PackageStubPreference {
 impl ::windows_core::RuntimeType for PackageStubPreference {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.PackageStubPreference;i4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PackageTypes(pub u32);
@@ -4429,7 +3930,6 @@ impl ::core::ops::Not for PackageTypes {
 impl ::windows_core::RuntimeType for PackageTypes {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.PackageTypes;u4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RemovalOptions(pub u32);
@@ -4494,7 +3994,6 @@ impl ::core::ops::Not for RemovalOptions {
 impl ::windows_core::RuntimeType for RemovalOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.RemovalOptions;u4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SharedPackageContainerCreationCollisionOptions(pub i32);
@@ -4525,7 +4024,6 @@ impl ::core::fmt::Debug for SharedPackageContainerCreationCollisionOptions {
 impl ::windows_core::RuntimeType for SharedPackageContainerCreationCollisionOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.SharedPackageContainerCreationCollisionOptions;i4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SharedPackageContainerOperationStatus(pub i32);
@@ -4559,7 +4057,6 @@ impl ::core::fmt::Debug for SharedPackageContainerOperationStatus {
 impl ::windows_core::RuntimeType for SharedPackageContainerOperationStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.SharedPackageContainerOperationStatus;i4)");
 }
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct StubPackageOption(pub i32);
@@ -4592,7 +4089,6 @@ impl ::windows_core::RuntimeType for StubPackageOption {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Management.Deployment.StubPackageOption;i4)");
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Management_Deployment\"`*"]
 pub struct DeploymentProgress {
     pub state: DeploymentProgressState,
     pub percentage: u32,

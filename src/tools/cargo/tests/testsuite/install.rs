@@ -128,7 +128,7 @@ fn simple_with_message_format() {
             r#"
             {
                 "reason": "compiler-artifact",
-                "package_id": "foo 0.0.1 ([..])",
+                "package_id": "registry+https://[..]#foo@0.0.1",
                 "manifest_path": "[..]",
                 "target": {
                     "kind": [
@@ -153,7 +153,7 @@ fn simple_with_message_format() {
 
             {
                 "reason": "compiler-artifact",
-                "package_id": "foo 0.0.1 ([..])",
+                "package_id": "registry+https://[..]#foo@0.0.1",
                 "manifest_path": "[..]",
                 "target": {
                     "kind": [
@@ -1195,7 +1195,7 @@ fn installs_from_cwd_by_default() {
 
     p.cargo("install")
         .with_stderr_contains(
-            "warning: Using `cargo install` to install the binaries for the \
+            "warning: Using `cargo install` to install the binaries from the \
              package in current working directory is deprecated, \
              use `cargo install --path .` instead. \
              Use `cargo build` if you want to simply build the package.",
@@ -1223,7 +1223,7 @@ fn installs_from_cwd_with_2018_warnings() {
     p.cargo("install")
         .with_status(101)
         .with_stderr_contains(
-            "error: Using `cargo install` to install the binaries for the \
+            "error: Using `cargo install` to install the binaries from the \
              package in current working directory is no longer supported, \
              use `cargo install --path .` instead. \
              Use `cargo build` if you want to simply build the package.",
@@ -2060,7 +2060,7 @@ fn git_install_reads_workspace_manifest() {
 
     cargo_process(&format!("install --git {}", p.url().to_string()))
         .with_status(101)
-        .with_stderr_contains("  invalid type: integer `3`[..]")
+        .with_stderr_contains("error: invalid type: integer `3`[..]")
         .run();
 }
 

@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"ApplicationModel_Background\"`, `\"implement\"`*"]
 pub trait IBackgroundCondition_Impl: Sized {}
 impl ::windows_core::RuntimeName for IBackgroundCondition {
     const NAME: &'static str = "Windows.ApplicationModel.Background.IBackgroundCondition";
@@ -7,11 +6,10 @@ impl IBackgroundCondition_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IBackgroundCondition_Impl, const OFFSET: isize>() -> IBackgroundCondition_Vtbl {
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IBackgroundCondition, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBackgroundCondition as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBackgroundCondition as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Background\"`, `\"implement\"`*"]
 pub trait IBackgroundTask_Impl: Sized {
     fn Run(&self, taskinstance: ::core::option::Option<&IBackgroundTaskInstance>) -> ::windows_core::Result<()>;
 }
@@ -27,11 +25,11 @@ impl IBackgroundTask_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IBackgroundTask, OFFSET>(), Run: Run::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBackgroundTask as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBackgroundTask as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Background\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IBackgroundTaskInstance_Impl: Sized {
     fn InstanceId(&self) -> ::windows_core::Result<::windows_core::GUID>;
@@ -154,11 +152,11 @@ impl IBackgroundTaskInstance_Vtbl {
             GetDeferral: GetDeferral::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBackgroundTaskInstance as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBackgroundTaskInstance as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Background\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IBackgroundTaskInstance2_Impl: Sized + IBackgroundTaskInstance_Impl {
     fn GetThrottleCount(&self, counter: BackgroundTaskThrottleCounter) -> ::windows_core::Result<u32>;
@@ -186,11 +184,11 @@ impl IBackgroundTaskInstance2_Vtbl {
             GetThrottleCount: GetThrottleCount::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBackgroundTaskInstance2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBackgroundTaskInstance2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Background\"`, `\"Foundation\"`, `\"System\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`, `\"System\"`"]
 #[cfg(all(feature = "Foundation", feature = "System"))]
 pub trait IBackgroundTaskInstance4_Impl: Sized + IBackgroundTaskInstance_Impl {
     fn User(&self) -> ::windows_core::Result<super::super::System::User>;
@@ -216,11 +214,11 @@ impl IBackgroundTaskInstance4_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IBackgroundTaskInstance4, OFFSET>(), User: User::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBackgroundTaskInstance4 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBackgroundTaskInstance4 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Background\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IBackgroundTaskRegistration_Impl: Sized {
     fn TaskId(&self) -> ::windows_core::Result<::windows_core::GUID>;
@@ -309,11 +307,11 @@ impl IBackgroundTaskRegistration_Vtbl {
             Unregister: Unregister::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBackgroundTaskRegistration as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBackgroundTaskRegistration as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Background\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IBackgroundTaskRegistration2_Impl: Sized + IBackgroundTaskRegistration_Impl {
     fn Trigger(&self) -> ::windows_core::Result<IBackgroundTrigger>;
@@ -339,11 +337,11 @@ impl IBackgroundTaskRegistration2_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IBackgroundTaskRegistration2, OFFSET>(), Trigger: Trigger::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBackgroundTaskRegistration2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBackgroundTaskRegistration2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Background\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IBackgroundTaskRegistration3_Impl: Sized + IBackgroundTaskRegistration_Impl {
     fn TaskGroup(&self) -> ::windows_core::Result<BackgroundTaskRegistrationGroup>;
@@ -372,11 +370,10 @@ impl IBackgroundTaskRegistration3_Vtbl {
             TaskGroup: TaskGroup::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBackgroundTaskRegistration3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBackgroundTaskRegistration3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Background\"`, `\"implement\"`*"]
 pub trait IBackgroundTrigger_Impl: Sized {}
 impl ::windows_core::RuntimeName for IBackgroundTrigger {
     const NAME: &'static str = "Windows.ApplicationModel.Background.IBackgroundTrigger";
@@ -385,7 +382,7 @@ impl IBackgroundTrigger_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IBackgroundTrigger_Impl, const OFFSET: isize>() -> IBackgroundTrigger_Vtbl {
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IBackgroundTrigger, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IBackgroundTrigger as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IBackgroundTrigger as ::windows_core::ComInterface>::IID
     }
 }

@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Media_Protection\"`, `\"implement\"`*"]
 pub trait IMediaProtectionServiceRequest_Impl: Sized {
     fn ProtectionSystem(&self) -> ::windows_core::Result<::windows_core::GUID>;
     fn Type(&self) -> ::windows_core::Result<::windows_core::GUID>;
@@ -36,7 +35,7 @@ impl IMediaProtectionServiceRequest_Vtbl {
             Type: Type::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IMediaProtectionServiceRequest as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IMediaProtectionServiceRequest as ::windows_core::ComInterface>::IID
     }
 }

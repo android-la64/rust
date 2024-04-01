@@ -6,7 +6,7 @@ use rustc_middle::mir::AssertKind;
 use rustc_middle::query::TyCtxtAt;
 use rustc_middle::ty::TyCtxt;
 use rustc_middle::ty::{layout::LayoutError, ConstInt};
-use rustc_span::{ErrorGuaranteed, Span, Symbol, DUMMY_SP};
+use rustc_span::{Span, Symbol, DUMMY_SP};
 
 use super::{CompileTimeInterpreter, InterpCx};
 use crate::errors::{self, FrameNote, ReportErrorExt};
@@ -34,7 +34,7 @@ impl MachineStopType for ConstEvalErrKind {
     }
     fn add_args(
         self: Box<Self>,
-        adder: &mut dyn FnMut(std::borrow::Cow<'static, str>, DiagnosticArgValue<'static>),
+        adder: &mut dyn FnMut(std::borrow::Cow<'static, str>, DiagnosticArgValue),
     ) {
         use ConstEvalErrKind::*;
         match *self {
@@ -133,7 +133,7 @@ pub(super) fn report<'tcx, C, F, E>(
 where
     C: FnOnce() -> (Span, Vec<FrameNote>),
     F: FnOnce(Span, Vec<FrameNote>) -> E,
-    E: IntoDiagnostic<'tcx, ErrorGuaranteed>,
+    E: IntoDiagnostic<'tcx>,
 {
     // Special handling for certain errors
     match error {
@@ -151,10 +151,10 @@ where
             let (our_span, frames) = get_span_and_frames();
             let span = span.unwrap_or(our_span);
             let err = mk(span, frames);
-            let mut err = tcx.sess.create_err(err);
+            let mut err = tcx.dcx().create_err(err);
 
             let msg = error.diagnostic_message();
-            error.add_args(tcx.sess.dcx(), &mut err);
+            error.add_args(tcx.dcx(), &mut err);
 
             // Use *our* span to label the interp error
             err.span_label(our_span, msg);
@@ -175,7 +175,7 @@ pub(super) fn lint<'tcx, 'mir, L>(
 {
     let (span, frames) = get_span_and_frames(tcx, machine);
 
-    tcx.emit_spanned_lint(
+    tcx.emit_node_span_lint(
         lint,
         // We use the root frame for this so the crate that defines the const defines whether the
         // lint is emitted.

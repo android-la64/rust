@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"UI_Notifications\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`"]
 #[cfg(feature = "Foundation_Collections")]
 pub trait IAdaptiveNotificationContent_Impl: Sized {
     fn Kind(&self) -> ::windows_core::Result<AdaptiveNotificationContentKind>;
@@ -40,7 +40,7 @@ impl IAdaptiveNotificationContent_Vtbl {
             Hints: Hints::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAdaptiveNotificationContent as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAdaptiveNotificationContent as ::windows_core::ComInterface>::IID
     }
 }

@@ -320,7 +320,7 @@ impl<'a> State<'a> {
                 self.word("/*ERROR*/");
                 self.pclose();
             }
-            hir::TyKind::Infer => {
+            hir::TyKind::Infer | hir::TyKind::InferDelegation(..) => {
                 self.word("_");
             }
         }
@@ -553,17 +553,7 @@ impl<'a> State<'a> {
             }
             hir::ItemKind::OpaqueTy(opaque_ty) => {
                 self.print_item_type(item, opaque_ty.generics, |state| {
-                    let mut real_bounds = Vec::with_capacity(opaque_ty.bounds.len());
-                    for b in opaque_ty.bounds {
-                        if let GenericBound::Trait(ptr, hir::TraitBoundModifier::Maybe) = b {
-                            state.space();
-                            state.word_space("for ?");
-                            state.print_trait_ref(&ptr.trait_ref);
-                        } else {
-                            real_bounds.push(b);
-                        }
-                    }
-                    state.print_bounds("= impl", real_bounds);
+                    state.print_bounds("= impl", opaque_ty.bounds)
                 });
             }
             hir::ItemKind::Enum(ref enum_definition, params) => {
@@ -625,17 +615,7 @@ impl<'a> State<'a> {
                 self.word_nbsp("trait");
                 self.print_ident(item.ident);
                 self.print_generic_params(generics.params);
-                let mut real_bounds = Vec::with_capacity(bounds.len());
-                for b in bounds {
-                    if let GenericBound::Trait(ptr, hir::TraitBoundModifier::Maybe) = b {
-                        self.space();
-                        self.word_space("for ?");
-                        self.print_trait_ref(&ptr.trait_ref);
-                    } else {
-                        real_bounds.push(b);
-                    }
-                }
-                self.print_bounds(":", real_bounds);
+                self.print_bounds(":", bounds);
                 self.print_where_clause(generics);
                 self.word(" ");
                 self.bopen();
@@ -976,7 +956,7 @@ impl<'a> State<'a> {
 
     fn print_array_length(&mut self, len: &hir::ArrayLen) {
         match len {
-            hir::ArrayLen::Infer(_, _) => self.word("_"),
+            hir::ArrayLen::Infer(..) => self.word("_"),
             hir::ArrayLen::Body(ct) => self.print_anon_const(ct),
         }
     }
@@ -1427,7 +1407,7 @@ impl<'a> State<'a> {
                 body,
                 fn_decl_span: _,
                 fn_arg_span: _,
-                movability: _,
+                kind: _,
                 def_id: _,
             }) => {
                 self.print_closure_binder(binder, bound_generic_params);
@@ -1858,6 +1838,11 @@ impl<'a> State<'a> {
                 self.commasep(Inconsistent, after, |s, p| s.print_pat(p));
                 self.word("]");
             }
+            PatKind::Err(_) => {
+                self.popen();
+                self.word("/*ERROR*/");
+                self.pclose();
+            }
         }
         self.ann.post(self, AnnNode::Pat(pat))
     }
@@ -1894,17 +1879,9 @@ impl<'a> State<'a> {
         self.print_pat(arm.pat);
         self.space();
         if let Some(ref g) = arm.guard {
-            match *g {
-                hir::Guard::If(e) => {
-                    self.word_space("if");
-                    self.print_expr(e);
-                    self.space();
-                }
-                hir::Guard::IfLet(&hir::Let { pat, ty, init, .. }) => {
-                    self.word_nbsp("if");
-                    self.print_let(pat, ty, init);
-                }
-            }
+            self.word_space("if");
+            self.print_expr(g);
+            self.space();
         }
         self.word_space("=>");
 

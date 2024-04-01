@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-entity"
-version = "0.102.0"
+version = "0.104.0"
 authors = ["The Cranelift Project Developers"]
 description = "Data structures using entity references as mapping keys"
 documentation = "https://docs.rs/cranelift-entity"
@@ -39,3 +39,12 @@ enable-serde = [
     "serde",
     "serde_derive",
 ]
+
+[lints.clippy]
+all = "allow"
+
+[lints.rust]
+trivial_numeric_casts = "warn"
+unstable_features = "warn"
+unused_extern_crates = "warn"
+unused_import_braces = "warn"

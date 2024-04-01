@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Web_UI\"`, `\"ApplicationModel_DataTransfer\"`, `\"Foundation_Collections\"`, `\"Storage_Streams\"`, `\"UI\"`, `\"Web_Http\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"ApplicationModel_DataTransfer\"`, `\"Foundation_Collections\"`, `\"Storage_Streams\"`, `\"UI\"`, `\"Web_Http\"`"]
 #[cfg(all(feature = "ApplicationModel_DataTransfer", feature = "Foundation_Collections", feature = "Storage_Streams", feature = "UI", feature = "Web_Http"))]
 pub trait IWebViewControl_Impl: Sized {
     fn Source(&self) -> ::windows_core::Result<super::super::Foundation::Uri>;
@@ -594,11 +594,10 @@ impl IWebViewControl_Vtbl {
             RemoveWebResourceRequested: RemoveWebResourceRequested::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebViewControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebViewControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Web_UI\"`, `\"implement\"`*"]
 pub trait IWebViewControl2_Impl: Sized {
     fn AddInitializeScript(&self, script: &::windows_core::HSTRING) -> ::windows_core::Result<()>;
 }
@@ -617,7 +616,7 @@ impl IWebViewControl2_Vtbl {
             AddInitializeScript: AddInitializeScript::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebViewControl2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebViewControl2 as ::windows_core::ComInterface>::IID
     }
 }

@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`, `\"implement\"`*"]
 pub trait IInkCommitRequestHandler_Impl: Sized {
     fn OnCommitRequested(&self) -> ::windows_core::Result<()>;
 }
@@ -12,11 +11,11 @@ impl IInkCommitRequestHandler_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnCommitRequested: OnCommitRequested::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IInkCommitRequestHandler as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IInkCommitRequestHandler as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IInkD2DRenderer_Impl: Sized {
     fn Draw(&self, pd2d1devicecontext: ::core::option::Option<&::windows_core::IUnknown>, pinkstrokeiterable: ::core::option::Option<&::windows_core::IUnknown>, fhighcontrast: super::super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -33,11 +32,10 @@ impl IInkD2DRenderer_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Draw: Draw::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IInkD2DRenderer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IInkD2DRenderer as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`, `\"implement\"`*"]
 pub trait IInkD2DRenderer2_Impl: Sized {
     fn Draw(&self, pd2d1devicecontext: ::core::option::Option<&::windows_core::IUnknown>, pinkstrokeiterable: ::core::option::Option<&::windows_core::IUnknown>, highcontrastadjustment: INK_HIGH_CONTRAST_ADJUSTMENT) -> ::windows_core::Result<()>;
 }
@@ -51,11 +49,10 @@ impl IInkD2DRenderer2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Draw: Draw::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IInkD2DRenderer2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IInkD2DRenderer2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`, `\"implement\"`*"]
 pub trait IInkDesktopHost_Impl: Sized {
     fn QueueWorkItem(&self, workitem: ::core::option::Option<&IInkHostWorkItem>) -> ::windows_core::Result<()>;
     fn CreateInkPresenter(&self, riid: *const ::windows_core::GUID, ppv: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
@@ -86,11 +83,10 @@ impl IInkDesktopHost_Vtbl {
             CreateAndInitializeInkPresenter: CreateAndInitializeInkPresenter::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IInkDesktopHost as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IInkDesktopHost as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`, `\"implement\"`*"]
 pub trait IInkHostWorkItem_Impl: Sized {
     fn Invoke(&self) -> ::windows_core::Result<()>;
 }
@@ -104,11 +100,10 @@ impl IInkHostWorkItem_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Invoke: Invoke::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IInkHostWorkItem as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IInkHostWorkItem as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`, `\"implement\"`*"]
 pub trait IInkPresenterDesktop_Impl: Sized {
     fn SetRootVisual(&self, rootvisual: ::core::option::Option<&::windows_core::IUnknown>, device: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<()>;
     fn SetCommitRequestHandler(&self, handler: ::core::option::Option<&IInkCommitRequestHandler>) -> ::windows_core::Result<()>;
@@ -153,7 +148,7 @@ impl IInkPresenterDesktop_Vtbl {
             OnHighContrastChanged: OnHighContrastChanged::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IInkPresenterDesktop as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IInkPresenterDesktop as ::windows_core::ComInterface>::IID
     }
 }

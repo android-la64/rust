@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"UI_Text\"`, `\"implement\"`*"]
 pub trait ITextCharacterFormat_Impl: Sized {
     fn AllCaps(&self) -> ::windows_core::Result<FormatEffect>;
     fn SetAllCaps(&self, value: FormatEffect) -> ::windows_core::Result<()>;
@@ -519,11 +518,11 @@ impl ITextCharacterFormat_Vtbl {
             IsEqual: IsEqual::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITextCharacterFormat as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITextCharacterFormat as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Text\"`, `\"Foundation\"`, `\"Storage_Streams\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`, `\"Storage_Streams\"`"]
 #[cfg(all(feature = "Foundation", feature = "Storage_Streams"))]
 pub trait ITextDocument_Impl: Sized {
     fn CaretType(&self) -> ::windows_core::Result<CaretType>;
@@ -816,11 +815,10 @@ impl ITextDocument_Vtbl {
             Undo: Undo::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITextDocument as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITextDocument as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Text\"`, `\"implement\"`*"]
 pub trait ITextParagraphFormat_Impl: Sized {
     fn Alignment(&self) -> ::windows_core::Result<ParagraphAlignment>;
     fn SetAlignment(&self, value: ParagraphAlignment) -> ::windows_core::Result<()>;
@@ -1313,11 +1311,11 @@ impl ITextParagraphFormat_Vtbl {
             SetLineSpacing: SetLineSpacing::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITextParagraphFormat as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITextParagraphFormat as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Text\"`, `\"Foundation\"`, `\"Storage_Streams\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`, `\"Storage_Streams\"`"]
 #[cfg(all(feature = "Foundation", feature = "Storage_Streams"))]
 pub trait ITextRange_Impl: Sized {
     fn Character(&self) -> ::windows_core::Result<u16>;
@@ -1852,11 +1850,11 @@ impl ITextRange_Vtbl {
             StartOf: StartOf::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITextRange as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITextRange as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Text\"`, `\"Foundation\"`, `\"Storage_Streams\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`, `\"Storage_Streams\"`"]
 #[cfg(all(feature = "Foundation", feature = "Storage_Streams"))]
 pub trait ITextSelection_Impl: Sized + ITextRange_Impl {
     fn Options(&self) -> ::windows_core::Result<SelectionOptions>;
@@ -1989,7 +1987,7 @@ impl ITextSelection_Vtbl {
             TypeText: TypeText::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITextSelection as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITextSelection as ::windows_core::ComInterface>::IID
     }
 }

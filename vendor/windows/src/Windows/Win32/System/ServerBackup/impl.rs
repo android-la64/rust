@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_System_ServerBackup\"`, `\"implement\"`*"]
 pub trait IWsbApplicationAsync_Impl: Sized {
     fn QueryStatus(&self) -> ::windows_core::Result<::windows_core::HRESULT>;
     fn Abort(&self) -> ::windows_core::Result<()>;
@@ -28,11 +27,10 @@ impl IWsbApplicationAsync_Vtbl {
             Abort: Abort::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWsbApplicationAsync as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWsbApplicationAsync as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ServerBackup\"`, `\"implement\"`*"]
 pub trait IWsbApplicationBackupSupport_Impl: Sized {
     fn CheckConsistency(&self, wszwritermetadata: &::windows_core::PCWSTR, wszcomponentname: &::windows_core::PCWSTR, wszcomponentlogicalpath: &::windows_core::PCWSTR, cvolumes: u32, rgwszsourcevolumepath: *const ::windows_core::PCWSTR, rgwszsnapshotvolumepath: *const ::windows_core::PCWSTR) -> ::windows_core::Result<IWsbApplicationAsync>;
 }
@@ -52,11 +50,11 @@ impl IWsbApplicationBackupSupport_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), CheckConsistency: CheckConsistency::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWsbApplicationBackupSupport as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWsbApplicationBackupSupport as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_ServerBackup\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWsbApplicationRestoreSupport_Impl: Sized {
     fn PreRestore(&self, wszwritermetadata: &::windows_core::PCWSTR, wszcomponentname: &::windows_core::PCWSTR, wszcomponentlogicalpath: &::windows_core::PCWSTR, bnorollforward: super::super::Foundation::BOOLEAN) -> ::windows_core::Result<()>;
@@ -103,7 +101,7 @@ impl IWsbApplicationRestoreSupport_Vtbl {
             IsRollForwardSupported: IsRollForwardSupported::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWsbApplicationRestoreSupport as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWsbApplicationRestoreSupport as ::windows_core::ComInterface>::IID
     }
 }

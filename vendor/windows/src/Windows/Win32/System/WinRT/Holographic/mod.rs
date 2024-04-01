@@ -1,8 +1,8 @@
-#[doc = "*Required features: `\"Win32_System_WinRT_Holographic\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHolographicCameraInterop(::windows_core::IUnknown);
 impl IHolographicCameraInterop {
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`, `\"Win32_Graphics_Dxgi_Common\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`, `\"Win32_Graphics_Dxgi_Common\"`"]
     #[cfg(all(feature = "Win32_Graphics_Direct3D12", feature = "Win32_Graphics_Dxgi_Common"))]
     pub unsafe fn CreateDirect3D12BackBufferResource<P0>(&self, pdevice: P0, ptexture2ddesc: *const super::super::super::Graphics::Direct3D12::D3D12_RESOURCE_DESC) -> ::windows_core::Result<super::super::super::Graphics::Direct3D12::ID3D12Resource>
     where
@@ -11,7 +11,7 @@ impl IHolographicCameraInterop {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateDirect3D12BackBufferResource)(::windows_core::Interface::as_raw(self), pdevice.into_param().abi(), ptexture2ddesc, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`, `\"Win32_Graphics_Dxgi_Common\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`, `\"Win32_Graphics_Dxgi_Common\"`"]
     #[cfg(all(feature = "Win32_Graphics_Direct3D12", feature = "Win32_Graphics_Dxgi_Common"))]
     pub unsafe fn CreateDirect3D12HardwareProtectedBackBufferResource<P0, P1>(&self, pdevice: P0, ptexture2ddesc: *const super::super::super::Graphics::Direct3D12::D3D12_RESOURCE_DESC, pprotectedresourcesession: P1) -> ::windows_core::Result<super::super::super::Graphics::Direct3D12::ID3D12Resource>
     where
@@ -21,7 +21,7 @@ impl IHolographicCameraInterop {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateDirect3D12HardwareProtectedBackBufferResource)(::windows_core::Interface::as_raw(self), pdevice.into_param().abi(), ptexture2ddesc, pprotectedresourcesession.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`"]
     #[cfg(feature = "Win32_Graphics_Direct3D12")]
     pub unsafe fn AcquireDirect3D12BufferResource<P0, P1>(&self, presourcetoacquire: P0, pcommandqueue: P1) -> ::windows_core::Result<()>
     where
@@ -30,7 +30,7 @@ impl IHolographicCameraInterop {
     {
         (::windows_core::Interface::vtable(self).AcquireDirect3D12BufferResource)(::windows_core::Interface::as_raw(self), presourcetoacquire.into_param().abi(), pcommandqueue.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`"]
     #[cfg(feature = "Win32_Graphics_Direct3D12")]
     pub unsafe fn AcquireDirect3D12BufferResourceWithTimeout<P0, P1>(&self, presourcetoacquire: P0, pcommandqueue: P1, duration: u64) -> ::windows_core::Result<()>
     where
@@ -39,7 +39,7 @@ impl IHolographicCameraInterop {
     {
         (::windows_core::Interface::vtable(self).AcquireDirect3D12BufferResourceWithTimeout)(::windows_core::Interface::as_raw(self), presourcetoacquire.into_param().abi(), pcommandqueue.into_param().abi(), duration).ok()
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`"]
     #[cfg(feature = "Win32_Graphics_Direct3D12")]
     pub unsafe fn UnacquireDirect3D12BufferResource<P0>(&self, presourcetounacquire: P0) -> ::windows_core::Result<()>
     where
@@ -49,24 +49,8 @@ impl IHolographicCameraInterop {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IHolographicCameraInterop, ::windows_core::IUnknown, ::windows_core::IInspectable);
-impl ::core::cmp::PartialEq for IHolographicCameraInterop {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IHolographicCameraInterop {}
-impl ::core::fmt::Debug for IHolographicCameraInterop {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IHolographicCameraInterop").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IHolographicCameraInterop {
     type Vtable = IHolographicCameraInterop_Vtbl;
-}
-impl ::core::clone::Clone for IHolographicCameraInterop {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHolographicCameraInterop {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7cc1f9c5_6d02_41fa_9500_e1809eb48eec);
@@ -96,11 +80,11 @@ pub struct IHolographicCameraInterop_Vtbl {
     #[cfg(not(feature = "Win32_Graphics_Direct3D12"))]
     UnacquireDirect3D12BufferResource: usize,
 }
-#[doc = "*Required features: `\"Win32_System_WinRT_Holographic\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHolographicCameraRenderingParametersInterop(::windows_core::IUnknown);
 impl IHolographicCameraRenderingParametersInterop {
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`"]
     #[cfg(feature = "Win32_Graphics_Direct3D12")]
     pub unsafe fn CommitDirect3D12Resource<P0, P1>(&self, pcolorresourcetocommit: P0, pcolorresourcefence: P1, colorresourcefencesignalvalue: u64) -> ::windows_core::Result<()>
     where
@@ -109,7 +93,7 @@ impl IHolographicCameraRenderingParametersInterop {
     {
         (::windows_core::Interface::vtable(self).CommitDirect3D12Resource)(::windows_core::Interface::as_raw(self), pcolorresourcetocommit.into_param().abi(), pcolorresourcefence.into_param().abi(), colorresourcefencesignalvalue).ok()
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`"]
     #[cfg(feature = "Win32_Graphics_Direct3D12")]
     pub unsafe fn CommitDirect3D12ResourceWithDepthData<P0, P1, P2, P3>(&self, pcolorresourcetocommit: P0, pcolorresourcefence: P1, colorresourcefencesignalvalue: u64, pdepthresourcetocommit: P2, pdepthresourcefence: P3, depthresourcefencesignalvalue: u64) -> ::windows_core::Result<()>
     where
@@ -122,24 +106,8 @@ impl IHolographicCameraRenderingParametersInterop {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IHolographicCameraRenderingParametersInterop, ::windows_core::IUnknown, ::windows_core::IInspectable);
-impl ::core::cmp::PartialEq for IHolographicCameraRenderingParametersInterop {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IHolographicCameraRenderingParametersInterop {}
-impl ::core::fmt::Debug for IHolographicCameraRenderingParametersInterop {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IHolographicCameraRenderingParametersInterop").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IHolographicCameraRenderingParametersInterop {
     type Vtable = IHolographicCameraRenderingParametersInterop_Vtbl;
-}
-impl ::core::clone::Clone for IHolographicCameraRenderingParametersInterop {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHolographicCameraRenderingParametersInterop {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf75b68d6_d1fd_4707_aafd_fa6f4c0e3bf4);
@@ -157,11 +125,11 @@ pub struct IHolographicCameraRenderingParametersInterop_Vtbl {
     #[cfg(not(feature = "Win32_Graphics_Direct3D12"))]
     CommitDirect3D12ResourceWithDepthData: usize,
 }
-#[doc = "*Required features: `\"Win32_System_WinRT_Holographic\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHolographicQuadLayerInterop(::windows_core::IUnknown);
 impl IHolographicQuadLayerInterop {
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`, `\"Win32_Graphics_Dxgi_Common\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`, `\"Win32_Graphics_Dxgi_Common\"`"]
     #[cfg(all(feature = "Win32_Graphics_Direct3D12", feature = "Win32_Graphics_Dxgi_Common"))]
     pub unsafe fn CreateDirect3D12ContentBufferResource<P0>(&self, pdevice: P0, ptexture2ddesc: *const super::super::super::Graphics::Direct3D12::D3D12_RESOURCE_DESC) -> ::windows_core::Result<super::super::super::Graphics::Direct3D12::ID3D12Resource>
     where
@@ -170,7 +138,7 @@ impl IHolographicQuadLayerInterop {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateDirect3D12ContentBufferResource)(::windows_core::Interface::as_raw(self), pdevice.into_param().abi(), ptexture2ddesc, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`, `\"Win32_Graphics_Dxgi_Common\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`, `\"Win32_Graphics_Dxgi_Common\"`"]
     #[cfg(all(feature = "Win32_Graphics_Direct3D12", feature = "Win32_Graphics_Dxgi_Common"))]
     pub unsafe fn CreateDirect3D12HardwareProtectedContentBufferResource<P0, P1>(&self, pdevice: P0, ptexture2ddesc: *const super::super::super::Graphics::Direct3D12::D3D12_RESOURCE_DESC, pprotectedresourcesession: P1) -> ::windows_core::Result<super::super::super::Graphics::Direct3D12::ID3D12Resource>
     where
@@ -180,7 +148,7 @@ impl IHolographicQuadLayerInterop {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateDirect3D12HardwareProtectedContentBufferResource)(::windows_core::Interface::as_raw(self), pdevice.into_param().abi(), ptexture2ddesc, pprotectedresourcesession.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`"]
     #[cfg(feature = "Win32_Graphics_Direct3D12")]
     pub unsafe fn AcquireDirect3D12BufferResource<P0, P1>(&self, presourcetoacquire: P0, pcommandqueue: P1) -> ::windows_core::Result<()>
     where
@@ -189,7 +157,7 @@ impl IHolographicQuadLayerInterop {
     {
         (::windows_core::Interface::vtable(self).AcquireDirect3D12BufferResource)(::windows_core::Interface::as_raw(self), presourcetoacquire.into_param().abi(), pcommandqueue.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`"]
     #[cfg(feature = "Win32_Graphics_Direct3D12")]
     pub unsafe fn AcquireDirect3D12BufferResourceWithTimeout<P0, P1>(&self, presourcetoacquire: P0, pcommandqueue: P1, duration: u64) -> ::windows_core::Result<()>
     where
@@ -198,7 +166,7 @@ impl IHolographicQuadLayerInterop {
     {
         (::windows_core::Interface::vtable(self).AcquireDirect3D12BufferResourceWithTimeout)(::windows_core::Interface::as_raw(self), presourcetoacquire.into_param().abi(), pcommandqueue.into_param().abi(), duration).ok()
     }
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`"]
     #[cfg(feature = "Win32_Graphics_Direct3D12")]
     pub unsafe fn UnacquireDirect3D12BufferResource<P0>(&self, presourcetounacquire: P0) -> ::windows_core::Result<()>
     where
@@ -208,24 +176,8 @@ impl IHolographicQuadLayerInterop {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IHolographicQuadLayerInterop, ::windows_core::IUnknown, ::windows_core::IInspectable);
-impl ::core::cmp::PartialEq for IHolographicQuadLayerInterop {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IHolographicQuadLayerInterop {}
-impl ::core::fmt::Debug for IHolographicQuadLayerInterop {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IHolographicQuadLayerInterop").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IHolographicQuadLayerInterop {
     type Vtable = IHolographicQuadLayerInterop_Vtbl;
-}
-impl ::core::clone::Clone for IHolographicQuadLayerInterop {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHolographicQuadLayerInterop {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcfa688f0_639e_4a47_83d7_6b7f5ebf7fed);
@@ -255,11 +207,11 @@ pub struct IHolographicQuadLayerInterop_Vtbl {
     #[cfg(not(feature = "Win32_Graphics_Direct3D12"))]
     UnacquireDirect3D12BufferResource: usize,
 }
-#[doc = "*Required features: `\"Win32_System_WinRT_Holographic\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHolographicQuadLayerUpdateParametersInterop(::windows_core::IUnknown);
 impl IHolographicQuadLayerUpdateParametersInterop {
-    #[doc = "*Required features: `\"Win32_Graphics_Direct3D12\"`*"]
+    #[doc = "Required features: `\"Win32_Graphics_Direct3D12\"`"]
     #[cfg(feature = "Win32_Graphics_Direct3D12")]
     pub unsafe fn CommitDirect3D12Resource<P0, P1>(&self, pcolorresourcetocommit: P0, pcolorresourcefence: P1, colorresourcefencesignalvalue: u64) -> ::windows_core::Result<()>
     where
@@ -270,24 +222,8 @@ impl IHolographicQuadLayerUpdateParametersInterop {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IHolographicQuadLayerUpdateParametersInterop, ::windows_core::IUnknown, ::windows_core::IInspectable);
-impl ::core::cmp::PartialEq for IHolographicQuadLayerUpdateParametersInterop {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IHolographicQuadLayerUpdateParametersInterop {}
-impl ::core::fmt::Debug for IHolographicQuadLayerUpdateParametersInterop {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IHolographicQuadLayerUpdateParametersInterop").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IHolographicQuadLayerUpdateParametersInterop {
     type Vtable = IHolographicQuadLayerUpdateParametersInterop_Vtbl;
-}
-impl ::core::clone::Clone for IHolographicQuadLayerUpdateParametersInterop {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHolographicQuadLayerUpdateParametersInterop {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe5f549cd_c909_444f_8809_7cc18a9c8920);

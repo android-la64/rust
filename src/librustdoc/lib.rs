@@ -3,7 +3,6 @@
     html_playground_url = "https://play.rust-lang.org/"
 )]
 #![feature(rustc_private)]
-#![feature(array_methods)]
 #![feature(assert_matches)]
 #![feature(box_patterns)]
 #![feature(if_let_guard)]
@@ -194,10 +193,10 @@ fn init_logging(early_dcx: &EarlyDiagCtxt) {
         Ok("always") => true,
         Ok("never") => false,
         Ok("auto") | Err(VarError::NotPresent) => io::stdout().is_terminal(),
-        Ok(value) => early_dcx.early_error(format!(
+        Ok(value) => early_dcx.early_fatal(format!(
             "invalid log color value '{value}': expected one of always, never, or auto",
         )),
-        Err(VarError::NotUnicode(value)) => early_dcx.early_error(format!(
+        Err(VarError::NotUnicode(value)) => early_dcx.early_fatal(format!(
             "invalid log color value '{}': expected one of always, never, or auto",
             value.to_string_lossy()
         )),
@@ -676,10 +675,7 @@ type MainResult = Result<(), ErrorGuaranteed>;
 fn wrap_return(dcx: &rustc_errors::DiagCtxt, res: Result<(), String>) -> MainResult {
     match res {
         Ok(()) => dcx.has_errors().map_or(Ok(()), Err),
-        Err(err) => {
-            let reported = dcx.struct_err(err).emit();
-            Err(reported)
-        }
+        Err(err) => Err(dcx.err(err)),
     }
 }
 
@@ -690,10 +686,10 @@ fn run_renderer<'tcx, T: formats::FormatRenderer<'tcx>>(
     tcx: TyCtxt<'tcx>,
 ) -> MainResult {
     match formats::run_format::<T>(krate, renderopts, cache, tcx) {
-        Ok(_) => tcx.sess.has_errors().map_or(Ok(()), Err),
+        Ok(_) => tcx.dcx().has_errors().map_or(Ok(()), Err),
         Err(e) => {
             let mut msg =
-                tcx.sess.struct_err(format!("couldn't generate documentation: {}", e.error));
+                tcx.dcx().struct_err(format!("couldn't generate documentation: {}", e.error));
             let file = e.file.display().to_string();
             if !file.is_empty() {
                 msg.note(format!("failed to create or modify \"{file}\""));
@@ -727,7 +723,7 @@ fn main_args(
     let matches = match options.parse(&args) {
         Ok(m) => m,
         Err(err) => {
-            early_dcx.early_error(err.to_string());
+            early_dcx.early_fatal(err.to_string());
         }
     };
 
@@ -799,8 +795,8 @@ fn main_args(
 
         compiler.enter(|queries| {
             let mut gcx = abort_on_err(queries.global_ctxt(), sess);
-            if sess.dcx().has_errors_or_lint_errors().is_some() {
-                sess.fatal("Compilation failed, aborting rustdoc");
+            if sess.dcx().has_errors().is_some() {
+                sess.dcx().fatal("Compilation failed, aborting rustdoc");
             }
 
             gcx.enter(|tcx| {

@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneCallBlockedTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPhoneCallBlockedTriggerDetails {
     type Vtable = IPhoneCallBlockedTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IPhoneCallBlockedTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPhoneCallBlockedTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa4a690a2_e4c1_427f_864e_e470477ddb67);
@@ -23,16 +19,11 @@ pub struct IPhoneCallBlockedTriggerDetails_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneCallOriginDataRequestTriggerDetails(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for IPhoneCallOriginDataRequestTriggerDetails {
     type Vtable = IPhoneCallOriginDataRequestTriggerDetails_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for IPhoneCallOriginDataRequestTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for IPhoneCallOriginDataRequestTriggerDetails {
@@ -55,16 +46,11 @@ pub struct IPhoneCallOriginDataRequestTriggerDetails_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneIncomingCallDismissedTriggerDetails(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for IPhoneIncomingCallDismissedTriggerDetails {
     type Vtable = IPhoneIncomingCallDismissedTriggerDetails_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for IPhoneIncomingCallDismissedTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for IPhoneIncomingCallDismissedTriggerDetails {
@@ -102,14 +88,10 @@ pub struct IPhoneIncomingCallDismissedTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneIncomingCallNotificationTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPhoneIncomingCallNotificationTriggerDetails {
     type Vtable = IPhoneIncomingCallNotificationTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IPhoneIncomingCallNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPhoneIncomingCallNotificationTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2b0e6044_9b32_5d42_8222_d2812e39fb21);
@@ -123,14 +105,10 @@ pub struct IPhoneIncomingCallNotificationTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneLineChangedTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPhoneLineChangedTriggerDetails {
     type Vtable = IPhoneLineChangedTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IPhoneLineChangedTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPhoneLineChangedTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc6d321e7_d11d_40d8_b2b7_e40a01d66249);
@@ -145,14 +123,10 @@ pub struct IPhoneLineChangedTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneNewVoicemailMessageTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPhoneNewVoicemailMessageTriggerDetails {
     type Vtable = IPhoneNewVoicemailMessageTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IPhoneNewVoicemailMessageTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPhoneNewVoicemailMessageTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x13a8c01b_b831_48d3_8ba9_8d22a6580dcf);
@@ -165,8 +139,8 @@ pub struct IPhoneNewVoicemailMessageTriggerDetails_Vtbl {
     pub VoicemailCount: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut i32) -> ::windows_core::HRESULT,
     pub OperatorMessage: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut ::std::mem::MaybeUninit<::windows_core::HSTRING>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneCallBlockedTriggerDetails(::windows_core::IUnknown);
 impl PhoneCallBlockedTriggerDetails {
     pub fn PhoneNumber(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -191,24 +165,8 @@ impl PhoneCallBlockedTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for PhoneCallBlockedTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PhoneCallBlockedTriggerDetails {}
-impl ::core::fmt::Debug for PhoneCallBlockedTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneCallBlockedTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PhoneCallBlockedTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Calls.Background.PhoneCallBlockedTriggerDetails;{a4a690a2-e4c1-427f-864e-e470477ddb67})");
-}
-impl ::core::clone::Clone for PhoneCallBlockedTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PhoneCallBlockedTriggerDetails {
     type Vtable = IPhoneCallBlockedTriggerDetails_Vtbl;
@@ -222,13 +180,14 @@ impl ::windows_core::RuntimeName for PhoneCallBlockedTriggerDetails {
 ::windows_core::imp::interface_hierarchy!(PhoneCallBlockedTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PhoneCallBlockedTriggerDetails {}
 unsafe impl ::core::marker::Sync for PhoneCallBlockedTriggerDetails {}
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneCallOriginDataRequestTriggerDetails(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl PhoneCallOriginDataRequestTriggerDetails {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn RequestId(&self) -> ::windows_core::Result<::windows_core::GUID> {
         let this = self;
@@ -237,7 +196,7 @@ impl PhoneCallOriginDataRequestTriggerDetails {
             (::windows_core::Interface::vtable(this).RequestId)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn PhoneNumber(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -248,28 +207,8 @@ impl PhoneCallOriginDataRequestTriggerDetails {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for PhoneCallOriginDataRequestTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for PhoneCallOriginDataRequestTriggerDetails {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for PhoneCallOriginDataRequestTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneCallOriginDataRequestTriggerDetails").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for PhoneCallOriginDataRequestTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Calls.Background.PhoneCallOriginDataRequestTriggerDetails;{6e9b5b3f-c54b-4e82-4cc9-e329a4184592})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for PhoneCallOriginDataRequestTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for PhoneCallOriginDataRequestTriggerDetails {
@@ -289,13 +228,14 @@ impl ::windows_core::RuntimeName for PhoneCallOriginDataRequestTriggerDetails {
 unsafe impl ::core::marker::Send for PhoneCallOriginDataRequestTriggerDetails {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for PhoneCallOriginDataRequestTriggerDetails {}
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneIncomingCallDismissedTriggerDetails(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl PhoneIncomingCallDismissedTriggerDetails {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn LineId(&self) -> ::windows_core::Result<::windows_core::GUID> {
         let this = self;
@@ -304,7 +244,7 @@ impl PhoneIncomingCallDismissedTriggerDetails {
             (::windows_core::Interface::vtable(this).LineId)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn PhoneNumber(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -313,7 +253,7 @@ impl PhoneIncomingCallDismissedTriggerDetails {
             (::windows_core::Interface::vtable(this).PhoneNumber)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn DisplayName(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -322,7 +262,7 @@ impl PhoneIncomingCallDismissedTriggerDetails {
             (::windows_core::Interface::vtable(this).DisplayName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn DismissalTime(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -331,7 +271,7 @@ impl PhoneIncomingCallDismissedTriggerDetails {
             (::windows_core::Interface::vtable(this).DismissalTime)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn TextReplyMessage(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -340,7 +280,7 @@ impl PhoneIncomingCallDismissedTriggerDetails {
             (::windows_core::Interface::vtable(this).TextReplyMessage)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Reason(&self) -> ::windows_core::Result<PhoneIncomingCallDismissedReason> {
         let this = self;
@@ -351,28 +291,8 @@ impl PhoneIncomingCallDismissedTriggerDetails {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for PhoneIncomingCallDismissedTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for PhoneIncomingCallDismissedTriggerDetails {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for PhoneIncomingCallDismissedTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneIncomingCallDismissedTriggerDetails").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for PhoneIncomingCallDismissedTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Calls.Background.PhoneIncomingCallDismissedTriggerDetails;{bad30276-83b6-5732-9c38-0c206546196a})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for PhoneIncomingCallDismissedTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for PhoneIncomingCallDismissedTriggerDetails {
@@ -392,8 +312,8 @@ impl ::windows_core::RuntimeName for PhoneIncomingCallDismissedTriggerDetails {
 unsafe impl ::core::marker::Send for PhoneIncomingCallDismissedTriggerDetails {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for PhoneIncomingCallDismissedTriggerDetails {}
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneIncomingCallNotificationTriggerDetails(::windows_core::IUnknown);
 impl PhoneIncomingCallNotificationTriggerDetails {
     pub fn LineId(&self) -> ::windows_core::Result<::windows_core::GUID> {
@@ -411,24 +331,8 @@ impl PhoneIncomingCallNotificationTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for PhoneIncomingCallNotificationTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PhoneIncomingCallNotificationTriggerDetails {}
-impl ::core::fmt::Debug for PhoneIncomingCallNotificationTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneIncomingCallNotificationTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PhoneIncomingCallNotificationTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Calls.Background.PhoneIncomingCallNotificationTriggerDetails;{2b0e6044-9b32-5d42-8222-d2812e39fb21})");
-}
-impl ::core::clone::Clone for PhoneIncomingCallNotificationTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PhoneIncomingCallNotificationTriggerDetails {
     type Vtable = IPhoneIncomingCallNotificationTriggerDetails_Vtbl;
@@ -442,8 +346,8 @@ impl ::windows_core::RuntimeName for PhoneIncomingCallNotificationTriggerDetails
 ::windows_core::imp::interface_hierarchy!(PhoneIncomingCallNotificationTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PhoneIncomingCallNotificationTriggerDetails {}
 unsafe impl ::core::marker::Sync for PhoneIncomingCallNotificationTriggerDetails {}
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneLineChangedTriggerDetails(::windows_core::IUnknown);
 impl PhoneLineChangedTriggerDetails {
     pub fn LineId(&self) -> ::windows_core::Result<::windows_core::GUID> {
@@ -468,24 +372,8 @@ impl PhoneLineChangedTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for PhoneLineChangedTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PhoneLineChangedTriggerDetails {}
-impl ::core::fmt::Debug for PhoneLineChangedTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneLineChangedTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PhoneLineChangedTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Calls.Background.PhoneLineChangedTriggerDetails;{c6d321e7-d11d-40d8-b2b7-e40a01d66249})");
-}
-impl ::core::clone::Clone for PhoneLineChangedTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PhoneLineChangedTriggerDetails {
     type Vtable = IPhoneLineChangedTriggerDetails_Vtbl;
@@ -499,8 +387,8 @@ impl ::windows_core::RuntimeName for PhoneLineChangedTriggerDetails {
 ::windows_core::imp::interface_hierarchy!(PhoneLineChangedTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PhoneLineChangedTriggerDetails {}
 unsafe impl ::core::marker::Sync for PhoneLineChangedTriggerDetails {}
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneNewVoicemailMessageTriggerDetails(::windows_core::IUnknown);
 impl PhoneNewVoicemailMessageTriggerDetails {
     pub fn LineId(&self) -> ::windows_core::Result<::windows_core::GUID> {
@@ -525,24 +413,8 @@ impl PhoneNewVoicemailMessageTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for PhoneNewVoicemailMessageTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PhoneNewVoicemailMessageTriggerDetails {}
-impl ::core::fmt::Debug for PhoneNewVoicemailMessageTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneNewVoicemailMessageTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PhoneNewVoicemailMessageTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Calls.Background.PhoneNewVoicemailMessageTriggerDetails;{13a8c01b-b831-48d3-8ba9-8d22a6580dcf})");
-}
-impl ::core::clone::Clone for PhoneNewVoicemailMessageTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PhoneNewVoicemailMessageTriggerDetails {
     type Vtable = IPhoneNewVoicemailMessageTriggerDetails_Vtbl;
@@ -556,7 +428,6 @@ impl ::windows_core::RuntimeName for PhoneNewVoicemailMessageTriggerDetails {
 ::windows_core::imp::interface_hierarchy!(PhoneNewVoicemailMessageTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PhoneNewVoicemailMessageTriggerDetails {}
 unsafe impl ::core::marker::Sync for PhoneNewVoicemailMessageTriggerDetails {}
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneCallBlockedReason(pub i32);
@@ -587,7 +458,7 @@ impl ::core::fmt::Debug for PhoneCallBlockedReason {
 impl ::windows_core::RuntimeType for PhoneCallBlockedReason {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.ApplicationModel.Calls.Background.PhoneCallBlockedReason;i4)");
 }
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
@@ -627,7 +498,6 @@ impl ::core::fmt::Debug for PhoneIncomingCallDismissedReason {
 impl ::windows_core::RuntimeType for PhoneIncomingCallDismissedReason {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.ApplicationModel.Calls.Background.PhoneIncomingCallDismissedReason;i4)");
 }
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneLineChangeKind(pub i32);
@@ -658,7 +528,6 @@ impl ::core::fmt::Debug for PhoneLineChangeKind {
 impl ::windows_core::RuntimeType for PhoneLineChangeKind {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.ApplicationModel.Calls.Background.PhoneLineChangeKind;i4)");
 }
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneLineProperties(pub u32);
@@ -729,7 +598,6 @@ impl ::core::ops::Not for PhoneLineProperties {
 impl ::windows_core::RuntimeType for PhoneLineProperties {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.ApplicationModel.Calls.Background.PhoneLineProperties;u4)");
 }
-#[doc = "*Required features: `\"ApplicationModel_Calls_Background\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PhoneTriggerType(pub i32);

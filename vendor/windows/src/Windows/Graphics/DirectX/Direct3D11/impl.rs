@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Graphics_DirectX_Direct3D11\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IDirect3DDevice_Impl: Sized + super::super::super::Foundation::IClosable_Impl {
     fn Trim(&self) -> ::windows_core::Result<()>;
@@ -17,11 +17,11 @@ impl IDirect3DDevice_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IDirect3DDevice, OFFSET>(), Trim: Trim::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirect3DDevice as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirect3DDevice as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Graphics_DirectX_Direct3D11\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IDirect3DSurface_Impl: Sized + super::super::super::Foundation::IClosable_Impl {
     fn Description(&self) -> ::windows_core::Result<Direct3DSurfaceDescription>;
@@ -46,7 +46,7 @@ impl IDirect3DSurface_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IDirect3DSurface, OFFSET>(), Description: Description::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirect3DSurface as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirect3DSurface as ::windows_core::ComInterface>::IID
     }
 }

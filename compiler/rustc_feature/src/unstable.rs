@@ -210,7 +210,7 @@ declare_features! (
     /// Allows the `multiple_supertrait_upcastable` lint.
     (unstable, multiple_supertrait_upcastable, "1.69.0", None),
     /// Allow negative trait bounds. This is an internal-only feature for testing the trait solver!
-    (incomplete, negative_bounds, "1.71.0", None),
+    (internal, negative_bounds, "1.71.0", None),
     /// Allows using `#[omit_gdb_pretty_printer_section]`.
     (internal, omit_gdb_pretty_printer_section, "1.5.0", None),
     /// Allows using `#[prelude_import]` on glob `use` items.
@@ -321,8 +321,6 @@ declare_features! (
     // feature-group-start: actual feature gates
     // -------------------------------------------------------------------------
 
-    /// Allows using the `amdgpu-kernel` ABI.
-    (unstable, abi_amdgpu_kernel, "1.29.0", Some(51575)),
     /// Allows `extern "avr-interrupt" fn()` and `extern "avr-non-blocking-interrupt" fn()`.
     (unstable, abi_avr_interrupt, "1.45.0", Some(69664)),
     /// Allows `extern "C-cmse-nonsecure-call" fn()`.
@@ -357,10 +355,10 @@ declare_features! (
     (unstable, async_closure, "1.37.0", Some(62290)),
     /// Allows `#[track_caller]` on async functions.
     (unstable, async_fn_track_caller, "1.73.0", Some(110011)),
+    /// Allows `for await` loops.
+    (unstable, async_for_loop, "1.77.0", Some(118898)),
     /// Allows builtin # foo() syntax
     (unstable, builtin_syntax, "1.71.0", Some(110680)),
-    /// Allows `c"foo"` literals.
-    (unstable, c_str_literals, "1.71.0", Some(105723)),
     /// Treat `extern "C"` function as nounwind.
     (unstable, c_unwind, "1.52.0", Some(74990)),
     /// Allows using C-variadics.
@@ -371,6 +369,8 @@ declare_features! (
     (unstable, cfg_relocation_model, "1.73.0", Some(114929)),
     /// Allows the use of `#[cfg(sanitize = "option")]`; set when -Zsanitizer is used.
     (unstable, cfg_sanitize, "1.41.0", Some(39699)),
+    /// Allows `cfg(sanitizer_cfi_generalize_pointers)` and `cfg(sanitizer_cfi_normalize_integers)`.
+    (unstable, cfg_sanitizer_cfi, "1.77.0", Some(89653)),
     /// Allows `cfg(target_abi = "...")`.
     (unstable, cfg_target_abi, "1.55.0", Some(80970)),
     /// Allows `cfg(target(abi = "..."))`.
@@ -448,7 +448,7 @@ declare_features! (
     (unstable, doc_masked, "1.21.0", Some(44027)),
     /// Allows `dyn* Trait` objects.
     (incomplete, dyn_star, "1.65.0", Some(102425)),
-    // Uses generic effect parameters for ~const bounds
+    /// Uses generic effect parameters for ~const bounds
     (unstable, effects, "1.72.0", Some(102090)),
     /// Allows `X..Y` patterns.
     (unstable, exclusive_range_pattern, "1.11.0", Some(37854)),
@@ -514,6 +514,9 @@ declare_features! (
     (unstable, macro_metavar_expr, "1.61.0", Some(83527)),
     /// Allows `#[marker]` on certain traits allowing overlapping implementations.
     (unstable, marker_trait_attr, "1.30.0", Some(29864)),
+    /// Allows exhaustive pattern matching on types that contain uninhabited types in cases that are
+    /// unambiguously sound.
+    (incomplete, min_exhaustive_patterns, "1.77.0", Some(119612)),
     /// A minimal, sound subset of specialization intended to be used by the
     /// standard library until the soundness issues with specialization
     /// are fixed.
@@ -523,7 +526,7 @@ declare_features! (
     /// Allows the `#[must_not_suspend]` attribute.
     (unstable, must_not_suspend, "1.57.0", Some(83310)),
     /// Allows using `#[naked]` on functions.
-    (unstable, naked_functions, "1.9.0", Some(32408)),
+    (unstable, naked_functions, "1.9.0", Some(90957)),
     /// Allows specifying the as-needed link modifier
     (unstable, native_link_modifiers_as_needed, "1.53.0", Some(81490)),
     /// Allow negative trait implementations.
@@ -547,7 +550,9 @@ declare_features! (
     /// casts in safe Rust to `dyn Trait` for such a `Trait` is also forbidden.
     (unstable, object_safe_for_dispatch, "1.40.0", Some(43561)),
     /// Allows using enums in offset_of!
-    (unstable, offset_of_enum, "1.75.0", Some(106655)),
+    (unstable, offset_of_enum, "1.75.0", Some(120141)),
+    /// Allows using multiple nested field accesses in offset_of!
+    (unstable, offset_of_nested, "1.77.0", Some(120140)),
     /// Allows using `#[optimize(X)]`.
     (unstable, optimize_attribute, "1.34.0", Some(54882)),
     /// Allows macro attributes on expressions, statements and non-inline modules.

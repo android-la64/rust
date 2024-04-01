@@ -1,10 +1,11 @@
 [package]
 name = "crates-io"
-version = "0.39.2"
-rust-version.workspace = true
+version = "0.40.0"
+rust-version = "1.75.0"  # MSRV:1
 edition.workspace = true
 license.workspace = true
-repository = "https://github.com/rust-lang/cargo"
+homepage.workspace = true
+repository.workspace = true
 description = """
 Helpers for interacting with crates.io
 """

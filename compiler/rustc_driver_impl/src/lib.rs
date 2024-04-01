@@ -9,10 +9,9 @@
 #![feature(rustdoc_internals)]
 #![allow(internal_features)]
 #![feature(decl_macro)]
-#![feature(lazy_cell)]
 #![feature(let_chains)]
 #![feature(panic_update_hook)]
-#![recursion_limit = "256"]
+#![feature(result_flattening)]
 #![deny(rustc::untranslatable_diagnostic)]
 #![deny(rustc::diagnostic_outside_of_impl)]
 
@@ -24,10 +23,8 @@ use rustc_codegen_ssa::{traits::CodegenBackend, CodegenErrors, CodegenResults};
 use rustc_data_structures::profiling::{
     get_resident_set_size, print_time_passes_entry, TimePassesFormat,
 };
-use rustc_data_structures::sync::SeqCst;
-use rustc_errors::registry::{InvalidErrorCode, Registry};
-use rustc_errors::{markdown, ColorConfig};
-use rustc_errors::{DiagCtxt, ErrorGuaranteed, PResult};
+use rustc_errors::registry::Registry;
+use rustc_errors::{markdown, ColorConfig, DiagCtxt, ErrCode, ErrorGuaranteed, PResult};
 use rustc_feature::find_gated_cfg;
 use rustc_interface::util::{self, collect_crate_types, get_codegen_backend};
 use rustc_interface::{interface, Queries};
@@ -35,7 +32,7 @@ use rustc_lint::unerased_lint_store;
 use rustc_metadata::creader::MetadataLoader;
 use rustc_metadata::locator;
 use rustc_session::config::{nightly_options, CG_OPTIONS, Z_OPTIONS};
-use rustc_session::config::{ErrorOutputType, Input, OutFileName, OutputType, TrimmedDefPaths};
+use rustc_session::config::{ErrorOutputType, Input, OutFileName, OutputType};
 use rustc_session::getopts::{self, Matches};
 use rustc_session::lint::{Lint, LintId};
 use rustc_session::{config, EarlyDiagCtxt, Session};
@@ -150,7 +147,7 @@ pub const DEFAULT_BUG_REPORT_URL: &str = "https://github.com/rust-lang/rust/issu
 pub fn abort_on_err<T>(result: Result<T, ErrorGuaranteed>, sess: &Session) -> T {
     match result {
         Err(..) => {
-            sess.abort_if_errors();
+            sess.dcx().abort_if_errors();
             panic!("error reported but abort_if_errors didn't abort???");
         }
         Ok(x) => x,
@@ -204,12 +201,12 @@ impl Callbacks for TimePassesCallbacks {
         //
         self.time_passes = (config.opts.prints.is_empty() && config.opts.unstable_opts.time_passes)
             .then(|| config.opts.unstable_opts.time_passes_format);
-        config.opts.trimmed_def_paths = TrimmedDefPaths::GoodPath;
+        config.opts.trimmed_def_paths = true;
     }
 }
 
 pub fn diagnostics_registry() -> Registry {
-    Registry::new(rustc_error_codes::DIAGNOSTICS)
+    Registry::new(rustc_errors::codes::DIAGNOSTICS)
 }
 
 /// This is the primary entry point for rustc.
@@ -345,7 +342,7 @@ fn run_compiler(
         Ok(None) => match matches.free.len() {
             0 => false, // no input: we will exit early
             1 => panic!("make_input should have provided valid inputs"),
-            _ => default_early_dcx.early_error(format!(
+            _ => default_early_dcx.early_fatal(format!(
                 "multiple input filenames provided (first two filenames are `{}` and `{}`)",
                 matches.free[0], matches.free[1],
             )),
@@ -376,7 +373,7 @@ fn run_compiler(
         }
 
         if !has_input {
-            early_dcx.early_error("no input filename given"); // this is fatal
+            early_dcx.early_fatal("no input filename given"); // this is fatal
         }
 
         if !sess.opts.unstable_opts.ls.is_empty() {
@@ -475,7 +472,7 @@ fn run_compiler(
             eprintln!(
                 "Fuel used by {}: {}",
                 sess.opts.unstable_opts.print_fuel.as_ref().unwrap(),
-                sess.print_fuel.load(SeqCst)
+                sess.print_fuel.load(Ordering::SeqCst)
             );
         }
 
@@ -505,9 +502,8 @@ fn make_input(
             if io::stdin().read_to_string(&mut src).is_err() {
                 // Immediately stop compilation if there was an issue reading
                 // the input (for example if the input stream is not UTF-8).
-                let reported = early_dcx.early_error_no_abort(
-                    "couldn't read from stdin, as it did not contain valid UTF-8",
-                );
+                let reported = early_dcx
+                    .early_err("couldn't read from stdin, as it did not contain valid UTF-8");
                 return Err(reported);
             }
             if let Ok(path) = env::var("UNSTABLE_RUSTDOC_TEST_PATH") {
@@ -538,37 +534,36 @@ pub enum Compilation {
 }
 
 fn handle_explain(early_dcx: &EarlyDiagCtxt, registry: Registry, code: &str, color: ColorConfig) {
+    // Allow "E0123" or "0123" form.
     let upper_cased_code = code.to_ascii_uppercase();
-    let normalised =
-        if upper_cased_code.starts_with('E') { upper_cased_code } else { format!("E{code:0>4}") };
-    match registry.try_find_description(&normalised) {
-        Ok(description) => {
-            let mut is_in_code_block = false;
-            let mut text = String::new();
-            // Slice off the leading newline and print.
-            for line in description.lines() {
-                let indent_level =
-                    line.find(|c: char| !c.is_whitespace()).unwrap_or_else(|| line.len());
-                let dedented_line = &line[indent_level..];
-                if dedented_line.starts_with("```") {
-                    is_in_code_block = !is_in_code_block;
-                    text.push_str(&line[..(indent_level + 3)]);
-                } else if is_in_code_block && dedented_line.starts_with("# ") {
-                    continue;
-                } else {
-                    text.push_str(line);
-                }
-                text.push('\n');
-            }
-            if io::stdout().is_terminal() {
-                show_md_content_with_pager(&text, color);
+    let start = if upper_cased_code.starts_with('E') { 1 } else { 0 };
+    if let Ok(code) = upper_cased_code[start..].parse::<u32>()
+        && let Ok(description) = registry.try_find_description(ErrCode::from_u32(code))
+    {
+        let mut is_in_code_block = false;
+        let mut text = String::new();
+        // Slice off the leading newline and print.
+        for line in description.lines() {
+            let indent_level =
+                line.find(|c: char| !c.is_whitespace()).unwrap_or_else(|| line.len());
+            let dedented_line = &line[indent_level..];
+            if dedented_line.starts_with("```") {
+                is_in_code_block = !is_in_code_block;
+                text.push_str(&line[..(indent_level + 3)]);
+            } else if is_in_code_block && dedented_line.starts_with("# ") {
+                continue;
             } else {
-                safe_print!("{text}");
+                text.push_str(line);
             }
+            text.push('\n');
         }
-        Err(InvalidErrorCode) => {
-            early_dcx.early_error(format!("{code} is not a valid error code"));
+        if io::stdout().is_terminal() {
+            show_md_content_with_pager(&text, color);
+        } else {
+            safe_print!("{text}");
         }
+    } else {
+        early_dcx.early_fatal(format!("{code} is not a valid error code"));
     }
 }
 
@@ -641,20 +636,22 @@ fn show_md_content_with_pager(content: &str, color: ColorConfig) {
 
 fn process_rlink(sess: &Session, compiler: &interface::Compiler) {
     assert!(sess.opts.unstable_opts.link_only);
+    let dcx = sess.dcx();
     if let Input::File(file) = &sess.io.input {
         let rlink_data = fs::read(file).unwrap_or_else(|err| {
-            sess.emit_fatal(RlinkUnableToRead { err });
+            dcx.emit_fatal(RlinkUnableToRead { err });
         });
         let (codegen_results, outputs) = match CodegenResults::deserialize_rlink(sess, rlink_data) {
             Ok((codegen, outputs)) => (codegen, outputs),
             Err(err) => {
                 match err {
-                    CodegenErrors::WrongFileType => sess.emit_fatal(RLinkWrongFileType),
-                    CodegenErrors::EmptyVersionNumber => sess.emit_fatal(RLinkEmptyVersionNumber),
+                    CodegenErrors::WrongFileType => dcx.emit_fatal(RLinkWrongFileType),
+                    CodegenErrors::EmptyVersionNumber => dcx.emit_fatal(RLinkEmptyVersionNumber),
                     CodegenErrors::EncodingVersionMismatch { version_array, rlink_version } => sess
+                        .dcx()
                         .emit_fatal(RLinkEncodingVersionMismatch { version_array, rlink_version }),
                     CodegenErrors::RustcVersionMismatch { rustc_version } => {
-                        sess.emit_fatal(RLinkRustcVersionMismatch {
+                        dcx.emit_fatal(RLinkRustcVersionMismatch {
                             rustc_version,
                             current_version: sess.cfg_version,
                         })
@@ -665,7 +662,7 @@ fn process_rlink(sess: &Session, compiler: &interface::Compiler) {
         let result = compiler.codegen_backend.link(sess, codegen_results, &outputs);
         abort_on_err(result, sess);
     } else {
-        sess.emit_fatal(RlinkNotAFile {})
+        dcx.emit_fatal(RlinkNotAFile {})
     }
 }
 
@@ -685,7 +682,7 @@ fn list_metadata(early_dcx: &EarlyDiagCtxt, sess: &Session, metadata_loader: &dy
             safe_println!("{}", String::from_utf8(v).unwrap());
         }
         Input::Str { .. } => {
-            early_dcx.early_error("cannot list metadata for stdin");
+            early_dcx.early_fatal("cannot list metadata for stdin");
         }
     }
 }
@@ -714,7 +711,7 @@ fn print_crate_info(
         let result = parse_crate_attrs(sess);
         match result {
             Ok(attrs) => Some(attrs),
-            Err(mut parse_error) => {
+            Err(parse_error) => {
                 parse_error.emit();
                 return Compilation::Stop;
             }
@@ -839,7 +836,7 @@ fn print_crate_info(
                     println_info!("deployment_target={}", format!("{major}.{minor}"))
                 } else {
                     early_dcx
-                        .early_error("only Apple targets currently support deployment version info")
+                        .early_fatal("only Apple targets currently support deployment version info")
                 }
             }
         }
@@ -1182,7 +1179,7 @@ pub fn handle_options(early_dcx: &EarlyDiagCtxt, args: &[String]) -> Option<geto
                 .map(|(flag, _)| format!("{e}. Did you mean `-{flag} {opt}`?")),
             _ => None,
         };
-        early_dcx.early_error(msg.unwrap_or_else(|| e.to_string()));
+        early_dcx.early_fatal(msg.unwrap_or_else(|| e.to_string()));
     });
 
     // For all options we just parsed, we check a few aspects:
@@ -1248,8 +1245,7 @@ pub fn catch_fatal_errors<F: FnOnce() -> R, R>(f: F) -> Result<R, ErrorGuarantee
 /// Variant of `catch_fatal_errors` for the `interface::Result` return type
 /// that also computes the exit code.
 pub fn catch_with_exit_code(f: impl FnOnce() -> interface::Result<()>) -> i32 {
-    let result = catch_fatal_errors(f).and_then(|result| result);
-    match result {
+    match catch_fatal_errors(f).flatten() {
         Ok(()) => EXIT_SUCCESS,
         Err(_) => EXIT_FAILURE,
     }
@@ -1333,7 +1329,7 @@ pub fn install_ice_hook(
                 {
                     // the error code is already going to be reported when the panic unwinds up the stack
                     let early_dcx = EarlyDiagCtxt::new(ErrorOutputType::default());
-                    let _ = early_dcx.early_error_no_abort(msg.clone());
+                    let _ = early_dcx.early_err(msg.clone());
                     return;
                 }
             };
@@ -1392,7 +1388,7 @@ fn report_ice(
 ) {
     let fallback_bundle =
         rustc_errors::fallback_fluent_bundle(crate::DEFAULT_LOCALE_RESOURCES.to_vec(), false);
-    let emitter = Box::new(rustc_errors::emitter::EmitterWriter::stderr(
+    let emitter = Box::new(rustc_errors::emitter::HumanEmitter::stderr(
         rustc_errors::ColorConfig::Auto,
         fallback_bundle,
     ));
@@ -1429,7 +1425,7 @@ fn report_ice(
             }
             Err(err) => {
                 // The path ICE couldn't be written to disk, provide feedback to the user as to why.
-                dcx.emit_warning(session_diagnostics::IcePathError {
+                dcx.emit_warn(session_diagnostics::IcePathError {
                     path: path.clone(),
                     error: err.to_string(),
                     env_var: std::env::var_os("RUSTC_ICE")
@@ -1481,7 +1477,7 @@ pub fn init_rustc_env_logger(early_dcx: &EarlyDiagCtxt) {
 /// the values directly rather than having to set an environment variable.
 pub fn init_logger(early_dcx: &EarlyDiagCtxt, cfg: rustc_log::LoggerConfig) {
     if let Err(error) = rustc_log::init_logger(cfg) {
-        early_dcx.early_error(error.to_string());
+        early_dcx.early_fatal(error.to_string());
     }
 }
 
@@ -1500,7 +1496,7 @@ pub fn main() -> ! {
             .enumerate()
             .map(|(i, arg)| {
                 arg.into_string().unwrap_or_else(|arg| {
-                    early_dcx.early_error(format!("argument {i} is not valid Unicode: {arg:?}"))
+                    early_dcx.early_fatal(format!("argument {i} is not valid Unicode: {arg:?}"))
                 })
             })
             .collect::<Vec<_>>();

@@ -80,10 +80,10 @@ use crate::util::network::http::http_handle;
 use crate::util::try_canonicalize;
 use crate::util::{internal, CanonicalUrl};
 use crate::util::{Filesystem, IntoUrl, IntoUrlWithBase, Rustc};
-use crate::util_schemas::manifest::RegistryName;
 use anyhow::{anyhow, bail, format_err, Context as _};
 use cargo_credential::Secret;
 use cargo_util::paths;
+use cargo_util_schemas::manifest::RegistryName;
 use curl::easy::Easy;
 use lazycell::LazyCell;
 use serde::de::IntoDeserializer as _;
@@ -366,6 +366,18 @@ impl Config {
     /// Gets the Cargo Git directory (`<cargo_home>/git`).
     pub fn git_path(&self) -> Filesystem {
         self.home_path.join("git")
+    }
+
+    /// Gets the directory of code sources Cargo checkouts from Git bare repos
+    /// (`<cargo_home>/git/checkouts`).
+    pub fn git_checkouts_path(&self) -> Filesystem {
+        self.git_path().join("checkouts")
+    }
+
+    /// Gets the directory for all Git bare repos Cargo clones
+    /// (`<cargo_home>/git/db`).
+    pub fn git_db_path(&self) -> Filesystem {
+        self.git_path().join("db")
     }
 
     /// Gets the Cargo base directory for all registry information (`<cargo_home>/registry`).

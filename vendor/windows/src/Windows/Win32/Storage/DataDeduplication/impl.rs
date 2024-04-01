@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_Storage_DataDeduplication\"`, `\"implement\"`*"]
 pub trait IDedupBackupSupport_Impl: Sized {
     fn RestoreFiles(&self, numberoffiles: u32, filefullpaths: *const ::windows_core::BSTR, store: ::core::option::Option<&IDedupReadFileCallback>, flags: u32, fileresults: *mut ::windows_core::HRESULT) -> ::windows_core::Result<()>;
 }
@@ -12,11 +11,11 @@ impl IDedupBackupSupport_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), RestoreFiles: RestoreFiles::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDedupBackupSupport as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDedupBackupSupport as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_DataDeduplication\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IDedupChunkLibrary_Impl: Sized {
     fn InitializeForPushBuffers(&self) -> ::windows_core::Result<()>;
@@ -63,11 +62,11 @@ impl IDedupChunkLibrary_Vtbl {
             StartChunking: StartChunking::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDedupChunkLibrary as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDedupChunkLibrary as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_DataDeduplication\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IDedupDataPort_Impl: Sized {
     fn GetStatus(&self, pstatus: *mut DedupDataPortVolumeStatus, pdataheadroommb: *mut u32) -> ::windows_core::Result<()>;
@@ -212,11 +211,10 @@ impl IDedupDataPort_Vtbl {
             GetRequestResults: GetRequestResults::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDedupDataPort as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDedupDataPort as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_DataDeduplication\"`, `\"implement\"`*"]
 pub trait IDedupDataPortManager_Impl: Sized {
     fn GetConfiguration(&self, pminchunksize: *mut u32, pmaxchunksize: *mut u32, pchunkingalgorithm: *mut DedupChunkingAlgorithm, phashingalgorithm: *mut DedupHashingAlgorithm, pcompressionalgorithm: *mut DedupCompressionAlgorithm) -> ::windows_core::Result<()>;
     fn GetVolumeStatus(&self, options: u32, path: &::windows_core::BSTR) -> ::windows_core::Result<DedupDataPortVolumeStatus>;
@@ -259,11 +257,10 @@ impl IDedupDataPortManager_Vtbl {
             GetVolumeDataPort: GetVolumeDataPort::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDedupDataPortManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDedupDataPortManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_DataDeduplication\"`, `\"implement\"`*"]
 pub trait IDedupIterateChunksHash32_Impl: Sized {
     fn PushBuffer(&self, pbuffer: *const u8, ulbufferlength: u32) -> ::windows_core::Result<()>;
     fn Next(&self, ulmaxchunks: u32, parrchunks: *mut DEDUP_CHUNK_INFO_HASH32, pulfetched: *mut u32) -> ::windows_core::Result<()>;
@@ -301,11 +298,10 @@ impl IDedupIterateChunksHash32_Vtbl {
             Reset: Reset::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDedupIterateChunksHash32 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDedupIterateChunksHash32 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_DataDeduplication\"`, `\"implement\"`*"]
 pub trait IDedupReadFileCallback_Impl: Sized {
     fn ReadBackupFile(&self, filefullpath: &::windows_core::BSTR, fileoffset: i64, sizetoread: u32, filebuffer: *mut u8, returnedsize: *mut u32, flags: u32) -> ::windows_core::Result<()>;
     fn OrderContainersRestore(&self, numberofcontainers: u32, containerpaths: *const ::windows_core::BSTR, readplanentries: *mut u32, readplan: *mut *mut DEDUP_CONTAINER_EXTENT) -> ::windows_core::Result<()>;
@@ -336,7 +332,7 @@ impl IDedupReadFileCallback_Vtbl {
             PreviewContainerRead: PreviewContainerRead::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDedupReadFileCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDedupReadFileCallback as ::windows_core::ComInterface>::IID
     }
 }

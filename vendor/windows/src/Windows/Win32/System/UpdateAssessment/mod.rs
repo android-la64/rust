@@ -1,8 +1,8 @@
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWaaSAssessor(::windows_core::IUnknown);
 impl IWaaSAssessor {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetOSUpdateAssessment(&self) -> ::windows_core::Result<OSUpdateAssessment> {
         let mut result__ = ::std::mem::zeroed();
@@ -10,24 +10,8 @@ impl IWaaSAssessor {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IWaaSAssessor, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IWaaSAssessor {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IWaaSAssessor {}
-impl ::core::fmt::Debug for IWaaSAssessor {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWaaSAssessor").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IWaaSAssessor {
     type Vtable = IWaaSAssessor_Vtbl;
-}
-impl ::core::clone::Clone for IWaaSAssessor {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWaaSAssessor {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2347bbef_1a3b_45a4_902d_3e09c269b45e);
@@ -41,41 +25,23 @@ pub struct IWaaSAssessor_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     GetOSUpdateAssessment: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_Latest: UpdateAssessmentStatus = UpdateAssessmentStatus(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestDeferredFeature: UpdateAssessmentStatus = UpdateAssessmentStatus(5i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestDeferredQuality: UpdateAssessmentStatus = UpdateAssessmentStatus(6i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestEndOfSupport: UpdateAssessmentStatus = UpdateAssessmentStatus(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestHardRestriction: UpdateAssessmentStatus = UpdateAssessmentStatus(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestManaged: UpdateAssessmentStatus = UpdateAssessmentStatus(9i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestPausedFeature: UpdateAssessmentStatus = UpdateAssessmentStatus(7i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestPausedQuality: UpdateAssessmentStatus = UpdateAssessmentStatus(8i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestServicingTrain: UpdateAssessmentStatus = UpdateAssessmentStatus(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestSoftRestriction: UpdateAssessmentStatus = UpdateAssessmentStatus(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestTargetedVersion: UpdateAssessmentStatus = UpdateAssessmentStatus(11i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateAssessmentStatus_NotLatestUnknown: UpdateAssessmentStatus = UpdateAssessmentStatus(10i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateImpactLevel_High: UpdateImpactLevel = UpdateImpactLevel(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateImpactLevel_Low: UpdateImpactLevel = UpdateImpactLevel(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateImpactLevel_Medium: UpdateImpactLevel = UpdateImpactLevel(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const UpdateImpactLevel_None: UpdateImpactLevel = UpdateImpactLevel(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub const WaaSAssessor: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x098ef871_fa9f_46af_8958_c083515d7c9c);
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UpdateAssessmentStatus(pub i32);
@@ -98,7 +64,6 @@ impl ::core::fmt::Debug for UpdateAssessmentStatus {
         f.debug_tuple("UpdateAssessmentStatus").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UpdateImpactLevel(pub i32);
@@ -122,7 +87,7 @@ impl ::core::fmt::Debug for UpdateImpactLevel {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct OSUpdateAssessment {
     pub isEndOfSupport: super::super::Foundation::BOOL,
@@ -180,7 +145,6 @@ impl ::core::default::Default for OSUpdateAssessment {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_System_UpdateAssessment\"`*"]
 pub struct UpdateAssessment {
     pub status: UpdateAssessmentStatus,
     pub impact: UpdateImpactLevel,

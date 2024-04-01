@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"UI_Popups\"`, `\"implement\"`*"]
 pub trait IUICommand_Impl: Sized {
     fn Label(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
     fn SetLabel(&self, value: &::windows_core::HSTRING) -> ::windows_core::Result<()>;
@@ -73,7 +72,7 @@ impl IUICommand_Vtbl {
             SetId: SetId::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IUICommand as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IUICommand as ::windows_core::ComInterface>::IID
     }
 }

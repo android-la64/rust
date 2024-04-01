@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use proptest::{prop_assert, prop_assert_eq, proptest};
 
 use smol_str::SmolStr;
@@ -21,7 +23,11 @@ fn assert_traits() {
 fn conversions() {
     let s: SmolStr = "Hello, World!".into();
     let s: String = s.into();
-    assert_eq!(s, "Hello, World!")
+    assert_eq!(s, "Hello, World!");
+
+    let s: SmolStr = Arc::<str>::from("Hello, World!").into();
+    let s: Arc<str> = s.into();
+    assert_eq!(s.as_ref(), "Hello, World!");
 }
 
 #[test]
@@ -251,4 +257,16 @@ fn test_bad_size_hint_char_iter() {
     assert!(collected.is_heap_allocated());
     assert!(!new.is_heap_allocated());
     assert_eq!(new, collected);
+}
+
+#[test]
+fn test_to_smolstr() {
+    use smol_str::ToSmolStr;
+
+    for i in 0..26 {
+        let a = &"abcdefghijklmnopqrstuvwxyz"[i..];
+
+        assert_eq!(a, a.to_smolstr());
+        assert_eq!(a, smol_str::format_smolstr!("{}", a));
+    }
 }

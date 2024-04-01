@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"implement\"`*"]
 pub trait IDot11AdHocInterface_Impl: Sized {
     fn GetDeviceSignature(&self, psignature: *mut ::windows_core::GUID) -> ::windows_core::Result<()>;
     fn GetFriendlyName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -95,11 +94,10 @@ impl IDot11AdHocInterface_Vtbl {
             GetStatus: GetStatus::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDot11AdHocInterface as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDot11AdHocInterface as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"implement\"`*"]
 pub trait IDot11AdHocInterfaceNotificationSink_Impl: Sized {
     fn OnConnectionStatusChange(&self, estatus: DOT11_ADHOC_NETWORK_CONNECTION_STATUS) -> ::windows_core::Result<()>;
 }
@@ -113,11 +111,11 @@ impl IDot11AdHocInterfaceNotificationSink_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnConnectionStatusChange: OnConnectionStatusChange::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDot11AdHocInterfaceNotificationSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDot11AdHocInterfaceNotificationSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDot11AdHocManager_Impl: Sized {
     fn CreateNetwork(&self, name: &::windows_core::PCWSTR, password: &::windows_core::PCWSTR, geographicalid: i32, pinterface: ::core::option::Option<&IDot11AdHocInterface>, psecurity: ::core::option::Option<&IDot11AdHocSecuritySettings>, pcontextguid: *const ::windows_core::GUID) -> ::windows_core::Result<IDot11AdHocNetwork>;
@@ -189,11 +187,10 @@ impl IDot11AdHocManager_Vtbl {
             GetNetwork: GetNetwork::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDot11AdHocManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDot11AdHocManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"implement\"`*"]
 pub trait IDot11AdHocManagerNotificationSink_Impl: Sized {
     fn OnNetworkAdd(&self, piadhocnetwork: ::core::option::Option<&IDot11AdHocNetwork>) -> ::windows_core::Result<()>;
     fn OnNetworkRemove(&self, signature: *const ::windows_core::GUID) -> ::windows_core::Result<()>;
@@ -231,11 +228,11 @@ impl IDot11AdHocManagerNotificationSink_Vtbl {
             OnInterfaceRemove: OnInterfaceRemove::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDot11AdHocManagerNotificationSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDot11AdHocManagerNotificationSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDot11AdHocNetwork_Impl: Sized {
     fn GetStatus(&self, estatus: *mut DOT11_ADHOC_NETWORK_CONNECTION_STATUS) -> ::windows_core::Result<()>;
@@ -356,11 +353,10 @@ impl IDot11AdHocNetwork_Vtbl {
             Disconnect: Disconnect::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDot11AdHocNetwork as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDot11AdHocNetwork as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"implement\"`*"]
 pub trait IDot11AdHocNetworkNotificationSink_Impl: Sized {
     fn OnStatusChange(&self, estatus: DOT11_ADHOC_NETWORK_CONNECTION_STATUS) -> ::windows_core::Result<()>;
     fn OnConnectFail(&self, efailreason: DOT11_ADHOC_CONNECT_FAIL_REASON) -> ::windows_core::Result<()>;
@@ -384,11 +380,10 @@ impl IDot11AdHocNetworkNotificationSink_Vtbl {
             OnConnectFail: OnConnectFail::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDot11AdHocNetworkNotificationSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDot11AdHocNetworkNotificationSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"implement\"`*"]
 pub trait IDot11AdHocSecuritySettings_Impl: Sized {
     fn GetDot11AuthAlgorithm(&self, pauth: *mut DOT11_ADHOC_AUTH_ALGORITHM) -> ::windows_core::Result<()>;
     fn GetDot11CipherAlgorithm(&self, pcipher: *mut DOT11_ADHOC_CIPHER_ALGORITHM) -> ::windows_core::Result<()>;
@@ -412,11 +407,10 @@ impl IDot11AdHocSecuritySettings_Vtbl {
             GetDot11CipherAlgorithm: GetDot11CipherAlgorithm::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDot11AdHocSecuritySettings as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDot11AdHocSecuritySettings as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"implement\"`*"]
 pub trait IEnumDot11AdHocInterfaces_Impl: Sized {
     fn Next(&self, celt: u32, rgelt: *mut ::core::option::Option<IDot11AdHocInterface>, pceltfetched: *mut u32) -> ::windows_core::Result<()>;
     fn Skip(&self, celt: u32) -> ::windows_core::Result<()>;
@@ -460,11 +454,10 @@ impl IEnumDot11AdHocInterfaces_Vtbl {
             Clone: Clone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEnumDot11AdHocInterfaces as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEnumDot11AdHocInterfaces as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"implement\"`*"]
 pub trait IEnumDot11AdHocNetworks_Impl: Sized {
     fn Next(&self, celt: u32, rgelt: *mut ::core::option::Option<IDot11AdHocNetwork>, pceltfetched: *mut u32) -> ::windows_core::Result<()>;
     fn Skip(&self, celt: u32) -> ::windows_core::Result<()>;
@@ -508,11 +501,10 @@ impl IEnumDot11AdHocNetworks_Vtbl {
             Clone: Clone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEnumDot11AdHocNetworks as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEnumDot11AdHocNetworks as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WiFi\"`, `\"implement\"`*"]
 pub trait IEnumDot11AdHocSecuritySettings_Impl: Sized {
     fn Next(&self, celt: u32, rgelt: *mut ::core::option::Option<IDot11AdHocSecuritySettings>, pceltfetched: *mut u32) -> ::windows_core::Result<()>;
     fn Skip(&self, celt: u32) -> ::windows_core::Result<()>;
@@ -556,7 +548,7 @@ impl IEnumDot11AdHocSecuritySettings_Vtbl {
             Clone: Clone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEnumDot11AdHocSecuritySettings as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEnumDot11AdHocSecuritySettings as ::windows_core::ComInterface>::IID
     }
 }

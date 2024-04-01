@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Phone_PersonalInformation\"`, `\"Foundation_Collections\"`, `\"Storage_Streams\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`, `\"Storage_Streams\"`"]
 #[cfg(all(feature = "Foundation_Collections", feature = "Storage_Streams"))]
 pub trait IContactInformation_Impl: Sized {
     fn DisplayName(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -202,11 +202,11 @@ impl IContactInformation_Vtbl {
             ToVcardWithOptionsAsync: ToVcardWithOptionsAsync::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IContactInformation as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IContactInformation as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Phone_PersonalInformation\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IContactInformation2_Impl: Sized {
     fn DisplayPictureDate(&self) -> ::windows_core::Result<super::super::Foundation::DateTime>;
@@ -241,7 +241,7 @@ impl IContactInformation2_Vtbl {
             SetDisplayPictureDate: SetDisplayPictureDate::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IContactInformation2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IContactInformation2 as ::windows_core::ComInterface>::IID
     }
 }

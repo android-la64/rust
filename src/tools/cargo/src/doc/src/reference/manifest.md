@@ -244,8 +244,12 @@ package.
 ```toml
 [package]
 # ...
-homepage = "https://serde.rs/"
+homepage = "https://serde.rs"
 ```
+
+A value should only be set for `homepage` if there is a dedicated website for
+the crate other than the source repository or API documentation. Do not make
+`homepage` redundant with either the `documentation` or `repository` values.
 
 ### The `repository` field
 
@@ -255,7 +259,7 @@ package.
 ```toml
 [package]
 # ...
-repository = "https://github.com/rust-lang/cargo/"
+repository = "https://github.com/rust-lang/cargo"
 ```
 
 ### The `license` and `license-file` fields
@@ -266,8 +270,8 @@ containing the text of the license (relative to this `Cargo.toml`).
 
 [crates.io] interprets the `license` field as an [SPDX 2.3 license
 expression][spdx-2.3-license-expressions]. The name must be a known license
-from the [SPDX license list 3.20][spdx-license-list-3.20]. Parentheses are not
-currently supported. See the [SPDX site] for more information.
+from the [SPDX license list 3.20][spdx-license-list-3.20]. See the [SPDX site]
+for more information.
 
 SPDX license expressions support AND and OR operators to combine multiple
 licenses.[^slash]

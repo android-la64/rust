@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.63"
 name = "rustix"
-version = "0.38.26"
+version = "0.38.28"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
     "Jakub Konka <kubkon@jakubkonka.com>",
@@ -27,7 +27,7 @@ include = [
     "/*.md",
     "benches",
 ]
-description = "Safe Rust bindings to POSIX/Unix/Linux/Winsock2-like syscalls"
+description = "Safe Rust bindings to POSIX/Unix/Linux/Winsock-like syscalls"
 documentation = "https://docs.rs/rustix"
 readme = "README.md"
 keywords = [

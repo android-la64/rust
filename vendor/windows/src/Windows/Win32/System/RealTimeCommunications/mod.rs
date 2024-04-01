@@ -1,37 +1,21 @@
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct INetworkTransportSettings(::windows_core::IUnknown);
 impl INetworkTransportSettings {
-    #[doc = "*Required features: `\"Win32_Networking_WinSock\"`*"]
+    #[doc = "Required features: `\"Win32_Networking_WinSock\"`"]
     #[cfg(feature = "Win32_Networking_WinSock")]
     pub unsafe fn ApplySetting(&self, settingid: *const super::super::Networking::WinSock::TRANSPORT_SETTING_ID, valuein: &[u8], lengthout: *mut u32, valueout: *mut *mut u8) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).ApplySetting)(::windows_core::Interface::as_raw(self), settingid, valuein.len() as _, ::core::mem::transmute(valuein.as_ptr()), lengthout, valueout).ok()
+        (::windows_core::Interface::vtable(self).ApplySetting)(::windows_core::Interface::as_raw(self), settingid, valuein.len().try_into().unwrap(), ::core::mem::transmute(valuein.as_ptr()), lengthout, valueout).ok()
     }
-    #[doc = "*Required features: `\"Win32_Networking_WinSock\"`*"]
+    #[doc = "Required features: `\"Win32_Networking_WinSock\"`"]
     #[cfg(feature = "Win32_Networking_WinSock")]
     pub unsafe fn QuerySetting(&self, settingid: *const super::super::Networking::WinSock::TRANSPORT_SETTING_ID, valuein: &[u8], lengthout: *mut u32, valueout: *mut *mut u8) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).QuerySetting)(::windows_core::Interface::as_raw(self), settingid, valuein.len() as _, ::core::mem::transmute(valuein.as_ptr()), lengthout, valueout).ok()
+        (::windows_core::Interface::vtable(self).QuerySetting)(::windows_core::Interface::as_raw(self), settingid, valuein.len().try_into().unwrap(), ::core::mem::transmute(valuein.as_ptr()), lengthout, valueout).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(INetworkTransportSettings, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for INetworkTransportSettings {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for INetworkTransportSettings {}
-impl ::core::fmt::Debug for INetworkTransportSettings {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("INetworkTransportSettings").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for INetworkTransportSettings {
     type Vtable = INetworkTransportSettings_Vtbl;
-}
-impl ::core::clone::Clone for INetworkTransportSettings {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for INetworkTransportSettings {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x5e7abb2c_f2c1_4a61_bd35_deb7a08ab0f1);
@@ -49,8 +33,8 @@ pub struct INetworkTransportSettings_Vtbl {
     #[cfg(not(feature = "Win32_Networking_WinSock"))]
     QuerySetting: usize,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct INotificationTransportSync(::windows_core::IUnknown);
 impl INotificationTransportSync {
     pub unsafe fn CompleteDelivery(&self) -> ::windows_core::Result<()> {
@@ -61,24 +45,8 @@ impl INotificationTransportSync {
     }
 }
 ::windows_core::imp::interface_hierarchy!(INotificationTransportSync, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for INotificationTransportSync {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for INotificationTransportSync {}
-impl ::core::fmt::Debug for INotificationTransportSync {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("INotificationTransportSync").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for INotificationTransportSync {
     type Vtable = INotificationTransportSync_Vtbl;
-}
-impl ::core::clone::Clone for INotificationTransportSync {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for INotificationTransportSync {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x79eb1402_0ab8_49c0_9e14_a1ae4ba93058);
@@ -90,8 +58,8 @@ pub struct INotificationTransportSync_Vtbl {
     pub CompleteDelivery: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Flush: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCBuddy(::windows_core::IUnknown);
 impl IRTCBuddy {
     pub unsafe fn PresentityURI(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -124,13 +92,13 @@ impl IRTCBuddy {
     {
         (::windows_core::Interface::vtable(self).base__.SetData)(::windows_core::Interface::as_raw(self), bstrdata.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Persistent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Persistent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetPersistent<P0>(&self, fpersistent: P0) -> ::windows_core::Result<()>
     where
@@ -148,24 +116,8 @@ impl IRTCBuddy {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCBuddy, ::windows_core::IUnknown, IRTCPresenceContact);
-impl ::core::cmp::PartialEq for IRTCBuddy {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCBuddy {}
-impl ::core::fmt::Debug for IRTCBuddy {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCBuddy").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCBuddy {
     type Vtable = IRTCBuddy_Vtbl;
-}
-impl ::core::clone::Clone for IRTCBuddy {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCBuddy {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfcb136c8_7b90_4e0c_befe_56edf0ba6f1c);
@@ -177,8 +129,8 @@ pub struct IRTCBuddy_Vtbl {
     pub Status: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penstatus: *mut RTC_PRESENCE_STATUS) -> ::windows_core::HRESULT,
     pub Notes: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrnotes: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCBuddy2(::windows_core::IUnknown);
 impl IRTCBuddy2 {
     pub unsafe fn PresentityURI(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -211,13 +163,13 @@ impl IRTCBuddy2 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetData)(::windows_core::Interface::as_raw(self), bstrdata.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Persistent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Persistent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetPersistent<P0>(&self, fpersistent: P0) -> ::windows_core::Result<()>
     where
@@ -244,7 +196,7 @@ impl IRTCBuddy2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EnumerateGroups)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Groups(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -258,7 +210,7 @@ impl IRTCBuddy2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EnumeratePresenceDevices)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn PresenceDevices(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -270,24 +222,8 @@ impl IRTCBuddy2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCBuddy2, ::windows_core::IUnknown, IRTCPresenceContact, IRTCBuddy);
-impl ::core::cmp::PartialEq for IRTCBuddy2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCBuddy2 {}
-impl ::core::fmt::Debug for IRTCBuddy2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCBuddy2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCBuddy2 {
     type Vtable = IRTCBuddy2_Vtbl;
-}
-impl ::core::clone::Clone for IRTCBuddy2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCBuddy2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x102f9588_23e7_40e3_954d_cd7a1d5c0361);
@@ -311,9 +247,10 @@ pub struct IRTCBuddy2_Vtbl {
     PresenceDevices: usize,
     pub SubscriptionType: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pensubscriptiontype: *mut RTC_BUDDY_SUBSCRIPTION_TYPE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCBuddyEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCBuddyEvent {
@@ -325,28 +262,8 @@ impl IRTCBuddyEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCBuddyEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCBuddyEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCBuddyEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCBuddyEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCBuddyEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCBuddyEvent {
     type Vtable = IRTCBuddyEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCBuddyEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCBuddyEvent {
@@ -359,9 +276,10 @@ pub struct IRTCBuddyEvent_Vtbl {
     pub base__: super::Com::IDispatch_Vtbl,
     pub Buddy: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppbuddy: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCBuddyEvent2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCBuddyEvent2 {
@@ -385,28 +303,8 @@ impl IRTCBuddyEvent2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCBuddyEvent2, ::windows_core::IUnknown, super::Com::IDispatch, IRTCBuddyEvent);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCBuddyEvent2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCBuddyEvent2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCBuddyEvent2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCBuddyEvent2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCBuddyEvent2 {
     type Vtable = IRTCBuddyEvent2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCBuddyEvent2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCBuddyEvent2 {
@@ -421,8 +319,8 @@ pub struct IRTCBuddyEvent2_Vtbl {
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
     pub StatusText: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrstatustext: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCBuddyGroup(::windows_core::IUnknown);
 impl IRTCBuddyGroup {
     pub unsafe fn Name(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -451,7 +349,7 @@ impl IRTCBuddyGroup {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EnumerateBuddies)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Buddies(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -473,24 +371,8 @@ impl IRTCBuddyGroup {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCBuddyGroup, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCBuddyGroup {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCBuddyGroup {}
-impl ::core::fmt::Debug for IRTCBuddyGroup {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCBuddyGroup").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCBuddyGroup {
     type Vtable = IRTCBuddyGroup_Vtbl;
-}
-impl ::core::clone::Clone for IRTCBuddyGroup {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCBuddyGroup {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x60361e68_9164_4389_a4c6_d0b3925bda5e);
@@ -512,9 +394,10 @@ pub struct IRTCBuddyGroup_Vtbl {
     pub SetData: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrdata: ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub Profile: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppprofile: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCBuddyGroupEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCBuddyGroupEvent {
@@ -538,28 +421,8 @@ impl IRTCBuddyGroupEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCBuddyGroupEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCBuddyGroupEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCBuddyGroupEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCBuddyGroupEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCBuddyGroupEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCBuddyGroupEvent {
     type Vtable = IRTCBuddyGroupEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCBuddyGroupEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCBuddyGroupEvent {
@@ -575,8 +438,8 @@ pub struct IRTCBuddyGroupEvent_Vtbl {
     pub Buddy: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppbuddy: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCClient(::windows_core::IUnknown);
 impl IRTCClient {
     pub unsafe fn Initialize(&self) -> ::windows_core::Result<()> {
@@ -595,7 +458,7 @@ impl IRTCClient {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EventFilter)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetPreferredMediaTypes<P0>(&self, lmediatypes: i32, fpersistent: P0) -> ::windows_core::Result<()>
     where
@@ -626,7 +489,7 @@ impl IRTCClient {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ListenForIncomingSessions)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn get_NetworkAddresses<P0, P1>(&self, ftcp: P0, fexternal: P1) -> ::windows_core::Result<super::Variant::VARIANT>
     where
@@ -643,7 +506,7 @@ impl IRTCClient {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_Volume)(::windows_core::Interface::as_raw(self), endevice, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn put_AudioMuted<P0>(&self, endevice: RTC_AUDIO_DEVICE, fmuted: P0) -> ::windows_core::Result<()>
     where
@@ -651,13 +514,13 @@ impl IRTCClient {
     {
         (::windows_core::Interface::vtable(self).put_AudioMuted)(::windows_core::Interface::as_raw(self), endevice, fmuted.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn get_AudioMuted(&self, endevice: RTC_AUDIO_DEVICE) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_AudioMuted)(::windows_core::Interface::as_raw(self), endevice, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Media_DirectShow\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Media_DirectShow\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Media_DirectShow", feature = "Win32_System_Com"))]
     pub unsafe fn get_IVideoWindow(&self, endevice: RTC_VIDEO_DEVICE) -> ::windows_core::Result<super::super::Media::DirectShow::IVideoWindow> {
         let mut result__ = ::std::mem::zeroed();
@@ -680,7 +543,7 @@ impl IRTCClient {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_PreferredVolume)(::windows_core::Interface::as_raw(self), endevice, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetPreferredAEC<P0>(&self, benable: P0) -> ::windows_core::Result<()>
     where
@@ -688,7 +551,7 @@ impl IRTCClient {
     {
         (::windows_core::Interface::vtable(self).SetPreferredAEC)(::windows_core::Interface::as_raw(self), benable.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PreferredAEC(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -732,7 +595,7 @@ impl IRTCClient {
     pub unsafe fn StopT120Applets(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).StopT120Applets)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn get_IsT120AppletRunning(&self, enapplet: RTC_T120_APPLET) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -758,7 +621,7 @@ impl IRTCClient {
     {
         (::windows_core::Interface::vtable(self).SetLocalUserName)(::windows_core::Interface::as_raw(self), bstrusername.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PlayRing<P0>(&self, entype: RTC_RING_TYPE, bplay: P0) -> ::windows_core::Result<()>
     where
@@ -772,7 +635,7 @@ impl IRTCClient {
     pub unsafe fn InvokeTuningWizard(&self, hwndparent: isize) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).InvokeTuningWizard)(::windows_core::Interface::as_raw(self), hwndparent).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsTuned(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -780,24 +643,8 @@ impl IRTCClient {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCClient, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCClient {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCClient {}
-impl ::core::fmt::Debug for IRTCClient {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCClient").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCClient {
     type Vtable = IRTCClient_Vtbl;
-}
-impl ::core::clone::Clone for IRTCClient {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCClient {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x07829e45_9a34_408e_a011_bddf13487cd1);
@@ -879,8 +726,8 @@ pub struct IRTCClient_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     IsTuned: usize,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCClient2(::windows_core::IUnknown);
 impl IRTCClient2 {
     pub unsafe fn Initialize(&self) -> ::windows_core::Result<()> {
@@ -899,7 +746,7 @@ impl IRTCClient2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.EventFilter)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetPreferredMediaTypes<P0>(&self, lmediatypes: i32, fpersistent: P0) -> ::windows_core::Result<()>
     where
@@ -930,7 +777,7 @@ impl IRTCClient2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ListenForIncomingSessions)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn get_NetworkAddresses<P0, P1>(&self, ftcp: P0, fexternal: P1) -> ::windows_core::Result<super::Variant::VARIANT>
     where
@@ -947,7 +794,7 @@ impl IRTCClient2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.get_Volume)(::windows_core::Interface::as_raw(self), endevice, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn put_AudioMuted<P0>(&self, endevice: RTC_AUDIO_DEVICE, fmuted: P0) -> ::windows_core::Result<()>
     where
@@ -955,13 +802,13 @@ impl IRTCClient2 {
     {
         (::windows_core::Interface::vtable(self).base__.put_AudioMuted)(::windows_core::Interface::as_raw(self), endevice, fmuted.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn get_AudioMuted(&self, endevice: RTC_AUDIO_DEVICE) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.get_AudioMuted)(::windows_core::Interface::as_raw(self), endevice, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Media_DirectShow\"`, `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_Media_DirectShow\"`, `\"Win32_System_Com\"`"]
     #[cfg(all(feature = "Win32_Media_DirectShow", feature = "Win32_System_Com"))]
     pub unsafe fn get_IVideoWindow(&self, endevice: RTC_VIDEO_DEVICE) -> ::windows_core::Result<super::super::Media::DirectShow::IVideoWindow> {
         let mut result__ = ::std::mem::zeroed();
@@ -984,7 +831,7 @@ impl IRTCClient2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.get_PreferredVolume)(::windows_core::Interface::as_raw(self), endevice, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetPreferredAEC<P0>(&self, benable: P0) -> ::windows_core::Result<()>
     where
@@ -992,7 +839,7 @@ impl IRTCClient2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetPreferredAEC)(::windows_core::Interface::as_raw(self), benable.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PreferredAEC(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -1036,7 +883,7 @@ impl IRTCClient2 {
     pub unsafe fn StopT120Applets(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.StopT120Applets)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn get_IsT120AppletRunning(&self, enapplet: RTC_T120_APPLET) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -1062,7 +909,7 @@ impl IRTCClient2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetLocalUserName)(::windows_core::Interface::as_raw(self), bstrusername.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PlayRing<P0>(&self, entype: RTC_RING_TYPE, bplay: P0) -> ::windows_core::Result<()>
     where
@@ -1076,7 +923,7 @@ impl IRTCClient2 {
     pub unsafe fn InvokeTuningWizard(&self, hwndparent: isize) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.InvokeTuningWizard)(::windows_core::Interface::as_raw(self), hwndparent).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsTuned(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -1089,7 +936,7 @@ impl IRTCClient2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_AnswerMode)(::windows_core::Interface::as_raw(self), entype, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn InvokeTuningWizardEx<P0, P1>(&self, hwndparent: isize, fallowaudio: P0, fallowvideo: P1) -> ::windows_core::Result<()>
     where
@@ -1148,24 +995,8 @@ impl IRTCClient2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCClient2, ::windows_core::IUnknown, IRTCClient);
-impl ::core::cmp::PartialEq for IRTCClient2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCClient2 {}
-impl ::core::fmt::Debug for IRTCClient2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCClient2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCClient2 {
     type Vtable = IRTCClient2_Vtbl;
-}
-impl ::core::clone::Clone for IRTCClient2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCClient2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0c91d71d_1064_42da_bfa5_572beb8eea84);
@@ -1191,9 +1022,10 @@ pub struct IRTCClient2_Vtbl {
     pub put_AllowedPorts: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ltransport: i32, enlistenmode: RTC_LISTEN_MODE) -> ::windows_core::HRESULT,
     pub get_AllowedPorts: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ltransport: i32, penlistenmode: *mut RTC_LISTEN_MODE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCClientEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCClientEvent {
@@ -1209,28 +1041,8 @@ impl IRTCClientEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCClientEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCClientEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCClientEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCClientEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCClientEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCClientEvent {
     type Vtable = IRTCClientEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCClientEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCClientEvent {
@@ -1244,8 +1056,8 @@ pub struct IRTCClientEvent_Vtbl {
     pub EventType: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, peneventtype: *mut RTC_CLIENT_EVENT_TYPE) -> ::windows_core::HRESULT,
     pub Client: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppclient: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCClientPortManagement(::windows_core::IUnknown);
 impl IRTCClientPortManagement {
     pub unsafe fn StartListenAddressAndPort<P0>(&self, bstrinternallocaladdress: P0, linternallocalport: i32) -> ::windows_core::Result<()>
@@ -1265,24 +1077,8 @@ impl IRTCClientPortManagement {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCClientPortManagement, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCClientPortManagement {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCClientPortManagement {}
-impl ::core::fmt::Debug for IRTCClientPortManagement {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCClientPortManagement").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCClientPortManagement {
     type Vtable = IRTCClientPortManagement_Vtbl;
-}
-impl ::core::clone::Clone for IRTCClientPortManagement {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCClientPortManagement {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd5df3f03_4bde_4417_aefe_71177bdaea66);
@@ -1295,11 +1091,11 @@ pub struct IRTCClientPortManagement_Vtbl {
     pub StopListenAddressAndPort: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrinternallocaladdress: ::std::mem::MaybeUninit<::windows_core::BSTR>, linternallocalport: i32) -> ::windows_core::HRESULT,
     pub GetPortRange: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, enporttype: RTC_PORT_TYPE, plminvalue: *mut i32, plmaxvalue: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCClientPresence(::windows_core::IUnknown);
 impl IRTCClientPresence {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn EnablePresence<P0>(&self, fusestorage: P0, varstorage: super::Variant::VARIANT) -> ::windows_core::Result<()>
     where
@@ -1307,12 +1103,12 @@ impl IRTCClientPresence {
     {
         (::windows_core::Interface::vtable(self).EnablePresence)(::windows_core::Interface::as_raw(self), fusestorage.into_param().abi(), ::core::mem::transmute(varstorage)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Export(&self, varstorage: super::Variant::VARIANT) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Export)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(varstorage)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Import<P0>(&self, varstorage: super::Variant::VARIANT, freplaceall: P0) -> ::windows_core::Result<()>
     where
@@ -1324,7 +1120,7 @@ impl IRTCClientPresence {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EnumerateBuddies)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Buddies(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -1337,7 +1133,7 @@ impl IRTCClientPresence {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_Buddy)(::windows_core::Interface::as_raw(self), bstrpresentityuri.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AddBuddy<P0, P1, P2, P3, P4>(&self, bstrpresentityuri: P0, bstrusername: P1, bstrdata: P2, fpersistent: P3, pprofile: P4, lflags: i32) -> ::windows_core::Result<IRTCBuddy>
     where
@@ -1360,7 +1156,7 @@ impl IRTCClientPresence {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EnumerateWatchers)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Watchers(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -1373,7 +1169,7 @@ impl IRTCClientPresence {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_Watcher)(::windows_core::Interface::as_raw(self), bstrpresentityuri.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AddWatcher<P0, P1, P2, P3, P4>(&self, bstrpresentityuri: P0, bstrusername: P1, bstrdata: P2, fblocked: P3, fpersistent: P4) -> ::windows_core::Result<IRTCWatcher>
     where
@@ -1414,24 +1210,8 @@ impl IRTCClientPresence {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCClientPresence, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCClientPresence {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCClientPresence {}
-impl ::core::fmt::Debug for IRTCClientPresence {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCClientPresence").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCClientPresence {
     type Vtable = IRTCClientPresence_Vtbl;
-}
-impl ::core::clone::Clone for IRTCClientPresence {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCClientPresence {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x11c3cbcc_0744_42d1_968a_51aa1bb274c6);
@@ -1480,11 +1260,11 @@ pub struct IRTCClientPresence_Vtbl {
     pub PrivacyMode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penmode: *mut RTC_PRIVACY_MODE) -> ::windows_core::HRESULT,
     pub SetPrivacyMode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, enmode: RTC_PRIVACY_MODE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCClientPresence2(::windows_core::IUnknown);
 impl IRTCClientPresence2 {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn EnablePresence<P0>(&self, fusestorage: P0, varstorage: super::Variant::VARIANT) -> ::windows_core::Result<()>
     where
@@ -1492,12 +1272,12 @@ impl IRTCClientPresence2 {
     {
         (::windows_core::Interface::vtable(self).base__.EnablePresence)(::windows_core::Interface::as_raw(self), fusestorage.into_param().abi(), ::core::mem::transmute(varstorage)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Export(&self, varstorage: super::Variant::VARIANT) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.Export)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(varstorage)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Import<P0>(&self, varstorage: super::Variant::VARIANT, freplaceall: P0) -> ::windows_core::Result<()>
     where
@@ -1509,7 +1289,7 @@ impl IRTCClientPresence2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.EnumerateBuddies)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Buddies(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -1522,7 +1302,7 @@ impl IRTCClientPresence2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.get_Buddy)(::windows_core::Interface::as_raw(self), bstrpresentityuri.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AddBuddy<P0, P1, P2, P3, P4>(&self, bstrpresentityuri: P0, bstrusername: P1, bstrdata: P2, fpersistent: P3, pprofile: P4, lflags: i32) -> ::windows_core::Result<IRTCBuddy>
     where
@@ -1545,7 +1325,7 @@ impl IRTCClientPresence2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.EnumerateWatchers)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Watchers(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -1558,7 +1338,7 @@ impl IRTCClientPresence2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.get_Watcher)(::windows_core::Interface::as_raw(self), bstrpresentityuri.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AddWatcher<P0, P1, P2, P3, P4>(&self, bstrpresentityuri: P0, bstrusername: P1, bstrdata: P2, fblocked: P3, fpersistent: P4) -> ::windows_core::Result<IRTCWatcher>
     where
@@ -1597,7 +1377,7 @@ impl IRTCClientPresence2 {
     pub unsafe fn SetPrivacyMode(&self, enmode: RTC_PRIVACY_MODE) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetPrivacyMode)(::windows_core::Interface::as_raw(self), enmode).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn EnablePresenceEx<P0>(&self, pprofile: P0, varstorage: super::Variant::VARIANT, lflags: i32) -> ::windows_core::Result<()>
     where
@@ -1627,7 +1407,7 @@ impl IRTCClientPresence2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EnumerateGroups)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Groups(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -1640,7 +1420,7 @@ impl IRTCClientPresence2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_Group)(::windows_core::Interface::as_raw(self), bstrgroupname.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AddWatcherEx<P0, P1, P2, P3, P4>(&self, bstrpresentityuri: P0, bstrusername: P1, bstrdata: P2, enstate: RTC_WATCHER_STATE, fpersistent: P3, enscope: RTC_ACE_SCOPE, pprofile: P4, lflags: i32) -> ::windows_core::Result<IRTCWatcher2>
     where
@@ -1683,7 +1463,7 @@ impl IRTCClientPresence2 {
     pub unsafe fn GetLocalPresenceInfo(&self, penstatus: *mut RTC_PRESENCE_STATUS, pbstrnotes: *mut ::windows_core::BSTR) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).GetLocalPresenceInfo)(::windows_core::Interface::as_raw(self), penstatus, ::core::mem::transmute(pbstrnotes)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AddBuddyEx<P0, P1, P2, P3, P4>(&self, bstrpresentityuri: P0, bstrusername: P1, bstrdata: P2, fpersistent: P3, ensubscriptiontype: RTC_BUDDY_SUBSCRIPTION_TYPE, pprofile: P4, lflags: i32) -> ::windows_core::Result<IRTCBuddy2>
     where
@@ -1698,24 +1478,8 @@ impl IRTCClientPresence2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCClientPresence2, ::windows_core::IUnknown, IRTCClientPresence);
-impl ::core::cmp::PartialEq for IRTCClientPresence2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCClientPresence2 {}
-impl ::core::fmt::Debug for IRTCClientPresence2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCClientPresence2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCClientPresence2 {
     type Vtable = IRTCClientPresence2_Vtbl;
-}
-impl ::core::clone::Clone for IRTCClientPresence2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCClientPresence2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xad1809e8_62f7_4783_909a_29c9d2cb1d34);
@@ -1752,8 +1516,8 @@ pub struct IRTCClientPresence2_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     AddBuddyEx: usize,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCClientProvisioning(::windows_core::IUnknown);
 impl IRTCClientProvisioning {
     pub unsafe fn CreateProfile<P0>(&self, bstrprofilexml: P0) -> ::windows_core::Result<IRTCProfile>
@@ -1779,7 +1543,7 @@ impl IRTCClientProvisioning {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EnumerateProfiles)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Profiles(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -1800,24 +1564,8 @@ impl IRTCClientProvisioning {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCClientProvisioning, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCClientProvisioning {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCClientProvisioning {}
-impl ::core::fmt::Debug for IRTCClientProvisioning {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCClientProvisioning").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCClientProvisioning {
     type Vtable = IRTCClientProvisioning_Vtbl;
-}
-impl ::core::clone::Clone for IRTCClientProvisioning {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCClientProvisioning {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb9f5cf06_65b9_4a80_a0e6_73cae3ef3822);
@@ -1837,8 +1585,8 @@ pub struct IRTCClientProvisioning_Vtbl {
     pub GetProfile: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstruseraccount: ::std::mem::MaybeUninit<::windows_core::BSTR>, bstruserpassword: ::std::mem::MaybeUninit<::windows_core::BSTR>, bstruseruri: ::std::mem::MaybeUninit<::windows_core::BSTR>, bstrserver: ::std::mem::MaybeUninit<::windows_core::BSTR>, ltransport: i32, lcookie: isize) -> ::windows_core::HRESULT,
     pub SessionCapabilities: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plsupportedsessions: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCClientProvisioning2(::windows_core::IUnknown);
 impl IRTCClientProvisioning2 {
     pub unsafe fn CreateProfile<P0>(&self, bstrprofilexml: P0) -> ::windows_core::Result<IRTCProfile>
@@ -1864,7 +1612,7 @@ impl IRTCClientProvisioning2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.EnumerateProfiles)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Profiles(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -1891,24 +1639,8 @@ impl IRTCClientProvisioning2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCClientProvisioning2, ::windows_core::IUnknown, IRTCClientProvisioning);
-impl ::core::cmp::PartialEq for IRTCClientProvisioning2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCClientProvisioning2 {}
-impl ::core::fmt::Debug for IRTCClientProvisioning2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCClientProvisioning2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCClientProvisioning2 {
     type Vtable = IRTCClientProvisioning2_Vtbl;
-}
-impl ::core::clone::Clone for IRTCClientProvisioning2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCClientProvisioning2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa70909b5_f40e_4587_bb75_e6bc0845023e);
@@ -1919,9 +1651,10 @@ pub struct IRTCClientProvisioning2_Vtbl {
     pub base__: IRTCClientProvisioning_Vtbl,
     pub EnableProfileEx: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pprofile: *mut ::core::ffi::c_void, lregisterflags: i32, lroamingflags: i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCCollection {
@@ -1929,7 +1662,7 @@ impl IRTCCollection {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Count)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn get_Item(&self, index: i32) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
@@ -1943,28 +1676,8 @@ impl IRTCCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCCollection, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCCollection {
     type Vtable = IRTCCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCCollection {
@@ -1982,37 +1695,18 @@ pub struct IRTCCollection_Vtbl {
     get_Item: usize,
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppnewenum: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCDispatchEventNotification(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCDispatchEventNotification {}
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCDispatchEventNotification, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCDispatchEventNotification {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCDispatchEventNotification {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCDispatchEventNotification {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCDispatchEventNotification").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCDispatchEventNotification {
     type Vtable = IRTCDispatchEventNotification_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCDispatchEventNotification {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCDispatchEventNotification {
@@ -2024,12 +1718,12 @@ unsafe impl ::windows_core::ComInterface for IRTCDispatchEventNotification {
 pub struct IRTCDispatchEventNotification_Vtbl {
     pub base__: super::Com::IDispatch_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCEnumBuddies(::windows_core::IUnknown);
 impl IRTCEnumBuddies {
     pub unsafe fn Next(&self, ppelements: &mut [::core::option::Option<IRTCBuddy>], pceltfetched: ::core::option::Option<*mut u32>) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len() as _, ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
+        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len().try_into().unwrap(), ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
     }
     pub unsafe fn Reset(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Reset)(::windows_core::Interface::as_raw(self)).ok()
@@ -2043,24 +1737,8 @@ impl IRTCEnumBuddies {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCEnumBuddies, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCEnumBuddies {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCEnumBuddies {}
-impl ::core::fmt::Debug for IRTCEnumBuddies {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCEnumBuddies").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCEnumBuddies {
     type Vtable = IRTCEnumBuddies_Vtbl;
-}
-impl ::core::clone::Clone for IRTCEnumBuddies {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCEnumBuddies {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf7296917_5569_4b3b_b3af_98d1144b2b87);
@@ -2074,12 +1752,12 @@ pub struct IRTCEnumBuddies_Vtbl {
     pub Skip: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, celt: u32) -> ::windows_core::HRESULT,
     pub Clone: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppenum: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCEnumGroups(::windows_core::IUnknown);
 impl IRTCEnumGroups {
     pub unsafe fn Next(&self, ppelements: &mut [::core::option::Option<IRTCBuddyGroup>], pceltfetched: ::core::option::Option<*mut u32>) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len() as _, ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
+        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len().try_into().unwrap(), ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
     }
     pub unsafe fn Reset(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Reset)(::windows_core::Interface::as_raw(self)).ok()
@@ -2093,24 +1771,8 @@ impl IRTCEnumGroups {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCEnumGroups, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCEnumGroups {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCEnumGroups {}
-impl ::core::fmt::Debug for IRTCEnumGroups {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCEnumGroups").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCEnumGroups {
     type Vtable = IRTCEnumGroups_Vtbl;
-}
-impl ::core::clone::Clone for IRTCEnumGroups {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCEnumGroups {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x742378d6_a141_4415_8f27_35d99076cf5d);
@@ -2124,12 +1786,12 @@ pub struct IRTCEnumGroups_Vtbl {
     pub Skip: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, celt: u32) -> ::windows_core::HRESULT,
     pub Clone: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppenum: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCEnumParticipants(::windows_core::IUnknown);
 impl IRTCEnumParticipants {
     pub unsafe fn Next(&self, ppelements: &mut [::core::option::Option<IRTCParticipant>], pceltfetched: ::core::option::Option<*mut u32>) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len() as _, ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
+        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len().try_into().unwrap(), ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
     }
     pub unsafe fn Reset(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Reset)(::windows_core::Interface::as_raw(self)).ok()
@@ -2143,24 +1805,8 @@ impl IRTCEnumParticipants {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCEnumParticipants, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCEnumParticipants {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCEnumParticipants {}
-impl ::core::fmt::Debug for IRTCEnumParticipants {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCEnumParticipants").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCEnumParticipants {
     type Vtable = IRTCEnumParticipants_Vtbl;
-}
-impl ::core::clone::Clone for IRTCEnumParticipants {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCEnumParticipants {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfcd56f29_4a4f_41b2_ba5c_f5bccc060bf6);
@@ -2174,12 +1820,12 @@ pub struct IRTCEnumParticipants_Vtbl {
     pub Skip: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, celt: u32) -> ::windows_core::HRESULT,
     pub Clone: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppenum: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCEnumPresenceDevices(::windows_core::IUnknown);
 impl IRTCEnumPresenceDevices {
     pub unsafe fn Next(&self, ppelements: &mut [::core::option::Option<IRTCPresenceDevice>], pceltfetched: ::core::option::Option<*mut u32>) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len() as _, ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
+        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len().try_into().unwrap(), ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
     }
     pub unsafe fn Reset(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Reset)(::windows_core::Interface::as_raw(self)).ok()
@@ -2193,24 +1839,8 @@ impl IRTCEnumPresenceDevices {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCEnumPresenceDevices, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCEnumPresenceDevices {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCEnumPresenceDevices {}
-impl ::core::fmt::Debug for IRTCEnumPresenceDevices {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCEnumPresenceDevices").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCEnumPresenceDevices {
     type Vtable = IRTCEnumPresenceDevices_Vtbl;
-}
-impl ::core::clone::Clone for IRTCEnumPresenceDevices {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCEnumPresenceDevices {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x708c2ab7_8bf8_42f8_8c7d_635197ad5539);
@@ -2224,12 +1854,12 @@ pub struct IRTCEnumPresenceDevices_Vtbl {
     pub Skip: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, celt: u32) -> ::windows_core::HRESULT,
     pub Clone: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppenum: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCEnumProfiles(::windows_core::IUnknown);
 impl IRTCEnumProfiles {
     pub unsafe fn Next(&self, ppelements: &mut [::core::option::Option<IRTCProfile>], pceltfetched: ::core::option::Option<*mut u32>) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len() as _, ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
+        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len().try_into().unwrap(), ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
     }
     pub unsafe fn Reset(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Reset)(::windows_core::Interface::as_raw(self)).ok()
@@ -2243,24 +1873,8 @@ impl IRTCEnumProfiles {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCEnumProfiles, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCEnumProfiles {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCEnumProfiles {}
-impl ::core::fmt::Debug for IRTCEnumProfiles {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCEnumProfiles").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCEnumProfiles {
     type Vtable = IRTCEnumProfiles_Vtbl;
-}
-impl ::core::clone::Clone for IRTCEnumProfiles {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCEnumProfiles {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x29b7c41c_ed82_4bca_84ad_39d5101b58e3);
@@ -2274,12 +1888,12 @@ pub struct IRTCEnumProfiles_Vtbl {
     pub Skip: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, celt: u32) -> ::windows_core::HRESULT,
     pub Clone: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppenum: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCEnumUserSearchResults(::windows_core::IUnknown);
 impl IRTCEnumUserSearchResults {
     pub unsafe fn Next(&self, ppelements: &mut [::core::option::Option<IRTCUserSearchResult>], pceltfetched: ::core::option::Option<*mut u32>) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len() as _, ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
+        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len().try_into().unwrap(), ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
     }
     pub unsafe fn Reset(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Reset)(::windows_core::Interface::as_raw(self)).ok()
@@ -2293,24 +1907,8 @@ impl IRTCEnumUserSearchResults {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCEnumUserSearchResults, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCEnumUserSearchResults {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCEnumUserSearchResults {}
-impl ::core::fmt::Debug for IRTCEnumUserSearchResults {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCEnumUserSearchResults").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCEnumUserSearchResults {
     type Vtable = IRTCEnumUserSearchResults_Vtbl;
-}
-impl ::core::clone::Clone for IRTCEnumUserSearchResults {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCEnumUserSearchResults {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x83d4d877_aa5d_4a5b_8d0e_002a8067e0e8);
@@ -2324,12 +1922,12 @@ pub struct IRTCEnumUserSearchResults_Vtbl {
     pub Skip: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, celt: u32) -> ::windows_core::HRESULT,
     pub Clone: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppenum: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCEnumWatchers(::windows_core::IUnknown);
 impl IRTCEnumWatchers {
     pub unsafe fn Next(&self, ppelements: &mut [::core::option::Option<IRTCWatcher>], pceltfetched: ::core::option::Option<*mut u32>) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len() as _, ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
+        (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self), ppelements.len().try_into().unwrap(), ::core::mem::transmute(ppelements.as_ptr()), ::core::mem::transmute(pceltfetched.unwrap_or(::std::ptr::null_mut()))).ok()
     }
     pub unsafe fn Reset(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Reset)(::windows_core::Interface::as_raw(self)).ok()
@@ -2343,24 +1941,8 @@ impl IRTCEnumWatchers {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCEnumWatchers, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCEnumWatchers {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCEnumWatchers {}
-impl ::core::fmt::Debug for IRTCEnumWatchers {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCEnumWatchers").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCEnumWatchers {
     type Vtable = IRTCEnumWatchers_Vtbl;
-}
-impl ::core::clone::Clone for IRTCEnumWatchers {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCEnumWatchers {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa87d55d7_db74_4ed1_9ca4_77a0e41b413e);
@@ -2374,11 +1956,11 @@ pub struct IRTCEnumWatchers_Vtbl {
     pub Skip: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, celt: u32) -> ::windows_core::HRESULT,
     pub Clone: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppenum: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCEventNotification(::windows_core::IUnknown);
 impl IRTCEventNotification {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Event<P0>(&self, rtcevent: RTC_EVENT, pevent: P0) -> ::windows_core::Result<()>
     where
@@ -2388,24 +1970,8 @@ impl IRTCEventNotification {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCEventNotification, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCEventNotification {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCEventNotification {}
-impl ::core::fmt::Debug for IRTCEventNotification {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCEventNotification").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCEventNotification {
     type Vtable = IRTCEventNotification_Vtbl;
-}
-impl ::core::clone::Clone for IRTCEventNotification {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCEventNotification {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x13fa24c7_5748_4b21_91f5_7397609ce747);
@@ -2419,9 +1985,10 @@ pub struct IRTCEventNotification_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Event: usize,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCInfoEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCInfoEvent {
@@ -2445,28 +2012,8 @@ impl IRTCInfoEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCInfoEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCInfoEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCInfoEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCInfoEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCInfoEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCInfoEvent {
     type Vtable = IRTCInfoEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCInfoEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCInfoEvent {
@@ -2482,9 +2029,10 @@ pub struct IRTCInfoEvent_Vtbl {
     pub Info: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrinfo: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub InfoHeader: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrinfoheader: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCIntensityEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCIntensityEvent {
@@ -2508,28 +2056,8 @@ impl IRTCIntensityEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCIntensityEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCIntensityEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCIntensityEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCIntensityEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCIntensityEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCIntensityEvent {
     type Vtable = IRTCIntensityEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCIntensityEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCIntensityEvent {
@@ -2545,9 +2073,10 @@ pub struct IRTCIntensityEvent_Vtbl {
     pub Max: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plmax: *mut i32) -> ::windows_core::HRESULT,
     pub Direction: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pendirection: *mut RTC_AUDIO_DEVICE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCMediaEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCMediaEvent {
@@ -2567,28 +2096,8 @@ impl IRTCMediaEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCMediaEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCMediaEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCMediaEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCMediaEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCMediaEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCMediaEvent {
     type Vtable = IRTCMediaEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCMediaEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCMediaEvent {
@@ -2603,9 +2112,10 @@ pub struct IRTCMediaEvent_Vtbl {
     pub EventType: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, peneventtype: *mut RTC_MEDIA_EVENT_TYPE) -> ::windows_core::HRESULT,
     pub EventReason: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, peneventreason: *mut RTC_MEDIA_EVENT_REASON) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCMediaRequestEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCMediaRequestEvent {
@@ -2639,28 +2149,8 @@ impl IRTCMediaRequestEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCMediaRequestEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCMediaRequestEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCMediaRequestEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCMediaRequestEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCMediaRequestEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCMediaRequestEvent {
     type Vtable = IRTCMediaRequestEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCMediaRequestEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCMediaRequestEvent {
@@ -2679,9 +2169,10 @@ pub struct IRTCMediaRequestEvent_Vtbl {
     pub Reject: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub State: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pstate: *mut RTC_REINVITE_STATE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCMessagingEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCMessagingEvent {
@@ -2713,28 +2204,8 @@ impl IRTCMessagingEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCMessagingEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCMessagingEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCMessagingEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCMessagingEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCMessagingEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCMessagingEvent {
     type Vtable = IRTCMessagingEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCMessagingEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCMessagingEvent {
@@ -2752,8 +2223,8 @@ pub struct IRTCMessagingEvent_Vtbl {
     pub MessageHeader: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrmessageheader: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub UserStatus: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penuserstatus: *mut RTC_MESSAGING_USER_STATUS) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCParticipant(::windows_core::IUnknown);
 impl IRTCParticipant {
     pub unsafe fn UserURI(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -2764,7 +2235,7 @@ impl IRTCParticipant {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Name)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Removable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -2780,24 +2251,8 @@ impl IRTCParticipant {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCParticipant, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCParticipant {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCParticipant {}
-impl ::core::fmt::Debug for IRTCParticipant {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCParticipant").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCParticipant {
     type Vtable = IRTCParticipant_Vtbl;
-}
-impl ::core::clone::Clone for IRTCParticipant {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCParticipant {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xae86add5_26b1_4414_af1d_b94cd938d739);
@@ -2815,9 +2270,10 @@ pub struct IRTCParticipant_Vtbl {
     pub State: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penstate: *mut RTC_PARTICIPANT_STATE) -> ::windows_core::HRESULT,
     pub Session: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppsession: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCParticipantStateChangeEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCParticipantStateChangeEvent {
@@ -2837,28 +2293,8 @@ impl IRTCParticipantStateChangeEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCParticipantStateChangeEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCParticipantStateChangeEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCParticipantStateChangeEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCParticipantStateChangeEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCParticipantStateChangeEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCParticipantStateChangeEvent {
     type Vtable = IRTCParticipantStateChangeEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCParticipantStateChangeEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCParticipantStateChangeEvent {
@@ -2873,8 +2309,8 @@ pub struct IRTCParticipantStateChangeEvent_Vtbl {
     pub State: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penstate: *mut RTC_PARTICIPANT_STATE) -> ::windows_core::HRESULT,
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCPortManager(::windows_core::IUnknown);
 impl IRTCPortManager {
     pub unsafe fn GetMapping<P0>(&self, bstrremoteaddress: P0, enporttype: RTC_PORT_TYPE, pbstrinternallocaladdress: *mut ::windows_core::BSTR, plinternallocalport: *mut i32, pbstrexternallocaladdress: *mut ::windows_core::BSTR, plexternallocalport: *mut i32) -> ::windows_core::Result<()>
@@ -2900,24 +2336,8 @@ impl IRTCPortManager {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCPortManager, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCPortManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCPortManager {}
-impl ::core::fmt::Debug for IRTCPortManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCPortManager").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCPortManager {
     type Vtable = IRTCPortManager_Vtbl;
-}
-impl ::core::clone::Clone for IRTCPortManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCPortManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xda77c14b_6208_43ca_8ddf_5b60a0a69fac);
@@ -2930,8 +2350,8 @@ pub struct IRTCPortManager_Vtbl {
     pub UpdateRemoteAddress: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrremoteaddress: ::std::mem::MaybeUninit<::windows_core::BSTR>, bstrinternallocaladdress: ::std::mem::MaybeUninit<::windows_core::BSTR>, linternallocalport: i32, bstrexternallocaladdress: ::std::mem::MaybeUninit<::windows_core::BSTR>, lexternallocalport: i32) -> ::windows_core::HRESULT,
     pub ReleaseMapping: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrinternallocaladdress: ::std::mem::MaybeUninit<::windows_core::BSTR>, linternallocalport: i32, bstrexternallocaladdress: ::std::mem::MaybeUninit<::windows_core::BSTR>, lexternallocaladdress: i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCPresenceContact(::windows_core::IUnknown);
 impl IRTCPresenceContact {
     pub unsafe fn PresentityURI(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -2964,13 +2384,13 @@ impl IRTCPresenceContact {
     {
         (::windows_core::Interface::vtable(self).SetData)(::windows_core::Interface::as_raw(self), bstrdata.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Persistent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Persistent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetPersistent<P0>(&self, fpersistent: P0) -> ::windows_core::Result<()>
     where
@@ -2980,24 +2400,8 @@ impl IRTCPresenceContact {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCPresenceContact, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCPresenceContact {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCPresenceContact {}
-impl ::core::fmt::Debug for IRTCPresenceContact {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCPresenceContact").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCPresenceContact {
     type Vtable = IRTCPresenceContact_Vtbl;
-}
-impl ::core::clone::Clone for IRTCPresenceContact {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCPresenceContact {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x8b22f92c_cd90_42db_a733_212205c3e3df);
@@ -3021,9 +2425,10 @@ pub struct IRTCPresenceContact_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     SetPersistent: usize,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCPresenceDataEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCPresenceDataEvent {
@@ -3042,28 +2447,8 @@ impl IRTCPresenceDataEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCPresenceDataEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCPresenceDataEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCPresenceDataEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCPresenceDataEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCPresenceDataEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCPresenceDataEvent {
     type Vtable = IRTCPresenceDataEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCPresenceDataEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCPresenceDataEvent {
@@ -3078,8 +2463,8 @@ pub struct IRTCPresenceDataEvent_Vtbl {
     pub StatusText: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrstatustext: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub GetPresenceData: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrnamespace: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>, pbstrdata: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCPresenceDevice(::windows_core::IUnknown);
 impl IRTCPresenceDevice {
     pub unsafe fn Status(&self) -> ::windows_core::Result<RTC_PRESENCE_STATUS> {
@@ -3099,24 +2484,8 @@ impl IRTCPresenceDevice {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCPresenceDevice, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCPresenceDevice {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCPresenceDevice {}
-impl ::core::fmt::Debug for IRTCPresenceDevice {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCPresenceDevice").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCPresenceDevice {
     type Vtable = IRTCPresenceDevice_Vtbl;
-}
-impl ::core::clone::Clone for IRTCPresenceDevice {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCPresenceDevice {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xbc6a90dd_ad9a_48da_9b0c_2515e38521ad);
@@ -3130,9 +2499,10 @@ pub struct IRTCPresenceDevice_Vtbl {
     pub get_PresenceProperty: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, enproperty: RTC_PRESENCE_PROPERTY, pbstrproperty: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub GetPresenceData: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrnamespace: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>, pbstrdata: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCPresencePropertyEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCPresencePropertyEvent {
@@ -3156,28 +2526,8 @@ impl IRTCPresencePropertyEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCPresencePropertyEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCPresencePropertyEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCPresencePropertyEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCPresencePropertyEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCPresencePropertyEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCPresencePropertyEvent {
     type Vtable = IRTCPresencePropertyEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCPresencePropertyEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCPresencePropertyEvent {
@@ -3193,9 +2543,10 @@ pub struct IRTCPresencePropertyEvent_Vtbl {
     pub PresenceProperty: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penpresprop: *mut RTC_PRESENCE_PROPERTY) -> ::windows_core::HRESULT,
     pub Value: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrvalue: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCPresenceStatusEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCPresenceStatusEvent {
@@ -3214,28 +2565,8 @@ impl IRTCPresenceStatusEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCPresenceStatusEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCPresenceStatusEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCPresenceStatusEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCPresenceStatusEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCPresenceStatusEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCPresenceStatusEvent {
     type Vtable = IRTCPresenceStatusEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCPresenceStatusEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCPresenceStatusEvent {
@@ -3250,8 +2581,8 @@ pub struct IRTCPresenceStatusEvent_Vtbl {
     pub StatusText: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrstatustext: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub GetLocalPresenceInfo: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penstatus: *mut RTC_PRESENCE_STATUS, pbstrnotes: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCProfile(::windows_core::IUnknown);
 impl IRTCProfile {
     pub unsafe fn Key(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3282,7 +2613,7 @@ impl IRTCProfile {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ClientName)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ClientBanner(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3334,24 +2665,8 @@ impl IRTCProfile {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCProfile, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCProfile {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCProfile {}
-impl ::core::fmt::Debug for IRTCProfile {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCProfile").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCProfile {
     type Vtable = IRTCProfile_Vtbl;
-}
-impl ::core::clone::Clone for IRTCProfile {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCProfile {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd07eca9e_4062_4dd4_9e7d_722a49ba7303);
@@ -3382,8 +2697,8 @@ pub struct IRTCProfile_Vtbl {
     pub SessionCapabilities: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plsupportedsessions: *mut i32) -> ::windows_core::HRESULT,
     pub State: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penstate: *mut RTC_REGISTRATION_STATE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCProfile2(::windows_core::IUnknown);
 impl IRTCProfile2 {
     pub unsafe fn Key(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -3414,7 +2729,7 @@ impl IRTCProfile2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ClientName)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ClientBanner(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3483,24 +2798,8 @@ impl IRTCProfile2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCProfile2, ::windows_core::IUnknown, IRTCProfile);
-impl ::core::cmp::PartialEq for IRTCProfile2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCProfile2 {}
-impl ::core::fmt::Debug for IRTCProfile2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCProfile2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCProfile2 {
     type Vtable = IRTCProfile2_Vtbl;
-}
-impl ::core::clone::Clone for IRTCProfile2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCProfile2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4b81f84e_bdc7_4184_9154_3cb2dd7917fb);
@@ -3514,9 +2813,10 @@ pub struct IRTCProfile2_Vtbl {
     pub AllowedAuth: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plallowedauth: *mut i32) -> ::windows_core::HRESULT,
     pub SetAllowedAuth: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, lallowedauth: i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCProfileEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCProfileEvent {
@@ -3536,28 +2836,8 @@ impl IRTCProfileEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCProfileEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCProfileEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCProfileEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCProfileEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCProfileEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCProfileEvent {
     type Vtable = IRTCProfileEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCProfileEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCProfileEvent {
@@ -3572,9 +2852,10 @@ pub struct IRTCProfileEvent_Vtbl {
     pub Cookie: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plcookie: *mut isize) -> ::windows_core::HRESULT,
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCProfileEvent2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCProfileEvent2 {
@@ -3598,28 +2879,8 @@ impl IRTCProfileEvent2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCProfileEvent2, ::windows_core::IUnknown, super::Com::IDispatch, IRTCProfileEvent);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCProfileEvent2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCProfileEvent2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCProfileEvent2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCProfileEvent2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCProfileEvent2 {
     type Vtable = IRTCProfileEvent2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCProfileEvent2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCProfileEvent2 {
@@ -3632,9 +2893,10 @@ pub struct IRTCProfileEvent2_Vtbl {
     pub base__: IRTCProfileEvent_Vtbl,
     pub EventType: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, peventtype: *mut RTC_PROFILE_EVENT_TYPE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCReInviteEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCReInviteEvent {
@@ -3663,28 +2925,8 @@ impl IRTCReInviteEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCReInviteEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCReInviteEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCReInviteEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCReInviteEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCReInviteEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCReInviteEvent {
     type Vtable = IRTCReInviteEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCReInviteEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCReInviteEvent {
@@ -3701,9 +2943,10 @@ pub struct IRTCReInviteEvent_Vtbl {
     pub State: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pstate: *mut RTC_REINVITE_STATE) -> ::windows_core::HRESULT,
     pub GetRemoteSessionDescription: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrcontenttype: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>, pbstrsessiondescription: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCRegistrationStateChangeEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCRegistrationStateChangeEvent {
@@ -3727,28 +2970,8 @@ impl IRTCRegistrationStateChangeEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCRegistrationStateChangeEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCRegistrationStateChangeEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCRegistrationStateChangeEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCRegistrationStateChangeEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCRegistrationStateChangeEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCRegistrationStateChangeEvent {
     type Vtable = IRTCRegistrationStateChangeEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCRegistrationStateChangeEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCRegistrationStateChangeEvent {
@@ -3764,9 +2987,10 @@ pub struct IRTCRegistrationStateChangeEvent_Vtbl {
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
     pub StatusText: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrstatustext: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCRoamingEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCRoamingEvent {
@@ -3790,28 +3014,8 @@ impl IRTCRoamingEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCRoamingEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCRoamingEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCRoamingEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCRoamingEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCRoamingEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCRoamingEvent {
     type Vtable = IRTCRoamingEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCRoamingEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCRoamingEvent {
@@ -3827,8 +3031,8 @@ pub struct IRTCRoamingEvent_Vtbl {
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
     pub StatusText: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrstatustext: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSession(::windows_core::IUnknown);
 impl IRTCSession {
     pub unsafe fn Client(&self) -> ::windows_core::Result<IRTCClient> {
@@ -3847,7 +3051,7 @@ impl IRTCSession {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Profile)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Participants(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3884,7 +3088,7 @@ impl IRTCSession {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EnumerateParticipants)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanAddParticipants(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3925,24 +3129,8 @@ impl IRTCSession {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCSession, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCSession {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCSession {}
-impl ::core::fmt::Debug for IRTCSession {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSession").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCSession {
     type Vtable = IRTCSession_Vtbl;
-}
-impl ::core::clone::Clone for IRTCSession {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCSession {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x387c8086_99be_42fb_9973_7c0fc0ca9fa8);
@@ -3978,8 +3166,8 @@ pub struct IRTCSession_Vtbl {
     pub RemoveStream: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, lmediatype: i32, lcookie: isize) -> ::windows_core::HRESULT,
     pub put_EncryptionKey: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, lmediatype: i32, encryptionkey: ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSession2(::windows_core::IUnknown);
 impl IRTCSession2 {
     pub unsafe fn Client(&self) -> ::windows_core::Result<IRTCClient> {
@@ -3998,7 +3186,7 @@ impl IRTCSession2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Profile)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Participants(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -4035,7 +3223,7 @@ impl IRTCSession2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.EnumerateParticipants)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanAddParticipants(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -4088,7 +3276,7 @@ impl IRTCSession2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_PreferredSecurityLevel)(::windows_core::Interface::as_raw(self), ensecuritytype, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsSecurityEnabled(&self, ensecuritytype: RTC_SECURITY_TYPE) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -4110,24 +3298,8 @@ impl IRTCSession2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCSession2, ::windows_core::IUnknown, IRTCSession);
-impl ::core::cmp::PartialEq for IRTCSession2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCSession2 {}
-impl ::core::fmt::Debug for IRTCSession2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSession2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCSession2 {
     type Vtable = IRTCSession2_Vtbl;
-}
-impl ::core::clone::Clone for IRTCSession2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCSession2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x17d7cdfc_b007_484c_99d2_86a8a820991d);
@@ -4146,8 +3318,8 @@ pub struct IRTCSession2_Vtbl {
     pub AnswerWithSessionDescription: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrcontenttype: ::std::mem::MaybeUninit<::windows_core::BSTR>, bstrsessiondescription: ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub ReInviteWithSessionDescription: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrcontenttype: ::std::mem::MaybeUninit<::windows_core::BSTR>, bstrsessiondescription: ::std::mem::MaybeUninit<::windows_core::BSTR>, lcookie: isize) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSessionCallControl(::windows_core::IUnknown);
 impl IRTCSessionCallControl {
     pub unsafe fn Hold(&self, lcookie: isize) -> ::windows_core::Result<()> {
@@ -4189,7 +3361,7 @@ impl IRTCSessionCallControl {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ReferCookie)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsReferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -4197,24 +3369,8 @@ impl IRTCSessionCallControl {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCSessionCallControl, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCSessionCallControl {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCSessionCallControl {}
-impl ::core::fmt::Debug for IRTCSessionCallControl {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSessionCallControl").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCSessionCallControl {
     type Vtable = IRTCSessionCallControl_Vtbl;
-}
-impl ::core::clone::Clone for IRTCSessionCallControl {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCSessionCallControl {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe9a50d94_190b_4f82_9530_3b8ebf60758a);
@@ -4236,11 +3392,11 @@ pub struct IRTCSessionCallControl_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     IsReferred: usize,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSessionDescriptionManager(::windows_core::IUnknown);
 impl IRTCSessionDescriptionManager {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EvaluateSessionDescription<P0, P1>(&self, bstrcontenttype: P0, bstrsessiondescription: P1, pfapplicationsession: *mut super::super::Foundation::VARIANT_BOOL) -> ::windows_core::Result<()>
     where
@@ -4251,24 +3407,8 @@ impl IRTCSessionDescriptionManager {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCSessionDescriptionManager, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCSessionDescriptionManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCSessionDescriptionManager {}
-impl ::core::fmt::Debug for IRTCSessionDescriptionManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSessionDescriptionManager").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCSessionDescriptionManager {
     type Vtable = IRTCSessionDescriptionManager_Vtbl;
-}
-impl ::core::clone::Clone for IRTCSessionDescriptionManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCSessionDescriptionManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xba7f518e_d336_4070_93a6_865395c843f9);
@@ -4282,9 +3422,10 @@ pub struct IRTCSessionDescriptionManager_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     EvaluateSessionDescription: usize,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSessionOperationCompleteEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCSessionOperationCompleteEvent {
@@ -4308,28 +3449,8 @@ impl IRTCSessionOperationCompleteEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCSessionOperationCompleteEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCSessionOperationCompleteEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCSessionOperationCompleteEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCSessionOperationCompleteEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSessionOperationCompleteEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCSessionOperationCompleteEvent {
     type Vtable = IRTCSessionOperationCompleteEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCSessionOperationCompleteEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCSessionOperationCompleteEvent {
@@ -4345,9 +3466,10 @@ pub struct IRTCSessionOperationCompleteEvent_Vtbl {
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
     pub StatusText: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrstatustext: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSessionOperationCompleteEvent2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCSessionOperationCompleteEvent2 {
@@ -4378,28 +3500,8 @@ impl IRTCSessionOperationCompleteEvent2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCSessionOperationCompleteEvent2, ::windows_core::IUnknown, super::Com::IDispatch, IRTCSessionOperationCompleteEvent);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCSessionOperationCompleteEvent2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCSessionOperationCompleteEvent2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCSessionOperationCompleteEvent2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSessionOperationCompleteEvent2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCSessionOperationCompleteEvent2 {
     type Vtable = IRTCSessionOperationCompleteEvent2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCSessionOperationCompleteEvent2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCSessionOperationCompleteEvent2 {
@@ -4413,8 +3515,8 @@ pub struct IRTCSessionOperationCompleteEvent2_Vtbl {
     pub Participant: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppparticipant: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub GetRemoteSessionDescription: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrcontenttype: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>, pbstrsessiondescription: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSessionPortManagement(::windows_core::IUnknown);
 impl IRTCSessionPortManagement {
     pub unsafe fn SetPortManager<P0>(&self, pportmanager: P0) -> ::windows_core::Result<()>
@@ -4425,24 +3527,8 @@ impl IRTCSessionPortManagement {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCSessionPortManagement, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCSessionPortManagement {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCSessionPortManagement {}
-impl ::core::fmt::Debug for IRTCSessionPortManagement {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSessionPortManagement").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCSessionPortManagement {
     type Vtable = IRTCSessionPortManagement_Vtbl;
-}
-impl ::core::clone::Clone for IRTCSessionPortManagement {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCSessionPortManagement {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa072f1d6_0286_4e1f_85f2_17a2948456ec);
@@ -4453,9 +3539,10 @@ pub struct IRTCSessionPortManagement_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub SetPortManager: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pportmanager: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSessionReferStatusEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCSessionReferStatusEvent {
@@ -4479,28 +3566,8 @@ impl IRTCSessionReferStatusEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCSessionReferStatusEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCSessionReferStatusEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCSessionReferStatusEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCSessionReferStatusEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSessionReferStatusEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCSessionReferStatusEvent {
     type Vtable = IRTCSessionReferStatusEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCSessionReferStatusEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCSessionReferStatusEvent {
@@ -4516,9 +3583,10 @@ pub struct IRTCSessionReferStatusEvent_Vtbl {
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
     pub StatusText: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrstatustext: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSessionReferredEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCSessionReferredEvent {
@@ -4551,28 +3619,8 @@ impl IRTCSessionReferredEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCSessionReferredEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCSessionReferredEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCSessionReferredEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCSessionReferredEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSessionReferredEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCSessionReferredEvent {
     type Vtable = IRTCSessionReferredEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCSessionReferredEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCSessionReferredEvent {
@@ -4591,9 +3639,10 @@ pub struct IRTCSessionReferredEvent_Vtbl {
     pub Reject: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub SetReferredSessionState: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, enstate: RTC_SESSION_STATE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSessionStateChangeEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCSessionStateChangeEvent {
@@ -4617,28 +3666,8 @@ impl IRTCSessionStateChangeEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCSessionStateChangeEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCSessionStateChangeEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCSessionStateChangeEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCSessionStateChangeEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSessionStateChangeEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCSessionStateChangeEvent {
     type Vtable = IRTCSessionStateChangeEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCSessionStateChangeEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCSessionStateChangeEvent {
@@ -4654,9 +3683,10 @@ pub struct IRTCSessionStateChangeEvent_Vtbl {
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
     pub StatusText: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrstatustext: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCSessionStateChangeEvent2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCSessionStateChangeEvent2 {
@@ -4684,7 +3714,7 @@ impl IRTCSessionStateChangeEvent2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_RemotePreferredSecurityLevel)(::windows_core::Interface::as_raw(self), ensecuritytype, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsForked(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -4697,28 +3727,8 @@ impl IRTCSessionStateChangeEvent2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCSessionStateChangeEvent2, ::windows_core::IUnknown, super::Com::IDispatch, IRTCSessionStateChangeEvent);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCSessionStateChangeEvent2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCSessionStateChangeEvent2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCSessionStateChangeEvent2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCSessionStateChangeEvent2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCSessionStateChangeEvent2 {
     type Vtable = IRTCSessionStateChangeEvent2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCSessionStateChangeEvent2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCSessionStateChangeEvent2 {
@@ -4737,8 +3747,8 @@ pub struct IRTCSessionStateChangeEvent2_Vtbl {
     IsForked: usize,
     pub GetRemoteSessionDescription: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrcontenttype: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>, pbstrsessiondescription: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCUserSearch(::windows_core::IUnknown);
 impl IRTCUserSearch {
     pub unsafe fn CreateQuery(&self) -> ::windows_core::Result<IRTCUserSearchQuery> {
@@ -4754,24 +3764,8 @@ impl IRTCUserSearch {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCUserSearch, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCUserSearch {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCUserSearch {}
-impl ::core::fmt::Debug for IRTCUserSearch {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCUserSearch").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCUserSearch {
     type Vtable = IRTCUserSearch_Vtbl;
-}
-impl ::core::clone::Clone for IRTCUserSearch {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCUserSearch {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb619882b_860c_4db4_be1b_693b6505bbe5);
@@ -4783,8 +3777,8 @@ pub struct IRTCUserSearch_Vtbl {
     pub CreateQuery: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppquery: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub ExecuteSearch: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pquery: *mut ::core::ffi::c_void, pprofile: *mut ::core::ffi::c_void, lcookie: isize) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCUserSearchQuery(::windows_core::IUnknown);
 impl IRTCUserSearchQuery {
     pub unsafe fn put_SearchTerm<P0, P1>(&self, bstrname: P0, bstrvalue: P1) -> ::windows_core::Result<()>
@@ -4824,24 +3818,8 @@ impl IRTCUserSearchQuery {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCUserSearchQuery, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCUserSearchQuery {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCUserSearchQuery {}
-impl ::core::fmt::Debug for IRTCUserSearchQuery {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCUserSearchQuery").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCUserSearchQuery {
     type Vtable = IRTCUserSearchQuery_Vtbl;
-}
-impl ::core::clone::Clone for IRTCUserSearchQuery {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCUserSearchQuery {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x288300f5_d23a_4365_9a73_9985c98c2881);
@@ -4858,8 +3836,8 @@ pub struct IRTCUserSearchQuery_Vtbl {
     pub SetSearchDomain: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, bstrdomain: ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub SearchDomain: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbstrdomain: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCUserSearchResult(::windows_core::IUnknown);
 impl IRTCUserSearchResult {
     pub unsafe fn get_Value(&self, encolumn: RTC_USER_SEARCH_COLUMN) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -4868,24 +3846,8 @@ impl IRTCUserSearchResult {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCUserSearchResult, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRTCUserSearchResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCUserSearchResult {}
-impl ::core::fmt::Debug for IRTCUserSearchResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCUserSearchResult").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCUserSearchResult {
     type Vtable = IRTCUserSearchResult_Vtbl;
-}
-impl ::core::clone::Clone for IRTCUserSearchResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCUserSearchResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x851278b2_9592_480f_8db5_2de86b26b54d);
@@ -4896,9 +3858,10 @@ pub struct IRTCUserSearchResult_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub get_Value: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, encolumn: RTC_USER_SEARCH_COLUMN, pbstrvalue: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCUserSearchResultsEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCUserSearchResultsEvent {
@@ -4906,7 +3869,7 @@ impl IRTCUserSearchResultsEvent {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EnumerateResults)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Results(&self) -> ::windows_core::Result<IRTCCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -4928,7 +3891,7 @@ impl IRTCUserSearchResultsEvent {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).StatusCode)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MoreAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -4938,28 +3901,8 @@ impl IRTCUserSearchResultsEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCUserSearchResultsEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCUserSearchResultsEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCUserSearchResultsEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCUserSearchResultsEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCUserSearchResultsEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCUserSearchResultsEvent {
     type Vtable = IRTCUserSearchResultsEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCUserSearchResultsEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCUserSearchResultsEvent {
@@ -4984,8 +3927,8 @@ pub struct IRTCUserSearchResultsEvent_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     MoreAvailable: usize,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCWatcher(::windows_core::IUnknown);
 impl IRTCWatcher {
     pub unsafe fn PresentityURI(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -5018,13 +3961,13 @@ impl IRTCWatcher {
     {
         (::windows_core::Interface::vtable(self).base__.SetData)(::windows_core::Interface::as_raw(self), bstrdata.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Persistent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Persistent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetPersistent<P0>(&self, fpersistent: P0) -> ::windows_core::Result<()>
     where
@@ -5041,24 +3984,8 @@ impl IRTCWatcher {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCWatcher, ::windows_core::IUnknown, IRTCPresenceContact);
-impl ::core::cmp::PartialEq for IRTCWatcher {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCWatcher {}
-impl ::core::fmt::Debug for IRTCWatcher {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCWatcher").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCWatcher {
     type Vtable = IRTCWatcher_Vtbl;
-}
-impl ::core::clone::Clone for IRTCWatcher {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCWatcher {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc7cedad8_346b_4d1b_ac02_a2088df9be4f);
@@ -5070,8 +3997,8 @@ pub struct IRTCWatcher_Vtbl {
     pub State: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penstate: *mut RTC_WATCHER_STATE) -> ::windows_core::HRESULT,
     pub SetState: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, enstate: RTC_WATCHER_STATE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCWatcher2(::windows_core::IUnknown);
 impl IRTCWatcher2 {
     pub unsafe fn PresentityURI(&self) -> ::windows_core::Result<::windows_core::BSTR> {
@@ -5104,13 +4031,13 @@ impl IRTCWatcher2 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetData)(::windows_core::Interface::as_raw(self), bstrdata.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Persistent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Persistent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetPersistent<P0>(&self, fpersistent: P0) -> ::windows_core::Result<()>
     where
@@ -5135,24 +4062,8 @@ impl IRTCWatcher2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRTCWatcher2, ::windows_core::IUnknown, IRTCPresenceContact, IRTCWatcher);
-impl ::core::cmp::PartialEq for IRTCWatcher2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRTCWatcher2 {}
-impl ::core::fmt::Debug for IRTCWatcher2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCWatcher2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRTCWatcher2 {
     type Vtable = IRTCWatcher2_Vtbl;
-}
-impl ::core::clone::Clone for IRTCWatcher2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRTCWatcher2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd4d9967f_d011_4b1d_91e3_aba78f96393d);
@@ -5164,9 +4075,10 @@ pub struct IRTCWatcher2_Vtbl {
     pub Profile: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppprofile: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Scope: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, penscope: *mut RTC_ACE_SCOPE) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCWatcherEvent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCWatcherEvent {
@@ -5178,28 +4090,8 @@ impl IRTCWatcherEvent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCWatcherEvent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCWatcherEvent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCWatcherEvent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCWatcherEvent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCWatcherEvent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCWatcherEvent {
     type Vtable = IRTCWatcherEvent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCWatcherEvent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCWatcherEvent {
@@ -5212,9 +4104,10 @@ pub struct IRTCWatcherEvent_Vtbl {
     pub base__: super::Com::IDispatch_Vtbl,
     pub Watcher: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppwatcher: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRTCWatcherEvent2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IRTCWatcherEvent2 {
@@ -5234,28 +4127,8 @@ impl IRTCWatcherEvent2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IRTCWatcherEvent2, ::windows_core::IUnknown, super::Com::IDispatch, IRTCWatcherEvent);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IRTCWatcherEvent2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IRTCWatcherEvent2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IRTCWatcherEvent2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRTCWatcherEvent2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IRTCWatcherEvent2 {
     type Vtable = IRTCWatcherEvent2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IRTCWatcherEvent2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IRTCWatcherEvent2 {
@@ -5269,40 +4142,24 @@ pub struct IRTCWatcherEvent2_Vtbl {
     pub EventType: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, peventtype: *mut RTC_WATCHER_EVENT_TYPE) -> ::windows_core::HRESULT,
     pub StatusCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, plstatuscode: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ITransportSettingsInternal(::windows_core::IUnknown);
 impl ITransportSettingsInternal {
-    #[doc = "*Required features: `\"Win32_Networking_WinSock\"`*"]
+    #[doc = "Required features: `\"Win32_Networking_WinSock\"`"]
     #[cfg(feature = "Win32_Networking_WinSock")]
     pub unsafe fn ApplySetting(&self, setting: *mut TRANSPORT_SETTING) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).ApplySetting)(::windows_core::Interface::as_raw(self), setting).ok()
     }
-    #[doc = "*Required features: `\"Win32_Networking_WinSock\"`*"]
+    #[doc = "Required features: `\"Win32_Networking_WinSock\"`"]
     #[cfg(feature = "Win32_Networking_WinSock")]
     pub unsafe fn QuerySetting(&self, setting: *mut TRANSPORT_SETTING) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).QuerySetting)(::windows_core::Interface::as_raw(self), setting).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(ITransportSettingsInternal, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ITransportSettingsInternal {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ITransportSettingsInternal {}
-impl ::core::fmt::Debug for ITransportSettingsInternal {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ITransportSettingsInternal").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ITransportSettingsInternal {
     type Vtable = ITransportSettingsInternal_Vtbl;
-}
-impl ::core::clone::Clone for ITransportSettingsInternal {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ITransportSettingsInternal {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x5123e076_29e3_4bfd_84fe_0192d411e3e8);
@@ -5320,923 +4177,464 @@ pub struct ITransportSettingsInternal_Vtbl {
     #[cfg(not(feature = "Win32_Networking_WinSock"))]
     QuerySetting: usize,
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const FACILITY_PINT_STATUS_CODE: u32 = 240u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const FACILITY_RTC_INTERFACE: u32 = 238u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const FACILITY_SIP_STATUS_CODE: u32 = 239u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAD_MICROPHONE: RTC_AUDIO_DEVICE = RTC_AUDIO_DEVICE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAD_SPEAKER: RTC_AUDIO_DEVICE = RTC_AUDIO_DEVICE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAM_AUTOMATICALLY_ACCEPT: RTC_ANSWER_MODE = RTC_ANSWER_MODE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAM_AUTOMATICALLY_REJECT: RTC_ANSWER_MODE = RTC_ANSWER_MODE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAM_NOT_SUPPORTED: RTC_ANSWER_MODE = RTC_ANSWER_MODE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAM_OFFER_SESSION_EVENT: RTC_ANSWER_MODE = RTC_ANSWER_MODE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAS_SCOPE_ALL: RTC_ACE_SCOPE = RTC_ACE_SCOPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAS_SCOPE_DOMAIN: RTC_ACE_SCOPE = RTC_ACE_SCOPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAS_SCOPE_USER: RTC_ACE_SCOPE = RTC_ACE_SCOPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAU_BASIC: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAU_DIGEST: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAU_KERBEROS: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAU_NTLM: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCAU_USE_LOGON_CRED: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBET_BUDDY_ADD: RTC_BUDDY_EVENT_TYPE = RTC_BUDDY_EVENT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBET_BUDDY_REMOVE: RTC_BUDDY_EVENT_TYPE = RTC_BUDDY_EVENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBET_BUDDY_ROAMED: RTC_BUDDY_EVENT_TYPE = RTC_BUDDY_EVENT_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBET_BUDDY_STATE_CHANGE: RTC_BUDDY_EVENT_TYPE = RTC_BUDDY_EVENT_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBET_BUDDY_SUBSCRIBED: RTC_BUDDY_EVENT_TYPE = RTC_BUDDY_EVENT_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBET_BUDDY_UPDATE: RTC_BUDDY_EVENT_TYPE = RTC_BUDDY_EVENT_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBT_ALWAYS_OFFLINE: RTC_BUDDY_SUBSCRIPTION_TYPE = RTC_BUDDY_SUBSCRIPTION_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBT_ALWAYS_ONLINE: RTC_BUDDY_SUBSCRIPTION_TYPE = RTC_BUDDY_SUBSCRIPTION_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBT_POLL: RTC_BUDDY_SUBSCRIPTION_TYPE = RTC_BUDDY_SUBSCRIPTION_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCBT_SUBSCRIBED: RTC_BUDDY_SUBSCRIPTION_TYPE = RTC_BUDDY_SUBSCRIPTION_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCCET_ASYNC_CLEANUP_DONE: RTC_CLIENT_EVENT_TYPE = RTC_CLIENT_EVENT_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCCET_DEVICE_CHANGE: RTC_CLIENT_EVENT_TYPE = RTC_CLIENT_EVENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCCET_NETWORK_QUALITY_CHANGE: RTC_CLIENT_EVENT_TYPE = RTC_CLIENT_EVENT_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCCET_VOLUME_CHANGE: RTC_CLIENT_EVENT_TYPE = RTC_CLIENT_EVENT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCCS_FAIL_ON_REDIRECT: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCCS_FORCE_PROFILE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCClient: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7a42ea29_a2b7_40c4_b091_f6f024aa89be);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_ALL: u32 = 33554431u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_BUDDY: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_BUDDY2: u32 = 262144u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_CLIENT: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_GROUP: u32 = 8192u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_INFO: u32 = 4096u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_INTENSITY: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_MEDIA: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_MEDIA_REQUEST: u32 = 16384u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_MESSAGING: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_PARTICIPANT_STATE_CHANGE: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_PRESENCE_DATA: u32 = 8388608u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_PRESENCE_PROPERTY: u32 = 131072u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_PRESENCE_STATUS: u32 = 16777216u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_PROFILE: u32 = 1024u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_REGISTRATION_STATE_CHANGE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_REINVITE: u32 = 4194304u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_ROAMING: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_SESSION_OPERATION_COMPLETE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_SESSION_REFERRED: u32 = 2097152u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_SESSION_REFER_STATUS: u32 = 1048576u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_SESSION_STATE_CHANGE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_USERSEARCH: u32 = 2048u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_WATCHER: u32 = 512u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCEF_WATCHER2: u32 = 524288u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_BUDDY: RTC_EVENT = RTC_EVENT(8i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_CLIENT: RTC_EVENT = RTC_EVENT(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_GROUP: RTC_EVENT = RTC_EVENT(13i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_INFO: RTC_EVENT = RTC_EVENT(12i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_INTENSITY: RTC_EVENT = RTC_EVENT(6i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_MEDIA: RTC_EVENT = RTC_EVENT(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_MEDIA_REQUEST: RTC_EVENT = RTC_EVENT(14i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_MESSAGING: RTC_EVENT = RTC_EVENT(7i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_PARTICIPANT_STATE_CHANGE: RTC_EVENT = RTC_EVENT(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_PRESENCE_DATA: RTC_EVENT = RTC_EVENT(17i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_PRESENCE_PROPERTY: RTC_EVENT = RTC_EVENT(16i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_PRESENCE_STATUS: RTC_EVENT = RTC_EVENT(18i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_PROFILE: RTC_EVENT = RTC_EVENT(10i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_REGISTRATION_STATE_CHANGE: RTC_EVENT = RTC_EVENT(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_REINVITE: RTC_EVENT = RTC_EVENT(21i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_ROAMING: RTC_EVENT = RTC_EVENT(15i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_SESSION_OPERATION_COMPLETE: RTC_EVENT = RTC_EVENT(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_SESSION_REFERRED: RTC_EVENT = RTC_EVENT(20i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_SESSION_REFER_STATUS: RTC_EVENT = RTC_EVENT(19i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_SESSION_STATE_CHANGE: RTC_EVENT = RTC_EVENT(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_USERSEARCH: RTC_EVENT = RTC_EVENT(11i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCE_WATCHER: RTC_EVENT = RTC_EVENT(9i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCGET_GROUP_ADD: RTC_GROUP_EVENT_TYPE = RTC_GROUP_EVENT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCGET_GROUP_BUDDY_ADD: RTC_GROUP_EVENT_TYPE = RTC_GROUP_EVENT_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCGET_GROUP_BUDDY_REMOVE: RTC_GROUP_EVENT_TYPE = RTC_GROUP_EVENT_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCGET_GROUP_REMOVE: RTC_GROUP_EVENT_TYPE = RTC_GROUP_EVENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCGET_GROUP_ROAMED: RTC_GROUP_EVENT_TYPE = RTC_GROUP_EVENT_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCGET_GROUP_UPDATE: RTC_GROUP_EVENT_TYPE = RTC_GROUP_EVENT_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCIF_DISABLE_MEDIA: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCIF_DISABLE_STRICT_DNS: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCIF_DISABLE_UPNP: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCIF_ENABLE_SERVER_CLASS: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCLM_BOTH: RTC_LISTEN_MODE = RTC_LISTEN_MODE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCLM_DYNAMIC: RTC_LISTEN_MODE = RTC_LISTEN_MODE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCLM_NONE: RTC_LISTEN_MODE = RTC_LISTEN_MODE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMER_BAD_DEVICE: RTC_MEDIA_EVENT_REASON = RTC_MEDIA_EVENT_REASON(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMER_HOLD: RTC_MEDIA_EVENT_REASON = RTC_MEDIA_EVENT_REASON(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMER_NORMAL: RTC_MEDIA_EVENT_REASON = RTC_MEDIA_EVENT_REASON(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMER_NO_PORT: RTC_MEDIA_EVENT_REASON = RTC_MEDIA_EVENT_REASON(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMER_PORT_MAPPING_FAILED: RTC_MEDIA_EVENT_REASON = RTC_MEDIA_EVENT_REASON(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMER_REMOTE_REQUEST: RTC_MEDIA_EVENT_REASON = RTC_MEDIA_EVENT_REASON(6i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMER_TIMEOUT: RTC_MEDIA_EVENT_REASON = RTC_MEDIA_EVENT_REASON(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMET_FAILED: RTC_MEDIA_EVENT_TYPE = RTC_MEDIA_EVENT_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMET_STARTED: RTC_MEDIA_EVENT_TYPE = RTC_MEDIA_EVENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMET_STOPPED: RTC_MEDIA_EVENT_TYPE = RTC_MEDIA_EVENT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMSET_MESSAGE: RTC_MESSAGING_EVENT_TYPE = RTC_MESSAGING_EVENT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMSET_STATUS: RTC_MESSAGING_EVENT_TYPE = RTC_MESSAGING_EVENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMT_AUDIO_RECEIVE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMT_AUDIO_SEND: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMT_T120_SENDRECV: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMT_VIDEO_RECEIVE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMT_VIDEO_SEND: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMUS_IDLE: RTC_MESSAGING_USER_STATUS = RTC_MESSAGING_USER_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCMUS_TYPING: RTC_MESSAGING_USER_STATUS = RTC_MESSAGING_USER_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCOWM_AUTOMATICALLY_ADD_WATCHER: RTC_OFFER_WATCHER_MODE = RTC_OFFER_WATCHER_MODE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCOWM_OFFER_WATCHER_EVENT: RTC_OFFER_WATCHER_MODE = RTC_OFFER_WATCHER_MODE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPFET_PROFILE_GET: RTC_PROFILE_EVENT_TYPE = RTC_PROFILE_EVENT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPFET_PROFILE_UPDATE: RTC_PROFILE_EVENT_TYPE = RTC_PROFILE_EVENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPM_ALLOW_LIST_ONLY: RTC_PRIVACY_MODE = RTC_PRIVACY_MODE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPM_BLOCK_LIST_EXCLUDED: RTC_PRIVACY_MODE = RTC_PRIVACY_MODE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPP_DEVICE_NAME: RTC_PRESENCE_PROPERTY = RTC_PRESENCE_PROPERTY(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPP_DISPLAYNAME: RTC_PRESENCE_PROPERTY = RTC_PRESENCE_PROPERTY(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPP_EMAIL: RTC_PRESENCE_PROPERTY = RTC_PRESENCE_PROPERTY(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPP_MULTIPLE: RTC_PRESENCE_PROPERTY = RTC_PRESENCE_PROPERTY(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPP_PHONENUMBER: RTC_PRESENCE_PROPERTY = RTC_PRESENCE_PROPERTY(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPS_ALERTING: RTC_PARTICIPANT_STATE = RTC_PARTICIPANT_STATE(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPS_ANSWERING: RTC_PARTICIPANT_STATE = RTC_PARTICIPANT_STATE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPS_CONNECTED: RTC_PARTICIPANT_STATE = RTC_PARTICIPANT_STATE(6i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPS_DISCONNECTED: RTC_PARTICIPANT_STATE = RTC_PARTICIPANT_STATE(8i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPS_DISCONNECTING: RTC_PARTICIPANT_STATE = RTC_PARTICIPANT_STATE(7i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPS_IDLE: RTC_PARTICIPANT_STATE = RTC_PARTICIPANT_STATE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPS_INCOMING: RTC_PARTICIPANT_STATE = RTC_PARTICIPANT_STATE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPS_INPROGRESS: RTC_PARTICIPANT_STATE = RTC_PARTICIPANT_STATE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPS_PENDING: RTC_PARTICIPANT_STATE = RTC_PARTICIPANT_STATE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPT_AUDIO_RTCP: RTC_PORT_TYPE = RTC_PORT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPT_AUDIO_RTP: RTC_PORT_TYPE = RTC_PORT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPT_SIP: RTC_PORT_TYPE = RTC_PORT_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPT_VIDEO_RTCP: RTC_PORT_TYPE = RTC_PORT_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPT_VIDEO_RTP: RTC_PORT_TYPE = RTC_PORT_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPU_URIDISPLAYDURINGCALL: RTC_PROVIDER_URI = RTC_PROVIDER_URI(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPU_URIDISPLAYDURINGIDLE: RTC_PROVIDER_URI = RTC_PROVIDER_URI(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPU_URIHELPDESK: RTC_PROVIDER_URI = RTC_PROVIDER_URI(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPU_URIHOMEPAGE: RTC_PROVIDER_URI = RTC_PROVIDER_URI(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCPU_URIPERSONALACCOUNT: RTC_PROVIDER_URI = RTC_PROVIDER_URI(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRET_BUDDY_ROAMING: RTC_ROAMING_EVENT_TYPE = RTC_ROAMING_EVENT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRET_PRESENCE_ROAMING: RTC_ROAMING_EVENT_TYPE = RTC_ROAMING_EVENT_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRET_PROFILE_ROAMING: RTC_ROAMING_EVENT_TYPE = RTC_ROAMING_EVENT_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRET_WATCHER_ROAMING: RTC_ROAMING_EVENT_TYPE = RTC_ROAMING_EVENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRET_WPENDING_ROAMING: RTC_ROAMING_EVENT_TYPE = RTC_ROAMING_EVENT_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRF_REGISTER_ALL: u32 = 15u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRF_REGISTER_INVITE_SESSIONS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRF_REGISTER_MESSAGE_SESSIONS: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRF_REGISTER_NOTIFY: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRF_REGISTER_PRESENCE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRIN_FAIL: RTC_REINVITE_STATE = RTC_REINVITE_STATE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRIN_INCOMING: RTC_REINVITE_STATE = RTC_REINVITE_STATE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRIN_SUCCEEDED: RTC_REINVITE_STATE = RTC_REINVITE_STATE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRMF_ALL_ROAMING: u32 = 15u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRMF_BUDDY_ROAMING: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRMF_PRESENCE_ROAMING: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRMF_PROFILE_ROAMING: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRMF_WATCHER_ROAMING: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRS_ERROR: RTC_REGISTRATION_STATE = RTC_REGISTRATION_STATE(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRS_LOCAL_PA_LOGGED_OFF: RTC_REGISTRATION_STATE = RTC_REGISTRATION_STATE(7i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRS_LOGGED_OFF: RTC_REGISTRATION_STATE = RTC_REGISTRATION_STATE(6i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRS_NOT_REGISTERED: RTC_REGISTRATION_STATE = RTC_REGISTRATION_STATE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRS_REGISTERED: RTC_REGISTRATION_STATE = RTC_REGISTRATION_STATE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRS_REGISTERING: RTC_REGISTRATION_STATE = RTC_REGISTRATION_STATE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRS_REJECTED: RTC_REGISTRATION_STATE = RTC_REGISTRATION_STATE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRS_REMOTE_PA_LOGGED_OFF: RTC_REGISTRATION_STATE = RTC_REGISTRATION_STATE(8i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRS_UNREGISTERING: RTC_REGISTRATION_STATE = RTC_REGISTRATION_STATE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRT_MESSAGE: RTC_RING_TYPE = RTC_RING_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRT_PHONE: RTC_RING_TYPE = RTC_RING_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCRT_RINGBACK: RTC_RING_TYPE = RTC_RING_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSECL_REQUIRED: RTC_SECURITY_LEVEL = RTC_SECURITY_LEVEL(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSECL_SUPPORTED: RTC_SECURITY_LEVEL = RTC_SECURITY_LEVEL(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSECL_UNSUPPORTED: RTC_SECURITY_LEVEL = RTC_SECURITY_LEVEL(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSECT_AUDIO_VIDEO_MEDIA_ENCRYPTION: RTC_SECURITY_TYPE = RTC_SECURITY_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSECT_T120_MEDIA_ENCRYPTION: RTC_SECURITY_TYPE = RTC_SECURITY_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSI_APPLICATION: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSI_IM: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSI_MULTIPARTY_IM: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSI_PC_TO_PC: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSI_PC_TO_PHONE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSI_PHONE_TO_PHONE: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSRS_ACCEPTED: RTC_SESSION_REFER_STATUS = RTC_SESSION_REFER_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSRS_DONE: RTC_SESSION_REFER_STATUS = RTC_SESSION_REFER_STATUS(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSRS_DROPPED: RTC_SESSION_REFER_STATUS = RTC_SESSION_REFER_STATUS(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSRS_ERROR: RTC_SESSION_REFER_STATUS = RTC_SESSION_REFER_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSRS_REFERRING: RTC_SESSION_REFER_STATUS = RTC_SESSION_REFER_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSRS_REJECTED: RTC_SESSION_REFER_STATUS = RTC_SESSION_REFER_STATUS(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSS_ANSWERING: RTC_SESSION_STATE = RTC_SESSION_STATE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSS_CONNECTED: RTC_SESSION_STATE = RTC_SESSION_STATE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSS_DISCONNECTED: RTC_SESSION_STATE = RTC_SESSION_STATE(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSS_HOLD: RTC_SESSION_STATE = RTC_SESSION_STATE(6i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSS_IDLE: RTC_SESSION_STATE = RTC_SESSION_STATE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSS_INCOMING: RTC_SESSION_STATE = RTC_SESSION_STATE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSS_INPROGRESS: RTC_SESSION_STATE = RTC_SESSION_STATE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCSS_REFER: RTC_SESSION_STATE = RTC_SESSION_STATE(7i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCST_APPLICATION: RTC_SESSION_TYPE = RTC_SESSION_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCST_IM: RTC_SESSION_TYPE = RTC_SESSION_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCST_MULTIPARTY_IM: RTC_SESSION_TYPE = RTC_SESSION_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCST_PC_TO_PC: RTC_SESSION_TYPE = RTC_SESSION_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCST_PC_TO_PHONE: RTC_SESSION_TYPE = RTC_SESSION_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCST_PHONE_TO_PHONE: RTC_SESSION_TYPE = RTC_SESSION_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTA_APPSHARING: RTC_T120_APPLET = RTC_T120_APPLET(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTA_WHITEBOARD: RTC_T120_APPLET = RTC_T120_APPLET(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_BUSY: RTC_TERMINATE_REASON = RTC_TERMINATE_REASON(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_DND: RTC_TERMINATE_REASON = RTC_TERMINATE_REASON(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_INSUFFICIENT_SECURITY_LEVEL: RTC_TERMINATE_REASON = RTC_TERMINATE_REASON(6i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_NORMAL: RTC_TERMINATE_REASON = RTC_TERMINATE_REASON(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_NOT_SUPPORTED: RTC_TERMINATE_REASON = RTC_TERMINATE_REASON(7i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_REJECT: RTC_TERMINATE_REASON = RTC_TERMINATE_REASON(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_SHUTDOWN: RTC_TERMINATE_REASON = RTC_TERMINATE_REASON(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_TCP: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_TIMEOUT: RTC_TERMINATE_REASON = RTC_TERMINATE_REASON(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_TLS: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCTR_UDP: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_CITY: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(6i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_COMPANY: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_COUNTRY: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(8i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_DISPLAYNAME: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_EMAIL: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(9i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_OFFICE: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_PHONE: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_STATE: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(7i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_TITLE: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSC_URI: RTC_USER_SEARCH_COLUMN = RTC_USER_SEARCH_COLUMN(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSP_MAX_MATCHES: RTC_USER_SEARCH_PREFERENCE = RTC_USER_SEARCH_PREFERENCE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCUSP_TIME_LIMIT: RTC_USER_SEARCH_PREFERENCE = RTC_USER_SEARCH_PREFERENCE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCVD_PREVIEW: RTC_VIDEO_DEVICE = RTC_VIDEO_DEVICE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCVD_RECEIVE: RTC_VIDEO_DEVICE = RTC_VIDEO_DEVICE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWET_WATCHER_ADD: RTC_WATCHER_EVENT_TYPE = RTC_WATCHER_EVENT_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWET_WATCHER_OFFERING: RTC_WATCHER_EVENT_TYPE = RTC_WATCHER_EVENT_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWET_WATCHER_REMOVE: RTC_WATCHER_EVENT_TYPE = RTC_WATCHER_EVENT_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWET_WATCHER_ROAMED: RTC_WATCHER_EVENT_TYPE = RTC_WATCHER_EVENT_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWET_WATCHER_UPDATE: RTC_WATCHER_EVENT_TYPE = RTC_WATCHER_EVENT_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWMM_BEST_ACE_MATCH: RTC_WATCHER_MATCH_MODE = RTC_WATCHER_MATCH_MODE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWMM_EXACT_MATCH: RTC_WATCHER_MATCH_MODE = RTC_WATCHER_MATCH_MODE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWS_ALLOWED: RTC_WATCHER_STATE = RTC_WATCHER_STATE(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWS_BLOCKED: RTC_WATCHER_STATE = RTC_WATCHER_STATE(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWS_DENIED: RTC_WATCHER_STATE = RTC_WATCHER_STATE(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWS_OFFERING: RTC_WATCHER_STATE = RTC_WATCHER_STATE(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWS_PROMPT: RTC_WATCHER_STATE = RTC_WATCHER_STATE(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCWS_UNKNOWN: RTC_WATCHER_STATE = RTC_WATCHER_STATE(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCXS_PRESENCE_AWAY: RTC_PRESENCE_STATUS = RTC_PRESENCE_STATUS(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCXS_PRESENCE_BE_RIGHT_BACK: RTC_PRESENCE_STATUS = RTC_PRESENCE_STATUS(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCXS_PRESENCE_BUSY: RTC_PRESENCE_STATUS = RTC_PRESENCE_STATUS(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCXS_PRESENCE_IDLE: RTC_PRESENCE_STATUS = RTC_PRESENCE_STATUS(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCXS_PRESENCE_OFFLINE: RTC_PRESENCE_STATUS = RTC_PRESENCE_STATUS(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCXS_PRESENCE_ONLINE: RTC_PRESENCE_STATUS = RTC_PRESENCE_STATUS(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCXS_PRESENCE_ON_THE_PHONE: RTC_PRESENCE_STATUS = RTC_PRESENCE_STATUS(6i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTCXS_PRESENCE_OUT_TO_LUNCH: RTC_PRESENCE_STATUS = RTC_PRESENCE_STATUS(7i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_0: RTC_DTMF = RTC_DTMF(0i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_1: RTC_DTMF = RTC_DTMF(1i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_2: RTC_DTMF = RTC_DTMF(2i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_3: RTC_DTMF = RTC_DTMF(3i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_4: RTC_DTMF = RTC_DTMF(4i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_5: RTC_DTMF = RTC_DTMF(5i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_6: RTC_DTMF = RTC_DTMF(6i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_7: RTC_DTMF = RTC_DTMF(7i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_8: RTC_DTMF = RTC_DTMF(8i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_9: RTC_DTMF = RTC_DTMF(9i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_A: RTC_DTMF = RTC_DTMF(12i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_B: RTC_DTMF = RTC_DTMF(13i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_C: RTC_DTMF = RTC_DTMF(14i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_D: RTC_DTMF = RTC_DTMF(15i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_FLASH: RTC_DTMF = RTC_DTMF(16i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_POUND: RTC_DTMF = RTC_DTMF(11i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_DTMF_STAR: RTC_DTMF = RTC_DTMF(10i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_ANOTHER_MEDIA_SESSION_ACTIVE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885961i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_BASIC_AUTH_SET_TLS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886017i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_CLIENT_ALREADY_INITIALIZED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886042i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_CLIENT_ALREADY_SHUT_DOWN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886041i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_CLIENT_NOT_INITIALIZED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886043i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_DESTINATION_ADDRESS_LOCAL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886061i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_DESTINATION_ADDRESS_MULTICAST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886059i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_DUPLICATE_BUDDY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886006i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_DUPLICATE_GROUP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885998i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_DUPLICATE_REALM: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886013i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_DUPLICATE_WATCHER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886005i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_ACL_LIST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886000i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_ADDRESS_LOCAL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886060i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_BUDDY_LIST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886001i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_LISTEN_SOCKET: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885957i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_OBJECT_STATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885983i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_PORTRANGE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885988i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_PREFERENCE_LIST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885991i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_PROFILE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886034i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_PROXY_ADDRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886058i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_REGISTRATION_STATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885971i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_SESSION_STATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886038i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_SESSION_TYPE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886039i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_INVALID_SIP_URL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886062i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_LISTENING_SOCKET_NOT_EXIST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885958i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_LOCAL_PHONE_NEEDED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886036i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MALFORMED_XML: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886004i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MAX_PENDING_OPERATIONS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885990i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MAX_REDIRECTS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885960i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MEDIA_AEC: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886044i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MEDIA_AUDIO_DEVICE_NOT_AVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886047i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MEDIA_CONTROLLER_STATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886049i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MEDIA_DISABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885970i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MEDIA_ENABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885969i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MEDIA_NEED_TERMINAL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886048i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MEDIA_SESSION_IN_HOLD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885962i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MEDIA_SESSION_NOT_EXIST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885963i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_MEDIA_VIDEO_DEVICE_NOT_AVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886046i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NOT_ALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885950i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NOT_EXIST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885992i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NOT_PRESENCE_PROFILE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885974i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NO_BUDDY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885996i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NO_DEVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886035i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NO_GROUP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885999i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NO_PROFILE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886037i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NO_REALM: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885994i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NO_TRANSPORT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885993i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_NO_WATCHER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885995i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_OPERATION_WITH_TOO_MANY_PARTICIPANTS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886018i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PINT_STATUS_REJECTED_ALL_BUSY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131755001i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PINT_STATUS_REJECTED_BADNUMBER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131754997i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PINT_STATUS_REJECTED_BUSY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131755003i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PINT_STATUS_REJECTED_CANCELLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131754998i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PINT_STATUS_REJECTED_NO_ANSWER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131755002i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PINT_STATUS_REJECTED_PL_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131755000i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PINT_STATUS_REJECTED_SW_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131754999i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PLATFORM_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885952i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_POLICY_NOT_ALLOW: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886012i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PORT_MANAGER_ALREADY_SET: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885956i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PORT_MAPPING_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886010i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PORT_MAPPING_UNAVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886011i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PRESENCE_ENABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885982i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PRESENCE_NOT_ENABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886040i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_INVALID_SERVER_AUTHMETHOD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886024i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_INVALID_SERVER_PROTOCOL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886025i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_INVALID_SERVER_ROLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886023i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_INVALID_SESSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886021i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_INVALID_SESSION_PARTY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886020i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_INVALID_SESSION_TYPE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886019i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_MULTIPLE_REGISTRARS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886022i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_NO_KEY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886032i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_NO_NAME: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886031i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_NO_PROVISION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886033i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_NO_SERVER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886028i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_NO_SERVER_ADDRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886027i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_NO_SERVER_PROTOCOL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886026i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_NO_USER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886030i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_NO_USER_URI: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886029i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_PROFILE_SERVER_UNAUTHORIZED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886014i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_REDIRECT_PROCESSING_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885959i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_REFER_NOT_ACCEPTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885968i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_REFER_NOT_ALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885967i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_REFER_NOT_EXIST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885966i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_REGISTRATION_DEACTIVATED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885949i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_REGISTRATION_REJECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885948i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_REGISTRATION_UNREGISTERED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885947i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_ROAMING_ENABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885981i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_ROAMING_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886002i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_ROAMING_OPERATION_INTERRUPTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886003i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SDP_CONNECTION_ADDR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886070i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SDP_FAILED_TO_BUILD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886067i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SDP_MULTICAST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886071i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SDP_NOT_PRESENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886074i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SDP_NO_MEDIA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886069i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SDP_PARSE_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886073i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SDP_UPDATE_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886072i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SECURITY_LEVEL_ALREADY_SET: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885955i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SECURITY_LEVEL_NOT_COMPATIBLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886009i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SECURITY_LEVEL_NOT_DEFINED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886008i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SECURITY_LEVEL_NOT_SUPPORTED_BY_PARTICIPANT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886007i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_ADDITIONAL_PARTY_IN_TWO_PARTY_SESSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885986i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_AUTH_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886063i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_AUTH_HEADER_SENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886065i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_AUTH_TIME_SKEW: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885972i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_AUTH_TYPE_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886064i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_CALL_CONNECTION_NOT_ESTABLISHED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885987i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_CALL_DISCONNECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886055i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_CODECS_DO_NOT_MATCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886080i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_DNS_FAIL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885978i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_HEADER_NOT_PRESENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886075i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_HIGH_SECURITY_SET_TLS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886016i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_HOLD_OPERATION_PENDING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885965i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_INVALID_CERTIFICATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885979i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_INVITEE_PARTY_TIMEOUT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885973i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_INVITE_TRANSACTION_PENDING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886066i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_NEED_MORE_DATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886056i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_NO_STREAM: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886077i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_OTHER_PARTY_JOIN_IN_PROGRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885984i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_PARSE_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886076i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_PARTY_ALREADY_IN_SESSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885985i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_PEER_PARTICIPANT_IN_MULTIPARTY_SESSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885951i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_REFER_OPERATION_PENDING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885953i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_REQUEST_DESTINATION_ADDR_NOT_PRESENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886054i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_SSL_NEGOTIATION_TIMEOUT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886051i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_SSL_TUNNEL_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886052i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_STACK_SHUTDOWN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886050i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_STREAM_NOT_PRESENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886078i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_STREAM_PRESENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886079i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_TCP_FAIL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885977i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_TIMEOUT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886068i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_TLS_FAIL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885975i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_TLS_INCOMPATIBLE_ENCRYPTION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885980i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_TRANSPORT_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886057i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_UDP_SIZE_EXCEEDED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886053i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_SIP_UNHOLD_OPERATION_PENDING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885964i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_START_STREAM: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131886045i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_ADDRESS_INCOMPLETE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820060i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_AMBIGUOUS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820059i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_BAD_EXTENSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820124i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_BAD_REQUEST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820144i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_BUSY_HERE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820058i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_CONFLICT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820135i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_FORBIDDEN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820141i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_GONE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820134i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_LENGTH_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820133i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_LOOP_DETECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820062i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_METHOD_NOT_ALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820139i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_NOT_ACCEPTABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820138i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_NOT_FOUND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820140i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_PAYMENT_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820142i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_PROXY_AUTHENTICATION_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820137i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_REQUEST_ENTITY_TOO_LARGE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820131i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_REQUEST_TIMEOUT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820136i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_REQUEST_URI_TOO_LARGE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820130i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_TEMPORARILY_NOT_AVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820064i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_TOO_MANY_HOPS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820061i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_TRANSACTION_DOES_NOT_EXIST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820063i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_UNAUTHORIZED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820143i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_CLIENT_UNSUPPORTED_MEDIA_TYPE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820129i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_GLOBAL_BUSY_EVERYWHERE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131819944i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_GLOBAL_DECLINE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131819941i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_GLOBAL_DOES_NOT_EXIST_ANYWHERE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131819940i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_GLOBAL_NOT_ACCEPTABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131819938i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_INFO_CALL_FORWARDING: ::windows_core::HRESULT = ::windows_core::HRESULT(15663285i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_INFO_QUEUED: ::windows_core::HRESULT = ::windows_core::HRESULT(15663286i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_INFO_RINGING: ::windows_core::HRESULT = ::windows_core::HRESULT(15663284i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_INFO_TRYING: ::windows_core::HRESULT = ::windows_core::HRESULT(15663204i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_NOT_ACCEPTABLE_HERE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820056i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_REDIRECT_ALTERNATIVE_SERVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820164i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_REDIRECT_MOVED_PERMANENTLY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820243i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_REDIRECT_MOVED_TEMPORARILY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820242i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_REDIRECT_MULTIPLE_CHOICES: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820244i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_REDIRECT_SEE_OTHER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820241i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_REDIRECT_USE_PROXY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820239i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_REQUEST_TERMINATED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820057i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_SERVER_BAD_GATEWAY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820042i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_SERVER_INTERNAL_ERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820044i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_SERVER_NOT_IMPLEMENTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820043i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_SERVER_SERVER_TIMEOUT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820040i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_SERVER_SERVICE_UNAVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820041i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_SERVER_VERSION_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131820039i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_SESSION_PROGRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(15663287i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_STATUS_SUCCESS: ::windows_core::HRESULT = ::windows_core::HRESULT(15663304i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_TOO_MANY_GROUPS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885997i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_TOO_MANY_RETRIES: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885989i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_TOO_SMALL_EXPIRES_VALUE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885976i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_E_UDP_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2131885954i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const RTC_S_ROAMING_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(15597633i32);
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 pub const STATUS_SEVERITY_RTC_ERROR: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_ACE_SCOPE(pub i32);
@@ -6259,7 +4657,6 @@ impl ::core::fmt::Debug for RTC_ACE_SCOPE {
         f.debug_tuple("RTC_ACE_SCOPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_ANSWER_MODE(pub i32);
@@ -6282,7 +4679,6 @@ impl ::core::fmt::Debug for RTC_ANSWER_MODE {
         f.debug_tuple("RTC_ANSWER_MODE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_AUDIO_DEVICE(pub i32);
@@ -6305,7 +4701,6 @@ impl ::core::fmt::Debug for RTC_AUDIO_DEVICE {
         f.debug_tuple("RTC_AUDIO_DEVICE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_BUDDY_EVENT_TYPE(pub i32);
@@ -6328,7 +4723,6 @@ impl ::core::fmt::Debug for RTC_BUDDY_EVENT_TYPE {
         f.debug_tuple("RTC_BUDDY_EVENT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_BUDDY_SUBSCRIPTION_TYPE(pub i32);
@@ -6351,7 +4745,6 @@ impl ::core::fmt::Debug for RTC_BUDDY_SUBSCRIPTION_TYPE {
         f.debug_tuple("RTC_BUDDY_SUBSCRIPTION_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_CLIENT_EVENT_TYPE(pub i32);
@@ -6374,7 +4767,6 @@ impl ::core::fmt::Debug for RTC_CLIENT_EVENT_TYPE {
         f.debug_tuple("RTC_CLIENT_EVENT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_DTMF(pub i32);
@@ -6397,7 +4789,6 @@ impl ::core::fmt::Debug for RTC_DTMF {
         f.debug_tuple("RTC_DTMF").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_EVENT(pub i32);
@@ -6420,7 +4811,6 @@ impl ::core::fmt::Debug for RTC_EVENT {
         f.debug_tuple("RTC_EVENT").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_GROUP_EVENT_TYPE(pub i32);
@@ -6443,7 +4833,6 @@ impl ::core::fmt::Debug for RTC_GROUP_EVENT_TYPE {
         f.debug_tuple("RTC_GROUP_EVENT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_LISTEN_MODE(pub i32);
@@ -6466,7 +4855,6 @@ impl ::core::fmt::Debug for RTC_LISTEN_MODE {
         f.debug_tuple("RTC_LISTEN_MODE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_MEDIA_EVENT_REASON(pub i32);
@@ -6489,7 +4877,6 @@ impl ::core::fmt::Debug for RTC_MEDIA_EVENT_REASON {
         f.debug_tuple("RTC_MEDIA_EVENT_REASON").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_MEDIA_EVENT_TYPE(pub i32);
@@ -6512,7 +4899,6 @@ impl ::core::fmt::Debug for RTC_MEDIA_EVENT_TYPE {
         f.debug_tuple("RTC_MEDIA_EVENT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_MESSAGING_EVENT_TYPE(pub i32);
@@ -6535,7 +4921,6 @@ impl ::core::fmt::Debug for RTC_MESSAGING_EVENT_TYPE {
         f.debug_tuple("RTC_MESSAGING_EVENT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_MESSAGING_USER_STATUS(pub i32);
@@ -6558,7 +4943,6 @@ impl ::core::fmt::Debug for RTC_MESSAGING_USER_STATUS {
         f.debug_tuple("RTC_MESSAGING_USER_STATUS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_OFFER_WATCHER_MODE(pub i32);
@@ -6581,7 +4965,6 @@ impl ::core::fmt::Debug for RTC_OFFER_WATCHER_MODE {
         f.debug_tuple("RTC_OFFER_WATCHER_MODE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_PARTICIPANT_STATE(pub i32);
@@ -6604,7 +4987,6 @@ impl ::core::fmt::Debug for RTC_PARTICIPANT_STATE {
         f.debug_tuple("RTC_PARTICIPANT_STATE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_PORT_TYPE(pub i32);
@@ -6627,7 +5009,6 @@ impl ::core::fmt::Debug for RTC_PORT_TYPE {
         f.debug_tuple("RTC_PORT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_PRESENCE_PROPERTY(pub i32);
@@ -6650,7 +5031,6 @@ impl ::core::fmt::Debug for RTC_PRESENCE_PROPERTY {
         f.debug_tuple("RTC_PRESENCE_PROPERTY").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_PRESENCE_STATUS(pub i32);
@@ -6673,7 +5053,6 @@ impl ::core::fmt::Debug for RTC_PRESENCE_STATUS {
         f.debug_tuple("RTC_PRESENCE_STATUS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_PRIVACY_MODE(pub i32);
@@ -6696,7 +5075,6 @@ impl ::core::fmt::Debug for RTC_PRIVACY_MODE {
         f.debug_tuple("RTC_PRIVACY_MODE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_PROFILE_EVENT_TYPE(pub i32);
@@ -6719,7 +5097,6 @@ impl ::core::fmt::Debug for RTC_PROFILE_EVENT_TYPE {
         f.debug_tuple("RTC_PROFILE_EVENT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_PROVIDER_URI(pub i32);
@@ -6742,7 +5119,6 @@ impl ::core::fmt::Debug for RTC_PROVIDER_URI {
         f.debug_tuple("RTC_PROVIDER_URI").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_REGISTRATION_STATE(pub i32);
@@ -6765,7 +5141,6 @@ impl ::core::fmt::Debug for RTC_REGISTRATION_STATE {
         f.debug_tuple("RTC_REGISTRATION_STATE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_REINVITE_STATE(pub i32);
@@ -6788,7 +5163,6 @@ impl ::core::fmt::Debug for RTC_REINVITE_STATE {
         f.debug_tuple("RTC_REINVITE_STATE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_RING_TYPE(pub i32);
@@ -6811,7 +5185,6 @@ impl ::core::fmt::Debug for RTC_RING_TYPE {
         f.debug_tuple("RTC_RING_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_ROAMING_EVENT_TYPE(pub i32);
@@ -6834,7 +5207,6 @@ impl ::core::fmt::Debug for RTC_ROAMING_EVENT_TYPE {
         f.debug_tuple("RTC_ROAMING_EVENT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_SECURITY_LEVEL(pub i32);
@@ -6857,7 +5229,6 @@ impl ::core::fmt::Debug for RTC_SECURITY_LEVEL {
         f.debug_tuple("RTC_SECURITY_LEVEL").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_SECURITY_TYPE(pub i32);
@@ -6880,7 +5251,6 @@ impl ::core::fmt::Debug for RTC_SECURITY_TYPE {
         f.debug_tuple("RTC_SECURITY_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_SESSION_REFER_STATUS(pub i32);
@@ -6903,7 +5273,6 @@ impl ::core::fmt::Debug for RTC_SESSION_REFER_STATUS {
         f.debug_tuple("RTC_SESSION_REFER_STATUS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_SESSION_STATE(pub i32);
@@ -6926,7 +5295,6 @@ impl ::core::fmt::Debug for RTC_SESSION_STATE {
         f.debug_tuple("RTC_SESSION_STATE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_SESSION_TYPE(pub i32);
@@ -6949,7 +5317,6 @@ impl ::core::fmt::Debug for RTC_SESSION_TYPE {
         f.debug_tuple("RTC_SESSION_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_T120_APPLET(pub i32);
@@ -6972,7 +5339,6 @@ impl ::core::fmt::Debug for RTC_T120_APPLET {
         f.debug_tuple("RTC_T120_APPLET").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_TERMINATE_REASON(pub i32);
@@ -6995,7 +5361,6 @@ impl ::core::fmt::Debug for RTC_TERMINATE_REASON {
         f.debug_tuple("RTC_TERMINATE_REASON").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_USER_SEARCH_COLUMN(pub i32);
@@ -7018,7 +5383,6 @@ impl ::core::fmt::Debug for RTC_USER_SEARCH_COLUMN {
         f.debug_tuple("RTC_USER_SEARCH_COLUMN").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_USER_SEARCH_PREFERENCE(pub i32);
@@ -7041,7 +5405,6 @@ impl ::core::fmt::Debug for RTC_USER_SEARCH_PREFERENCE {
         f.debug_tuple("RTC_USER_SEARCH_PREFERENCE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_VIDEO_DEVICE(pub i32);
@@ -7064,7 +5427,6 @@ impl ::core::fmt::Debug for RTC_VIDEO_DEVICE {
         f.debug_tuple("RTC_VIDEO_DEVICE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_WATCHER_EVENT_TYPE(pub i32);
@@ -7087,7 +5449,6 @@ impl ::core::fmt::Debug for RTC_WATCHER_EVENT_TYPE {
         f.debug_tuple("RTC_WATCHER_EVENT_TYPE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_WATCHER_MATCH_MODE(pub i32);
@@ -7110,7 +5471,6 @@ impl ::core::fmt::Debug for RTC_WATCHER_MATCH_MODE {
         f.debug_tuple("RTC_WATCHER_MATCH_MODE").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RTC_WATCHER_STATE(pub i32);
@@ -7134,7 +5494,7 @@ impl ::core::fmt::Debug for RTC_WATCHER_STATE {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_System_RealTimeCommunications\"`, `\"Win32_Networking_WinSock\"`*"]
+#[doc = "Required features: `\"Win32_Networking_WinSock\"`"]
 #[cfg(feature = "Win32_Networking_WinSock")]
 pub struct TRANSPORT_SETTING {
     pub SettingId: super::super::Networking::WinSock::TRANSPORT_SETTING_ID,

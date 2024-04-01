@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.70.0"
 name = "snapbox"
-version = "0.4.14"
+version = "0.4.15"
 include = [
     "build.rs",
     "src/**/*",
@@ -85,6 +85,10 @@ search = "<!-- next-url -->"
 
 [[bin]]
 name = "snap-fixture"
+
+[[example]]
+name = "diff"
+required-features = ["diff"]
 
 [dependencies.anstream]
 version = "0.6.0"
@@ -201,6 +205,6 @@ version = "0.2.137"
 optional = true
 
 [target."cfg(windows)".dependencies.windows-sys]
-version = "0.48.0"
+version = "0.52.0"
 features = ["Win32_Foundation"]
 optional = true

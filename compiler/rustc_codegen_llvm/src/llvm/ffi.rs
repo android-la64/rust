@@ -106,7 +106,6 @@ pub enum CallConv {
     X86_Intr = 83,
     AvrNonBlockingInterrupt = 84,
     AvrInterrupt = 85,
-    AmdGpuKernel = 91,
 }
 
 /// LLVMRustLinkage
@@ -722,7 +721,7 @@ pub mod debuginfo {
     // These values **must** match with LLVMRustDIFlags!!
     bitflags! {
         #[repr(transparent)]
-        #[derive(Default)]
+        #[derive(Clone, Copy, Default)]
         pub struct DIFlags: u32 {
             const FlagZero                = 0;
             const FlagPrivate             = 1;
@@ -751,7 +750,7 @@ pub mod debuginfo {
     // These values **must** match with LLVMRustDISPFlags!!
     bitflags! {
         #[repr(transparent)]
-        #[derive(Default)]
+        #[derive(Clone, Copy, Default)]
         pub struct DISPFlags: u32 {
             const SPFlagZero              = 0;
             const SPFlagVirtual           = 1;

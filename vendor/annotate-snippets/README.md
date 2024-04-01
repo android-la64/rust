@@ -3,8 +3,7 @@
 `annotate-snippets` is a Rust library for annotation of programming code slices.
 
 [![crates.io](https://img.shields.io/crates/v/annotate-snippets.svg)](https://crates.io/crates/annotate-snippets)
-[![Build Status](https://travis-ci.com/rust-lang/annotate-snippets-rs.svg?branch=master)](https://travis-ci.com/rust-lang/annotate-snippets-rs)
-[![Coverage Status](https://coveralls.io/repos/github/rust-lang/annotate-snippets-rs/badge.svg?branch=master)](https://coveralls.io/github/rust-lang/annotate-snippets-rs?branch=master)
+![build status](https://github.com/rust-lang/annotate-snippets-rs/actions/workflows/ci.yml/badge.svg)
 
 The library helps visualize meta information annotating source code slices.
 It takes a data structure called `Snippet` on the input and produces a `String`
@@ -34,10 +33,7 @@ Usage
 -----
 
 ```rust
-use annotate_snippets::{
-    display_list::{DisplayList, FormatOptions},
-    snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
-};
+use annotate_snippets::{Annotation, AnnotationType, Renderer, Slice, Snippet, SourceAnnotation};
 
 fn main() {
     let snippet = Snippet {
@@ -59,7 +55,7 @@ fn main() {
                 SourceAnnotation {
                     label: "",
                     annotation_type: AnnotationType::Error,
-                    range: (187, 189),
+                    range: (193, 195),
                 },
                 SourceAnnotation {
                     label: "while parsing this struct",
@@ -68,14 +64,10 @@ fn main() {
                 },
             ],
         }],
-        opt: FormatOptions {
-            color: true,
-            ..Default::default()
-        },
     };
 
-    let dl = DisplayList::from(snippet);
-    println!("{}", dl);
+    let renderer = Renderer::plain();
+    println!("{}", renderer.render(snippet));
 }
 ```
 

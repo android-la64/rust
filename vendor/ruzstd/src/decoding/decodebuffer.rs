@@ -15,12 +15,13 @@ pub struct Decodebuffer {
     pub hash: XxHash64,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, derive_more::Display)]
+#[cfg_attr(feature = "std", derive(derive_more::Error))]
 #[non_exhaustive]
 pub enum DecodebufferError {
-    #[error("Need {need} bytes from the dictionary but it is only {got} bytes long")]
+    #[display(fmt = "Need {need} bytes from the dictionary but it is only {got} bytes long")]
     NotEnoughBytesInDictionary { got: usize, need: usize },
-    #[error("offset: {offset} bigger than buffer: {buf_len}")]
+    #[display(fmt = "offset: {offset} bigger than buffer: {buf_len}")]
     OffsetTooBig { offset: usize, buf_len: usize },
 }
 
@@ -120,8 +121,18 @@ impl Decodebuffer {
                 while copied_counter_left > 0 {
                     let chunksize = usize::min(offset, copied_counter_left);
 
-                    // SAFETY:
-                    // we know that start_idx <= buf_len and start_idx + offset == buf_len and we reserverd match_length space
+                    // SAFETY: Requirements checked:
+                    // 1. start_idx + chunksize must be <= self.buffer.len()
+                    //      We know that:
+                    //      1. start_idx starts at buffer.len() - offset
+                    //      2. chunksize <= offset (== offset for each iteration but the last, and match_length modulo offset in the last iteration)
+                    //      3. the buffer grows by offset many bytes each iteration but the last
+                    //      4. start_idx is increased by the same amount as the buffer grows each iteration
+                    //
+                    //      Thus follows: start_idx + chunksize == self.buffer.len() in each iteration but the last, where match_length modulo offset == chunksize < offset
+                    //          Meaning: start_idx + chunksize <= self.buffer.len()
+                    //
+                    // 2. explicitly reserved enough memory for the whole match_length
                     unsafe {
                         self.buffer
                             .extend_from_within_unchecked(start_idx, chunksize)
@@ -131,8 +142,15 @@ impl Decodebuffer {
                 }
             } else {
                 // can just copy parts of the existing buffer
-                // SAFETY:
-                // we know that start_idx and end_idx <= buf_len and we reserverd match_length space
+                // SAFETY: Requirements checked:
+                // 1. start_idx + match_length must be <= self.buffer.len()
+                //      We know that:
+                //      1. start_idx = self.buffer.len() - offset
+                //      2. end_idx = start_idx + match_length
+                //      3. end_idx <= self.buffer.len()
+                //      Thus follows: start_idx + match_length <= self.buffer.len()
+                //
+                // 2. explicitly reserved enough memory for the whole match_length
                 unsafe {
                     self.buffer
                         .extend_from_within_unchecked(start_idx, match_length)

@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IIterable_Impl<T>: Sized
 where
     T: ::windows_core::RuntimeType + 'static,
@@ -28,11 +27,10 @@ impl<T: ::windows_core::RuntimeType + 'static> IIterable_Vtbl<T> {
             T: ::core::marker::PhantomData::<T>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IIterable<T> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IIterable<T> as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IIterator_Impl<T>: Sized
 where
     T: ::windows_core::RuntimeType + 'static,
@@ -101,11 +99,10 @@ impl<T: ::windows_core::RuntimeType + 'static> IIterator_Vtbl<T> {
             T: ::core::marker::PhantomData::<T>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IIterator<T> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IIterator<T> as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IKeyValuePair_Impl<K, V>: Sized
 where
     K: ::windows_core::RuntimeType + 'static,
@@ -151,11 +148,10 @@ impl<K: ::windows_core::RuntimeType + 'static, V: ::windows_core::RuntimeType + 
             V: ::core::marker::PhantomData::<V>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IKeyValuePair<K, V> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IKeyValuePair<K, V> as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IMap_Impl<K, V>: Sized + IIterable_Impl<IKeyValuePair<K, V>>
 where
     K: ::windows_core::RuntimeType + 'static,
@@ -254,11 +250,10 @@ impl<K: ::windows_core::RuntimeType + 'static, V: ::windows_core::RuntimeType + 
             V: ::core::marker::PhantomData::<V>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IMap<K, V> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IMap<K, V> as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IMapChangedEventArgs_Impl<K>: Sized
 where
     K: ::windows_core::RuntimeType + 'static,
@@ -301,11 +296,10 @@ impl<K: ::windows_core::RuntimeType + 'static> IMapChangedEventArgs_Vtbl<K> {
             K: ::core::marker::PhantomData::<K>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IMapChangedEventArgs<K> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IMapChangedEventArgs<K> as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IMapView_Impl<K, V>: Sized + IIterable_Impl<IKeyValuePair<K, V>>
 where
     K: ::windows_core::RuntimeType + 'static,
@@ -370,11 +364,10 @@ impl<K: ::windows_core::RuntimeType + 'static, V: ::windows_core::RuntimeType + 
             V: ::core::marker::PhantomData::<V>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IMapView<K, V> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IMapView<K, V> as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IObservableMap_Impl<K, V>: Sized + IIterable_Impl<IKeyValuePair<K, V>> + IMap_Impl<K, V>
 where
     K: ::windows_core::RuntimeType + 'static,
@@ -412,11 +405,10 @@ impl<K: ::windows_core::RuntimeType + 'static, V: ::windows_core::RuntimeType + 
             V: ::core::marker::PhantomData::<V>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IObservableMap<K, V> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IObservableMap<K, V> as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IObservableVector_Impl<T>: Sized + IIterable_Impl<T> + IVector_Impl<T>
 where
     T: ::windows_core::RuntimeType + 'static,
@@ -452,11 +444,10 @@ impl<T: ::windows_core::RuntimeType + 'static> IObservableVector_Vtbl<T> {
             T: ::core::marker::PhantomData::<T>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IObservableVector<T> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IObservableVector<T> as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IPropertySet_Impl: Sized + IIterable_Impl<IKeyValuePair<::windows_core::HSTRING, ::windows_core::IInspectable>> + IMap_Impl<::windows_core::HSTRING, ::windows_core::IInspectable> + IObservableMap_Impl<::windows_core::HSTRING, ::windows_core::IInspectable> {}
 impl ::windows_core::RuntimeName for IPropertySet {
     const NAME: &'static str = "Windows.Foundation.Collections.IPropertySet";
@@ -465,11 +456,10 @@ impl IPropertySet_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IPropertySet_Impl, const OFFSET: isize>() -> IPropertySet_Vtbl {
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IPropertySet, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPropertySet as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPropertySet as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IVector_Impl<T>: Sized + IIterable_Impl<T>
 where
     T: ::windows_core::RuntimeType + 'static,
@@ -601,11 +591,10 @@ impl<T: ::windows_core::RuntimeType + 'static> IVector_Vtbl<T> {
             T: ::core::marker::PhantomData::<T>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IVector<T> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IVector<T> as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IVectorChangedEventArgs_Impl: Sized {
     fn CollectionChange(&self) -> ::windows_core::Result<CollectionChange>;
     fn Index(&self) -> ::windows_core::Result<u32>;
@@ -643,11 +632,10 @@ impl IVectorChangedEventArgs_Vtbl {
             Index: Index::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IVectorChangedEventArgs as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IVectorChangedEventArgs as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Foundation_Collections\"`, `\"implement\"`*"]
 pub trait IVectorView_Impl<T>: Sized + IIterable_Impl<T>
 where
     T: ::windows_core::RuntimeType + 'static,
@@ -716,8 +704,8 @@ impl<T: ::windows_core::RuntimeType + 'static> IVectorView_Vtbl<T> {
             T: ::core::marker::PhantomData::<T>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IVectorView<T> as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IVectorView<T> as ::windows_core::ComInterface>::IID
     }
 }
 #[::windows_implement::implement(IIterable<T>)]
@@ -849,7 +837,7 @@ where
         V::from_default(value)
     }
     fn Size(&self) -> ::windows_core::Result<u32> {
-        Ok(self.map.len() as u32)
+        Ok(self.map.len().try_into()?)
     }
     fn HasKey(&self, key: &K::Default) -> ::windows_core::Result<bool> {
         Ok(self.map.contains_key(key))
@@ -993,7 +981,7 @@ where
         T::from_default(item)
     }
     fn Size(&self) -> ::windows_core::Result<u32> {
-        Ok(self.values.len() as u32)
+        Ok(self.values.len().try_into()?)
     }
     fn IndexOf(&self, value: &T::Default, result: &mut u32) -> ::windows_core::Result<bool> {
         match self.values.iter().position(|element| element == value) {

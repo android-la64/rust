@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_Storage_IndexServer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com_StructuredStorage", feature = "Win32_System_Variant"))]
 pub trait IFilter_Impl: Sized {
     fn Init(&self, grfflags: u32, cattributes: u32, aattributes: *const FULLPROPSPEC, pflags: *mut u32) -> i32;
@@ -46,11 +46,10 @@ impl IFilter_Vtbl {
             BindRegion: BindRegion::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IFilter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IFilter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_IndexServer\"`, `\"implement\"`*"]
 pub trait IPhraseSink_Impl: Sized {
     fn PutSmallPhrase(&self, pwcnoun: &::windows_core::PCWSTR, cwcnoun: u32, pwcmodifier: &::windows_core::PCWSTR, cwcmodifier: u32, ulattachmenttype: u32) -> ::windows_core::Result<()>;
     fn PutPhrase(&self, pwcphrase: &::windows_core::PCWSTR, cwcphrase: u32) -> ::windows_core::Result<()>;
@@ -74,7 +73,7 @@ impl IPhraseSink_Vtbl {
             PutPhrase: PutPhrase::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPhraseSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPhraseSink as ::windows_core::ComInterface>::IID
     }
 }

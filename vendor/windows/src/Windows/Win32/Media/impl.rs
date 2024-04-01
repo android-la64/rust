@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_Media\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IReferenceClock_Impl: Sized {
     fn GetTime(&self) -> ::windows_core::Result<i64>;
@@ -57,11 +57,11 @@ impl IReferenceClock_Vtbl {
             Unadvise: Unadvise::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IReferenceClock as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IReferenceClock as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IReferenceClock2_Impl: Sized + IReferenceClock_Impl {}
 #[cfg(feature = "Win32_Foundation")]
@@ -71,11 +71,10 @@ impl IReferenceClock2_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IReferenceClock2_Impl, const OFFSET: isize>() -> IReferenceClock2_Vtbl {
         Self { base__: IReferenceClock_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IReferenceClock2 as ::windows_core::ComInterface>::IID || iid == &<IReferenceClock as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IReferenceClock2 as ::windows_core::ComInterface>::IID || *iid == <IReferenceClock as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media\"`, `\"implement\"`*"]
 pub trait IReferenceClockTimerControl_Impl: Sized {
     fn SetDefaultTimerResolution(&self, timerresolution: i64) -> ::windows_core::Result<()>;
     fn GetDefaultTimerResolution(&self) -> ::windows_core::Result<i64>;
@@ -105,7 +104,7 @@ impl IReferenceClockTimerControl_Vtbl {
             GetDefaultTimerResolution: GetDefaultTimerResolution::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IReferenceClockTimerControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IReferenceClockTimerControl as ::windows_core::ComInterface>::IID
     }
 }

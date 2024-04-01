@@ -5,7 +5,8 @@ use crate::ty::normalize_erasing_regions::NormalizationError;
 use crate::ty::{self, ConstKind, Ty, TyCtxt, TypeVisitableExt};
 use rustc_error_messages::DiagnosticMessage;
 use rustc_errors::{
-    DiagCtxt, DiagnosticArgValue, DiagnosticBuilder, IntoDiagnostic, IntoDiagnosticArg,
+    DiagCtxt, DiagnosticArgValue, DiagnosticBuilder, EmissionGuarantee, IntoDiagnostic,
+    IntoDiagnosticArg, Level,
 };
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
@@ -268,7 +269,7 @@ impl<'tcx> fmt::Display for LayoutError<'tcx> {
 }
 
 impl<'tcx> IntoDiagnosticArg for LayoutError<'tcx> {
-    fn into_diagnostic_arg(self) -> DiagnosticArgValue<'static> {
+    fn into_diagnostic_arg(self) -> DiagnosticArgValue {
         self.to_string().into_diagnostic_arg()
     }
 }
@@ -283,7 +284,7 @@ impl<'tcx> LayoutCalculator for LayoutCx<'tcx, TyCtxt<'tcx>> {
     type TargetDataLayoutRef = &'tcx TargetDataLayout;
 
     fn delayed_bug(&self, txt: String) {
-        self.tcx.sess.span_delayed_bug(DUMMY_SP, txt);
+        self.tcx.dcx().delayed_bug(txt);
     }
 
     fn current_data_layout(&self) -> Self::TargetDataLayoutRef {
@@ -905,7 +906,7 @@ where
                     i,
                 ),
 
-                ty::Coroutine(def_id, args, _) => match this.variants {
+                ty::Coroutine(def_id, args) => match this.variants {
                     Variants::Single { index } => TyMaybeWithLayout::Ty(
                         args.as_coroutine()
                             .state_tys(def_id, tcx)
@@ -1246,7 +1247,6 @@ pub fn fn_can_unwind(tcx: TyCtxt<'_>, fn_def_id: Option<DefId>, abi: SpecAbi) ->
         PtxKernel
         | Msp430Interrupt
         | X86Interrupt
-        | AmdGpuKernel
         | EfiApi
         | AvrInterrupt
         | AvrNonBlockingInterrupt
@@ -1272,14 +1272,14 @@ pub enum FnAbiError<'tcx> {
     AdjustForForeignAbi(call::AdjustForForeignAbiError),
 }
 
-impl<'a, 'b> IntoDiagnostic<'a, !> for FnAbiError<'b> {
-    fn into_diagnostic(self, dcx: &'a DiagCtxt) -> DiagnosticBuilder<'a, !> {
+impl<'a, 'b, G: EmissionGuarantee> IntoDiagnostic<'a, G> for FnAbiError<'b> {
+    fn into_diagnostic(self, dcx: &'a DiagCtxt, level: Level) -> DiagnosticBuilder<'a, G> {
         match self {
-            Self::Layout(e) => e.into_diagnostic().into_diagnostic(dcx),
+            Self::Layout(e) => e.into_diagnostic().into_diagnostic(dcx, level),
             Self::AdjustForForeignAbi(call::AdjustForForeignAbiError::Unsupported {
                 arch,
                 abi,
-            }) => UnsupportedFnAbi { arch, abi: abi.name() }.into_diagnostic(dcx),
+            }) => UnsupportedFnAbi { arch, abi: abi.name() }.into_diagnostic(dcx, level),
         }
     }
 }

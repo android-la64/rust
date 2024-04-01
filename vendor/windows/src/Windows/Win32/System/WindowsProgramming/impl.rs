@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait ICameraUIControl_Impl: Sized {
     fn Show(&self, pwindow: ::core::option::Option<&::windows_core::IUnknown>, mode: CameraUIControlMode, selectionmode: CameraUIControlLinearSelectionMode, capturemode: CameraUIControlCaptureMode, photoformat: CameraUIControlPhotoFormat, videoformat: CameraUIControlVideoFormat, bhasclosebutton: super::super::Foundation::BOOL, peventcallback: ::core::option::Option<&ICameraUIControlEventCallback>) -> ::windows_core::Result<()>;
@@ -85,11 +85,10 @@ impl ICameraUIControl_Vtbl {
             RemoveCapturedItem: RemoveCapturedItem::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICameraUIControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICameraUIControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"implement\"`*"]
 pub trait ICameraUIControlEventCallback_Impl: Sized {
     fn OnStartupComplete(&self);
     fn OnSuspendComplete(&self);
@@ -134,11 +133,10 @@ impl ICameraUIControlEventCallback_Vtbl {
             OnClosed: OnClosed::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICameraUIControlEventCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICameraUIControlEventCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"implement\"`*"]
 pub trait IClipServiceNotificationHelper_Impl: Sized {
     fn ShowToast(&self, titletext: &::windows_core::BSTR, bodytext: &::windows_core::BSTR, packagename: &::windows_core::BSTR, appid: &::windows_core::BSTR, launchcommand: &::windows_core::BSTR) -> ::windows_core::Result<()>;
 }
@@ -152,11 +150,11 @@ impl IClipServiceNotificationHelper_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), ShowToast: ShowToast::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IClipServiceNotificationHelper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IClipServiceNotificationHelper as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IContainerActivationHelper_Impl: Sized {
     fn CanActivateClientVM(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL>;
@@ -179,11 +177,11 @@ impl IContainerActivationHelper_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), CanActivateClientVM: CanActivateClientVM::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IContainerActivationHelper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IContainerActivationHelper as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDefaultBrowserSyncSettings_Impl: Sized {
     fn IsEnabled(&self) -> super::super::Foundation::BOOL;
@@ -200,11 +198,10 @@ impl IDefaultBrowserSyncSettings_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), IsEnabled: IsEnabled::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDefaultBrowserSyncSettings as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDefaultBrowserSyncSettings as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"implement\"`*"]
 pub trait IDeleteBrowsingHistory_Impl: Sized {
     fn DeleteBrowsingHistory(&self, dwflags: u32) -> ::windows_core::Result<()>;
 }
@@ -218,11 +215,11 @@ impl IDeleteBrowsingHistory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), DeleteBrowsingHistory: DeleteBrowsingHistory::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDeleteBrowsingHistory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDeleteBrowsingHistory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"Win32_System_Ole\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Ole\"`"]
 #[cfg(feature = "Win32_System_Ole")]
 pub trait IEditionUpgradeBroker_Impl: Sized {
     fn InitializeParentWindow(&self, parenthandle: super::Ole::OLE_HANDLE) -> ::windows_core::Result<()>;
@@ -263,11 +260,11 @@ impl IEditionUpgradeBroker_Vtbl {
             CanUpgrade: CanUpgrade::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEditionUpgradeBroker as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEditionUpgradeBroker as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IEditionUpgradeHelper_Impl: Sized {
     fn CanUpgrade(&self) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -333,11 +330,10 @@ impl IEditionUpgradeHelper_Vtbl {
             GetGenuineLocalStatus: GetGenuineLocalStatus::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEditionUpgradeHelper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEditionUpgradeHelper as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"implement\"`*"]
 pub trait IFClipNotificationHelper_Impl: Sized {
     fn ShowSystemDialog(&self, titletext: &::windows_core::BSTR, bodytext: &::windows_core::BSTR) -> ::windows_core::Result<()>;
 }
@@ -351,11 +347,11 @@ impl IFClipNotificationHelper_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), ShowSystemDialog: ShowSystemDialog::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IFClipNotificationHelper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IFClipNotificationHelper as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_WindowsProgramming\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWindowsLockModeHelper_Impl: Sized {
     fn GetSMode(&self) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -378,7 +374,7 @@ impl IWindowsLockModeHelper_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetSMode: GetSMode::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWindowsLockModeHelper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWindowsLockModeHelper as ::windows_core::ComInterface>::IID
     }
 }

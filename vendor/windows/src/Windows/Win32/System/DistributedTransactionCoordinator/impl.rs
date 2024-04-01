@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuConfigure_Impl: Sized {
     fn Add(&self, puclupair: *const u8, cblupair: u32) -> ::windows_core::Result<()>;
     fn Delete(&self, puclupair: *const u8, cblupair: u32) -> ::windows_core::Result<()>;
@@ -18,22 +17,20 @@ impl IDtcLuConfigure_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Add: Add::<Identity, Impl, OFFSET>, Delete: Delete::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuConfigure as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuConfigure as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuRecovery_Impl: Sized {}
 impl ::windows_core::RuntimeName for IDtcLuRecovery {}
 impl IDtcLuRecovery_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDtcLuRecovery_Impl, const OFFSET: isize>() -> IDtcLuRecovery_Vtbl {
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRecovery as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRecovery as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuRecoveryFactory_Impl: Sized {
     fn Create(&self, puclupair: *const u8, cblupair: u32) -> ::windows_core::Result<IDtcLuRecovery>;
 }
@@ -53,11 +50,10 @@ impl IDtcLuRecoveryFactory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Create: Create::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRecoveryFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRecoveryFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuRecoveryInitiatedByDtc_Impl: Sized {
     fn GetWork(&self, pwork: *mut DTCINITIATEDRECOVERYWORK, ppv: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
 }
@@ -71,11 +67,10 @@ impl IDtcLuRecoveryInitiatedByDtc_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetWork: GetWork::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRecoveryInitiatedByDtc as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRecoveryInitiatedByDtc as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuRecoveryInitiatedByDtcStatusWork_Impl: Sized {
     fn HandleCheckLuStatus(&self, lrecoveryseqnum: i32) -> ::windows_core::Result<()>;
 }
@@ -89,11 +84,11 @@ impl IDtcLuRecoveryInitiatedByDtcStatusWork_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), HandleCheckLuStatus: HandleCheckLuStatus::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRecoveryInitiatedByDtcStatusWork as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRecoveryInitiatedByDtcStatusWork as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDtcLuRecoveryInitiatedByDtcTransWork_Impl: Sized {
     fn GetLogNameSizes(&self, pcbourlogname: *mut u32, pcbremotelogname: *mut u32) -> ::windows_core::Result<()>;
@@ -197,11 +192,10 @@ impl IDtcLuRecoveryInitiatedByDtcTransWork_Vtbl {
             ObsoleteRecoverySeqNum: ObsoleteRecoverySeqNum::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRecoveryInitiatedByDtcTransWork as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRecoveryInitiatedByDtcTransWork as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuRecoveryInitiatedByLu_Impl: Sized {
     fn GetObjectToHandleWorkFromLu(&self) -> ::windows_core::Result<IDtcLuRecoveryInitiatedByLuWork>;
 }
@@ -224,11 +218,10 @@ impl IDtcLuRecoveryInitiatedByLu_Vtbl {
             GetObjectToHandleWorkFromLu: GetObjectToHandleWorkFromLu::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRecoveryInitiatedByLu as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRecoveryInitiatedByLu as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuRecoveryInitiatedByLuWork_Impl: Sized {
     fn HandleTheirXln(&self, lrecoveryseqnum: i32, xln: DTCLUXLN, premotelogname: *mut u8, cbremotelogname: u32, pourlogname: *mut u8, cbourlogname: u32, dwprotocol: u32, presponse: *mut DTCLUXLNRESPONSE) -> ::windows_core::Result<()>;
     fn GetOurLogNameSize(&self, pcbourlogname: *mut u32) -> ::windows_core::Result<()>;
@@ -294,11 +287,11 @@ impl IDtcLuRecoveryInitiatedByLuWork_Vtbl {
             ConversationLost: ConversationLost::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRecoveryInitiatedByLuWork as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRecoveryInitiatedByLuWork as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDtcLuRmEnlistment_Impl: Sized {
     fn Unplug(&self, fconversationlost: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -353,11 +346,10 @@ impl IDtcLuRmEnlistment_Vtbl {
             RequestCommit: RequestCommit::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRmEnlistment as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRmEnlistment as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuRmEnlistmentFactory_Impl: Sized {
     fn Create(&self, puclupair: *mut u8, cblupair: u32, pitransaction: ::core::option::Option<&ITransaction>, ptransid: *mut u8, cbtransid: u32, prmenlistmentsink: ::core::option::Option<&IDtcLuRmEnlistmentSink>, pprmenlistment: *mut ::core::option::Option<IDtcLuRmEnlistment>) -> ::windows_core::Result<()>;
 }
@@ -371,11 +363,10 @@ impl IDtcLuRmEnlistmentFactory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Create: Create::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRmEnlistmentFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRmEnlistmentFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuRmEnlistmentSink_Impl: Sized {
     fn AckUnplug(&self) -> ::windows_core::Result<()>;
     fn TmDown(&self) -> ::windows_core::Result<()>;
@@ -448,11 +439,11 @@ impl IDtcLuRmEnlistmentSink_Vtbl {
             RequestCommit: RequestCommit::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuRmEnlistmentSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuRmEnlistmentSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDtcLuSubordinateDtc_Impl: Sized {
     fn Unplug(&self, fconversationlost: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -514,11 +505,10 @@ impl IDtcLuSubordinateDtc_Vtbl {
             RequestCommit: RequestCommit::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuSubordinateDtc as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuSubordinateDtc as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuSubordinateDtcFactory_Impl: Sized {
     fn Create(&self, puclupair: *mut u8, cblupair: u32, punktransactionouter: ::core::option::Option<&::windows_core::IUnknown>, isolevel: i32, isoflags: u32, poptions: ::core::option::Option<&ITransactionOptions>, pptransaction: *mut ::core::option::Option<ITransaction>, ptransid: *mut u8, cbtransid: u32, psubordinatedtcsink: ::core::option::Option<&IDtcLuSubordinateDtcSink>, ppsubordinatedtc: *mut ::core::option::Option<IDtcLuSubordinateDtc>) -> ::windows_core::Result<()>;
 }
@@ -545,11 +535,10 @@ impl IDtcLuSubordinateDtcFactory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Create: Create::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuSubordinateDtcFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuSubordinateDtcFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcLuSubordinateDtcSink_Impl: Sized {
     fn AckUnplug(&self) -> ::windows_core::Result<()>;
     fn TmDown(&self) -> ::windows_core::Result<()>;
@@ -615,11 +604,11 @@ impl IDtcLuSubordinateDtcSink_Vtbl {
             RequestCommit: RequestCommit::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcLuSubordinateDtcSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcLuSubordinateDtcSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDtcNetworkAccessConfig_Impl: Sized {
     fn GetAnyNetworkAccess(&self) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -759,11 +748,11 @@ impl IDtcNetworkAccessConfig_Vtbl {
             RestartDtcService: RestartDtcService::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcNetworkAccessConfig as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcNetworkAccessConfig as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDtcNetworkAccessConfig2_Impl: Sized + IDtcNetworkAccessConfig_Impl {
     fn GetNetworkInboundAccess(&self) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -836,11 +825,11 @@ impl IDtcNetworkAccessConfig2_Vtbl {
             SetAuthenticationLevel: SetAuthenticationLevel::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcNetworkAccessConfig2 as ::windows_core::ComInterface>::IID || iid == &<IDtcNetworkAccessConfig as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcNetworkAccessConfig2 as ::windows_core::ComInterface>::IID || *iid == <IDtcNetworkAccessConfig as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDtcNetworkAccessConfig3_Impl: Sized + IDtcNetworkAccessConfig2_Impl {
     fn GetLUAccess(&self) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -873,11 +862,11 @@ impl IDtcNetworkAccessConfig3_Vtbl {
             SetLUAccess: SetLUAccess::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcNetworkAccessConfig3 as ::windows_core::ComInterface>::IID || iid == &<IDtcNetworkAccessConfig as ::windows_core::ComInterface>::IID || iid == &<IDtcNetworkAccessConfig2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcNetworkAccessConfig3 as ::windows_core::ComInterface>::IID || *iid == <IDtcNetworkAccessConfig as ::windows_core::ComInterface>::IID || *iid == <IDtcNetworkAccessConfig2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDtcToXaHelper_Impl: Sized {
     fn Close(&self, i_fdorecovery: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -904,11 +893,10 @@ impl IDtcToXaHelper_Vtbl {
             TranslateTridToXid: TranslateTridToXid::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcToXaHelper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcToXaHelper as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcToXaHelperFactory_Impl: Sized {
     fn Create(&self, pszdsn: &::windows_core::PCSTR, pszclientdllname: &::windows_core::PCSTR, pguidrm: *mut ::windows_core::GUID, ppxahelper: *mut ::core::option::Option<IDtcToXaHelper>) -> ::windows_core::Result<()>;
 }
@@ -922,11 +910,11 @@ impl IDtcToXaHelperFactory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Create: Create::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcToXaHelperFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcToXaHelperFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDtcToXaHelperSinglePipe_Impl: Sized {
     fn XARMCreate(&self, pszdsn: &::windows_core::PCSTR, pszclientdll: &::windows_core::PCSTR, pdwrmcookie: *mut u32) -> ::windows_core::Result<()>;
@@ -973,11 +961,10 @@ impl IDtcToXaHelperSinglePipe_Vtbl {
             ReleaseRMCookie: ReleaseRMCookie::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcToXaHelperSinglePipe as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcToXaHelperSinglePipe as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IDtcToXaMapper_Impl: Sized {
     fn RequestNewResourceManager(&self, pszdsn: &::windows_core::PCSTR, pszclientdllname: &::windows_core::PCSTR, pdwrmcookie: *mut u32) -> ::windows_core::Result<()>;
     fn TranslateTridToXid(&self, pdwitransaction: *const u32, dwrmcookie: u32, pxid: *mut XID) -> ::windows_core::Result<()>;
@@ -1015,11 +1002,10 @@ impl IDtcToXaMapper_Vtbl {
             ReleaseResourceManager: ReleaseResourceManager::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDtcToXaMapper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDtcToXaMapper as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IGetDispenser_Impl: Sized {
     fn GetDispenser(&self, iid: *const ::windows_core::GUID, ppvobject: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
 }
@@ -1033,11 +1019,11 @@ impl IGetDispenser_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetDispenser: GetDispenser::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IGetDispenser as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IGetDispenser as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IKernelTransaction_Impl: Sized {
     fn GetHandle(&self) -> ::windows_core::Result<super::super::Foundation::HANDLE>;
@@ -1060,11 +1046,10 @@ impl IKernelTransaction_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetHandle: GetHandle::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IKernelTransaction as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IKernelTransaction as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ILastResourceManager_Impl: Sized {
     fn TransactionCommitted(&self, pprepinfo: *const u8, cbprepinfo: u32) -> ::windows_core::Result<()>;
     fn RecoveryDone(&self) -> ::windows_core::Result<()>;
@@ -1088,11 +1073,10 @@ impl ILastResourceManager_Vtbl {
             RecoveryDone: RecoveryDone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ILastResourceManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ILastResourceManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IPrepareInfo_Impl: Sized {
     fn GetPrepareInfoSize(&self, pcbprepinfo: *mut u32) -> ::windows_core::Result<()>;
     fn GetPrepareInfo(&self, pprepinfo: *mut u8) -> ::windows_core::Result<()>;
@@ -1116,11 +1100,10 @@ impl IPrepareInfo_Vtbl {
             GetPrepareInfo: GetPrepareInfo::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPrepareInfo as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPrepareInfo as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IPrepareInfo2_Impl: Sized {
     fn GetPrepareInfoSize(&self) -> ::windows_core::Result<u32>;
     fn GetPrepareInfo(&self, cbprepareinfo: u32, pprepinfo: *mut u8) -> ::windows_core::Result<()>;
@@ -1150,11 +1133,11 @@ impl IPrepareInfo2_Vtbl {
             GetPrepareInfo: GetPrepareInfo::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPrepareInfo2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPrepareInfo2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IRMHelper_Impl: Sized {
     fn RMCount(&self, dwctotalnumberofrms: u32) -> ::windows_core::Result<()>;
@@ -1181,11 +1164,10 @@ impl IRMHelper_Vtbl {
             RMInfo: RMInfo::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRMHelper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRMHelper as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IResourceManager_Impl: Sized {
     fn Enlist(&self, ptransaction: ::core::option::Option<&ITransaction>, pres: ::core::option::Option<&ITransactionResourceAsync>, puow: *mut BOID, pisolevel: *mut i32, ppenlist: *mut ::core::option::Option<ITransactionEnlistmentAsync>) -> ::windows_core::Result<()>;
     fn Reenlist(&self, pprepinfo: *const u8, cbprepinfo: u32, ltimeout: u32) -> ::windows_core::Result<XACTSTAT>;
@@ -1229,11 +1211,10 @@ impl IResourceManager_Vtbl {
             GetDistributedTransactionManager: GetDistributedTransactionManager::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IResourceManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IResourceManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IResourceManager2_Impl: Sized + IResourceManager_Impl {
     fn Enlist2(&self, ptransaction: ::core::option::Option<&ITransaction>, presasync: ::core::option::Option<&ITransactionResourceAsync>, puow: *mut BOID, pisolevel: *mut i32, pxid: *mut XID, ppenlist: *mut ::core::option::Option<ITransactionEnlistmentAsync>) -> ::windows_core::Result<()>;
     fn Reenlist2(&self, pxid: *const XID, dwtimeout: u32) -> ::windows_core::Result<XACTSTAT>;
@@ -1263,11 +1244,10 @@ impl IResourceManager2_Vtbl {
             Reenlist2: Reenlist2::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IResourceManager2 as ::windows_core::ComInterface>::IID || iid == &<IResourceManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IResourceManager2 as ::windows_core::ComInterface>::IID || *iid == <IResourceManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IResourceManagerFactory_Impl: Sized {
     fn Create(&self, pguidrm: *const ::windows_core::GUID, pszrmname: &::windows_core::PCSTR, piresmgrsink: ::core::option::Option<&IResourceManagerSink>) -> ::windows_core::Result<IResourceManager>;
 }
@@ -1287,11 +1267,10 @@ impl IResourceManagerFactory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Create: Create::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IResourceManagerFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IResourceManagerFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IResourceManagerFactory2_Impl: Sized + IResourceManagerFactory_Impl {
     fn CreateEx(&self, pguidrm: *const ::windows_core::GUID, pszrmname: &::windows_core::PCSTR, piresmgrsink: ::core::option::Option<&IResourceManagerSink>, riidrequested: *const ::windows_core::GUID, ppvresmgr: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
 }
@@ -1305,11 +1284,10 @@ impl IResourceManagerFactory2_Vtbl {
         }
         Self { base__: IResourceManagerFactory_Vtbl::new::<Identity, Impl, OFFSET>(), CreateEx: CreateEx::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IResourceManagerFactory2 as ::windows_core::ComInterface>::IID || iid == &<IResourceManagerFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IResourceManagerFactory2 as ::windows_core::ComInterface>::IID || *iid == <IResourceManagerFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IResourceManagerRejoinable_Impl: Sized + IResourceManager2_Impl {
     fn Rejoin(&self, pprepinfo: *const u8, cbprepinfo: u32, ltimeout: u32) -> ::windows_core::Result<XACTSTAT>;
 }
@@ -1329,11 +1307,10 @@ impl IResourceManagerRejoinable_Vtbl {
         }
         Self { base__: IResourceManager2_Vtbl::new::<Identity, Impl, OFFSET>(), Rejoin: Rejoin::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IResourceManagerRejoinable as ::windows_core::ComInterface>::IID || iid == &<IResourceManager as ::windows_core::ComInterface>::IID || iid == &<IResourceManager2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IResourceManagerRejoinable as ::windows_core::ComInterface>::IID || *iid == <IResourceManager as ::windows_core::ComInterface>::IID || *iid == <IResourceManager2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IResourceManagerSink_Impl: Sized {
     fn TMDown(&self) -> ::windows_core::Result<()>;
 }
@@ -1347,11 +1324,10 @@ impl IResourceManagerSink_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), TMDown: TMDown::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IResourceManagerSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IResourceManagerSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITipHelper_Impl: Sized {
     fn Pull(&self, i_psztxurl: *const u8) -> ::windows_core::Result<ITransaction>;
     fn PullAsync(&self, i_psztxurl: *const u8, i_ptippullsink: ::core::option::Option<&ITipPullSink>) -> ::windows_core::Result<ITransaction>;
@@ -1400,11 +1376,10 @@ impl ITipHelper_Vtbl {
             GetLocalTmUrl: GetLocalTmUrl::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITipHelper as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITipHelper as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITipPullSink_Impl: Sized {
     fn PullComplete(&self, i_hrpull: ::windows_core::HRESULT) -> ::windows_core::Result<()>;
 }
@@ -1418,11 +1393,10 @@ impl ITipPullSink_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), PullComplete: PullComplete::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITipPullSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITipPullSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITipTransaction_Impl: Sized {
     fn Push(&self, i_pszremotetmurl: *const u8) -> ::windows_core::Result<::windows_core::PSTR>;
     fn GetTransactionUrl(&self) -> ::windows_core::Result<::windows_core::PSTR>;
@@ -1458,11 +1432,10 @@ impl ITipTransaction_Vtbl {
             GetTransactionUrl: GetTransactionUrl::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITipTransaction as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITipTransaction as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITmNodeName_Impl: Sized {
     fn GetNodeNameSize(&self) -> ::windows_core::Result<u32>;
     fn GetNodeName(&self, cbnodenamebuffersize: u32, pnodenamebuffer: &::windows_core::PWSTR) -> ::windows_core::Result<()>;
@@ -1492,11 +1465,11 @@ impl ITmNodeName_Vtbl {
             GetNodeName: GetNodeName::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITmNodeName as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITmNodeName as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITransaction_Impl: Sized {
     fn Commit(&self, fretaining: super::super::Foundation::BOOL, grftc: u32, grfrm: u32) -> ::windows_core::Result<()>;
@@ -1530,11 +1503,11 @@ impl ITransaction_Vtbl {
             GetTransactionInfo: GetTransactionInfo::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransaction as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransaction as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITransaction2_Impl: Sized + ITransactionCloner_Impl {
     fn GetTransactionInfo2(&self, pinfo: *mut XACTTRANSINFO) -> ::windows_core::Result<()>;
@@ -1551,11 +1524,11 @@ impl ITransaction2_Vtbl {
         }
         Self { base__: ITransactionCloner_Vtbl::new::<Identity, Impl, OFFSET>(), GetTransactionInfo2: GetTransactionInfo2::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransaction2 as ::windows_core::ComInterface>::IID || iid == &<ITransaction as ::windows_core::ComInterface>::IID || iid == &<ITransactionCloner as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransaction2 as ::windows_core::ComInterface>::IID || *iid == <ITransaction as ::windows_core::ComInterface>::IID || *iid == <ITransactionCloner as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITransactionCloner_Impl: Sized + ITransaction_Impl {
     fn CloneWithCommitDisabled(&self) -> ::windows_core::Result<ITransaction>;
@@ -1578,11 +1551,10 @@ impl ITransactionCloner_Vtbl {
         }
         Self { base__: ITransaction_Vtbl::new::<Identity, Impl, OFFSET>(), CloneWithCommitDisabled: CloneWithCommitDisabled::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionCloner as ::windows_core::ComInterface>::IID || iid == &<ITransaction as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionCloner as ::windows_core::ComInterface>::IID || *iid == <ITransaction as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionDispenser_Impl: Sized {
     fn GetOptionsObject(&self) -> ::windows_core::Result<ITransactionOptions>;
     fn BeginTransaction(&self, punkouter: ::core::option::Option<&::windows_core::IUnknown>, isolevel: i32, isoflags: u32, poptions: ::core::option::Option<&ITransactionOptions>) -> ::windows_core::Result<ITransaction>;
@@ -1618,11 +1590,11 @@ impl ITransactionDispenser_Vtbl {
             BeginTransaction: BeginTransaction::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionDispenser as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionDispenser as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait ITransactionEnlistmentAsync_Impl: Sized {
     fn PrepareRequestDone(&self, hr: ::windows_core::HRESULT, pmk: ::core::option::Option<&super::Com::IMoniker>, pboidreason: *const BOID) -> ::windows_core::Result<()>;
@@ -1656,11 +1628,10 @@ impl ITransactionEnlistmentAsync_Vtbl {
             AbortRequestDone: AbortRequestDone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionEnlistmentAsync as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionEnlistmentAsync as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionExport_Impl: Sized {
     fn Export(&self, punktransaction: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<u32>;
     fn GetTransactionCookie(&self, punktransaction: ::core::option::Option<&::windows_core::IUnknown>, cbtransactioncookie: u32, rgbtransactioncookie: *mut u8, pcbused: *mut u32) -> ::windows_core::Result<()>;
@@ -1690,11 +1661,10 @@ impl ITransactionExport_Vtbl {
             GetTransactionCookie: GetTransactionCookie::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionExport as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionExport as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionExportFactory_Impl: Sized {
     fn GetRemoteClassId(&self) -> ::windows_core::Result<::windows_core::GUID>;
     fn Create(&self, cbwhereabouts: u32, rgbwhereabouts: *const u8) -> ::windows_core::Result<ITransactionExport>;
@@ -1730,11 +1700,10 @@ impl ITransactionExportFactory_Vtbl {
             Create: Create::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionExportFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionExportFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionImport_Impl: Sized {
     fn Import(&self, cbtransactioncookie: u32, rgbtransactioncookie: *const u8, piid: *const ::windows_core::GUID, ppvtransaction: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
 }
@@ -1748,11 +1717,10 @@ impl ITransactionImport_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Import: Import::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionImport as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionImport as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionImportWhereabouts_Impl: Sized {
     fn GetWhereaboutsSize(&self) -> ::windows_core::Result<u32>;
     fn GetWhereabouts(&self, cbwhereabouts: u32, rgbwhereabouts: *mut u8, pcbused: *mut u32) -> ::windows_core::Result<()>;
@@ -1782,11 +1750,10 @@ impl ITransactionImportWhereabouts_Vtbl {
             GetWhereabouts: GetWhereabouts::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionImportWhereabouts as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionImportWhereabouts as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionLastEnlistmentAsync_Impl: Sized {
     fn TransactionOutcome(&self, xactstat: XACTSTAT, pboidreason: *const BOID) -> ::windows_core::Result<()>;
 }
@@ -1800,11 +1767,10 @@ impl ITransactionLastEnlistmentAsync_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), TransactionOutcome: TransactionOutcome::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionLastEnlistmentAsync as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionLastEnlistmentAsync as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionLastResourceAsync_Impl: Sized {
     fn DelegateCommit(&self, grfrm: u32) -> ::windows_core::Result<()>;
     fn ForgetRequest(&self, pnewuow: *const BOID) -> ::windows_core::Result<()>;
@@ -1828,11 +1794,10 @@ impl ITransactionLastResourceAsync_Vtbl {
             ForgetRequest: ForgetRequest::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionLastResourceAsync as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionLastResourceAsync as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionOptions_Impl: Sized {
     fn SetOptions(&self, poptions: *const XACTOPT) -> ::windows_core::Result<()>;
     fn GetOptions(&self, poptions: *mut XACTOPT) -> ::windows_core::Result<()>;
@@ -1856,11 +1821,11 @@ impl ITransactionOptions_Vtbl {
             GetOptions: GetOptions::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionOptions as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionOptions as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITransactionOutcomeEvents_Impl: Sized {
     fn Committed(&self, fretaining: super::super::Foundation::BOOL, pnewuow: *const BOID, hr: ::windows_core::HRESULT) -> ::windows_core::Result<()>;
@@ -1901,11 +1866,10 @@ impl ITransactionOutcomeEvents_Vtbl {
             Indoubt: Indoubt::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionOutcomeEvents as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionOutcomeEvents as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionPhase0EnlistmentAsync_Impl: Sized {
     fn Enable(&self) -> ::windows_core::Result<()>;
     fn WaitForEnlistment(&self) -> ::windows_core::Result<()>;
@@ -1956,11 +1920,10 @@ impl ITransactionPhase0EnlistmentAsync_Vtbl {
             GetTransaction: GetTransaction::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionPhase0EnlistmentAsync as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionPhase0EnlistmentAsync as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionPhase0Factory_Impl: Sized {
     fn Create(&self, pphase0notify: ::core::option::Option<&ITransactionPhase0NotifyAsync>) -> ::windows_core::Result<ITransactionPhase0EnlistmentAsync>;
 }
@@ -1980,11 +1943,11 @@ impl ITransactionPhase0Factory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Create: Create::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionPhase0Factory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionPhase0Factory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITransactionPhase0NotifyAsync_Impl: Sized {
     fn Phase0Request(&self, fabortinghint: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -2011,11 +1974,10 @@ impl ITransactionPhase0NotifyAsync_Vtbl {
             EnlistCompleted: EnlistCompleted::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionPhase0NotifyAsync as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionPhase0NotifyAsync as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionReceiver_Impl: Sized {
     fn UnmarshalPropagationToken(&self, cbtoken: u32, rgbtoken: *const u8) -> ::windows_core::Result<ITransaction>;
     fn GetReturnTokenSize(&self) -> ::windows_core::Result<u32>;
@@ -2065,11 +2027,10 @@ impl ITransactionReceiver_Vtbl {
             Reset: Reset::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionReceiver as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionReceiver as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionReceiverFactory_Impl: Sized {
     fn Create(&self) -> ::windows_core::Result<ITransactionReceiver>;
 }
@@ -2089,11 +2050,11 @@ impl ITransactionReceiverFactory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Create: Create::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionReceiverFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionReceiverFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITransactionResource_Impl: Sized {
     fn PrepareRequest(&self, fretaining: super::super::Foundation::BOOL, grfrm: u32, fwantmoniker: super::super::Foundation::BOOL, fsinglephase: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -2134,11 +2095,11 @@ impl ITransactionResource_Vtbl {
             TMDown: TMDown::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionResource as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionResource as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITransactionResourceAsync_Impl: Sized {
     fn PrepareRequest(&self, fretaining: super::super::Foundation::BOOL, grfrm: u32, fwantmoniker: super::super::Foundation::BOOL, fsinglephase: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -2179,11 +2140,10 @@ impl ITransactionResourceAsync_Vtbl {
             TMDown: TMDown::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionResourceAsync as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionResourceAsync as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionTransmitter_Impl: Sized {
     fn Set(&self, ptransaction: ::core::option::Option<&ITransaction>) -> ::windows_core::Result<()>;
     fn GetPropagationTokenSize(&self) -> ::windows_core::Result<u32>;
@@ -2234,11 +2194,10 @@ impl ITransactionTransmitter_Vtbl {
             Reset: Reset::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionTransmitter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionTransmitter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionTransmitterFactory_Impl: Sized {
     fn Create(&self) -> ::windows_core::Result<ITransactionTransmitter>;
 }
@@ -2258,11 +2217,10 @@ impl ITransactionTransmitterFactory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Create: Create::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionTransmitterFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionTransmitterFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionVoterBallotAsync2_Impl: Sized {
     fn VoteRequestDone(&self, hr: ::windows_core::HRESULT, pboidreason: *const BOID) -> ::windows_core::Result<()>;
 }
@@ -2276,11 +2234,10 @@ impl ITransactionVoterBallotAsync2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), VoteRequestDone: VoteRequestDone::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionVoterBallotAsync2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionVoterBallotAsync2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait ITransactionVoterFactory2_Impl: Sized {
     fn Create(&self, ptransaction: ::core::option::Option<&ITransaction>, pvoternotify: ::core::option::Option<&ITransactionVoterNotifyAsync2>) -> ::windows_core::Result<ITransactionVoterBallotAsync2>;
 }
@@ -2300,11 +2257,11 @@ impl ITransactionVoterFactory2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Create: Create::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionVoterFactory2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionVoterFactory2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITransactionVoterNotifyAsync2_Impl: Sized + ITransactionOutcomeEvents_Impl {
     fn VoteRequest(&self) -> ::windows_core::Result<()>;
@@ -2321,11 +2278,10 @@ impl ITransactionVoterNotifyAsync2_Vtbl {
         }
         Self { base__: ITransactionOutcomeEvents_Vtbl::new::<Identity, Impl, OFFSET>(), VoteRequest: VoteRequest::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITransactionVoterNotifyAsync2 as ::windows_core::ComInterface>::IID || iid == &<ITransactionOutcomeEvents as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITransactionVoterNotifyAsync2 as ::windows_core::ComInterface>::IID || *iid == <ITransactionOutcomeEvents as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IXAConfig_Impl: Sized {
     fn Initialize(&self, clsidhelperdll: &::windows_core::GUID) -> ::windows_core::Result<()>;
     fn Terminate(&self) -> ::windows_core::Result<()>;
@@ -2349,11 +2305,10 @@ impl IXAConfig_Vtbl {
             Terminate: Terminate::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IXAConfig as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IXAConfig as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IXAObtainRMInfo_Impl: Sized {
     fn ObtainRMInfo(&self, pirmhelper: ::core::option::Option<&IRMHelper>) -> ::windows_core::Result<()>;
 }
@@ -2367,11 +2322,10 @@ impl IXAObtainRMInfo_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), ObtainRMInfo: ObtainRMInfo::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IXAObtainRMInfo as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IXAObtainRMInfo as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IXATransLookup_Impl: Sized {
     fn Lookup(&self) -> ::windows_core::Result<ITransaction>;
 }
@@ -2391,11 +2345,10 @@ impl IXATransLookup_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Lookup: Lookup::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IXATransLookup as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IXATransLookup as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_DistributedTransactionCoordinator\"`, `\"implement\"`*"]
 pub trait IXATransLookup2_Impl: Sized {
     fn Lookup(&self, pxid: *const XID) -> ::windows_core::Result<ITransaction>;
 }
@@ -2415,7 +2368,7 @@ impl IXATransLookup2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Lookup: Lookup::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IXATransLookup2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IXATransLookup2 as ::windows_core::ComInterface>::IID
     }
 }

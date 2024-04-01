@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Phone_Notification_Management\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IAccessoryNotificationTriggerDetails_Impl: Sized {
     fn TimeCreated(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime>;
@@ -87,7 +87,7 @@ impl IAccessoryNotificationTriggerDetails_Vtbl {
             SetStartedProcessing: SetStartedProcessing::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAccessoryNotificationTriggerDetails as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAccessoryNotificationTriggerDetails as ::windows_core::ComInterface>::IID
     }
 }

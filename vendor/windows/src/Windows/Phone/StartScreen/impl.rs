@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Phone_StartScreen\"`, `\"UI_Notifications\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"UI_Notifications\"`"]
 #[cfg(feature = "UI_Notifications")]
 pub trait IToastNotificationManagerStatics3_Impl: Sized {
     fn CreateToastNotifierForSecondaryTile(&self, tileid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::UI::Notifications::ToastNotifier>;
@@ -27,7 +27,7 @@ impl IToastNotificationManagerStatics3_Vtbl {
             CreateToastNotifierForSecondaryTile: CreateToastNotifierForSecondaryTile::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IToastNotificationManagerStatics3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IToastNotificationManagerStatics3 as ::windows_core::ComInterface>::IID
     }
 }

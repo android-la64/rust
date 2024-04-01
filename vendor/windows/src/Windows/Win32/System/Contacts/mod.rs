@@ -1,36 +1,20 @@
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContact(::windows_core::IUnknown);
 impl IContact {
     pub unsafe fn GetContactID(&self, pszcontactid: &mut [u16], pdwcchcontactidrequired: *mut u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).GetContactID)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pszcontactid.as_ptr()), pszcontactid.len() as _, pdwcchcontactidrequired).ok()
+        (::windows_core::Interface::vtable(self).GetContactID)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pszcontactid.as_ptr()), pszcontactid.len().try_into().unwrap(), pdwcchcontactidrequired).ok()
     }
     pub unsafe fn GetPath(&self, pszpath: &mut [u16], pdwcchpathrequired: *mut u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).GetPath)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pszpath.as_ptr()), pszpath.len() as _, pdwcchpathrequired).ok()
+        (::windows_core::Interface::vtable(self).GetPath)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pszpath.as_ptr()), pszpath.len().try_into().unwrap(), pdwcchpathrequired).ok()
     }
     pub unsafe fn CommitChanges(&self, dwcommitflags: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).CommitChanges)(::windows_core::Interface::as_raw(self), dwcommitflags).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContact, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContact {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContact {}
-impl ::core::fmt::Debug for IContact {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContact").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContact {
     type Vtable = IContact_Vtbl;
-}
-impl ::core::clone::Clone for IContact {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContact {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf941b671_bda7_4f77_884a_f46462f226a7);
@@ -43,8 +27,8 @@ pub struct IContact_Vtbl {
     pub GetPath: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pszpath: ::windows_core::PWSTR, cchpath: u32, pdwcchpathrequired: *mut u32) -> ::windows_core::HRESULT,
     pub CommitChanges: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, dwcommitflags: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationAggregate(::windows_core::IUnknown);
 impl IContactAggregationAggregate {
     pub unsafe fn Save(&self) -> ::windows_core::Result<()> {
@@ -87,24 +71,8 @@ impl IContactAggregationAggregate {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationAggregate, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationAggregate {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationAggregate {}
-impl ::core::fmt::Debug for IContactAggregationAggregate {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationAggregate").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationAggregate {
     type Vtable = IContactAggregationAggregate_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationAggregate {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationAggregate {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7ed1c814_cd30_43c8_9b8d_2e489e53d54b);
@@ -123,8 +91,8 @@ pub struct IContactAggregationAggregate_Vtbl {
     pub SetFavoriteOrder: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, favoriteorder: u32) -> ::windows_core::HRESULT,
     pub Id: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppitemid: *mut ::windows_core::PWSTR) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationAggregateCollection(::windows_core::IUnknown);
 impl IContactAggregationAggregateCollection {
     pub unsafe fn FindFirst(&self) -> ::windows_core::Result<IContactAggregationAggregate> {
@@ -148,24 +116,8 @@ impl IContactAggregationAggregateCollection {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationAggregateCollection, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationAggregateCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationAggregateCollection {}
-impl ::core::fmt::Debug for IContactAggregationAggregateCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationAggregateCollection").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationAggregateCollection {
     type Vtable = IContactAggregationAggregateCollection_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationAggregateCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationAggregateCollection {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2359f3a6_3a68_40af_98db_0f9eb143c3bb);
@@ -179,8 +131,8 @@ pub struct IContactAggregationAggregateCollection_Vtbl {
     pub FindNext: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppaggregate: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcount: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationContact(::windows_core::IUnknown);
 impl IContactAggregationContact {
     pub unsafe fn Delete(&self) -> ::windows_core::Result<()> {
@@ -216,13 +168,13 @@ impl IContactAggregationContact {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Id)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMe(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsMe)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsExternal(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -261,24 +213,8 @@ impl IContactAggregationContact {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationContact, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationContact {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationContact {}
-impl ::core::fmt::Debug for IContactAggregationContact {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationContact").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationContact {
     type Vtable = IContactAggregationContact_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationContact {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationContact {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1eb22e86_4c86_41f0_9f9f_c251e9fda6c3);
@@ -312,8 +248,8 @@ pub struct IContactAggregationContact_Vtbl {
     pub SyncIdentityHash: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppsyncidentityhash: *mut *mut CONTACT_AGGREGATION_BLOB) -> ::windows_core::HRESULT,
     pub SetSyncIdentityHash: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, psyncidentityhash: *const CONTACT_AGGREGATION_BLOB) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationContactCollection(::windows_core::IUnknown);
 impl IContactAggregationContactCollection {
     pub unsafe fn FindFirst(&self) -> ::windows_core::Result<IContactAggregationContact> {
@@ -346,24 +282,8 @@ impl IContactAggregationContactCollection {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationContactCollection, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationContactCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationContactCollection {}
-impl ::core::fmt::Debug for IContactAggregationContactCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationContactCollection").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationContactCollection {
     type Vtable = IContactAggregationContactCollection_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationContactCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationContactCollection {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x826e66fa_81de_43ca_a6fb_8c785cd996c6);
@@ -378,8 +298,8 @@ pub struct IContactAggregationContactCollection_Vtbl {
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcount: *mut i32) -> ::windows_core::HRESULT,
     pub FindFirstByRemoteId: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, psourcetype: ::windows_core::PCWSTR, paccountid: ::windows_core::PCWSTR, premoteobjectid: *const CONTACT_AGGREGATION_BLOB, ppitem: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationGroup(::windows_core::IUnknown);
 impl IContactAggregationGroup {
     pub unsafe fn Delete(&self) -> ::windows_core::Result<()> {
@@ -427,24 +347,8 @@ impl IContactAggregationGroup {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationGroup, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationGroup {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationGroup {}
-impl ::core::fmt::Debug for IContactAggregationGroup {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationGroup").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationGroup {
     type Vtable = IContactAggregationGroup_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationGroup {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationGroup {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc93c545f_1284_499b_96af_07372af473e0);
@@ -464,8 +368,8 @@ pub struct IContactAggregationGroup_Vtbl {
     pub Name: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppname: *mut ::windows_core::PWSTR) -> ::windows_core::HRESULT,
     pub SetName: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pname: ::windows_core::PCWSTR) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationGroupCollection(::windows_core::IUnknown);
 impl IContactAggregationGroupCollection {
     pub unsafe fn FindFirst(&self) -> ::windows_core::Result<IContactAggregationGroup> {
@@ -486,24 +390,8 @@ impl IContactAggregationGroupCollection {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationGroupCollection, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationGroupCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationGroupCollection {}
-impl ::core::fmt::Debug for IContactAggregationGroupCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationGroupCollection").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationGroupCollection {
     type Vtable = IContactAggregationGroupCollection_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationGroupCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationGroupCollection {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x20a19a9c_d2f3_4b83_9143_beffd2cc226d);
@@ -517,8 +405,8 @@ pub struct IContactAggregationGroupCollection_Vtbl {
     pub FindNext: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppgroup: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcount: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationLink(::windows_core::IUnknown);
 impl IContactAggregationLink {
     pub unsafe fn Delete(&self) -> ::windows_core::Result<()> {
@@ -541,13 +429,13 @@ impl IContactAggregationLink {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Id)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsLinkResolved(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsLinkResolved)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsLinkResolved<P0>(&self, islinkresolved: P0) -> ::windows_core::Result<()>
     where
@@ -601,24 +489,8 @@ impl IContactAggregationLink {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationLink, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationLink {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationLink {}
-impl ::core::fmt::Debug for IContactAggregationLink {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationLink").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationLink {
     type Vtable = IContactAggregationLink_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationLink {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationLink {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb6813323_a183_4654_8627_79b30de3a0ec);
@@ -651,8 +523,8 @@ pub struct IContactAggregationLink_Vtbl {
     pub SyncIdentityHash: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppsyncidentityhash: *mut *mut CONTACT_AGGREGATION_BLOB) -> ::windows_core::HRESULT,
     pub SetSyncIdentityHash: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, psyncidentityhash: *const CONTACT_AGGREGATION_BLOB) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationLinkCollection(::windows_core::IUnknown);
 impl IContactAggregationLinkCollection {
     pub unsafe fn FindFirst(&self) -> ::windows_core::Result<IContactAggregationLink> {
@@ -677,24 +549,8 @@ impl IContactAggregationLinkCollection {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationLinkCollection, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationLinkCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationLinkCollection {}
-impl ::core::fmt::Debug for IContactAggregationLinkCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationLinkCollection").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationLinkCollection {
     type Vtable = IContactAggregationLinkCollection_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationLinkCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationLinkCollection {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf8bc0e93_fb55_4f28_b9fa_b1c274153292);
@@ -708,14 +564,14 @@ pub struct IContactAggregationLinkCollection_Vtbl {
     pub FindNext: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppservercontactlink: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcount: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationManager(::windows_core::IUnknown);
 impl IContactAggregationManager {
     pub unsafe fn GetVersionInfo(&self, plmajorversion: *mut i32, plminorversion: *mut i32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).GetVersionInfo)(::windows_core::Interface::as_raw(self), plmajorversion, plminorversion).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateOrOpenGroup<P0>(&self, pgroupname: P0, options: CONTACT_AGGREGATION_CREATE_OR_OPEN_OPTIONS, pcreatedgroup: *mut super::super::Foundation::BOOL, ppgroup: *mut ::core::option::Option<IContactAggregationGroup>) -> ::windows_core::Result<()>
     where
@@ -791,24 +647,8 @@ impl IContactAggregationManager {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationManager, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationManager {}
-impl ::core::fmt::Debug for IContactAggregationManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationManager").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationManager {
     type Vtable = IContactAggregationManager_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1d865989_4b1f_4b60_8f34_c2ad468b2b50);
@@ -836,8 +676,8 @@ pub struct IContactAggregationManager_Vtbl {
     pub ServerPersons: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppserverpersoncollection: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub get_ServerContactLinks: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppersonitemid: ::windows_core::PCWSTR, ppservercontactlinkcollection: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationServerPerson(::windows_core::IUnknown);
 impl IContactAggregationServerPerson {
     pub unsafe fn Delete(&self) -> ::windows_core::Result<()> {
@@ -908,13 +748,13 @@ impl IContactAggregationServerPerson {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Id)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsTombstone(&self) -> ::windows_core::Result<super::super::Foundation::BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsTombstone)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsTombstone<P0>(&self, istombstone: P0) -> ::windows_core::Result<()>
     where
@@ -944,24 +784,8 @@ impl IContactAggregationServerPerson {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationServerPerson, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationServerPerson {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationServerPerson {}
-impl ::core::fmt::Debug for IContactAggregationServerPerson {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationServerPerson").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationServerPerson {
     type Vtable = IContactAggregationServerPerson_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationServerPerson {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationServerPerson {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7fdc3d4b_1b82_4334_85c5_25184ee5a5f2);
@@ -1000,8 +824,8 @@ pub struct IContactAggregationServerPerson_Vtbl {
     pub ObjectId: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppobjectid: *mut ::windows_core::PWSTR) -> ::windows_core::HRESULT,
     pub SetObjectId: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pobjectid: ::windows_core::PCWSTR) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactAggregationServerPersonCollection(::windows_core::IUnknown);
 impl IContactAggregationServerPersonCollection {
     pub unsafe fn FindFirst(&self) -> ::windows_core::Result<IContactAggregationServerPerson> {
@@ -1039,24 +863,8 @@ impl IContactAggregationServerPersonCollection {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactAggregationServerPersonCollection, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactAggregationServerPersonCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactAggregationServerPersonCollection {}
-impl ::core::fmt::Debug for IContactAggregationServerPersonCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactAggregationServerPersonCollection").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactAggregationServerPersonCollection {
     type Vtable = IContactAggregationServerPersonCollection_Vtbl;
-}
-impl ::core::clone::Clone for IContactAggregationServerPersonCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactAggregationServerPersonCollection {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4f730a4a_6604_47b6_a987_669ecf1e5751);
@@ -1072,8 +880,8 @@ pub struct IContactAggregationServerPersonCollection_Vtbl {
     pub FindNext: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppserverperson: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pcount: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactCollection(::windows_core::IUnknown);
 impl IContactCollection {
     pub unsafe fn Reset(&self) -> ::windows_core::Result<()> {
@@ -1088,24 +896,8 @@ impl IContactCollection {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactCollection, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactCollection {}
-impl ::core::fmt::Debug for IContactCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactCollection").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactCollection {
     type Vtable = IContactCollection_Vtbl;
-}
-impl ::core::clone::Clone for IContactCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactCollection {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb6afa338_d779_11d9_8bde_f66bad1e3f3a);
@@ -1118,8 +910,8 @@ pub struct IContactCollection_Vtbl {
     pub Next: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub GetCurrent: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppcontact: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactManager(::windows_core::IUnknown);
 impl IContactManager {
     pub unsafe fn Initialize<P0, P1>(&self, pszappname: P0, pszappversion: P1) -> ::windows_core::Result<()>
@@ -1159,24 +951,8 @@ impl IContactManager {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactManager, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactManager {}
-impl ::core::fmt::Debug for IContactManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactManager").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactManager {
     type Vtable = IContactManager_Vtbl;
-}
-impl ::core::clone::Clone for IContactManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xad553d98_deb1_474a_8e17_fc0c2075b738);
@@ -1192,17 +968,17 @@ pub struct IContactManager_Vtbl {
     pub SetMeContact: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pmecontact: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub GetContactCollection: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ppcontactcollection: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactProperties(::windows_core::IUnknown);
 impl IContactProperties {
     pub unsafe fn GetString<P0>(&self, pszpropertyname: P0, dwflags: u32, pszvalue: &mut [u16], pdwcchpropertyvaluerequired: *mut u32) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
     {
-        (::windows_core::Interface::vtable(self).GetString)(::windows_core::Interface::as_raw(self), pszpropertyname.into_param().abi(), dwflags, ::core::mem::transmute(pszvalue.as_ptr()), pszvalue.len() as _, pdwcchpropertyvaluerequired).ok()
+        (::windows_core::Interface::vtable(self).GetString)(::windows_core::Interface::as_raw(self), pszpropertyname.into_param().abi(), dwflags, ::core::mem::transmute(pszvalue.as_ptr()), pszvalue.len().try_into().unwrap(), pdwcchpropertyvaluerequired).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetDate<P0>(&self, pszpropertyname: P0, dwflags: u32, pftdatetime: *mut super::super::Foundation::FILETIME) -> ::windows_core::Result<()>
     where
@@ -1210,19 +986,19 @@ impl IContactProperties {
     {
         (::windows_core::Interface::vtable(self).GetDate)(::windows_core::Interface::as_raw(self), pszpropertyname.into_param().abi(), dwflags, pftdatetime).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetBinary<P0>(&self, pszpropertyname: P0, dwflags: u32, pszcontenttype: &mut [u16], pdwcchcontenttyperequired: *mut u32, ppstream: *mut ::core::option::Option<super::Com::IStream>) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
     {
-        (::windows_core::Interface::vtable(self).GetBinary)(::windows_core::Interface::as_raw(self), pszpropertyname.into_param().abi(), dwflags, ::core::mem::transmute(pszcontenttype.as_ptr()), pszcontenttype.len() as _, pdwcchcontenttyperequired, ::core::mem::transmute(ppstream)).ok()
+        (::windows_core::Interface::vtable(self).GetBinary)(::windows_core::Interface::as_raw(self), pszpropertyname.into_param().abi(), dwflags, ::core::mem::transmute(pszcontenttype.as_ptr()), pszcontenttype.len().try_into().unwrap(), pdwcchcontenttyperequired, ::core::mem::transmute(ppstream)).ok()
     }
     pub unsafe fn GetLabels<P0>(&self, pszarrayelementname: P0, dwflags: u32, pszlabels: &mut [u16], pdwcchlabelsrequired: *mut u32) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
     {
-        (::windows_core::Interface::vtable(self).GetLabels)(::windows_core::Interface::as_raw(self), pszarrayelementname.into_param().abi(), dwflags, ::core::mem::transmute(pszlabels.as_ptr()), pszlabels.len() as _, pdwcchlabelsrequired).ok()
+        (::windows_core::Interface::vtable(self).GetLabels)(::windows_core::Interface::as_raw(self), pszarrayelementname.into_param().abi(), dwflags, ::core::mem::transmute(pszlabels.as_ptr()), pszlabels.len().try_into().unwrap(), pdwcchlabelsrequired).ok()
     }
     pub unsafe fn SetString<P0, P1>(&self, pszpropertyname: P0, dwflags: u32, pszvalue: P1) -> ::windows_core::Result<()>
     where
@@ -1231,7 +1007,7 @@ impl IContactProperties {
     {
         (::windows_core::Interface::vtable(self).SetString)(::windows_core::Interface::as_raw(self), pszpropertyname.into_param().abi(), dwflags, pszvalue.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetDate<P0>(&self, pszpropertyname: P0, dwflags: u32, ftdatetime: super::super::Foundation::FILETIME) -> ::windows_core::Result<()>
     where
@@ -1239,7 +1015,7 @@ impl IContactProperties {
     {
         (::windows_core::Interface::vtable(self).SetDate)(::windows_core::Interface::as_raw(self), pszpropertyname.into_param().abi(), dwflags, ::core::mem::transmute(ftdatetime)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetBinary<P0, P1, P2>(&self, pszpropertyname: P0, dwflags: u32, pszcontenttype: P1, pstream: P2) -> ::windows_core::Result<()>
     where
@@ -1253,16 +1029,16 @@ impl IContactProperties {
     where
         P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
     {
-        (::windows_core::Interface::vtable(self).SetLabels)(::windows_core::Interface::as_raw(self), pszarrayelementname.into_param().abi(), dwflags, ppszlabels.len() as _, ::core::mem::transmute(ppszlabels.as_ptr())).ok()
+        (::windows_core::Interface::vtable(self).SetLabels)(::windows_core::Interface::as_raw(self), pszarrayelementname.into_param().abi(), dwflags, ppszlabels.len().try_into().unwrap(), ::core::mem::transmute(ppszlabels.as_ptr())).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateArrayNode<P0, P1>(&self, pszarrayname: P0, dwflags: u32, fappend: P1, psznewarrayelementname: &mut [u16], pdwcchnewarrayelementnamerequired: *mut u32) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
         P1: ::windows_core::IntoParam<super::super::Foundation::BOOL>,
     {
-        (::windows_core::Interface::vtable(self).CreateArrayNode)(::windows_core::Interface::as_raw(self), pszarrayname.into_param().abi(), dwflags, fappend.into_param().abi(), ::core::mem::transmute(psznewarrayelementname.as_ptr()), psznewarrayelementname.len() as _, pdwcchnewarrayelementnamerequired).ok()
+        (::windows_core::Interface::vtable(self).CreateArrayNode)(::windows_core::Interface::as_raw(self), pszarrayname.into_param().abi(), dwflags, fappend.into_param().abi(), ::core::mem::transmute(psznewarrayelementname.as_ptr()), psznewarrayelementname.len().try_into().unwrap(), pdwcchnewarrayelementnamerequired).ok()
     }
     pub unsafe fn DeleteProperty<P0>(&self, pszpropertyname: P0, dwflags: u32) -> ::windows_core::Result<()>
     where
@@ -1282,35 +1058,19 @@ impl IContactProperties {
     {
         (::windows_core::Interface::vtable(self).DeleteLabels)(::windows_core::Interface::as_raw(self), pszarrayelementname.into_param().abi(), dwflags).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetPropertyCollection<P0, P1>(&self, pppropertycollection: *mut ::core::option::Option<IContactPropertyCollection>, dwflags: u32, pszmultivaluename: P0, ppszlabels: &[::windows_core::PCWSTR], fanylabelmatches: P1) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<::windows_core::PCWSTR>,
         P1: ::windows_core::IntoParam<super::super::Foundation::BOOL>,
     {
-        (::windows_core::Interface::vtable(self).GetPropertyCollection)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pppropertycollection), dwflags, pszmultivaluename.into_param().abi(), ppszlabels.len() as _, ::core::mem::transmute(ppszlabels.as_ptr()), fanylabelmatches.into_param().abi()).ok()
+        (::windows_core::Interface::vtable(self).GetPropertyCollection)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pppropertycollection), dwflags, pszmultivaluename.into_param().abi(), ppszlabels.len().try_into().unwrap(), ::core::mem::transmute(ppszlabels.as_ptr()), fanylabelmatches.into_param().abi()).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactProperties, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactProperties {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactProperties {}
-impl ::core::fmt::Debug for IContactProperties {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactProperties").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactProperties {
     type Vtable = IContactProperties_Vtbl;
-}
-impl ::core::clone::Clone for IContactProperties {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactProperties {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x70dd27dd_5cbd_46e8_bef0_23b6b346288f);
@@ -1351,8 +1111,8 @@ pub struct IContactProperties_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     GetPropertyCollection: usize,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IContactPropertyCollection(::windows_core::IUnknown);
 impl IContactPropertyCollection {
     pub unsafe fn Reset(&self) -> ::windows_core::Result<()> {
@@ -1362,7 +1122,7 @@ impl IContactPropertyCollection {
         (::windows_core::Interface::vtable(self).Next)(::windows_core::Interface::as_raw(self)).ok()
     }
     pub unsafe fn GetPropertyName(&self, pszpropertyname: &mut [u16], pdwcchpropertynamerequired: *mut u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).GetPropertyName)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pszpropertyname.as_ptr()), pszpropertyname.len() as _, pdwcchpropertynamerequired).ok()
+        (::windows_core::Interface::vtable(self).GetPropertyName)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pszpropertyname.as_ptr()), pszpropertyname.len().try_into().unwrap(), pdwcchpropertynamerequired).ok()
     }
     pub unsafe fn GetPropertyType(&self, pdwtype: *mut u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).GetPropertyType)(::windows_core::Interface::as_raw(self), pdwtype).ok()
@@ -1370,34 +1130,18 @@ impl IContactPropertyCollection {
     pub unsafe fn GetPropertyVersion(&self, pdwversion: *mut u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).GetPropertyVersion)(::windows_core::Interface::as_raw(self), pdwversion).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetPropertyModificationDate(&self, pftmodificationdate: *mut super::super::Foundation::FILETIME) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).GetPropertyModificationDate)(::windows_core::Interface::as_raw(self), pftmodificationdate).ok()
     }
     pub unsafe fn GetPropertyArrayElementID(&self, pszarrayelementid: &mut [u16], pdwccharrayelementidrequired: *mut u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).GetPropertyArrayElementID)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pszarrayelementid.as_ptr()), pszarrayelementid.len() as _, pdwccharrayelementidrequired).ok()
+        (::windows_core::Interface::vtable(self).GetPropertyArrayElementID)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pszarrayelementid.as_ptr()), pszarrayelementid.len().try_into().unwrap(), pdwccharrayelementidrequired).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(IContactPropertyCollection, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IContactPropertyCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IContactPropertyCollection {}
-impl ::core::fmt::Debug for IContactPropertyCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IContactPropertyCollection").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IContactPropertyCollection {
     type Vtable = IContactPropertyCollection_Vtbl;
-}
-impl ::core::clone::Clone for IContactPropertyCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IContactPropertyCollection {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xffd3adf8_fa64_4328_b1b6_2e0db509cb3c);
@@ -1417,231 +1161,118 @@ pub struct IContactPropertyCollection_Vtbl {
     GetPropertyModificationDate: usize,
     pub GetPropertyArrayElementID: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pszarrayelementid: ::windows_core::PWSTR, ccharrayelementid: u32, pdwccharrayelementidrequired: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CACO_DEFAULT: CONTACT_AGGREGATION_COLLECTION_OPTIONS = CONTACT_AGGREGATION_COLLECTION_OPTIONS(0i32);
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CACO_EXTERNAL_ONLY: CONTACT_AGGREGATION_COLLECTION_OPTIONS = CONTACT_AGGREGATION_COLLECTION_OPTIONS(2i32);
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CACO_INCLUDE_EXTERNAL: CONTACT_AGGREGATION_COLLECTION_OPTIONS = CONTACT_AGGREGATION_COLLECTION_OPTIONS(1i32);
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CA_CREATE_EXTERNAL: CONTACT_AGGREGATION_CREATE_OR_OPEN_OPTIONS = CONTACT_AGGREGATION_CREATE_OR_OPEN_OPTIONS(1i32);
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CA_CREATE_LOCAL: CONTACT_AGGREGATION_CREATE_OR_OPEN_OPTIONS = CONTACT_AGGREGATION_CREATE_OR_OPEN_OPTIONS(0i32);
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CGD_ARRAY_NODE: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CGD_BINARY_PROPERTY: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CGD_DATE_PROPERTY: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CGD_DEFAULT: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CGD_STRING_PROPERTY: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CGD_UNKNOWN_PROPERTY: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CLSID_ContactAggregationManager: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96c8ad95_c199_44de_b34e_ac33c442df39);
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_AGENT: ::windows_core::PCWSTR = ::windows_core::w!("Agent");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_BBS: ::windows_core::PCWSTR = ::windows_core::w!("BBS");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_BUSINESS: ::windows_core::PCWSTR = ::windows_core::w!("Business");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_CAR: ::windows_core::PCWSTR = ::windows_core::w!("Car");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_CELLULAR: ::windows_core::PCWSTR = ::windows_core::w!("Cellular");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_DOMESTIC: ::windows_core::PCWSTR = ::windows_core::w!("Domestic");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_FAX: ::windows_core::PCWSTR = ::windows_core::w!("Fax");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_INTERNATIONAL: ::windows_core::PCWSTR = ::windows_core::w!("International");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_ISDN: ::windows_core::PCWSTR = ::windows_core::w!("ISDN");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_LOGO: ::windows_core::PCWSTR = ::windows_core::w!("Logo");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_MOBILE: ::windows_core::PCWSTR = ::windows_core::w!("Mobile");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_MODEM: ::windows_core::PCWSTR = ::windows_core::w!("Modem");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_OTHER: ::windows_core::PCWSTR = ::windows_core::w!("Other");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_PAGER: ::windows_core::PCWSTR = ::windows_core::w!("Pager");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_PARCEL: ::windows_core::PCWSTR = ::windows_core::w!("Parcel");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_PCS: ::windows_core::PCWSTR = ::windows_core::w!("PCS");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_PERSONAL: ::windows_core::PCWSTR = ::windows_core::w!("Personal");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_POSTAL: ::windows_core::PCWSTR = ::windows_core::w!("Postal");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_PREFERRED: ::windows_core::PCWSTR = ::windows_core::w!("Preferred");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_TTY: ::windows_core::PCWSTR = ::windows_core::w!("TTY");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_USERTILE: ::windows_core::PCWSTR = ::windows_core::w!("UserTile");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_VIDEO: ::windows_core::PCWSTR = ::windows_core::w!("Video");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_PUB_VOICE: ::windows_core::PCWSTR = ::windows_core::w!("Voice");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_WAB_ANNIVERSARY: ::windows_core::PCWSTR = ::windows_core::w!("wab:Anniversary");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_WAB_ASSISTANT: ::windows_core::PCWSTR = ::windows_core::w!("wab:Assistant");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_WAB_BIRTHDAY: ::windows_core::PCWSTR = ::windows_core::w!("wab:Birthday");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_WAB_CHILD: ::windows_core::PCWSTR = ::windows_core::w!("wab:Child");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_WAB_MANAGER: ::windows_core::PCWSTR = ::windows_core::w!("wab:Manager");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_WAB_SCHOOL: ::windows_core::PCWSTR = ::windows_core::w!("wab:School");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_WAB_SOCIALNETWORK: ::windows_core::PCWSTR = ::windows_core::w!("wab:SocialNetwork");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_WAB_SPOUSE: ::windows_core::PCWSTR = ::windows_core::w!("wab:Spouse");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTLABEL_WAB_WISHLIST: ::windows_core::PCWSTR = ::windows_core::w!("wab:WishList");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_CREATIONDATE: ::windows_core::PCWSTR = ::windows_core::w!("CreationDate");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_GENDER: ::windows_core::PCWSTR = ::windows_core::w!("Gender");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_GENDER_FEMALE: ::windows_core::PCWSTR = ::windows_core::w!("Female");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_GENDER_MALE: ::windows_core::PCWSTR = ::windows_core::w!("Male");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_GENDER_UNSPECIFIED: ::windows_core::PCWSTR = ::windows_core::w!("Unspecified");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_CERTIFICATECOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("CertificateCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_CONTACTIDCOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("ContactIDCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_DATECOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("DateCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_EMAILADDRESSCOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("EmailAddressCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_IMADDRESSCOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("IMAddressCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_NAMECOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("NameCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_PERSONCOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("PersonCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_PHONENUMBERCOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("PhoneNumberCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_PHOTOCOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("PhotoCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_PHYSICALADDRESSCOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("PhysicalAddressCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_POSITIONCOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("PositionCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L1_URLCOLLECTION: ::windows_core::PCWSTR = ::windows_core::w!("UrlCollection");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_CERTIFICATE: ::windows_core::PCWSTR = ::windows_core::w!("/Certificate");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_CONTACTID: ::windows_core::PCWSTR = ::windows_core::w!("/ContactID");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_DATE: ::windows_core::PCWSTR = ::windows_core::w!("/Date");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_EMAILADDRESS: ::windows_core::PCWSTR = ::windows_core::w!("/EmailAddress");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_IMADDRESSENTRY: ::windows_core::PCWSTR = ::windows_core::w!("/IMAddress");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_NAME: ::windows_core::PCWSTR = ::windows_core::w!("/Name");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_PERSON: ::windows_core::PCWSTR = ::windows_core::w!("/Person");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_PHONENUMBER: ::windows_core::PCWSTR = ::windows_core::w!("/PhoneNumber");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_PHOTO: ::windows_core::PCWSTR = ::windows_core::w!("/Photo");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_PHYSICALADDRESS: ::windows_core::PCWSTR = ::windows_core::w!("/PhysicalAddress");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_POSITION: ::windows_core::PCWSTR = ::windows_core::w!("/Position");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L2_URL: ::windows_core::PCWSTR = ::windows_core::w!("/Url");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_ADDRESS: ::windows_core::PCWSTR = ::windows_core::w!("/Address");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_ADDRESSLABEL: ::windows_core::PCWSTR = ::windows_core::w!("/AddressLabel");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_ALTERNATE: ::windows_core::PCWSTR = ::windows_core::w!("/Alternate");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_COMPANY: ::windows_core::PCWSTR = ::windows_core::w!("/Company");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_COUNTRY: ::windows_core::PCWSTR = ::windows_core::w!("/Country");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_DEPARTMENT: ::windows_core::PCWSTR = ::windows_core::w!("/Department");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_EXTENDEDADDRESS: ::windows_core::PCWSTR = ::windows_core::w!("/ExtendedAddress");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_FAMILYNAME: ::windows_core::PCWSTR = ::windows_core::w!("/FamilyName");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_FORMATTEDNAME: ::windows_core::PCWSTR = ::windows_core::w!("/FormattedName");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_GENERATION: ::windows_core::PCWSTR = ::windows_core::w!("/Generation");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_GIVENNAME: ::windows_core::PCWSTR = ::windows_core::w!("/GivenName");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_JOB_TITLE: ::windows_core::PCWSTR = ::windows_core::w!("/JobTitle");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_LOCALITY: ::windows_core::PCWSTR = ::windows_core::w!("/Locality");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_MIDDLENAME: ::windows_core::PCWSTR = ::windows_core::w!("/MiddleName");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_NICKNAME: ::windows_core::PCWSTR = ::windows_core::w!("/NickName");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_NUMBER: ::windows_core::PCWSTR = ::windows_core::w!("/Number");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_OFFICE: ::windows_core::PCWSTR = ::windows_core::w!("/Office");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_ORGANIZATION: ::windows_core::PCWSTR = ::windows_core::w!("/Organization");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_PERSONID: ::windows_core::PCWSTR = ::windows_core::w!("/PersonID");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_PHONETIC: ::windows_core::PCWSTR = ::windows_core::w!("/Phonetic");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_POBOX: ::windows_core::PCWSTR = ::windows_core::w!("/POBox");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_POSTALCODE: ::windows_core::PCWSTR = ::windows_core::w!("/PostalCode");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_PREFIX: ::windows_core::PCWSTR = ::windows_core::w!("/Prefix");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_PROFESSION: ::windows_core::PCWSTR = ::windows_core::w!("/Profession");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_PROTOCOL: ::windows_core::PCWSTR = ::windows_core::w!("/Protocol");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_REGION: ::windows_core::PCWSTR = ::windows_core::w!("/Region");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_ROLE: ::windows_core::PCWSTR = ::windows_core::w!("/Role");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_STREET: ::windows_core::PCWSTR = ::windows_core::w!("/Street");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_SUFFIX: ::windows_core::PCWSTR = ::windows_core::w!("/Suffix");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_THUMBPRINT: ::windows_core::PCWSTR = ::windows_core::w!("/ThumbPrint");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_TITLE: ::windows_core::PCWSTR = ::windows_core::w!("/Title");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_TYPE: ::windows_core::PCWSTR = ::windows_core::w!("/Type");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_URL: ::windows_core::PCWSTR = ::windows_core::w!("/Url");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_L3_VALUE: ::windows_core::PCWSTR = ::windows_core::w!("/Value");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_MAILER: ::windows_core::PCWSTR = ::windows_core::w!("Mailer");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_NOTES: ::windows_core::PCWSTR = ::windows_core::w!("Notes");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const CONTACTPROP_PUB_PROGID: ::windows_core::PCWSTR = ::windows_core::w!("ProgID");
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const Contact: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x61b68808_8eee_4fd1_acb8_3d804c8db056);
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub const ContactManager: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7165c8ab_af88_42bd_86fd_5310b4285a02);
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CONTACT_AGGREGATION_COLLECTION_OPTIONS(pub i32);
@@ -1664,7 +1295,6 @@ impl ::core::fmt::Debug for CONTACT_AGGREGATION_COLLECTION_OPTIONS {
         f.debug_tuple("CONTACT_AGGREGATION_COLLECTION_OPTIONS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CONTACT_AGGREGATION_CREATE_OR_OPEN_OPTIONS(pub i32);
@@ -1688,7 +1318,6 @@ impl ::core::fmt::Debug for CONTACT_AGGREGATION_CREATE_OR_OPEN_OPTIONS {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_System_Contacts\"`*"]
 pub struct CONTACT_AGGREGATION_BLOB {
     pub dwCount: u32,
     pub lpb: *mut u8,

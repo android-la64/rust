@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-negotiate"
-version = "0.10.0"
+version = "0.11.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -31,19 +31,19 @@ doctest = false
 version = "2"
 
 [dependencies.gix-commitgraph]
-version = "^0.22.1"
+version = "^0.23.1"
 
 [dependencies.gix-date]
-version = "^0.8.1"
+version = "^0.8.3"
 
 [dependencies.gix-hash]
-version = "^0.13.2"
+version = "^0.14.1"
 
 [dependencies.gix-object]
-version = "^0.39.0"
+version = "^0.40.1"
 
 [dependencies.gix-revwalk]
-version = "^0.10.0"
+version = "^0.11.1"
 
 [dependencies.smallvec]
 version = "1.10.0"

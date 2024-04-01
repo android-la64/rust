@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Devices_Adc_Provider\"`, `\"implement\"`*"]
 pub trait IAdcControllerProvider_Impl: Sized {
     fn ChannelCount(&self) -> ::windows_core::Result<i32>;
     fn ResolutionInBits(&self) -> ::windows_core::Result<i32>;
@@ -122,11 +121,11 @@ impl IAdcControllerProvider_Vtbl {
             ReadValue: ReadValue::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAdcControllerProvider as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAdcControllerProvider as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Devices_Adc_Provider\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`"]
 #[cfg(feature = "Foundation_Collections")]
 pub trait IAdcProvider_Impl: Sized {
     fn GetControllers(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<IAdcControllerProvider>>;
@@ -152,7 +151,7 @@ impl IAdcProvider_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IAdcProvider, OFFSET>(), GetControllers: GetControllers::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAdcProvider as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAdcProvider as ::windows_core::ComInterface>::IID
     }
 }

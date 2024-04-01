@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"implement\"`*"]
 pub trait IAudioEndpointFormatControl_Impl: Sized {
     fn ResetToDefault(&self, resetflags: u32) -> ::windows_core::Result<()>;
 }
@@ -12,11 +11,11 @@ impl IAudioEndpointFormatControl_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), ResetToDefault: ResetToDefault::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointFormatControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointFormatControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"Win32_Foundation\"`, `\"Win32_Media_Audio_Apo\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Media_Audio_Apo\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Media_Audio_Apo"))]
 pub trait IAudioEndpointLastBufferControl_Impl: Sized {
     fn IsLastBufferControlSupported(&self) -> super::super::super::Foundation::BOOL;
@@ -43,11 +42,10 @@ impl IAudioEndpointLastBufferControl_Vtbl {
             ReleaseOutputDataPointerForLastBuffer: ReleaseOutputDataPointerForLastBuffer::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointLastBufferControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointLastBufferControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"implement\"`*"]
 pub trait IAudioEndpointOffloadStreamMeter_Impl: Sized {
     fn GetMeterChannelCount(&self) -> ::windows_core::Result<u32>;
     fn GetMeteringData(&self, u32channelcount: u32) -> ::windows_core::Result<f32>;
@@ -83,11 +81,10 @@ impl IAudioEndpointOffloadStreamMeter_Vtbl {
             GetMeteringData: GetMeteringData::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointOffloadStreamMeter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointOffloadStreamMeter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"implement\"`*"]
 pub trait IAudioEndpointOffloadStreamMute_Impl: Sized {
     fn SetMute(&self, bmuted: u8) -> ::windows_core::Result<()>;
     fn GetMute(&self) -> ::windows_core::Result<u8>;
@@ -117,11 +114,11 @@ impl IAudioEndpointOffloadStreamMute_Vtbl {
             GetMute: GetMute::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointOffloadStreamMute as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointOffloadStreamMute as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"Win32_Media_KernelStreaming\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Media_KernelStreaming\"`"]
 #[cfg(feature = "Win32_Media_KernelStreaming")]
 pub trait IAudioEndpointOffloadStreamVolume_Impl: Sized {
     fn GetVolumeChannelCount(&self) -> ::windows_core::Result<u32>;
@@ -167,11 +164,11 @@ impl IAudioEndpointOffloadStreamVolume_Vtbl {
             GetChannelVolumes: GetChannelVolumes::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointOffloadStreamVolume as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointOffloadStreamVolume as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAudioEndpointVolume_Impl: Sized {
     fn RegisterControlChangeNotify(&self, pnotify: ::core::option::Option<&IAudioEndpointVolumeCallback>) -> ::windows_core::Result<()>;
@@ -352,11 +349,11 @@ impl IAudioEndpointVolume_Vtbl {
             GetVolumeRange: GetVolumeRange::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointVolume as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointVolume as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAudioEndpointVolumeCallback_Impl: Sized {
     fn OnNotify(&self, pnotify: *mut super::AUDIO_VOLUME_NOTIFICATION_DATA) -> ::windows_core::Result<()>;
@@ -373,11 +370,11 @@ impl IAudioEndpointVolumeCallback_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnNotify: OnNotify::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointVolumeCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointVolumeCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAudioEndpointVolumeEx_Impl: Sized + IAudioEndpointVolume_Impl {
     fn GetVolumeRangeChannel(&self, ichannel: u32, pflvolumemindb: *mut f32, pflvolumemaxdb: *mut f32, pflvolumeincrementdb: *mut f32) -> ::windows_core::Result<()>;
@@ -394,11 +391,11 @@ impl IAudioEndpointVolumeEx_Vtbl {
         }
         Self { base__: IAudioEndpointVolume_Vtbl::new::<Identity, Impl, OFFSET>(), GetVolumeRangeChannel: GetVolumeRangeChannel::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioEndpointVolumeEx as ::windows_core::ComInterface>::IID || iid == &<IAudioEndpointVolume as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioEndpointVolumeEx as ::windows_core::ComInterface>::IID || *iid == <IAudioEndpointVolume as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAudioLfxControl_Impl: Sized {
     fn SetLocalEffectsState(&self, benabled: super::super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -431,11 +428,10 @@ impl IAudioLfxControl_Vtbl {
             GetLocalEffectsState: GetLocalEffectsState::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioLfxControl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioLfxControl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"implement\"`*"]
 pub trait IAudioMeterInformation_Impl: Sized {
     fn GetPeakValue(&self) -> ::windows_core::Result<f32>;
     fn GetMeteringChannelCount(&self) -> ::windows_core::Result<u32>;
@@ -491,11 +487,11 @@ impl IAudioMeterInformation_Vtbl {
             QueryHardwareSupport: QueryHardwareSupport::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioMeterInformation as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioMeterInformation as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_Endpoints\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IHardwareAudioEngineBase_Impl: Sized {
     fn GetAvailableOffloadConnectorCount(&self, _pwstrdeviceid: &::windows_core::PCWSTR, _uconnectorid: u32) -> ::windows_core::Result<u32>;
@@ -555,7 +551,7 @@ impl IHardwareAudioEngineBase_Vtbl {
             GetGfxState: GetGfxState::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHardwareAudioEngineBase as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHardwareAudioEngineBase as ::windows_core::ComInterface>::IID
     }
 }

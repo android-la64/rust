@@ -5,7 +5,9 @@ extern crate serde_json;
 
 use std::error::Error as StdError;
 
-use handlebars::{Context, Handlebars, Helper, Output, RenderContext, RenderError};
+use handlebars::{
+    Context, Handlebars, Helper, Output, RenderContext, RenderError, RenderErrorReason,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -26,16 +28,10 @@ pub fn error_helper(
 ) -> Result<(), RenderError> {
     let param = h
         .param(0)
-        .ok_or(RenderError::new("Param 0 is required for error helper."))?;
+        .ok_or(RenderErrorReason::ParamNotFoundForIndex("error", 0))?;
     match param.value().as_str() {
-        Some("db") => Err(RenderError::from_error(
-            "helper error",
-            HelperError::DbError,
-        )),
-        Some("api") => Err(RenderError::from_error(
-            "helper error",
-            HelperError::ApiError,
-        )),
+        Some("db") => Err(RenderErrorReason::NestedError(Box::new(HelperError::DbError)).into()),
+        Some("api") => Err(RenderErrorReason::NestedError(Box::new(HelperError::ApiError)).into()),
         _ => Ok(()),
     }
 }
@@ -74,7 +70,7 @@ fn main() -> Result<(), Box<dyn StdError>> {
     let e2 = handlebars
         .render_template("{{err \"db\"}}", &json!({}))
         .unwrap_err();
-    // down-casting the error to user defined type
+    // get nested error to from `RenderError`
     match e2.source().and_then(|e| e.downcast_ref::<HelperError>()) {
         Some(HelperError::DbError) => {
             println!("Detected error from helper: db error",)

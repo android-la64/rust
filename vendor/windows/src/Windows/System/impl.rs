@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"System\"`, `\"UI_ViewManagement\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"UI_ViewManagement\"`"]
 #[cfg(feature = "UI_ViewManagement")]
 pub trait ILauncherViewOptions_Impl: Sized {
     fn DesiredRemainingView(&self) -> ::windows_core::Result<super::UI::ViewManagement::ViewSizePreference>;
@@ -33,7 +33,7 @@ impl ILauncherViewOptions_Vtbl {
             SetDesiredRemainingView: SetDesiredRemainingView::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ILauncherViewOptions as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ILauncherViewOptions as ::windows_core::ComInterface>::IID
     }
 }

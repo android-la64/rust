@@ -1,16 +1,20 @@
 #[cfg(feature = "Web_AtomPub")]
+#[doc = "Required features: `\"Web_AtomPub\"`"]
 pub mod AtomPub;
 #[cfg(feature = "Web_Http")]
+#[doc = "Required features: `\"Web_Http\"`"]
 pub mod Http;
 #[cfg(feature = "Web_Syndication")]
+#[doc = "Required features: `\"Web_Syndication\"`"]
 pub mod Syndication;
 #[cfg(feature = "Web_UI")]
+#[doc = "Required features: `\"Web_UI\"`"]
 pub mod UI;
-#[doc = "*Required features: `\"Web\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUriToStreamResolver(::windows_core::IUnknown);
 impl IUriToStreamResolver {
-    #[doc = "*Required features: `\"Foundation\"`, `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"Storage_Streams\"`"]
     #[cfg(all(feature = "Foundation", feature = "Storage_Streams"))]
     pub fn UriToStreamAsync<P0>(&self, uri: P0) -> ::windows_core::Result<super::Foundation::IAsyncOperation<super::Storage::Streams::IInputStream>>
     where
@@ -24,27 +28,11 @@ impl IUriToStreamResolver {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IUriToStreamResolver, ::windows_core::IUnknown, ::windows_core::IInspectable);
-impl ::core::cmp::PartialEq for IUriToStreamResolver {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IUriToStreamResolver {}
-impl ::core::fmt::Debug for IUriToStreamResolver {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUriToStreamResolver").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for IUriToStreamResolver {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"{b0aba86a-9aeb-4d3a-9590-003e3ca7e290}");
 }
 unsafe impl ::windows_core::Interface for IUriToStreamResolver {
     type Vtable = IUriToStreamResolver_Vtbl;
-}
-impl ::core::clone::Clone for IUriToStreamResolver {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUriToStreamResolver {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb0aba86a_9aeb_4d3a_9590_003e3ca7e290);
@@ -60,14 +48,10 @@ pub struct IUriToStreamResolver_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWebErrorStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWebErrorStatics {
     type Vtable = IWebErrorStatics_Vtbl;
-}
-impl ::core::clone::Clone for IWebErrorStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWebErrorStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfe616766_bf27_4064_87b7_6563bb11ce2e);
@@ -78,7 +62,6 @@ pub struct IWebErrorStatics_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
     pub GetStatus: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, hresult: i32, result__: *mut WebErrorStatus) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Web\"`*"]
 pub struct WebError;
 impl WebError {
     pub fn GetStatus(hresult: i32) -> ::windows_core::Result<WebErrorStatus> {
@@ -96,7 +79,6 @@ impl WebError {
 impl ::windows_core::RuntimeName for WebError {
     const NAME: &'static str = "Windows.Web.WebError";
 }
-#[doc = "*Required features: `\"Web\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WebErrorStatus(pub i32);

@@ -39,7 +39,7 @@ pub fn search_for_structural_match_violation<'tcx>(
 
 /// This implements the traversal over the structure of a given type to try to
 /// find instances of ADTs (specifically structs or enums) that do not implement
-/// the structural-match traits (`StructuralPartialEq` and `StructuralEq`).
+/// `StructuralPartialEq`.
 struct Search<'tcx> {
     span: Span,
 
@@ -135,7 +135,7 @@ impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for Search<'tcx> {
                 bug!("unexpected type during structural-match checking: {:?}", ty);
             }
             ty::Error(_) => {
-                self.tcx.sess.span_delayed_bug(self.span, "ty::Error in structural-match check");
+                self.tcx.dcx().span_delayed_bug(self.span, "ty::Error in structural-match check");
                 // We still want to check other types after encountering an error,
                 // as this may still emit relevant errors.
                 return ControlFlow::Continue(());

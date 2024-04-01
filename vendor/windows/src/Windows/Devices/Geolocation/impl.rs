@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Devices_Geolocation\"`, `\"implement\"`*"]
 pub trait IGeoshape_Impl: Sized {
     fn GeoshapeType(&self) -> ::windows_core::Result<GeoshapeType>;
     fn SpatialReferenceId(&self) -> ::windows_core::Result<u32>;
@@ -49,7 +48,7 @@ impl IGeoshape_Vtbl {
             AltitudeReferenceSystem: AltitudeReferenceSystem::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IGeoshape as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IGeoshape as ::windows_core::ComInterface>::IID
     }
 }

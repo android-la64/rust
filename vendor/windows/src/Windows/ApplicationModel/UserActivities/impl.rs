@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"ApplicationModel_UserActivities\"`, `\"implement\"`*"]
 pub trait IUserActivityContentInfo_Impl: Sized {
     fn ToJson(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
 }
@@ -21,7 +20,7 @@ impl IUserActivityContentInfo_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IUserActivityContentInfo, OFFSET>(), ToJson: ToJson::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IUserActivityContentInfo as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IUserActivityContentInfo as ::windows_core::ComInterface>::IID
     }
 }

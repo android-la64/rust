@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-revision"
-version = "0.24.0"
+version = "0.25.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -42,22 +42,22 @@ version = "0.2.1"
 optional = true
 
 [dependencies.gix-date]
-version = "^0.8.1"
+version = "^0.8.3"
 
 [dependencies.gix-hash]
-version = "^0.13.2"
+version = "^0.14.1"
 
 [dependencies.gix-hashtable]
-version = "^0.4.1"
+version = "^0.5.1"
 
 [dependencies.gix-object]
-version = "^0.39.0"
+version = "^0.40.1"
 
 [dependencies.gix-revwalk]
-version = "^0.10.0"
+version = "^0.11.1"
 
 [dependencies.gix-trace]
-version = "^0.1.4"
+version = "^0.1.6"
 
 [dependencies.serde]
 version = "1.0.114"

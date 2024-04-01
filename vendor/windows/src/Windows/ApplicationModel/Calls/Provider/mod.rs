@@ -1,16 +1,11 @@
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneCallOrigin(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for IPhoneCallOrigin {
     type Vtable = IPhoneCallOrigin_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for IPhoneCallOrigin {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for IPhoneCallOrigin {
@@ -49,16 +44,11 @@ pub struct IPhoneCallOrigin_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneCallOrigin2(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for IPhoneCallOrigin2 {
     type Vtable = IPhoneCallOrigin2_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for IPhoneCallOrigin2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for IPhoneCallOrigin2 {
@@ -81,16 +71,11 @@ pub struct IPhoneCallOrigin2_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneCallOrigin3(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for IPhoneCallOrigin3 {
     type Vtable = IPhoneCallOrigin3_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for IPhoneCallOrigin3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for IPhoneCallOrigin3 {
@@ -113,16 +98,11 @@ pub struct IPhoneCallOrigin3_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneCallOriginManagerStatics(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for IPhoneCallOriginManagerStatics {
     type Vtable = IPhoneCallOriginManagerStatics_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for IPhoneCallOriginManagerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for IPhoneCallOriginManagerStatics {
@@ -149,16 +129,11 @@ pub struct IPhoneCallOriginManagerStatics_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneCallOriginManagerStatics2(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for IPhoneCallOriginManagerStatics2 {
     type Vtable = IPhoneCallOriginManagerStatics2_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for IPhoneCallOriginManagerStatics2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for IPhoneCallOriginManagerStatics2 {
@@ -177,16 +152,11 @@ pub struct IPhoneCallOriginManagerStatics2_Vtbl {
 #[doc(hidden)]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPhoneCallOriginManagerStatics3(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for IPhoneCallOriginManagerStatics3 {
     type Vtable = IPhoneCallOriginManagerStatics3_Vtbl;
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for IPhoneCallOriginManagerStatics3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::ComInterface for IPhoneCallOriginManagerStatics3 {
@@ -202,9 +172,10 @@ pub struct IPhoneCallOriginManagerStatics3_Vtbl {
     #[cfg(not(feature = "deprecated"))]
     IsSupported: usize,
 }
-#[doc = "*Required features: `\"ApplicationModel_Calls_Provider\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PhoneCallOrigin(::windows_core::IUnknown);
 #[cfg(feature = "deprecated")]
 impl PhoneCallOrigin {
@@ -215,7 +186,7 @@ impl PhoneCallOrigin {
         static SHARED: ::windows_core::imp::FactoryCache<PhoneCallOrigin, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Category(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -224,13 +195,13 @@ impl PhoneCallOrigin {
             (::windows_core::Interface::vtable(this).Category)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetCategory(&self, value: &::windows_core::HSTRING) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetCategory)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn CategoryDescription(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -239,13 +210,13 @@ impl PhoneCallOrigin {
             (::windows_core::Interface::vtable(this).CategoryDescription)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetCategoryDescription(&self, value: &::windows_core::HSTRING) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetCategoryDescription)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn Location(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = self;
@@ -254,13 +225,13 @@ impl PhoneCallOrigin {
             (::windows_core::Interface::vtable(this).Location)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetLocation(&self, value: &::windows_core::HSTRING) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetLocation)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn DisplayName(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = &::windows_core::ComInterface::cast::<IPhoneCallOrigin2>(self)?;
@@ -269,13 +240,13 @@ impl PhoneCallOrigin {
             (::windows_core::Interface::vtable(this).DisplayName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetDisplayName(&self, value: &::windows_core::HSTRING) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<IPhoneCallOrigin2>(self)?;
         unsafe { (::windows_core::Interface::vtable(this).SetDisplayName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
-    #[doc = "*Required features: `\"Storage\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Storage\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Storage", feature = "deprecated"))]
     pub fn DisplayPicture(&self) -> ::windows_core::Result<super::super::super::Storage::StorageFile> {
         let this = &::windows_core::ComInterface::cast::<IPhoneCallOrigin3>(self)?;
@@ -284,7 +255,7 @@ impl PhoneCallOrigin {
             (::windows_core::Interface::vtable(this).DisplayPicture)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Storage\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Storage\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Storage", feature = "deprecated"))]
     pub fn SetDisplayPicture<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -295,28 +266,8 @@ impl PhoneCallOrigin {
     }
 }
 #[cfg(feature = "deprecated")]
-impl ::core::cmp::PartialEq for PhoneCallOrigin {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "deprecated")]
-impl ::core::cmp::Eq for PhoneCallOrigin {}
-#[cfg(feature = "deprecated")]
-impl ::core::fmt::Debug for PhoneCallOrigin {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PhoneCallOrigin").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "deprecated")]
 impl ::windows_core::RuntimeType for PhoneCallOrigin {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.ApplicationModel.Calls.Provider.PhoneCallOrigin;{20613479-0ef9-4454-871c-afb66a14b6a5})");
-}
-#[cfg(feature = "deprecated")]
-impl ::core::clone::Clone for PhoneCallOrigin {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "deprecated")]
 unsafe impl ::windows_core::Interface for PhoneCallOrigin {
@@ -336,12 +287,12 @@ impl ::windows_core::RuntimeName for PhoneCallOrigin {
 unsafe impl ::core::marker::Send for PhoneCallOrigin {}
 #[cfg(feature = "deprecated")]
 unsafe impl ::core::marker::Sync for PhoneCallOrigin {}
-#[doc = "*Required features: `\"ApplicationModel_Calls_Provider\"`, `\"deprecated\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 pub struct PhoneCallOriginManager;
 #[cfg(feature = "deprecated")]
 impl PhoneCallOriginManager {
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn IsCurrentAppActiveCallOriginApp() -> ::windows_core::Result<bool> {
         Self::IPhoneCallOriginManagerStatics(|this| unsafe {
@@ -349,12 +300,12 @@ impl PhoneCallOriginManager {
             (::windows_core::Interface::vtable(this).IsCurrentAppActiveCallOriginApp)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn ShowPhoneCallOriginSettingsUI() -> ::windows_core::Result<()> {
         Self::IPhoneCallOriginManagerStatics(|this| unsafe { (::windows_core::Interface::vtable(this).ShowPhoneCallOriginSettingsUI)(::windows_core::Interface::as_raw(this)).ok() })
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn SetCallOrigin<P0>(requestid: ::windows_core::GUID, callorigin: P0) -> ::windows_core::Result<()>
     where
@@ -362,7 +313,7 @@ impl PhoneCallOriginManager {
     {
         Self::IPhoneCallOriginManagerStatics(|this| unsafe { (::windows_core::Interface::vtable(this).SetCallOrigin)(::windows_core::Interface::as_raw(this), requestid, callorigin.into_param().abi()).ok() })
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"deprecated\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
     #[cfg(all(feature = "Foundation", feature = "deprecated"))]
     pub fn RequestSetAsActiveCallOriginAppAsync() -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<bool>> {
         Self::IPhoneCallOriginManagerStatics2(|this| unsafe {
@@ -370,7 +321,7 @@ impl PhoneCallOriginManager {
             (::windows_core::Interface::vtable(this).RequestSetAsActiveCallOriginAppAsync)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"deprecated\"`*"]
+    #[doc = "Required features: `\"deprecated\"`"]
     #[cfg(feature = "deprecated")]
     pub fn IsSupported() -> ::windows_core::Result<bool> {
         Self::IPhoneCallOriginManagerStatics3(|this| unsafe {

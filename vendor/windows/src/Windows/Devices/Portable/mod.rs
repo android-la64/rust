@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IServiceDeviceStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IServiceDeviceStatics {
     type Vtable = IServiceDeviceStatics_Vtbl;
-}
-impl ::core::clone::Clone for IServiceDeviceStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IServiceDeviceStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa88214e1_59c7_4a20_aba6_9f6707937230);
@@ -21,14 +17,10 @@ pub struct IServiceDeviceStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IStorageDeviceStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IStorageDeviceStatics {
     type Vtable = IStorageDeviceStatics_Vtbl;
-}
-impl ::core::clone::Clone for IStorageDeviceStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IStorageDeviceStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x5ece44ee_1b23_4dd2_8652_bc164f003128);
@@ -43,7 +35,6 @@ pub struct IStorageDeviceStatics_Vtbl {
     FromId: usize,
     pub GetDeviceSelector: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut ::std::mem::MaybeUninit<::windows_core::HSTRING>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Devices_Portable\"`*"]
 pub struct ServiceDevice;
 impl ServiceDevice {
     pub fn GetDeviceSelector(servicetype: ServiceDeviceType) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -67,10 +58,9 @@ impl ServiceDevice {
 impl ::windows_core::RuntimeName for ServiceDevice {
     const NAME: &'static str = "Windows.Devices.Portable.ServiceDevice";
 }
-#[doc = "*Required features: `\"Devices_Portable\"`*"]
 pub struct StorageDevice;
 impl StorageDevice {
-    #[doc = "*Required features: `\"Storage\"`*"]
+    #[doc = "Required features: `\"Storage\"`"]
     #[cfg(feature = "Storage")]
     pub fn FromId(deviceid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Storage::StorageFolder> {
         Self::IStorageDeviceStatics(|this| unsafe {
@@ -93,7 +83,6 @@ impl StorageDevice {
 impl ::windows_core::RuntimeName for StorageDevice {
     const NAME: &'static str = "Windows.Devices.Portable.StorageDevice";
 }
-#[doc = "*Required features: `\"Devices_Portable\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ServiceDeviceType(pub i32);

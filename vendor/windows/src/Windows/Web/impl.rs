@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Web\"`, `\"Foundation\"`, `\"Storage_Streams\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`, `\"Storage_Streams\"`"]
 #[cfg(all(feature = "Foundation", feature = "Storage_Streams"))]
 pub trait IUriToStreamResolver_Impl: Sized {
     fn UriToStreamAsync(&self, uri: ::core::option::Option<&super::Foundation::Uri>) -> ::windows_core::Result<super::Foundation::IAsyncOperation<super::Storage::Streams::IInputStream>>;
@@ -27,7 +27,7 @@ impl IUriToStreamResolver_Vtbl {
             UriToStreamAsync: UriToStreamAsync::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IUriToStreamResolver as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IUriToStreamResolver as ::windows_core::ComInterface>::IID
     }
 }

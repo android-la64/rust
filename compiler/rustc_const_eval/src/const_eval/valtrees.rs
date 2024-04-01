@@ -138,7 +138,7 @@ pub(crate) fn const_to_valtree_inner<'tcx>(
         }
         // Trait objects are not allowed in type level constants, as we have no concept for
         // resolving their backing type, even if we can do that at const eval time. We may
-        // hypothetically be able to allow `dyn StructuralEq` trait objects in the future,
+        // hypothetically be able to allow `dyn StructuralPartialEq` trait objects in the future,
         // but it is unclear if this is useful.
         ty::Dynamic(..) => Err(ValTreeCreationError::NonSupportedType),
 
@@ -341,7 +341,7 @@ fn valtree_into_mplace<'tcx>(
         ty::FnDef(_, _) => {
             // Zero-sized type, nothing to do.
         }
-        ty::Bool | ty::Int(_) | ty::Uint(_) | ty::Float(_) | ty::Char => {
+        ty::Bool | ty::Int(_) | ty::Uint(_) | ty::Float(_) | ty::Char | ty::RawPtr(..) => {
             let scalar_int = valtree.unwrap_leaf();
             debug!("writing trivial valtree {:?} to place {:?}", scalar_int, place);
             ecx.write_immediate(Immediate::Scalar(scalar_int.into()), place).unwrap();

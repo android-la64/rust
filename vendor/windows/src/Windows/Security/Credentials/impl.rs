@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Security_Credentials\"`, `\"implement\"`*"]
 pub trait IWebAccount_Impl: Sized {
     fn WebAccountProvider(&self) -> ::windows_core::Result<WebAccountProvider>;
     fn UserName(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -51,7 +50,7 @@ impl IWebAccount_Vtbl {
             State: State::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebAccount as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebAccount as ::windows_core::ComInterface>::IID
     }
 }

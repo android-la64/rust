@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBattery(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IBattery {
     type Vtable = IBattery_Vtbl;
-}
-impl ::core::clone::Clone for IBattery {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBattery {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xbc894fc6_0072_47c8_8b5d_614aaa7a437e);
@@ -29,14 +25,10 @@ pub struct IBattery_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBatteryReport(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IBatteryReport {
     type Vtable = IBatteryReport_Vtbl;
-}
-impl ::core::clone::Clone for IBatteryReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBatteryReport {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc9858c3a_4e13_420a_a8d0_24f18f395401);
@@ -68,14 +60,10 @@ pub struct IBatteryReport_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBatteryStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IBatteryStatics {
     type Vtable = IBatteryStatics_Vtbl;
-}
-impl ::core::clone::Clone for IBatteryStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBatteryStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x79cd72b6_9e5e_4452_bea6_dfcd541e597f);
@@ -91,8 +79,8 @@ pub struct IBatteryStatics_Vtbl {
     FromIdAsync: usize,
     pub GetDeviceSelector: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut ::std::mem::MaybeUninit<::windows_core::HSTRING>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Devices_Power\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct Battery(::windows_core::IUnknown);
 impl Battery {
     pub fn DeviceId(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -109,7 +97,7 @@ impl Battery {
             (::windows_core::Interface::vtable(this).GetReport)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ReportUpdated<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -121,7 +109,7 @@ impl Battery {
             (::windows_core::Interface::vtable(this).ReportUpdated)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveReportUpdated(&self, token: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
@@ -133,7 +121,7 @@ impl Battery {
             (::windows_core::Interface::vtable(this).AggregateBattery)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FromIdAsync(deviceid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<Battery>> {
         Self::IBatteryStatics(|this| unsafe {
@@ -153,24 +141,8 @@ impl Battery {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for Battery {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for Battery {}
-impl ::core::fmt::Debug for Battery {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("Battery").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for Battery {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.Power.Battery;{bc894fc6-0072-47c8-8b5d-614aaa7a437e})");
-}
-impl ::core::clone::Clone for Battery {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for Battery {
     type Vtable = IBattery_Vtbl;
@@ -184,11 +156,11 @@ impl ::windows_core::RuntimeName for Battery {
 ::windows_core::imp::interface_hierarchy!(Battery, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for Battery {}
 unsafe impl ::core::marker::Sync for Battery {}
-#[doc = "*Required features: `\"Devices_Power\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct BatteryReport(::windows_core::IUnknown);
 impl BatteryReport {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ChargeRateInMilliwatts(&self) -> ::windows_core::Result<super::super::Foundation::IReference<i32>> {
         let this = self;
@@ -197,7 +169,7 @@ impl BatteryReport {
             (::windows_core::Interface::vtable(this).ChargeRateInMilliwatts)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn DesignCapacityInMilliwattHours(&self) -> ::windows_core::Result<super::super::Foundation::IReference<i32>> {
         let this = self;
@@ -206,7 +178,7 @@ impl BatteryReport {
             (::windows_core::Interface::vtable(this).DesignCapacityInMilliwattHours)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FullChargeCapacityInMilliwattHours(&self) -> ::windows_core::Result<super::super::Foundation::IReference<i32>> {
         let this = self;
@@ -215,7 +187,7 @@ impl BatteryReport {
             (::windows_core::Interface::vtable(this).FullChargeCapacityInMilliwattHours)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemainingCapacityInMilliwattHours(&self) -> ::windows_core::Result<super::super::Foundation::IReference<i32>> {
         let this = self;
@@ -224,7 +196,7 @@ impl BatteryReport {
             (::windows_core::Interface::vtable(this).RemainingCapacityInMilliwattHours)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"System_Power\"`*"]
+    #[doc = "Required features: `\"System_Power\"`"]
     #[cfg(feature = "System_Power")]
     pub fn Status(&self) -> ::windows_core::Result<super::super::System::Power::BatteryStatus> {
         let this = self;
@@ -234,24 +206,8 @@ impl BatteryReport {
         }
     }
 }
-impl ::core::cmp::PartialEq for BatteryReport {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for BatteryReport {}
-impl ::core::fmt::Debug for BatteryReport {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("BatteryReport").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for BatteryReport {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.Power.BatteryReport;{c9858c3a-4e13-420a-a8d0-24f18f395401})");
-}
-impl ::core::clone::Clone for BatteryReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for BatteryReport {
     type Vtable = IBatteryReport_Vtbl;

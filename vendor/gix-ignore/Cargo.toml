@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-ignore"
-version = "0.9.1"
+version = "0.10.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -43,10 +43,10 @@ version = "0.2.1"
 optional = true
 
 [dependencies.gix-glob]
-version = "^0.14.1"
+version = "^0.15.1"
 
 [dependencies.gix-path]
-version = "^0.10.1"
+version = "^0.10.3"
 
 [dependencies.serde]
 version = "1.0.114"

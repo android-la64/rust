@@ -21,7 +21,7 @@ use crate::core::config::{DryRun, SplitDebuginfo, TargetSelection};
 use crate::prepare_behaviour_dump_dir;
 use crate::utils::cache::{Cache, Interned, INTERNER};
 use crate::utils::helpers::{self, add_dylib_path, add_link_lib_path, exe, linker_args};
-use crate::utils::helpers::{libdir, linker_flags, output, t, LldThreads};
+use crate::utils::helpers::{check_cfg_arg, libdir, linker_flags, output, t, LldThreads};
 use crate::EXTRA_CHECK_CFGS;
 use crate::{Build, CLang, Crate, DocTests, GitRepo, Mode};
 
@@ -32,7 +32,6 @@ use clap::ValueEnum;
 use once_cell::sync::Lazy;
 
 #[cfg(test)]
-#[path = "../tests/builder.rs"]
 mod tests;
 
 pub struct Builder<'a> {
@@ -289,6 +288,18 @@ impl PathSet {
     }
 }
 
+const PATH_REMAP: &[(&str, &str)] = &[("rust-analyzer-proc-macro-srv", "proc-macro-srv-cli")];
+
+fn remap_paths(paths: &mut Vec<&Path>) {
+    for path in paths.iter_mut() {
+        for &(search, replace) in PATH_REMAP {
+            if path.to_str() == Some(search) {
+                *path = Path::new(replace)
+            }
+        }
+    }
+}
+
 impl StepDescription {
     fn from<S: Step>(kind: Kind) -> StepDescription {
         StepDescription {
@@ -360,6 +371,8 @@ impl StepDescription {
         // strip CurDir prefix if present
         let mut paths: Vec<_> =
             paths.into_iter().map(|p| p.strip_prefix(".").unwrap_or(p)).collect();
+
+        remap_paths(&mut paths);
 
         // Handle all test suite paths.
         // (This is separate from the loop below to avoid having to handle multiple paths in `is_suite_path` somehow.)
@@ -1184,7 +1197,7 @@ impl<'a> Builder<'a> {
         let mut dylib_path = helpers::dylib_path();
         dylib_path.insert(0, self.sysroot(run_compiler).join("lib"));
 
-        let mut cmd = Command::new(cargo_clippy.unwrap());
+        let mut cmd = Command::new(cargo_clippy);
         cmd.env(helpers::dylib_path_var(), env::join_paths(&dylib_path).unwrap());
         cmd.env("PATH", path);
         cmd
@@ -1207,11 +1220,6 @@ impl<'a> Builder<'a> {
             cmd.arg("-Dwarnings");
         }
         cmd.arg("-Znormalize-docs");
-
-        // Remove make-related flags that can cause jobserver problems.
-        cmd.env_remove("MAKEFLAGS");
-        cmd.env_remove("MFLAGS");
-
         cmd.args(linker_args(self, compiler.host, LldThreads::Yes));
         cmd
     }
@@ -1458,18 +1466,7 @@ impl<'a> Builder<'a> {
         rustflags.arg("-Zunstable-options");
         for (restricted_mode, name, values) in EXTRA_CHECK_CFGS {
             if *restricted_mode == None || *restricted_mode == Some(mode) {
-                // Creating a string of the values by concatenating each value:
-                // ',"tvos","watchos"' or '' (nothing) when there are no values
-                let values = match values {
-                    Some(values) => values
-                        .iter()
-                        .map(|val| [",", "\"", val, "\""])
-                        .flatten()
-                        .collect::<String>(),
-                    None => String::new(),
-                };
-                let values = values.strip_prefix(",").unwrap_or(&values); // remove the first `,`
-                rustflags.arg(&format!("--check-cfg=cfg({name},values({values}))"));
+                rustflags.arg(&check_cfg_arg(name, *values));
             }
         }
 
@@ -1801,15 +1798,20 @@ impl<'a> Builder<'a> {
         }
 
         if self.config.rust_remap_debuginfo {
-            // FIXME: handle vendored sources
-            let registry_src = t!(home::cargo_home()).join("registry").join("src");
             let mut env_var = OsString::new();
-            for entry in t!(std::fs::read_dir(registry_src)) {
-                if !env_var.is_empty() {
-                    env_var.push("\t");
-                }
-                env_var.push(t!(entry).path());
+            if self.config.vendor {
+                let vendor = self.build.src.join("vendor");
+                env_var.push(vendor);
                 env_var.push("=/rust/deps");
+            } else {
+                let registry_src = t!(home::cargo_home()).join("registry").join("src");
+                for entry in t!(std::fs::read_dir(registry_src)) {
+                    if !env_var.is_empty() {
+                        env_var.push("\t");
+                    }
+                    env_var.push(t!(entry).path());
+                    env_var.push("=/rust/deps");
+                }
             }
             cargo.env("RUSTC_CARGO_REGISTRY_SRC_TO_REMAP", env_var);
         }

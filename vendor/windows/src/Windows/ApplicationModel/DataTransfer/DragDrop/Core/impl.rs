@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"ApplicationModel_DataTransfer_DragDrop_Core\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait ICoreDropOperationTarget_Impl: Sized {
     fn EnterAsync(&self, draginfo: ::core::option::Option<&CoreDragInfo>, draguioverride: ::core::option::Option<&CoreDragUIOverride>) -> ::windows_core::Result<super::super::super::super::Foundation::IAsyncOperation<super::super::DataPackageOperation>>;
@@ -69,7 +69,7 @@ impl ICoreDropOperationTarget_Vtbl {
             DropAsync: DropAsync::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICoreDropOperationTarget as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICoreDropOperationTarget as ::windows_core::ComInterface>::IID
     }
 }

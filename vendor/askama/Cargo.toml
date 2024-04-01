@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.58"
+rust-version = "1.65"
 name = "askama"
-version = "0.12.0"
+version = "0.12.1"
 description = "Type-safe, compiled Jinja-like templates for Rust"
 homepage = "https://github.com/djc/askama"
 documentation = "https://docs.rs/askama"
@@ -27,7 +27,6 @@ keywords = [
 categories = ["template-engine"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/djc/askama"
-resolver = "1"
 
 [package.metadata.docs.rs]
 features = [
@@ -45,7 +44,7 @@ version = "0.12.0"
 version = "0.10.3"
 
 [dependencies.comrak]
-version = "0.16"
+version = "0.18"
 optional = true
 default-features = false
 

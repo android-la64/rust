@@ -24,7 +24,7 @@ Literals are tokens used in [literal expressions].
 
 #### Characters and strings
 
-|                                              | Example         | `#` sets\* | Characters  | Escapes             |
+|                                              | Example         | `#`&nbsp;sets[^nsets] | Characters  | Escapes             |
 |----------------------------------------------|-----------------|------------|-------------|---------------------|
 | [Character](#character-literals)             | `'H'`           | 0          | All Unicode | [Quote](#quote-escapes) & [ASCII](#ascii-escapes) & [Unicode](#unicode-escapes) |
 | [String](#string-literals)                   | `"hello"`       | 0          | All Unicode | [Quote](#quote-escapes) & [ASCII](#ascii-escapes) & [Unicode](#unicode-escapes) |
@@ -32,8 +32,10 @@ Literals are tokens used in [literal expressions].
 | [Byte](#byte-literals)                       | `b'H'`          | 0          | All ASCII   | [Quote](#quote-escapes) & [Byte](#byte-escapes)                               |
 | [Byte string](#byte-string-literals)         | `b"hello"`      | 0          | All ASCII   | [Quote](#quote-escapes) & [Byte](#byte-escapes)                               |
 | [Raw byte string](#raw-byte-string-literals) | `br#"hello"#`   | <256       | All ASCII   | `N/A`                                                      |
+| [C string](#c-string-literals)               | `c"hello"`      | 0          | All Unicode | [Quote](#quote-escapes) & [Byte](#byte-escapes) & [Unicode](#unicode-escapes)   |
+| [Raw C string](#raw-c-string-literals)       | `cr#"hello"#`   | <256       | All Unicode | `N/A`                                                                           |
 
-\* The number of `#`s on each side of the same literal must be equivalent.
+[^nsets]: The number of `#`s on each side of the same literal must be equivalent.
 
 #### ASCII escapes
 
@@ -72,7 +74,7 @@ Literals are tokens used in [literal expressions].
 
 #### Numbers
 
-| [Number literals](#number-literals)`*` | Example | Exponentiation |
+| [Number literals](#number-literals)[^nl] | Example | Exponentiation |
 |----------------------------------------|---------|----------------|
 | Decimal integer | `98_222` | `N/A` |
 | Hex integer | `0xff` | `N/A` |
@@ -80,7 +82,7 @@ Literals are tokens used in [literal expressions].
 | Binary integer | `0b1111_0000` | `N/A` |
 | Floating-point | `123.0E+77` | `Optional` |
 
-`*` All number literals allow `_` as a visual separator: `1_234.0E+18f64`
+[^nl]: All number literals allow `_` as a visual separator: `1_234.0E+18f64`
 
 #### Suffixes
 
@@ -154,30 +156,13 @@ A _string literal_ is a sequence of any Unicode characters enclosed within two
 `U+0022` (double-quote) characters, with the exception of `U+0022` itself,
 which must be _escaped_ by a preceding `U+005C` character (`\`).
 
-Line-breaks are allowed in string literals. A line-break is either a newline
-(`U+000A`) or a pair of carriage return and newline (`U+000D`, `U+000A`). Both
-byte sequences are normally translated to `U+000A`, but as a special exception,
-when an unescaped `U+005C` character (`\`) occurs immediately before a line
-break, then the line break character(s), and all immediately following
-` ` (`U+0020`), `\t` (`U+0009`), `\n` (`U+000A`) and `\r` (`U+0000D`) characters
-are ignored. Thus `a`, `b` and `c` are equal:
+Line-breaks are allowed in string literals.
+A line-break is either a newline (`U+000A`) or a pair of carriage return and newline (`U+000D`, `U+000A`).
+Both byte sequences are translated to `U+000A`.
 
-```rust
-let a = "foobar";
-let b = "foo\
-         bar";
-let c = "foo\
+When an unescaped `U+005C` character (`\`) occurs immediately before a line break, the line break does not appear in the string represented by the token.
+See [String continuation escapes] for details.
 
-     bar";
-
-assert_eq!(a, b);
-assert_eq!(b, c);
-```
-
-> Note: Rust skipping additional newlines (like in example `c`) is potentially confusing and
-> unexpected. This behavior may be adjusted in the future. Until a decision is made, it is
-> recommended to avoid relying on this, i.e. skipping multiple newlines with line continuations.
-> See [this issue](https://github.com/rust-lang/reference/pull/1042) for more information.
 
 #### Character escapes
 
@@ -272,7 +257,7 @@ preceded by the characters `U+0062` (`b`) and `U+0022` (double-quote), and
 followed by the character `U+0022`. If the character `U+0022` is present within
 the literal, it must be _escaped_ by a preceding `U+005C` (`\`) character.
 Alternatively, a byte string literal can be a _raw byte string literal_, defined
-below. The type of a byte string literal of length `n` is `&'static [u8; n]`.
+below.
 
 Some additional _escapes_ are available in either byte or non-raw byte string
 literals. An escape starts with a `U+005C` (`\`) and continues with one of the
@@ -328,6 +313,103 @@ b"\x52"; b"R"; br"R";                // R
 b"\\x52"; br"\x52";                  // \x52
 ```
 
+### C string and raw C string literals
+
+#### C string literals
+
+> **<sup>Lexer</sup>**\
+> C_STRING_LITERAL :\
+> &nbsp;&nbsp; `c"` (\
+> &nbsp;&nbsp; &nbsp;&nbsp; ~\[`"` `\` _IsolatedCR_ _NUL_]\
+> &nbsp;&nbsp; &nbsp;&nbsp; | BYTE_ESCAPE _except `\0` or `\x00`_\
+> &nbsp;&nbsp; &nbsp;&nbsp; | UNICODE_ESCAPE _except `\u{0}`, `\u{00}`, …, `\u{000000}`_\
+> &nbsp;&nbsp; &nbsp;&nbsp; | STRING_CONTINUE\
+> &nbsp;&nbsp; )<sup>\*</sup> `"` SUFFIX<sup>?</sup>
+
+A _C string literal_ is a sequence of Unicode characters and _escapes_,
+preceded by the characters `U+0063` (`c`) and `U+0022` (double-quote), and
+followed by the character `U+0022`. If the character `U+0022` is present within
+the literal, it must be _escaped_ by a preceding `U+005C` (`\`) character.
+Alternatively, a C string literal can be a _raw C string literal_, defined
+below. The type of a C string literal is [`&core::ffi::CStr`][CStr].
+
+[CStr]: ../core/ffi/struct.CStr.html
+
+C strings are implicitly terminated by byte `0x00`, so the C string literal
+`c""` is equivalent to manually constructing a `&CStr` from the byte string
+literal `b"\x00"`. Other than the implicit terminator, byte `0x00` is not
+permitted within a C string.
+
+Some additional _escapes_ are available in non-raw C string literals. An escape
+starts with a `U+005C` (`\`) and continues with one of the following forms:
+
+* A _byte escape_ escape starts with `U+0078` (`x`) and is followed by exactly
+  two _hex digits_. It denotes the byte equal to the provided hex value.
+* A _24-bit code point escape_ starts with `U+0075` (`u`) and is followed
+  by up to six _hex digits_ surrounded by braces `U+007B` (`{`) and `U+007D`
+  (`}`). It denotes the Unicode code point equal to the provided hex value,
+  encoded as UTF-8.
+* A _whitespace escape_ is one of the characters `U+006E` (`n`), `U+0072`
+  (`r`), or `U+0074` (`t`), denoting the bytes values `0x0A` (ASCII LF),
+  `0x0D` (ASCII CR) or `0x09` (ASCII HT) respectively.
+* The _backslash escape_ is the character `U+005C` (`\`) which must be
+  escaped in order to denote its ASCII encoding `0x5C`.
+
+A C string represents bytes with no defined encoding, but a C string literal
+may contain Unicode characters above `U+007F`. Such characters will be replaced
+with the bytes of that character's UTF-8 representation.
+
+The following C string literals are equivalent:
+
+```rust
+c"æ";        // LATIN SMALL LETTER AE (U+00E6)
+c"\u{00E6}";
+c"\xC3\xA6";
+```
+
+> **Edition Differences**: C string literals are accepted in the 2021 edition or
+> later. In earlier additions the token `c""` is lexed as `c ""`.
+
+#### Raw C string literals
+
+> **<sup>Lexer</sup>**\
+> RAW_C_STRING_LITERAL :\
+> &nbsp;&nbsp; `cr` RAW_C_STRING_CONTENT SUFFIX<sup>?</sup>
+>
+> RAW_C_STRING_CONTENT :\
+> &nbsp;&nbsp; &nbsp;&nbsp; `"` ( ~ _IsolatedCR_ _NUL_ )<sup>* (non-greedy)</sup> `"`\
+> &nbsp;&nbsp; | `#` RAW_C_STRING_CONTENT `#`
+
+Raw C string literals do not process any escapes. They start with the
+character `U+0063` (`c`), followed by `U+0072` (`r`), followed by fewer than 256
+of the character `U+0023` (`#`), and a `U+0022` (double-quote) character. The
+_raw C string body_ can contain any sequence of Unicode characters (other than
+`U+0000`) and is terminated only by another `U+0022` (double-quote) character,
+followed by the same number of `U+0023` (`#`) characters that preceded the
+opening `U+0022` (double-quote) character.
+
+All characters contained in the raw C string body represent themselves in UTF-8
+encoding. The characters `U+0022` (double-quote) (except when followed by at
+least as many `U+0023` (`#`) characters as were used to start the raw C string
+literal) or `U+005C` (`\`) do not have any special meaning.
+
+> **Edition Differences**: Raw C string literals are accepted in the 2021
+> edition or later. In earlier additions the token `cr""` is lexed as `cr ""`,
+> and `cr#""#` is lexed as `cr #""#` (which is non-grammatical).
+
+#### Examples for C string and raw C string literals
+
+```rust
+c"foo"; cr"foo";                     // foo
+c"\"foo\""; cr#""foo""#;             // "foo"
+
+c"foo #\"# bar";
+cr##"foo #"# bar"##;                 // foo #"# bar
+
+c"\x52"; c"R"; cr"R";                // R
+c"\\x52"; cr"\x52";                  // \x52
+```
+
 ### Number literals
 
 A _number literal_ is either an _integer literal_ or a _floating-point
@@ -376,7 +458,7 @@ An _integer literal_ has one of four forms:
 
 Like any literal, an integer literal may be followed (immediately, without any spaces) by a suffix as described above.
 The suffix may not begin with `e` or `E`, as that would be interpreted as the exponent of a floating-point literal.
-See [literal expressions] for the effect of these suffixes.
+See [Integer literal expressions] for the effect of these suffixes.
 
 Examples of integer literals which are accepted as literal expressions:
 
@@ -473,7 +555,7 @@ A _floating-point literal_ has one of two forms:
 Like integer literals, a floating-point literal may be followed by a
 suffix, so long as the pre-suffix part does not end with `U+002E` (`.`).
 The suffix may not begin with `e` or `E` if the literal does not include an exponent.
-See [literal expressions] for the effect of these suffixes.
+See [Floating-point literal expressions] for the effect of these suffixes.
 
 Examples of floating-point literals which are accepted as literal expressions:
 
@@ -608,6 +690,7 @@ usages and meanings are defined in the linked pages.
 | `::`   | PathSep     | [Path separator][paths]
 | `->`   | RArrow      | [Function return type][functions], [Closure return type][closures], [Function pointer type]
 | `=>`   | FatArrow    | [Match arms][match], [Macros]
+| `<-`   | LArrow      | The left arrow symbol has been unused since before Rust 1.0, but it is still treated as a single token
 | `#`    | Pound       | [Attributes]
 | `$`    | Dollar      | [Macros]
 | `?`    | Question    | [Question mark operator][question], [Questionably sized][sized], [Macro Kleene Matcher][macros]
@@ -628,9 +711,9 @@ them are referred to as "token trees" in [macros].  The three types of brackets 
 ## Reserved prefixes
 
 > **<sup>Lexer 2021+</sup>**\
-> RESERVED_TOKEN_DOUBLE_QUOTE : ( IDENTIFIER_OR_KEYWORD <sub>_Except `b` or `r` or `br`_</sub> | `_` ) `"`\
+> RESERVED_TOKEN_DOUBLE_QUOTE : ( IDENTIFIER_OR_KEYWORD <sub>_Except `b` or `c` or `r` or `br` or `cr`_</sub> | `_` ) `"`\
 > RESERVED_TOKEN_SINGLE_QUOTE : ( IDENTIFIER_OR_KEYWORD <sub>_Except `b`_</sub> | `_` ) `'`\
-> RESERVED_TOKEN_POUND : ( IDENTIFIER_OR_KEYWORD <sub>_Except `r` or `br`_</sub> | `_` ) `#`
+> RESERVED_TOKEN_POUND : ( IDENTIFIER_OR_KEYWORD <sub>_Except `r` or `br` or `cr`_</sub> | `_` ) `#`
 
 Some lexical forms known as _reserved prefixes_ are reserved for future use.
 
@@ -638,7 +721,7 @@ Source input which would otherwise be lexically interpreted as a non-raw identif
 
 Note that raw identifiers, raw string literals, and raw byte string literals may contain a `#` character but are not interpreted as containing a reserved prefix.
 
-Similarly the `r`, `b`, and `br` prefixes used in raw string literals, byte literals, byte string literals, and raw byte string literals are not interpreted as reserved prefixes.
+Similarly the `r`, `b`, `br`, `c`, and `cr` prefixes used in raw string literals, byte literals, byte string literals, raw byte string literals, C string literals, and raw C string literals are not interpreted as reserved prefixes.
 
 > **Edition Differences**: Starting with the 2021 edition, reserved prefixes are reported as an error by the lexer (in particular, they cannot be passed to macros).
 >
@@ -680,12 +763,14 @@ Similarly the `r`, `b`, and `br` prefixes used in raw string literals, byte lite
 [extern crates]: items/extern-crates.md
 [extern]: items/external-blocks.md
 [field]: expressions/field-expr.md
+[Floating-point literal expressions]: expressions/literal-expr.md#floating-point-literal-expressions
 [floating-point types]: types/numeric.md#floating-point-types
 [function pointer type]: types/function-pointer.md
 [functions]: items/functions.md
 [generics]: items/generics.md
 [identifier]: identifiers.md
 [if let]: expressions/if-expr.md#if-let-expressions
+[Integer literal expressions]: expressions/literal-expr.md#integer-literal-expressions
 [keywords]: keywords.md
 [lazy-bool]: expressions/operator-expr.md#lazy-boolean-operators
 [literal expressions]: expressions/literal-expr.md
@@ -704,6 +789,7 @@ Similarly the `r`, `b`, and `br` prefixes used in raw string literals, byte lite
 [raw pointers]: types/pointer.md#raw-pointers-const-and-mut
 [references]: types/pointer.md
 [sized]: trait-bounds.md#sized
+[String continuation escapes]: expressions/literal-expr.md#string-continuation-escapes
 [struct expressions]: expressions/struct-expr.md
 [trait bounds]: trait-bounds.md
 [tuple index]: expressions/tuple-expr.md#tuple-indexing-expressions

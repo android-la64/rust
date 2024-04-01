@@ -11,9 +11,9 @@
 
 [package]
 edition = "2018"
-rust-version = "1.38"
+rust-version = "1.61"
 name = "crossbeam-channel"
-version = "0.5.8"
+version = "0.5.9"
 description = "Multi-producer multi-consumer channels for message passing"
 homepage = "https://github.com/crossbeam-rs/crossbeam/tree/master/crossbeam-channel"
 readme = "README.md"
@@ -36,7 +36,7 @@ repository = "https://github.com/crossbeam-rs/crossbeam"
 version = "1"
 
 [dependencies.crossbeam-utils]
-version = "0.8"
+version = "0.8.17"
 optional = true
 default-features = false
 

@@ -16,10 +16,10 @@ use crate::{Resolver, ResolverArenas, Segment, ToNameBinding, VisResolutionError
 
 use rustc_ast::visit::{self, AssocCtxt, Visitor};
 use rustc_ast::{self as ast, AssocItem, AssocItemKind, MetaItemKind, StmtKind};
-use rustc_ast::{Block, Fn, ForeignItem, ForeignItemKind, Impl, Item, ItemKind, NodeId};
+use rustc_ast::{Block, ForeignItem, ForeignItemKind, Impl, Item, ItemKind, NodeId};
 use rustc_attr as attr;
 use rustc_data_structures::sync::Lrc;
-use rustc_errors::{struct_span_err, Applicability};
+use rustc_errors::{codes::*, struct_span_code_err, Applicability};
 use rustc_expand::expand::AstFragment;
 use rustc_hir::def::{self, *};
 use rustc_hir::def_id::{DefId, LocalDefId, CRATE_DEF_ID};
@@ -524,12 +524,12 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                             ident.name = crate_name;
                         }
 
-                        self.r.tcx.sess.emit_err(errors::CrateImported { span: item.span });
+                        self.r.dcx().emit_err(errors::CrateImported { span: item.span });
                     }
                 }
 
                 if ident.name == kw::Crate {
-                    self.r.tcx.sess.span_err(
+                    self.r.dcx().span_err(
                         ident.span,
                         "crate root imports need to be explicitly named: \
                          `use crate as name;`",
@@ -686,10 +686,7 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
             }
 
             // These items live in the value namespace.
-            ItemKind::Static(..) => {
-                self.r.define(parent, ident, ValueNS, (res, vis, sp, expansion));
-            }
-            ItemKind::Const(..) => {
+            ItemKind::Const(..) | ItemKind::Delegation(..) | ItemKind::Static(..) => {
                 self.r.define(parent, ident, ValueNS, (res, vis, sp, expansion));
             }
             ItemKind::Fn(..) => {
@@ -701,11 +698,11 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
             }
 
             // These items live in the type namespace.
-            ItemKind::TyAlias(..) => {
+            ItemKind::TyAlias(..) | ItemKind::TraitAlias(..) => {
                 self.r.define(parent, ident, TypeNS, (res, vis, sp, expansion));
             }
 
-            ItemKind::Enum(_, _) => {
+            ItemKind::Enum(_, _) | ItemKind::Trait(..) => {
                 let module = self.r.new_module(
                     Some(parent),
                     ModuleKind::Def(def_kind, def_id, ident.name),
@@ -715,10 +712,6 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                 );
                 self.r.define(parent, ident, TypeNS, (module, vis, sp, expansion));
                 self.parent_scope.module = module;
-            }
-
-            ItemKind::TraitAlias(..) => {
-                self.r.define(parent, ident, TypeNS, (res, vis, sp, expansion));
             }
 
             // These items live in both the type and value namespaces.
@@ -778,19 +771,6 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                 self.insert_field_visibilities_local(def_id, vdata);
             }
 
-            ItemKind::Trait(..) => {
-                // Add all the items within to a new module.
-                let module = self.r.new_module(
-                    Some(parent),
-                    ModuleKind::Def(def_kind, def_id, ident.name),
-                    expansion.to_expn_id(),
-                    item.span,
-                    parent.no_implicit_prelude,
-                );
-                self.r.define(parent, ident, TypeNS, (module, vis, sp, expansion));
-                self.parent_scope.module = module;
-            }
-
             // These items do not add names to modules.
             ItemKind::Impl(box Impl { of_trait: Some(..), .. }) => {
                 self.r.trait_impl_items.insert(local_def_id);
@@ -816,10 +796,9 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
 
         let (used, module, binding) = if orig_name.is_none() && ident.name == kw::SelfLower {
             self.r
-                .tcx
-                .sess
+                .dcx()
                 .struct_span_err(item.span, "`extern crate self;` requires renaming")
-                .span_suggestion(
+                .with_span_suggestion(
                     item.span,
                     "rename the `self` crate to be able to import it",
                     "extern crate self as name;",
@@ -867,7 +846,7 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                 if expansion != LocalExpnId::ROOT && orig_name.is_some() && !entry.is_import() {
                     let msg = "macro-expanded `extern crate` items cannot \
                                        shadow names passed with `--extern`";
-                    self.r.tcx.sess.span_err(item.span, msg);
+                    self.r.dcx().span_err(item.span, msg);
                     // `return` is intended to discard this binding because it's an
                     // unregistered ambiguity error which would result in a panic
                     // caused by inconsistency `path_res`
@@ -1000,7 +979,7 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
             let msg = format!("`{name}` is already in scope");
             let note =
                 "macro-expanded `#[macro_use]`s may not shadow existing macros (see RFC 1560)";
-            self.r.tcx.sess.struct_span_err(span, msg).note(note).emit();
+            self.r.dcx().struct_span_err(span, msg).with_note(note).emit();
         }
     }
 
@@ -1011,8 +990,8 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
         for attr in &item.attrs {
             if attr.has_name(sym::macro_use) {
                 if self.parent_scope.module.parent.is_some() {
-                    struct_span_err!(
-                        self.r.tcx.sess,
+                    struct_span_code_err!(
+                        self.r.dcx(),
                         item.span,
                         E0468,
                         "an `extern crate` loading macros must be at the crate root"
@@ -1021,14 +1000,11 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                 }
                 if let ItemKind::ExternCrate(Some(orig_name)) = item.kind {
                     if orig_name == kw::SelfLower {
-                        self.r
-                            .tcx
-                            .sess
-                            .emit_err(errors::MacroUseExternCrateSelf { span: attr.span });
+                        self.r.dcx().emit_err(errors::MacroUseExternCrateSelf { span: attr.span });
                     }
                 }
                 let ill_formed = |span| {
-                    struct_span_err!(self.r.tcx.sess, span, E0466, "bad macro import").emit();
+                    struct_span_code_err!(self.r.dcx(), span, E0466, "bad macro import").emit();
                 };
                 match attr.meta() {
                     Some(meta) => match meta.kind {
@@ -1053,9 +1029,9 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
             }
         }
 
-        let macro_use_import = |this: &Self, span| {
+        let macro_use_import = |this: &Self, span, warn_private| {
             this.r.arenas.alloc_import(ImportData {
-                kind: ImportKind::MacroUse,
+                kind: ImportKind::MacroUse { warn_private },
                 root_id: item.id,
                 parent_scope: this.parent_scope,
                 imported_module: Cell::new(Some(ModuleOrUniformRoot::Module(module))),
@@ -1072,11 +1048,25 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
 
         let allow_shadowing = self.parent_scope.expansion == LocalExpnId::ROOT;
         if let Some(span) = import_all {
-            let import = macro_use_import(self, span);
+            let import = macro_use_import(self, span, false);
             self.r.potentially_unused_imports.push(import);
             module.for_each_child(self, |this, ident, ns, binding| {
                 if ns == MacroNS {
-                    let imported_binding = this.r.import(binding, import);
+                    let imported_binding =
+                        if this.r.is_accessible_from(binding.vis, this.parent_scope.module) {
+                            this.r.import(binding, import)
+                        } else if !this.r.is_builtin_macro(binding.res())
+                            && !this.r.macro_use_prelude.contains_key(&ident.name)
+                        {
+                            // - `!r.is_builtin_macro(res)` excluding the built-in macros such as `Debug` or `Hash`.
+                            // - `!r.macro_use_prelude.contains_key(name)` excluding macros defined in other extern
+                            //    crates such as `std`.
+                            // FIXME: This branch should eventually be removed.
+                            let import = macro_use_import(this, span, true);
+                            this.r.import(binding, import)
+                        } else {
+                            return;
+                        };
                     this.add_macro_use_binding(ident.name, imported_binding, span, allow_shadowing);
                 }
             });
@@ -1089,7 +1079,7 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                     &self.parent_scope,
                 );
                 if let Ok(binding) = result {
-                    let import = macro_use_import(self, ident.span);
+                    let import = macro_use_import(self, ident.span, false);
                     self.r.potentially_unused_imports.push(import);
                     let imported_binding = self.r.import(binding, import);
                     self.add_macro_use_binding(
@@ -1099,8 +1089,8 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
                         allow_shadowing,
                     );
                 } else {
-                    struct_span_err!(
-                        self.r.tcx.sess,
+                    struct_span_code_err!(
+                        self.r.dcx(),
                         ident.span,
                         E0469,
                         "imported macro not found"
@@ -1117,21 +1107,17 @@ impl<'a, 'b, 'tcx> BuildReducedGraphVisitor<'a, 'b, 'tcx> {
         for attr in attrs {
             if attr.has_name(sym::macro_escape) {
                 let msg = "`#[macro_escape]` is a deprecated synonym for `#[macro_use]`";
-                let mut err = self.r.tcx.sess.struct_span_warn(attr.span, msg);
+                let mut err = self.r.dcx().struct_span_warn(attr.span, msg);
                 if let ast::AttrStyle::Inner = attr.style {
-                    err.help("try an outer attribute: `#[macro_use]`").emit();
-                } else {
-                    err.emit();
+                    err.help("try an outer attribute: `#[macro_use]`");
                 }
+                err.emit();
             } else if !attr.has_name(sym::macro_use) {
                 continue;
             }
 
             if !attr.is_word() {
-                self.r
-                    .tcx
-                    .sess
-                    .span_err(attr.span, "arguments to `macro_use` are not allowed here");
+                self.r.dcx().span_err(attr.span, "arguments to `macro_use` are not allowed here");
             }
             return true;
         }
@@ -1366,13 +1352,9 @@ impl<'a, 'b, 'tcx> Visitor<'b> for BuildReducedGraphVisitor<'a, 'b, 'tcx> {
 
         if ctxt == AssocCtxt::Trait {
             let ns = match item.kind {
-                AssocItemKind::Const(..) => ValueNS,
-                AssocItemKind::Fn(box Fn { ref sig, .. }) => {
-                    if sig.decl.has_self() {
-                        self.r.has_self.insert(local_def_id);
-                    }
-                    ValueNS
-                }
+                AssocItemKind::Const(..)
+                | AssocItemKind::Delegation(..)
+                | AssocItemKind::Fn(..) => ValueNS,
                 AssocItemKind::Type(..) => TypeNS,
                 AssocItemKind::MacCall(_) => bug!(), // handled above
             };

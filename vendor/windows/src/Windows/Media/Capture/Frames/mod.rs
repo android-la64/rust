@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAudioMediaFrame(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IAudioMediaFrame {
     type Vtable = IAudioMediaFrame_Vtbl;
-}
-impl ::core::clone::Clone for IAudioMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAudioMediaFrame {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa3a9feff_8021_441b_9a46_e7f0137b7981);
@@ -25,14 +21,10 @@ pub struct IAudioMediaFrame_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IBufferMediaFrame(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IBufferMediaFrame {
     type Vtable = IBufferMediaFrame_Vtbl;
-}
-impl ::core::clone::Clone for IBufferMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IBufferMediaFrame {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb5b153c7_9b84_4062_b79c_a365b2596854);
@@ -49,14 +41,10 @@ pub struct IBufferMediaFrame_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDepthMediaFrame(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDepthMediaFrame {
     type Vtable = IDepthMediaFrame_Vtbl;
-}
-impl ::core::clone::Clone for IDepthMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDepthMediaFrame {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x47135e4f_8549_45c0_925b_80d35efdb10a);
@@ -75,14 +63,10 @@ pub struct IDepthMediaFrame_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDepthMediaFrame2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDepthMediaFrame2 {
     type Vtable = IDepthMediaFrame2_Vtbl;
-}
-impl ::core::clone::Clone for IDepthMediaFrame2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDepthMediaFrame2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6cca473d_c4a4_4176_b0cd_33eae3b35aa3);
@@ -96,14 +80,10 @@ pub struct IDepthMediaFrame2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDepthMediaFrameFormat(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDepthMediaFrameFormat {
     type Vtable = IDepthMediaFrameFormat_Vtbl;
-}
-impl ::core::clone::Clone for IDepthMediaFrameFormat {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDepthMediaFrameFormat {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc312cf40_d729_453e_8780_2e04f140d28e);
@@ -117,14 +97,10 @@ pub struct IDepthMediaFrameFormat_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInfraredMediaFrame(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IInfraredMediaFrame {
     type Vtable = IInfraredMediaFrame_Vtbl;
-}
-impl ::core::clone::Clone for IInfraredMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInfraredMediaFrame {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3fd13503_004b_4f0e_91ac_465299b41658);
@@ -139,14 +115,10 @@ pub struct IInfraredMediaFrame_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameArrivedEventArgs(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameArrivedEventArgs {
     type Vtable = IMediaFrameArrivedEventArgs_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameArrivedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameArrivedEventArgs {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0b430add_a490_4435_ada1_9affd55239f7);
@@ -158,14 +130,10 @@ pub struct IMediaFrameArrivedEventArgs_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameFormat(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameFormat {
     type Vtable = IMediaFrameFormat_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameFormat {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameFormat {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x71902b4e_b279_4a97_a9db_bd5a2fb78f39);
@@ -188,14 +156,10 @@ pub struct IMediaFrameFormat_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameFormat2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameFormat2 {
     type Vtable = IMediaFrameFormat2_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameFormat2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameFormat2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x63856340_5e87_4c10_86d1_6df097a6c6a8);
@@ -211,14 +175,10 @@ pub struct IMediaFrameFormat2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameReader(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameReader {
     type Vtable = IMediaFrameReader_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameReader {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameReader {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe4c94395_2028_48ed_90b0_d1c1b162e24c);
@@ -247,14 +207,10 @@ pub struct IMediaFrameReader_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameReader2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameReader2 {
     type Vtable = IMediaFrameReader2_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameReader2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameReader2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x871127b3_8531_4050_87cc_a13733cf3e9b);
@@ -268,14 +224,10 @@ pub struct IMediaFrameReader2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameReference(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameReference {
     type Vtable = IMediaFrameReference_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameReference {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameReference {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf6b88641_f0dc_4044_8dc9_961cedd05bad);
@@ -307,14 +259,10 @@ pub struct IMediaFrameReference_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameReference2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameReference2 {
     type Vtable = IMediaFrameReference2_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameReference2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameReference2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xddbc3ecc_d5b2_49ef_836a_947d989b80c1);
@@ -327,14 +275,10 @@ pub struct IMediaFrameReference2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSource(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSource {
     type Vtable = IMediaFrameSource_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSource {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSource {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd6782953_90db_46a8_8add_2aa884a8d253);
@@ -369,14 +313,10 @@ pub struct IMediaFrameSource_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceController(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceController {
     type Vtable = IMediaFrameSourceController_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceController {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceController {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6d076635_316d_4b8f_b7b6_eeb04a8c6525);
@@ -400,14 +340,10 @@ pub struct IMediaFrameSourceController_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceController2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceController2 {
     type Vtable = IMediaFrameSourceController2_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceController2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceController2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xefc49fd4_fcf2_4a03_b4e4_ac9628739bee);
@@ -427,14 +363,10 @@ pub struct IMediaFrameSourceController2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceController3(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceController3 {
     type Vtable = IMediaFrameSourceController3_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceController3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceController3 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1f0cf815_2464_4651_b1e8_4a82dbdb54de);
@@ -450,14 +382,10 @@ pub struct IMediaFrameSourceController3_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceGetPropertyResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceGetPropertyResult {
     type Vtable = IMediaFrameSourceGetPropertyResult_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceGetPropertyResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceGetPropertyResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x088616c2_3a64_4bd5_bd2b_e7c898d2f37a);
@@ -471,14 +399,10 @@ pub struct IMediaFrameSourceGetPropertyResult_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceGroup(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceGroup {
     type Vtable = IMediaFrameSourceGroup_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceGroup {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceGroup {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7f605b87_4832_4b5f_ae3d_412faab37d34);
@@ -496,14 +420,10 @@ pub struct IMediaFrameSourceGroup_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceGroupStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceGroupStatics {
     type Vtable = IMediaFrameSourceGroupStatics_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceGroupStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceGroupStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1c48bfc5_436f_4508_94cf_d5d8b7326445);
@@ -524,14 +444,10 @@ pub struct IMediaFrameSourceGroupStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceInfo(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceInfo {
     type Vtable = IMediaFrameSourceInfo_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceInfo {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x87bdc9cd_4601_408f_91cf_038318cd0af3);
@@ -559,14 +475,10 @@ pub struct IMediaFrameSourceInfo_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceInfo2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceInfo2 {
     type Vtable = IMediaFrameSourceInfo2_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceInfo2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceInfo2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x195a7855_6457_42c6_a769_19b65bd32e6e);
@@ -583,14 +495,10 @@ pub struct IMediaFrameSourceInfo2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceInfo3(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceInfo3 {
     type Vtable = IMediaFrameSourceInfo3_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceInfo3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceInfo3 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xca824ab6_66ea_5885_a2b6_26c0eeec3c7b);
@@ -606,14 +514,10 @@ pub struct IMediaFrameSourceInfo3_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMediaFrameSourceInfo4(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMediaFrameSourceInfo4 {
     type Vtable = IMediaFrameSourceInfo4_Vtbl;
-}
-impl ::core::clone::Clone for IMediaFrameSourceInfo4 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMediaFrameSourceInfo4 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4817d721_85eb_470c_8f37_43ca5498e41d);
@@ -626,14 +530,10 @@ pub struct IMediaFrameSourceInfo4_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMultiSourceMediaFrameArrivedEventArgs(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMultiSourceMediaFrameArrivedEventArgs {
     type Vtable = IMultiSourceMediaFrameArrivedEventArgs_Vtbl;
-}
-impl ::core::clone::Clone for IMultiSourceMediaFrameArrivedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMultiSourceMediaFrameArrivedEventArgs {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x63115e01_cf51_48fd_aab0_6d693eb48127);
@@ -645,14 +545,10 @@ pub struct IMultiSourceMediaFrameArrivedEventArgs_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMultiSourceMediaFrameReader(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMultiSourceMediaFrameReader {
     type Vtable = IMultiSourceMediaFrameReader_Vtbl;
-}
-impl ::core::clone::Clone for IMultiSourceMediaFrameReader {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMultiSourceMediaFrameReader {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x8d144402_f763_488d_98f2_b437bcf075e7);
@@ -681,14 +577,10 @@ pub struct IMultiSourceMediaFrameReader_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMultiSourceMediaFrameReader2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMultiSourceMediaFrameReader2 {
     type Vtable = IMultiSourceMediaFrameReader2_Vtbl;
-}
-impl ::core::clone::Clone for IMultiSourceMediaFrameReader2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMultiSourceMediaFrameReader2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xef5c8abd_fc5c_4c6b_9d81_3cb9cc637c26);
@@ -702,14 +594,10 @@ pub struct IMultiSourceMediaFrameReader2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IMultiSourceMediaFrameReference(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IMultiSourceMediaFrameReference {
     type Vtable = IMultiSourceMediaFrameReference_Vtbl;
-}
-impl ::core::clone::Clone for IMultiSourceMediaFrameReference {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IMultiSourceMediaFrameReference {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x21964b1a_7fe2_44d6_92e5_298e6d2810e9);
@@ -722,14 +610,10 @@ pub struct IMultiSourceMediaFrameReference_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IVideoMediaFrame(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IVideoMediaFrame {
     type Vtable = IVideoMediaFrame_Vtbl;
-}
-impl ::core::clone::Clone for IVideoMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IVideoMediaFrame {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x00dd4ccb_32bd_4fe1_a013_7cc13cf5dbcf);
@@ -758,14 +642,10 @@ pub struct IVideoMediaFrame_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IVideoMediaFrameFormat(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IVideoMediaFrameFormat {
     type Vtable = IVideoMediaFrameFormat_Vtbl;
-}
-impl ::core::clone::Clone for IVideoMediaFrameFormat {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IVideoMediaFrameFormat {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x46027fc0_d71b_45c7_8f14_6d9a0ae604e4);
@@ -779,8 +659,8 @@ pub struct IVideoMediaFrameFormat_Vtbl {
     pub Width: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut u32) -> ::windows_core::HRESULT,
     pub Height: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct AudioMediaFrame(::windows_core::IUnknown);
 impl AudioMediaFrame {
     pub fn FrameReference(&self) -> ::windows_core::Result<MediaFrameReference> {
@@ -790,7 +670,7 @@ impl AudioMediaFrame {
             (::windows_core::Interface::vtable(this).FrameReference)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Media_MediaProperties\"`*"]
+    #[doc = "Required features: `\"Media_MediaProperties\"`"]
     #[cfg(feature = "Media_MediaProperties")]
     pub fn AudioEncodingProperties(&self) -> ::windows_core::Result<super::super::MediaProperties::AudioEncodingProperties> {
         let this = self;
@@ -807,24 +687,8 @@ impl AudioMediaFrame {
         }
     }
 }
-impl ::core::cmp::PartialEq for AudioMediaFrame {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for AudioMediaFrame {}
-impl ::core::fmt::Debug for AudioMediaFrame {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("AudioMediaFrame").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for AudioMediaFrame {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.AudioMediaFrame;{a3a9feff-8021-441b-9a46-e7f0137b7981})");
-}
-impl ::core::clone::Clone for AudioMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for AudioMediaFrame {
     type Vtable = IAudioMediaFrame_Vtbl;
@@ -838,8 +702,8 @@ impl ::windows_core::RuntimeName for AudioMediaFrame {
 ::windows_core::imp::interface_hierarchy!(AudioMediaFrame, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for AudioMediaFrame {}
 unsafe impl ::core::marker::Sync for AudioMediaFrame {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct BufferMediaFrame(::windows_core::IUnknown);
 impl BufferMediaFrame {
     pub fn FrameReference(&self) -> ::windows_core::Result<MediaFrameReference> {
@@ -849,7 +713,7 @@ impl BufferMediaFrame {
             (::windows_core::Interface::vtable(this).FrameReference)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn Buffer(&self) -> ::windows_core::Result<super::super::super::Storage::Streams::IBuffer> {
         let this = self;
@@ -859,24 +723,8 @@ impl BufferMediaFrame {
         }
     }
 }
-impl ::core::cmp::PartialEq for BufferMediaFrame {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for BufferMediaFrame {}
-impl ::core::fmt::Debug for BufferMediaFrame {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("BufferMediaFrame").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for BufferMediaFrame {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.BufferMediaFrame;{b5b153c7-9b84-4062-b79c-a365b2596854})");
-}
-impl ::core::clone::Clone for BufferMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for BufferMediaFrame {
     type Vtable = IBufferMediaFrame_Vtbl;
@@ -890,8 +738,8 @@ impl ::windows_core::RuntimeName for BufferMediaFrame {
 ::windows_core::imp::interface_hierarchy!(BufferMediaFrame, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for BufferMediaFrame {}
 unsafe impl ::core::marker::Sync for BufferMediaFrame {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct DepthMediaFrame(::windows_core::IUnknown);
 impl DepthMediaFrame {
     pub fn FrameReference(&self) -> ::windows_core::Result<MediaFrameReference> {
@@ -915,7 +763,7 @@ impl DepthMediaFrame {
             (::windows_core::Interface::vtable(this).DepthFormat)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Media_Devices_Core\"`, `\"Perception_Spatial\"`*"]
+    #[doc = "Required features: `\"Media_Devices_Core\"`, `\"Perception_Spatial\"`"]
     #[cfg(all(feature = "Media_Devices_Core", feature = "Perception_Spatial"))]
     pub fn TryCreateCoordinateMapper<P0, P1>(&self, cameraintrinsics: P0, coordinatesystem: P1) -> ::windows_core::Result<super::super::Devices::Core::DepthCorrelatedCoordinateMapper>
     where
@@ -943,24 +791,8 @@ impl DepthMediaFrame {
         }
     }
 }
-impl ::core::cmp::PartialEq for DepthMediaFrame {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for DepthMediaFrame {}
-impl ::core::fmt::Debug for DepthMediaFrame {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("DepthMediaFrame").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for DepthMediaFrame {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.DepthMediaFrame;{47135e4f-8549-45c0-925b-80d35efdb10a})");
-}
-impl ::core::clone::Clone for DepthMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for DepthMediaFrame {
     type Vtable = IDepthMediaFrame_Vtbl;
@@ -974,8 +806,8 @@ impl ::windows_core::RuntimeName for DepthMediaFrame {
 ::windows_core::imp::interface_hierarchy!(DepthMediaFrame, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for DepthMediaFrame {}
 unsafe impl ::core::marker::Sync for DepthMediaFrame {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct DepthMediaFrameFormat(::windows_core::IUnknown);
 impl DepthMediaFrameFormat {
     pub fn VideoFormat(&self) -> ::windows_core::Result<VideoMediaFrameFormat> {
@@ -993,24 +825,8 @@ impl DepthMediaFrameFormat {
         }
     }
 }
-impl ::core::cmp::PartialEq for DepthMediaFrameFormat {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for DepthMediaFrameFormat {}
-impl ::core::fmt::Debug for DepthMediaFrameFormat {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("DepthMediaFrameFormat").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for DepthMediaFrameFormat {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.DepthMediaFrameFormat;{c312cf40-d729-453e-8780-2e04f140d28e})");
-}
-impl ::core::clone::Clone for DepthMediaFrameFormat {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for DepthMediaFrameFormat {
     type Vtable = IDepthMediaFrameFormat_Vtbl;
@@ -1024,8 +840,8 @@ impl ::windows_core::RuntimeName for DepthMediaFrameFormat {
 ::windows_core::imp::interface_hierarchy!(DepthMediaFrameFormat, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for DepthMediaFrameFormat {}
 unsafe impl ::core::marker::Sync for DepthMediaFrameFormat {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct InfraredMediaFrame(::windows_core::IUnknown);
 impl InfraredMediaFrame {
     pub fn FrameReference(&self) -> ::windows_core::Result<MediaFrameReference> {
@@ -1050,24 +866,8 @@ impl InfraredMediaFrame {
         }
     }
 }
-impl ::core::cmp::PartialEq for InfraredMediaFrame {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for InfraredMediaFrame {}
-impl ::core::fmt::Debug for InfraredMediaFrame {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("InfraredMediaFrame").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for InfraredMediaFrame {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.InfraredMediaFrame;{3fd13503-004b-4f0e-91ac-465299b41658})");
-}
-impl ::core::clone::Clone for InfraredMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for InfraredMediaFrame {
     type Vtable = IInfraredMediaFrame_Vtbl;
@@ -1081,28 +881,12 @@ impl ::windows_core::RuntimeName for InfraredMediaFrame {
 ::windows_core::imp::interface_hierarchy!(InfraredMediaFrame, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for InfraredMediaFrame {}
 unsafe impl ::core::marker::Sync for InfraredMediaFrame {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaFrameArrivedEventArgs(::windows_core::IUnknown);
 impl MediaFrameArrivedEventArgs {}
-impl ::core::cmp::PartialEq for MediaFrameArrivedEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaFrameArrivedEventArgs {}
-impl ::core::fmt::Debug for MediaFrameArrivedEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaFrameArrivedEventArgs").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaFrameArrivedEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MediaFrameArrivedEventArgs;{0b430add-a490-4435-ada1-9affd55239f7})");
-}
-impl ::core::clone::Clone for MediaFrameArrivedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaFrameArrivedEventArgs {
     type Vtable = IMediaFrameArrivedEventArgs_Vtbl;
@@ -1116,8 +900,8 @@ impl ::windows_core::RuntimeName for MediaFrameArrivedEventArgs {
 ::windows_core::imp::interface_hierarchy!(MediaFrameArrivedEventArgs, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for MediaFrameArrivedEventArgs {}
 unsafe impl ::core::marker::Sync for MediaFrameArrivedEventArgs {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaFrameFormat(::windows_core::IUnknown);
 impl MediaFrameFormat {
     pub fn MajorType(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -1134,7 +918,7 @@ impl MediaFrameFormat {
             (::windows_core::Interface::vtable(this).Subtype)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Media_MediaProperties\"`*"]
+    #[doc = "Required features: `\"Media_MediaProperties\"`"]
     #[cfg(feature = "Media_MediaProperties")]
     pub fn FrameRate(&self) -> ::windows_core::Result<super::super::MediaProperties::MediaRatio> {
         let this = self;
@@ -1143,7 +927,7 @@ impl MediaFrameFormat {
             (::windows_core::Interface::vtable(this).FrameRate)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Properties(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IMapView<::windows_core::GUID, ::windows_core::IInspectable>> {
         let this = self;
@@ -1159,7 +943,7 @@ impl MediaFrameFormat {
             (::windows_core::Interface::vtable(this).VideoFormat)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Media_MediaProperties\"`*"]
+    #[doc = "Required features: `\"Media_MediaProperties\"`"]
     #[cfg(feature = "Media_MediaProperties")]
     pub fn AudioEncodingProperties(&self) -> ::windows_core::Result<super::super::MediaProperties::AudioEncodingProperties> {
         let this = &::windows_core::ComInterface::cast::<IMediaFrameFormat2>(self)?;
@@ -1169,24 +953,8 @@ impl MediaFrameFormat {
         }
     }
 }
-impl ::core::cmp::PartialEq for MediaFrameFormat {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaFrameFormat {}
-impl ::core::fmt::Debug for MediaFrameFormat {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaFrameFormat").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaFrameFormat {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MediaFrameFormat;{71902b4e-b279-4a97-a9db-bd5a2fb78f39})");
-}
-impl ::core::clone::Clone for MediaFrameFormat {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaFrameFormat {
     type Vtable = IMediaFrameFormat_Vtbl;
@@ -1200,17 +968,17 @@ impl ::windows_core::RuntimeName for MediaFrameFormat {
 ::windows_core::imp::interface_hierarchy!(MediaFrameFormat, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for MediaFrameFormat {}
 unsafe impl ::core::marker::Sync for MediaFrameFormat {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaFrameReader(::windows_core::IUnknown);
 impl MediaFrameReader {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Close(&self) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<super::super::super::Foundation::IClosable>(self)?;
         unsafe { (::windows_core::Interface::vtable(this).Close)(::windows_core::Interface::as_raw(this)).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FrameArrived<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -1222,7 +990,7 @@ impl MediaFrameReader {
             (::windows_core::Interface::vtable(this).FrameArrived)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveFrameArrived(&self, token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
@@ -1235,7 +1003,7 @@ impl MediaFrameReader {
             (::windows_core::Interface::vtable(this).TryAcquireLatestFrame)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn StartAsync(&self) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<MediaFrameReaderStartStatus>> {
         let this = self;
@@ -1244,7 +1012,7 @@ impl MediaFrameReader {
             (::windows_core::Interface::vtable(this).StartAsync)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn StopAsync(&self) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction> {
         let this = self;
@@ -1265,24 +1033,8 @@ impl MediaFrameReader {
         }
     }
 }
-impl ::core::cmp::PartialEq for MediaFrameReader {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaFrameReader {}
-impl ::core::fmt::Debug for MediaFrameReader {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaFrameReader").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaFrameReader {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MediaFrameReader;{e4c94395-2028-48ed-90b0-d1c1b162e24c})");
-}
-impl ::core::clone::Clone for MediaFrameReader {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaFrameReader {
     type Vtable = IMediaFrameReader_Vtbl;
@@ -1298,11 +1050,11 @@ impl ::windows_core::RuntimeName for MediaFrameReader {
 impl ::windows_core::CanTryInto<super::super::super::Foundation::IClosable> for MediaFrameReader {}
 unsafe impl ::core::marker::Send for MediaFrameReader {}
 unsafe impl ::core::marker::Sync for MediaFrameReader {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaFrameReference(::windows_core::IUnknown);
 impl MediaFrameReference {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Close(&self) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<super::super::super::Foundation::IClosable>(self)?;
@@ -1322,7 +1074,7 @@ impl MediaFrameReference {
             (::windows_core::Interface::vtable(this).Format)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SystemRelativeTime(&self) -> ::windows_core::Result<super::super::super::Foundation::IReference<super::super::super::Foundation::TimeSpan>> {
         let this = self;
@@ -1331,7 +1083,7 @@ impl MediaFrameReference {
             (::windows_core::Interface::vtable(this).SystemRelativeTime)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Duration(&self) -> ::windows_core::Result<super::super::super::Foundation::TimeSpan> {
         let this = self;
@@ -1340,7 +1092,7 @@ impl MediaFrameReference {
             (::windows_core::Interface::vtable(this).Duration)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Properties(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IMapView<::windows_core::GUID, ::windows_core::IInspectable>> {
         let this = self;
@@ -1363,7 +1115,7 @@ impl MediaFrameReference {
             (::windows_core::Interface::vtable(this).VideoMediaFrame)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Perception_Spatial\"`*"]
+    #[doc = "Required features: `\"Perception_Spatial\"`"]
     #[cfg(feature = "Perception_Spatial")]
     pub fn CoordinateSystem(&self) -> ::windows_core::Result<super::super::super::Perception::Spatial::SpatialCoordinateSystem> {
         let this = self;
@@ -1380,24 +1132,8 @@ impl MediaFrameReference {
         }
     }
 }
-impl ::core::cmp::PartialEq for MediaFrameReference {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaFrameReference {}
-impl ::core::fmt::Debug for MediaFrameReference {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaFrameReference").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaFrameReference {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MediaFrameReference;{f6b88641-f0dc-4044-8dc9-961cedd05bad})");
-}
-impl ::core::clone::Clone for MediaFrameReference {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaFrameReference {
     type Vtable = IMediaFrameReference_Vtbl;
@@ -1413,8 +1149,8 @@ impl ::windows_core::RuntimeName for MediaFrameReference {
 impl ::windows_core::CanTryInto<super::super::super::Foundation::IClosable> for MediaFrameReference {}
 unsafe impl ::core::marker::Send for MediaFrameReference {}
 unsafe impl ::core::marker::Sync for MediaFrameReference {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaFrameSource(::windows_core::IUnknown);
 impl MediaFrameSource {
     pub fn Info(&self) -> ::windows_core::Result<MediaFrameSourceInfo> {
@@ -1431,7 +1167,7 @@ impl MediaFrameSource {
             (::windows_core::Interface::vtable(this).Controller)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn SupportedFormats(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<MediaFrameFormat>> {
         let this = self;
@@ -1447,7 +1183,7 @@ impl MediaFrameSource {
             (::windows_core::Interface::vtable(this).CurrentFormat)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetFormatAsync<P0>(&self, format: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction>
     where
@@ -1459,7 +1195,7 @@ impl MediaFrameSource {
             (::windows_core::Interface::vtable(this).SetFormatAsync)(::windows_core::Interface::as_raw(this), format.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FormatChanged<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -1471,13 +1207,13 @@ impl MediaFrameSource {
             (::windows_core::Interface::vtable(this).FormatChanged)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveFormatChanged(&self, token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveFormatChanged)(::windows_core::Interface::as_raw(this), token).ok() }
     }
-    #[doc = "*Required features: `\"Media_Devices_Core\"`*"]
+    #[doc = "Required features: `\"Media_Devices_Core\"`"]
     #[cfg(feature = "Media_Devices_Core")]
     pub fn TryGetCameraIntrinsics<P0>(&self, format: P0) -> ::windows_core::Result<super::super::Devices::Core::CameraIntrinsics>
     where
@@ -1490,24 +1226,8 @@ impl MediaFrameSource {
         }
     }
 }
-impl ::core::cmp::PartialEq for MediaFrameSource {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaFrameSource {}
-impl ::core::fmt::Debug for MediaFrameSource {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaFrameSource").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaFrameSource {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MediaFrameSource;{d6782953-90db-46a8-8add-2aa884a8d253})");
-}
-impl ::core::clone::Clone for MediaFrameSource {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaFrameSource {
     type Vtable = IMediaFrameSource_Vtbl;
@@ -1521,11 +1241,11 @@ impl ::windows_core::RuntimeName for MediaFrameSource {
 ::windows_core::imp::interface_hierarchy!(MediaFrameSource, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for MediaFrameSource {}
 unsafe impl ::core::marker::Sync for MediaFrameSource {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaFrameSourceController(::windows_core::IUnknown);
 impl MediaFrameSourceController {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn GetPropertyAsync(&self, propertyid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<MediaFrameSourceGetPropertyResult>> {
         let this = self;
@@ -1534,7 +1254,7 @@ impl MediaFrameSourceController {
             (::windows_core::Interface::vtable(this).GetPropertyAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(propertyid), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetPropertyAsync<P0>(&self, propertyid: &::windows_core::HSTRING, propertyvalue: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<MediaFrameSourceSetPropertyStatus>>
     where
@@ -1546,7 +1266,7 @@ impl MediaFrameSourceController {
             (::windows_core::Interface::vtable(this).SetPropertyAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(propertyid), propertyvalue.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Media_Devices\"`*"]
+    #[doc = "Required features: `\"Media_Devices\"`"]
     #[cfg(feature = "Media_Devices")]
     pub fn VideoDeviceController(&self) -> ::windows_core::Result<super::super::Devices::VideoDeviceController> {
         let this = self;
@@ -1555,7 +1275,7 @@ impl MediaFrameSourceController {
             (::windows_core::Interface::vtable(this).VideoDeviceController)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn GetPropertyByExtendedIdAsync<P0>(&self, extendedpropertyid: &[u8], maxpropertyvaluesize: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<MediaFrameSourceGetPropertyResult>>
     where
@@ -1564,19 +1284,19 @@ impl MediaFrameSourceController {
         let this = &::windows_core::ComInterface::cast::<IMediaFrameSourceController2>(self)?;
         unsafe {
             let mut result__ = ::std::mem::zeroed();
-            (::windows_core::Interface::vtable(this).GetPropertyByExtendedIdAsync)(::windows_core::Interface::as_raw(this), extendedpropertyid.len() as u32, extendedpropertyid.as_ptr(), maxpropertyvaluesize.try_into_param()?.abi(), &mut result__).from_abi(result__)
+            (::windows_core::Interface::vtable(this).GetPropertyByExtendedIdAsync)(::windows_core::Interface::as_raw(this), extendedpropertyid.len().try_into().unwrap(), extendedpropertyid.as_ptr(), maxpropertyvaluesize.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetPropertyByExtendedIdAsync(&self, extendedpropertyid: &[u8], propertyvalue: &[u8]) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<MediaFrameSourceSetPropertyStatus>> {
         let this = &::windows_core::ComInterface::cast::<IMediaFrameSourceController2>(self)?;
         unsafe {
             let mut result__ = ::std::mem::zeroed();
-            (::windows_core::Interface::vtable(this).SetPropertyByExtendedIdAsync)(::windows_core::Interface::as_raw(this), extendedpropertyid.len() as u32, extendedpropertyid.as_ptr(), propertyvalue.len() as u32, propertyvalue.as_ptr(), &mut result__).from_abi(result__)
+            (::windows_core::Interface::vtable(this).SetPropertyByExtendedIdAsync)(::windows_core::Interface::as_raw(this), extendedpropertyid.len().try_into().unwrap(), extendedpropertyid.as_ptr(), propertyvalue.len().try_into().unwrap(), propertyvalue.as_ptr(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Media_Devices\"`*"]
+    #[doc = "Required features: `\"Media_Devices\"`"]
     #[cfg(feature = "Media_Devices")]
     pub fn AudioDeviceController(&self) -> ::windows_core::Result<super::super::Devices::AudioDeviceController> {
         let this = &::windows_core::ComInterface::cast::<IMediaFrameSourceController3>(self)?;
@@ -1586,24 +1306,8 @@ impl MediaFrameSourceController {
         }
     }
 }
-impl ::core::cmp::PartialEq for MediaFrameSourceController {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaFrameSourceController {}
-impl ::core::fmt::Debug for MediaFrameSourceController {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaFrameSourceController").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaFrameSourceController {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MediaFrameSourceController;{6d076635-316d-4b8f-b7b6-eeb04a8c6525})");
-}
-impl ::core::clone::Clone for MediaFrameSourceController {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaFrameSourceController {
     type Vtable = IMediaFrameSourceController_Vtbl;
@@ -1617,8 +1321,8 @@ impl ::windows_core::RuntimeName for MediaFrameSourceController {
 ::windows_core::imp::interface_hierarchy!(MediaFrameSourceController, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for MediaFrameSourceController {}
 unsafe impl ::core::marker::Sync for MediaFrameSourceController {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaFrameSourceGetPropertyResult(::windows_core::IUnknown);
 impl MediaFrameSourceGetPropertyResult {
     pub fn Status(&self) -> ::windows_core::Result<MediaFrameSourceGetPropertyStatus> {
@@ -1636,24 +1340,8 @@ impl MediaFrameSourceGetPropertyResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for MediaFrameSourceGetPropertyResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaFrameSourceGetPropertyResult {}
-impl ::core::fmt::Debug for MediaFrameSourceGetPropertyResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaFrameSourceGetPropertyResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaFrameSourceGetPropertyResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MediaFrameSourceGetPropertyResult;{088616c2-3a64-4bd5-bd2b-e7c898d2f37a})");
-}
-impl ::core::clone::Clone for MediaFrameSourceGetPropertyResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaFrameSourceGetPropertyResult {
     type Vtable = IMediaFrameSourceGetPropertyResult_Vtbl;
@@ -1667,8 +1355,8 @@ impl ::windows_core::RuntimeName for MediaFrameSourceGetPropertyResult {
 ::windows_core::imp::interface_hierarchy!(MediaFrameSourceGetPropertyResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for MediaFrameSourceGetPropertyResult {}
 unsafe impl ::core::marker::Sync for MediaFrameSourceGetPropertyResult {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaFrameSourceGroup(::windows_core::IUnknown);
 impl MediaFrameSourceGroup {
     pub fn Id(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -1685,7 +1373,7 @@ impl MediaFrameSourceGroup {
             (::windows_core::Interface::vtable(this).DisplayName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn SourceInfos(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<MediaFrameSourceInfo>> {
         let this = self;
@@ -1694,7 +1382,7 @@ impl MediaFrameSourceGroup {
             (::windows_core::Interface::vtable(this).SourceInfos)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn FindAllAsync() -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<super::super::super::Foundation::Collections::IVectorView<MediaFrameSourceGroup>>> {
         Self::IMediaFrameSourceGroupStatics(|this| unsafe {
@@ -1702,7 +1390,7 @@ impl MediaFrameSourceGroup {
             (::windows_core::Interface::vtable(this).FindAllAsync)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FromIdAsync(id: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<MediaFrameSourceGroup>> {
         Self::IMediaFrameSourceGroupStatics(|this| unsafe {
@@ -1722,24 +1410,8 @@ impl MediaFrameSourceGroup {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for MediaFrameSourceGroup {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaFrameSourceGroup {}
-impl ::core::fmt::Debug for MediaFrameSourceGroup {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaFrameSourceGroup").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaFrameSourceGroup {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MediaFrameSourceGroup;{7f605b87-4832-4b5f-ae3d-412faab37d34})");
-}
-impl ::core::clone::Clone for MediaFrameSourceGroup {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaFrameSourceGroup {
     type Vtable = IMediaFrameSourceGroup_Vtbl;
@@ -1753,8 +1425,8 @@ impl ::windows_core::RuntimeName for MediaFrameSourceGroup {
 ::windows_core::imp::interface_hierarchy!(MediaFrameSourceGroup, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for MediaFrameSourceGroup {}
 unsafe impl ::core::marker::Sync for MediaFrameSourceGroup {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MediaFrameSourceInfo(::windows_core::IUnknown);
 impl MediaFrameSourceInfo {
     pub fn Id(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -1785,7 +1457,7 @@ impl MediaFrameSourceInfo {
             (::windows_core::Interface::vtable(this).SourceGroup)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Devices_Enumeration\"`*"]
+    #[doc = "Required features: `\"Devices_Enumeration\"`"]
     #[cfg(feature = "Devices_Enumeration")]
     pub fn DeviceInformation(&self) -> ::windows_core::Result<super::super::super::Devices::Enumeration::DeviceInformation> {
         let this = self;
@@ -1794,7 +1466,7 @@ impl MediaFrameSourceInfo {
             (::windows_core::Interface::vtable(this).DeviceInformation)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Properties(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IMapView<::windows_core::GUID, ::windows_core::IInspectable>> {
         let this = self;
@@ -1803,7 +1475,7 @@ impl MediaFrameSourceInfo {
             (::windows_core::Interface::vtable(this).Properties)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Perception_Spatial\"`*"]
+    #[doc = "Required features: `\"Perception_Spatial\"`"]
     #[cfg(feature = "Perception_Spatial")]
     pub fn CoordinateSystem(&self) -> ::windows_core::Result<super::super::super::Perception::Spatial::SpatialCoordinateSystem> {
         let this = self;
@@ -1819,7 +1491,7 @@ impl MediaFrameSourceInfo {
             (::windows_core::Interface::vtable(this).ProfileId)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn VideoProfileMediaDescription(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<super::MediaCaptureVideoProfileMediaDescription>> {
         let this = &::windows_core::ComInterface::cast::<IMediaFrameSourceInfo2>(self)?;
@@ -1828,7 +1500,7 @@ impl MediaFrameSourceInfo {
             (::windows_core::Interface::vtable(this).VideoProfileMediaDescription)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Devices_Enumeration\"`, `\"UI_WindowManagement\"`*"]
+    #[doc = "Required features: `\"Devices_Enumeration\"`, `\"UI_WindowManagement\"`"]
     #[cfg(all(feature = "Devices_Enumeration", feature = "UI_WindowManagement"))]
     pub fn GetRelativePanel<P0>(&self, displayregion: P0) -> ::windows_core::Result<super::super::super::Devices::Enumeration::Panel>
     where
@@ -1848,24 +1520,8 @@ impl MediaFrameSourceInfo {
         }
     }
 }
-impl ::core::cmp::PartialEq for MediaFrameSourceInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MediaFrameSourceInfo {}
-impl ::core::fmt::Debug for MediaFrameSourceInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MediaFrameSourceInfo").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MediaFrameSourceInfo {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MediaFrameSourceInfo;{87bdc9cd-4601-408f-91cf-038318cd0af3})");
-}
-impl ::core::clone::Clone for MediaFrameSourceInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MediaFrameSourceInfo {
     type Vtable = IMediaFrameSourceInfo_Vtbl;
@@ -1879,28 +1535,12 @@ impl ::windows_core::RuntimeName for MediaFrameSourceInfo {
 ::windows_core::imp::interface_hierarchy!(MediaFrameSourceInfo, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for MediaFrameSourceInfo {}
 unsafe impl ::core::marker::Sync for MediaFrameSourceInfo {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MultiSourceMediaFrameArrivedEventArgs(::windows_core::IUnknown);
 impl MultiSourceMediaFrameArrivedEventArgs {}
-impl ::core::cmp::PartialEq for MultiSourceMediaFrameArrivedEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MultiSourceMediaFrameArrivedEventArgs {}
-impl ::core::fmt::Debug for MultiSourceMediaFrameArrivedEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MultiSourceMediaFrameArrivedEventArgs").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MultiSourceMediaFrameArrivedEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MultiSourceMediaFrameArrivedEventArgs;{63115e01-cf51-48fd-aab0-6d693eb48127})");
-}
-impl ::core::clone::Clone for MultiSourceMediaFrameArrivedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MultiSourceMediaFrameArrivedEventArgs {
     type Vtable = IMultiSourceMediaFrameArrivedEventArgs_Vtbl;
@@ -1914,17 +1554,17 @@ impl ::windows_core::RuntimeName for MultiSourceMediaFrameArrivedEventArgs {
 ::windows_core::imp::interface_hierarchy!(MultiSourceMediaFrameArrivedEventArgs, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for MultiSourceMediaFrameArrivedEventArgs {}
 unsafe impl ::core::marker::Sync for MultiSourceMediaFrameArrivedEventArgs {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MultiSourceMediaFrameReader(::windows_core::IUnknown);
 impl MultiSourceMediaFrameReader {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Close(&self) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<super::super::super::Foundation::IClosable>(self)?;
         unsafe { (::windows_core::Interface::vtable(this).Close)(::windows_core::Interface::as_raw(this)).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FrameArrived<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -1936,7 +1576,7 @@ impl MultiSourceMediaFrameReader {
             (::windows_core::Interface::vtable(this).FrameArrived)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveFrameArrived(&self, token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
@@ -1949,7 +1589,7 @@ impl MultiSourceMediaFrameReader {
             (::windows_core::Interface::vtable(this).TryAcquireLatestFrame)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn StartAsync(&self) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<MultiSourceMediaFrameReaderStartStatus>> {
         let this = self;
@@ -1958,7 +1598,7 @@ impl MultiSourceMediaFrameReader {
             (::windows_core::Interface::vtable(this).StartAsync)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn StopAsync(&self) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction> {
         let this = self;
@@ -1979,24 +1619,8 @@ impl MultiSourceMediaFrameReader {
         }
     }
 }
-impl ::core::cmp::PartialEq for MultiSourceMediaFrameReader {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MultiSourceMediaFrameReader {}
-impl ::core::fmt::Debug for MultiSourceMediaFrameReader {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MultiSourceMediaFrameReader").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MultiSourceMediaFrameReader {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MultiSourceMediaFrameReader;{8d144402-f763-488d-98f2-b437bcf075e7})");
-}
-impl ::core::clone::Clone for MultiSourceMediaFrameReader {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MultiSourceMediaFrameReader {
     type Vtable = IMultiSourceMediaFrameReader_Vtbl;
@@ -2012,11 +1636,11 @@ impl ::windows_core::RuntimeName for MultiSourceMediaFrameReader {
 impl ::windows_core::CanTryInto<super::super::super::Foundation::IClosable> for MultiSourceMediaFrameReader {}
 unsafe impl ::core::marker::Send for MultiSourceMediaFrameReader {}
 unsafe impl ::core::marker::Sync for MultiSourceMediaFrameReader {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct MultiSourceMediaFrameReference(::windows_core::IUnknown);
 impl MultiSourceMediaFrameReference {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Close(&self) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<super::super::super::Foundation::IClosable>(self)?;
@@ -2030,24 +1654,8 @@ impl MultiSourceMediaFrameReference {
         }
     }
 }
-impl ::core::cmp::PartialEq for MultiSourceMediaFrameReference {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for MultiSourceMediaFrameReference {}
-impl ::core::fmt::Debug for MultiSourceMediaFrameReference {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("MultiSourceMediaFrameReference").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for MultiSourceMediaFrameReference {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.MultiSourceMediaFrameReference;{21964b1a-7fe2-44d6-92e5-298e6d2810e9})");
-}
-impl ::core::clone::Clone for MultiSourceMediaFrameReference {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for MultiSourceMediaFrameReference {
     type Vtable = IMultiSourceMediaFrameReference_Vtbl;
@@ -2063,8 +1671,8 @@ impl ::windows_core::RuntimeName for MultiSourceMediaFrameReference {
 impl ::windows_core::CanTryInto<super::super::super::Foundation::IClosable> for MultiSourceMediaFrameReference {}
 unsafe impl ::core::marker::Send for MultiSourceMediaFrameReference {}
 unsafe impl ::core::marker::Sync for MultiSourceMediaFrameReference {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct VideoMediaFrame(::windows_core::IUnknown);
 impl VideoMediaFrame {
     pub fn FrameReference(&self) -> ::windows_core::Result<MediaFrameReference> {
@@ -2081,7 +1689,7 @@ impl VideoMediaFrame {
             (::windows_core::Interface::vtable(this).VideoFormat)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Graphics_Imaging\"`*"]
+    #[doc = "Required features: `\"Graphics_Imaging\"`"]
     #[cfg(feature = "Graphics_Imaging")]
     pub fn SoftwareBitmap(&self) -> ::windows_core::Result<super::super::super::Graphics::Imaging::SoftwareBitmap> {
         let this = self;
@@ -2090,7 +1698,7 @@ impl VideoMediaFrame {
             (::windows_core::Interface::vtable(this).SoftwareBitmap)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Graphics_DirectX_Direct3D11\"`*"]
+    #[doc = "Required features: `\"Graphics_DirectX_Direct3D11\"`"]
     #[cfg(feature = "Graphics_DirectX_Direct3D11")]
     pub fn Direct3DSurface(&self) -> ::windows_core::Result<super::super::super::Graphics::DirectX::Direct3D11::IDirect3DSurface> {
         let this = self;
@@ -2099,7 +1707,7 @@ impl VideoMediaFrame {
             (::windows_core::Interface::vtable(this).Direct3DSurface)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Media_Devices_Core\"`*"]
+    #[doc = "Required features: `\"Media_Devices_Core\"`"]
     #[cfg(feature = "Media_Devices_Core")]
     pub fn CameraIntrinsics(&self) -> ::windows_core::Result<super::super::Devices::Core::CameraIntrinsics> {
         let this = self;
@@ -2130,24 +1738,8 @@ impl VideoMediaFrame {
         }
     }
 }
-impl ::core::cmp::PartialEq for VideoMediaFrame {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for VideoMediaFrame {}
-impl ::core::fmt::Debug for VideoMediaFrame {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("VideoMediaFrame").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for VideoMediaFrame {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.VideoMediaFrame;{00dd4ccb-32bd-4fe1-a013-7cc13cf5dbcf})");
-}
-impl ::core::clone::Clone for VideoMediaFrame {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for VideoMediaFrame {
     type Vtable = IVideoMediaFrame_Vtbl;
@@ -2161,8 +1753,8 @@ impl ::windows_core::RuntimeName for VideoMediaFrame {
 ::windows_core::imp::interface_hierarchy!(VideoMediaFrame, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for VideoMediaFrame {}
 unsafe impl ::core::marker::Sync for VideoMediaFrame {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct VideoMediaFrameFormat(::windows_core::IUnknown);
 impl VideoMediaFrameFormat {
     pub fn MediaFrameFormat(&self) -> ::windows_core::Result<MediaFrameFormat> {
@@ -2194,24 +1786,8 @@ impl VideoMediaFrameFormat {
         }
     }
 }
-impl ::core::cmp::PartialEq for VideoMediaFrameFormat {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for VideoMediaFrameFormat {}
-impl ::core::fmt::Debug for VideoMediaFrameFormat {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("VideoMediaFrameFormat").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for VideoMediaFrameFormat {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Media.Capture.Frames.VideoMediaFrameFormat;{46027fc0-d71b-45c7-8f14-6d9a0ae604e4})");
-}
-impl ::core::clone::Clone for VideoMediaFrameFormat {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for VideoMediaFrameFormat {
     type Vtable = IVideoMediaFrameFormat_Vtbl;
@@ -2225,7 +1801,6 @@ impl ::windows_core::RuntimeName for VideoMediaFrameFormat {
 ::windows_core::imp::interface_hierarchy!(VideoMediaFrameFormat, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for VideoMediaFrameFormat {}
 unsafe impl ::core::marker::Sync for VideoMediaFrameFormat {}
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MediaFrameReaderAcquisitionMode(pub i32);
@@ -2255,7 +1830,6 @@ impl ::core::fmt::Debug for MediaFrameReaderAcquisitionMode {
 impl ::windows_core::RuntimeType for MediaFrameReaderAcquisitionMode {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Media.Capture.Frames.MediaFrameReaderAcquisitionMode;i4)");
 }
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MediaFrameReaderStartStatus(pub i32);
@@ -2288,7 +1862,6 @@ impl ::core::fmt::Debug for MediaFrameReaderStartStatus {
 impl ::windows_core::RuntimeType for MediaFrameReaderStartStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Media.Capture.Frames.MediaFrameReaderStartStatus;i4)");
 }
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MediaFrameSourceGetPropertyStatus(pub i32);
@@ -2322,7 +1895,6 @@ impl ::core::fmt::Debug for MediaFrameSourceGetPropertyStatus {
 impl ::windows_core::RuntimeType for MediaFrameSourceGetPropertyStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Media.Capture.Frames.MediaFrameSourceGetPropertyStatus;i4)");
 }
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MediaFrameSourceKind(pub i32);
@@ -2357,7 +1929,6 @@ impl ::core::fmt::Debug for MediaFrameSourceKind {
 impl ::windows_core::RuntimeType for MediaFrameSourceKind {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Media.Capture.Frames.MediaFrameSourceKind;i4)");
 }
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MediaFrameSourceSetPropertyStatus(pub i32);
@@ -2391,7 +1962,6 @@ impl ::core::fmt::Debug for MediaFrameSourceSetPropertyStatus {
 impl ::windows_core::RuntimeType for MediaFrameSourceSetPropertyStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Media.Capture.Frames.MediaFrameSourceSetPropertyStatus;i4)");
 }
-#[doc = "*Required features: `\"Media_Capture_Frames\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct MultiSourceMediaFrameReaderStartStatus(pub i32);

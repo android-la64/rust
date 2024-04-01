@@ -88,15 +88,15 @@ use self::unit_graph::UnitDep;
 use crate::core::compiler::future_incompat::FutureIncompatReport;
 pub use crate::core::compiler::unit::{Unit, UnitInterner};
 use crate::core::manifest::TargetSourcePath;
-use crate::core::profiles::{PanicStrategy, Profile, Strip};
+use crate::core::profiles::{PanicStrategy, Profile, StripInner};
 use crate::core::{Feature, PackageId, Target, Verbosity};
 use crate::util::errors::{CargoResult, VerboseError};
 use crate::util::interning::InternedString;
 use crate::util::machine_message::{self, Message};
-use crate::util::{add_path_args, internal, iter_join_onto, profile};
-use crate::util_schemas::manifest::TomlDebugInfo;
-use crate::util_schemas::manifest::TomlTrimPaths;
+use crate::util::{add_path_args, internal, profile};
 use cargo_util::{paths, ProcessBuilder, ProcessError};
+use cargo_util_schemas::manifest::TomlDebugInfo;
+use cargo_util_schemas::manifest::TomlTrimPaths;
 use rustfix::diagnostics::Applicability;
 
 const RUSTDOC_CRATE_VERSION_FLAG: &str = "--crate-version";
@@ -578,7 +578,7 @@ fn link_targets(cx: &mut Context<'_, '_>, unit: &Unit, fresh: bool) -> CargoResu
             };
 
             let msg = machine_message::Artifact {
-                package_id,
+                package_id: package_id.to_spec(),
                 manifest_path,
                 target: &target,
                 profile: art_profile,
@@ -762,6 +762,8 @@ fn prepare_rustdoc(cx: &Context<'_, '_>, unit: &Unit) -> CargoResult<ProcessBuil
     build_deps_args(&mut rustdoc, cx, unit)?;
     rustdoc::add_root_urls(cx, unit, &mut rustdoc)?;
 
+    rustdoc::add_output_format(cx, unit, &mut rustdoc)?;
+
     rustdoc.args(bcx.rustdocflags_args(unit));
 
     if !crate_version_flag_already_present(&rustdoc) {
@@ -910,9 +912,12 @@ fn add_cap_lints(bcx: &BuildContext<'_, '_>, unit: &Unit, cmd: &mut ProcessBuild
 /// [`-Zallow-features`]: https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#allow-features
 fn add_allow_features(cx: &Context<'_, '_>, cmd: &mut ProcessBuilder) {
     if let Some(allow) = &cx.bcx.config.cli_unstable().allow_features {
+        use std::fmt::Write;
         let mut arg = String::from("-Zallow-features=");
-        let _ = iter_join_onto(&mut arg, allow, ",");
-        cmd.arg(&arg);
+        for f in allow {
+            let _ = write!(&mut arg, "{f},");
+        }
+        cmd.arg(arg.trim_end_matches(','));
     }
 }
 
@@ -1130,7 +1135,8 @@ fn build_base_args(cx: &Context<'_, '_>, cmd: &mut ProcessBuilder, unit: &Unit) 
         opt(cmd, "-C", "incremental=", Some(dir));
     }
 
-    if strip != Strip::None {
+    let strip = strip.into_inner();
+    if strip != StripInner::None {
         cmd.arg("-C").arg(format!("strip={}", strip));
     }
 
@@ -1217,18 +1223,22 @@ fn trim_paths_args(
     let package_remap = {
         let pkg_root = unit.pkg.root();
         let ws_root = cx.bcx.ws.root();
-        let is_local = unit.pkg.package_id().source_id().is_path();
         let mut remap = OsString::from("--remap-path-prefix=");
-        // Remapped to path relative to workspace root:
+        // Remap rules for dependencies
         //
-        // * path dependencies under workspace root directory
-        //
-        // Remapped to `<pkg>-<version>`
-        //
-        // * registry dependencies
-        // * git dependencies
-        // * path dependencies outside workspace root directory
-        if is_local && pkg_root.strip_prefix(ws_root).is_ok() {
+        // * Git dependencies: remove ~/.cargo/git/checkouts prefix.
+        // * Registry dependencies: remove ~/.cargo/registry/src prefix.
+        // * Others (e.g. path dependencies):
+        //     * relative paths to workspace root if inside the workspace directory.
+        //     * otherwise remapped to `<pkg>-<version>`.
+        let source_id = unit.pkg.package_id().source_id();
+        if source_id.is_git() {
+            remap.push(cx.bcx.config.git_checkouts_path().as_path_unlocked());
+            remap.push("=");
+        } else if source_id.is_registry() {
+            remap.push(cx.bcx.config.registry_source_path().as_path_unlocked());
+            remap.push("=");
+        } else if pkg_root.strip_prefix(ws_root).is_ok() {
             remap.push(ws_root);
             remap.push("=."); // remap to relative rustc work dir explicitly
         } else {
@@ -1255,32 +1265,36 @@ fn trim_paths_args(
 /// [`check-cfg`]: https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#check-cfg
 fn check_cfg_args(cx: &Context<'_, '_>, unit: &Unit) -> Vec<OsString> {
     if cx.bcx.config.cli_unstable().check_cfg {
-        // This generate something like this:
-        //  - cfg()
-        //  - cfg(feature, values("foo", "bar"))
+        // The routine below generates the --check-cfg arguments. Our goals here are to
+        // enable the checking of conditionals and pass the list of declared features.
         //
-        // NOTE: Despite only explicitly specifying `feature`, well known names and values
-        // are implicitly enabled when one or more `--check-cfg` argument is passed.
-        // NOTE: Never generate a empty `values()` since it would mean that it's possible
-        // to have `cfg(feature)` without a feature name which is impossible.
+        // In the simplified case, it would resemble something like this:
+        //
+        //   --check-cfg=cfg() --check-cfg=cfg(feature, values(...))
+        //
+        // but having `cfg()` is redundant with the second argument (as well-known names
+        // and values are implicitly enabled when one or more `--check-cfg` argument is
+        // passed) so we don't emit it and just pass:
+        //
+        //   --check-cfg=cfg(feature, values(...))
+        //
+        // This way, even if there are no declared features, the config `feature` will
+        // still be expected, meaning users would get "unexpected value" instead of name.
+        // This wasn't always the case, see rust-lang#119930 for some details.
 
         let gross_cap_estimation = unit.pkg.summary().features().len() * 7 + 25;
         let mut arg_feature = OsString::with_capacity(gross_cap_estimation);
 
-        arg_feature.push("cfg(");
-        if !unit.pkg.summary().features().is_empty() {
-            arg_feature.push("feature, values(");
-            for (i, feature) in unit.pkg.summary().features().keys().enumerate() {
-                if i != 0 {
-                    arg_feature.push(", ");
-                }
-                arg_feature.push("\"");
-                arg_feature.push(feature);
-                arg_feature.push("\"");
+        arg_feature.push("cfg(feature, values(");
+        for (i, feature) in unit.pkg.summary().features().keys().enumerate() {
+            if i != 0 {
+                arg_feature.push(", ");
             }
-            arg_feature.push(")");
+            arg_feature.push("\"");
+            arg_feature.push(feature);
+            arg_feature.push("\"");
         }
-        arg_feature.push(")");
+        arg_feature.push("))");
 
         vec![
             OsString::from("-Zunstable-options"),
@@ -1749,7 +1763,7 @@ fn on_stderr_line_inner(
     }
 
     let msg = machine_message::FromCompiler {
-        package_id,
+        package_id: package_id.to_spec(),
         manifest_path,
         target,
         message: compiler_message,

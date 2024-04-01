@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-object"
-version = "0.102.0"
+version = "0.104.0"
 authors = ["The Cranelift Project Developers"]
 description = "Emit Cranelift output to native object files with `object`"
 documentation = "https://docs.rs/cranelift-object"
@@ -24,7 +24,7 @@ repository = "https://github.com/bytecodealliance/wasmtime"
 version = "1.0.22"
 
 [dependencies.cranelift-codegen]
-version = "0.102.0"
+version = "0.104.0"
 features = [
     "std",
     "unwind",
@@ -33,10 +33,10 @@ features = [
 default-features = false
 
 [dependencies.cranelift-control]
-version = "0.102.0"
+version = "0.104.0"
 
 [dependencies.cranelift-module]
-version = "0.102.0"
+version = "0.104.0"
 
 [dependencies.log]
 version = "0.4.8"
@@ -58,7 +58,16 @@ features = ["std"]
 default-features = false
 
 [dev-dependencies.cranelift-entity]
-version = "0.102.0"
+version = "0.104.0"
 
 [dev-dependencies.cranelift-frontend]
-version = "0.102.0"
+version = "0.104.0"
+
+[lints.clippy]
+all = "allow"
+
+[lints.rust]
+trivial_numeric_casts = "warn"
+unstable_features = "warn"
+unused_extern_crates = "warn"
+unused_import_braces = "warn"

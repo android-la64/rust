@@ -11,15 +11,14 @@
 
 [package]
 edition = "2021"
-rust-version = "1.58"
+rust-version = "1.65"
 name = "askama_derive"
-version = "0.12.1"
+version = "0.12.5"
 description = "Procedural macro package for Askama"
 homepage = "https://github.com/djc/askama"
 readme = "README.md"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/djc/askama"
-resolver = "1"
 
 [lib]
 proc-macro = true
@@ -34,8 +33,9 @@ version = "0.3"
 [dependencies.mime_guess]
 version = "2"
 
-[dependencies.nom]
-version = "7"
+[dependencies.parser]
+version = "0.2"
+package = "askama_parser"
 
 [dependencies.proc-macro2]
 version = "1"

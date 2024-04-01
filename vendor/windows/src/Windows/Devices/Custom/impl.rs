@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Devices_Custom\"`, `\"implement\"`*"]
 pub trait IIOControlCode_Impl: Sized {
     fn AccessMode(&self) -> ::windows_core::Result<IOControlAccessMode>;
     fn BufferingMethod(&self) -> ::windows_core::Result<IOControlBufferingMethod>;
@@ -75,7 +74,7 @@ impl IIOControlCode_Vtbl {
             ControlCode: ControlCode::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IIOControlCode as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IIOControlCode as ::windows_core::ComInterface>::IID
     }
 }

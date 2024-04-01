@@ -1,6 +1,6 @@
 use crate::FnCtxt;
 use rustc_errors::MultiSpan;
-use rustc_errors::{Applicability, Diagnostic, DiagnosticBuilder, ErrorGuaranteed};
+use rustc_errors::{Applicability, Diagnostic, DiagnosticBuilder};
 use rustc_hir as hir;
 use rustc_hir::def::Res;
 use rustc_hir::intravisit::Visitor;
@@ -44,7 +44,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             || self.suggest_non_zero_new_unwrap(err, expr, expected, expr_ty)
             || self.suggest_calling_boxed_future_when_appropriate(err, expr, expected, expr_ty)
             || self.suggest_no_capture_closure(err, expected, expr_ty)
-            || self.suggest_boxing_when_appropriate(err, expr.span, expr.hir_id, expected, expr_ty)
+            || self.suggest_boxing_when_appropriate(
+                err,
+                expr.peel_blocks().span,
+                expr.hir_id,
+                expected,
+                expr_ty,
+            )
             || self.suggest_block_to_brackets_peeling_refs(err, expr, expr_ty, expected)
             || self.suggest_copied_cloned_or_as_ref(err, expr, expr_ty, expected)
             || self.suggest_clone_for_ref(err, expr, expr_ty, expected)
@@ -158,7 +164,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// Requires that the two types unify, and prints an error message if
     /// they don't.
     pub fn demand_suptype(&self, sp: Span, expected: Ty<'tcx>, actual: Ty<'tcx>) {
-        if let Some(mut e) = self.demand_suptype_diag(sp, expected, actual) {
+        if let Some(e) = self.demand_suptype_diag(sp, expected, actual) {
             e.emit();
         }
     }
@@ -168,7 +174,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         sp: Span,
         expected: Ty<'tcx>,
         actual: Ty<'tcx>,
-    ) -> Option<DiagnosticBuilder<'tcx, ErrorGuaranteed>> {
+    ) -> Option<DiagnosticBuilder<'tcx>> {
         self.demand_suptype_with_origin(&self.misc(sp), expected, actual)
     }
 
@@ -178,7 +184,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         cause: &ObligationCause<'tcx>,
         expected: Ty<'tcx>,
         actual: Ty<'tcx>,
-    ) -> Option<DiagnosticBuilder<'tcx, ErrorGuaranteed>> {
+    ) -> Option<DiagnosticBuilder<'tcx>> {
         match self.at(cause, self.param_env).sup(DefineOpaqueTypes::Yes, expected, actual) {
             Ok(InferOk { obligations, value: () }) => {
                 self.register_predicates(obligations);
@@ -189,7 +195,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     }
 
     pub fn demand_eqtype(&self, sp: Span, expected: Ty<'tcx>, actual: Ty<'tcx>) {
-        if let Some(mut err) = self.demand_eqtype_diag(sp, expected, actual) {
+        if let Some(err) = self.demand_eqtype_diag(sp, expected, actual) {
             err.emit();
         }
     }
@@ -199,7 +205,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         sp: Span,
         expected: Ty<'tcx>,
         actual: Ty<'tcx>,
-    ) -> Option<DiagnosticBuilder<'tcx, ErrorGuaranteed>> {
+    ) -> Option<DiagnosticBuilder<'tcx>> {
         self.demand_eqtype_with_origin(&self.misc(sp), expected, actual)
     }
 
@@ -208,7 +214,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         cause: &ObligationCause<'tcx>,
         expected: Ty<'tcx>,
         actual: Ty<'tcx>,
-    ) -> Option<DiagnosticBuilder<'tcx, ErrorGuaranteed>> {
+    ) -> Option<DiagnosticBuilder<'tcx>> {
         match self.at(cause, self.param_env).eq(DefineOpaqueTypes::Yes, expected, actual) {
             Ok(InferOk { obligations, value: () }) => {
                 self.register_predicates(obligations);
@@ -228,7 +234,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     ) -> Ty<'tcx> {
         let (ty, err) =
             self.demand_coerce_diag(expr, checked_ty, expected, expected_ty_expr, allow_two_phase);
-        if let Some(mut err) = err {
+        if let Some(err) = err {
             err.emit();
         }
         ty
@@ -246,7 +252,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         expected: Ty<'tcx>,
         mut expected_ty_expr: Option<&'tcx hir::Expr<'tcx>>,
         allow_two_phase: AllowTwoPhase,
-    ) -> (Ty<'tcx>, Option<DiagnosticBuilder<'tcx, ErrorGuaranteed>>) {
+    ) -> (Ty<'tcx>, Option<DiagnosticBuilder<'tcx>>) {
         let expected = self.resolve_vars_with_obligations(expected);
 
         let e = match self.coerce(expr, checked_ty, expected, allow_two_phase, None) {
@@ -256,7 +262,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         self.adjust_expr_for_assert_eq_macro(&mut expr, &mut expected_ty_expr);
 
-        self.set_tainted_by_errors(self.tcx.sess.span_delayed_bug(
+        self.set_tainted_by_errors(self.dcx().span_delayed_bug(
             expr.span,
             "`TypeError` when attempting coercion but no error emitted",
         ));

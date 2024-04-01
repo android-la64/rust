@@ -1,6 +1,7 @@
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAutomaticUpdates(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IAutomaticUpdates {
@@ -16,13 +17,13 @@ impl IAutomaticUpdates {
     pub unsafe fn ShowSettingsDialog(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).ShowSettingsDialog)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Settings(&self) -> ::windows_core::Result<IAutomaticUpdatesSettings> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Settings)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ServiceEnabled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -35,28 +36,8 @@ impl IAutomaticUpdates {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IAutomaticUpdates, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IAutomaticUpdates {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IAutomaticUpdates {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IAutomaticUpdates {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAutomaticUpdates").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IAutomaticUpdates {
     type Vtable = IAutomaticUpdates_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IAutomaticUpdates {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IAutomaticUpdates {
@@ -81,9 +62,10 @@ pub struct IAutomaticUpdates_Vtbl {
     ServiceEnabled: usize,
     pub EnableService: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAutomaticUpdates2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IAutomaticUpdates2 {
@@ -99,13 +81,13 @@ impl IAutomaticUpdates2 {
     pub unsafe fn ShowSettingsDialog(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.ShowSettingsDialog)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Settings(&self) -> ::windows_core::Result<IAutomaticUpdatesSettings> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Settings)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ServiceEnabled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -114,7 +96,7 @@ impl IAutomaticUpdates2 {
     pub unsafe fn EnableService(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.EnableService)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Results(&self) -> ::windows_core::Result<IAutomaticUpdatesResults> {
         let mut result__ = ::std::mem::zeroed();
@@ -124,28 +106,8 @@ impl IAutomaticUpdates2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IAutomaticUpdates2, ::windows_core::IUnknown, super::Com::IDispatch, IAutomaticUpdates);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IAutomaticUpdates2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IAutomaticUpdates2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IAutomaticUpdates2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAutomaticUpdates2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IAutomaticUpdates2 {
     type Vtable = IAutomaticUpdates2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IAutomaticUpdates2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IAutomaticUpdates2 {
@@ -161,19 +123,20 @@ pub struct IAutomaticUpdates2_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Results: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAutomaticUpdatesResults(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IAutomaticUpdatesResults {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn LastSearchSuccessDate(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).LastSearchSuccessDate)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn LastInstallationSuccessDate(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
@@ -183,28 +146,8 @@ impl IAutomaticUpdatesResults {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IAutomaticUpdatesResults, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IAutomaticUpdatesResults {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IAutomaticUpdatesResults {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IAutomaticUpdatesResults {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAutomaticUpdatesResults").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IAutomaticUpdatesResults {
     type Vtable = IAutomaticUpdatesResults_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IAutomaticUpdatesResults {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IAutomaticUpdatesResults {
@@ -224,9 +167,10 @@ pub struct IAutomaticUpdatesResults_Vtbl {
     #[cfg(not(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant")))]
     LastInstallationSuccessDate: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAutomaticUpdatesSettings(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IAutomaticUpdatesSettings {
@@ -237,13 +181,13 @@ impl IAutomaticUpdatesSettings {
     pub unsafe fn SetNotificationLevel(&self, value: AutomaticUpdatesNotificationLevel) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).SetNotificationLevel)(::windows_core::Interface::as_raw(self), value).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ReadOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Required(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -273,28 +217,8 @@ impl IAutomaticUpdatesSettings {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IAutomaticUpdatesSettings, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IAutomaticUpdatesSettings {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IAutomaticUpdatesSettings {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IAutomaticUpdatesSettings {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAutomaticUpdatesSettings").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IAutomaticUpdatesSettings {
     type Vtable = IAutomaticUpdatesSettings_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IAutomaticUpdatesSettings {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IAutomaticUpdatesSettings {
@@ -322,9 +246,10 @@ pub struct IAutomaticUpdatesSettings_Vtbl {
     pub Refresh: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Save: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAutomaticUpdatesSettings2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IAutomaticUpdatesSettings2 {
@@ -335,13 +260,13 @@ impl IAutomaticUpdatesSettings2 {
     pub unsafe fn SetNotificationLevel(&self, value: AutomaticUpdatesNotificationLevel) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetNotificationLevel)(::windows_core::Interface::as_raw(self), value).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ReadOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Required(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -367,13 +292,13 @@ impl IAutomaticUpdatesSettings2 {
     pub unsafe fn Save(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.Save)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IncludeRecommendedUpdates(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IncludeRecommendedUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIncludeRecommendedUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -381,7 +306,7 @@ impl IAutomaticUpdatesSettings2 {
     {
         (::windows_core::Interface::vtable(self).SetIncludeRecommendedUpdates)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CheckPermission(&self, usertype: AutomaticUpdatesUserType, permissiontype: AutomaticUpdatesPermissionType) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -391,28 +316,8 @@ impl IAutomaticUpdatesSettings2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IAutomaticUpdatesSettings2, ::windows_core::IUnknown, super::Com::IDispatch, IAutomaticUpdatesSettings);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IAutomaticUpdatesSettings2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IAutomaticUpdatesSettings2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IAutomaticUpdatesSettings2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAutomaticUpdatesSettings2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IAutomaticUpdatesSettings2 {
     type Vtable = IAutomaticUpdatesSettings2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IAutomaticUpdatesSettings2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IAutomaticUpdatesSettings2 {
@@ -436,9 +341,10 @@ pub struct IAutomaticUpdatesSettings2_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     CheckPermission: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAutomaticUpdatesSettings3(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IAutomaticUpdatesSettings3 {
@@ -449,13 +355,13 @@ impl IAutomaticUpdatesSettings3 {
     pub unsafe fn SetNotificationLevel(&self, value: AutomaticUpdatesNotificationLevel) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.base__.SetNotificationLevel)(::windows_core::Interface::as_raw(self), value).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.ReadOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Required(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -481,13 +387,13 @@ impl IAutomaticUpdatesSettings3 {
     pub unsafe fn Save(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.base__.Save)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IncludeRecommendedUpdates(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IncludeRecommendedUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIncludeRecommendedUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -495,19 +401,19 @@ impl IAutomaticUpdatesSettings3 {
     {
         (::windows_core::Interface::vtable(self).base__.SetIncludeRecommendedUpdates)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CheckPermission(&self, usertype: AutomaticUpdatesUserType, permissiontype: AutomaticUpdatesPermissionType) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.CheckPermission)(::windows_core::Interface::as_raw(self), usertype, permissiontype, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn NonAdministratorsElevated(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).NonAdministratorsElevated)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetNonAdministratorsElevated<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -515,13 +421,13 @@ impl IAutomaticUpdatesSettings3 {
     {
         (::windows_core::Interface::vtable(self).SetNonAdministratorsElevated)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn FeaturedUpdatesEnabled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).FeaturedUpdatesEnabled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetFeaturedUpdatesEnabled<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -533,28 +439,8 @@ impl IAutomaticUpdatesSettings3 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IAutomaticUpdatesSettings3, ::windows_core::IUnknown, super::Com::IDispatch, IAutomaticUpdatesSettings, IAutomaticUpdatesSettings2);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IAutomaticUpdatesSettings3 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IAutomaticUpdatesSettings3 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IAutomaticUpdatesSettings3 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAutomaticUpdatesSettings3").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IAutomaticUpdatesSettings3 {
     type Vtable = IAutomaticUpdatesSettings3_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IAutomaticUpdatesSettings3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IAutomaticUpdatesSettings3 {
@@ -582,9 +468,10 @@ pub struct IAutomaticUpdatesSettings3_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     SetFeaturedUpdatesEnabled: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICategory(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl ICategory {
@@ -596,7 +483,7 @@ impl ICategory {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CategoryID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Children(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -606,7 +493,7 @@ impl ICategory {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
@@ -616,7 +503,7 @@ impl ICategory {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Order)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Parent(&self) -> ::windows_core::Result<ICategory> {
         let mut result__ = ::std::mem::zeroed();
@@ -626,7 +513,7 @@ impl ICategory {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Type)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Updates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -636,28 +523,8 @@ impl ICategory {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(ICategory, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for ICategory {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for ICategory {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for ICategory {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ICategory").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for ICategory {
     type Vtable = ICategory_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for ICategory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for ICategory {
@@ -690,13 +557,14 @@ pub struct ICategory_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Updates: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICategoryCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl ICategoryCollection {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn get_Item(&self, index: i32) -> ::windows_core::Result<ICategory> {
         let mut result__ = ::std::mem::zeroed();
@@ -714,28 +582,8 @@ impl ICategoryCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(ICategoryCollection, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for ICategoryCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for ICategoryCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for ICategoryCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ICategoryCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for ICategoryCollection {
     type Vtable = ICategoryCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for ICategoryCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for ICategoryCollection {
@@ -753,11 +601,11 @@ pub struct ICategoryCollection_Vtbl {
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDownloadCompletedCallback(::windows_core::IUnknown);
 impl IDownloadCompletedCallback {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Invoke<P0, P1>(&self, downloadjob: P0, callbackargs: P1) -> ::windows_core::Result<()>
     where
@@ -768,24 +616,8 @@ impl IDownloadCompletedCallback {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IDownloadCompletedCallback, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IDownloadCompletedCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IDownloadCompletedCallback {}
-impl ::core::fmt::Debug for IDownloadCompletedCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDownloadCompletedCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IDownloadCompletedCallback {
     type Vtable = IDownloadCompletedCallback_Vtbl;
-}
-impl ::core::clone::Clone for IDownloadCompletedCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDownloadCompletedCallback {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x77254866_9f5b_4c8e_b9e2_c77a8530d64b);
@@ -799,37 +631,18 @@ pub struct IDownloadCompletedCallback_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Invoke: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDownloadCompletedCallbackArgs(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IDownloadCompletedCallbackArgs {}
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IDownloadCompletedCallbackArgs, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IDownloadCompletedCallbackArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IDownloadCompletedCallbackArgs {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IDownloadCompletedCallbackArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDownloadCompletedCallbackArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IDownloadCompletedCallbackArgs {
     type Vtable = IDownloadCompletedCallbackArgs_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IDownloadCompletedCallbackArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IDownloadCompletedCallbackArgs {
@@ -841,25 +654,26 @@ unsafe impl ::windows_core::ComInterface for IDownloadCompletedCallbackArgs {
 pub struct IDownloadCompletedCallbackArgs_Vtbl {
     pub base__: super::Com::IDispatch_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDownloadJob(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IDownloadJob {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn AsyncState(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).AsyncState)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsCompleted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsCompleted)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Updates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -868,7 +682,7 @@ impl IDownloadJob {
     pub unsafe fn CleanUp(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).CleanUp)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetProgress(&self) -> ::windows_core::Result<IDownloadProgress> {
         let mut result__ = ::std::mem::zeroed();
@@ -881,28 +695,8 @@ impl IDownloadJob {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IDownloadJob, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IDownloadJob {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IDownloadJob {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IDownloadJob {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDownloadJob").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IDownloadJob {
     type Vtable = IDownloadJob_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IDownloadJob {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IDownloadJob {
@@ -932,19 +726,20 @@ pub struct IDownloadJob_Vtbl {
     GetProgress: usize,
     pub RequestAbort: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDownloadProgress(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IDownloadProgress {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CurrentUpdateBytesDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CurrentUpdateBytesDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CurrentUpdateBytesToDownload(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
@@ -958,19 +753,19 @@ impl IDownloadProgress {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).PercentComplete)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn TotalBytesDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).TotalBytesDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn TotalBytesToDownload(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).TotalBytesToDownload)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetUpdateResult(&self, updateindex: i32) -> ::windows_core::Result<IUpdateDownloadResult> {
         let mut result__ = ::std::mem::zeroed();
@@ -988,28 +783,8 @@ impl IDownloadProgress {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IDownloadProgress, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IDownloadProgress {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IDownloadProgress {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IDownloadProgress {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDownloadProgress").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IDownloadProgress {
     type Vtable = IDownloadProgress_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IDownloadProgress {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IDownloadProgress {
@@ -1045,11 +820,11 @@ pub struct IDownloadProgress_Vtbl {
     pub CurrentUpdateDownloadPhase: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut DownloadPhase) -> ::windows_core::HRESULT,
     pub CurrentUpdatePercentComplete: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDownloadProgressChangedCallback(::windows_core::IUnknown);
 impl IDownloadProgressChangedCallback {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Invoke<P0, P1>(&self, downloadjob: P0, callbackargs: P1) -> ::windows_core::Result<()>
     where
@@ -1060,24 +835,8 @@ impl IDownloadProgressChangedCallback {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IDownloadProgressChangedCallback, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IDownloadProgressChangedCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IDownloadProgressChangedCallback {}
-impl ::core::fmt::Debug for IDownloadProgressChangedCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDownloadProgressChangedCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IDownloadProgressChangedCallback {
     type Vtable = IDownloadProgressChangedCallback_Vtbl;
-}
-impl ::core::clone::Clone for IDownloadProgressChangedCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDownloadProgressChangedCallback {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x8c3f1cdd_6173_4591_aebd_a56a53ca77c1);
@@ -1091,13 +850,14 @@ pub struct IDownloadProgressChangedCallback_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Invoke: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDownloadProgressChangedCallbackArgs(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IDownloadProgressChangedCallbackArgs {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Progress(&self) -> ::windows_core::Result<IDownloadProgress> {
         let mut result__ = ::std::mem::zeroed();
@@ -1107,28 +867,8 @@ impl IDownloadProgressChangedCallbackArgs {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IDownloadProgressChangedCallbackArgs, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IDownloadProgressChangedCallbackArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IDownloadProgressChangedCallbackArgs {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IDownloadProgressChangedCallbackArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDownloadProgressChangedCallbackArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IDownloadProgressChangedCallbackArgs {
     type Vtable = IDownloadProgressChangedCallbackArgs_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IDownloadProgressChangedCallbackArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IDownloadProgressChangedCallbackArgs {
@@ -1144,9 +884,10 @@ pub struct IDownloadProgressChangedCallbackArgs_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Progress: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDownloadResult(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IDownloadResult {
@@ -1158,7 +899,7 @@ impl IDownloadResult {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ResultCode)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetUpdateResult(&self, updateindex: i32) -> ::windows_core::Result<IUpdateDownloadResult> {
         let mut result__ = ::std::mem::zeroed();
@@ -1168,28 +909,8 @@ impl IDownloadResult {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IDownloadResult, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IDownloadResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IDownloadResult {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IDownloadResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IDownloadResult").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IDownloadResult {
     type Vtable = IDownloadResult_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IDownloadResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IDownloadResult {
@@ -1207,9 +928,10 @@ pub struct IDownloadResult_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetUpdateResult: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IImageInformation(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IImageInformation {
@@ -1233,28 +955,8 @@ impl IImageInformation {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IImageInformation, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IImageInformation {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IImageInformation {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IImageInformation {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IImageInformation").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IImageInformation {
     type Vtable = IImageInformation_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IImageInformation {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IImageInformation {
@@ -1270,13 +972,14 @@ pub struct IImageInformation_Vtbl {
     pub Source: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub Width: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInstallationAgent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IInstallationAgent {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn RecordInstallationResult<P0, P1>(&self, installationresultcookie: P0, hresult: i32, extendedreportingdata: P1) -> ::windows_core::Result<()>
     where
@@ -1289,28 +992,8 @@ impl IInstallationAgent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IInstallationAgent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IInstallationAgent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IInstallationAgent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IInstallationAgent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInstallationAgent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IInstallationAgent {
     type Vtable = IInstallationAgent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IInstallationAgent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IInstallationAgent {
@@ -1326,13 +1009,14 @@ pub struct IInstallationAgent_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     RecordInstallationResult: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInstallationBehavior(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IInstallationBehavior {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequestUserInput(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -1346,7 +1030,7 @@ impl IInstallationBehavior {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).RebootBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RequiresNetworkConnectivity(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -1356,28 +1040,8 @@ impl IInstallationBehavior {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IInstallationBehavior, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IInstallationBehavior {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IInstallationBehavior {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IInstallationBehavior {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInstallationBehavior").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IInstallationBehavior {
     type Vtable = IInstallationBehavior_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IInstallationBehavior {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IInstallationBehavior {
@@ -1399,11 +1063,11 @@ pub struct IInstallationBehavior_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     RequiresNetworkConnectivity: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInstallationCompletedCallback(::windows_core::IUnknown);
 impl IInstallationCompletedCallback {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Invoke<P0, P1>(&self, installationjob: P0, callbackargs: P1) -> ::windows_core::Result<()>
     where
@@ -1414,24 +1078,8 @@ impl IInstallationCompletedCallback {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IInstallationCompletedCallback, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IInstallationCompletedCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IInstallationCompletedCallback {}
-impl ::core::fmt::Debug for IInstallationCompletedCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInstallationCompletedCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IInstallationCompletedCallback {
     type Vtable = IInstallationCompletedCallback_Vtbl;
-}
-impl ::core::clone::Clone for IInstallationCompletedCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInstallationCompletedCallback {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x45f4f6f3_d602_4f98_9a8a_3efa152ad2d3);
@@ -1445,37 +1093,18 @@ pub struct IInstallationCompletedCallback_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Invoke: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInstallationCompletedCallbackArgs(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IInstallationCompletedCallbackArgs {}
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IInstallationCompletedCallbackArgs, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IInstallationCompletedCallbackArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IInstallationCompletedCallbackArgs {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IInstallationCompletedCallbackArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInstallationCompletedCallbackArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IInstallationCompletedCallbackArgs {
     type Vtable = IInstallationCompletedCallbackArgs_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IInstallationCompletedCallbackArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IInstallationCompletedCallbackArgs {
@@ -1487,25 +1116,26 @@ unsafe impl ::windows_core::ComInterface for IInstallationCompletedCallbackArgs 
 pub struct IInstallationCompletedCallbackArgs_Vtbl {
     pub base__: super::Com::IDispatch_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInstallationJob(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IInstallationJob {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn AsyncState(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).AsyncState)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsCompleted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsCompleted)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Updates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -1514,7 +1144,7 @@ impl IInstallationJob {
     pub unsafe fn CleanUp(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).CleanUp)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetProgress(&self) -> ::windows_core::Result<IInstallationProgress> {
         let mut result__ = ::std::mem::zeroed();
@@ -1527,28 +1157,8 @@ impl IInstallationJob {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IInstallationJob, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IInstallationJob {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IInstallationJob {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IInstallationJob {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInstallationJob").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IInstallationJob {
     type Vtable = IInstallationJob_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IInstallationJob {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IInstallationJob {
@@ -1578,9 +1188,10 @@ pub struct IInstallationJob_Vtbl {
     GetProgress: usize,
     pub RequestAbort: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInstallationProgress(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IInstallationProgress {
@@ -1596,7 +1207,7 @@ impl IInstallationProgress {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).PercentComplete)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetUpdateResult(&self, updateindex: i32) -> ::windows_core::Result<IUpdateInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
@@ -1606,28 +1217,8 @@ impl IInstallationProgress {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IInstallationProgress, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IInstallationProgress {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IInstallationProgress {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IInstallationProgress {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInstallationProgress").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IInstallationProgress {
     type Vtable = IInstallationProgress_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IInstallationProgress {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IInstallationProgress {
@@ -1646,11 +1237,11 @@ pub struct IInstallationProgress_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetUpdateResult: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInstallationProgressChangedCallback(::windows_core::IUnknown);
 impl IInstallationProgressChangedCallback {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Invoke<P0, P1>(&self, installationjob: P0, callbackargs: P1) -> ::windows_core::Result<()>
     where
@@ -1661,24 +1252,8 @@ impl IInstallationProgressChangedCallback {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IInstallationProgressChangedCallback, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IInstallationProgressChangedCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IInstallationProgressChangedCallback {}
-impl ::core::fmt::Debug for IInstallationProgressChangedCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInstallationProgressChangedCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IInstallationProgressChangedCallback {
     type Vtable = IInstallationProgressChangedCallback_Vtbl;
-}
-impl ::core::clone::Clone for IInstallationProgressChangedCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInstallationProgressChangedCallback {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe01402d5_f8da_43ba_a012_38894bd048f1);
@@ -1692,13 +1267,14 @@ pub struct IInstallationProgressChangedCallback_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Invoke: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInstallationProgressChangedCallbackArgs(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IInstallationProgressChangedCallbackArgs {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Progress(&self) -> ::windows_core::Result<IInstallationProgress> {
         let mut result__ = ::std::mem::zeroed();
@@ -1708,28 +1284,8 @@ impl IInstallationProgressChangedCallbackArgs {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IInstallationProgressChangedCallbackArgs, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IInstallationProgressChangedCallbackArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IInstallationProgressChangedCallbackArgs {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IInstallationProgressChangedCallbackArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInstallationProgressChangedCallbackArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IInstallationProgressChangedCallbackArgs {
     type Vtable = IInstallationProgressChangedCallbackArgs_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IInstallationProgressChangedCallbackArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IInstallationProgressChangedCallbackArgs {
@@ -1745,9 +1301,10 @@ pub struct IInstallationProgressChangedCallbackArgs_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Progress: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInstallationResult(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IInstallationResult {
@@ -1755,7 +1312,7 @@ impl IInstallationResult {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).HResult)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -1765,7 +1322,7 @@ impl IInstallationResult {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ResultCode)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn GetUpdateResult(&self, updateindex: i32) -> ::windows_core::Result<IUpdateInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
@@ -1775,28 +1332,8 @@ impl IInstallationResult {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IInstallationResult, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IInstallationResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IInstallationResult {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IInstallationResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInstallationResult").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IInstallationResult {
     type Vtable = IInstallationResult_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IInstallationResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IInstallationResult {
@@ -1818,9 +1355,10 @@ pub struct IInstallationResult_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     GetUpdateResult: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInvalidProductLicenseException(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IInvalidProductLicenseException {
@@ -1844,28 +1382,8 @@ impl IInvalidProductLicenseException {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IInvalidProductLicenseException, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateException);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IInvalidProductLicenseException {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IInvalidProductLicenseException {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IInvalidProductLicenseException {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInvalidProductLicenseException").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IInvalidProductLicenseException {
     type Vtable = IInvalidProductLicenseException_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IInvalidProductLicenseException {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IInvalidProductLicenseException {
@@ -1878,11 +1396,11 @@ pub struct IInvalidProductLicenseException_Vtbl {
     pub base__: IUpdateException_Vtbl,
     pub Product: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchCompletedCallback(::windows_core::IUnknown);
 impl ISearchCompletedCallback {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Invoke<P0, P1>(&self, searchjob: P0, callbackargs: P1) -> ::windows_core::Result<()>
     where
@@ -1893,24 +1411,8 @@ impl ISearchCompletedCallback {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ISearchCompletedCallback, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ISearchCompletedCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ISearchCompletedCallback {}
-impl ::core::fmt::Debug for ISearchCompletedCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISearchCompletedCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ISearchCompletedCallback {
     type Vtable = ISearchCompletedCallback_Vtbl;
-}
-impl ::core::clone::Clone for ISearchCompletedCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISearchCompletedCallback {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x88aee058_d4b0_4725_a2f1_814a67ae964c);
@@ -1924,37 +1426,18 @@ pub struct ISearchCompletedCallback_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Invoke: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchCompletedCallbackArgs(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl ISearchCompletedCallbackArgs {}
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(ISearchCompletedCallbackArgs, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for ISearchCompletedCallbackArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for ISearchCompletedCallbackArgs {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for ISearchCompletedCallbackArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISearchCompletedCallbackArgs").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for ISearchCompletedCallbackArgs {
     type Vtable = ISearchCompletedCallbackArgs_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for ISearchCompletedCallbackArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for ISearchCompletedCallbackArgs {
@@ -1966,19 +1449,20 @@ unsafe impl ::windows_core::ComInterface for ISearchCompletedCallbackArgs {
 pub struct ISearchCompletedCallbackArgs_Vtbl {
     pub base__: super::Com::IDispatch_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchJob(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl ISearchJob {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn AsyncState(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).AsyncState)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsCompleted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -1994,28 +1478,8 @@ impl ISearchJob {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(ISearchJob, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for ISearchJob {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for ISearchJob {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for ISearchJob {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISearchJob").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for ISearchJob {
     type Vtable = ISearchJob_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for ISearchJob {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for ISearchJob {
@@ -2037,9 +1501,10 @@ pub struct ISearchJob_Vtbl {
     pub CleanUp: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub RequestAbort: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISearchResult(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl ISearchResult {
@@ -2047,19 +1512,19 @@ impl ISearchResult {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ResultCode)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn RootCategories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).RootCategories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Updates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Updates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Warnings(&self) -> ::windows_core::Result<IUpdateExceptionCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2069,28 +1534,8 @@ impl ISearchResult {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(ISearchResult, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for ISearchResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for ISearchResult {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for ISearchResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISearchResult").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for ISearchResult {
     type Vtable = ISearchResult_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for ISearchResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for ISearchResult {
@@ -2115,9 +1560,10 @@ pub struct ISearchResult_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Warnings: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IStringCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IStringCollection {
@@ -2139,7 +1585,7 @@ impl IStringCollection {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Count)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -2155,7 +1601,7 @@ impl IStringCollection {
     pub unsafe fn Clear(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Clear)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Copy(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2174,28 +1620,8 @@ impl IStringCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IStringCollection, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IStringCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IStringCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IStringCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IStringCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IStringCollection {
     type Vtable = IStringCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IStringCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IStringCollection {
@@ -2223,9 +1649,10 @@ pub struct IStringCollection_Vtbl {
     pub Insert: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, index: i32, value: ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub RemoveAt: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, index: i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISystemInformation(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl ISystemInformation {
@@ -2233,7 +1660,7 @@ impl ISystemInformation {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).OemHardwareSupportLink)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -2243,28 +1670,8 @@ impl ISystemInformation {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(ISystemInformation, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for ISystemInformation {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for ISystemInformation {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for ISystemInformation {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISystemInformation").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for ISystemInformation {
     type Vtable = ISystemInformation_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for ISystemInformation {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for ISystemInformation {
@@ -2281,9 +1688,10 @@ pub struct ISystemInformation_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     RebootRequired: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdate(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdate {
@@ -2291,43 +1699,43 @@ impl IUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -2337,7 +1745,7 @@ impl IUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -2351,43 +1759,43 @@ impl IUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -2395,25 +1803,25 @@ impl IUpdate {
     {
         (::windows_core::Interface::vtable(self).SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2423,19 +1831,19 @@ impl IUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2461,13 +1869,13 @@ impl IUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2485,19 +1893,19 @@ impl IUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2510,7 +1918,7 @@ impl IUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -2523,7 +1931,7 @@ impl IUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2533,28 +1941,8 @@ impl IUpdate {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdate, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdate {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdate {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdate {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdate").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdate {
     type Vtable = IUpdate_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdate {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdate {
@@ -2698,9 +2086,10 @@ pub struct IUpdate_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     DownloadContents: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdate2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdate2 {
@@ -2708,43 +2097,43 @@ impl IUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -2754,7 +2143,7 @@ impl IUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -2768,43 +2157,43 @@ impl IUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -2812,25 +2201,25 @@ impl IUpdate2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2840,19 +2229,19 @@ impl IUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2878,13 +2267,13 @@ impl IUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2902,19 +2291,19 @@ impl IUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -2927,7 +2316,7 @@ impl IUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -2940,31 +2329,31 @@ impl IUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DownloadContents)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).RebootRequired)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsPresent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsPresent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CveIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CveIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CopyToCache<P0>(&self, pfiles: P0) -> ::windows_core::Result<()>
     where
@@ -2976,28 +2365,8 @@ impl IUpdate2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdate2, ::windows_core::IUnknown, super::Com::IDispatch, IUpdate);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdate2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdate2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdate2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdate2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdate2 {
     type Vtable = IUpdate2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdate2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdate2 {
@@ -3025,9 +2394,10 @@ pub struct IUpdate2_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     CopyToCache: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdate3(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdate3 {
@@ -3035,43 +2405,43 @@ impl IUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3081,7 +2451,7 @@ impl IUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3095,43 +2465,43 @@ impl IUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -3139,25 +2509,25 @@ impl IUpdate3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3167,19 +2537,19 @@ impl IUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3205,13 +2575,13 @@ impl IUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3229,19 +2599,19 @@ impl IUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3254,7 +2624,7 @@ impl IUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -3267,31 +2637,31 @@ impl IUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DownloadContents)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.RebootRequired)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsPresent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsPresent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CveIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.CveIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CopyToCache<P0>(&self, pfiles: P0) -> ::windows_core::Result<()>
     where
@@ -3299,7 +2669,7 @@ impl IUpdate3 {
     {
         (::windows_core::Interface::vtable(self).base__.CopyToCache)(::windows_core::Interface::as_raw(self), pfiles.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn BrowseOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3309,28 +2679,8 @@ impl IUpdate3 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdate3, ::windows_core::IUnknown, super::Com::IDispatch, IUpdate, IUpdate2);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdate3 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdate3 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdate3 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdate3").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdate3 {
     type Vtable = IUpdate3_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdate3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdate3 {
@@ -3346,9 +2696,10 @@ pub struct IUpdate3_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     BrowseOnly: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdate4(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdate4 {
@@ -3356,43 +2707,43 @@ impl IUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3402,7 +2753,7 @@ impl IUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3416,43 +2767,43 @@ impl IUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -3460,25 +2811,25 @@ impl IUpdate4 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3488,19 +2839,19 @@ impl IUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3526,13 +2877,13 @@ impl IUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3550,19 +2901,19 @@ impl IUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3575,7 +2926,7 @@ impl IUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -3588,31 +2939,31 @@ impl IUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.DownloadContents)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.RebootRequired)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsPresent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsPresent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CveIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.CveIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CopyToCache<P0>(&self, pfiles: P0) -> ::windows_core::Result<()>
     where
@@ -3620,13 +2971,13 @@ impl IUpdate4 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.CopyToCache)(::windows_core::Interface::as_raw(self), pfiles.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn BrowseOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.BrowseOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PerUser(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3636,28 +2987,8 @@ impl IUpdate4 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdate4, ::windows_core::IUnknown, super::Com::IDispatch, IUpdate, IUpdate2, IUpdate3);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdate4 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdate4 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdate4 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdate4").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdate4 {
     type Vtable = IUpdate4_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdate4 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdate4 {
@@ -3673,9 +3004,10 @@ pub struct IUpdate4_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     PerUser: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdate5(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdate5 {
@@ -3683,43 +3015,43 @@ impl IUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3729,7 +3061,7 @@ impl IUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3743,43 +3075,43 @@ impl IUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -3787,25 +3119,25 @@ impl IUpdate5 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3815,19 +3147,19 @@ impl IUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3853,13 +3185,13 @@ impl IUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3877,19 +3209,19 @@ impl IUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -3902,7 +3234,7 @@ impl IUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -3915,31 +3247,31 @@ impl IUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.DownloadContents)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.RebootRequired)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsPresent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsPresent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CveIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.CveIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CopyToCache<P0>(&self, pfiles: P0) -> ::windows_core::Result<()>
     where
@@ -3947,13 +3279,13 @@ impl IUpdate5 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.CopyToCache)(::windows_core::Interface::as_raw(self), pfiles.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn BrowseOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.BrowseOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PerUser(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -3971,28 +3303,8 @@ impl IUpdate5 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdate5, ::windows_core::IUnknown, super::Com::IDispatch, IUpdate, IUpdate2, IUpdate3, IUpdate4);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdate5 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdate5 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdate5 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdate5").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdate5 {
     type Vtable = IUpdate5_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdate5 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdate5 {
@@ -4006,19 +3318,20 @@ pub struct IUpdate5_Vtbl {
     pub AutoSelection: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut AutoSelectionMode) -> ::windows_core::HRESULT,
     pub AutoDownload: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut AutoDownloadMode) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateCollection {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn get_Item(&self, index: i32) -> ::windows_core::Result<IUpdate> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).get_Item)(::windows_core::Interface::as_raw(self), index, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn put_Item<P0>(&self, index: i32, value: P0) -> ::windows_core::Result<()>
     where
@@ -4034,13 +3347,13 @@ impl IUpdateCollection {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Count)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ReadOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Add<P0>(&self, value: P0) -> ::windows_core::Result<i32>
     where
@@ -4052,13 +3365,13 @@ impl IUpdateCollection {
     pub unsafe fn Clear(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Clear)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Copy(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Copy)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Insert<P0>(&self, index: i32, value: P0) -> ::windows_core::Result<()>
     where
@@ -4073,28 +3386,8 @@ impl IUpdateCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateCollection, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateCollection {
     type Vtable = IUpdateCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateCollection {
@@ -4134,9 +3427,10 @@ pub struct IUpdateCollection_Vtbl {
     Insert: usize,
     pub RemoveAt: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, index: i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateDownloadContent(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateDownloadContent {
@@ -4148,28 +3442,8 @@ impl IUpdateDownloadContent {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateDownloadContent, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateDownloadContent {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateDownloadContent {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateDownloadContent {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateDownloadContent").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateDownloadContent {
     type Vtable = IUpdateDownloadContent_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateDownloadContent {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateDownloadContent {
@@ -4182,9 +3456,10 @@ pub struct IUpdateDownloadContent_Vtbl {
     pub base__: super::Com::IDispatch_Vtbl,
     pub DownloadUrl: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateDownloadContent2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateDownloadContent2 {
@@ -4192,7 +3467,7 @@ impl IUpdateDownloadContent2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DownloadUrl)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDeltaCompressedContent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -4202,28 +3477,8 @@ impl IUpdateDownloadContent2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateDownloadContent2, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateDownloadContent);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateDownloadContent2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateDownloadContent2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateDownloadContent2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateDownloadContent2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateDownloadContent2 {
     type Vtable = IUpdateDownloadContent2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateDownloadContent2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateDownloadContent2 {
@@ -4239,13 +3494,14 @@ pub struct IUpdateDownloadContent2_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     IsDeltaCompressedContent: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateDownloadContentCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateDownloadContentCollection {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn get_Item(&self, index: i32) -> ::windows_core::Result<IUpdateDownloadContent> {
         let mut result__ = ::std::mem::zeroed();
@@ -4263,28 +3519,8 @@ impl IUpdateDownloadContentCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateDownloadContentCollection, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateDownloadContentCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateDownloadContentCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateDownloadContentCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateDownloadContentCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateDownloadContentCollection {
     type Vtable = IUpdateDownloadContentCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateDownloadContentCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateDownloadContentCollection {
@@ -4302,9 +3538,10 @@ pub struct IUpdateDownloadContentCollection_Vtbl {
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateDownloadResult(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateDownloadResult {
@@ -4320,28 +3557,8 @@ impl IUpdateDownloadResult {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateDownloadResult, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateDownloadResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateDownloadResult {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateDownloadResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateDownloadResult").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateDownloadResult {
     type Vtable = IUpdateDownloadResult_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateDownloadResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateDownloadResult {
@@ -4355,9 +3572,10 @@ pub struct IUpdateDownloadResult_Vtbl {
     pub HResult: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
     pub ResultCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut OperationResultCode) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateDownloader(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateDownloader {
@@ -4371,13 +3589,13 @@ impl IUpdateDownloader {
     {
         (::windows_core::Interface::vtable(self).SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsForced(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsForced)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsForced<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -4392,13 +3610,13 @@ impl IUpdateDownloader {
     pub unsafe fn SetPriority(&self, value: DownloadPriority) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).SetPriority)(::windows_core::Interface::as_raw(self), value).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Updates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Updates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -4406,7 +3624,7 @@ impl IUpdateDownloader {
     {
         (::windows_core::Interface::vtable(self).SetUpdates)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginDownload<P0, P1>(&self, onprogresschanged: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<IDownloadJob>
     where
@@ -4416,13 +3634,13 @@ impl IUpdateDownloader {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).BeginDownload)(::windows_core::Interface::as_raw(self), onprogresschanged.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Download(&self) -> ::windows_core::Result<IDownloadResult> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Download)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndDownload<P0>(&self, value: P0) -> ::windows_core::Result<IDownloadResult>
     where
@@ -4435,28 +3653,8 @@ impl IUpdateDownloader {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateDownloader, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateDownloader {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateDownloader {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateDownloader {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateDownloader").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateDownloader {
     type Vtable = IUpdateDownloader_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateDownloader {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateDownloader {
@@ -4500,9 +3698,10 @@ pub struct IUpdateDownloader_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     EndDownload: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateException(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateException {
@@ -4522,28 +3721,8 @@ impl IUpdateException {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateException, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateException {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateException {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateException {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateException").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateException {
     type Vtable = IUpdateException_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateException {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateException {
@@ -4558,13 +3737,14 @@ pub struct IUpdateException_Vtbl {
     pub HResult: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
     pub Context: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut UpdateExceptionContext) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateExceptionCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateExceptionCollection {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn get_Item(&self, index: i32) -> ::windows_core::Result<IUpdateException> {
         let mut result__ = ::std::mem::zeroed();
@@ -4582,28 +3762,8 @@ impl IUpdateExceptionCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateExceptionCollection, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateExceptionCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateExceptionCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateExceptionCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateExceptionCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateExceptionCollection {
     type Vtable = IUpdateExceptionCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateExceptionCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateExceptionCollection {
@@ -4621,9 +3781,10 @@ pub struct IUpdateExceptionCollection_Vtbl {
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateHistoryEntry(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateHistoryEntry {
@@ -4643,7 +3804,7 @@ impl IUpdateHistoryEntry {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Date)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UpdateIdentity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
@@ -4673,7 +3834,7 @@ impl IUpdateHistoryEntry {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ServiceID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -4691,28 +3852,8 @@ impl IUpdateHistoryEntry {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateHistoryEntry, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateHistoryEntry {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateHistoryEntry {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateHistoryEntry {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateHistoryEntry").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateHistoryEntry {
     type Vtable = IUpdateHistoryEntry_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateHistoryEntry {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateHistoryEntry {
@@ -4744,9 +3885,10 @@ pub struct IUpdateHistoryEntry_Vtbl {
     pub UninstallationNotes: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub SupportUrl: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateHistoryEntry2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateHistoryEntry2 {
@@ -4766,7 +3908,7 @@ impl IUpdateHistoryEntry2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Date)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UpdateIdentity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
@@ -4796,7 +3938,7 @@ impl IUpdateHistoryEntry2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ServiceID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -4810,7 +3952,7 @@ impl IUpdateHistoryEntry2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.SupportUrl)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -4820,28 +3962,8 @@ impl IUpdateHistoryEntry2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateHistoryEntry2, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateHistoryEntry);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateHistoryEntry2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateHistoryEntry2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateHistoryEntry2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateHistoryEntry2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateHistoryEntry2 {
     type Vtable = IUpdateHistoryEntry2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateHistoryEntry2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateHistoryEntry2 {
@@ -4857,13 +3979,14 @@ pub struct IUpdateHistoryEntry2_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Categories: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateHistoryEntryCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateHistoryEntryCollection {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn get_Item(&self, index: i32) -> ::windows_core::Result<IUpdateHistoryEntry> {
         let mut result__ = ::std::mem::zeroed();
@@ -4881,28 +4004,8 @@ impl IUpdateHistoryEntryCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateHistoryEntryCollection, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateHistoryEntryCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateHistoryEntryCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateHistoryEntryCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateHistoryEntryCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateHistoryEntryCollection {
     type Vtable = IUpdateHistoryEntryCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateHistoryEntryCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateHistoryEntryCollection {
@@ -4920,9 +4023,10 @@ pub struct IUpdateHistoryEntryCollection_Vtbl {
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateIdentity(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateIdentity {
@@ -4938,28 +4042,8 @@ impl IUpdateIdentity {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateIdentity, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateIdentity {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateIdentity {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateIdentity {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateIdentity").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateIdentity {
     type Vtable = IUpdateIdentity_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateIdentity {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateIdentity {
@@ -4973,9 +4057,10 @@ pub struct IUpdateIdentity_Vtbl {
     pub RevisionNumber: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
     pub UpdateID: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateInstallationResult(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateInstallationResult {
@@ -4983,7 +4068,7 @@ impl IUpdateInstallationResult {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).HResult)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -4997,28 +4082,8 @@ impl IUpdateInstallationResult {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateInstallationResult, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateInstallationResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateInstallationResult {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateInstallationResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateInstallationResult").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateInstallationResult {
     type Vtable = IUpdateInstallationResult_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateInstallationResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateInstallationResult {
@@ -5036,9 +4101,10 @@ pub struct IUpdateInstallationResult_Vtbl {
     RebootRequired: usize,
     pub ResultCode: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut OperationResultCode) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateInstaller(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateInstaller {
@@ -5052,13 +4118,13 @@ impl IUpdateInstaller {
     {
         (::windows_core::Interface::vtable(self).SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsForced(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsForced)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsForced<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5066,13 +4132,13 @@ impl IUpdateInstaller {
     {
         (::windows_core::Interface::vtable(self).SetIsForced)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ParentHwnd(&self) -> ::windows_core::Result<super::super::Foundation::HWND> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ParentHwnd)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetParentHwnd<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5090,13 +4156,13 @@ impl IUpdateInstaller {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ParentWindow)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Updates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Updates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5104,7 +4170,7 @@ impl IUpdateInstaller {
     {
         (::windows_core::Interface::vtable(self).SetUpdates)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginInstall<P0, P1>(&self, onprogresschanged: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<IInstallationJob>
     where
@@ -5114,7 +4180,7 @@ impl IUpdateInstaller {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).BeginInstall)(::windows_core::Interface::as_raw(self), onprogresschanged.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginUninstall<P0, P1>(&self, onprogresschanged: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<IInstallationJob>
     where
@@ -5124,7 +4190,7 @@ impl IUpdateInstaller {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).BeginUninstall)(::windows_core::Interface::as_raw(self), onprogresschanged.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndInstall<P0>(&self, value: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5133,7 +4199,7 @@ impl IUpdateInstaller {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EndInstall)(::windows_core::Interface::as_raw(self), value.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndUninstall<P0>(&self, value: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5142,13 +4208,13 @@ impl IUpdateInstaller {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EndUninstall)(::windows_core::Interface::as_raw(self), value.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Install(&self) -> ::windows_core::Result<IInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Install)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn RunWizard<P0>(&self, dialogtitle: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5157,25 +4223,25 @@ impl IUpdateInstaller {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).RunWizard)(::windows_core::Interface::as_raw(self), dialogtitle.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBusy(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsBusy)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Uninstall(&self) -> ::windows_core::Result<IInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Uninstall)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AllowSourcePrompts(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).AllowSourcePrompts)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetAllowSourcePrompts<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5183,7 +4249,7 @@ impl IUpdateInstaller {
     {
         (::windows_core::Interface::vtable(self).SetAllowSourcePrompts)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequiredBeforeInstallation(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -5193,28 +4259,8 @@ impl IUpdateInstaller {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateInstaller, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateInstaller {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateInstaller {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateInstaller {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateInstaller").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateInstaller {
     type Vtable = IUpdateInstaller_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateInstaller {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateInstaller {
@@ -5298,9 +4344,10 @@ pub struct IUpdateInstaller_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     RebootRequiredBeforeInstallation: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateInstaller2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateInstaller2 {
@@ -5314,13 +4361,13 @@ impl IUpdateInstaller2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsForced(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsForced)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsForced<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5328,13 +4375,13 @@ impl IUpdateInstaller2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetIsForced)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ParentHwnd(&self) -> ::windows_core::Result<super::super::Foundation::HWND> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ParentHwnd)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetParentHwnd<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5352,13 +4399,13 @@ impl IUpdateInstaller2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ParentWindow)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Updates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Updates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5366,7 +4413,7 @@ impl IUpdateInstaller2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetUpdates)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginInstall<P0, P1>(&self, onprogresschanged: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<IInstallationJob>
     where
@@ -5376,7 +4423,7 @@ impl IUpdateInstaller2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.BeginInstall)(::windows_core::Interface::as_raw(self), onprogresschanged.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginUninstall<P0, P1>(&self, onprogresschanged: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<IInstallationJob>
     where
@@ -5386,7 +4433,7 @@ impl IUpdateInstaller2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.BeginUninstall)(::windows_core::Interface::as_raw(self), onprogresschanged.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndInstall<P0>(&self, value: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5395,7 +4442,7 @@ impl IUpdateInstaller2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.EndInstall)(::windows_core::Interface::as_raw(self), value.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndUninstall<P0>(&self, value: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5404,13 +4451,13 @@ impl IUpdateInstaller2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.EndUninstall)(::windows_core::Interface::as_raw(self), value.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Install(&self) -> ::windows_core::Result<IInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Install)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn RunWizard<P0>(&self, dialogtitle: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5419,25 +4466,25 @@ impl IUpdateInstaller2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.RunWizard)(::windows_core::Interface::as_raw(self), dialogtitle.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBusy(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsBusy)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Uninstall(&self) -> ::windows_core::Result<IInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Uninstall)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AllowSourcePrompts(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.AllowSourcePrompts)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetAllowSourcePrompts<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5445,19 +4492,19 @@ impl IUpdateInstaller2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetAllowSourcePrompts)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequiredBeforeInstallation(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.RebootRequiredBeforeInstallation)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ForceQuiet(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ForceQuiet)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetForceQuiet<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5469,28 +4516,8 @@ impl IUpdateInstaller2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateInstaller2, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateInstaller);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateInstaller2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateInstaller2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateInstaller2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateInstaller2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateInstaller2 {
     type Vtable = IUpdateInstaller2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateInstaller2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateInstaller2 {
@@ -5510,9 +4537,10 @@ pub struct IUpdateInstaller2_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     SetForceQuiet: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateInstaller3(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateInstaller3 {
@@ -5526,13 +4554,13 @@ impl IUpdateInstaller3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsForced(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsForced)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsForced<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5540,13 +4568,13 @@ impl IUpdateInstaller3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetIsForced)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ParentHwnd(&self) -> ::windows_core::Result<super::super::Foundation::HWND> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.ParentHwnd)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetParentHwnd<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5564,13 +4592,13 @@ impl IUpdateInstaller3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.ParentWindow)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Updates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Updates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5578,7 +4606,7 @@ impl IUpdateInstaller3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetUpdates)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginInstall<P0, P1>(&self, onprogresschanged: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<IInstallationJob>
     where
@@ -5588,7 +4616,7 @@ impl IUpdateInstaller3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.BeginInstall)(::windows_core::Interface::as_raw(self), onprogresschanged.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginUninstall<P0, P1>(&self, onprogresschanged: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<IInstallationJob>
     where
@@ -5598,7 +4626,7 @@ impl IUpdateInstaller3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.BeginUninstall)(::windows_core::Interface::as_raw(self), onprogresschanged.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndInstall<P0>(&self, value: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5607,7 +4635,7 @@ impl IUpdateInstaller3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.EndInstall)(::windows_core::Interface::as_raw(self), value.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndUninstall<P0>(&self, value: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5616,13 +4644,13 @@ impl IUpdateInstaller3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.EndUninstall)(::windows_core::Interface::as_raw(self), value.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Install(&self) -> ::windows_core::Result<IInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Install)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn RunWizard<P0>(&self, dialogtitle: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5631,25 +4659,25 @@ impl IUpdateInstaller3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.RunWizard)(::windows_core::Interface::as_raw(self), dialogtitle.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBusy(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsBusy)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Uninstall(&self) -> ::windows_core::Result<IInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Uninstall)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AllowSourcePrompts(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.AllowSourcePrompts)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetAllowSourcePrompts<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5657,19 +4685,19 @@ impl IUpdateInstaller3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetAllowSourcePrompts)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequiredBeforeInstallation(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.RebootRequiredBeforeInstallation)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ForceQuiet(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ForceQuiet)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetForceQuiet<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5677,13 +4705,13 @@ impl IUpdateInstaller3 {
     {
         (::windows_core::Interface::vtable(self).base__.SetForceQuiet)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AttemptCloseAppsIfNecessary(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).AttemptCloseAppsIfNecessary)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetAttemptCloseAppsIfNecessary<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5695,28 +4723,8 @@ impl IUpdateInstaller3 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateInstaller3, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateInstaller, IUpdateInstaller2);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateInstaller3 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateInstaller3 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateInstaller3 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateInstaller3").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateInstaller3 {
     type Vtable = IUpdateInstaller3_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateInstaller3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateInstaller3 {
@@ -5736,9 +4744,10 @@ pub struct IUpdateInstaller3_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     SetAttemptCloseAppsIfNecessary: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateInstaller4(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateInstaller4 {
@@ -5752,13 +4761,13 @@ impl IUpdateInstaller4 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsForced(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsForced)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsForced<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5766,13 +4775,13 @@ impl IUpdateInstaller4 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.SetIsForced)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ParentHwnd(&self) -> ::windows_core::Result<super::super::Foundation::HWND> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.ParentHwnd)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetParentHwnd<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5790,13 +4799,13 @@ impl IUpdateInstaller4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.ParentWindow)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Updates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Updates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5804,7 +4813,7 @@ impl IUpdateInstaller4 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.SetUpdates)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginInstall<P0, P1>(&self, onprogresschanged: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<IInstallationJob>
     where
@@ -5814,7 +4823,7 @@ impl IUpdateInstaller4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.BeginInstall)(::windows_core::Interface::as_raw(self), onprogresschanged.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginUninstall<P0, P1>(&self, onprogresschanged: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<IInstallationJob>
     where
@@ -5824,7 +4833,7 @@ impl IUpdateInstaller4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.BeginUninstall)(::windows_core::Interface::as_raw(self), onprogresschanged.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndInstall<P0>(&self, value: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5833,7 +4842,7 @@ impl IUpdateInstaller4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.EndInstall)(::windows_core::Interface::as_raw(self), value.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndUninstall<P0>(&self, value: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5842,13 +4851,13 @@ impl IUpdateInstaller4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.EndUninstall)(::windows_core::Interface::as_raw(self), value.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Install(&self) -> ::windows_core::Result<IInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Install)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn RunWizard<P0>(&self, dialogtitle: P0) -> ::windows_core::Result<IInstallationResult>
     where
@@ -5857,25 +4866,25 @@ impl IUpdateInstaller4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.RunWizard)(::windows_core::Interface::as_raw(self), dialogtitle.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBusy(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsBusy)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Uninstall(&self) -> ::windows_core::Result<IInstallationResult> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Uninstall)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AllowSourcePrompts(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.AllowSourcePrompts)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetAllowSourcePrompts<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5883,19 +4892,19 @@ impl IUpdateInstaller4 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.SetAllowSourcePrompts)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequiredBeforeInstallation(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.RebootRequiredBeforeInstallation)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ForceQuiet(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.ForceQuiet)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetForceQuiet<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5903,13 +4912,13 @@ impl IUpdateInstaller4 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetForceQuiet)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AttemptCloseAppsIfNecessary(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.AttemptCloseAppsIfNecessary)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetAttemptCloseAppsIfNecessary<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -5924,28 +4933,8 @@ impl IUpdateInstaller4 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateInstaller4, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateInstaller, IUpdateInstaller2, IUpdateInstaller3);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateInstaller4 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateInstaller4 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateInstaller4 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateInstaller4").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateInstaller4 {
     type Vtable = IUpdateInstaller4_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateInstaller4 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateInstaller4 {
@@ -5958,8 +4947,8 @@ pub struct IUpdateInstaller4_Vtbl {
     pub base__: IUpdateInstaller3_Vtbl,
     pub Commit: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, dwflags: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateLockdown(::windows_core::IUnknown);
 impl IUpdateLockdown {
     pub unsafe fn LockDown(&self, flags: i32) -> ::windows_core::Result<()> {
@@ -5967,24 +4956,8 @@ impl IUpdateLockdown {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IUpdateLockdown, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IUpdateLockdown {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IUpdateLockdown {}
-impl ::core::fmt::Debug for IUpdateLockdown {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateLockdown").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IUpdateLockdown {
     type Vtable = IUpdateLockdown_Vtbl;
-}
-impl ::core::clone::Clone for IUpdateLockdown {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUpdateLockdown {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa976c28d_75a1_42aa_94ae_8af8b872089a);
@@ -5995,19 +4968,20 @@ pub struct IUpdateLockdown_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub LockDown: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, flags: i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateSearcher(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateSearcher {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanAutomaticallyUpgradeService(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CanAutomaticallyUpgradeService)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetCanAutomaticallyUpgradeService<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6025,13 +4999,13 @@ impl IUpdateSearcher {
     {
         (::windows_core::Interface::vtable(self).SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IncludePotentiallySupersededUpdates(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IncludePotentiallySupersededUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIncludePotentiallySupersededUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6046,7 +5020,7 @@ impl IUpdateSearcher {
     pub unsafe fn SetServerSelection(&self, value: ServerSelection) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).SetServerSelection)(::windows_core::Interface::as_raw(self), value).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginSearch<P0, P1>(&self, criteria: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<ISearchJob>
     where
@@ -6056,7 +5030,7 @@ impl IUpdateSearcher {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).BeginSearch)(::windows_core::Interface::as_raw(self), criteria.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndSearch<P0>(&self, searchjob: P0) -> ::windows_core::Result<ISearchResult>
     where
@@ -6072,13 +5046,13 @@ impl IUpdateSearcher {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).EscapeString)(::windows_core::Interface::as_raw(self), unescaped.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn QueryHistory(&self, startindex: i32, count: i32) -> ::windows_core::Result<IUpdateHistoryEntryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).QueryHistory)(::windows_core::Interface::as_raw(self), startindex, count, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Search<P0>(&self, criteria: P0) -> ::windows_core::Result<ISearchResult>
     where
@@ -6087,13 +5061,13 @@ impl IUpdateSearcher {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Search)(::windows_core::Interface::as_raw(self), criteria.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Online(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Online)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetOnline<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6119,28 +5093,8 @@ impl IUpdateSearcher {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateSearcher, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateSearcher {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateSearcher {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateSearcher {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateSearcher").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateSearcher {
     type Vtable = IUpdateSearcher_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateSearcher {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateSearcher {
@@ -6200,19 +5154,20 @@ pub struct IUpdateSearcher_Vtbl {
     pub ServiceID: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub SetServiceID: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, value: ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateSearcher2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateSearcher2 {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanAutomaticallyUpgradeService(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.CanAutomaticallyUpgradeService)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetCanAutomaticallyUpgradeService<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6230,13 +5185,13 @@ impl IUpdateSearcher2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IncludePotentiallySupersededUpdates(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IncludePotentiallySupersededUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIncludePotentiallySupersededUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6251,7 +5206,7 @@ impl IUpdateSearcher2 {
     pub unsafe fn SetServerSelection(&self, value: ServerSelection) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetServerSelection)(::windows_core::Interface::as_raw(self), value).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginSearch<P0, P1>(&self, criteria: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<ISearchJob>
     where
@@ -6261,7 +5216,7 @@ impl IUpdateSearcher2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.BeginSearch)(::windows_core::Interface::as_raw(self), criteria.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndSearch<P0>(&self, searchjob: P0) -> ::windows_core::Result<ISearchResult>
     where
@@ -6277,13 +5232,13 @@ impl IUpdateSearcher2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.EscapeString)(::windows_core::Interface::as_raw(self), unescaped.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn QueryHistory(&self, startindex: i32, count: i32) -> ::windows_core::Result<IUpdateHistoryEntryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.QueryHistory)(::windows_core::Interface::as_raw(self), startindex, count, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Search<P0>(&self, criteria: P0) -> ::windows_core::Result<ISearchResult>
     where
@@ -6292,13 +5247,13 @@ impl IUpdateSearcher2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Search)(::windows_core::Interface::as_raw(self), criteria.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Online(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Online)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetOnline<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6320,13 +5275,13 @@ impl IUpdateSearcher2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetServiceID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IgnoreDownloadPriority(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IgnoreDownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIgnoreDownloadPriority<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6338,28 +5293,8 @@ impl IUpdateSearcher2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateSearcher2, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateSearcher);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateSearcher2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateSearcher2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateSearcher2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateSearcher2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateSearcher2 {
     type Vtable = IUpdateSearcher2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateSearcher2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateSearcher2 {
@@ -6379,19 +5314,20 @@ pub struct IUpdateSearcher2_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     SetIgnoreDownloadPriority: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateSearcher3(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateSearcher3 {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanAutomaticallyUpgradeService(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.CanAutomaticallyUpgradeService)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetCanAutomaticallyUpgradeService<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6409,13 +5345,13 @@ impl IUpdateSearcher3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IncludePotentiallySupersededUpdates(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IncludePotentiallySupersededUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIncludePotentiallySupersededUpdates<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6430,7 +5366,7 @@ impl IUpdateSearcher3 {
     pub unsafe fn SetServerSelection(&self, value: ServerSelection) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.base__.SetServerSelection)(::windows_core::Interface::as_raw(self), value).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn BeginSearch<P0, P1>(&self, criteria: P0, oncompleted: P1, state: super::Variant::VARIANT) -> ::windows_core::Result<ISearchJob>
     where
@@ -6440,7 +5376,7 @@ impl IUpdateSearcher3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.BeginSearch)(::windows_core::Interface::as_raw(self), criteria.into_param().abi(), oncompleted.into_param().abi(), ::core::mem::transmute(state), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn EndSearch<P0>(&self, searchjob: P0) -> ::windows_core::Result<ISearchResult>
     where
@@ -6456,13 +5392,13 @@ impl IUpdateSearcher3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.EscapeString)(::windows_core::Interface::as_raw(self), unescaped.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn QueryHistory(&self, startindex: i32, count: i32) -> ::windows_core::Result<IUpdateHistoryEntryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.QueryHistory)(::windows_core::Interface::as_raw(self), startindex, count, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Search<P0>(&self, criteria: P0) -> ::windows_core::Result<ISearchResult>
     where
@@ -6471,13 +5407,13 @@ impl IUpdateSearcher3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Search)(::windows_core::Interface::as_raw(self), criteria.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Online(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Online)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetOnline<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6499,13 +5435,13 @@ impl IUpdateSearcher3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetServiceID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IgnoreDownloadPriority(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IgnoreDownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIgnoreDownloadPriority<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -6524,28 +5460,8 @@ impl IUpdateSearcher3 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateSearcher3, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateSearcher, IUpdateSearcher2);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateSearcher3 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateSearcher3 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateSearcher3 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateSearcher3").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateSearcher3 {
     type Vtable = IUpdateSearcher3_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateSearcher3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateSearcher3 {
@@ -6559,9 +5475,10 @@ pub struct IUpdateSearcher3_Vtbl {
     pub SearchScope: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut SearchScope) -> ::windows_core::HRESULT,
     pub SetSearchScope: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, value: SearchScope) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateService(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateService {
@@ -6569,7 +5486,7 @@ impl IUpdateService {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Name)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn ContentValidationCert(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
@@ -6579,13 +5496,13 @@ impl IUpdateService {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ExpirationDate)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsManaged(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsManaged)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsRegisteredWithAU(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6595,13 +5512,13 @@ impl IUpdateService {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IssueDate)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn OffersWindowsUpdates(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).OffersWindowsUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn RedirectUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -6611,13 +5528,13 @@ impl IUpdateService {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ServiceID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsScanPackageService(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsScanPackageService)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRegisterWithAU(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6635,28 +5552,8 @@ impl IUpdateService {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateService, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateService {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateService {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateService {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateService").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateService {
     type Vtable = IUpdateService_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateService {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateService {
@@ -6702,9 +5599,10 @@ pub struct IUpdateService_Vtbl {
     pub ServiceUrl: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
     pub SetupPrefix: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut ::std::mem::MaybeUninit<::windows_core::BSTR>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateService2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateService2 {
@@ -6712,7 +5610,7 @@ impl IUpdateService2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Name)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn ContentValidationCert(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
@@ -6722,13 +5620,13 @@ impl IUpdateService2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ExpirationDate)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsManaged(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsManaged)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsRegisteredWithAU(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6738,13 +5636,13 @@ impl IUpdateService2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IssueDate)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn OffersWindowsUpdates(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.OffersWindowsUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn RedirectUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -6754,13 +5652,13 @@ impl IUpdateService2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ServiceID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsScanPackageService(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsScanPackageService)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRegisterWithAU(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6774,7 +5672,7 @@ impl IUpdateService2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.SetupPrefix)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDefaultAUService(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -6784,28 +5682,8 @@ impl IUpdateService2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateService2, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateService);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateService2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateService2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateService2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateService2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateService2 {
     type Vtable = IUpdateService2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateService2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateService2 {
@@ -6821,13 +5699,14 @@ pub struct IUpdateService2_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     IsDefaultAUService: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateServiceCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateServiceCollection {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn get_Item(&self, index: i32) -> ::windows_core::Result<IUpdateService> {
         let mut result__ = ::std::mem::zeroed();
@@ -6845,28 +5724,8 @@ impl IUpdateServiceCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateServiceCollection, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateServiceCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateServiceCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateServiceCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateServiceCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateServiceCollection {
     type Vtable = IUpdateServiceCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateServiceCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateServiceCollection {
@@ -6884,19 +5743,20 @@ pub struct IUpdateServiceCollection_Vtbl {
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateServiceManager(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateServiceManager {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Services(&self) -> ::windows_core::Result<IUpdateServiceCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).Services)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn AddService<P0, P1>(&self, serviceid: P0, authorizationcabpath: P1) -> ::windows_core::Result<IUpdateService>
     where
@@ -6924,7 +5784,7 @@ impl IUpdateServiceManager {
     {
         (::windows_core::Interface::vtable(self).UnregisterServiceWithAU)(::windows_core::Interface::as_raw(self), serviceid.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn AddScanPackageService<P0, P1>(&self, servicename: P0, scanfilelocation: P1, flags: i32) -> ::windows_core::Result<IUpdateService>
     where
@@ -6934,7 +5794,7 @@ impl IUpdateServiceManager {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).AddScanPackageService)(::windows_core::Interface::as_raw(self), servicename.into_param().abi(), scanfilelocation.into_param().abi(), flags, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn SetOption<P0>(&self, optionname: P0, optionvalue: super::Variant::VARIANT) -> ::windows_core::Result<()>
     where
@@ -6946,28 +5806,8 @@ impl IUpdateServiceManager {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateServiceManager, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateServiceManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateServiceManager {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateServiceManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateServiceManager").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateServiceManager {
     type Vtable = IUpdateServiceManager_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateServiceManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateServiceManager {
@@ -6998,19 +5838,20 @@ pub struct IUpdateServiceManager_Vtbl {
     #[cfg(not(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant")))]
     SetOption: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateServiceManager2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateServiceManager2 {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Services(&self) -> ::windows_core::Result<IUpdateServiceCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Services)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn AddService<P0, P1>(&self, serviceid: P0, authorizationcabpath: P1) -> ::windows_core::Result<IUpdateService>
     where
@@ -7038,7 +5879,7 @@ impl IUpdateServiceManager2 {
     {
         (::windows_core::Interface::vtable(self).base__.UnregisterServiceWithAU)(::windows_core::Interface::as_raw(self), serviceid.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn AddScanPackageService<P0, P1>(&self, servicename: P0, scanfilelocation: P1, flags: i32) -> ::windows_core::Result<IUpdateService>
     where
@@ -7048,7 +5889,7 @@ impl IUpdateServiceManager2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.AddScanPackageService)(::windows_core::Interface::as_raw(self), servicename.into_param().abi(), scanfilelocation.into_param().abi(), flags, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn SetOption<P0>(&self, optionname: P0, optionvalue: super::Variant::VARIANT) -> ::windows_core::Result<()>
     where
@@ -7066,7 +5907,7 @@ impl IUpdateServiceManager2 {
     {
         (::windows_core::Interface::vtable(self).SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn QueryServiceRegistration<P0>(&self, serviceid: P0) -> ::windows_core::Result<IUpdateServiceRegistration>
     where
@@ -7075,7 +5916,7 @@ impl IUpdateServiceManager2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).QueryServiceRegistration)(::windows_core::Interface::as_raw(self), serviceid.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn AddService2<P0, P1>(&self, serviceid: P0, flags: i32, authorizationcabpath: P1) -> ::windows_core::Result<IUpdateServiceRegistration>
     where
@@ -7089,28 +5930,8 @@ impl IUpdateServiceManager2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateServiceManager2, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateServiceManager);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateServiceManager2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateServiceManager2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateServiceManager2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateServiceManager2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateServiceManager2 {
     type Vtable = IUpdateServiceManager2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateServiceManager2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateServiceManager2 {
@@ -7132,9 +5953,10 @@ pub struct IUpdateServiceManager2_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     AddService2: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateServiceRegistration(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateServiceRegistration {
@@ -7146,13 +5968,13 @@ impl IUpdateServiceRegistration {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ServiceID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsPendingRegistrationWithAU(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsPendingRegistrationWithAU)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Service(&self) -> ::windows_core::Result<IUpdateService2> {
         let mut result__ = ::std::mem::zeroed();
@@ -7162,28 +5984,8 @@ impl IUpdateServiceRegistration {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateServiceRegistration, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateServiceRegistration {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateServiceRegistration {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateServiceRegistration {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateServiceRegistration").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateServiceRegistration {
     type Vtable = IUpdateServiceRegistration_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateServiceRegistration {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateServiceRegistration {
@@ -7205,9 +6007,10 @@ pub struct IUpdateServiceRegistration_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     Service: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateSession(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateSession {
@@ -7221,19 +6024,19 @@ impl IUpdateSession {
     {
         (::windows_core::Interface::vtable(self).SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ReadOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn WebProxy(&self) -> ::windows_core::Result<IWebProxy> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).WebProxy)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetWebProxy<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -7241,19 +6044,19 @@ impl IUpdateSession {
     {
         (::windows_core::Interface::vtable(self).SetWebProxy)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateSearcher(&self) -> ::windows_core::Result<IUpdateSearcher> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateUpdateSearcher)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateDownloader(&self) -> ::windows_core::Result<IUpdateDownloader> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateUpdateDownloader)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateInstaller(&self) -> ::windows_core::Result<IUpdateInstaller> {
         let mut result__ = ::std::mem::zeroed();
@@ -7263,28 +6066,8 @@ impl IUpdateSession {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateSession, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateSession {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateSession {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateSession {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateSession").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateSession {
     type Vtable = IUpdateSession_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateSession {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateSession {
@@ -7322,9 +6105,10 @@ pub struct IUpdateSession_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     CreateUpdateInstaller: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateSession2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateSession2 {
@@ -7338,19 +6122,19 @@ impl IUpdateSession2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ReadOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn WebProxy(&self) -> ::windows_core::Result<IWebProxy> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.WebProxy)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetWebProxy<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -7358,19 +6142,19 @@ impl IUpdateSession2 {
     {
         (::windows_core::Interface::vtable(self).base__.SetWebProxy)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateSearcher(&self) -> ::windows_core::Result<IUpdateSearcher> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.CreateUpdateSearcher)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateDownloader(&self) -> ::windows_core::Result<IUpdateDownloader> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.CreateUpdateDownloader)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateInstaller(&self) -> ::windows_core::Result<IUpdateInstaller> {
         let mut result__ = ::std::mem::zeroed();
@@ -7387,28 +6171,8 @@ impl IUpdateSession2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateSession2, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateSession);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateSession2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateSession2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateSession2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateSession2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateSession2 {
     type Vtable = IUpdateSession2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateSession2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateSession2 {
@@ -7422,9 +6186,10 @@ pub struct IUpdateSession2_Vtbl {
     pub UserLocale: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut u32) -> ::windows_core::HRESULT,
     pub SetUserLocale: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, lcid: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUpdateSession3(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IUpdateSession3 {
@@ -7438,19 +6203,19 @@ impl IUpdateSession3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetClientApplicationID)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.ReadOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn WebProxy(&self) -> ::windows_core::Result<IWebProxy> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.WebProxy)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetWebProxy<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -7458,19 +6223,19 @@ impl IUpdateSession3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetWebProxy)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateSearcher(&self) -> ::windows_core::Result<IUpdateSearcher> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.CreateUpdateSearcher)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateDownloader(&self) -> ::windows_core::Result<IUpdateDownloader> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.CreateUpdateDownloader)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateInstaller(&self) -> ::windows_core::Result<IUpdateInstaller> {
         let mut result__ = ::std::mem::zeroed();
@@ -7483,13 +6248,13 @@ impl IUpdateSession3 {
     pub unsafe fn SetUserLocale(&self, lcid: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetUserLocale)(::windows_core::Interface::as_raw(self), lcid).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CreateUpdateServiceManager(&self) -> ::windows_core::Result<IUpdateServiceManager2> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateUpdateServiceManager)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn QueryHistory<P0>(&self, criteria: P0, startindex: i32, count: i32) -> ::windows_core::Result<IUpdateHistoryEntryCollection>
     where
@@ -7502,28 +6267,8 @@ impl IUpdateSession3 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IUpdateSession3, ::windows_core::IUnknown, super::Com::IDispatch, IUpdateSession, IUpdateSession2);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IUpdateSession3 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IUpdateSession3 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IUpdateSession3 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IUpdateSession3").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IUpdateSession3 {
     type Vtable = IUpdateSession3_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IUpdateSession3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IUpdateSession3 {
@@ -7543,9 +6288,10 @@ pub struct IUpdateSession3_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     QueryHistory: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWebProxy(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IWebProxy {
@@ -7559,13 +6305,13 @@ impl IWebProxy {
     {
         (::windows_core::Interface::vtable(self).SetAddress)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BypassList(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).BypassList)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SetBypassList<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -7573,13 +6319,13 @@ impl IWebProxy {
     {
         (::windows_core::Interface::vtable(self).SetBypassList)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn BypassProxyOnLocal(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).BypassProxyOnLocal)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetBypassProxyOnLocal<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -7587,7 +6333,7 @@ impl IWebProxy {
     {
         (::windows_core::Interface::vtable(self).SetBypassProxyOnLocal)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -7616,7 +6362,7 @@ impl IWebProxy {
     {
         (::windows_core::Interface::vtable(self).PromptForCredentials)(::windows_core::Interface::as_raw(self), parentwindow.into_param().abi(), title.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PromptForCredentialsFromHwnd<P0, P1>(&self, parentwindow: P0, title: P1) -> ::windows_core::Result<()>
     where
@@ -7625,13 +6371,13 @@ impl IWebProxy {
     {
         (::windows_core::Interface::vtable(self).PromptForCredentialsFromHwnd)(::windows_core::Interface::as_raw(self), parentwindow.into_param().abi(), title.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoDetect(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).AutoDetect)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetAutoDetect<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -7643,28 +6389,8 @@ impl IWebProxy {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IWebProxy, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IWebProxy {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IWebProxy {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IWebProxy {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWebProxy").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IWebProxy {
     type Vtable = IWebProxy_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IWebProxy {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IWebProxy {
@@ -7714,9 +6440,10 @@ pub struct IWebProxy_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     SetAutoDetect: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWindowsDriverUpdate(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IWindowsDriverUpdate {
@@ -7724,43 +6451,43 @@ impl IWindowsDriverUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -7770,7 +6497,7 @@ impl IWindowsDriverUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -7784,43 +6511,43 @@ impl IWindowsDriverUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -7828,25 +6555,25 @@ impl IWindowsDriverUpdate {
     {
         (::windows_core::Interface::vtable(self).base__.SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -7856,19 +6583,19 @@ impl IWindowsDriverUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -7894,13 +6621,13 @@ impl IWindowsDriverUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -7918,19 +6645,19 @@ impl IWindowsDriverUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -7943,7 +6670,7 @@ impl IWindowsDriverUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -7956,7 +6683,7 @@ impl IWindowsDriverUpdate {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -7998,28 +6725,8 @@ impl IWindowsDriverUpdate {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IWindowsDriverUpdate, ::windows_core::IUnknown, super::Com::IDispatch, IUpdate);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IWindowsDriverUpdate {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IWindowsDriverUpdate {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IWindowsDriverUpdate {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWindowsDriverUpdate").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IWindowsDriverUpdate {
     type Vtable = IWindowsDriverUpdate_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IWindowsDriverUpdate {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IWindowsDriverUpdate {
@@ -8039,9 +6746,10 @@ pub struct IWindowsDriverUpdate_Vtbl {
     pub DeviceProblemNumber: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
     pub DeviceStatus: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWindowsDriverUpdate2(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IWindowsDriverUpdate2 {
@@ -8049,43 +6757,43 @@ impl IWindowsDriverUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -8095,7 +6803,7 @@ impl IWindowsDriverUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -8109,43 +6817,43 @@ impl IWindowsDriverUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -8153,25 +6861,25 @@ impl IWindowsDriverUpdate2 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8181,19 +6889,19 @@ impl IWindowsDriverUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8219,13 +6927,13 @@ impl IWindowsDriverUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8243,19 +6951,19 @@ impl IWindowsDriverUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8268,7 +6976,7 @@ impl IWindowsDriverUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -8281,7 +6989,7 @@ impl IWindowsDriverUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8319,25 +7027,25 @@ impl IWindowsDriverUpdate2 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.DeviceStatus)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).RebootRequired)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsPresent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).IsPresent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CveIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CveIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CopyToCache<P0>(&self, pfiles: P0) -> ::windows_core::Result<()>
     where
@@ -8349,28 +7057,8 @@ impl IWindowsDriverUpdate2 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IWindowsDriverUpdate2, ::windows_core::IUnknown, super::Com::IDispatch, IUpdate, IWindowsDriverUpdate);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IWindowsDriverUpdate2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IWindowsDriverUpdate2 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IWindowsDriverUpdate2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWindowsDriverUpdate2").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IWindowsDriverUpdate2 {
     type Vtable = IWindowsDriverUpdate2_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IWindowsDriverUpdate2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IWindowsDriverUpdate2 {
@@ -8398,9 +7086,10 @@ pub struct IWindowsDriverUpdate2_Vtbl {
     #[cfg(not(feature = "Win32_System_Com"))]
     CopyToCache: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWindowsDriverUpdate3(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IWindowsDriverUpdate3 {
@@ -8408,43 +7097,43 @@ impl IWindowsDriverUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -8454,7 +7143,7 @@ impl IWindowsDriverUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -8468,43 +7157,43 @@ impl IWindowsDriverUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -8512,25 +7201,25 @@ impl IWindowsDriverUpdate3 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8540,19 +7229,19 @@ impl IWindowsDriverUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8578,13 +7267,13 @@ impl IWindowsDriverUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8602,19 +7291,19 @@ impl IWindowsDriverUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8627,7 +7316,7 @@ impl IWindowsDriverUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -8640,7 +7329,7 @@ impl IWindowsDriverUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8678,25 +7367,25 @@ impl IWindowsDriverUpdate3 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.DeviceStatus)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.RebootRequired)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsPresent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.IsPresent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CveIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.CveIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CopyToCache<P0>(&self, pfiles: P0) -> ::windows_core::Result<()>
     where
@@ -8704,7 +7393,7 @@ impl IWindowsDriverUpdate3 {
     {
         (::windows_core::Interface::vtable(self).base__.CopyToCache)(::windows_core::Interface::as_raw(self), pfiles.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn BrowseOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -8714,28 +7403,8 @@ impl IWindowsDriverUpdate3 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IWindowsDriverUpdate3, ::windows_core::IUnknown, super::Com::IDispatch, IUpdate, IWindowsDriverUpdate, IWindowsDriverUpdate2);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IWindowsDriverUpdate3 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IWindowsDriverUpdate3 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IWindowsDriverUpdate3 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWindowsDriverUpdate3").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IWindowsDriverUpdate3 {
     type Vtable = IWindowsDriverUpdate3_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IWindowsDriverUpdate3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IWindowsDriverUpdate3 {
@@ -8751,9 +7420,10 @@ pub struct IWindowsDriverUpdate3_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     BrowseOnly: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWindowsDriverUpdate4(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IWindowsDriverUpdate4 {
@@ -8761,43 +7431,43 @@ impl IWindowsDriverUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -8807,7 +7477,7 @@ impl IWindowsDriverUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -8821,43 +7491,43 @@ impl IWindowsDriverUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -8865,25 +7535,25 @@ impl IWindowsDriverUpdate4 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8893,19 +7563,19 @@ impl IWindowsDriverUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8931,13 +7601,13 @@ impl IWindowsDriverUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8955,19 +7625,19 @@ impl IWindowsDriverUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -8980,7 +7650,7 @@ impl IWindowsDriverUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -8993,7 +7663,7 @@ impl IWindowsDriverUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -9031,25 +7701,25 @@ impl IWindowsDriverUpdate4 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.DeviceStatus)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.RebootRequired)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsPresent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.IsPresent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CveIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.CveIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CopyToCache<P0>(&self, pfiles: P0) -> ::windows_core::Result<()>
     where
@@ -9057,19 +7727,19 @@ impl IWindowsDriverUpdate4 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.CopyToCache)(::windows_core::Interface::as_raw(self), pfiles.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn BrowseOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.BrowseOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn WindowsDriverUpdateEntries(&self) -> ::windows_core::Result<IWindowsDriverUpdateEntryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).WindowsDriverUpdateEntries)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PerUser(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -9079,28 +7749,8 @@ impl IWindowsDriverUpdate4 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IWindowsDriverUpdate4, ::windows_core::IUnknown, super::Com::IDispatch, IUpdate, IWindowsDriverUpdate, IWindowsDriverUpdate2, IWindowsDriverUpdate3);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IWindowsDriverUpdate4 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IWindowsDriverUpdate4 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IWindowsDriverUpdate4 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWindowsDriverUpdate4").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IWindowsDriverUpdate4 {
     type Vtable = IWindowsDriverUpdate4_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IWindowsDriverUpdate4 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IWindowsDriverUpdate4 {
@@ -9120,9 +7770,10 @@ pub struct IWindowsDriverUpdate4_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     PerUser: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWindowsDriverUpdate5(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IWindowsDriverUpdate5 {
@@ -9130,43 +7781,43 @@ impl IWindowsDriverUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.Title)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn AutoSelectOnWebSites(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.AutoSelectOnWebSites)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn BundledUpdates(&self) -> ::windows_core::Result<IUpdateCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.BundledUpdates)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CanRequireSource(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.CanRequireSource)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Categories(&self) -> ::windows_core::Result<ICategoryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.Categories)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn Deadline(&self) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.Deadline)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentAvailable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.DeltaCompressedContentAvailable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn DeltaCompressedContentPreferred(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -9176,7 +7827,7 @@ impl IWindowsDriverUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.Description)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn EulaAccepted(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -9190,43 +7841,43 @@ impl IWindowsDriverUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.HandlerID)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Identity(&self) -> ::windows_core::Result<IUpdateIdentity> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.Identity)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Image(&self) -> ::windows_core::Result<IImageInformation> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.Image)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn InstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.InstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsBeta(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.IsBeta)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsDownloaded(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.IsDownloaded)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsHidden(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.IsHidden)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetIsHidden<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -9234,25 +7885,25 @@ impl IWindowsDriverUpdate5 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.SetIsHidden)(::windows_core::Interface::as_raw(self), value.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsInstalled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.IsInstalled)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsMandatory(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.IsMandatory)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsUninstallable(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.IsUninstallable)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn Languages(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -9262,19 +7913,19 @@ impl IWindowsDriverUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.LastDeploymentChangeTime)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MaxDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.MaxDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn MinDownloadSize(&self) -> ::windows_core::Result<super::super::Foundation::DECIMAL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.MinDownloadSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn MoreInfoUrls(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -9300,13 +7951,13 @@ impl IWindowsDriverUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.ReleaseNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SecurityBulletinIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.SecurityBulletinIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn SupersededUpdateIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -9324,19 +7975,19 @@ impl IWindowsDriverUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.UninstallationNotes)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationBehavior(&self) -> ::windows_core::Result<IInstallationBehavior> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.UninstallationBehavior)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn UninstallationSteps(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.UninstallationSteps)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn KBArticleIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -9349,7 +8000,7 @@ impl IWindowsDriverUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.DeploymentAction)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CopyFromCache<P0, P1>(&self, path: P0, toextractcabfiles: P1) -> ::windows_core::Result<()>
     where
@@ -9362,7 +8013,7 @@ impl IWindowsDriverUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.base__.DownloadPriority)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn DownloadContents(&self) -> ::windows_core::Result<IUpdateDownloadContentCollection> {
         let mut result__ = ::std::mem::zeroed();
@@ -9400,25 +8051,25 @@ impl IWindowsDriverUpdate5 {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.base__.DeviceStatus)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn RebootRequired(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.RebootRequired)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn IsPresent(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.IsPresent)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CveIDs(&self) -> ::windows_core::Result<IStringCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.base__.CveIDs)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn CopyToCache<P0>(&self, pfiles: P0) -> ::windows_core::Result<()>
     where
@@ -9426,19 +8077,19 @@ impl IWindowsDriverUpdate5 {
     {
         (::windows_core::Interface::vtable(self).base__.base__.base__.CopyToCache)(::windows_core::Interface::as_raw(self), pfiles.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn BrowseOnly(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.base__.BrowseOnly)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn WindowsDriverUpdateEntries(&self) -> ::windows_core::Result<IWindowsDriverUpdateEntryCollection> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.WindowsDriverUpdateEntries)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn PerUser(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL> {
         let mut result__ = ::std::mem::zeroed();
@@ -9456,28 +8107,8 @@ impl IWindowsDriverUpdate5 {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IWindowsDriverUpdate5, ::windows_core::IUnknown, super::Com::IDispatch, IUpdate, IWindowsDriverUpdate, IWindowsDriverUpdate2, IWindowsDriverUpdate3, IWindowsDriverUpdate4);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IWindowsDriverUpdate5 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IWindowsDriverUpdate5 {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IWindowsDriverUpdate5 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWindowsDriverUpdate5").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IWindowsDriverUpdate5 {
     type Vtable = IWindowsDriverUpdate5_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IWindowsDriverUpdate5 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IWindowsDriverUpdate5 {
@@ -9491,9 +8122,10 @@ pub struct IWindowsDriverUpdate5_Vtbl {
     pub AutoSelection: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut AutoSelectionMode) -> ::windows_core::HRESULT,
     pub AutoDownload: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut AutoDownloadMode) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWindowsDriverUpdateEntry(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IWindowsDriverUpdateEntry {
@@ -9533,28 +8165,8 @@ impl IWindowsDriverUpdateEntry {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IWindowsDriverUpdateEntry, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IWindowsDriverUpdateEntry {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IWindowsDriverUpdateEntry {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IWindowsDriverUpdateEntry {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWindowsDriverUpdateEntry").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IWindowsDriverUpdateEntry {
     type Vtable = IWindowsDriverUpdateEntry_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IWindowsDriverUpdateEntry {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IWindowsDriverUpdateEntry {
@@ -9574,13 +8186,14 @@ pub struct IWindowsDriverUpdateEntry_Vtbl {
     pub DeviceProblemNumber: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
     pub DeviceStatus: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWindowsDriverUpdateEntryCollection(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IWindowsDriverUpdateEntryCollection {
-    #[doc = "*Required features: `\"Win32_System_Com\"`*"]
+    #[doc = "Required features: `\"Win32_System_Com\"`"]
     #[cfg(feature = "Win32_System_Com")]
     pub unsafe fn get_Item(&self, index: i32) -> ::windows_core::Result<IWindowsDriverUpdateEntry> {
         let mut result__ = ::std::mem::zeroed();
@@ -9598,28 +8211,8 @@ impl IWindowsDriverUpdateEntryCollection {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IWindowsDriverUpdateEntryCollection, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IWindowsDriverUpdateEntryCollection {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IWindowsDriverUpdateEntryCollection {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IWindowsDriverUpdateEntryCollection {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWindowsDriverUpdateEntryCollection").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IWindowsDriverUpdateEntryCollection {
     type Vtable = IWindowsDriverUpdateEntryCollection_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IWindowsDriverUpdateEntryCollection {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IWindowsDriverUpdateEntryCollection {
@@ -9637,13 +8230,14 @@ pub struct IWindowsDriverUpdateEntryCollection_Vtbl {
     pub _NewEnum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Count: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, retval: *mut i32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`, `\"Win32_System_Com\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWindowsUpdateAgentInfo(::windows_core::IUnknown);
 #[cfg(feature = "Win32_System_Com")]
 impl IWindowsUpdateAgentInfo {
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn GetInfo(&self, varinfoidentifier: super::Variant::VARIANT) -> ::windows_core::Result<super::Variant::VARIANT> {
         let mut result__ = ::std::mem::zeroed();
@@ -9653,28 +8247,8 @@ impl IWindowsUpdateAgentInfo {
 #[cfg(feature = "Win32_System_Com")]
 ::windows_core::imp::interface_hierarchy!(IWindowsUpdateAgentInfo, ::windows_core::IUnknown, super::Com::IDispatch);
 #[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::PartialEq for IWindowsUpdateAgentInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::cmp::Eq for IWindowsUpdateAgentInfo {}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::fmt::Debug for IWindowsUpdateAgentInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IWindowsUpdateAgentInfo").field(&self.0).finish()
-    }
-}
-#[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::Interface for IWindowsUpdateAgentInfo {
     type Vtable = IWindowsUpdateAgentInfo_Vtbl;
-}
-#[cfg(feature = "Win32_System_Com")]
-impl ::core::clone::Clone for IWindowsUpdateAgentInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[cfg(feature = "Win32_System_Com")]
 unsafe impl ::windows_core::ComInterface for IWindowsUpdateAgentInfo {
@@ -9690,1119 +8264,562 @@ pub struct IWindowsUpdateAgentInfo_Vtbl {
     #[cfg(not(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant")))]
     GetInfo: usize,
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const AutomaticUpdates: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xbfe18e9c_6d87_4450_b37c_e02f0b373803);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const InstallationAgent: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x317e92fc_1679_46fd_a0b5_f08914dd8623);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const LIBID_WUApiLib: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb596cc9f_56e5_419e_a622_e01bb457431e);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const StringCollection: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x72c97d74_7c3b_40ae_b77d_abdb22eba6fb);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const SystemInformation: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc01b9ba0_bea7_41ba_b604_d0a36f469133);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const UPDATE_LOCKDOWN_WEBSITE_ACCESS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const UpdateCollection: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x13639463_00db_4646_803d_528026140d88);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const UpdateDownloader: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x5baf654a_5a07_4264_a255_9ff54c7151e7);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const UpdateInstaller: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd2e0fe7f_d23e_48e1_93c0_6fa8cc346474);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const UpdateSearcher: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb699e5e8_67ff_4177_88b0_3684a3388bfb);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const UpdateServiceManager: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf8d253d9_89a4_4daa_87b6_1168369f0b21);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const UpdateSession: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4cb43d7f_7eee_4906_8698_60da1c38f2fe);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_ALL_UPDATES_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124318i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AUCLIENT_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107969i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AU_CALL_CANCELLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124267i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AU_DETECT_SVCID_MISMATCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145083386i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AU_LEGACYCLIENTDISABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145083389i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AU_NONLEGACYSERVER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145083390i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AU_NOSERVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145083392i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AU_NO_REGISTERED_SERVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145083387i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AU_OOBE_IN_PROGRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145083384i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AU_PAUSED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145083388i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_AU_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079297i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_BAD_FILE_URL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124282i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_BAD_XML_HARDWARECAPABILITY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079038i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_BIN_SOURCE_ABSENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124308i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_CALLBACK_COOKIE_NOT_FOUND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145062907i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_CALL_CANCELLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124341i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_CALL_CANCELLED_BY_HIDE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124262i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_CALL_CANCELLED_BY_INTERACTIVE_SEARCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124253i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_CALL_CANCELLED_BY_INVALID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124261i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_CALL_CANCELLED_BY_POLICY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124305i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_COULDNOTCANCEL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124342i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_CYCLE_DETECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124337i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_BG_ERROR_TOKEN_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099761i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_BITSTRANSFERERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099767i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_CONTENTCHANGED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099765i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_DOSVC_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099746i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_DOWNLOADFILEMISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099758i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_DOWNLOADFILEPATHUNKNOWN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099759i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_DOWNLOADLIMITEDBYUPDATESIZE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099764i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_DOWNLOADLOCATIONCHANGED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099766i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_DOWNLOADSANDBOXNOTFOUND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099760i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_DOWNLOAD_VOLUME_CONFLICT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099749i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_FAILTOCONNECTTOBITS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099768i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_FALLINGBACKTOBITS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099750i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_HARDRESERVEID_CONFLICT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099747i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_INCORRECTFILEHASH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099774i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_NEEDDOWNLOADREQUEST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099772i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_NONETWORK: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099771i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_NOTDOWNLOADED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099769i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_READRANGEFAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099756i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_SANDBOX_HASH_MISMATCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099748i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_UNAUTHORIZED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099762i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_UNAUTHORIZED_DOMAIN_USER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099752i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_UNAUTHORIZED_LOCAL_USER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099753i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_UNAUTHORIZED_MSA_USER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099751i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_UNAUTHORIZED_NO_USER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099754i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095681i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_UNKNOWNALGORITHM: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099773i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_UPDATEREMOVED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099757i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_URLNOTAVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099775i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DM_WRONGBITSVERSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145099770i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DOWNLOAD_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124300i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DRV_DEVICE_PROBLEM: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145075192i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DRV_MISSING_ATTRIBUTE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145075195i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DRV_NOPROP_OR_LEGACY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145075198i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DRV_NO_METADATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145075196i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DRV_NO_PRINTER_CONTENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145075193i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DRV_PRUNED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145075199i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DRV_REG_MISMATCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145075197i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DRV_SYNC_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145075194i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DRV_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071105i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_BADVERSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091578i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_CANNOTREGISTER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091568i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_CANTDELETE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091573i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_DATANOTAVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091554i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_DATANOTLOADED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091553i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_DECLINENOTALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091562i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_DUPLICATEUPDATEID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091565i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_IMPERSONATED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091555i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_INUSE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091583i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_INVALID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091582i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_INVALIDOPERATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091558i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_INVALIDTABLENAME: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091579i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_LOCKTIMEOUTEXPIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091572i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_MISSINGDATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091576i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_MISSINGREF: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091575i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NEEDWINDOWSSERVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091559i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NOCATEGORIES: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091571i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091577i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_CCR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091546i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_COOKIE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091548i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_DOWNLOADJOB: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091544i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_EULA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091550i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_FILE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091545i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_NOSUCHREVISION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091552i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_NOSUCHUPDATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091551i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_SERVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091549i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_TIMER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091547i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_NODATA_TMI: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091543i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_RESETREQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091556i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_ROWEXISTS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091570i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_SCHEMAMISMATCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091557i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_SERVICEEXPIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091563i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_SESSIONLOCKMISMATCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091560i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_SHUTDOWN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091584i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_STOREFILELOCKED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091569i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_TABLEINCORRECT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091580i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_TABLEMISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091581i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_TABLESESSIONMISMATCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091561i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_UNABLETOSTART: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091567i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145087489i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_UNKNOWNHANDLER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091574i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DS_UNKNOWNSERVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091564i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_DUPLICATE_ITEM: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124333i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EE_CLUSTER_ERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145067001i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EE_INVALID_ATTRIBUTEDATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145067002i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EE_INVALID_EXPRESSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145067006i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EE_INVALID_VERSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145067004i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EE_MISSING_METADATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145067005i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EE_NOT_INITIALIZED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145067003i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EE_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145062913i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EE_UNKNOWN_EXPRESSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145067007i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EULAS_DECLINED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124317i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EULA_UNAVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124301i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EXCLUSIVE_INSTALL_CONFLICT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124327i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EXTENDEDERROR_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124257i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_EXTENDEDERROR_NOTSET: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124258i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_FILETRUST_DUALSIGNATURE_ECC: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145078526i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_FILETRUST_DUALSIGNATURE_RSA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145078527i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_FILETRUST_SHA2SIGNATURE_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124255i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_IDLESHUTDOWN_OPCOUNT_DISCOVERY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124273i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_IDLESHUTDOWN_OPCOUNT_DOWNLOAD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124271i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_IDLESHUTDOWN_OPCOUNT_INSTALL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124270i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_IDLESHUTDOWN_OPCOUNT_OTHER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124269i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_IDLESHUTDOWN_OPCOUNT_SEARCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124272i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_IDLESHUTDOWN_OPCOUNT_SERVICEREGISTRATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124256i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INFRASTRUCTUREFILE_INVALID_FORMAT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124275i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INFRASTRUCTUREFILE_REQUIRES_SSL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124274i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INSTALLATION_RESULTS_INVALID_DATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145112062i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INSTALLATION_RESULTS_NOT_FOUND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145112061i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INSTALLATION_RESULTS_UNKNOWN_VERSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145112063i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INSTALL_JOB_NOT_SUSPENDED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124251i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INSTALL_JOB_RESUME_NOT_ALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124252i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INSTALL_NOT_ALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124330i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INSTALL_USERCONTEXT_ACCESSDENIED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124250i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INTERACTIVE_CALL_CANCELLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124268i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALIDINDEX: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124345i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_CRITERIA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124302i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_EVENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145062909i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_EVENT_PAYLOAD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095677i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_EVENT_PAYLOADSIZE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095676i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_FILE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124303i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_INSTALL_REQUESTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124332i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_NOTIFICATION_INFO: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124280i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_OPERATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124298i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_PRODUCT_LICENSE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124311i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_PROXY_SERVER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124304i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_RELATIONSHIP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124335i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_SERIALIZATION_VERSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124264i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_UPDATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124323i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_UPDATE_TYPE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124314i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVALID_VOLUMEID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124260i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVENTORY_GET_INVENTORY_TYPE_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145087486i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVENTORY_PARSEFAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145087487i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVENTORY_RESULT_UPLOAD_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145087485i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVENTORY_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145087484i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_INVENTORY_WMI_ERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145087483i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_ITEMNOTFOUND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124344i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_LEGACYSERVER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124309i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_LOW_BATTERY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124276i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_MAX_CAPACITY_REACHED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124350i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATATRUST_CERTIFICATECHAIN_VERIFICATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095344i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATATRUST_UNTRUSTED_CERTIFICATECHAIN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095343i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_BAD_FRAGMENTSIGNING_CONFIG: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095417i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_BAD_SIGNATURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095360i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_CERT_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095296i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_CERT_UNTRUSTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095293i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_CONFIG_INVALID_BINARY_ENCODING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095423i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_FAILURE_PROCESSING_FRAGMENTSIGNING_CONFIG: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095416i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_FETCH_CONFIG: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095422i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_INTCERT_BAD_TRANSPORT_ENCODING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095294i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_INVALID_PARAMETER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095420i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_LEAFCERT_BAD_TRANSPORT_ENCODING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095295i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_NOOP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095424i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_NO_VERIFICATION_DATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095418i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_SIGNATURE_VERIFY_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095358i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_ALL_BAD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095321i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_CACHELOOKUP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095319i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_CERTCHAIN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095323i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095328i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_NODATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095320i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_REFRESHONLINE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095322i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_SIGNATURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095324i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095297i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_UNTRUSTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095326i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_VALIDITYWINDOW_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095298i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_VALIDITY_WINDOW: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095325i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_TIMESTAMP_TOKEN_VERIFICATION_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095327i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095419i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_UNSUPPORTED_HASH_ALG: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095359i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_XML_BASE64CERDATA_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095384i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_XML_FRAGMENTSIGNING_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095391i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_XML_INTERMEDIATECERT_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095386i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_XML_LEAFCERT_ID_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095385i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_XML_LEAFCERT_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095387i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_XML_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095392i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_XML_MODE_INVALID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095389i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_XML_MODE_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095390i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_METADATA_XML_VALIDITY_INVALID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095388i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_MISSING_HANDLER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124310i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_MSI_NOT_CONFIGURED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145120254i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_MSI_NOT_PRESENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145120251i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_MSI_WRONG_APP_CONTEXT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145120252i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_MSI_WRONG_VERSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145120255i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_MSP_DISABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145120253i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_MSP_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116161i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NETWORK_COST_EXCEEDS_POLICY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124263i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NON_UI_MODE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107971i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NOOP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124340i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NOT_APPLICABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124329i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NOT_INITIALIZED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124348i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124297i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NO_CONNECTION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124321i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NO_INTERACTIVE_USER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124320i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NO_SERVER_CORE_SUPPORT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124288i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NO_SERVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124351i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NO_SUCH_HANDLER_PLUGIN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124265i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NO_UI_SUPPORT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124285i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NO_UPDATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124316i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_NO_USERTOKEN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124328i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_OL_INVALID_SCANFILE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095679i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_OL_NEWCLIENT_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095678i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_OL_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145091585i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_OPERATIONINPROGRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124343i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_ORPHANED_DOWNLOAD_JOB: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124277i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_OUTOFRANGE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124279i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PER_MACHINE_UPDATE_ACCESS_DENIED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124284i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_POLICY_NOT_SET: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124326i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ADDRESS_IN_USE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123256i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ADDRESS_NOT_AVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123255i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_CATALOG_SYNC_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123274i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_CONFIG_PROP_MISSING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107926i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_DOUBLE_INITIALIZATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107950i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ECP_FAILURE_TO_DECOMPRESS_CAB_FILE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107916i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ECP_FAILURE_TO_EXTRACT_DIGEST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107917i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ECP_FILE_LOCATION_ERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107915i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ECP_INIT_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107920i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ECP_INVALID_FILE_FORMAT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107919i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ECP_INVALID_METADATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107918i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ECP_SUCCEEDED_WITH_ERRORS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107921i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ENDPOINTURL_NOTAVAIL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123265i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ENDPOINT_DISCONNECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123264i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ENDPOINT_REFRESH_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123266i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_ENDPOINT_UNREACHABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123272i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_EXCEEDED_MAX_SERVER_TRIPS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107952i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_FILE_LOCATIONS_CHANGED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107931i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_BAD_GATEWAY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107935i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_BAD_METHOD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107942i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_BAD_REQUEST: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107946i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_CONFLICT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107939i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_DENIED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107945i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_FORBIDDEN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107944i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_GATEWAY_TIMEOUT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107933i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_GONE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107938i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_NOT_FOUND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107943i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_NOT_MAPPED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107925i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107936i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_PROXY_AUTH_REQ: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107941i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_REQUEST_TIMEOUT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107940i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_SERVER_ERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107937i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_SERVICE_UNAVAIL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107934i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_HTTP_STATUS_VERSION_NOT_SUP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107932i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_INVALID_COMPUTER_NAME: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107949i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_INVALID_CONFIG_PROP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107927i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_INVALID_FORMAT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123271i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_INVALID_OPERATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123263i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_INVALID_URL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123270i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_LOAD_SHEDDING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107923i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_NO_AUTH_COOKIES_CREATED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107928i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_NO_AUTH_PLUGINS_REQUESTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107929i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_NO_MANAGED_RECOVER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103826i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_NO_TRANSLATION_AVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123257i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_NUMERIC_OVERFLOW: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123261i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_NWS_NOT_LOADED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123269i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_OBJECT_FAULTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123262i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_OPERATION_ABANDONED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123259i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_OPERATION_ABORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123260i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_OTHER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123254i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_PROXY_AUTH_SCHEME_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123268i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_QUOTA_EXCEEDED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123258i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_REFRESH_CACHE_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107947i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_REGISTRATION_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107930i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SAME_REDIR_ID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103827i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SECURITY_SYSTEM_FAILURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123253i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SECURITY_VERIFICATION_FAILURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123273i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_BASE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107968i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_CONNECT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107964i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_GENERATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107965i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_INITIALIZE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107967i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_OUTOFMEMORY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107966i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_PARSE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107958i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_PARSEFAULT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107960i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_READ: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107959i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_SEND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107963i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_SERVER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107962i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAPCLIENT_SOAPFAULT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107961i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAP_CLIENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107955i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAP_MUST_UNDERSTAND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107956i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAP_SERVER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107954i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SOAP_VERSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107957i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_SUS_SERVER_NOT_SET: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107951i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103873i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_WINHTTP_NAME_NOT_RESOLVED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107924i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_PT_WMI_ERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107953i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_RANGEOVERLAP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124347i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REBOOT_IN_PROGRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145083385i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_ATTRPROVIDER_EXCEEDED_MAX_NAMEVALUE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103864i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_ATTRPROVIDER_INVALID_NAME: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103863i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_ATTRPROVIDER_INVALID_VALUE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103862i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_CONNECT_POLICY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103860i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_ID_SMALLER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103869i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_INVALID_RESPONSE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103866i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_LOAD_XML: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103871i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_ONLINE_DISALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103859i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_SLS_GENERIC_ERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103861i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_S_FALSE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103870i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103617i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_UNKNOWN_SERVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103868i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REDIRECTOR_UNSUPPORTED_CONTENTTYPE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103867i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REG_VALUE_INVALID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124334i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REPORTER_EVENTCACHECORRUPT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145062911i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REPORTER_EVENTNAMESPACEPARSEFAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145062910i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REPORTER_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145058817i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_REVERT_NOT_ALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124281i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SELFUPDATE_IN_PROGRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124325i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SELFUPDATE_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071087i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SELFUPDATE_REQUIRED_ADMIN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071086i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SELFUPDATE_SKIP_ON_FAILURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071096i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SERVER_BUSY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145062908i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SERVICEPROP_NOTAVAIL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145123267i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SERVICE_NOT_REGISTERED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145095675i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SERVICE_STOP: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124322i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_ALREADYRUNNING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071091i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_ALREADY_INITIALIZED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071101i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_BLOCKED_CONFIGURATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071093i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_DEFERRABLE_REBOOT_PENDING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071084i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_FAIL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071082i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_HANDLER_EXEC_FAILURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071089i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_INVALID_IDENTDATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071102i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_INVALID_INFDATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071103i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_INVALID_REGISTRY_DATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071088i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_IN_PROGRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124278i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_NON_DEFERRABLE_REBOOT_PENDING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071083i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_NOT_INITIALIZED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071100i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_REBOOTREQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071090i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_REBOOT_TO_FIX: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071092i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_REGISTRATION_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071097i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_SKIP_UPDATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071095i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_SOURCE_VERSION_MISMATCH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071099i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_TARGET_VERSION_GREATER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071098i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145067009i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_UNSUPPORTED_CONFIGURATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071094i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SETUP_WRONG_SERVER_VERSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145071085i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_ACTION_NOT_FOUND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103611i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_ANOTHER_INSTANCE_RUNNING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103597i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_BLOCKED_FOR_PLATFORM: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103598i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_DNSRESILIENCY_OFF: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103596i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_ENGINE_EXCEPTION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103599i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_INVALIDHASH: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103609i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_NONSTDEXCEPTION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103600i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_NO_ENGINE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103608i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_PARSE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103605i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_POLICY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103602i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_POST_REBOOT_INSTALL_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103607i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_POST_REBOOT_NO_CACHED_SLS_RESPONSE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103606i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_PPL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103603i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_SECURITY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103604i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_SLS_PARSE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103610i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_STDEXCEPTION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103601i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103361i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_VERIFY_DOWNLOAD_ENGINE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103615i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_VERIFY_DOWNLOAD_PAYLOAD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103614i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_VERIFY_STAGE_ENGINE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103613i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SIH_VERIFY_STAGE_PAYLOAD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145103612i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SKIPPED_UPDATE_INSTALLATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079035i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SLS_INVALID_REVISION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145078783i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SOURCE_ABSENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124307i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SYSPREP_IN_PROGRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124287i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_SYSTEM_UNSUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124266i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_TIME_OUT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124319i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_TOOMANYRANGES: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124346i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_TOO_DEEP_RELATION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124336i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_TOO_MANY_RESYNC: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124295i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_TRAYICON_FAILURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145112060i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_TRUST_PROVIDER_UNKNOWN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145078524i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_TRUST_SUBJECT_NOT_TRUSTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145078525i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_APPX_DEFAULT_PACKAGE_VOLUME_UNAVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116127i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_APPX_INSTALLED_PACKAGE_VOLUME_UNAVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116126i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_APPX_INVALID_PACKAGE_VOLUME: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116128i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_APPX_NOT_PRESENT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116130i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_APPX_PACKAGE_FAMILY_NOT_FOUND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116125i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_APPX_SYSTEM_VOLUME_NOT_FOUND: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116124i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_BADCBSPACKAGEID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116141i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_BADHANDLERXML: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116151i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_CALLED_BACK_FAILURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116136i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_CANREQUIREINPUT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116150i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_CUSTOMINSTALLER_INVALID_SIGNATURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116135i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_DECRYPTFAILURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116132i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_DOESNOTSUPPORTACTION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116156i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_FALLBACKERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116144i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_FALLBACKTOSELFCONTAINED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116148i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_HANDLER_DISABLEDUNTILREBOOT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116131i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_INCONSISTENT_FILE_NAMES: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116145i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_INSTALLERFAILURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116149i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_INSTALLERHUNG: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116153i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_INVALIDMETADATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116154i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_INVALID_TARGETSESSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116133i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_LOCALONLY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116159i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_NEEDANOTHERDOWNLOAD: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116147i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_NEW_SERVICING_STACK_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116137i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_NOTIFYFAILURE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116146i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_NOTREADYTOCOMMIT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116129i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_OPERATIONCANCELLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116152i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_POSTREBOOTRESULTUNKNOWN: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116139i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_POSTREBOOTSTILLPENDING: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116140i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_POSTREBOOTUNEXPECTEDSTATE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116138i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_REMOTEALREADYACTIVE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116157i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_REMOTEUNAVAILABLE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116160i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_TOOMANYDOWNLOADREQUESTS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116143i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145112065i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_UNEXPECTEDCBSRESPONSE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116142i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_UNKNOWNHANDLER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116158i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_UNSUPPORTED_INSTALLCONTEXT: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116134i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UH_WRONGHANDLER: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145116155i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UNEXPECTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145120257i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UNINSTALL_NOT_ALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124312i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UNKNOWN_HARDWARECAPABILITY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079039i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UNKNOWN_ID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124349i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UNKNOWN_SERVICE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124286i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UNRECOGNIZED_VOLUMEID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124259i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UNSUPPORTED_SEARCHSCOPE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124283i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UPDATE_MERGE_NOT_ALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079036i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UPDATE_NOT_APPROVED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124254i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_UPDATE_NOT_PROCESSED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124299i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_URL_TOO_LONG: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124313i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_USER_ACCESS_DISABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124315i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_WINHTTP_INVALID_FILE: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124296i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_WMI_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079037i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_WUCLTUI_UNSUPPORTED_VERSION: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145107970i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_WUTASK_CANCELINSTALL_DISALLOWED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079291i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_WUTASK_INPROGRESS: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079295i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_WUTASK_NOT_STARTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079293i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_WUTASK_RETRY: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079292i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_WUTASK_STATUS_DISABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145079294i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_WU_DISABLED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124306i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_XML_INVALID: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124338i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_E_XML_MISSINGDATA: ::windows_core::HRESULT = ::windows_core::HRESULT(-2145124339i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_ALREADY_DOWNLOADED: ::windows_core::HRESULT = ::windows_core::HRESULT(2359304i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_ALREADY_INSTALLED: ::windows_core::HRESULT = ::windows_core::HRESULT(2359302i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_ALREADY_REVERTED: ::windows_core::HRESULT = ::windows_core::HRESULT(2359306i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_ALREADY_UNINSTALLED: ::windows_core::HRESULT = ::windows_core::HRESULT(2359303i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_DM_ALREADYDOWNLOADING: ::windows_core::HRESULT = ::windows_core::HRESULT(2383873i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_MARKED_FOR_DISCONNECT: ::windows_core::HRESULT = ::windows_core::HRESULT(2359300i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_METADATA_IGNORED_SIGNATURE_VERIFICATION: ::windows_core::HRESULT = ::windows_core::HRESULT(2388226i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_METADATA_SKIPPED_BY_ENFORCEMENTMODE: ::windows_core::HRESULT = ::windows_core::HRESULT(2388225i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_REBOOT_REQUIRED: ::windows_core::HRESULT = ::windows_core::HRESULT(2359301i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_SEARCH_CRITERIA_NOT_SUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(2359312i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_SEARCH_LOAD_SHEDDING: ::windows_core::HRESULT = ::windows_core::HRESULT(2392065i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_SELFUPDATE: ::windows_core::HRESULT = ::windows_core::HRESULT(2359298i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_SERVICE_STOP: ::windows_core::HRESULT = ::windows_core::HRESULT(2359297i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_SIH_NOOP: ::windows_core::HRESULT = ::windows_core::HRESULT(2379777i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_SOME_UPDATES_SKIPPED_ON_BATTERY: ::windows_core::HRESULT = ::windows_core::HRESULT(2359305i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_UH_DOWNLOAD_SIZE_CALCULATED: ::windows_core::HRESULT = ::windows_core::HRESULT(2367510i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_UH_INSTALLSTILLPENDING: ::windows_core::HRESULT = ::windows_core::HRESULT(2367509i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WU_S_UPDATE_ERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(2359299i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WebProxy: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x650503cf_9108_4ddc_a2ce_6c2341e1c582);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const WindowsUpdateAgentInfo: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc2e88c2f_6f5b_4aaa_894b_55c847ad3a2d);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const adAlwaysAutoDownload: AutoDownloadMode = AutoDownloadMode(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const adLetWindowsUpdateDecide: AutoDownloadMode = AutoDownloadMode(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const adNeverAutoDownload: AutoDownloadMode = AutoDownloadMode(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const asAlwaysAutoSelect: AutoSelectionMode = AutoSelectionMode(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const asAutoSelectIfDownloaded: AutoSelectionMode = AutoSelectionMode(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const asLetWindowsUpdateDecide: AutoSelectionMode = AutoSelectionMode(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const asNeverAutoSelect: AutoSelectionMode = AutoSelectionMode(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const asfAllowOnlineRegistration: AddServiceFlag = AddServiceFlag(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const asfAllowPendingRegistration: AddServiceFlag = AddServiceFlag(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const asfRegisterServiceWithAU: AddServiceFlag = AddServiceFlag(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const aunlDisabled: AutomaticUpdatesNotificationLevel = AutomaticUpdatesNotificationLevel(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const aunlNotConfigured: AutomaticUpdatesNotificationLevel = AutomaticUpdatesNotificationLevel(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const aunlNotifyBeforeDownload: AutomaticUpdatesNotificationLevel = AutomaticUpdatesNotificationLevel(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const aunlNotifyBeforeInstallation: AutomaticUpdatesNotificationLevel = AutomaticUpdatesNotificationLevel(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const aunlScheduledInstallation: AutomaticUpdatesNotificationLevel = AutomaticUpdatesNotificationLevel(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const auptDisableAutomaticUpdates: AutomaticUpdatesPermissionType = AutomaticUpdatesPermissionType(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const auptSetFeaturedUpdatesEnabled: AutomaticUpdatesPermissionType = AutomaticUpdatesPermissionType(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const auptSetIncludeRecommendedUpdates: AutomaticUpdatesPermissionType = AutomaticUpdatesPermissionType(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const auptSetNonAdministratorsElevated: AutomaticUpdatesPermissionType = AutomaticUpdatesPermissionType(5i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const auptSetNotificationLevel: AutomaticUpdatesPermissionType = AutomaticUpdatesPermissionType(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ausidEveryDay: AutomaticUpdatesScheduledInstallationDay = AutomaticUpdatesScheduledInstallationDay(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ausidEveryFriday: AutomaticUpdatesScheduledInstallationDay = AutomaticUpdatesScheduledInstallationDay(6i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ausidEveryMonday: AutomaticUpdatesScheduledInstallationDay = AutomaticUpdatesScheduledInstallationDay(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ausidEverySaturday: AutomaticUpdatesScheduledInstallationDay = AutomaticUpdatesScheduledInstallationDay(7i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ausidEverySunday: AutomaticUpdatesScheduledInstallationDay = AutomaticUpdatesScheduledInstallationDay(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ausidEveryThursday: AutomaticUpdatesScheduledInstallationDay = AutomaticUpdatesScheduledInstallationDay(5i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ausidEveryTuesday: AutomaticUpdatesScheduledInstallationDay = AutomaticUpdatesScheduledInstallationDay(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ausidEveryWednesday: AutomaticUpdatesScheduledInstallationDay = AutomaticUpdatesScheduledInstallationDay(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const auutCurrentUser: AutomaticUpdatesUserType = AutomaticUpdatesUserType(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const auutLocalAdministrator: AutomaticUpdatesUserType = AutomaticUpdatesUserType(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const daDetection: DeploymentAction = DeploymentAction(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const daInstallation: DeploymentAction = DeploymentAction(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const daNone: DeploymentAction = DeploymentAction(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const daOptionalInstallation: DeploymentAction = DeploymentAction(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const daUninstallation: DeploymentAction = DeploymentAction(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const dpExtraHigh: DownloadPriority = DownloadPriority(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const dpHigh: DownloadPriority = DownloadPriority(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const dpLow: DownloadPriority = DownloadPriority(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const dpNormal: DownloadPriority = DownloadPriority(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const dphDownloading: DownloadPhase = DownloadPhase(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const dphInitializing: DownloadPhase = DownloadPhase(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const dphVerifying: DownloadPhase = DownloadPhase(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const iiMinor: InstallationImpact = InstallationImpact(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const iiNormal: InstallationImpact = InstallationImpact(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const iiRequiresExclusiveHandling: InstallationImpact = InstallationImpact(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const irbAlwaysRequiresReboot: InstallationRebootBehavior = InstallationRebootBehavior(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const irbCanRequestReboot: InstallationRebootBehavior = InstallationRebootBehavior(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const irbNeverReboots: InstallationRebootBehavior = InstallationRebootBehavior(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const orcAborted: OperationResultCode = OperationResultCode(5i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const orcFailed: OperationResultCode = OperationResultCode(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const orcInProgress: OperationResultCode = OperationResultCode(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const orcNotStarted: OperationResultCode = OperationResultCode(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const orcSucceeded: OperationResultCode = OperationResultCode(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const orcSucceededWithErrors: OperationResultCode = OperationResultCode(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const searchScopeAllUsers: SearchScope = SearchScope(5i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const searchScopeCurrentUserOnly: SearchScope = SearchScope(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const searchScopeDefault: SearchScope = SearchScope(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const searchScopeMachineAndAllUsers: SearchScope = SearchScope(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const searchScopeMachineAndCurrentUser: SearchScope = SearchScope(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const searchScopeMachineOnly: SearchScope = SearchScope(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ssDefault: ServerSelection = ServerSelection(0i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ssManagedServer: ServerSelection = ServerSelection(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ssOthers: ServerSelection = ServerSelection(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const ssWindowsUpdate: ServerSelection = ServerSelection(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const uecGeneral: UpdateExceptionContext = UpdateExceptionContext(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const uecSearchIncomplete: UpdateExceptionContext = UpdateExceptionContext(4i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const uecWindowsDriver: UpdateExceptionContext = UpdateExceptionContext(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const uecWindowsInstaller: UpdateExceptionContext = UpdateExceptionContext(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const uloForWebsiteAccess: UpdateLockdownOption = UpdateLockdownOption(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const uoInstallation: UpdateOperation = UpdateOperation(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const uoUninstallation: UpdateOperation = UpdateOperation(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const usoNonVolatileService: UpdateServiceOption = UpdateServiceOption(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const usrsNotRegistered: UpdateServiceRegistrationState = UpdateServiceRegistrationState(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const usrsRegistered: UpdateServiceRegistrationState = UpdateServiceRegistrationState(3i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const usrsRegistrationPending: UpdateServiceRegistrationState = UpdateServiceRegistrationState(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const utDriver: UpdateType = UpdateType(2i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 pub const utSoftware: UpdateType = UpdateType(1i32);
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AddServiceFlag(pub i32);
@@ -10825,7 +8842,6 @@ impl ::core::fmt::Debug for AddServiceFlag {
         f.debug_tuple("AddServiceFlag").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AutoDownloadMode(pub i32);
@@ -10848,7 +8864,6 @@ impl ::core::fmt::Debug for AutoDownloadMode {
         f.debug_tuple("AutoDownloadMode").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AutoSelectionMode(pub i32);
@@ -10871,7 +8886,6 @@ impl ::core::fmt::Debug for AutoSelectionMode {
         f.debug_tuple("AutoSelectionMode").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AutomaticUpdatesNotificationLevel(pub i32);
@@ -10894,7 +8908,6 @@ impl ::core::fmt::Debug for AutomaticUpdatesNotificationLevel {
         f.debug_tuple("AutomaticUpdatesNotificationLevel").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AutomaticUpdatesPermissionType(pub i32);
@@ -10917,7 +8930,6 @@ impl ::core::fmt::Debug for AutomaticUpdatesPermissionType {
         f.debug_tuple("AutomaticUpdatesPermissionType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AutomaticUpdatesScheduledInstallationDay(pub i32);
@@ -10940,7 +8952,6 @@ impl ::core::fmt::Debug for AutomaticUpdatesScheduledInstallationDay {
         f.debug_tuple("AutomaticUpdatesScheduledInstallationDay").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AutomaticUpdatesUserType(pub i32);
@@ -10963,7 +8974,6 @@ impl ::core::fmt::Debug for AutomaticUpdatesUserType {
         f.debug_tuple("AutomaticUpdatesUserType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DeploymentAction(pub i32);
@@ -10986,7 +8996,6 @@ impl ::core::fmt::Debug for DeploymentAction {
         f.debug_tuple("DeploymentAction").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DownloadPhase(pub i32);
@@ -11009,7 +9018,6 @@ impl ::core::fmt::Debug for DownloadPhase {
         f.debug_tuple("DownloadPhase").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DownloadPriority(pub i32);
@@ -11032,7 +9040,6 @@ impl ::core::fmt::Debug for DownloadPriority {
         f.debug_tuple("DownloadPriority").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct InstallationImpact(pub i32);
@@ -11055,7 +9062,6 @@ impl ::core::fmt::Debug for InstallationImpact {
         f.debug_tuple("InstallationImpact").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct InstallationRebootBehavior(pub i32);
@@ -11078,7 +9084,6 @@ impl ::core::fmt::Debug for InstallationRebootBehavior {
         f.debug_tuple("InstallationRebootBehavior").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct OperationResultCode(pub i32);
@@ -11101,7 +9106,6 @@ impl ::core::fmt::Debug for OperationResultCode {
         f.debug_tuple("OperationResultCode").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SearchScope(pub i32);
@@ -11124,7 +9128,6 @@ impl ::core::fmt::Debug for SearchScope {
         f.debug_tuple("SearchScope").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ServerSelection(pub i32);
@@ -11147,7 +9150,6 @@ impl ::core::fmt::Debug for ServerSelection {
         f.debug_tuple("ServerSelection").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UpdateExceptionContext(pub i32);
@@ -11170,7 +9172,6 @@ impl ::core::fmt::Debug for UpdateExceptionContext {
         f.debug_tuple("UpdateExceptionContext").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UpdateLockdownOption(pub i32);
@@ -11193,7 +9194,6 @@ impl ::core::fmt::Debug for UpdateLockdownOption {
         f.debug_tuple("UpdateLockdownOption").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UpdateOperation(pub i32);
@@ -11216,7 +9216,6 @@ impl ::core::fmt::Debug for UpdateOperation {
         f.debug_tuple("UpdateOperation").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UpdateServiceOption(pub i32);
@@ -11239,7 +9238,6 @@ impl ::core::fmt::Debug for UpdateServiceOption {
         f.debug_tuple("UpdateServiceOption").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UpdateServiceRegistrationState(pub i32);
@@ -11262,7 +9260,6 @@ impl ::core::fmt::Debug for UpdateServiceRegistrationState {
         f.debug_tuple("UpdateServiceRegistrationState").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_System_UpdateAgent\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UpdateType(pub i32);

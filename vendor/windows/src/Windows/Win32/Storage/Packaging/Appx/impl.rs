@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Data_Xml_MsXml\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Data_Xml_MsXml", feature = "Win32_System_Com"))]
 pub trait IAppxAppInstallerReader_Impl: Sized {
     fn GetXmlDom(&self) -> ::windows_core::Result<super::super::super::Data::Xml::MsXml::IXMLDOMDocument>;
@@ -21,11 +21,10 @@ impl IAppxAppInstallerReader_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetXmlDom: GetXmlDom::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxAppInstallerReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxAppInstallerReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxBlockMapBlock_Impl: Sized {
     fn GetHash(&self, buffersize: *mut u32, buffer: *mut *mut u8) -> ::windows_core::Result<()>;
     fn GetCompressedSize(&self) -> ::windows_core::Result<u32>;
@@ -55,11 +54,11 @@ impl IAppxBlockMapBlock_Vtbl {
             GetCompressedSize: GetCompressedSize::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBlockMapBlock as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBlockMapBlock as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxBlockMapBlocksEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxBlockMapBlock>;
@@ -111,11 +110,11 @@ impl IAppxBlockMapBlocksEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBlockMapBlocksEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBlockMapBlocksEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IAppxBlockMapFile_Impl: Sized {
     fn GetBlocks(&self) -> ::windows_core::Result<IAppxBlockMapBlocksEnumerator>;
@@ -193,11 +192,11 @@ impl IAppxBlockMapFile_Vtbl {
             ValidateFileHash: ValidateFileHash::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBlockMapFile as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBlockMapFile as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxBlockMapFilesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxBlockMapFile>;
@@ -249,11 +248,11 @@ impl IAppxBlockMapFilesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBlockMapFilesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBlockMapFilesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxBlockMapReader_Impl: Sized {
     fn GetFile(&self, filename: &::windows_core::PCWSTR) -> ::windows_core::Result<IAppxBlockMapFile>;
@@ -318,11 +317,11 @@ impl IAppxBlockMapReader_Vtbl {
             GetStream: GetStream::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBlockMapReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBlockMapReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxBundleFactory_Impl: Sized {
     fn CreateBundleWriter(&self, outputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, bundleversion: u64) -> ::windows_core::Result<IAppxBundleWriter>;
@@ -374,11 +373,11 @@ impl IAppxBundleFactory_Vtbl {
             CreateBundleManifestReader: CreateBundleManifestReader::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxBundleFactory2_Impl: Sized {
     fn CreateBundleReader2(&self, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, expecteddigest: &::windows_core::PCWSTR) -> ::windows_core::Result<IAppxBundleReader>;
@@ -401,11 +400,10 @@ impl IAppxBundleFactory2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), CreateBundleReader2: CreateBundleReader2::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleFactory2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleFactory2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxBundleManifestOptionalBundleInfo_Impl: Sized {
     fn GetPackageId(&self) -> ::windows_core::Result<IAppxManifestPackageId>;
     fn GetFileName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -454,11 +452,11 @@ impl IAppxBundleManifestOptionalBundleInfo_Vtbl {
             GetPackageInfoItems: GetPackageInfoItems::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleManifestOptionalBundleInfo as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleManifestOptionalBundleInfo as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxBundleManifestOptionalBundleInfoEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxBundleManifestOptionalBundleInfo>;
@@ -510,11 +508,10 @@ impl IAppxBundleManifestOptionalBundleInfoEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleManifestOptionalBundleInfoEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleManifestOptionalBundleInfoEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxBundleManifestPackageInfo_Impl: Sized {
     fn GetPackageType(&self) -> ::windows_core::Result<APPX_BUNDLE_PAYLOAD_PACKAGE_TYPE>;
     fn GetPackageId(&self) -> ::windows_core::Result<IAppxManifestPackageId>;
@@ -602,11 +599,11 @@ impl IAppxBundleManifestPackageInfo_Vtbl {
             GetResources: GetResources::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleManifestPackageInfo as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleManifestPackageInfo as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxBundleManifestPackageInfo2_Impl: Sized {
     fn GetIsPackageReference(&self) -> ::windows_core::Result<super::super::super::Foundation::BOOL>;
@@ -658,11 +655,10 @@ impl IAppxBundleManifestPackageInfo2_Vtbl {
             GetIsDefaultApplicablePackage: GetIsDefaultApplicablePackage::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleManifestPackageInfo2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleManifestPackageInfo2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxBundleManifestPackageInfo3_Impl: Sized {
     fn GetTargetDeviceFamilies(&self) -> ::windows_core::Result<IAppxManifestTargetDeviceFamiliesEnumerator>;
 }
@@ -682,11 +678,11 @@ impl IAppxBundleManifestPackageInfo3_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetTargetDeviceFamilies: GetTargetDeviceFamilies::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleManifestPackageInfo3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleManifestPackageInfo3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxBundleManifestPackageInfo4_Impl: Sized {
     fn GetIsStub(&self) -> ::windows_core::Result<super::super::super::Foundation::BOOL>;
@@ -709,11 +705,11 @@ impl IAppxBundleManifestPackageInfo4_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetIsStub: GetIsStub::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleManifestPackageInfo4 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleManifestPackageInfo4 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxBundleManifestPackageInfoEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxBundleManifestPackageInfo>;
@@ -765,11 +761,11 @@ impl IAppxBundleManifestPackageInfoEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleManifestPackageInfoEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleManifestPackageInfoEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxBundleManifestReader_Impl: Sized {
     fn GetPackageId(&self) -> ::windows_core::Result<IAppxManifestPackageId>;
@@ -821,11 +817,10 @@ impl IAppxBundleManifestReader_Vtbl {
             GetStream: GetStream::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleManifestReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleManifestReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxBundleManifestReader2_Impl: Sized {
     fn GetOptionalBundles(&self) -> ::windows_core::Result<IAppxBundleManifestOptionalBundleInfoEnumerator>;
 }
@@ -845,11 +840,10 @@ impl IAppxBundleManifestReader2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetOptionalBundles: GetOptionalBundles::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleManifestReader2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleManifestReader2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxBundleReader_Impl: Sized {
     fn GetFootprintFile(&self, filetype: APPX_BUNDLE_FOOTPRINT_FILE_TYPE) -> ::windows_core::Result<IAppxFile>;
     fn GetBlockMap(&self) -> ::windows_core::Result<IAppxBlockMapReader>;
@@ -924,11 +918,11 @@ impl IAppxBundleReader_Vtbl {
             GetPayloadPackage: GetPayloadPackage::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxBundleWriter_Impl: Sized {
     fn AddPayloadPackage(&self, filename: &::windows_core::PCWSTR, packagestream: ::core::option::Option<&super::super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -955,11 +949,11 @@ impl IAppxBundleWriter_Vtbl {
             Close: Close::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleWriter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleWriter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxBundleWriter2_Impl: Sized {
     fn AddExternalPackageReference(&self, filename: &::windows_core::PCWSTR, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -979,11 +973,11 @@ impl IAppxBundleWriter2_Vtbl {
             AddExternalPackageReference: AddExternalPackageReference::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleWriter2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleWriter2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxBundleWriter3_Impl: Sized {
     fn AddPackageReference(&self, filename: &::windows_core::PCWSTR, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -1010,11 +1004,11 @@ impl IAppxBundleWriter3_Vtbl {
             Close: Close::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleWriter3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleWriter3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IAppxBundleWriter4_Impl: Sized {
     fn AddPayloadPackage(&self, filename: &::windows_core::PCWSTR, packagestream: ::core::option::Option<&super::super::super::System::Com::IStream>, isdefaultapplicablepackage: super::super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -1048,11 +1042,10 @@ impl IAppxBundleWriter4_Vtbl {
             AddExternalPackageReference: AddExternalPackageReference::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxBundleWriter4 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxBundleWriter4 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxContentGroup_Impl: Sized {
     fn GetName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
     fn GetFiles(&self) -> ::windows_core::Result<IAppxContentGroupFilesEnumerator>;
@@ -1088,11 +1081,11 @@ impl IAppxContentGroup_Vtbl {
             GetFiles: GetFiles::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxContentGroup as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxContentGroup as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxContentGroupFilesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -1144,11 +1137,10 @@ impl IAppxContentGroupFilesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxContentGroupFilesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxContentGroupFilesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxContentGroupMapReader_Impl: Sized {
     fn GetRequiredGroup(&self) -> ::windows_core::Result<IAppxContentGroup>;
     fn GetAutomaticGroups(&self) -> ::windows_core::Result<IAppxContentGroupsEnumerator>;
@@ -1184,11 +1176,10 @@ impl IAppxContentGroupMapReader_Vtbl {
             GetAutomaticGroups: GetAutomaticGroups::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxContentGroupMapReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxContentGroupMapReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxContentGroupMapWriter_Impl: Sized {
     fn AddAutomaticGroup(&self, groupname: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
     fn AddAutomaticFile(&self, filename: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -1219,11 +1210,11 @@ impl IAppxContentGroupMapWriter_Vtbl {
             Close: Close::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxContentGroupMapWriter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxContentGroupMapWriter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxContentGroupsEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxContentGroup>;
@@ -1275,11 +1266,10 @@ impl IAppxContentGroupsEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxContentGroupsEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxContentGroupsEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxDigestProvider_Impl: Sized {
     fn GetDigest(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
 }
@@ -1299,11 +1289,11 @@ impl IAppxDigestProvider_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetDigest: GetDigest::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxDigestProvider as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxDigestProvider as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxEncryptedBundleWriter_Impl: Sized {
     fn AddPayloadPackageEncrypted(&self, filename: &::windows_core::PCWSTR, packagestream: ::core::option::Option<&super::super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -1330,11 +1320,11 @@ impl IAppxEncryptedBundleWriter_Vtbl {
             Close: Close::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptedBundleWriter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptedBundleWriter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxEncryptedBundleWriter2_Impl: Sized {
     fn AddExternalPackageReference(&self, filename: &::windows_core::PCWSTR, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -1354,11 +1344,11 @@ impl IAppxEncryptedBundleWriter2_Vtbl {
             AddExternalPackageReference: AddExternalPackageReference::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptedBundleWriter2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptedBundleWriter2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IAppxEncryptedBundleWriter3_Impl: Sized {
     fn AddPayloadPackageEncrypted(&self, filename: &::windows_core::PCWSTR, packagestream: ::core::option::Option<&super::super::super::System::Com::IStream>, isdefaultapplicablepackage: super::super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -1385,11 +1375,11 @@ impl IAppxEncryptedBundleWriter3_Vtbl {
             AddExternalPackageReference: AddExternalPackageReference::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptedBundleWriter3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptedBundleWriter3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxEncryptedPackageWriter_Impl: Sized {
     fn AddPayloadFileEncrypted(&self, filename: &::windows_core::PCWSTR, compressionoption: APPX_COMPRESSION_OPTION, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -1416,11 +1406,11 @@ impl IAppxEncryptedPackageWriter_Vtbl {
             Close: Close::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptedPackageWriter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptedPackageWriter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxEncryptedPackageWriter2_Impl: Sized {
     fn AddPayloadFilesEncrypted(&self, filecount: u32, payloadfiles: *const APPX_PACKAGE_WRITER_PAYLOAD_STREAM, memorylimit: u64) -> ::windows_core::Result<()>;
@@ -1437,11 +1427,11 @@ impl IAppxEncryptedPackageWriter2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), AddPayloadFilesEncrypted: AddPayloadFilesEncrypted::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptedPackageWriter2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptedPackageWriter2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IAppxEncryptionFactory_Impl: Sized {
     fn EncryptPackage(&self, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, outputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, settings: *const APPX_ENCRYPTED_PACKAGE_SETTINGS, keyinfo: *const APPX_KEY_INFO, exemptedfiles: *const APPX_ENCRYPTED_EXEMPTIONS) -> ::windows_core::Result<()>;
@@ -1534,11 +1524,11 @@ impl IAppxEncryptionFactory_Vtbl {
             CreateEncryptedBundleReader: CreateEncryptedBundleReader::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptionFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptionFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IAppxEncryptionFactory2_Impl: Sized {
     fn CreateEncryptedPackageWriter(&self, outputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, manifeststream: ::core::option::Option<&super::super::super::System::Com::IStream>, contentgroupmapstream: ::core::option::Option<&super::super::super::System::Com::IStream>, settings: *const APPX_ENCRYPTED_PACKAGE_SETTINGS, keyinfo: *const APPX_KEY_INFO, exemptedfiles: *const APPX_ENCRYPTED_EXEMPTIONS) -> ::windows_core::Result<IAppxEncryptedPackageWriter>;
@@ -1564,11 +1554,11 @@ impl IAppxEncryptionFactory2_Vtbl {
             CreateEncryptedPackageWriter: CreateEncryptedPackageWriter::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptionFactory2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptionFactory2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxEncryptionFactory3_Impl: Sized {
     fn EncryptPackage(&self, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, outputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, settings: *const APPX_ENCRYPTED_PACKAGE_SETTINGS2, keyinfo: *const APPX_KEY_INFO, exemptedfiles: *const APPX_ENCRYPTED_EXEMPTIONS) -> ::windows_core::Result<()>;
@@ -1621,11 +1611,11 @@ impl IAppxEncryptionFactory3_Vtbl {
             CreateEncryptedBundleWriter: CreateEncryptedBundleWriter::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptionFactory3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptionFactory3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxEncryptionFactory4_Impl: Sized {
     fn EncryptPackage(&self, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, outputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, settings: *const APPX_ENCRYPTED_PACKAGE_SETTINGS2, keyinfo: *const APPX_KEY_INFO, exemptedfiles: *const APPX_ENCRYPTED_EXEMPTIONS, memorylimit: u64) -> ::windows_core::Result<()>;
@@ -1642,11 +1632,11 @@ impl IAppxEncryptionFactory4_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), EncryptPackage: EncryptPackage::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptionFactory4 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptionFactory4 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxEncryptionFactory5_Impl: Sized {
     fn CreateEncryptedPackageReader2(&self, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, keyinfo: *const APPX_KEY_INFO, expecteddigest: &::windows_core::PCWSTR) -> ::windows_core::Result<IAppxPackageReader>;
@@ -1685,11 +1675,11 @@ impl IAppxEncryptionFactory5_Vtbl {
             CreateEncryptedBundleReader2: CreateEncryptedBundleReader2::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxEncryptionFactory5 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxEncryptionFactory5 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IAppxFactory_Impl: Sized {
     fn CreatePackageWriter(&self, outputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, settings: *const APPX_PACKAGE_SETTINGS) -> ::windows_core::Result<IAppxPackageWriter>;
@@ -1767,11 +1757,11 @@ impl IAppxFactory_Vtbl {
             CreateValidatedBlockMapReader: CreateValidatedBlockMapReader::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxFactory2_Impl: Sized {
     fn CreateContentGroupMapReader(&self, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>) -> ::windows_core::Result<IAppxContentGroupMapReader>;
@@ -1823,11 +1813,11 @@ impl IAppxFactory2_Vtbl {
             CreateContentGroupMapWriter: CreateContentGroupMapWriter::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxFactory2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxFactory2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxFactory3_Impl: Sized {
     fn CreatePackageReader2(&self, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>, expecteddigest: &::windows_core::PCWSTR) -> ::windows_core::Result<IAppxPackageReader>;
@@ -1879,11 +1869,11 @@ impl IAppxFactory3_Vtbl {
             CreateAppInstallerReader: CreateAppInstallerReader::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxFactory3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxFactory3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxFile_Impl: Sized {
     fn GetCompressionOption(&self) -> ::windows_core::Result<APPX_COMPRESSION_OPTION>;
@@ -1961,11 +1951,11 @@ impl IAppxFile_Vtbl {
             GetStream: GetStream::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxFile as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxFile as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxFilesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxFile>;
@@ -2017,11 +2007,10 @@ impl IAppxFilesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxFilesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxFilesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestApplication_Impl: Sized {
     fn GetStringValue(&self, name: &::windows_core::PCWSTR) -> ::windows_core::Result<::windows_core::PWSTR>;
     fn GetAppUserModelId(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -2057,11 +2046,11 @@ impl IAppxManifestApplication_Vtbl {
             GetAppUserModelId: GetAppUserModelId::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestApplication as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestApplication as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestApplicationsEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxManifestApplication>;
@@ -2113,11 +2102,11 @@ impl IAppxManifestApplicationsEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestApplicationsEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestApplicationsEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestCapabilitiesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -2169,11 +2158,11 @@ impl IAppxManifestCapabilitiesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestCapabilitiesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestCapabilitiesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestDeviceCapabilitiesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -2225,11 +2214,10 @@ impl IAppxManifestDeviceCapabilitiesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestDeviceCapabilitiesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestDeviceCapabilitiesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestDriverConstraint_Impl: Sized {
     fn GetName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
     fn GetMinVersion(&self) -> ::windows_core::Result<u64>;
@@ -2278,11 +2266,11 @@ impl IAppxManifestDriverConstraint_Vtbl {
             GetMinDate: GetMinDate::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestDriverConstraint as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestDriverConstraint as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestDriverConstraintsEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxManifestDriverConstraint>;
@@ -2334,11 +2322,11 @@ impl IAppxManifestDriverConstraintsEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestDriverConstraintsEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestDriverConstraintsEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestDriverDependenciesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxManifestDriverDependency>;
@@ -2390,11 +2378,10 @@ impl IAppxManifestDriverDependenciesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestDriverDependenciesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestDriverDependenciesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestDriverDependency_Impl: Sized {
     fn GetDriverConstraints(&self) -> ::windows_core::Result<IAppxManifestDriverConstraintsEnumerator>;
 }
@@ -2414,11 +2401,11 @@ impl IAppxManifestDriverDependency_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetDriverConstraints: GetDriverConstraints::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestDriverDependency as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestDriverDependency as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestHostRuntimeDependenciesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxManifestHostRuntimeDependency>;
@@ -2470,11 +2457,10 @@ impl IAppxManifestHostRuntimeDependenciesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestHostRuntimeDependenciesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestHostRuntimeDependenciesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestHostRuntimeDependency_Impl: Sized {
     fn GetName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
     fn GetPublisher(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -2523,11 +2509,10 @@ impl IAppxManifestHostRuntimeDependency_Vtbl {
             GetMinVersion: GetMinVersion::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestHostRuntimeDependency as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestHostRuntimeDependency as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestHostRuntimeDependency2_Impl: Sized {
     fn GetPackageFamilyName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
 }
@@ -2547,11 +2532,11 @@ impl IAppxManifestHostRuntimeDependency2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetPackageFamilyName: GetPackageFamilyName::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestHostRuntimeDependency2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestHostRuntimeDependency2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestMainPackageDependenciesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxManifestMainPackageDependency>;
@@ -2603,11 +2588,10 @@ impl IAppxManifestMainPackageDependenciesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestMainPackageDependenciesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestMainPackageDependenciesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestMainPackageDependency_Impl: Sized {
     fn GetName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
     fn GetPublisher(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -2656,11 +2640,11 @@ impl IAppxManifestMainPackageDependency_Vtbl {
             GetPackageFamilyName: GetPackageFamilyName::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestMainPackageDependency as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestMainPackageDependency as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestOSPackageDependenciesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxManifestOSPackageDependency>;
@@ -2712,11 +2696,10 @@ impl IAppxManifestOSPackageDependenciesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestOSPackageDependenciesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestOSPackageDependenciesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestOSPackageDependency_Impl: Sized {
     fn GetName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
     fn GetVersion(&self) -> ::windows_core::Result<u64>;
@@ -2752,11 +2735,11 @@ impl IAppxManifestOSPackageDependency_Vtbl {
             GetVersion: GetVersion::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestOSPackageDependency as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestOSPackageDependency as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestOptionalPackageInfo_Impl: Sized {
     fn GetIsOptionalPackage(&self) -> ::windows_core::Result<super::super::super::Foundation::BOOL>;
@@ -2795,11 +2778,11 @@ impl IAppxManifestOptionalPackageInfo_Vtbl {
             GetMainPackageName: GetMainPackageName::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestOptionalPackageInfo as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestOptionalPackageInfo as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestPackageDependenciesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxManifestPackageDependency>;
@@ -2851,11 +2834,10 @@ impl IAppxManifestPackageDependenciesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestPackageDependenciesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestPackageDependenciesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestPackageDependency_Impl: Sized {
     fn GetName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
     fn GetPublisher(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -2904,11 +2886,10 @@ impl IAppxManifestPackageDependency_Vtbl {
             GetMinVersion: GetMinVersion::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestPackageDependency as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestPackageDependency as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestPackageDependency2_Impl: Sized + IAppxManifestPackageDependency_Impl {
     fn GetMaxMajorVersionTested(&self) -> ::windows_core::Result<u16>;
 }
@@ -2931,11 +2912,11 @@ impl IAppxManifestPackageDependency2_Vtbl {
             GetMaxMajorVersionTested: GetMaxMajorVersionTested::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestPackageDependency2 as ::windows_core::ComInterface>::IID || iid == &<IAppxManifestPackageDependency as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestPackageDependency2 as ::windows_core::ComInterface>::IID || *iid == <IAppxManifestPackageDependency as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestPackageDependency3_Impl: Sized {
     fn GetIsOptional(&self) -> ::windows_core::Result<super::super::super::Foundation::BOOL>;
@@ -2958,11 +2939,11 @@ impl IAppxManifestPackageDependency3_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetIsOptional: GetIsOptional::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestPackageDependency3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestPackageDependency3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestPackageId_Impl: Sized {
     fn GetName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -3079,11 +3060,11 @@ impl IAppxManifestPackageId_Vtbl {
             GetPackageFamilyName: GetPackageFamilyName::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestPackageId as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestPackageId as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestPackageId2_Impl: Sized + IAppxManifestPackageId_Impl {
     fn GetArchitecture2(&self) -> ::windows_core::Result<APPX_PACKAGE_ARCHITECTURE2>;
@@ -3106,11 +3087,11 @@ impl IAppxManifestPackageId2_Vtbl {
         }
         Self { base__: IAppxManifestPackageId_Vtbl::new::<Identity, Impl, OFFSET>(), GetArchitecture2: GetArchitecture2::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestPackageId2 as ::windows_core::ComInterface>::IID || iid == &<IAppxManifestPackageId as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestPackageId2 as ::windows_core::ComInterface>::IID || *iid == <IAppxManifestPackageId as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestProperties_Impl: Sized {
     fn GetBoolValue(&self, name: &::windows_core::PCWSTR) -> ::windows_core::Result<super::super::super::Foundation::BOOL>;
@@ -3149,11 +3130,10 @@ impl IAppxManifestProperties_Vtbl {
             GetStringValue: GetStringValue::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestProperties as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestProperties as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestQualifiedResource_Impl: Sized {
     fn GetLanguage(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
     fn GetScale(&self) -> ::windows_core::Result<u32>;
@@ -3202,11 +3182,11 @@ impl IAppxManifestQualifiedResource_Vtbl {
             GetDXFeatureLevel: GetDXFeatureLevel::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestQualifiedResource as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestQualifiedResource as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestQualifiedResourcesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxManifestQualifiedResource>;
@@ -3258,11 +3238,11 @@ impl IAppxManifestQualifiedResourcesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestQualifiedResourcesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestQualifiedResourcesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxManifestReader_Impl: Sized {
     fn GetPackageId(&self) -> ::windows_core::Result<IAppxManifestPackageId>;
@@ -3392,11 +3372,11 @@ impl IAppxManifestReader_Vtbl {
             GetStream: GetStream::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxManifestReader2_Impl: Sized + IAppxManifestReader_Impl {
     fn GetQualifiedResources(&self) -> ::windows_core::Result<IAppxManifestQualifiedResourcesEnumerator>;
@@ -3419,11 +3399,11 @@ impl IAppxManifestReader2_Vtbl {
         }
         Self { base__: IAppxManifestReader_Vtbl::new::<Identity, Impl, OFFSET>(), GetQualifiedResources: GetQualifiedResources::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestReader2 as ::windows_core::ComInterface>::IID || iid == &<IAppxManifestReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestReader2 as ::windows_core::ComInterface>::IID || *iid == <IAppxManifestReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxManifestReader3_Impl: Sized + IAppxManifestReader2_Impl {
     fn GetCapabilitiesByCapabilityClass(&self, capabilityclass: APPX_CAPABILITY_CLASS_TYPE) -> ::windows_core::Result<IAppxManifestCapabilitiesEnumerator>;
@@ -3462,11 +3442,11 @@ impl IAppxManifestReader3_Vtbl {
             GetTargetDeviceFamilies: GetTargetDeviceFamilies::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestReader3 as ::windows_core::ComInterface>::IID || iid == &<IAppxManifestReader as ::windows_core::ComInterface>::IID || iid == &<IAppxManifestReader2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestReader3 as ::windows_core::ComInterface>::IID || *iid == <IAppxManifestReader as ::windows_core::ComInterface>::IID || *iid == <IAppxManifestReader2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxManifestReader4_Impl: Sized + IAppxManifestReader3_Impl {
     fn GetOptionalPackageInfo(&self) -> ::windows_core::Result<IAppxManifestOptionalPackageInfo>;
@@ -3489,11 +3469,10 @@ impl IAppxManifestReader4_Vtbl {
         }
         Self { base__: IAppxManifestReader3_Vtbl::new::<Identity, Impl, OFFSET>(), GetOptionalPackageInfo: GetOptionalPackageInfo::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestReader4 as ::windows_core::ComInterface>::IID || iid == &<IAppxManifestReader as ::windows_core::ComInterface>::IID || iid == &<IAppxManifestReader2 as ::windows_core::ComInterface>::IID || iid == &<IAppxManifestReader3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestReader4 as ::windows_core::ComInterface>::IID || *iid == <IAppxManifestReader as ::windows_core::ComInterface>::IID || *iid == <IAppxManifestReader2 as ::windows_core::ComInterface>::IID || *iid == <IAppxManifestReader3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestReader5_Impl: Sized {
     fn GetMainPackageDependencies(&self) -> ::windows_core::Result<IAppxManifestMainPackageDependenciesEnumerator>;
 }
@@ -3516,11 +3495,11 @@ impl IAppxManifestReader5_Vtbl {
             GetMainPackageDependencies: GetMainPackageDependencies::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestReader5 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestReader5 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestReader6_Impl: Sized {
     fn GetIsNonQualifiedResourcePackage(&self) -> ::windows_core::Result<super::super::super::Foundation::BOOL>;
@@ -3546,11 +3525,10 @@ impl IAppxManifestReader6_Vtbl {
             GetIsNonQualifiedResourcePackage: GetIsNonQualifiedResourcePackage::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestReader6 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestReader6 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestReader7_Impl: Sized {
     fn GetDriverDependencies(&self) -> ::windows_core::Result<IAppxManifestDriverDependenciesEnumerator>;
     fn GetOSPackageDependencies(&self) -> ::windows_core::Result<IAppxManifestOSPackageDependenciesEnumerator>;
@@ -3599,11 +3577,11 @@ impl IAppxManifestReader7_Vtbl {
             GetHostRuntimeDependencies: GetHostRuntimeDependencies::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestReader7 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestReader7 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestResourcesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -3655,11 +3633,11 @@ impl IAppxManifestResourcesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestResourcesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestResourcesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IAppxManifestTargetDeviceFamiliesEnumerator_Impl: Sized {
     fn GetCurrent(&self) -> ::windows_core::Result<IAppxManifestTargetDeviceFamily>;
@@ -3711,11 +3689,10 @@ impl IAppxManifestTargetDeviceFamiliesEnumerator_Vtbl {
             MoveNext: MoveNext::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestTargetDeviceFamiliesEnumerator as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestTargetDeviceFamiliesEnumerator as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxManifestTargetDeviceFamily_Impl: Sized {
     fn GetName(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
     fn GetMinVersion(&self) -> ::windows_core::Result<u64>;
@@ -3764,11 +3741,11 @@ impl IAppxManifestTargetDeviceFamily_Vtbl {
             GetMaxVersionTested: GetMaxVersionTested::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxManifestTargetDeviceFamily as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxManifestTargetDeviceFamily as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IAppxPackageEditor_Impl: Sized {
     fn SetWorkingDirectory(&self, workingdirectory: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -3823,11 +3800,10 @@ impl IAppxPackageEditor_Vtbl {
             UpdatePackageManifest: UpdatePackageManifest::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxPackageEditor as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxPackageEditor as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxPackageReader_Impl: Sized {
     fn GetBlockMap(&self) -> ::windows_core::Result<IAppxBlockMapReader>;
     fn GetFootprintFile(&self, r#type: APPX_FOOTPRINT_FILE_TYPE) -> ::windows_core::Result<IAppxFile>;
@@ -3902,11 +3878,11 @@ impl IAppxPackageReader_Vtbl {
             GetManifest: GetManifest::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxPackageReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxPackageReader as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxPackageWriter_Impl: Sized {
     fn AddPayloadFile(&self, filename: &::windows_core::PCWSTR, contenttype: &::windows_core::PCWSTR, compressionoption: APPX_COMPRESSION_OPTION, inputstream: ::core::option::Option<&super::super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -3933,11 +3909,11 @@ impl IAppxPackageWriter_Vtbl {
             Close: Close::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxPackageWriter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxPackageWriter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxPackageWriter2_Impl: Sized {
     fn Close(&self, manifest: ::core::option::Option<&super::super::super::System::Com::IStream>, contentgroupmap: ::core::option::Option<&super::super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -3954,11 +3930,11 @@ impl IAppxPackageWriter2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Close: Close::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxPackageWriter2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxPackageWriter2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IAppxPackageWriter3_Impl: Sized {
     fn AddPayloadFiles(&self, filecount: u32, payloadfiles: *const APPX_PACKAGE_WRITER_PAYLOAD_STREAM, memorylimit: u64) -> ::windows_core::Result<()>;
@@ -3975,11 +3951,10 @@ impl IAppxPackageWriter3_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), AddPayloadFiles: AddPayloadFiles::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxPackageWriter3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxPackageWriter3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxPackagingDiagnosticEventSink_Impl: Sized {
     fn ReportContextChange(&self, changetype: APPX_PACKAGING_CONTEXT_CHANGE_TYPE, contextid: i32, contextname: &::windows_core::PCSTR, contextmessage: &::windows_core::PCWSTR, detailsmessage: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
     fn ReportError(&self, errormessage: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -4003,11 +3978,10 @@ impl IAppxPackagingDiagnosticEventSink_Vtbl {
             ReportError: ReportError::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxPackagingDiagnosticEventSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxPackagingDiagnosticEventSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxPackagingDiagnosticEventSinkManager_Impl: Sized {
     fn SetSinkForProcess(&self, sink: ::core::option::Option<&IAppxPackagingDiagnosticEventSink>) -> ::windows_core::Result<()>;
 }
@@ -4021,11 +3995,10 @@ impl IAppxPackagingDiagnosticEventSinkManager_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), SetSinkForProcess: SetSinkForProcess::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxPackagingDiagnosticEventSinkManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxPackagingDiagnosticEventSinkManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_Packaging_Appx\"`, `\"implement\"`*"]
 pub trait IAppxSourceContentGroupMapReader_Impl: Sized {
     fn GetRequiredGroup(&self) -> ::windows_core::Result<IAppxContentGroup>;
     fn GetAutomaticGroups(&self) -> ::windows_core::Result<IAppxContentGroupsEnumerator>;
@@ -4061,7 +4034,7 @@ impl IAppxSourceContentGroupMapReader_Vtbl {
             GetAutomaticGroups: GetAutomaticGroups::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAppxSourceContentGroupMapReader as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAppxSourceContentGroupMapReader as ::windows_core::ComInterface>::IID
     }
 }

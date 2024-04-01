@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Web_Syndication\"`, `\"Foundation\"`, `\"Security_Credentials\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`, `\"Security_Credentials\"`"]
 #[cfg(all(feature = "Foundation", feature = "Security_Credentials"))]
 pub trait ISyndicationClient_Impl: Sized {
     fn ServerCredential(&self) -> ::windows_core::Result<super::super::Security::Credentials::PasswordCredential>;
@@ -136,11 +136,11 @@ impl ISyndicationClient_Vtbl {
             RetrieveFeedAsync: RetrieveFeedAsync::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISyndicationClient as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISyndicationClient as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Web_Syndication\"`, `\"Data_Xml_Dom\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Data_Xml_Dom\"`, `\"Foundation_Collections\"`"]
 #[cfg(all(feature = "Data_Xml_Dom", feature = "Foundation_Collections"))]
 pub trait ISyndicationNode_Impl: Sized {
     fn NodeName(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -302,11 +302,11 @@ impl ISyndicationNode_Vtbl {
             GetXmlDocument: GetXmlDocument::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISyndicationNode as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISyndicationNode as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Web_Syndication\"`, `\"Data_Xml_Dom\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Data_Xml_Dom\"`, `\"Foundation_Collections\"`"]
 #[cfg(all(feature = "Data_Xml_Dom", feature = "Foundation_Collections"))]
 pub trait ISyndicationText_Impl: Sized + ISyndicationNode_Impl {
     fn Text(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -384,7 +384,7 @@ impl ISyndicationText_Vtbl {
             SetXml: SetXml::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISyndicationText as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISyndicationText as ::windows_core::ComInterface>::IID
     }
 }

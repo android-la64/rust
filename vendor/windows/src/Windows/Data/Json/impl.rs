@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Data_Json\"`, `\"implement\"`*"]
 pub trait IJsonValue_Impl: Sized {
     fn ValueType(&self) -> ::windows_core::Result<JsonValueType>;
     fn Stringify(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -105,7 +104,7 @@ impl IJsonValue_Vtbl {
             GetObject: GetObject::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IJsonValue as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IJsonValue as ::windows_core::ComInterface>::IID
     }
 }

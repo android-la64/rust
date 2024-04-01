@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_Storage_FileSystem\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IDiskQuotaControl_Impl: Sized + super::super::System::Com::IConnectionPointContainer_Impl {
     fn Initialize(&self, pszpath: &::windows_core::PCWSTR, breadwrite: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -188,11 +188,10 @@ impl IDiskQuotaControl_Vtbl {
             ShutdownNameResolution: ShutdownNameResolution::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDiskQuotaControl as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IConnectionPointContainer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDiskQuotaControl as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IConnectionPointContainer as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_FileSystem\"`, `\"implement\"`*"]
 pub trait IDiskQuotaEvents_Impl: Sized {
     fn OnUserNameChanged(&self, puser: ::core::option::Option<&IDiskQuotaUser>) -> ::windows_core::Result<()>;
 }
@@ -206,11 +205,11 @@ impl IDiskQuotaEvents_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnUserNameChanged: OnUserNameChanged::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDiskQuotaEvents as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDiskQuotaEvents as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_FileSystem\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDiskQuotaUser_Impl: Sized {
     fn GetID(&self, pulid: *mut u32) -> ::windows_core::Result<()>;
@@ -328,11 +327,10 @@ impl IDiskQuotaUser_Vtbl {
             GetAccountStatus: GetAccountStatus::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDiskQuotaUser as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDiskQuotaUser as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_FileSystem\"`, `\"implement\"`*"]
 pub trait IDiskQuotaUserBatch_Impl: Sized {
     fn Add(&self, puser: ::core::option::Option<&IDiskQuotaUser>) -> ::windows_core::Result<()>;
     fn Remove(&self, puser: ::core::option::Option<&IDiskQuotaUser>) -> ::windows_core::Result<()>;
@@ -370,11 +368,10 @@ impl IDiskQuotaUserBatch_Vtbl {
             FlushToDisk: FlushToDisk::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDiskQuotaUserBatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDiskQuotaUserBatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Storage_FileSystem\"`, `\"implement\"`*"]
 pub trait IEnumDiskQuotaUsers_Impl: Sized {
     fn Next(&self, cusers: u32, rgusers: *mut ::core::option::Option<IDiskQuotaUser>, pcusersfetched: *mut u32) -> ::windows_core::Result<()>;
     fn Skip(&self, cusers: u32) -> ::windows_core::Result<()>;
@@ -418,7 +415,7 @@ impl IEnumDiskQuotaUsers_Vtbl {
             Clone: Clone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEnumDiskQuotaUsers as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEnumDiskQuotaUsers as ::windows_core::ComInterface>::IID
     }
 }

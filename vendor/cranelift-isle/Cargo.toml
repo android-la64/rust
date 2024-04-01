@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-isle"
-version = "0.102.0"
+version = "0.104.0"
 authors = ["The Cranelift Project Developers"]
 description = "ISLE: Instruction Selection and Lowering Expressions. A domain-specific language for instruction selection in Cranelift."
 readme = "README.md"
@@ -35,3 +35,12 @@ version = "3"
 default = []
 fancy-errors = ["codespan-reporting"]
 logging = ["log"]
+
+[lints.clippy]
+all = "allow"
+
+[lints.rust]
+trivial_numeric_casts = "warn"
+unstable_features = "warn"
+unused_extern_crates = "warn"
+unused_import_braces = "warn"

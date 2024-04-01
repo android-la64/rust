@@ -95,8 +95,6 @@ impl GitRemote {
     /// This ensures that it gets the up-to-date commit when a named reference
     /// is given (tag, branch, refs/*). Thus, network connection is involved.
     ///
-    /// When `locked_rev` is provided, it takes precedence over `reference`.
-    ///
     /// If we have a previous instance of [`GitDatabase`] then fetch into that
     /// if we can. If that can successfully load our revision then we've
     /// populated the database with the latest version of `reference`, so
@@ -106,11 +104,8 @@ impl GitRemote {
         into: &Path,
         db: Option<GitDatabase>,
         reference: &GitReference,
-        locked_rev: Option<git2::Oid>,
         cargo_config: &Config,
     ) -> CargoResult<(GitDatabase, git2::Oid)> {
-        let locked_ref = locked_rev.map(|oid| GitReference::Rev(oid.to_string()));
-        let reference = locked_ref.as_ref().unwrap_or(reference);
         if let Some(mut db) = db {
             fetch(
                 &mut db.repo,
@@ -121,11 +116,7 @@ impl GitRemote {
             )
             .with_context(|| format!("failed to fetch into: {}", into.display()))?;
 
-            let resolved_commit_hash = match locked_rev {
-                Some(rev) => db.contains(rev).then_some(rev),
-                None => reference.resolve(&db.repo).ok(),
-            };
-            if let Some(rev) = resolved_commit_hash {
+            if let Some(rev) = resolve_ref(reference, &db.repo).ok() {
                 return Ok((db, rev));
             }
         }
@@ -146,10 +137,7 @@ impl GitRemote {
             RemoteKind::GitDependency,
         )
         .with_context(|| format!("failed to clone into: {}", into.display()))?;
-        let rev = match locked_rev {
-            Some(rev) => rev,
-            None => reference.resolve(&repo)?,
-        };
+        let rev = resolve_ref(reference, &repo)?;
 
         Ok((
             GitDatabase {
@@ -207,56 +195,54 @@ impl GitDatabase {
         self.repo.revparse_single(&oid.to_string()).is_ok()
     }
 
-    /// [`GitReference::resolve`]s this reference with this database.
+    /// [`resolve_ref`]s this reference with this database.
     pub fn resolve(&self, r: &GitReference) -> CargoResult<git2::Oid> {
-        r.resolve(&self.repo)
+        resolve_ref(r, &self.repo)
     }
 }
 
-impl GitReference {
-    /// Resolves self to an object ID with objects the `repo` currently has.
-    pub fn resolve(&self, repo: &git2::Repository) -> CargoResult<git2::Oid> {
-        let id = match self {
-            // Note that we resolve the named tag here in sync with where it's
-            // fetched into via `fetch` below.
-            GitReference::Tag(s) => (|| -> CargoResult<git2::Oid> {
-                let refname = format!("refs/remotes/origin/tags/{}", s);
-                let id = repo.refname_to_id(&refname)?;
-                let obj = repo.find_object(id, None)?;
-                let obj = obj.peel(ObjectType::Commit)?;
-                Ok(obj.id())
-            })()
-            .with_context(|| format!("failed to find tag `{}`", s))?,
+/// Resolves [`GitReference`] to an object ID with objects the `repo` currently has.
+pub fn resolve_ref(gitref: &GitReference, repo: &git2::Repository) -> CargoResult<git2::Oid> {
+    let id = match gitref {
+        // Note that we resolve the named tag here in sync with where it's
+        // fetched into via `fetch` below.
+        GitReference::Tag(s) => (|| -> CargoResult<git2::Oid> {
+            let refname = format!("refs/remotes/origin/tags/{}", s);
+            let id = repo.refname_to_id(&refname)?;
+            let obj = repo.find_object(id, None)?;
+            let obj = obj.peel(ObjectType::Commit)?;
+            Ok(obj.id())
+        })()
+        .with_context(|| format!("failed to find tag `{}`", s))?,
 
-            // Resolve the remote name since that's all we're configuring in
-            // `fetch` below.
-            GitReference::Branch(s) => {
-                let name = format!("origin/{}", s);
-                let b = repo
-                    .find_branch(&name, git2::BranchType::Remote)
-                    .with_context(|| format!("failed to find branch `{}`", s))?;
-                b.get()
-                    .target()
-                    .ok_or_else(|| anyhow::format_err!("branch `{}` did not have a target", s))?
-            }
+        // Resolve the remote name since that's all we're configuring in
+        // `fetch` below.
+        GitReference::Branch(s) => {
+            let name = format!("origin/{}", s);
+            let b = repo
+                .find_branch(&name, git2::BranchType::Remote)
+                .with_context(|| format!("failed to find branch `{}`", s))?;
+            b.get()
+                .target()
+                .ok_or_else(|| anyhow::format_err!("branch `{}` did not have a target", s))?
+        }
 
-            // We'll be using the HEAD commit
-            GitReference::DefaultBranch => {
-                let head_id = repo.refname_to_id("refs/remotes/origin/HEAD")?;
-                let head = repo.find_object(head_id, None)?;
-                head.peel(ObjectType::Commit)?.id()
-            }
+        // We'll be using the HEAD commit
+        GitReference::DefaultBranch => {
+            let head_id = repo.refname_to_id("refs/remotes/origin/HEAD")?;
+            let head = repo.find_object(head_id, None)?;
+            head.peel(ObjectType::Commit)?.id()
+        }
 
-            GitReference::Rev(s) => {
-                let obj = repo.revparse_single(s)?;
-                match obj.as_tag() {
-                    Some(tag) => tag.target_id(),
-                    None => obj.id(),
-                }
+        GitReference::Rev(s) => {
+            let obj = repo.revparse_single(s)?;
+            match obj.as_tag() {
+                Some(tag) => tag.target_id(),
+                None => obj.id(),
             }
-        };
-        Ok(id)
-    }
+        }
+    };
+    Ok(id)
 }
 
 impl<'a> GitCheckout<'a> {
@@ -1119,6 +1105,9 @@ pub fn fetch(
             if tags {
                 opts.download_tags(git2::AutotagOption::All);
             }
+            if let gix::remote::fetch::Shallow::DepthAtRemote(depth) = shallow {
+                opts.depth(0i32.saturating_add_unsigned(depth.get()));
+            }
             // The `fetch` operation here may fail spuriously due to a corrupt
             // repository. It could also fail, however, for a whole slew of other
             // reasons (aka network related reasons). We want Cargo to automatically
@@ -1404,7 +1393,7 @@ fn github_fast_path(
         return Ok(FastPathRev::Indeterminate);
     }
 
-    let local_object = reference.resolve(repo).ok();
+    let local_object = resolve_ref(reference, repo).ok();
 
     let github_branch_name = match reference {
         GitReference::Branch(branch) => branch,

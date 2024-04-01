@@ -4,9 +4,10 @@
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
+use cargo_util_schemas::manifest::RustVersion;
+
 use crate::core::{Dependency, PackageId, Summary};
 use crate::util::interning::InternedString;
-use crate::util_schemas::manifest::RustVersion;
 
 /// A collection of preferences for particular package versions.
 ///
@@ -124,7 +125,7 @@ impl VersionPreferences {
                 VersionOrdering::MinimumVersionsFirst => cmp,
             }
         });
-        if first_version.is_some() {
+        if first_version.is_some() && !summaries.is_empty() {
             let _ = summaries.split_off(1);
         }
     }
@@ -281,5 +282,14 @@ mod test {
             "foo/1.1.0, foo/1.2.1, foo/1.0.9, foo/1.2.0, foo/1.2.2, foo/1.2.4, foo/1.2.3"
                 .to_string()
         );
+    }
+
+    #[test]
+    fn test_empty_summaries() {
+        let vp = VersionPreferences::default();
+        let mut summaries = vec![];
+
+        vp.sort_summaries(&mut summaries, Some(VersionOrdering::MaximumVersionsFirst));
+        assert_eq!(summaries, vec![]);
     }
 }

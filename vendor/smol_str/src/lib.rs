@@ -1,12 +1,7 @@
 #![no_std]
 extern crate alloc;
 
-use alloc::{
-    borrow::Cow,
-    boxed::Box,
-    string::{String, ToString},
-    sync::Arc,
-};
+use alloc::{borrow::Cow, boxed::Box, string::String, sync::Arc};
 use core::{
     borrow::Borrow,
     cmp::{self, Ordering},
@@ -19,13 +14,14 @@ use core::{
 
 /// A `SmolStr` is a string type that has the following properties:
 ///
-/// * `size_of::<SmolStr>() == 24 (therefor == size_of::<String>() on 64 bit platforms)
+/// * `size_of::<SmolStr>() == 24` (therefor `== size_of::<String>()` on 64 bit platforms)
 /// * `Clone` is `O(1)`
 /// * Strings are stack-allocated if they are:
 ///     * Up to 23 bytes long
 ///     * Longer than 23 bytes, but substrings of `WS` (see below). Such strings consist
 ///     solely of consecutive newlines, followed by consecutive spaces
 /// * If a string does not satisfy the aforementioned conditions, it is heap-allocated
+/// * Additionally, a `SmolStr` can be explicitely created from a `&'static str` without allocation
 ///
 /// Unlike `String`, however, `SmolStr` is immutable. The primary use case for
 /// `SmolStr` is a good enough default storage for tokens of typical programming
@@ -40,7 +36,7 @@ pub struct SmolStr(Repr);
 impl SmolStr {
     #[deprecated = "Use `new_inline` instead"]
     pub const fn new_inline_from_ascii(len: usize, bytes: &[u8]) -> SmolStr {
-        let _len_is_short = [(); INLINE_CAP + 1][len];
+        assert!(len <= INLINE_CAP);
 
         const ZEROS: &[u8] = &[0; INLINE_CAP];
 
@@ -66,6 +62,8 @@ impl SmolStr {
     /// Panics if `text.len() > 23`.
     #[inline]
     pub const fn new_inline(text: &str) -> SmolStr {
+        assert!(text.len() <= INLINE_CAP); // avoids checks in loop
+
         let mut buf = [0; INLINE_CAP];
         let mut i = 0;
         while i < text.len() {
@@ -76,6 +74,17 @@ impl SmolStr {
             len: unsafe { transmute(text.len() as u8) },
             buf,
         })
+    }
+
+    /// Constructs a `SmolStr` from a statically allocated string.
+    ///
+    /// This never allocates.
+    #[inline(always)]
+    pub const fn new_static(text: &'static str) -> SmolStr {
+        // NOTE: this never uses the inline storage; if a canonical
+        // representation is needed, we could check for `len() < INLINE_CAP`
+        // and call `new_inline`, but this would mean an extra branch.
+        SmolStr(Repr::Static(text))
     }
 
     pub fn new<T>(text: T) -> SmolStr
@@ -90,9 +99,12 @@ impl SmolStr {
         self.0.as_str()
     }
 
+    #[allow(clippy::inherent_to_string_shadow_display)]
     #[inline(always)]
     pub fn to_string(&self) -> String {
-        self.as_str().to_string()
+        use alloc::borrow::ToOwned;
+
+        self.as_str().to_owned()
     }
 
     #[inline(always)]
@@ -106,11 +118,8 @@ impl SmolStr {
     }
 
     #[inline(always)]
-    pub fn is_heap_allocated(&self) -> bool {
-        match self.0 {
-            Repr::Heap(..) => true,
-            _ => false,
-        }
+    pub const fn is_heap_allocated(&self) -> bool {
+        matches!(self.0, Repr::Heap(..))
     }
 
     fn from_char_iter<I: iter::Iterator<Item = char>>(mut iter: I) -> SmolStr {
@@ -142,14 +151,19 @@ impl SmolStr {
 }
 
 impl Default for SmolStr {
+    #[inline(always)]
     fn default() -> SmolStr {
-        SmolStr::new("")
+        SmolStr(Repr::Inline {
+            len: InlineSize::_V0,
+            buf: [0; INLINE_CAP],
+        })
     }
 }
 
 impl Deref for SmolStr {
     type Target = str;
 
+    #[inline(always)]
     fn deref(&self) -> &str {
         self.as_str()
     }
@@ -225,7 +239,7 @@ impl PartialOrd for SmolStr {
 
 impl hash::Hash for SmolStr {
     fn hash<H: hash::Hasher>(&self, hasher: &mut H) {
-        self.as_str().hash(hasher)
+        self.as_str().hash(hasher);
     }
 }
 
@@ -261,11 +275,11 @@ where
         if size + len > INLINE_CAP {
             let mut heap = String::with_capacity(size + len);
             heap.push_str(core::str::from_utf8(&buf[..len]).unwrap());
-            heap.push_str(&slice);
+            heap.push_str(slice);
             heap.extend(iter);
             return SmolStr(Repr::Heap(heap.into_boxed_str().into()));
         }
-        (&mut buf[len..][..size]).copy_from_slice(slice.as_bytes());
+        buf[len..][..size].copy_from_slice(slice.as_bytes());
         len += size;
     }
     SmolStr(Repr::Inline {
@@ -334,10 +348,28 @@ impl From<Box<str>> for SmolStr {
     }
 }
 
+impl From<Arc<str>> for SmolStr {
+    #[inline]
+    fn from(s: Arc<str>) -> SmolStr {
+        let repr = Repr::new_on_stack(s.as_ref()).unwrap_or_else(|| Repr::Heap(s));
+        Self(repr)
+    }
+}
+
 impl<'a> From<Cow<'a, str>> for SmolStr {
     #[inline]
     fn from(s: Cow<'a, str>) -> SmolStr {
         SmolStr::new(s)
+    }
+}
+
+impl From<SmolStr> for Arc<str> {
+    #[inline(always)]
+    fn from(text: SmolStr) -> Self {
+        match text.0 {
+            Repr::Heap(data) => data,
+            _ => text.as_str().into(),
+        }
     }
 }
 
@@ -377,6 +409,11 @@ const N_NEWLINES: usize = 32;
 const N_SPACES: usize = 128;
 const WS: &str =
     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n                                                                                                                                ";
+const _: () = {
+    assert!(WS.len() == N_NEWLINES + N_SPACES);
+    assert!(WS.as_bytes()[N_NEWLINES - 1] == b'\n');
+    assert!(WS.as_bytes()[N_NEWLINES] == b' ');
+};
 
 #[derive(Clone, Copy, Debug)]
 #[repr(u8)]
@@ -410,59 +447,62 @@ enum InlineSize {
 #[derive(Clone, Debug)]
 enum Repr {
     Heap(Arc<str>),
+    Static(&'static str),
     Inline {
         len: InlineSize,
         buf: [u8; INLINE_CAP],
     },
-    Substring {
-        newlines: usize,
-        spaces: usize,
-    },
 }
 
 impl Repr {
+    /// This function tries to create a new Repr::Inline or Repr::Static
+    /// If it isn't possible, this function returns None
+    fn new_on_stack<T>(text: T) -> Option<Self>
+    where
+        T: AsRef<str>,
+    {
+        let text = text.as_ref();
+
+        let len = text.len();
+        if len <= INLINE_CAP {
+            let mut buf = [0; INLINE_CAP];
+            buf[..len].copy_from_slice(text.as_bytes());
+            return Some(Repr::Inline {
+                len: unsafe { transmute(len as u8) },
+                buf,
+            });
+        }
+
+        if len <= N_NEWLINES + N_SPACES {
+            let bytes = text.as_bytes();
+            let possible_newline_count = cmp::min(len, N_NEWLINES);
+            let newlines = bytes[..possible_newline_count]
+                .iter()
+                .take_while(|&&b| b == b'\n')
+                .count();
+            let possible_space_count = len - newlines;
+            if possible_space_count <= N_SPACES && bytes[newlines..].iter().all(|&b| b == b' ') {
+                let spaces = possible_space_count;
+                let substring = &WS[N_NEWLINES - newlines..N_NEWLINES + spaces];
+                return Some(Repr::Static(substring));
+            }
+        }
+        None
+    }
+
     fn new<T>(text: T) -> Self
     where
         T: AsRef<str>,
     {
-        {
-            let text = text.as_ref();
-
-            let len = text.len();
-            if len <= INLINE_CAP {
-                let mut buf = [0; INLINE_CAP];
-                buf[..len].copy_from_slice(text.as_bytes());
-                return Repr::Inline {
-                    len: unsafe { transmute(len as u8) },
-                    buf,
-                };
-            }
-
-            if len <= N_NEWLINES + N_SPACES {
-                let bytes = text.as_bytes();
-                let possible_newline_count = cmp::min(len, N_NEWLINES);
-                let newlines = bytes[..possible_newline_count]
-                    .iter()
-                    .take_while(|&&b| b == b'\n')
-                    .count();
-                let possible_space_count = len - newlines;
-                if possible_space_count <= N_SPACES && bytes[newlines..].iter().all(|&b| b == b' ')
-                {
-                    let spaces = possible_space_count;
-                    return Repr::Substring { newlines, spaces };
-                }
-            }
-        }
-
-        Repr::Heap(text.as_ref().into())
+        Self::new_on_stack(text.as_ref()).unwrap_or_else(|| Repr::Heap(text.as_ref().into()))
     }
 
     #[inline(always)]
     fn len(&self) -> usize {
         match self {
             Repr::Heap(data) => data.len(),
+            Repr::Static(data) => data.len(),
             Repr::Inline { len, .. } => *len as usize,
-            Repr::Substring { newlines, spaces } => *newlines + *spaces,
         }
     }
 
@@ -470,28 +510,112 @@ impl Repr {
     fn is_empty(&self) -> bool {
         match self {
             Repr::Heap(data) => data.is_empty(),
+            Repr::Static(data) => data.is_empty(),
             Repr::Inline { len, .. } => *len as u8 == 0,
-            // A substring isn't created for an empty string.
-            Repr::Substring { .. } => false,
         }
     }
 
     #[inline]
     fn as_str(&self) -> &str {
         match self {
-            Repr::Heap(data) => &*data,
+            Repr::Heap(data) => data,
+            Repr::Static(data) => data,
             Repr::Inline { len, buf } => {
                 let len = *len as usize;
                 let buf = &buf[..len];
                 unsafe { ::core::str::from_utf8_unchecked(buf) }
             }
-            Repr::Substring { newlines, spaces } => {
-                let newlines = *newlines;
-                let spaces = *spaces;
-                assert!(newlines <= N_NEWLINES && spaces <= N_SPACES);
-                &WS[N_NEWLINES - newlines..N_NEWLINES + spaces]
+        }
+    }
+}
+
+/// Convert value to [`SmolStr`] using [`fmt::Display`], potentially without allocating.
+///
+/// Almost identical to [`ToString`], but converts to `SmolStr` instead.
+pub trait ToSmolStr {
+    fn to_smolstr(&self) -> SmolStr;
+}
+
+/// Formats arguments to a [`SmolStr`], potentially without allocating.
+///
+/// See [`alloc::format!`] or [`format_args!`] for syntax documentation.
+#[macro_export]
+macro_rules! format_smolstr {
+    ($($tt:tt)*) => {{
+        use ::core::fmt::Write;
+        let mut w = $crate::Writer::new();
+        w.write_fmt(format_args!($($tt)*)).expect("a formatting trait implementation returned an error");
+        $crate::SmolStr::from(w)
+    }};
+}
+
+#[doc(hidden)]
+pub struct Writer {
+    inline: [u8; INLINE_CAP],
+    heap: String,
+    len: usize,
+}
+
+impl Writer {
+    #[must_use]
+    pub const fn new() -> Self {
+        Writer {
+            inline: [0; INLINE_CAP],
+            heap: String::new(),
+            len: 0,
+        }
+    }
+}
+
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        // if currently on the stack
+        if self.len <= INLINE_CAP {
+            let old_len = self.len;
+            self.len += s.len();
+
+            // if the new length will fit on the stack (even if it fills it entirely)
+            if self.len <= INLINE_CAP {
+                self.inline[old_len..self.len].copy_from_slice(s.as_bytes());
+
+                return Ok(()); // skip the heap push below
+            }
+
+            self.heap.reserve(self.len);
+
+            // copy existing inline bytes over to the heap
+            unsafe {
+                self.heap
+                    .as_mut_vec()
+                    .extend_from_slice(&self.inline[..old_len]);
             }
         }
+
+        self.heap.push_str(s);
+
+        Ok(())
+    }
+}
+
+impl From<Writer> for SmolStr {
+    fn from(value: Writer) -> Self {
+        SmolStr(if value.len <= INLINE_CAP {
+            Repr::Inline {
+                len: unsafe { transmute(value.len as u8) },
+                buf: value.inline,
+            }
+        } else {
+            Repr::new(value.heap)
+        })
+    }
+}
+
+impl<T> ToSmolStr for T
+where
+    T: fmt::Display + ?Sized,
+{
+    fn to_smolstr(&self) -> SmolStr {
+        format_smolstr!("{}", self)
     }
 }
 

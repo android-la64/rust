@@ -9,19 +9,31 @@
 //! Cargo, and the good news is that it shouldn't be too hard! First determine
 //! how the feature should be gated:
 //!
-//! * New syntax in Cargo.toml should use `cargo-features`.
-//! * New CLI options should use `-Z unstable-options`.
-//! * New functionality that may not have an interface, or the interface has
-//!   not yet been designed, or for more complex features that affect multiple
-//!   parts of Cargo should use a new `-Z` flag.
+//! * Error when the feature is used without the gate
+//!   * Required if ignoring the feature violates the users intent in non-superficial ways
+//!   * A low-effort / safe way to protect the user from being broken if the format of the feature changes in
+//!     incompatible was (can be worked around)
+//!   * Good for: CLI (gate: `-Zunstable-options` or `-Z` if combined with other changes), `Cargo.toml` (gate: `cargo-features`)
+//! * Warn that the feature is ignored due to lack of the gate
+//!   * For if you could opt-in to the unimplemented feature on Cargo today and Cargo would
+//!     operate just fine
+//!   * If gate is not enabled, prefer to warn if the format of the feature is incompatible
+//!     (instead of error or ignore)
+//!   * Good for: `Cargo.toml`, `.cargo/config.toml`, `config.json` index file (gate: `-Z`)
+//! * Ignore the feature that is used without a gate
+//!   * For when ignoring the feature has so little impact that annoying the user is not worth it
+//!     (e.g. a config field that changes Cargo's terminal output)
+//!   * For behavior changes without an interface (e.g. the resolver)
+//!   * Good for: `.cargo/config.toml`, `config.json` index file (gate: `-Z`)
 //!
-//! See below for more details.
+//! For features that touch multiple parts of Cargo, multiple feature gating strategies (error,
+//! warn, ignore) and mechnisms (`-Z`, `cargo-features`) may be used.
 //!
 //! When adding new tests for your feature, usually the tests should go into a
-//! new module of the testsuite. See
+//! new module of the testsuite named after the feature. See
 //! <https://doc.crates.io/contrib/tests/writing.html> for more information on
 //! writing tests. Particularly, check out the "Testing Nightly Features"
-//! section for testing unstable features.
+//! section for testing unstable features. Be sure to test the feature gate itself.
 //!
 //! After you have added your feature, be sure to update the unstable
 //! documentation at `src/doc/src/reference/unstable.md` to include a short
@@ -29,11 +41,11 @@
 //!
 //! And hopefully that's it!
 //!
-//! ## New Cargo.toml syntax
+//! ## `cargo-features`
 //!
 //! The steps for adding new Cargo.toml syntax are:
 //!
-//! 1. Add the cargo-features unstable gate. Search below for "look here" to
+//! 1. Add the cargo-features unstable gate. Search the code below for "look here" to
 //!    find the [`features!`] macro invocation and add your feature to the list.
 //!
 //! 2. Update the Cargo.toml parsing code to handle your new feature.
@@ -63,50 +75,17 @@
 //!
 //! The steps to add a new `-Z` option are:
 //!
-//! 1. Add the option to the [`CliUnstable`] struct below. Flags can take an
-//!    optional value if you want.
+//! 1. Add the option to the [`CliUnstable`] struct in the macro invocation of
+//!    [`unstable_cli_options!`]. Flags can take an optional value if you want.
 //! 2. Update the [`CliUnstable::add`] function to parse the flag.
 //! 3. Wherever the new functionality is implemented, call
 //!    [`Config::cli_unstable`] to get an instance of [`CliUnstable`]
 //!    and check if the option has been enabled on the [`CliUnstable`] instance.
 //!    Nightly gating is already handled, so no need to worry about that.
-//!
-//! ### `-Z` vs `cargo-features`
-//!
-//! In some cases there might be some changes that `cargo-features` is unable
-//! to sufficiently encompass. An example would be a syntax change in
-//! `Cargo.toml` that also impacts the index or resolver. The resolver doesn't
-//! know about `cargo-features`, so it needs a `-Z` flag to enable the
-//! experimental functionality.
-//!
-//! In those cases, you usually should introduce both a `-Z` flag (to enable
-//! the changes outside of the manifest) and a `cargo-features` entry (to
-//! enable the new syntax in `Cargo.toml`). The `cargo-features` entry ensures
-//! that any experimental syntax that gets uploaded to crates.io is clearly
-//! intended for nightly-only builds. Otherwise, users accessing those crates
-//! may get confusing errors, particularly if the syntax changes during the
-//! development cycle, and the user tries to access it with a stable release.
-//!
-//! ### `-Z` with external files
-//!
-//! Some files, such as `config.toml` config files, or the `config.json` index
-//! file, are used in a global location which can make interaction with stable
-//! releases problematic. In general, before the feature is stabilized, stable
-//! Cargo should behave roughly similar to how it behaved *before* the
-//! unstable feature was introduced. If Cargo would normally have ignored or
-//! warned about the introduction of something, then it probably should
-//! continue to do so.
-//!
-//! For example, Cargo generally ignores (or warns) about `config.toml`
-//! entries it doesn't know about. This allows a limited degree of
-//! forwards-compatibility with future versions of Cargo that add new entries.
-//!
-//! Whether or not to warn on stable may need to be decided on a case-by-case
-//! basis. For example, you may want to avoid generating a warning for options
-//! that are not critical to Cargo's operation in order to reduce the
-//! annoyance of constant warnings. However, ignoring some options may prevent
-//! proper operation, so a warning may be valuable for a user trying to
-//! diagnose why it isn't working correctly.
+//!    If warning when feature is used without the gate, be sure to gracefully degrade (with a
+//!    warning) when the `Cargo.toml` / `.cargo/config.toml` field usage doesn't match the
+//!    schema.
+//! 4. For any `Cargo.toml` fields, strip them in [`prepare_for_publish`] if the gate isn't set
 //!
 //! ## Stabilization
 //!
@@ -136,6 +115,8 @@
 //! [`Config::cli_unstable`]: crate::util::config::Config::cli_unstable
 //! [`fail_if_stable_opt`]: CliUnstable::fail_if_stable_opt
 //! [`features!`]: macro.features.html
+//! [`unstable_cli_options!`]: macro.unstable_cli_options.html
+//! [`prepare_for_publish`]: crate::util::toml::prepare_for_publish
 
 use std::collections::BTreeSet;
 use std::env;
@@ -148,13 +129,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::resolver::ResolveBehavior;
 use crate::util::errors::CargoResult;
-use crate::util::{indented_lines, iter_join};
+use crate::util::indented_lines;
 use crate::Config;
 
-pub const HIDDEN: &str = "";
 pub const SEE_CHANNELS: &str =
     "See https://doc.rust-lang.org/book/appendix-07-nightly-rust.html for more information \
      about Rust release channels.";
+
+/// Value of [`allow-features`](CliUnstable::allow_features]
+pub type AllowFeatures = BTreeSet<String>;
 
 /// The edition of the compiler ([RFC 2052])
 ///
@@ -357,20 +340,43 @@ enum Status {
     Removed,
 }
 
+/// A listing of stable and unstable new syntax in Cargo.toml.
+///
+/// This generates definitions and impls for [`Features`] and [`Feature`]
+/// for each new syntax.
+///
+/// Note that all feature names in the macro invocation are valid Rust
+/// identifiers, but the `_` character is translated to `-` when specified in
+/// the `cargo-features` manifest entry in `Cargo.toml`.
+///
+/// See the [module-level documentation](self#new-cargotoml-syntax)
+/// for the process of adding a new syntax.
 macro_rules! features {
     (
-        $(($stab:ident, $feature:ident, $version:expr, $docs:expr),)*
+        $(
+            $(#[$attr:meta])*
+            ($stab:ident, $feature:ident, $version:expr, $docs:expr),
+        )*
     ) => (
+        /// Unstable feature context for querying if a new Cargo.toml syntax
+        /// is allowed to use.
+        ///
+        /// See the [module-level documentation](self#new-cargotoml-syntax) for the usage.
         #[derive(Default, Clone, Debug)]
         pub struct Features {
             $($feature: bool,)*
+            /// The current activated features.
             activated: Vec<String>,
+            /// Whether is allowed to use any unstable features.
             nightly_features_allowed: bool,
+            /// Whether the source mainfest is from a local package.
             is_local: bool,
         }
 
         impl Feature {
             $(
+                $(#[$attr])*
+                #[doc = concat!("\n\n\nSee <https://doc.rust-lang.org/nightly/cargo/", $docs, ">.")]
                 pub fn $feature() -> &'static Feature {
                     fn get(features: &Features) -> bool {
                         stab!($stab) == Status::Stable || features.$feature
@@ -386,6 +392,7 @@ macro_rules! features {
                 }
             )*
 
+            /// Whether this feature is allowed to use in the given [`Features`] context.
             fn is_enabled(&self, features: &Features) -> bool {
                 (self.get)(features)
             }
@@ -420,96 +427,91 @@ macro_rules! stab {
     };
 }
 
-// A listing of all features in Cargo.
-//
 // "look here"
-//
-// This is the macro that lists all stable and unstable features in Cargo.
-// You'll want to add to this macro whenever you add a feature to Cargo, also
-// following the directions above.
-//
-// Note that all feature names here are valid Rust identifiers, but the `_`
-// character is translated to `-` when specified in the `cargo-features`
-// manifest entry in `Cargo.toml`.
 features! {
-    // A dummy feature that doesn't actually gate anything, but it's used in
-    // testing to ensure that we can enable stable features.
+    /// A dummy feature that doesn't actually gate anything, but it's used in
+    /// testing to ensure that we can enable stable features.
     (stable, test_dummy_stable, "1.0", ""),
 
-    // A dummy feature that gates the usage of the `im-a-teapot` manifest
-    // entry. This is basically just intended for tests.
+    /// A dummy feature that gates the usage of the `im-a-teapot` manifest
+    /// entry. This is basically just intended for tests.
     (unstable, test_dummy_unstable, "", "reference/unstable.html"),
 
-    // Downloading packages from alternative registry indexes.
+    /// Downloading packages from alternative registry indexes.
     (stable, alternative_registries, "1.34", "reference/registries.html"),
 
-    // Using editions
+    /// Using editions
     (stable, edition, "1.31", "reference/manifest.html#the-edition-field"),
 
-    // Renaming a package in the manifest via the `package` key
+    /// Renaming a package in the manifest via the `package` key.
     (stable, rename_dependency, "1.31", "reference/specifying-dependencies.html#renaming-dependencies-in-cargotoml"),
 
-    // Whether a lock file is published with this crate
+    /// Whether a lock file is published with this crate.
     (removed, publish_lockfile, "1.37", "reference/unstable.html#publish-lockfile"),
 
-    // Overriding profiles for dependencies.
+    /// Overriding profiles for dependencies.
     (stable, profile_overrides, "1.41", "reference/profiles.html#overrides"),
 
-    // "default-run" manifest option,
+    /// "default-run" manifest option.
     (stable, default_run, "1.37", "reference/manifest.html#the-default-run-field"),
 
-    // Declarative build scripts.
+    /// Declarative build scripts.
     (unstable, metabuild, "", "reference/unstable.html#metabuild"),
 
-    // Specifying the 'public' attribute on dependencies
+    /// Specifying the 'public' attribute on dependencies.
     (unstable, public_dependency, "", "reference/unstable.html#public-dependency"),
 
-    // Allow to specify profiles other than 'dev', 'release', 'test', etc.
+    /// Allow to specify profiles other than 'dev', 'release', 'test', etc.
     (stable, named_profiles, "1.57", "reference/profiles.html#custom-profiles"),
 
-    // Opt-in new-resolver behavior.
+    /// Opt-in new-resolver behavior.
     (stable, resolver, "1.51", "reference/resolver.html#resolver-versions"),
 
-    // Allow to specify whether binaries should be stripped.
+    /// Allow to specify whether binaries should be stripped.
     (stable, strip, "1.58", "reference/profiles.html#strip-option"),
 
-    // Specifying a minimal 'rust-version' attribute for crates
+    /// Specifying a minimal 'rust-version' attribute for crates.
     (stable, rust_version, "1.56", "reference/manifest.html#the-rust-version-field"),
 
-    // Support for 2021 edition.
+    /// Support for 2021 edition.
     (stable, edition2021, "1.56", "reference/manifest.html#the-edition-field"),
 
-    // Allow to specify per-package targets (compile kinds)
+    /// Allow to specify per-package targets (compile kinds).
     (unstable, per_package_target, "", "reference/unstable.html#per-package-target"),
 
-    // Allow to specify which codegen backend should be used.
+    /// Allow to specify which codegen backend should be used.
     (unstable, codegen_backend, "", "reference/unstable.html#codegen-backend"),
 
-    // Allow specifying different binary name apart from the crate name
+    /// Allow specifying different binary name apart from the crate name.
     (unstable, different_binary_name, "", "reference/unstable.html#different-binary-name"),
 
-    // Allow specifying rustflags directly in a profile
+    /// Allow specifying rustflags directly in a profile.
     (unstable, profile_rustflags, "", "reference/unstable.html#profile-rustflags-option"),
 
-    // Allow specifying rustflags directly in a profile
+    /// Allow workspace members to inherit fields and dependencies from a workspace.
     (stable, workspace_inheritance, "1.64", "reference/unstable.html#workspace-inheritance"),
 
-     // Support for 2024 edition.
+    /// Support for 2024 edition.
     (unstable, edition2024, "", "reference/unstable.html#edition-2024"),
 
-    // Allow setting trim-paths in a profile to control the sanitisation of file paths in build outputs.
+    /// Allow setting trim-paths in a profile to control the sanitisation of file paths in build outputs.
     (unstable, trim_paths, "", "reference/unstable.html#profile-trim-paths-option"),
 }
 
+/// Status and metadata for a single unstable feature.
 pub struct Feature {
+    /// Feature name. This is valid Rust identifer so no dash only underscore.
     name: &'static str,
     stability: Status,
+    /// Version that this feature was stabilized or removed.
     version: &'static str,
+    /// Link to the unstable documentation.
     docs: &'static str,
     get: fn(&Features) -> bool,
 }
 
 impl Features {
+    /// Creates a new unstable features context.
     pub fn new(
         features: &[String],
         config: &Config,
@@ -583,7 +585,7 @@ impl Features {
                         bail!(
                             "the feature `{}` is not in the list of allowed features: [{}]",
                             feature_name,
-                            iter_join(allow, ", "),
+                            itertools::join(allow, ", "),
                         );
                     }
                 }
@@ -616,10 +618,12 @@ impl Features {
         Ok(())
     }
 
+    /// Gets the current activated features.
     pub fn activated(&self) -> &[String] {
         &self.activated
     }
 
+    /// Checks if the given feature is enabled.
     pub fn require(&self, feature: &Feature) -> CargoResult<()> {
         if feature.is_enabled(self) {
             return Ok(());
@@ -665,16 +669,20 @@ impl Features {
         bail!("{}", msg);
     }
 
+    /// Whether the given feature is allowed to use in this context.
     pub fn is_enabled(&self, feature: &Feature) -> bool {
         feature.is_enabled(self)
     }
 }
 
+/// Generates `-Z` flags as fields of [`CliUnstable`].
+///
+/// See the [module-level documentation](self#-z-options) for details.
 macro_rules! unstable_cli_options {
     (
         $(
             $(#[$meta:meta])?
-            $element: ident: $ty: ty = ($help: expr ),
+            $element: ident: $ty: ty$( = ($help:literal))?,
         )*
     ) => {
         /// A parsed representation of all unstable flags that Cargo accepts.
@@ -686,13 +694,15 @@ macro_rules! unstable_cli_options {
         #[serde(default, rename_all = "kebab-case")]
         pub struct CliUnstable {
             $(
+                $(#[doc = $help])?
                 $(#[$meta])?
                 pub $element: $ty
             ),*
         }
         impl CliUnstable {
-            pub fn help() -> Vec<(&'static str, &'static str)> {
-                let fields = vec![$((stringify!($element), $help)),*];
+            /// Returns a list of `(<option-name>, <help-text>)`.
+            pub fn help() -> Vec<(&'static str, Option<&'static str>)> {
+                let fields = vec![$((stringify!($element), None$(.or(Some($help)))?)),*];
                 fields
             }
         }
@@ -721,12 +731,12 @@ macro_rules! unstable_cli_options {
 
 unstable_cli_options!(
     // Permanently unstable features:
-    allow_features: Option<BTreeSet<String>> = ("Allow *only* the listed unstable features"),
-    print_im_a_teapot: bool = (HIDDEN),
+    allow_features: Option<AllowFeatures> = ("Allow *only* the listed unstable features"),
+    print_im_a_teapot: bool,
 
     // All other unstable features.
     // Please keep this list lexicographically ordered.
-    advanced_env: bool = (HIDDEN),
+    advanced_env: bool,
     asymmetric_token: bool = ("Allows authenticating with asymmetric tokens"),
     avoid_dev_deps: bool = ("Avoid installing dev-dependencies if possible"),
     binary_dep_depinfo: bool = ("Track changes to dependency artifacts"),
@@ -740,24 +750,26 @@ unstable_cli_options!(
     direct_minimal_versions: bool = ("Resolve minimal dependency versions instead of maximum (direct dependencies only)"),
     doctest_xcompile: bool = ("Compile and run doctests for non-host target using runner config"),
     dual_proc_macros: bool = ("Build proc-macros for both the host and the target"),
-    features: Option<Vec<String>>  = (HIDDEN),
+    features: Option<Vec<String>>,
     gc: bool = ("Track cache usage and \"garbage collect\" unused files"),
+    git: Option<GitFeatures> = ("Enable support for shallow git fetch operations"),
     gitoxide: Option<GitoxideFeatures> = ("Use gitoxide for the given git interactions, or all of them if no argument is given"),
-    host_config: bool = ("Enable the [host] section in the .cargo/config.toml file"),
+    host_config: bool = ("Enable the `[host]` section in the .cargo/config.toml file"),
     lints: bool = ("Pass `[lints]` to the linting tools"),
     minimal_versions: bool = ("Resolve minimal dependency versions instead of maximum"),
     msrv_policy: bool = ("Enable rust-version aware policy within cargo"),
     mtime_on_use: bool = ("Configure Cargo to update the mtime of used files"),
-    next_lockfile_bump: bool = (HIDDEN),
+    next_lockfile_bump: bool,
     no_index_update: bool = ("Do not update the registry index even if the cache is outdated"),
     panic_abort_tests: bool = ("Enable support to run tests with -Cpanic=abort"),
+    precise_pre_release: bool = ("Enable pre-release versions to be selected with `update --precise`"),
     profile_rustflags: bool = ("Enable the `rustflags` option in profiles in .cargo/config.toml file"),
     publish_timeout: bool = ("Enable the `publish.timeout` key in .cargo/config.toml file"),
     rustdoc_map: bool = ("Allow passing external documentation mappings to rustdoc"),
     rustdoc_scrape_examples: bool = ("Allows Rustdoc to scrape code examples from reverse-dependencies"),
     script: bool = ("Enable support for single-file, `.rs` packages"),
-    separate_nightlies: bool = (HIDDEN),
-    skip_rustdoc_fingerprint: bool = (HIDDEN),
+    separate_nightlies: bool,
+    skip_rustdoc_fingerprint: bool,
     target_applies_to_host: bool = ("Enable the `target-applies-to-host` key in the .cargo/config.toml file"),
     trim_paths: bool = ("Enable the `trim-paths` option in profiles"),
     unstable_options: bool = ("Allow the usage of unstable options"),
@@ -847,13 +859,47 @@ where
 }
 
 #[derive(Debug, Copy, Clone, Default, Deserialize)]
-pub struct GitoxideFeatures {
-    /// All fetches are done with `gitoxide`, which includes git dependencies as well as the crates index.
-    pub fetch: bool,
+pub struct GitFeatures {
     /// When cloning the index, perform a shallow clone. Maintain shallowness upon subsequent fetches.
     pub shallow_index: bool,
     /// When cloning git dependencies, perform a shallow clone and maintain shallowness on subsequent fetches.
     pub shallow_deps: bool,
+}
+
+impl GitFeatures {
+    fn all() -> Self {
+        GitFeatures {
+            shallow_index: true,
+            shallow_deps: true,
+        }
+    }
+}
+
+fn parse_git(it: impl Iterator<Item = impl AsRef<str>>) -> CargoResult<Option<GitFeatures>> {
+    let mut out = GitFeatures::default();
+    let GitFeatures {
+        shallow_index,
+        shallow_deps,
+    } = &mut out;
+
+    for e in it {
+        match e.as_ref() {
+            "shallow-index" => *shallow_index = true,
+            "shallow-deps" => *shallow_deps = true,
+            _ => {
+                bail!(
+                    "unstable 'git' only takes 'shallow-index' and 'shallow-deps' as valid inputs"
+                )
+            }
+        }
+    }
+    Ok(Some(out))
+}
+
+#[derive(Debug, Copy, Clone, Default, Deserialize)]
+pub struct GitoxideFeatures {
+    /// All fetches are done with `gitoxide`, which includes git dependencies as well as the crates index.
+    pub fetch: bool,
     /// Checkout git dependencies using `gitoxide` (submodules are still handled by git2 ATM, and filters
     /// like linefeed conversions are unsupported).
     pub checkout: bool,
@@ -867,9 +913,7 @@ impl GitoxideFeatures {
     fn all() -> Self {
         GitoxideFeatures {
             fetch: true,
-            shallow_index: true,
             checkout: true,
-            shallow_deps: true,
             internal_use_git2: false,
         }
     }
@@ -879,9 +923,7 @@ impl GitoxideFeatures {
     fn safe() -> Self {
         GitoxideFeatures {
             fetch: true,
-            shallow_index: false,
             checkout: true,
-            shallow_deps: false,
             internal_use_git2: false,
         }
     }
@@ -893,21 +935,17 @@ fn parse_gitoxide(
     let mut out = GitoxideFeatures::default();
     let GitoxideFeatures {
         fetch,
-        shallow_index,
         checkout,
-        shallow_deps,
         internal_use_git2,
     } = &mut out;
 
     for e in it {
         match e.as_ref() {
             "fetch" => *fetch = true,
-            "shallow-index" => *shallow_index = true,
-            "shallow-deps" => *shallow_deps = true,
             "checkout" => *checkout = true,
             "internal-use-git2" => *internal_use_git2 = true,
             _ => {
-                bail!("unstable 'gitoxide' only takes `fetch`, 'shallow-index', 'shallow-deps' and 'checkout' as valid inputs")
+                bail!("unstable 'gitoxide' only takes `fetch` and 'checkout' as valid input, for shallow fetches see `-Zgit=shallow-index,shallow-deps`")
             }
         }
     }
@@ -915,6 +953,8 @@ fn parse_gitoxide(
 }
 
 impl CliUnstable {
+    /// Parses `-Z` flags from the command line, and returns messages that warn
+    /// if any flag has alreardy been stabilized.
     pub fn parse(
         &mut self,
         flags: &[String],
@@ -1001,7 +1041,7 @@ impl CliUnstable {
                 bail!(
                     "the feature `{}` is not in the list of allowed features: [{}]",
                     k,
-                    iter_join(allowed, ", ")
+                    itertools::join(allowed, ", ")
                 );
             }
         }
@@ -1079,6 +1119,12 @@ impl CliUnstable {
             "doctest-xcompile" => self.doctest_xcompile = parse_empty(k, v)?,
             "dual-proc-macros" => self.dual_proc_macros = parse_empty(k, v)?,
             "gc" => self.gc = parse_empty(k, v)?,
+            "git" => {
+                self.git = v.map_or_else(
+                    || Ok(Some(GitFeatures::all())),
+                    |v| parse_git(v.split(',')),
+                )?
+            }
             "gitoxide" => {
                 self.gitoxide = v.map_or_else(
                     || Ok(Some(GitoxideFeatures::all())),
@@ -1095,6 +1141,7 @@ impl CliUnstable {
             "no-index-update" => self.no_index_update = parse_empty(k, v)?,
             "panic-abort-tests" => self.panic_abort_tests = parse_empty(k, v)?,
             "profile-rustflags" => self.profile_rustflags = parse_empty(k, v)?,
+            "precise-pre-release" => self.precise_pre_release = parse_empty(k, v)?,
             "trim-paths" => self.trim_paths = parse_empty(k, v)?,
             "publish-timeout" => self.publish_timeout = parse_empty(k, v)?,
             "rustdoc-map" => self.rustdoc_map = parse_empty(k, v)?,

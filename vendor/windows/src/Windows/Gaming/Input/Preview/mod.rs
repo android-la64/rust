@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IGameControllerProviderInfoStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IGameControllerProviderInfoStatics {
     type Vtable = IGameControllerProviderInfoStatics_Vtbl;
-}
-impl ::core::clone::Clone for IGameControllerProviderInfoStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IGameControllerProviderInfoStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0be1e6c5_d9bd_44ee_8362_488b2e464bfb);
@@ -25,10 +21,9 @@ pub struct IGameControllerProviderInfoStatics_Vtbl {
     #[cfg(not(feature = "Gaming_Input_Custom"))]
     GetProviderId: usize,
 }
-#[doc = "*Required features: `\"Gaming_Input_Preview\"`*"]
 pub struct GameControllerProviderInfo;
 impl GameControllerProviderInfo {
-    #[doc = "*Required features: `\"Gaming_Input_Custom\"`*"]
+    #[doc = "Required features: `\"Gaming_Input_Custom\"`"]
     #[cfg(feature = "Gaming_Input_Custom")]
     pub fn GetParentProviderId<P0>(provider: P0) -> ::windows_core::Result<::windows_core::HSTRING>
     where
@@ -39,7 +34,7 @@ impl GameControllerProviderInfo {
             (::windows_core::Interface::vtable(this).GetParentProviderId)(::windows_core::Interface::as_raw(this), provider.try_into_param()?.abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Gaming_Input_Custom\"`*"]
+    #[doc = "Required features: `\"Gaming_Input_Custom\"`"]
     #[cfg(feature = "Gaming_Input_Custom")]
     pub fn GetProviderId<P0>(provider: P0) -> ::windows_core::Result<::windows_core::HSTRING>
     where

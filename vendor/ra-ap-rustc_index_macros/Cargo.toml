@@ -12,11 +12,11 @@
 [package]
 edition = "2021"
 name = "ra-ap-rustc_index_macros"
-version = "0.21.0"
+version = "0.33.0"
 description = """
 
 Automatically published version of the package `rustc_index_macros`
-in the rust-lang/rust repository from commit f536185ed8fe11d45da662c8575f4253fede3986
+in the rust-lang/rust repository from commit 8b94152af68a0ed6d6af0b5ba57491e40481008e
 
 The publishing script for this crate lives at:
 https://github.com/rust-analyzer/rustc-auto-publish

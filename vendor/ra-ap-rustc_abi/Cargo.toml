@@ -12,11 +12,11 @@
 [package]
 edition = "2021"
 name = "ra-ap-rustc_abi"
-version = "0.21.0"
+version = "0.33.0"
 description = """
 
 Automatically published version of the package `rustc_abi`
-in the rust-lang/rust repository from commit f536185ed8fe11d45da662c8575f4253fede3986
+in the rust-lang/rust repository from commit 8b94152af68a0ed6d6af0b5ba57491e40481008e
 
 The publishing script for this crate lives at:
 https://github.com/rust-analyzer/rustc-auto-publish
@@ -25,7 +25,7 @@ license = "MIT / Apache-2.0"
 repository = "https://github.com/rust-lang/rust"
 
 [dependencies.bitflags]
-version = "1.2.1"
+version = "2.4.1"
 
 [dependencies.rand]
 version = "0.8.4"
@@ -36,42 +36,12 @@ default-features = false
 version = "0.6.0"
 optional = true
 
-[dependencies.rustc_data_structures]
-version = "0.21.0"
-optional = true
-package = "ra-ap-rustc_data_structures"
-
 [dependencies.rustc_index]
-version = "0.21.0"
+version = "0.33.0"
 default-features = false
 package = "ra-ap-rustc_index"
-
-[dependencies.rustc_macros]
-version = "0.21.0"
-optional = true
-package = "ra-ap-rustc_macros"
-
-[dependencies.rustc_serialize]
-version = "0.21.0"
-optional = true
-package = "ra-ap-rustc_serialize"
 
 [dependencies.tracing]
 version = "0.1"
 
 [features]
-default = [
-    "nightly",
-    "randomize",
-]
-nightly = [
-    "rustc_data_structures",
-    "rustc_index/nightly",
-    "rustc_macros",
-    "rustc_serialize",
-]
-randomize = [
-    "rand",
-    "rand_xoshiro",
-    "nightly",
-]

@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_NetworkManagement_WindowsConnectNow\"`, `\"implement\"`*"]
 pub trait IWCNConnectNotify_Impl: Sized {
     fn ConnectSucceeded(&self) -> ::windows_core::Result<()>;
     fn ConnectFailed(&self, hrfailure: ::windows_core::HRESULT) -> ::windows_core::Result<()>;
@@ -22,11 +21,10 @@ impl IWCNConnectNotify_Vtbl {
             ConnectFailed: ConnectFailed::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWCNConnectNotify as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWCNConnectNotify as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_NetworkManagement_WindowsConnectNow\"`, `\"implement\"`*"]
 pub trait IWCNDevice_Impl: Sized {
     fn SetPassword(&self, r#type: WCN_PASSWORD_TYPE, dwpasswordlength: u32, pbpassword: *const u8) -> ::windows_core::Result<()>;
     fn Connect(&self, pnotify: ::core::option::Option<&IWCNConnectNotify>) -> ::windows_core::Result<()>;
@@ -119,7 +117,7 @@ impl IWCNDevice_Vtbl {
             SetNFCPasswordParams: SetNFCPasswordParams::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWCNDevice as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWCNDevice as ::windows_core::ComInterface>::IID
     }
 }

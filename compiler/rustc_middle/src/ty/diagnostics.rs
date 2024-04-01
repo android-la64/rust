@@ -20,7 +20,7 @@ use rustc_span::{BytePos, Span};
 use rustc_type_ir::TyKind::*;
 
 impl<'tcx> IntoDiagnosticArg for Ty<'tcx> {
-    fn into_diagnostic_arg(self) -> DiagnosticArgValue<'static> {
+    fn into_diagnostic_arg(self) -> DiagnosticArgValue {
         self.to_string().into_diagnostic_arg()
     }
 }
@@ -627,12 +627,4 @@ impl<'tcx> FallibleTypeFolder<TyCtxt<'tcx>> for MakeSuggestableFolder<'tcx> {
 
         c.try_super_fold_with(self)
     }
-}
-
-#[derive(Diagnostic)]
-#[diag(middle_const_not_used_in_type_alias)]
-pub(super) struct ConstNotUsedTraitAlias {
-    pub ct: String,
-    #[primary_span]
-    pub span: Span,
 }

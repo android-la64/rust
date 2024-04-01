@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::context::Context;
-use crate::error::RenderError;
+use crate::error::{RenderError, RenderErrorReason};
 use crate::helpers::HelperDef;
 use crate::json::value::{PathAndJson, ScopedJson};
 use crate::registry::Registry;
@@ -18,18 +18,20 @@ pub(crate) struct ScriptHelper {
 
 #[inline]
 fn call_script_helper<'reg: 'rc, 'rc>(
-    params: &[PathAndJson<'reg, 'rc>],
-    hash: &BTreeMap<&'reg str, PathAndJson<'reg, 'rc>>,
+    params: &[PathAndJson<'rc>],
+    hash: &BTreeMap<&'reg str, PathAndJson<'rc>>,
     engine: &Engine,
     script: &AST,
-) -> Result<ScopedJson<'reg, 'rc>, RenderError> {
-    let params: Dynamic = to_dynamic(params.iter().map(|p| p.value()).collect::<Vec<&Json>>())?;
+) -> Result<ScopedJson<'rc>, RenderError> {
+    let params: Dynamic = to_dynamic(params.iter().map(|p| p.value()).collect::<Vec<&Json>>())
+        .map_err(RenderErrorReason::from)?;
 
     let hash: Dynamic = to_dynamic(
         hash.iter()
             .map(|(k, v)| ((*k).to_owned(), v.value()))
             .collect::<HashMap<String, &Json>>(),
-    )?;
+    )
+    .map_err(RenderErrorReason::from)?;
 
     let mut scope = Scope::new();
     scope.push_dynamic("params", params);
@@ -37,9 +39,9 @@ fn call_script_helper<'reg: 'rc, 'rc>(
 
     let result = engine
         .eval_ast_with_scope::<Dynamic>(&mut scope, script)
-        .map_err(RenderError::from)?;
+        .map_err(RenderErrorReason::from)?;
 
-    let result_json: Json = from_dynamic(&result)?;
+    let result_json: Json = from_dynamic(&result).map_err(RenderErrorReason::from)?;
 
     Ok(ScopedJson::Derived(result_json))
 }
@@ -47,11 +49,11 @@ fn call_script_helper<'reg: 'rc, 'rc>(
 impl HelperDef for ScriptHelper {
     fn call_inner<'reg: 'rc, 'rc>(
         &self,
-        h: &Helper<'reg, 'rc>,
+        h: &Helper<'rc>,
         reg: &'reg Registry<'reg>,
         _ctx: &'rc Context,
         _rc: &mut RenderContext<'reg, 'rc>,
-    ) -> Result<ScopedJson<'reg, 'rc>, RenderError> {
+    ) -> Result<ScopedJson<'rc>, RenderError> {
         call_script_helper(h.params(), h.hash(), &reg.engine, &self.script)
     }
 }

@@ -179,7 +179,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
         }
 
         let outlives_env = OutlivesEnvironment::new(full_env);
-        infcx.process_registered_region_obligations(&outlives_env);
+        let _ = infcx.process_registered_region_obligations::<!>(&outlives_env, |ty, _| Ok(ty));
 
         let region_data =
             infcx.inner.borrow_mut().unwrap_region_constraints().region_constraint_data().clone();
@@ -477,7 +477,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
         let mut vid_map: FxHashMap<RegionTarget<'cx>, RegionDeps<'cx>> = FxHashMap::default();
         let mut finished_map = FxHashMap::default();
 
-        for constraint in regions.constraints.keys() {
+        for (constraint, _) in &regions.constraints {
             match constraint {
                 &Constraint::VarSubVar(r1, r2) => {
                     {
@@ -513,6 +513,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
         }
 
         while !vid_map.is_empty() {
+            #[allow(rustc::potential_query_instability)]
             let target = *vid_map.keys().next().expect("Keys somehow empty");
             let deps = vid_map.remove(&target).expect("Entry somehow missing");
 
@@ -787,7 +788,7 @@ impl<'tcx> AutoTraitFinder<'tcx> {
                                 Ok(None) => {
                                     let tcx = self.tcx;
                                     let reported =
-                                        tcx.sess.emit_err(UnableToConstructConstantValue {
+                                        tcx.dcx().emit_err(UnableToConstructConstantValue {
                                             span: tcx.def_span(unevaluated.def),
                                             unevaluated: unevaluated,
                                         });

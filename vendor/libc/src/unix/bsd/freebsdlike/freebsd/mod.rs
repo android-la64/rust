@@ -48,6 +48,8 @@ pub type cpusetid_t = ::c_int;
 
 pub type sctp_assoc_t = u32;
 
+pub type eventfd_t = u64;
+
 #[cfg_attr(feature = "extra_traits", derive(Debug, Hash, PartialEq, Eq))]
 #[repr(u32)]
 pub enum devstat_support_flags {
@@ -3889,6 +3891,7 @@ pub const RFMEM: ::c_int = 32;
 pub const RFNOWAIT: ::c_int = 64;
 pub const RFCFDG: ::c_int = 4096;
 pub const RFTHREAD: ::c_int = 8192;
+pub const RFSIGSHARE: ::c_int = 16384;
 pub const RFLINUXTHPN: ::c_int = 65536;
 pub const RFTSIGZMB: ::c_int = 524288;
 pub const RFSPAWN: ::c_int = 2147483648;
@@ -5383,6 +5386,8 @@ extern "C" {
     pub fn setaudit(auditinfo: *const auditinfo_t) -> ::c_int;
 
     pub fn eventfd(init: ::c_uint, flags: ::c_int) -> ::c_int;
+    pub fn eventfd_read(fd: ::c_int, value: *mut eventfd_t) -> ::c_int;
+    pub fn eventfd_write(fd: ::c_int, value: eventfd_t) -> ::c_int;
 
     pub fn fdatasync(fd: ::c_int) -> ::c_int;
 

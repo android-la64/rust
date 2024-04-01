@@ -1,15 +1,12 @@
 #[cfg(feature = "Devices_Display_Core")]
+#[doc = "Required features: `\"Devices_Display_Core\"`"]
 pub mod Core;
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDisplayMonitor(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDisplayMonitor {
     type Vtable = IDisplayMonitor_Vtbl;
-}
-impl ::core::clone::Clone for IDisplayMonitor {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDisplayMonitor {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1f6b15d4_1d01_4c51_87e2_6f954a772b59);
@@ -62,14 +59,10 @@ pub struct IDisplayMonitor_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDisplayMonitor2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDisplayMonitor2 {
     type Vtable = IDisplayMonitor2_Vtbl;
-}
-impl ::core::clone::Clone for IDisplayMonitor2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDisplayMonitor2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x023018e6_cb23_5830_96df_a7bf6e602577);
@@ -82,14 +75,10 @@ pub struct IDisplayMonitor2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IDisplayMonitorStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IDisplayMonitorStatics {
     type Vtable = IDisplayMonitorStatics_Vtbl;
-}
-impl ::core::clone::Clone for IDisplayMonitorStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IDisplayMonitorStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6eae698f_a228_4c05_821d_b695d667de8e);
@@ -108,8 +97,8 @@ pub struct IDisplayMonitorStatics_Vtbl {
     #[cfg(not(feature = "Foundation"))]
     FromInterfaceIdAsync: usize,
 }
-#[doc = "*Required features: `\"Devices_Display\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct DisplayMonitor(::windows_core::IUnknown);
 impl DisplayMonitor {
     pub fn DeviceId(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -147,7 +136,7 @@ impl DisplayMonitor {
             (::windows_core::Interface::vtable(this).DisplayAdapterDeviceId)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Graphics\"`*"]
+    #[doc = "Required features: `\"Graphics\"`"]
     #[cfg(feature = "Graphics")]
     pub fn DisplayAdapterId(&self) -> ::windows_core::Result<super::super::Graphics::DisplayAdapterId> {
         let this = self;
@@ -170,7 +159,7 @@ impl DisplayMonitor {
             (::windows_core::Interface::vtable(this).UsageKind)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Graphics\"`*"]
+    #[doc = "Required features: `\"Graphics\"`"]
     #[cfg(feature = "Graphics")]
     pub fn NativeResolutionInRawPixels(&self) -> ::windows_core::Result<super::super::Graphics::SizeInt32> {
         let this = self;
@@ -179,7 +168,7 @@ impl DisplayMonitor {
             (::windows_core::Interface::vtable(this).NativeResolutionInRawPixels)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn PhysicalSizeInInches(&self) -> ::windows_core::Result<super::super::Foundation::IReference<super::super::Foundation::Size>> {
         let this = self;
@@ -202,7 +191,7 @@ impl DisplayMonitor {
             (::windows_core::Interface::vtable(this).RawDpiY)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RedPrimary(&self) -> ::windows_core::Result<super::super::Foundation::Point> {
         let this = self;
@@ -211,7 +200,7 @@ impl DisplayMonitor {
             (::windows_core::Interface::vtable(this).RedPrimary)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn GreenPrimary(&self) -> ::windows_core::Result<super::super::Foundation::Point> {
         let this = self;
@@ -220,7 +209,7 @@ impl DisplayMonitor {
             (::windows_core::Interface::vtable(this).GreenPrimary)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn BluePrimary(&self) -> ::windows_core::Result<super::super::Foundation::Point> {
         let this = self;
@@ -229,7 +218,7 @@ impl DisplayMonitor {
             (::windows_core::Interface::vtable(this).BluePrimary)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn WhitePoint(&self) -> ::windows_core::Result<super::super::Foundation::Point> {
         let this = self;
@@ -279,7 +268,7 @@ impl DisplayMonitor {
             (::windows_core::Interface::vtable(this).GetDeviceSelector)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FromIdAsync(deviceid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<DisplayMonitor>> {
         Self::IDisplayMonitorStatics(|this| unsafe {
@@ -287,7 +276,7 @@ impl DisplayMonitor {
             (::windows_core::Interface::vtable(this).FromIdAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(deviceid), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FromInterfaceIdAsync(deviceinterfaceid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<DisplayMonitor>> {
         Self::IDisplayMonitorStatics(|this| unsafe {
@@ -301,24 +290,8 @@ impl DisplayMonitor {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for DisplayMonitor {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for DisplayMonitor {}
-impl ::core::fmt::Debug for DisplayMonitor {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("DisplayMonitor").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for DisplayMonitor {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.Display.DisplayMonitor;{1f6b15d4-1d01-4c51-87e2-6f954a772b59})");
-}
-impl ::core::clone::Clone for DisplayMonitor {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for DisplayMonitor {
     type Vtable = IDisplayMonitor_Vtbl;
@@ -332,7 +305,6 @@ impl ::windows_core::RuntimeName for DisplayMonitor {
 ::windows_core::imp::interface_hierarchy!(DisplayMonitor, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for DisplayMonitor {}
 unsafe impl ::core::marker::Sync for DisplayMonitor {}
-#[doc = "*Required features: `\"Devices_Display\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DisplayMonitorConnectionKind(pub i32);
@@ -364,7 +336,6 @@ impl ::core::fmt::Debug for DisplayMonitorConnectionKind {
 impl ::windows_core::RuntimeType for DisplayMonitorConnectionKind {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.Display.DisplayMonitorConnectionKind;i4)");
 }
-#[doc = "*Required features: `\"Devices_Display\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DisplayMonitorDescriptorKind(pub i32);
@@ -394,7 +365,6 @@ impl ::core::fmt::Debug for DisplayMonitorDescriptorKind {
 impl ::windows_core::RuntimeType for DisplayMonitorDescriptorKind {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.Display.DisplayMonitorDescriptorKind;i4)");
 }
-#[doc = "*Required features: `\"Devices_Display\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DisplayMonitorPhysicalConnectorKind(pub i32);
@@ -430,7 +400,6 @@ impl ::core::fmt::Debug for DisplayMonitorPhysicalConnectorKind {
 impl ::windows_core::RuntimeType for DisplayMonitorPhysicalConnectorKind {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.Display.DisplayMonitorPhysicalConnectorKind;i4)");
 }
-#[doc = "*Required features: `\"Devices_Display\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct DisplayMonitorUsageKind(pub i32);

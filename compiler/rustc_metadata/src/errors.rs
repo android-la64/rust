@@ -3,7 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rustc_errors::{error_code, ErrorGuaranteed, IntoDiagnostic};
+use rustc_errors::{
+    codes::*, DiagCtxt, DiagnosticBuilder, EmissionGuarantee, IntoDiagnostic, Level,
+};
 use rustc_macros::Diagnostic;
 use rustc_session::config;
 use rustc_span::{sym, Span, Symbol};
@@ -120,7 +122,7 @@ pub struct WasmImportForm {
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_empty_link_name, code = "E0454")]
+#[diag(metadata_empty_link_name, code = E0454)]
 pub struct EmptyLinkName {
     #[primary_span]
     #[label]
@@ -128,21 +130,21 @@ pub struct EmptyLinkName {
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_link_framework_apple, code = "E0455")]
+#[diag(metadata_link_framework_apple, code = E0455)]
 pub struct LinkFrameworkApple {
     #[primary_span]
     pub span: Span,
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_framework_only_windows, code = "E0455")]
+#[diag(metadata_framework_only_windows, code = E0455)]
 pub struct FrameworkOnlyWindows {
     #[primary_span]
     pub span: Span,
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_unknown_link_kind, code = "E0458")]
+#[diag(metadata_unknown_link_kind, code = E0458)]
 pub struct UnknownLinkKind<'a> {
     #[primary_span]
     #[label]
@@ -237,7 +239,7 @@ pub struct IncompatibleWasmLink {
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_link_requires_name, code = "E0459")]
+#[diag(metadata_link_requires_name, code = E0459)]
 pub struct LinkRequiresName {
     #[primary_span]
     #[label]
@@ -495,16 +497,13 @@ pub(crate) struct MultipleCandidates {
     pub candidates: Vec<PathBuf>,
 }
 
-impl IntoDiagnostic<'_> for MultipleCandidates {
-    fn into_diagnostic(
-        self,
-        dcx: &'_ rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'_, ErrorGuaranteed> {
-        let mut diag = dcx.struct_err(fluent::metadata_multiple_candidates);
-        diag.set_arg("crate_name", self.crate_name);
-        diag.set_arg("flavor", self.flavor);
-        diag.code(error_code!(E0464));
-        diag.set_span(self.span);
+impl<G: EmissionGuarantee> IntoDiagnostic<'_, G> for MultipleCandidates {
+    fn into_diagnostic(self, dcx: &'_ DiagCtxt, level: Level) -> DiagnosticBuilder<'_, G> {
+        let mut diag = DiagnosticBuilder::new(dcx, level, fluent::metadata_multiple_candidates);
+        diag.arg("crate_name", self.crate_name);
+        diag.arg("flavor", self.flavor);
+        diag.code(E0464);
+        diag.span(self.span);
         for (i, candidate) in self.candidates.iter().enumerate() {
             diag.note(format!("candidate #{}: {}", i + 1, candidate.display()));
         }
@@ -513,7 +512,7 @@ impl IntoDiagnostic<'_> for MultipleCandidates {
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_symbol_conflicts_current, code = "E0519")]
+#[diag(metadata_symbol_conflicts_current, code = E0519)]
 pub struct SymbolConflictsCurrent {
     #[primary_span]
     pub span: Span,
@@ -538,7 +537,7 @@ pub struct DlError {
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_newer_crate_version, code = "E0460")]
+#[diag(metadata_newer_crate_version, code = E0460)]
 #[note]
 #[note(metadata_found_crate_versions)]
 pub struct NewerCrateVersion {
@@ -550,7 +549,7 @@ pub struct NewerCrateVersion {
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_no_crate_with_triple, code = "E0461")]
+#[diag(metadata_no_crate_with_triple, code = E0461)]
 #[note(metadata_found_crate_versions)]
 pub struct NoCrateWithTriple<'a> {
     #[primary_span]
@@ -562,7 +561,7 @@ pub struct NoCrateWithTriple<'a> {
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_found_staticlib, code = "E0462")]
+#[diag(metadata_found_staticlib, code = E0462)]
 #[note(metadata_found_crate_versions)]
 #[help]
 pub struct FoundStaticlib {
@@ -574,7 +573,7 @@ pub struct FoundStaticlib {
 }
 
 #[derive(Diagnostic)]
-#[diag(metadata_incompatible_rustc, code = "E0514")]
+#[diag(metadata_incompatible_rustc, code = E0514)]
 #[note(metadata_found_crate_versions)]
 #[help]
 pub struct IncompatibleRustc {
@@ -593,17 +592,14 @@ pub struct InvalidMetadataFiles {
     pub crate_rejections: Vec<String>,
 }
 
-impl IntoDiagnostic<'_> for InvalidMetadataFiles {
+impl<G: EmissionGuarantee> IntoDiagnostic<'_, G> for InvalidMetadataFiles {
     #[track_caller]
-    fn into_diagnostic(
-        self,
-        dcx: &'_ rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'_, ErrorGuaranteed> {
-        let mut diag = dcx.struct_err(fluent::metadata_invalid_meta_files);
-        diag.set_arg("crate_name", self.crate_name);
-        diag.set_arg("add_info", self.add_info);
-        diag.code(error_code!(E0786));
-        diag.set_span(self.span);
+    fn into_diagnostic(self, dcx: &'_ DiagCtxt, level: Level) -> DiagnosticBuilder<'_, G> {
+        let mut diag = DiagnosticBuilder::new(dcx, level, fluent::metadata_invalid_meta_files);
+        diag.arg("crate_name", self.crate_name);
+        diag.arg("add_info", self.add_info);
+        diag.code(E0786);
+        diag.span(self.span);
         for crate_rejection in self.crate_rejections {
             diag.note(crate_rejection);
         }
@@ -623,19 +619,16 @@ pub struct CannotFindCrate {
     pub is_ui_testing: bool,
 }
 
-impl IntoDiagnostic<'_> for CannotFindCrate {
+impl<G: EmissionGuarantee> IntoDiagnostic<'_, G> for CannotFindCrate {
     #[track_caller]
-    fn into_diagnostic(
-        self,
-        dcx: &'_ rustc_errors::DiagCtxt,
-    ) -> rustc_errors::DiagnosticBuilder<'_, ErrorGuaranteed> {
-        let mut diag = dcx.struct_err(fluent::metadata_cannot_find_crate);
-        diag.set_arg("crate_name", self.crate_name);
-        diag.set_arg("current_crate", self.current_crate);
-        diag.set_arg("add_info", self.add_info);
-        diag.set_arg("locator_triple", self.locator_triple.triple());
-        diag.code(error_code!(E0463));
-        diag.set_span(self.span);
+    fn into_diagnostic(self, dcx: &'_ DiagCtxt, level: Level) -> DiagnosticBuilder<'_, G> {
+        let mut diag = DiagnosticBuilder::new(dcx, level, fluent::metadata_cannot_find_crate);
+        diag.arg("crate_name", self.crate_name);
+        diag.arg("current_crate", self.current_crate);
+        diag.arg("add_info", self.add_info);
+        diag.arg("locator_triple", self.locator_triple.triple());
+        diag.code(E0463);
+        diag.span(self.span);
         if (self.crate_name == sym::std || self.crate_name == sym::core)
             && self.locator_triple != TargetTriple::from_triple(config::host_triple())
         {

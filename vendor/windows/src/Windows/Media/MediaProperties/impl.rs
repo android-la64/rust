@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Media_MediaProperties\"`, `\"Foundation_Collections\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`"]
 #[cfg(feature = "Foundation_Collections")]
 pub trait IMediaEncodingProperties_Impl: Sized {
     fn Properties(&self) -> ::windows_core::Result<MediaPropertySet>;
@@ -62,7 +62,7 @@ impl IMediaEncodingProperties_Vtbl {
             Subtype: Subtype::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IMediaEncodingProperties as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IMediaEncodingProperties as ::windows_core::ComInterface>::IID
     }
 }

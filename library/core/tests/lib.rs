@@ -1,13 +1,13 @@
 #![feature(alloc_layout_extra)]
 #![feature(array_chunks)]
-#![feature(array_methods)]
 #![feature(array_windows)]
 #![feature(ascii_char)]
 #![feature(ascii_char_variants)]
+#![feature(async_iter_from_iter)]
+#![feature(async_iterator)]
 #![feature(bigint_helper_methods)]
 #![feature(cell_update)]
 #![feature(const_align_offset)]
-#![feature(const_assume)]
 #![feature(const_align_of_val_raw)]
 #![feature(const_black_box)]
 #![feature(const_caller_location)]
@@ -55,8 +55,10 @@
 #![feature(maybe_uninit_write_slice)]
 #![feature(maybe_uninit_uninit_array_transpose)]
 #![feature(min_specialization)]
+#![feature(noop_waker)]
 #![feature(numfmt)]
 #![feature(num_midpoint)]
+#![cfg_attr(not(bootstrap), feature(offset_of_nested))]
 #![feature(isqrt)]
 #![feature(step_trait)]
 #![feature(str_internals)]
@@ -68,7 +70,6 @@
 #![feature(slice_internals)]
 #![feature(slice_partition_dedup)]
 #![feature(ip)]
-#![feature(ip_in_core)]
 #![feature(iter_advance_by)]
 #![feature(iter_array_chunks)]
 #![feature(iter_collect_into)]
@@ -99,7 +100,6 @@
 #![cfg_attr(target_has_atomic = "128", feature(integer_atomics))]
 #![cfg_attr(test, feature(cfg_match))]
 #![feature(int_roundings)]
-#![feature(slice_group_by)]
 #![feature(split_array)]
 #![feature(strict_provenance)]
 #![feature(strict_provenance_atomic_ptr)]
@@ -115,7 +115,6 @@
 #![feature(utf8_chunks)]
 #![feature(is_ascii_octdigit)]
 #![feature(get_many_mut)]
-#![feature(offset_of)]
 #![feature(iter_map_windows)]
 #![allow(internal_features)]
 #![deny(unsafe_op_in_unsafe_fn)]
@@ -126,6 +125,7 @@ mod any;
 mod array;
 mod ascii;
 mod asserting;
+mod async_iter;
 mod atomic;
 mod bool;
 mod cell;

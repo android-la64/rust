@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IActiveXUIHandlerSite_Impl: Sized {
     fn CreateScrollableContextMenu(&self) -> ::windows_core::Result<IScrollableContextMenu>;
@@ -37,11 +37,10 @@ impl IActiveXUIHandlerSite_Vtbl {
             PickFileAndGetResult: PickFileAndGetResult::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IActiveXUIHandlerSite as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IActiveXUIHandlerSite as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IActiveXUIHandlerSite2_Impl: Sized {
     fn AddSuspensionExemption(&self) -> ::windows_core::Result<u64>;
     fn RemoveSuspensionExemption(&self, ullcookie: u64) -> ::windows_core::Result<()>;
@@ -71,11 +70,11 @@ impl IActiveXUIHandlerSite2_Vtbl {
             RemoveSuspensionExemption: RemoveSuspensionExemption::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IActiveXUIHandlerSite2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IActiveXUIHandlerSite2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IActiveXUIHandlerSite3_Impl: Sized {
     fn MessageBoxW(&self, hwnd: super::super::Foundation::HWND, text: &::windows_core::PCWSTR, caption: &::windows_core::PCWSTR, r#type: u32) -> ::windows_core::Result<i32>;
@@ -98,11 +97,11 @@ impl IActiveXUIHandlerSite3_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), MessageBoxW: MessageBoxW::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IActiveXUIHandlerSite3 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IActiveXUIHandlerSite3 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IAnchorClick_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn ProcOnClick(&self) -> ::windows_core::Result<()>;
@@ -119,11 +118,10 @@ impl IAnchorClick_Vtbl {
         }
         Self { base__: super::super::System::Com::IDispatch_Vtbl::new::<Identity, Impl, OFFSET>(), ProcOnClick: ProcOnClick::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAnchorClick as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAnchorClick as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IAudioSessionSite_Impl: Sized {
     fn GetAudioSessionGuid(&self) -> ::windows_core::Result<::windows_core::GUID>;
     fn OnAudioStreamCreated(&self, endpointid: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -160,11 +158,11 @@ impl IAudioSessionSite_Vtbl {
             OnAudioStreamDestroyed: OnAudioStreamDestroyed::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IAudioSessionSite as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IAudioSessionSite as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ICaretPositionProvider_Impl: Sized {
     fn GetCaretPosition(&self, pptcaret: *mut super::super::Foundation::POINT, pflheight: *mut f32) -> ::windows_core::Result<()>;
@@ -181,11 +179,11 @@ impl ICaretPositionProvider_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetCaretPosition: GetCaretPosition::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICaretPositionProvider as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICaretPositionProvider as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IDeviceRect_Impl: Sized + super::super::System::Com::IDispatch_Impl {}
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
@@ -195,11 +193,11 @@ impl IDeviceRect_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDeviceRect_Impl, const OFFSET: isize>() -> IDeviceRect_Vtbl {
         Self { base__: super::super::System::Com::IDispatch_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDeviceRect as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDeviceRect as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Graphics_Gdi\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Graphics_Gdi\"`"]
 #[cfg(feature = "Win32_Graphics_Gdi")]
 pub trait IDithererImpl_Impl: Sized {
     fn SetDestColorTable(&self, ncolors: u32, prgbcolors: *const super::super::Graphics::Gdi::RGBQUAD) -> ::windows_core::Result<()>;
@@ -226,11 +224,11 @@ impl IDithererImpl_Vtbl {
             SetEventSink: SetEventSink::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDithererImpl as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDithererImpl as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_Web_MsHtml\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_Web_MsHtml\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_Web_MsHtml"))]
 pub trait IDocObjectService_Impl: Sized {
     fn FireBeforeNavigate2(&self, pdispatch: ::core::option::Option<&super::super::System::Com::IDispatch>, lpszurl: &::windows_core::PCWSTR, dwflags: u32, lpszframename: &::windows_core::PCWSTR, ppostdata: *const u8, cbpostdata: u32, lpszheaders: &::windows_core::PCWSTR, fplaynavsound: super::super::Foundation::BOOL) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -337,11 +335,11 @@ impl IDocObjectService_Vtbl {
             IsErrorUrl: IsErrorUrl::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDocObjectService as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDocObjectService as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IDownloadBehavior_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn startDownload(&self, bstrurl: &::windows_core::BSTR, pdispcallback: ::core::option::Option<&super::super::System::Com::IDispatch>) -> ::windows_core::Result<()>;
@@ -358,11 +356,11 @@ impl IDownloadBehavior_Vtbl {
         }
         Self { base__: super::super::System::Com::IDispatch_Vtbl::new::<Identity, Impl, OFFSET>(), startDownload: startDownload::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDownloadBehavior as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDownloadBehavior as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`, `\"Win32_System_Com_StructuredStorage\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Gdi\"`, `\"Win32_Security\"`, `\"Win32_System_Com_StructuredStorage\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Gdi", feature = "Win32_Security", feature = "Win32_System_Com_StructuredStorage"))]
 pub trait IDownloadManager_Impl: Sized {
     fn Download(&self, pmk: ::core::option::Option<&super::super::System::Com::IMoniker>, pbc: ::core::option::Option<&super::super::System::Com::IBindCtx>, dwbindverb: u32, grfbindf: i32, pbindinfo: *const super::super::System::Com::BINDINFO, pszheaders: &::windows_core::PCWSTR, pszredir: &::windows_core::PCWSTR, uicp: u32) -> ::windows_core::Result<()>;
@@ -379,11 +377,11 @@ impl IDownloadManager_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Download: Download::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDownloadManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDownloadManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IEnumManagerFrames_Impl: Sized {
     fn Next(&self, celt: u32, ppwindows: *mut *mut super::super::Foundation::HWND, pceltfetched: *mut u32) -> ::windows_core::Result<()>;
@@ -443,11 +441,10 @@ impl IEnumManagerFrames_Vtbl {
             Clone: Clone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEnumManagerFrames as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEnumManagerFrames as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IEnumOpenServiceActivity_Impl: Sized {
     fn Next(&self, celt: u32, rgelt: *mut ::core::option::Option<IOpenServiceActivity>, pceltfetched: *mut u32) -> ::windows_core::Result<()>;
     fn Skip(&self, celt: u32) -> ::windows_core::Result<()>;
@@ -491,11 +488,10 @@ impl IEnumOpenServiceActivity_Vtbl {
             Clone: Clone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEnumOpenServiceActivity as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEnumOpenServiceActivity as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IEnumOpenServiceActivityCategory_Impl: Sized {
     fn Next(&self, celt: u32, rgelt: *mut ::core::option::Option<IOpenServiceActivityCategory>, pceltfetched: *mut u32) -> ::windows_core::Result<()>;
     fn Skip(&self, celt: u32) -> ::windows_core::Result<()>;
@@ -539,11 +535,11 @@ impl IEnumOpenServiceActivityCategory_Vtbl {
             Clone: Clone::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEnumOpenServiceActivityCategory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEnumOpenServiceActivityCategory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IEnumSTATURL_Impl: Sized {
     fn Next(&self, celt: u32, rgelt: *mut STATURL, pceltfetched: *mut u32) -> ::windows_core::Result<()>;
@@ -597,11 +593,11 @@ impl IEnumSTATURL_Vtbl {
             SetFilter: SetFilter::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEnumSTATURL as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEnumSTATURL as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_System_Com\"`, `\"Win32_Web_MsHtml\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`, `\"Win32_Web_MsHtml\"`"]
 #[cfg(all(feature = "Win32_System_Com", feature = "Win32_Web_MsHtml"))]
 pub trait IExtensionValidation_Impl: Sized {
     fn Validate(&self, extensionguid: *const ::windows_core::GUID, extensionmodulepath: &::windows_core::PCWSTR, extensionfileversionms: u32, extensionfileversionls: u32, htmldocumenttop: ::core::option::Option<&super::MsHtml::IHTMLDocument2>, htmldocumentsubframe: ::core::option::Option<&super::MsHtml::IHTMLDocument2>, htmlelement: ::core::option::Option<&super::MsHtml::IHTMLElement>, contexts: ExtensionValidationContexts) -> ::windows_core::Result<ExtensionValidationResults>;
@@ -640,11 +636,11 @@ impl IExtensionValidation_Vtbl {
             DisplayName: DisplayName::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IExtensionValidation as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IExtensionValidation as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IHTMLPersistData_Impl: Sized {
     fn save(&self, punk: ::core::option::Option<&::windows_core::IUnknown>, ltype: i32) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL>;
@@ -696,11 +692,11 @@ impl IHTMLPersistData_Vtbl {
             queryType: queryType::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHTMLPersistData as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHTMLPersistData as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IHTMLPersistDataOM_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn XMLDocument(&self) -> ::windows_core::Result<super::super::System::Com::IDispatch>;
@@ -753,11 +749,11 @@ impl IHTMLPersistDataOM_Vtbl {
             removeAttribute: removeAttribute::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHTMLPersistDataOM as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHTMLPersistDataOM as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IHTMLUserDataOM_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn XMLDocument(&self) -> ::windows_core::Result<super::super::System::Com::IDispatch>;
@@ -844,11 +840,11 @@ impl IHTMLUserDataOM_Vtbl {
             expires: expires::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHTMLUserDataOM as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHTMLUserDataOM as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IHeaderFooter_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn htmlHead(&self) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -1087,11 +1083,11 @@ impl IHeaderFooter_Vtbl {
             timeLong: timeLong::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHeaderFooter as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHeaderFooter as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IHeaderFooter2_Impl: Sized + IHeaderFooter_Impl {
     fn Setfont(&self, v: &::windows_core::BSTR) -> ::windows_core::Result<()>;
@@ -1120,11 +1116,11 @@ impl IHeaderFooter2_Vtbl {
         }
         Self { base__: IHeaderFooter_Vtbl::new::<Identity, Impl, OFFSET>(), Setfont: Setfont::<Identity, Impl, OFFSET>, font: font::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHeaderFooter2 as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID || iid == &<IHeaderFooter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHeaderFooter2 as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID || *iid == <IHeaderFooter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IHomePage_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn navigateHomePage(&self) -> ::windows_core::Result<()>;
@@ -1164,11 +1160,11 @@ impl IHomePage_Vtbl {
             isHomePage: isHomePage::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHomePage as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHomePage as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IHomePageSetting_Impl: Sized {
     fn SetHomePage(&self, hwnd: super::super::Foundation::HWND, homepageuri: &::windows_core::PCWSTR, brandingmessage: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -1208,11 +1204,11 @@ impl IHomePageSetting_Vtbl {
             SetHomePageToBrowserDefault: SetHomePageToBrowserDefault::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IHomePageSetting as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IHomePageSetting as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IIEWebDriverManager_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn ExecuteCommand(&self, command: &::windows_core::PCWSTR) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -1235,11 +1231,11 @@ impl IIEWebDriverManager_Vtbl {
         }
         Self { base__: super::super::System::Com::IDispatch_Vtbl::new::<Identity, Impl, OFFSET>(), ExecuteCommand: ExecuteCommand::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IIEWebDriverManager as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IIEWebDriverManager as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IIEWebDriverSite_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn WindowOperation(&self, operationcode: u32, hwnd: u32) -> ::windows_core::Result<()>;
@@ -1279,11 +1275,11 @@ impl IIEWebDriverSite_Vtbl {
             GetCapabilityValue: GetCapabilityValue::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IIEWebDriverSite as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IIEWebDriverSite as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IImageDecodeEventSink_Impl: Sized {
     fn GetSurface(&self, nwidth: i32, nheight: i32, bfid: *const ::windows_core::GUID, npasses: u32, dwhints: u32) -> ::windows_core::Result<::windows_core::IUnknown>;
@@ -1344,11 +1340,11 @@ impl IImageDecodeEventSink_Vtbl {
             OnProgress: OnProgress::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IImageDecodeEventSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IImageDecodeEventSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IImageDecodeEventSink2_Impl: Sized + IImageDecodeEventSink_Impl {
     fn IsAlphaPremultRequired(&self) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -1371,11 +1367,11 @@ impl IImageDecodeEventSink2_Vtbl {
         }
         Self { base__: IImageDecodeEventSink_Vtbl::new::<Identity, Impl, OFFSET>(), IsAlphaPremultRequired: IsAlphaPremultRequired::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IImageDecodeEventSink2 as ::windows_core::ComInterface>::IID || iid == &<IImageDecodeEventSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IImageDecodeEventSink2 as ::windows_core::ComInterface>::IID || *iid == <IImageDecodeEventSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IImageDecodeFilter_Impl: Sized {
     fn Initialize(&self, peventsink: ::core::option::Option<&IImageDecodeEventSink>) -> ::windows_core::Result<()>;
@@ -1409,11 +1405,11 @@ impl IImageDecodeFilter_Vtbl {
             Terminate: Terminate::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IImageDecodeFilter as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IImageDecodeFilter as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IIntelliForms_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn enabled(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL>;
@@ -1446,11 +1442,10 @@ impl IIntelliForms_Vtbl {
             Setenabled: Setenabled::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IIntelliForms as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IIntelliForms as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IInternetExplorerManager_Impl: Sized {
     fn CreateObject(&self, dwconfig: u32, pszurl: &::windows_core::PCWSTR, riid: *const ::windows_core::GUID, ppv: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
 }
@@ -1464,11 +1459,10 @@ impl IInternetExplorerManager_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), CreateObject: CreateObject::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IInternetExplorerManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IInternetExplorerManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IInternetExplorerManager2_Impl: Sized {
     fn EnumFrameWindows(&self) -> ::windows_core::Result<IEnumManagerFrames>;
 }
@@ -1488,11 +1482,11 @@ impl IInternetExplorerManager2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), EnumFrameWindows: EnumFrameWindows::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IInternetExplorerManager2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IInternetExplorerManager2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ILayoutRect_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn SetnextRect(&self, bstrelementid: &::windows_core::BSTR) -> ::windows_core::Result<()>;
@@ -1618,11 +1612,11 @@ impl ILayoutRect_Vtbl {
             contentDocument: contentDocument::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ILayoutRect as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ILayoutRect as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IMapMIMEToCLSID_Impl: Sized {
     fn EnableDefaultMappings(&self, benable: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -1656,11 +1650,10 @@ impl IMapMIMEToCLSID_Vtbl {
             SetMapping: SetMapping::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IMapMIMEToCLSID as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IMapMIMEToCLSID as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IMediaActivityNotifySite_Impl: Sized {
     fn OnMediaActivityStarted(&self, mediaactivitytype: MEDIA_ACTIVITY_NOTIFY_TYPE) -> ::windows_core::Result<()>;
     fn OnMediaActivityStopped(&self, mediaactivitytype: MEDIA_ACTIVITY_NOTIFY_TYPE) -> ::windows_core::Result<()>;
@@ -1684,11 +1677,11 @@ impl IMediaActivityNotifySite_Vtbl {
             OnMediaActivityStopped: OnMediaActivityStopped::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IMediaActivityNotifySite as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IMediaActivityNotifySite as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IOpenService_Impl: Sized {
     fn IsDefault(&self) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -1734,11 +1727,11 @@ impl IOpenService_Vtbl {
             GetID: GetID::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IOpenService as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IOpenService as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_UI_WindowsAndMessaging\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_UI_WindowsAndMessaging"))]
 pub trait IOpenServiceActivity_Impl: Sized + IOpenService_Impl {
     fn Execute(&self, pinput: ::core::option::Option<&IOpenServiceActivityInput>, poutput: ::core::option::Option<&IOpenServiceActivityOutputContext>) -> ::windows_core::Result<()>;
@@ -1967,11 +1960,11 @@ impl IOpenServiceActivity_Vtbl {
             SetEnabled: SetEnabled::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IOpenServiceActivity as ::windows_core::ComInterface>::IID || iid == &<IOpenService as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IOpenServiceActivity as ::windows_core::ComInterface>::IID || *iid == <IOpenService as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IOpenServiceActivityCategory_Impl: Sized {
     fn HasDefaultActivity(&self) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -2043,11 +2036,11 @@ impl IOpenServiceActivityCategory_Vtbl {
             GetActivityEnumerator: GetActivityEnumerator::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IOpenServiceActivityCategory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IOpenServiceActivityCategory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IOpenServiceActivityInput_Impl: Sized {
     fn GetVariable(&self, pwzvariablename: &::windows_core::PCWSTR, pwzvariabletype: &::windows_core::PCWSTR) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -2099,11 +2092,10 @@ impl IOpenServiceActivityInput_Vtbl {
             GetType: GetType::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IOpenServiceActivityInput as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IOpenServiceActivityInput as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IOpenServiceActivityManager_Impl: Sized {
     fn GetCategoryEnumerator(&self, etype: OpenServiceActivityContentType) -> ::windows_core::Result<IEnumOpenServiceActivityCategory>;
     fn GetActivityByID(&self, pwzactivityid: &::windows_core::PCWSTR) -> ::windows_core::Result<IOpenServiceActivity>;
@@ -2165,11 +2157,11 @@ impl IOpenServiceActivityManager_Vtbl {
             GetVersionCookie: GetVersionCookie::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IOpenServiceActivityManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IOpenServiceActivityManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com"))]
 pub trait IOpenServiceActivityOutputContext_Impl: Sized {
     fn Navigate(&self, pwzuri: &::windows_core::PCWSTR, pwzmethod: &::windows_core::PCWSTR, pwzheaders: &::windows_core::PCWSTR, ppostdata: ::core::option::Option<&super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -2202,11 +2194,10 @@ impl IOpenServiceActivityOutputContext_Vtbl {
             CanNavigate: CanNavigate::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IOpenServiceActivityOutputContext as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IOpenServiceActivityOutputContext as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IOpenServiceManager_Impl: Sized {
     fn InstallService(&self, pwzserviceurl: &::windows_core::PCWSTR) -> ::windows_core::Result<IOpenService>;
     fn UninstallService(&self, pservice: ::core::option::Option<&IOpenService>) -> ::windows_core::Result<()>;
@@ -2249,22 +2240,21 @@ impl IOpenServiceManager_Vtbl {
             GetServiceByID: GetServiceByID::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IOpenServiceManager as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IOpenServiceManager as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IPeerFactory_Impl: Sized {}
 impl ::windows_core::RuntimeName for IPeerFactory {}
 impl IPeerFactory_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IPeerFactory_Impl, const OFFSET: isize>() -> IPeerFactory_Vtbl {
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPeerFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPeerFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait IPersistHistory_Impl: Sized + super::super::System::Com::IPersist_Impl {
     fn LoadHistory(&self, pstream: ::core::option::Option<&super::super::System::Com::IStream>, pbc: ::core::option::Option<&super::super::System::Com::IBindCtx>) -> ::windows_core::Result<()>;
@@ -2311,11 +2301,10 @@ impl IPersistHistory_Vtbl {
             GetPositionCookie: GetPositionCookie::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPersistHistory as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IPersist as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPersistHistory as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IPersist as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IPrintTaskRequestFactory_Impl: Sized {
     fn CreatePrintTaskRequest(&self, pprinttaskrequesthandler: ::core::option::Option<&IPrintTaskRequestHandler>) -> ::windows_core::Result<()>;
 }
@@ -2329,11 +2318,10 @@ impl IPrintTaskRequestFactory_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), CreatePrintTaskRequest: CreatePrintTaskRequest::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPrintTaskRequestFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPrintTaskRequestFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IPrintTaskRequestHandler_Impl: Sized {
     fn HandlePrintTaskRequest(&self, pprinttaskrequest: ::core::option::Option<&::windows_core::IInspectable>) -> ::windows_core::Result<()>;
 }
@@ -2347,11 +2335,10 @@ impl IPrintTaskRequestHandler_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), HandlePrintTaskRequest: HandlePrintTaskRequest::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPrintTaskRequestHandler as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPrintTaskRequestHandler as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IScrollableContextMenu_Impl: Sized {
     fn AddItem(&self, itemtext: &::windows_core::PCWSTR, cmdid: u32) -> ::windows_core::Result<()>;
     fn ShowModal(&self, x: i32, y: i32) -> ::windows_core::Result<u32>;
@@ -2381,11 +2368,10 @@ impl IScrollableContextMenu_Vtbl {
             ShowModal: ShowModal::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IScrollableContextMenu as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IScrollableContextMenu as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IScrollableContextMenu2_Impl: Sized + IScrollableContextMenu_Impl {
     fn AddSeparator(&self) -> ::windows_core::Result<()>;
     fn SetPlacement(&self, scmp: SCROLLABLECONTEXTMENU_PLACEMENT) -> ::windows_core::Result<()>;
@@ -2409,11 +2395,11 @@ impl IScrollableContextMenu2_Vtbl {
             SetPlacement: SetPlacement::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IScrollableContextMenu2 as ::windows_core::ComInterface>::IID || iid == &<IScrollableContextMenu as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IScrollableContextMenu2 as ::windows_core::ComInterface>::IID || *iid == <IScrollableContextMenu as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait ISniffStream_Impl: Sized {
     fn Init(&self, pstream: ::core::option::Option<&super::super::System::Com::IStream>) -> ::windows_core::Result<()>;
@@ -2436,11 +2422,10 @@ impl ISniffStream_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Init: Init::<Identity, Impl, OFFSET>, Peek: Peek::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISniffStream as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISniffStream as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait ISurfacePresenterFlip_Impl: Sized {
     fn Present(&self) -> ::windows_core::Result<()>;
     fn GetBuffer(&self, backbufferindex: u32, riid: *const ::windows_core::GUID, ppbuffer: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
@@ -2464,11 +2449,11 @@ impl ISurfacePresenterFlip_Vtbl {
             GetBuffer: GetBuffer::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISurfacePresenterFlip as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISurfacePresenterFlip as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Graphics_Dxgi_Common\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Graphics_Dxgi_Common\"`"]
 #[cfg(feature = "Win32_Graphics_Dxgi_Common")]
 pub trait ISurfacePresenterFlip2_Impl: Sized {
     fn SetRotation(&self, dxgirotation: super::super::Graphics::Dxgi::Common::DXGI_MODE_ROTATION) -> ::windows_core::Result<()>;
@@ -2485,11 +2470,10 @@ impl ISurfacePresenterFlip2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), SetRotation: SetRotation::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISurfacePresenterFlip2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISurfacePresenterFlip2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait ISurfacePresenterFlipBuffer_Impl: Sized {
     fn BeginDraw(&self, riid: *const ::windows_core::GUID, ppbuffer: *mut *mut ::core::ffi::c_void) -> ::windows_core::Result<()>;
     fn EndDraw(&self) -> ::windows_core::Result<()>;
@@ -2513,11 +2497,11 @@ impl ISurfacePresenterFlipBuffer_Vtbl {
             EndDraw: EndDraw::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISurfacePresenterFlipBuffer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISurfacePresenterFlipBuffer as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_System_Ole\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Ole\"`"]
 #[cfg(feature = "Win32_System_Ole")]
 pub trait ITargetContainer_Impl: Sized {
     fn GetFrameUrl(&self) -> ::windows_core::Result<::windows_core::PWSTR>;
@@ -2556,11 +2540,10 @@ impl ITargetContainer_Vtbl {
             GetFramesContainer: GetFramesContainer::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITargetContainer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITargetContainer as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait ITargetEmbedding_Impl: Sized {
     fn GetTargetFrame(&self) -> ::windows_core::Result<ITargetFrame>;
 }
@@ -2580,11 +2563,11 @@ impl ITargetEmbedding_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetTargetFrame: GetTargetFrame::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITargetEmbedding as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITargetEmbedding as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_System_Ole\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Ole\"`"]
 #[cfg(feature = "Win32_System_Ole")]
 pub trait ITargetFrame_Impl: Sized {
     fn SetFrameName(&self, pszframename: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -2731,11 +2714,11 @@ impl ITargetFrame_Vtbl {
             OnChildFrameDeactivate: OnChildFrameDeactivate::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITargetFrame as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITargetFrame as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_System_Ole\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Ole\"`"]
 #[cfg(feature = "Win32_System_Ole")]
 pub trait ITargetFrame2_Impl: Sized {
     fn SetFrameName(&self, pszframename: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -2874,11 +2857,11 @@ impl ITargetFrame2_Vtbl {
             GetTargetAlias: GetTargetAlias::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITargetFrame2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITargetFrame2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait ITargetFramePriv_Impl: Sized {
     fn FindFrameDownwards(&self, psztargetname: &::windows_core::PCWSTR, dwflags: u32) -> ::windows_core::Result<::windows_core::IUnknown>;
@@ -2951,11 +2934,11 @@ impl ITargetFramePriv_Vtbl {
             FindBrowserByIndex: FindBrowserByIndex::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITargetFramePriv as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITargetFramePriv as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_System_Com\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_System_Com\"`"]
 #[cfg(feature = "Win32_System_Com")]
 pub trait ITargetFramePriv2_Impl: Sized + ITargetFramePriv_Impl {
     fn AggregatedNavigation2(&self, grfhlnf: u32, pbc: ::core::option::Option<&super::super::System::Com::IBindCtx>, pibsc: ::core::option::Option<&super::super::System::Com::IBindStatusCallback>, psztargetname: &::windows_core::PCWSTR, puri: ::core::option::Option<&super::super::System::Com::IUri>, pszlocation: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -2972,11 +2955,10 @@ impl ITargetFramePriv2_Vtbl {
         }
         Self { base__: ITargetFramePriv_Vtbl::new::<Identity, Impl, OFFSET>(), AggregatedNavigation2: AggregatedNavigation2::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITargetFramePriv2 as ::windows_core::ComInterface>::IID || iid == &<ITargetFramePriv as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITargetFramePriv2 as ::windows_core::ComInterface>::IID || *iid == <ITargetFramePriv as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait ITargetNotify_Impl: Sized {
     fn OnCreate(&self, punkdestination: ::core::option::Option<&::windows_core::IUnknown>, cbcookie: u32) -> ::windows_core::Result<()>;
     fn OnReuse(&self, punkdestination: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<()>;
@@ -3000,11 +2982,10 @@ impl ITargetNotify_Vtbl {
             OnReuse: OnReuse::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITargetNotify as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITargetNotify as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait ITargetNotify2_Impl: Sized + ITargetNotify_Impl {
     fn GetOptionString(&self, pbstroptions: *mut ::windows_core::BSTR) -> ::windows_core::Result<()>;
 }
@@ -3018,11 +2999,11 @@ impl ITargetNotify2_Vtbl {
         }
         Self { base__: ITargetNotify_Vtbl::new::<Identity, Impl, OFFSET>(), GetOptionString: GetOptionString::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITargetNotify2 as ::windows_core::ComInterface>::IID || iid == &<ITargetNotify as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITargetNotify2 as ::windows_core::ComInterface>::IID || *iid == <ITargetNotify as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITimer_Impl: Sized {
     fn Advise(&self, vtimemin: &super::super::System::Variant::VARIANT, vtimemax: &super::super::System::Variant::VARIANT, vtimeinterval: &super::super::System::Variant::VARIANT, dwflags: u32, ptimersink: ::core::option::Option<&ITimerSink>) -> ::windows_core::Result<u32>;
@@ -3075,11 +3056,11 @@ impl ITimer_Vtbl {
             GetTime: GetTime::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITimer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITimer as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITimerEx_Impl: Sized + ITimer_Impl {
     fn SetMode(&self, dwmode: u32) -> ::windows_core::Result<()>;
@@ -3096,11 +3077,10 @@ impl ITimerEx_Vtbl {
         }
         Self { base__: ITimer_Vtbl::new::<Identity, Impl, OFFSET>(), SetMode: SetMode::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITimerEx as ::windows_core::ComInterface>::IID || iid == &<ITimer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITimerEx as ::windows_core::ComInterface>::IID || *iid == <ITimer as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait ITimerService_Impl: Sized {
     fn CreateTimer(&self, preferencetimer: ::core::option::Option<&ITimer>) -> ::windows_core::Result<ITimer>;
     fn GetNamedTimer(&self, rguidname: *const ::windows_core::GUID) -> ::windows_core::Result<ITimer>;
@@ -3143,11 +3123,11 @@ impl ITimerService_Vtbl {
             SetNamedTimerReference: SetNamedTimerReference::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITimerService as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITimerService as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait ITimerSink_Impl: Sized {
     fn OnTimer(&self, vtimeadvise: &super::super::System::Variant::VARIANT) -> ::windows_core::Result<()>;
@@ -3164,11 +3144,11 @@ impl ITimerSink_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnTimer: OnTimer::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITimerSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITimerSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITridentTouchInput_Impl: Sized {
     fn OnPointerMessage(&self, msg: u32, wparam: super::super::Foundation::WPARAM, lparam: super::super::Foundation::LPARAM) -> ::windows_core::Result<super::super::Foundation::BOOL>;
@@ -3191,11 +3171,11 @@ impl ITridentTouchInput_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), OnPointerMessage: OnPointerMessage::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITridentTouchInput as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITridentTouchInput as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Web_MsHtml\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Web_MsHtml\"`"]
 #[cfg(feature = "Win32_Web_MsHtml")]
 pub trait ITridentTouchInputSite_Impl: Sized {
     fn SetManipulationMode(&self, mstouchaction: super::MsHtml::styleMsTouchAction) -> ::windows_core::Result<()>;
@@ -3222,11 +3202,11 @@ impl ITridentTouchInputSite_Vtbl {
             ZoomToPoint: ZoomToPoint::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITridentTouchInputSite as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITridentTouchInputSite as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait IUrlHistoryNotify_Impl: Sized + super::super::System::Ole::IOleCommandTarget_Impl {}
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
@@ -3236,11 +3216,11 @@ impl IUrlHistoryNotify_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IUrlHistoryNotify_Impl, const OFFSET: isize>() -> IUrlHistoryNotify_Vtbl {
         Self { base__: super::super::System::Ole::IOleCommandTarget_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IUrlHistoryNotify as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Ole::IOleCommandTarget as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IUrlHistoryNotify as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Ole::IOleCommandTarget as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IUrlHistoryStg_Impl: Sized {
     fn AddUrl(&self, pocsurl: &::windows_core::PCWSTR, pocstitle: &::windows_core::PCWSTR, dwflags: u32) -> ::windows_core::Result<()>;
@@ -3294,11 +3274,11 @@ impl IUrlHistoryStg_Vtbl {
             EnumUrls: EnumUrls::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IUrlHistoryStg as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IUrlHistoryStg as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Ole\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Ole\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Ole"))]
 pub trait IUrlHistoryStg2_Impl: Sized + IUrlHistoryStg_Impl {
     fn AddUrlAndNotify(&self, pocsurl: &::windows_core::PCWSTR, pocstitle: &::windows_core::PCWSTR, dwflags: u32, fwritehistory: super::super::Foundation::BOOL, poctnotify: ::core::option::Option<&super::super::System::Ole::IOleCommandTarget>, punkisfolder: ::core::option::Option<&::windows_core::IUnknown>) -> ::windows_core::Result<()>;
@@ -3325,11 +3305,11 @@ impl IUrlHistoryStg2_Vtbl {
             ClearHistory: ClearHistory::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IUrlHistoryStg2 as ::windows_core::ComInterface>::IID || iid == &<IUrlHistoryStg as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IUrlHistoryStg2 as ::windows_core::ComInterface>::IID || *iid == <IUrlHistoryStg as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IViewObjectPresentFlip_Impl: Sized {
     fn NotifyRender(&self, frecreatepresenter: super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
@@ -3363,11 +3343,10 @@ impl IViewObjectPresentFlip_Vtbl {
             RenderObjectToSharedBuffer: RenderObjectToSharedBuffer::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IViewObjectPresentFlip as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IViewObjectPresentFlip as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IViewObjectPresentFlip2_Impl: Sized {
     fn NotifyLeavingView(&self) -> ::windows_core::Result<()>;
 }
@@ -3381,11 +3360,11 @@ impl IViewObjectPresentFlip2_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), NotifyLeavingView: NotifyLeavingView::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IViewObjectPresentFlip2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IViewObjectPresentFlip2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_Graphics_Dxgi_Common\"`, `\"Win32_Web_MsHtml\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Graphics_Dxgi_Common\"`, `\"Win32_Web_MsHtml\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Graphics_Dxgi_Common", feature = "Win32_Web_MsHtml"))]
 pub trait IViewObjectPresentFlipSite_Impl: Sized {
     fn CreateSurfacePresenterFlip(&self, pdevice: ::core::option::Option<&::windows_core::IUnknown>, width: u32, height: u32, backbuffercount: u32, format: super::super::Graphics::Dxgi::Common::DXGI_FORMAT, mode: super::MsHtml::VIEW_OBJECT_ALPHA_MODE) -> ::windows_core::Result<ISurfacePresenterFlip>;
@@ -3484,11 +3463,11 @@ impl IViewObjectPresentFlipSite_Vtbl {
             GetFullScreenSize: GetFullScreenSize::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IViewObjectPresentFlipSite as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IViewObjectPresentFlipSite as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Graphics_Dxgi_Common\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Graphics_Dxgi_Common\"`"]
 #[cfg(feature = "Win32_Graphics_Dxgi_Common")]
 pub trait IViewObjectPresentFlipSite2_Impl: Sized {
     fn GetRotationForCurrentOutput(&self) -> ::windows_core::Result<super::super::Graphics::Dxgi::Common::DXGI_MODE_ROTATION>;
@@ -3514,11 +3493,11 @@ impl IViewObjectPresentFlipSite2_Vtbl {
             GetRotationForCurrentOutput: GetRotationForCurrentOutput::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IViewObjectPresentFlipSite2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IViewObjectPresentFlipSite2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IWebBrowserEventsService_Impl: Sized {
     fn FireBeforeNavigate2Event(&self) -> ::windows_core::Result<super::super::Foundation::VARIANT_BOOL>;
@@ -3572,11 +3551,10 @@ impl IWebBrowserEventsService_Vtbl {
             FireDocumentCompleteEvent: FireDocumentCompleteEvent::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebBrowserEventsService as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebBrowserEventsService as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"implement\"`*"]
 pub trait IWebBrowserEventsUrlService_Impl: Sized {
     fn GetUrlForEvents(&self) -> ::windows_core::Result<::windows_core::BSTR>;
 }
@@ -3596,11 +3574,11 @@ impl IWebBrowserEventsUrlService_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetUrlForEvents: GetUrlForEvents::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IWebBrowserEventsUrlService as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IWebBrowserEventsUrlService as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Web_InternetExplorer\"`, `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Com\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Com", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
 pub trait Iwfolders_Impl: Sized + super::super::System::Com::IDispatch_Impl {
     fn navigate(&self, bstrurl: &::windows_core::BSTR) -> ::windows_core::Result<::windows_core::BSTR>;
@@ -3646,7 +3624,7 @@ impl Iwfolders_Vtbl {
             navigateNoSite: navigateNoSite::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<Iwfolders as ::windows_core::ComInterface>::IID || iid == &<super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <Iwfolders as ::windows_core::ComInterface>::IID || *iid == <super::super::System::Com::IDispatch as ::windows_core::ComInterface>::IID
     }
 }

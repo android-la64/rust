@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHttpBaseProtocolFilter(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHttpBaseProtocolFilter {
     type Vtable = IHttpBaseProtocolFilter_Vtbl;
-}
-impl ::core::clone::Clone for IHttpBaseProtocolFilter {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHttpBaseProtocolFilter {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x71c89b09_e131_4b54_a53c_eb43ff37e9bb);
@@ -59,14 +55,10 @@ pub struct IHttpBaseProtocolFilter_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHttpBaseProtocolFilter2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHttpBaseProtocolFilter2 {
     type Vtable = IHttpBaseProtocolFilter2_Vtbl;
-}
-impl ::core::clone::Clone for IHttpBaseProtocolFilter2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHttpBaseProtocolFilter2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2ec30013_9427_4900_a017_fa7da3b5c9ae);
@@ -80,14 +72,10 @@ pub struct IHttpBaseProtocolFilter2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHttpBaseProtocolFilter3(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHttpBaseProtocolFilter3 {
     type Vtable = IHttpBaseProtocolFilter3_Vtbl;
-}
-impl ::core::clone::Clone for IHttpBaseProtocolFilter3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHttpBaseProtocolFilter3 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd43f4d4c_bd42_43ae_8717_ad2c8f4b2937);
@@ -101,14 +89,10 @@ pub struct IHttpBaseProtocolFilter3_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHttpBaseProtocolFilter4(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHttpBaseProtocolFilter4 {
     type Vtable = IHttpBaseProtocolFilter4_Vtbl;
-}
-impl ::core::clone::Clone for IHttpBaseProtocolFilter4 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHttpBaseProtocolFilter4 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9fe36ccf_2983_4893_941f_eb518ca8cef9);
@@ -129,14 +113,10 @@ pub struct IHttpBaseProtocolFilter4_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHttpBaseProtocolFilter5(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHttpBaseProtocolFilter5 {
     type Vtable = IHttpBaseProtocolFilter5_Vtbl;
-}
-impl ::core::clone::Clone for IHttpBaseProtocolFilter5 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHttpBaseProtocolFilter5 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x416e4993_31e3_4816_bf09_e018ee8dc1f5);
@@ -152,14 +132,10 @@ pub struct IHttpBaseProtocolFilter5_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHttpBaseProtocolFilterStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHttpBaseProtocolFilterStatics {
     type Vtable = IHttpBaseProtocolFilterStatics_Vtbl;
-}
-impl ::core::clone::Clone for IHttpBaseProtocolFilterStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHttpBaseProtocolFilterStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6d4dee0c_e908_494e_b5a3_1263c9b8242a);
@@ -175,14 +151,10 @@ pub struct IHttpBaseProtocolFilterStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHttpCacheControl(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHttpCacheControl {
     type Vtable = IHttpCacheControl_Vtbl;
-}
-impl ::core::clone::Clone for IHttpCacheControl {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHttpCacheControl {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc77e1cb4_3cea_4eb5_ac85_04e186e63ab7);
@@ -196,11 +168,11 @@ pub struct IHttpCacheControl_Vtbl {
     pub WriteBehavior: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut HttpCacheWriteBehavior) -> ::windows_core::HRESULT,
     pub SetWriteBehavior: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, value: HttpCacheWriteBehavior) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Web_Http_Filters\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHttpFilter(::windows_core::IUnknown);
 impl IHttpFilter {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SendRequestAsync<P0>(&self, request: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperationWithProgress<super::HttpResponseMessage, super::HttpProgress>>
     where
@@ -212,7 +184,7 @@ impl IHttpFilter {
             (::windows_core::Interface::vtable(this).SendRequestAsync)(::windows_core::Interface::as_raw(this), request.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Close(&self) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<super::super::super::Foundation::IClosable>(self)?;
@@ -222,27 +194,11 @@ impl IHttpFilter {
 ::windows_core::imp::interface_hierarchy!(IHttpFilter, ::windows_core::IUnknown, ::windows_core::IInspectable);
 #[cfg(feature = "Foundation")]
 impl ::windows_core::CanTryInto<super::super::super::Foundation::IClosable> for IHttpFilter {}
-impl ::core::cmp::PartialEq for IHttpFilter {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IHttpFilter {}
-impl ::core::fmt::Debug for IHttpFilter {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IHttpFilter").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for IHttpFilter {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"{a4cb6dd5-0902-439e-bfd7-e12552b165ce}");
 }
 unsafe impl ::windows_core::Interface for IHttpFilter {
     type Vtable = IHttpFilter_Vtbl;
-}
-impl ::core::clone::Clone for IHttpFilter {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHttpFilter {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa4cb6dd5_0902_439e_bfd7_e12552b165ce);
@@ -258,14 +214,10 @@ pub struct IHttpFilter_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IHttpServerCustomValidationRequestedEventArgs(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IHttpServerCustomValidationRequestedEventArgs {
     type Vtable = IHttpServerCustomValidationRequestedEventArgs_Vtbl;
-}
-impl ::core::clone::Clone for IHttpServerCustomValidationRequestedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IHttpServerCustomValidationRequestedEventArgs {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3165fe32_e7dd_48b7_a361_939c750e63cc);
@@ -297,8 +249,8 @@ pub struct IHttpServerCustomValidationRequestedEventArgs_Vtbl {
     #[cfg(not(feature = "Foundation"))]
     GetDeferral: usize,
 }
-#[doc = "*Required features: `\"Web_Http_Filters\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct HttpBaseProtocolFilter(::windows_core::IUnknown);
 impl HttpBaseProtocolFilter {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -308,7 +260,7 @@ impl HttpBaseProtocolFilter {
         static SHARED: ::windows_core::imp::FactoryCache<HttpBaseProtocolFilter, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Close(&self) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<super::super::super::Foundation::IClosable>(self)?;
@@ -361,7 +313,7 @@ impl HttpBaseProtocolFilter {
             (::windows_core::Interface::vtable(this).CookieManager)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
+    #[doc = "Required features: `\"Security_Cryptography_Certificates\"`"]
     #[cfg(feature = "Security_Cryptography_Certificates")]
     pub fn ClientCertificate(&self) -> ::windows_core::Result<super::super::super::Security::Cryptography::Certificates::Certificate> {
         let this = self;
@@ -370,7 +322,7 @@ impl HttpBaseProtocolFilter {
             (::windows_core::Interface::vtable(this).ClientCertificate)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
+    #[doc = "Required features: `\"Security_Cryptography_Certificates\"`"]
     #[cfg(feature = "Security_Cryptography_Certificates")]
     pub fn SetClientCertificate<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -379,7 +331,7 @@ impl HttpBaseProtocolFilter {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetClientCertificate)(::windows_core::Interface::as_raw(this), value.into_param().abi()).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`, `\"Security_Cryptography_Certificates\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`, `\"Security_Cryptography_Certificates\"`"]
     #[cfg(all(feature = "Foundation_Collections", feature = "Security_Cryptography_Certificates"))]
     pub fn IgnorableServerCertificateErrors(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<super::super::super::Security::Cryptography::Certificates::ChainValidationResult>> {
         let this = self;
@@ -399,7 +351,7 @@ impl HttpBaseProtocolFilter {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetMaxConnectionsPerServer)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Security_Credentials\"`*"]
+    #[doc = "Required features: `\"Security_Credentials\"`"]
     #[cfg(feature = "Security_Credentials")]
     pub fn ProxyCredential(&self) -> ::windows_core::Result<super::super::super::Security::Credentials::PasswordCredential> {
         let this = self;
@@ -408,7 +360,7 @@ impl HttpBaseProtocolFilter {
             (::windows_core::Interface::vtable(this).ProxyCredential)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Security_Credentials\"`*"]
+    #[doc = "Required features: `\"Security_Credentials\"`"]
     #[cfg(feature = "Security_Credentials")]
     pub fn SetProxyCredential<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -417,7 +369,7 @@ impl HttpBaseProtocolFilter {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetProxyCredential)(::windows_core::Interface::as_raw(this), value.into_param().abi()).ok() }
     }
-    #[doc = "*Required features: `\"Security_Credentials\"`*"]
+    #[doc = "Required features: `\"Security_Credentials\"`"]
     #[cfg(feature = "Security_Credentials")]
     pub fn ServerCredential(&self) -> ::windows_core::Result<super::super::super::Security::Credentials::PasswordCredential> {
         let this = self;
@@ -426,7 +378,7 @@ impl HttpBaseProtocolFilter {
             (::windows_core::Interface::vtable(this).ServerCredential)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Security_Credentials\"`*"]
+    #[doc = "Required features: `\"Security_Credentials\"`"]
     #[cfg(feature = "Security_Credentials")]
     pub fn SetServerCredential<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -468,7 +420,7 @@ impl HttpBaseProtocolFilter {
         let this = &::windows_core::ComInterface::cast::<IHttpBaseProtocolFilter3>(self)?;
         unsafe { (::windows_core::Interface::vtable(this).SetCookieUsageBehavior)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ServerCustomValidationRequested<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -480,7 +432,7 @@ impl HttpBaseProtocolFilter {
             (::windows_core::Interface::vtable(this).ServerCustomValidationRequested)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveServerCustomValidationRequested(&self, token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<IHttpBaseProtocolFilter4>(self)?;
@@ -490,7 +442,7 @@ impl HttpBaseProtocolFilter {
         let this = &::windows_core::ComInterface::cast::<IHttpBaseProtocolFilter4>(self)?;
         unsafe { (::windows_core::Interface::vtable(this).ClearAuthenticationCache)(::windows_core::Interface::as_raw(this)).ok() }
     }
-    #[doc = "*Required features: `\"System\"`*"]
+    #[doc = "Required features: `\"System\"`"]
     #[cfg(feature = "System")]
     pub fn User(&self) -> ::windows_core::Result<super::super::super::System::User> {
         let this = &::windows_core::ComInterface::cast::<IHttpBaseProtocolFilter5>(self)?;
@@ -499,7 +451,7 @@ impl HttpBaseProtocolFilter {
             (::windows_core::Interface::vtable(this).User)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"System\"`*"]
+    #[doc = "Required features: `\"System\"`"]
     #[cfg(feature = "System")]
     pub fn CreateForUser<P0>(user: P0) -> ::windows_core::Result<HttpBaseProtocolFilter>
     where
@@ -510,7 +462,7 @@ impl HttpBaseProtocolFilter {
             (::windows_core::Interface::vtable(this).CreateForUser)(::windows_core::Interface::as_raw(this), user.into_param().abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SendRequestAsync<P0>(&self, request: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperationWithProgress<super::HttpResponseMessage, super::HttpProgress>>
     where
@@ -528,24 +480,8 @@ impl HttpBaseProtocolFilter {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for HttpBaseProtocolFilter {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for HttpBaseProtocolFilter {}
-impl ::core::fmt::Debug for HttpBaseProtocolFilter {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("HttpBaseProtocolFilter").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for HttpBaseProtocolFilter {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Web.Http.Filters.HttpBaseProtocolFilter;{71c89b09-e131-4b54-a53c-eb43ff37e9bb})");
-}
-impl ::core::clone::Clone for HttpBaseProtocolFilter {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for HttpBaseProtocolFilter {
     type Vtable = IHttpBaseProtocolFilter_Vtbl;
@@ -562,8 +498,8 @@ impl ::windows_core::CanTryInto<super::super::super::Foundation::IClosable> for 
 impl ::windows_core::CanTryInto<IHttpFilter> for HttpBaseProtocolFilter {}
 unsafe impl ::core::marker::Send for HttpBaseProtocolFilter {}
 unsafe impl ::core::marker::Sync for HttpBaseProtocolFilter {}
-#[doc = "*Required features: `\"Web_Http_Filters\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct HttpCacheControl(::windows_core::IUnknown);
 impl HttpCacheControl {
     pub fn ReadBehavior(&self) -> ::windows_core::Result<HttpCacheReadBehavior> {
@@ -589,24 +525,8 @@ impl HttpCacheControl {
         unsafe { (::windows_core::Interface::vtable(this).SetWriteBehavior)(::windows_core::Interface::as_raw(this), value).ok() }
     }
 }
-impl ::core::cmp::PartialEq for HttpCacheControl {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for HttpCacheControl {}
-impl ::core::fmt::Debug for HttpCacheControl {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("HttpCacheControl").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for HttpCacheControl {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Web.Http.Filters.HttpCacheControl;{c77e1cb4-3cea-4eb5-ac85-04e186e63ab7})");
-}
-impl ::core::clone::Clone for HttpCacheControl {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for HttpCacheControl {
     type Vtable = IHttpCacheControl_Vtbl;
@@ -620,8 +540,8 @@ impl ::windows_core::RuntimeName for HttpCacheControl {
 ::windows_core::imp::interface_hierarchy!(HttpCacheControl, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for HttpCacheControl {}
 unsafe impl ::core::marker::Sync for HttpCacheControl {}
-#[doc = "*Required features: `\"Web_Http_Filters\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct HttpServerCustomValidationRequestedEventArgs(::windows_core::IUnknown);
 impl HttpServerCustomValidationRequestedEventArgs {
     pub fn RequestMessage(&self) -> ::windows_core::Result<super::HttpRequestMessage> {
@@ -631,7 +551,7 @@ impl HttpServerCustomValidationRequestedEventArgs {
             (::windows_core::Interface::vtable(this).RequestMessage)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
+    #[doc = "Required features: `\"Security_Cryptography_Certificates\"`"]
     #[cfg(feature = "Security_Cryptography_Certificates")]
     pub fn ServerCertificate(&self) -> ::windows_core::Result<super::super::super::Security::Cryptography::Certificates::Certificate> {
         let this = self;
@@ -640,7 +560,7 @@ impl HttpServerCustomValidationRequestedEventArgs {
             (::windows_core::Interface::vtable(this).ServerCertificate)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Networking_Sockets\"`*"]
+    #[doc = "Required features: `\"Networking_Sockets\"`"]
     #[cfg(feature = "Networking_Sockets")]
     pub fn ServerCertificateErrorSeverity(&self) -> ::windows_core::Result<super::super::super::Networking::Sockets::SocketSslErrorSeverity> {
         let this = self;
@@ -649,7 +569,7 @@ impl HttpServerCustomValidationRequestedEventArgs {
             (::windows_core::Interface::vtable(this).ServerCertificateErrorSeverity)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`, `\"Security_Cryptography_Certificates\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`, `\"Security_Cryptography_Certificates\"`"]
     #[cfg(all(feature = "Foundation_Collections", feature = "Security_Cryptography_Certificates"))]
     pub fn ServerCertificateErrors(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<super::super::super::Security::Cryptography::Certificates::ChainValidationResult>> {
         let this = self;
@@ -658,7 +578,7 @@ impl HttpServerCustomValidationRequestedEventArgs {
             (::windows_core::Interface::vtable(this).ServerCertificateErrors)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`, `\"Security_Cryptography_Certificates\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`, `\"Security_Cryptography_Certificates\"`"]
     #[cfg(all(feature = "Foundation_Collections", feature = "Security_Cryptography_Certificates"))]
     pub fn ServerIntermediateCertificates(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<super::super::super::Security::Cryptography::Certificates::Certificate>> {
         let this = self;
@@ -671,7 +591,7 @@ impl HttpServerCustomValidationRequestedEventArgs {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).Reject)(::windows_core::Interface::as_raw(this)).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn GetDeferral(&self) -> ::windows_core::Result<super::super::super::Foundation::Deferral> {
         let this = self;
@@ -681,24 +601,8 @@ impl HttpServerCustomValidationRequestedEventArgs {
         }
     }
 }
-impl ::core::cmp::PartialEq for HttpServerCustomValidationRequestedEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for HttpServerCustomValidationRequestedEventArgs {}
-impl ::core::fmt::Debug for HttpServerCustomValidationRequestedEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("HttpServerCustomValidationRequestedEventArgs").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for HttpServerCustomValidationRequestedEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Web.Http.Filters.HttpServerCustomValidationRequestedEventArgs;{3165fe32-e7dd-48b7-a361-939c750e63cc})");
-}
-impl ::core::clone::Clone for HttpServerCustomValidationRequestedEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for HttpServerCustomValidationRequestedEventArgs {
     type Vtable = IHttpServerCustomValidationRequestedEventArgs_Vtbl;
@@ -712,7 +616,6 @@ impl ::windows_core::RuntimeName for HttpServerCustomValidationRequestedEventArg
 ::windows_core::imp::interface_hierarchy!(HttpServerCustomValidationRequestedEventArgs, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for HttpServerCustomValidationRequestedEventArgs {}
 unsafe impl ::core::marker::Sync for HttpServerCustomValidationRequestedEventArgs {}
-#[doc = "*Required features: `\"Web_Http_Filters\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct HttpCacheReadBehavior(pub i32);
@@ -744,7 +647,6 @@ impl ::core::fmt::Debug for HttpCacheReadBehavior {
 impl ::windows_core::RuntimeType for HttpCacheReadBehavior {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Web.Http.Filters.HttpCacheReadBehavior;i4)");
 }
-#[doc = "*Required features: `\"Web_Http_Filters\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct HttpCacheWriteBehavior(pub i32);
@@ -774,7 +676,6 @@ impl ::core::fmt::Debug for HttpCacheWriteBehavior {
 impl ::windows_core::RuntimeType for HttpCacheWriteBehavior {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Web.Http.Filters.HttpCacheWriteBehavior;i4)");
 }
-#[doc = "*Required features: `\"Web_Http_Filters\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct HttpCookieUsageBehavior(pub i32);

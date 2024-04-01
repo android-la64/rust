@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUserNotificationListener(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUserNotificationListener {
     type Vtable = IUserNotificationListener_Vtbl;
-}
-impl ::core::clone::Clone for IUserNotificationListener {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUserNotificationListener {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x62553e41_8a06_4cef_8215_6033a5be4b03);
@@ -39,14 +35,10 @@ pub struct IUserNotificationListener_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUserNotificationListenerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUserNotificationListenerStatics {
     type Vtable = IUserNotificationListenerStatics_Vtbl;
-}
-impl ::core::clone::Clone for IUserNotificationListenerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUserNotificationListenerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xff6123cf_4386_4aa3_b73d_b804e5b63b23);
@@ -57,11 +49,11 @@ pub struct IUserNotificationListenerStatics_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
     pub Current: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"UI_Notifications_Management\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct UserNotificationListener(::windows_core::IUnknown);
 impl UserNotificationListener {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RequestAccessAsync(&self) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<UserNotificationListenerAccessStatus>> {
         let this = self;
@@ -77,7 +69,7 @@ impl UserNotificationListener {
             (::windows_core::Interface::vtable(this).GetAccessStatus)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn NotificationChanged<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -89,13 +81,13 @@ impl UserNotificationListener {
             (::windows_core::Interface::vtable(this).NotificationChanged)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveNotificationChanged(&self, token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveNotificationChanged)(::windows_core::Interface::as_raw(this), token).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn GetNotificationsAsync(&self, kinds: super::NotificationKinds) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<super::super::super::Foundation::Collections::IVectorView<super::UserNotification>>> {
         let this = self;
@@ -131,24 +123,8 @@ impl UserNotificationListener {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for UserNotificationListener {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for UserNotificationListener {}
-impl ::core::fmt::Debug for UserNotificationListener {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("UserNotificationListener").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for UserNotificationListener {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.Notifications.Management.UserNotificationListener;{62553e41-8a06-4cef-8215-6033a5be4b03})");
-}
-impl ::core::clone::Clone for UserNotificationListener {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for UserNotificationListener {
     type Vtable = IUserNotificationListener_Vtbl;
@@ -162,7 +138,6 @@ impl ::windows_core::RuntimeName for UserNotificationListener {
 ::windows_core::imp::interface_hierarchy!(UserNotificationListener, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for UserNotificationListener {}
 unsafe impl ::core::marker::Sync for UserNotificationListener {}
-#[doc = "*Required features: `\"UI_Notifications_Management\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UserNotificationListenerAccessStatus(pub i32);

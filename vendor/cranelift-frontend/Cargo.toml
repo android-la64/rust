@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-frontend"
-version = "0.102.0"
+version = "0.104.0"
 authors = ["The Cranelift Project Developers"]
 description = "Cranelift IR builder helper"
 documentation = "https://docs.rs/cranelift-frontend"
@@ -22,7 +22,7 @@ license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
 
 [dependencies.cranelift-codegen]
-version = "0.102.0"
+version = "0.104.0"
 features = [
     "std",
     "unwind",
@@ -57,3 +57,12 @@ core = [
 ]
 default = ["std"]
 std = ["cranelift-codegen/std"]
+
+[lints.clippy]
+all = "allow"
+
+[lints.rust]
+trivial_numeric_casts = "warn"
+unstable_features = "warn"
+unused_extern_crates = "warn"
+unused_import_braces = "warn"

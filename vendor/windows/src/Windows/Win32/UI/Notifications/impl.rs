@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_UI_Notifications\"`, `\"implement\"`*"]
 pub trait INotificationActivationCallback_Impl: Sized {
     fn Activate(&self, appusermodelid: &::windows_core::PCWSTR, invokedargs: &::windows_core::PCWSTR, data: *const NOTIFICATION_USER_INPUT_DATA, count: u32) -> ::windows_core::Result<()>;
 }
@@ -12,7 +11,7 @@ impl INotificationActivationCallback_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Activate: Activate::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<INotificationActivationCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <INotificationActivationCallback as ::windows_core::ComInterface>::IID
     }
 }

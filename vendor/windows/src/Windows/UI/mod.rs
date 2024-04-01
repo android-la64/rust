@@ -1,41 +1,51 @@
 #[cfg(feature = "UI_Accessibility")]
+#[doc = "Required features: `\"UI_Accessibility\"`"]
 pub mod Accessibility;
 #[cfg(feature = "UI_ApplicationSettings")]
+#[doc = "Required features: `\"UI_ApplicationSettings\"`"]
 pub mod ApplicationSettings;
 #[cfg(feature = "UI_Composition")]
+#[doc = "Required features: `\"UI_Composition\"`"]
 pub mod Composition;
 #[cfg(feature = "UI_Core")]
+#[doc = "Required features: `\"UI_Core\"`"]
 pub mod Core;
 #[cfg(feature = "UI_Input")]
+#[doc = "Required features: `\"UI_Input\"`"]
 pub mod Input;
 #[cfg(feature = "UI_Notifications")]
+#[doc = "Required features: `\"UI_Notifications\"`"]
 pub mod Notifications;
 #[cfg(feature = "UI_Popups")]
+#[doc = "Required features: `\"UI_Popups\"`"]
 pub mod Popups;
 #[cfg(feature = "UI_Shell")]
+#[doc = "Required features: `\"UI_Shell\"`"]
 pub mod Shell;
 #[cfg(feature = "UI_StartScreen")]
+#[doc = "Required features: `\"UI_StartScreen\"`"]
 pub mod StartScreen;
 #[cfg(feature = "UI_Text")]
+#[doc = "Required features: `\"UI_Text\"`"]
 pub mod Text;
 #[cfg(feature = "UI_UIAutomation")]
+#[doc = "Required features: `\"UI_UIAutomation\"`"]
 pub mod UIAutomation;
 #[cfg(feature = "UI_ViewManagement")]
+#[doc = "Required features: `\"UI_ViewManagement\"`"]
 pub mod ViewManagement;
 #[cfg(feature = "UI_WebUI")]
+#[doc = "Required features: `\"UI_WebUI\"`"]
 pub mod WebUI;
 #[cfg(feature = "UI_WindowManagement")]
+#[doc = "Required features: `\"UI_WindowManagement\"`"]
 pub mod WindowManagement;
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IColorHelper(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IColorHelper {
     type Vtable = IColorHelper_Vtbl;
-}
-impl ::core::clone::Clone for IColorHelper {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IColorHelper {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x193cfbe7_65c7_4540_ad08_6283ba76879a);
@@ -47,14 +57,10 @@ pub struct IColorHelper_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IColorHelperStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IColorHelperStatics {
     type Vtable = IColorHelperStatics_Vtbl;
-}
-impl ::core::clone::Clone for IColorHelperStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IColorHelperStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x8504dbea_fb6a_4144_a6c2_33499c9284f5);
@@ -67,14 +73,10 @@ pub struct IColorHelperStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IColorHelperStatics2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IColorHelperStatics2 {
     type Vtable = IColorHelperStatics2_Vtbl;
-}
-impl ::core::clone::Clone for IColorHelperStatics2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IColorHelperStatics2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x24d9af02_6eb0_4b94_855c_fcf0818d9a16);
@@ -87,14 +89,10 @@ pub struct IColorHelperStatics2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IColors(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IColors {
     type Vtable = IColors_Vtbl;
-}
-impl ::core::clone::Clone for IColors {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IColors {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9b8c9326_4ca6_4ce5_8994_9eff65cabdcc);
@@ -106,14 +104,10 @@ pub struct IColors_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IColorsStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IColorsStatics {
     type Vtable = IColorsStatics_Vtbl;
-}
-impl ::core::clone::Clone for IColorsStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IColorsStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcff52e04_cca6_4614_a17e_754910c84a99);
@@ -266,14 +260,10 @@ pub struct IColorsStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUIContentRoot(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUIContentRoot {
     type Vtable = IUIContentRoot_Vtbl;
-}
-impl ::core::clone::Clone for IUIContentRoot {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUIContentRoot {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1dfcbac6_b36b_5cb9_9bc5_2b7a0eddc378);
@@ -286,14 +276,10 @@ pub struct IUIContentRoot_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUIContext(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUIContext {
     type Vtable = IUIContext_Vtbl;
-}
-impl ::core::clone::Clone for IUIContext {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUIContext {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xbb5cfacd_5bd8_59d0_a59e_1c17a4d6d243);
@@ -303,8 +289,8 @@ unsafe impl ::windows_core::ComInterface for IUIContext {
 pub struct IUIContext_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
 }
-#[doc = "*Required features: `\"UI\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ColorHelper(::windows_core::IUnknown);
 impl ColorHelper {
     pub fn FromArgb(a: u8, r: u8, g: u8, b: u8) -> ::windows_core::Result<Color> {
@@ -330,24 +316,8 @@ impl ColorHelper {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for ColorHelper {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ColorHelper {}
-impl ::core::fmt::Debug for ColorHelper {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ColorHelper").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for ColorHelper {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.ColorHelper;{193cfbe7-65c7-4540-ad08-6283ba76879a})");
-}
-impl ::core::clone::Clone for ColorHelper {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for ColorHelper {
     type Vtable = IColorHelper_Vtbl;
@@ -361,8 +331,8 @@ impl ::windows_core::RuntimeName for ColorHelper {
 ::windows_core::imp::interface_hierarchy!(ColorHelper, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for ColorHelper {}
 unsafe impl ::core::marker::Sync for ColorHelper {}
-#[doc = "*Required features: `\"UI\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct Colors(::windows_core::IUnknown);
 impl Colors {
     pub fn AliceBlue() -> ::windows_core::Result<Color> {
@@ -1217,24 +1187,8 @@ impl Colors {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for Colors {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for Colors {}
-impl ::core::fmt::Debug for Colors {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("Colors").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for Colors {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.Colors;{9b8c9326-4ca6-4ce5-8994-9eff65cabdcc})");
-}
-impl ::core::clone::Clone for Colors {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for Colors {
     type Vtable = IColors_Vtbl;
@@ -1248,8 +1202,8 @@ impl ::windows_core::RuntimeName for Colors {
 ::windows_core::imp::interface_hierarchy!(Colors, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for Colors {}
 unsafe impl ::core::marker::Sync for Colors {}
-#[doc = "*Required features: `\"UI\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct UIContentRoot(::windows_core::IUnknown);
 impl UIContentRoot {
     pub fn UIContext(&self) -> ::windows_core::Result<UIContext> {
@@ -1260,24 +1214,8 @@ impl UIContentRoot {
         }
     }
 }
-impl ::core::cmp::PartialEq for UIContentRoot {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for UIContentRoot {}
-impl ::core::fmt::Debug for UIContentRoot {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("UIContentRoot").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for UIContentRoot {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.UIContentRoot;{1dfcbac6-b36b-5cb9-9bc5-2b7a0eddc378})");
-}
-impl ::core::clone::Clone for UIContentRoot {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for UIContentRoot {
     type Vtable = IUIContentRoot_Vtbl;
@@ -1291,28 +1229,12 @@ impl ::windows_core::RuntimeName for UIContentRoot {
 ::windows_core::imp::interface_hierarchy!(UIContentRoot, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for UIContentRoot {}
 unsafe impl ::core::marker::Sync for UIContentRoot {}
-#[doc = "*Required features: `\"UI\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct UIContext(::windows_core::IUnknown);
 impl UIContext {}
-impl ::core::cmp::PartialEq for UIContext {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for UIContext {}
-impl ::core::fmt::Debug for UIContext {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("UIContext").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for UIContext {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.UIContext;{bb5cfacd-5bd8-59d0-a59e-1c17a4d6d243})");
-}
-impl ::core::clone::Clone for UIContext {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for UIContext {
     type Vtable = IUIContext_Vtbl;
@@ -1327,7 +1249,6 @@ impl ::windows_core::RuntimeName for UIContext {
 unsafe impl ::core::marker::Send for UIContext {}
 unsafe impl ::core::marker::Sync for UIContext {}
 #[repr(C)]
-#[doc = "*Required features: `\"UI\"`*"]
 pub struct Color {
     pub A: u8,
     pub R: u8,
@@ -1363,7 +1284,6 @@ impl ::core::default::Default for Color {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"UI\"`*"]
 pub struct WindowId {
     pub Value: u64,
 }

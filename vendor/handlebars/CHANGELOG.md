@@ -1,19 +1,16 @@
 # Change Log
 
-## [4.3.7](https://github.com/sunng87/handlebars-rust/compare/4.3.6...4.3.7) - 2023-05-11
+## [5.0.0](https://github.com/sunng87/handlebars-rust/compare/4.3.4...5.0.0) - 2023-12-31
 
-* [Fixed] Use full quanlified name of `Result` in `handlebars_helper` macro [#578]
-* [Fixed] Allow single-quote JSON literal [#577]
-
-## [4.3.6](https://github.com/sunng87/handlebars-rust/compare/4.3.5...4.3.6) - 2022-12-21
-
-* [Fixed] Loading template files with multiple extensions, a bug introduced in
-  4.3.0 when refactoring directory source.
-
-## [4.3.5](https://github.com/sunng87/handlebars-rust/compare/4.3.4...4.3.5) - 2022-10-05
-
-* [Fixed] Partial context not affected when using with hash context, within a
-  each/with block [#536]
+* [Added] public mutable access to local variables in `BlockContext` [#533]
+* [Changed] Simplified lifetime specifiers for `Helper`, `ScopedJson` and some
+  other related types and functions. [#532]
+* [Changed] Updated `TemplateError` to reduce its size. Direct field access is
+  removed in favor of access methods
+* [Changed] Introducing `RenderErrorReason` for typed render error
+* [Changed] Changed `register_template_directory` api for more customizations
+  #[610]
+* [Changed] Updated rust-embed to 8.0
 
 ## [4.3.4](https://github.com/sunng87/handlebars-rust/compare/4.3.3...4.3.4) - 2022-09-11
 

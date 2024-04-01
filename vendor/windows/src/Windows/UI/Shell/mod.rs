@@ -1,5 +1,5 @@
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAdaptiveCard(::windows_core::IUnknown);
 impl IAdaptiveCard {
     pub fn ToJson(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -11,27 +11,11 @@ impl IAdaptiveCard {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IAdaptiveCard, ::windows_core::IUnknown, ::windows_core::IInspectable);
-impl ::core::cmp::PartialEq for IAdaptiveCard {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IAdaptiveCard {}
-impl ::core::fmt::Debug for IAdaptiveCard {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAdaptiveCard").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for IAdaptiveCard {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"{72d0568c-a274-41cd-82a8-989d40b9b05e}");
 }
 unsafe impl ::windows_core::Interface for IAdaptiveCard {
     type Vtable = IAdaptiveCard_Vtbl;
-}
-impl ::core::clone::Clone for IAdaptiveCard {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAdaptiveCard {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x72d0568c_a274_41cd_82a8_989d40b9b05e);
@@ -42,8 +26,8 @@ pub struct IAdaptiveCard_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
     pub ToJson: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut ::std::mem::MaybeUninit<::windows_core::HSTRING>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IAdaptiveCardBuilderStatics(::windows_core::IUnknown);
 impl IAdaptiveCardBuilderStatics {
     pub fn CreateAdaptiveCardFromJson(&self, value: &::windows_core::HSTRING) -> ::windows_core::Result<IAdaptiveCard> {
@@ -55,27 +39,11 @@ impl IAdaptiveCardBuilderStatics {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IAdaptiveCardBuilderStatics, ::windows_core::IUnknown, ::windows_core::IInspectable);
-impl ::core::cmp::PartialEq for IAdaptiveCardBuilderStatics {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IAdaptiveCardBuilderStatics {}
-impl ::core::fmt::Debug for IAdaptiveCardBuilderStatics {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IAdaptiveCardBuilderStatics").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for IAdaptiveCardBuilderStatics {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"{766d8f08-d3fe-4347-a0bc-b9ea9a6dc28e}");
 }
 unsafe impl ::windows_core::Interface for IAdaptiveCardBuilderStatics {
     type Vtable = IAdaptiveCardBuilderStatics_Vtbl;
-}
-impl ::core::clone::Clone for IAdaptiveCardBuilderStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IAdaptiveCardBuilderStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x766d8f08_d3fe_4347_a0bc_b9ea9a6dc28e);
@@ -88,14 +56,10 @@ pub struct IAdaptiveCardBuilderStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IFocusSession(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IFocusSession {
     type Vtable = IFocusSession_Vtbl;
-}
-impl ::core::clone::Clone for IFocusSession {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IFocusSession {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x069fbab8_0e84_5f2f_8614_9b6544326277);
@@ -109,14 +73,10 @@ pub struct IFocusSession_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IFocusSessionManager(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IFocusSessionManager {
     type Vtable = IFocusSessionManager_Vtbl;
-}
-impl ::core::clone::Clone for IFocusSessionManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IFocusSessionManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe7ffbaa9_d8be_5dbf_bac6_49364842e37e);
@@ -144,14 +104,10 @@ pub struct IFocusSessionManager_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IFocusSessionManagerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IFocusSessionManagerStatics {
     type Vtable = IFocusSessionManagerStatics_Vtbl;
-}
-impl ::core::clone::Clone for IFocusSessionManagerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IFocusSessionManagerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x834df764_cb9a_5d0a_aa9f_73df4f249395);
@@ -165,14 +121,10 @@ pub struct IFocusSessionManagerStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISecurityAppManager(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISecurityAppManager {
     type Vtable = ISecurityAppManager_Vtbl;
-}
-impl ::core::clone::Clone for ISecurityAppManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISecurityAppManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96ac500c_aed4_561d_bde8_953520343a2d);
@@ -193,14 +145,10 @@ pub struct ISecurityAppManager_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IShareWindowCommandEventArgs(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IShareWindowCommandEventArgs {
     type Vtable = IShareWindowCommandEventArgs_Vtbl;
-}
-impl ::core::clone::Clone for IShareWindowCommandEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IShareWindowCommandEventArgs {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4578dc09_a523_5756_a995_e4feb991fff0);
@@ -215,14 +163,10 @@ pub struct IShareWindowCommandEventArgs_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IShareWindowCommandSource(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IShareWindowCommandSource {
     type Vtable = IShareWindowCommandSource_Vtbl;
-}
-impl ::core::clone::Clone for IShareWindowCommandSource {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IShareWindowCommandSource {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xcb3b7ae3_6b9c_561e_bccc_61e68e0abfef);
@@ -253,14 +197,10 @@ pub struct IShareWindowCommandSource_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IShareWindowCommandSourceStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IShareWindowCommandSourceStatics {
     type Vtable = IShareWindowCommandSourceStatics_Vtbl;
-}
-impl ::core::clone::Clone for IShareWindowCommandSourceStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IShareWindowCommandSourceStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb0eb6656_9cac_517c_b6c7_8ef715084295);
@@ -273,14 +213,10 @@ pub struct IShareWindowCommandSourceStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ITaskbarManager(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ITaskbarManager {
     type Vtable = ITaskbarManager_Vtbl;
-}
-impl ::core::clone::Clone for ITaskbarManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ITaskbarManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x87490a19_1ad9_49f4_b2e8_86738dc5ac40);
@@ -310,14 +246,10 @@ pub struct ITaskbarManager_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ITaskbarManager2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ITaskbarManager2 {
     type Vtable = ITaskbarManager2_Vtbl;
-}
-impl ::core::clone::Clone for ITaskbarManager2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ITaskbarManager2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x79f0a06e_7b02_4911_918c_dee0bbd20ba4);
@@ -341,14 +273,10 @@ pub struct ITaskbarManager2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ITaskbarManagerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ITaskbarManagerStatics {
     type Vtable = ITaskbarManagerStatics_Vtbl;
-}
-impl ::core::clone::Clone for ITaskbarManagerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ITaskbarManagerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xdb32ab74_de52_4fe6_b7b6_95ff9f8395df);
@@ -359,7 +287,6 @@ pub struct ITaskbarManagerStatics_Vtbl {
     pub base__: ::windows_core::IInspectable_Vtbl,
     pub GetDefault: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 pub struct AdaptiveCardBuilder;
 impl AdaptiveCardBuilder {
     pub fn CreateAdaptiveCardFromJson(value: &::windows_core::HSTRING) -> ::windows_core::Result<IAdaptiveCard> {
@@ -377,8 +304,8 @@ impl AdaptiveCardBuilder {
 impl ::windows_core::RuntimeName for AdaptiveCardBuilder {
     const NAME: &'static str = "Windows.UI.Shell.AdaptiveCardBuilder";
 }
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct FocusSession(::windows_core::IUnknown);
 impl FocusSession {
     pub fn Id(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -393,24 +320,8 @@ impl FocusSession {
         unsafe { (::windows_core::Interface::vtable(this).End)(::windows_core::Interface::as_raw(this)).ok() }
     }
 }
-impl ::core::cmp::PartialEq for FocusSession {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for FocusSession {}
-impl ::core::fmt::Debug for FocusSession {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("FocusSession").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for FocusSession {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.Shell.FocusSession;{069fbab8-0e84-5f2f-8614-9b6544326277})");
-}
-impl ::core::clone::Clone for FocusSession {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for FocusSession {
     type Vtable = IFocusSession_Vtbl;
@@ -424,8 +335,8 @@ impl ::windows_core::RuntimeName for FocusSession {
 ::windows_core::imp::interface_hierarchy!(FocusSession, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for FocusSession {}
 unsafe impl ::core::marker::Sync for FocusSession {}
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct FocusSessionManager(::windows_core::IUnknown);
 impl FocusSessionManager {
     pub fn IsFocusActive(&self) -> ::windows_core::Result<bool> {
@@ -449,7 +360,7 @@ impl FocusSessionManager {
             (::windows_core::Interface::vtable(this).TryStartFocusSession)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TryStartFocusSession2(&self, endtime: super::super::Foundation::DateTime) -> ::windows_core::Result<FocusSession> {
         let this = self;
@@ -462,7 +373,7 @@ impl FocusSessionManager {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).DeactivateFocus)(::windows_core::Interface::as_raw(this)).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn IsFocusActiveChanged<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -474,7 +385,7 @@ impl FocusSessionManager {
             (::windows_core::Interface::vtable(this).IsFocusActiveChanged)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveIsFocusActiveChanged(&self, token: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
@@ -498,24 +409,8 @@ impl FocusSessionManager {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for FocusSessionManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for FocusSessionManager {}
-impl ::core::fmt::Debug for FocusSessionManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("FocusSessionManager").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for FocusSessionManager {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.Shell.FocusSessionManager;{e7ffbaa9-d8be-5dbf-bac6-49364842e37e})");
-}
-impl ::core::clone::Clone for FocusSessionManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for FocusSessionManager {
     type Vtable = IFocusSessionManager_Vtbl;
@@ -529,8 +424,8 @@ impl ::windows_core::RuntimeName for FocusSessionManager {
 ::windows_core::imp::interface_hierarchy!(FocusSessionManager, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for FocusSessionManager {}
 unsafe impl ::core::marker::Sync for FocusSessionManager {}
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SecurityAppManager(::windows_core::IUnknown);
 impl SecurityAppManager {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -540,7 +435,7 @@ impl SecurityAppManager {
         static SHARED: ::windows_core::imp::FactoryCache<SecurityAppManager, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Register<P0>(&self, kind: SecurityAppKind, displayname: &::windows_core::HSTRING, detailsuri: P0, registerperuser: bool) -> ::windows_core::Result<::windows_core::GUID>
     where
@@ -556,7 +451,7 @@ impl SecurityAppManager {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).Unregister)(::windows_core::Interface::as_raw(this), kind, guidregistration).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn UpdateState<P0>(&self, kind: SecurityAppKind, guidregistration: ::windows_core::GUID, state: SecurityAppState, substatus: SecurityAppSubstatus, detailsuri: P0) -> ::windows_core::Result<()>
     where
@@ -566,24 +461,8 @@ impl SecurityAppManager {
         unsafe { (::windows_core::Interface::vtable(this).UpdateState)(::windows_core::Interface::as_raw(this), kind, guidregistration, state, substatus, detailsuri.into_param().abi()).ok() }
     }
 }
-impl ::core::cmp::PartialEq for SecurityAppManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SecurityAppManager {}
-impl ::core::fmt::Debug for SecurityAppManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SecurityAppManager").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SecurityAppManager {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.Shell.SecurityAppManager;{96ac500c-aed4-561d-bde8-953520343a2d})");
-}
-impl ::core::clone::Clone for SecurityAppManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SecurityAppManager {
     type Vtable = ISecurityAppManager_Vtbl;
@@ -597,8 +476,8 @@ impl ::windows_core::RuntimeName for SecurityAppManager {
 ::windows_core::imp::interface_hierarchy!(SecurityAppManager, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for SecurityAppManager {}
 unsafe impl ::core::marker::Sync for SecurityAppManager {}
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ShareWindowCommandEventArgs(::windows_core::IUnknown);
 impl ShareWindowCommandEventArgs {
     pub fn WindowId(&self) -> ::windows_core::Result<super::WindowId> {
@@ -620,24 +499,8 @@ impl ShareWindowCommandEventArgs {
         unsafe { (::windows_core::Interface::vtable(this).SetCommand)(::windows_core::Interface::as_raw(this), value).ok() }
     }
 }
-impl ::core::cmp::PartialEq for ShareWindowCommandEventArgs {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ShareWindowCommandEventArgs {}
-impl ::core::fmt::Debug for ShareWindowCommandEventArgs {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ShareWindowCommandEventArgs").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for ShareWindowCommandEventArgs {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.Shell.ShareWindowCommandEventArgs;{4578dc09-a523-5756-a995-e4feb991fff0})");
-}
-impl ::core::clone::Clone for ShareWindowCommandEventArgs {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for ShareWindowCommandEventArgs {
     type Vtable = IShareWindowCommandEventArgs_Vtbl;
@@ -651,8 +514,8 @@ impl ::windows_core::RuntimeName for ShareWindowCommandEventArgs {
 ::windows_core::imp::interface_hierarchy!(ShareWindowCommandEventArgs, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for ShareWindowCommandEventArgs {}
 unsafe impl ::core::marker::Sync for ShareWindowCommandEventArgs {}
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ShareWindowCommandSource(::windows_core::IUnknown);
 impl ShareWindowCommandSource {
     pub fn Start(&self) -> ::windows_core::Result<()> {
@@ -667,7 +530,7 @@ impl ShareWindowCommandSource {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).ReportCommandChanged)(::windows_core::Interface::as_raw(this)).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CommandRequested<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -679,13 +542,13 @@ impl ShareWindowCommandSource {
             (::windows_core::Interface::vtable(this).CommandRequested)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveCommandRequested(&self, token: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveCommandRequested)(::windows_core::Interface::as_raw(this), token).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CommandInvoked<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -697,7 +560,7 @@ impl ShareWindowCommandSource {
             (::windows_core::Interface::vtable(this).CommandInvoked)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveCommandInvoked(&self, token: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
@@ -715,24 +578,8 @@ impl ShareWindowCommandSource {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for ShareWindowCommandSource {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ShareWindowCommandSource {}
-impl ::core::fmt::Debug for ShareWindowCommandSource {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ShareWindowCommandSource").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for ShareWindowCommandSource {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.Shell.ShareWindowCommandSource;{cb3b7ae3-6b9c-561e-bccc-61e68e0abfef})");
-}
-impl ::core::clone::Clone for ShareWindowCommandSource {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for ShareWindowCommandSource {
     type Vtable = IShareWindowCommandSource_Vtbl;
@@ -746,8 +593,8 @@ impl ::windows_core::RuntimeName for ShareWindowCommandSource {
 ::windows_core::imp::interface_hierarchy!(ShareWindowCommandSource, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for ShareWindowCommandSource {}
 unsafe impl ::core::marker::Sync for ShareWindowCommandSource {}
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct TaskbarManager(::windows_core::IUnknown);
 impl TaskbarManager {
     pub fn IsSupported(&self) -> ::windows_core::Result<bool> {
@@ -764,7 +611,7 @@ impl TaskbarManager {
             (::windows_core::Interface::vtable(this).IsPinningAllowed)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn IsCurrentAppPinnedAsync(&self) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<bool>> {
         let this = self;
@@ -773,7 +620,7 @@ impl TaskbarManager {
             (::windows_core::Interface::vtable(this).IsCurrentAppPinnedAsync)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel_Core\"`, `\"Foundation\"`*"]
+    #[doc = "Required features: `\"ApplicationModel_Core\"`, `\"Foundation\"`"]
     #[cfg(all(feature = "ApplicationModel_Core", feature = "Foundation"))]
     pub fn IsAppListEntryPinnedAsync<P0>(&self, applistentry: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<bool>>
     where
@@ -785,7 +632,7 @@ impl TaskbarManager {
             (::windows_core::Interface::vtable(this).IsAppListEntryPinnedAsync)(::windows_core::Interface::as_raw(this), applistentry.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RequestPinCurrentAppAsync(&self) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<bool>> {
         let this = self;
@@ -794,7 +641,7 @@ impl TaskbarManager {
             (::windows_core::Interface::vtable(this).RequestPinCurrentAppAsync)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"ApplicationModel_Core\"`, `\"Foundation\"`*"]
+    #[doc = "Required features: `\"ApplicationModel_Core\"`, `\"Foundation\"`"]
     #[cfg(all(feature = "ApplicationModel_Core", feature = "Foundation"))]
     pub fn RequestPinAppListEntryAsync<P0>(&self, applistentry: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<bool>>
     where
@@ -806,7 +653,7 @@ impl TaskbarManager {
             (::windows_core::Interface::vtable(this).RequestPinAppListEntryAsync)(::windows_core::Interface::as_raw(this), applistentry.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn IsSecondaryTilePinnedAsync(&self, tileid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<bool>> {
         let this = &::windows_core::ComInterface::cast::<ITaskbarManager2>(self)?;
@@ -815,7 +662,7 @@ impl TaskbarManager {
             (::windows_core::Interface::vtable(this).IsSecondaryTilePinnedAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(tileid), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"UI_StartScreen\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"UI_StartScreen\"`"]
     #[cfg(all(feature = "Foundation", feature = "UI_StartScreen"))]
     pub fn RequestPinSecondaryTileAsync<P0>(&self, secondarytile: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<bool>>
     where
@@ -827,7 +674,7 @@ impl TaskbarManager {
             (::windows_core::Interface::vtable(this).RequestPinSecondaryTileAsync)(::windows_core::Interface::as_raw(this), secondarytile.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn TryUnpinSecondaryTileAsync(&self, tileid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<bool>> {
         let this = &::windows_core::ComInterface::cast::<ITaskbarManager2>(self)?;
@@ -848,24 +695,8 @@ impl TaskbarManager {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for TaskbarManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for TaskbarManager {}
-impl ::core::fmt::Debug for TaskbarManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("TaskbarManager").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for TaskbarManager {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.UI.Shell.TaskbarManager;{87490a19-1ad9-49f4-b2e8-86738dc5ac40})");
-}
-impl ::core::clone::Clone for TaskbarManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for TaskbarManager {
     type Vtable = ITaskbarManager_Vtbl;
@@ -879,7 +710,6 @@ impl ::windows_core::RuntimeName for TaskbarManager {
 ::windows_core::imp::interface_hierarchy!(TaskbarManager, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for TaskbarManager {}
 unsafe impl ::core::marker::Sync for TaskbarManager {}
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SecurityAppKind(pub i32);
@@ -908,7 +738,6 @@ impl ::core::fmt::Debug for SecurityAppKind {
 impl ::windows_core::RuntimeType for SecurityAppKind {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.UI.Shell.SecurityAppKind;i4)");
 }
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SecurityAppState(pub i32);
@@ -938,7 +767,6 @@ impl ::core::fmt::Debug for SecurityAppState {
 impl ::windows_core::RuntimeType for SecurityAppState {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.UI.Shell.SecurityAppState;i4)");
 }
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SecurityAppSubstatus(pub i32);
@@ -970,7 +798,6 @@ impl ::core::fmt::Debug for SecurityAppSubstatus {
 impl ::windows_core::RuntimeType for SecurityAppSubstatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.UI.Shell.SecurityAppSubstatus;i4)");
 }
-#[doc = "*Required features: `\"UI_Shell\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ShareWindowCommand(pub i32);

@@ -473,9 +473,9 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         backtrace.print_backtrace();
         // FIXME(fee1-dead), HACK: we want to use the error as title therefore we can just extract the
         // label and arguments from the InterpError.
-        let dcx = self.tcx.sess.dcx();
+        let dcx = self.tcx.dcx();
         #[allow(rustc::untranslatable_diagnostic)]
-        let mut diag = self.tcx.sess.struct_allow("");
+        let mut diag = dcx.struct_allow("");
         let msg = e.diagnostic_message();
         e.add_args(dcx, &mut diag);
         let s = dcx.eagerly_translate_to_string(msg, diag.args());
@@ -1131,13 +1131,15 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
         span: Option<Span>,
         layout: Option<TyAndLayout<'tcx>>,
     ) -> InterpResult<'tcx, OpTy<'tcx, M::Provenance>> {
-        let const_val = val.eval(*self.tcx, self.param_env, span).map_err(|err| {
-            // FIXME: somehow this is reachable even when POST_MONO_CHECKS is on.
-            // Are we not always populating `required_consts`?
-            err.emit_note(*self.tcx);
-            err
-        })?;
-        self.const_val_to_op(const_val, val.ty(), layout)
+        M::eval_mir_constant(self, *val, span, layout, |ecx, val, span, layout| {
+            let const_val = val.eval(*ecx.tcx, ecx.param_env, span).map_err(|err| {
+                // FIXME: somehow this is reachable even when POST_MONO_CHECKS is on.
+                // Are we not always populating `required_consts`?
+                err.emit_note(*ecx.tcx);
+                err
+            })?;
+            ecx.const_val_to_op(const_val, val.ty(), layout)
+        })
     }
 
     #[must_use]

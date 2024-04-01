@@ -15,16 +15,16 @@ macro_rules! x {
                     $what, '(', $($who,)* ')', "'", "[..]")
         }
     }};
-    ($tool:tt => $what:tt of $who:tt with $first_value:tt $($other_values:tt)*) => {{
+    ($tool:tt => $what:tt of $who:tt with $($first_value:tt $($other_values:tt)*)?) => {{
         #[cfg(windows)]
         {
             concat!("[RUNNING] [..]", $tool, "[..] --check-cfg \"",
-                    $what, '(', $who, ", values(", "/\"", $first_value, "/\"", $(", ", "/\"", $other_values, "/\"",)* "))", '"', "[..]")
+                    $what, '(', $who, ", values(", $("/\"", $first_value, "/\"", $(", ", "/\"", $other_values, "/\"",)*)* "))", '"', "[..]")
         }
         #[cfg(not(windows))]
         {
             concat!("[RUNNING] [..]", $tool, "[..] --check-cfg '",
-                    $what, '(', $who, ", values(", "\"", $first_value, "\"", $(", ", "\"", $other_values, "\"",)* "))", "'", "[..]")
+                    $what, '(', $who, ", values(", $("\"", $first_value, "\"", $(", ", "\"", $other_values, "\"",)*)* "))", "'", "[..]")
         }
     }};
 }
@@ -221,7 +221,7 @@ fn well_known_names_values() {
 
     p.cargo("check -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
-        .with_stderr_contains(x!("rustc" => "cfg"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "feature" with))
         .run();
 }
 
@@ -284,7 +284,7 @@ fn well_known_names_values_test() {
 
     p.cargo("test -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
-        .with_stderr_contains(x!("rustc" => "cfg"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "feature" with))
         .run();
 }
 
@@ -297,8 +297,8 @@ fn well_known_names_values_doctest() {
 
     p.cargo("test -v --doc -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
-        .with_stderr_contains(x!("rustc" => "cfg"))
-        .with_stderr_contains(x!("rustdoc" => "cfg"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "feature" with))
+        .with_stderr_contains(x!("rustdoc" => "cfg" of "feature" with))
         .run();
 }
 
@@ -343,7 +343,7 @@ fn build_script_feedback() {
         .file("src/main.rs", "fn main() {}")
         .file(
             "build.rs",
-            r#"fn main() { println!("cargo:rustc-check-cfg=cfg(foo)"); }"#,
+            r#"fn main() { println!("cargo::rustc-check-cfg=cfg(foo)"); }"#,
         )
         .build();
 
@@ -369,7 +369,7 @@ fn build_script_doc() {
         .file("src/main.rs", "fn main() {}")
         .file(
             "build.rs",
-            r#"fn main() { println!("cargo:rustc-check-cfg=cfg(foo)"); }"#,
+            r#"fn main() { println!("cargo::rustc-check-cfg=cfg(foo)"); }"#,
         )
         .build();
 
@@ -456,9 +456,7 @@ fn build_script_override_feature_gate() {
         .build();
 
     p.cargo("check")
-        .with_stderr_contains(
-            "warning: target config[..]rustc-check-cfg[..] requires -Zcheck-cfg flag",
-        )
+        .with_stderr_does_not_contain("warning: [..]rustc-check-cfg[..]")
         .run();
 }
 
@@ -477,9 +475,9 @@ fn build_script_test() {
         )
         .file(
             "build.rs",
-            r#"fn main() { 
-                println!("cargo:rustc-check-cfg=cfg(foo)");
-                println!("cargo:rustc-cfg=foo");
+            r#"fn main() {
+                println!("cargo::rustc-check-cfg=cfg(foo)");
+                println!("cargo::rustc-cfg=foo");
             }"#,
         )
         .file(
@@ -531,16 +529,16 @@ fn build_script_feature_gate() {
         )
         .file(
             "build.rs",
-            r#"fn main() { 
-                println!("cargo:rustc-check-cfg=cfg(foo)");
-                println!("cargo:rustc-cfg=foo");
+            r#"fn main() {
+                println!("cargo::rustc-check-cfg=cfg(foo)");
+                println!("cargo::rustc-cfg=foo");
             }"#,
         )
         .file("src/main.rs", "fn main() {}")
         .build();
 
     p.cargo("check")
-        .with_stderr_contains("warning[..]cargo:rustc-check-cfg requires -Zcheck-cfg flag")
+        .with_stderr_does_not_contain("warning: [..]rustc-check-cfg[..]")
         .with_status(0)
         .run();
 }

@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"UI_Core\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait ICoreAcceleratorKeys_Impl: Sized {
     fn AcceleratorKeyActivated(&self, handler: ::core::option::Option<&super::super::Foundation::TypedEventHandler<CoreDispatcher, AcceleratorKeyEventArgs>>) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>;
@@ -33,11 +33,11 @@ impl ICoreAcceleratorKeys_Vtbl {
             RemoveAcceleratorKeyActivated: RemoveAcceleratorKeyActivated::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICoreAcceleratorKeys as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICoreAcceleratorKeys as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Core\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait ICoreInputSourceBase_Impl: Sized {
     fn Dispatcher(&self) -> ::windows_core::Result<CoreDispatcher>;
@@ -106,11 +106,11 @@ impl ICoreInputSourceBase_Vtbl {
             RemoveInputEnabled: RemoveInputEnabled::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICoreInputSourceBase as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICoreInputSourceBase as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Core\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait ICorePointerInputSource_Impl: Sized {
     fn ReleasePointerCapture(&self) -> ::windows_core::Result<()>;
@@ -326,11 +326,11 @@ impl ICorePointerInputSource_Vtbl {
             RemovePointerWheelChanged: RemovePointerWheelChanged::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICorePointerInputSource as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICorePointerInputSource as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Core\"`, `\"Foundation\"`, `\"System\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`, `\"System\"`"]
 #[cfg(all(feature = "Foundation", feature = "System"))]
 pub trait ICorePointerInputSource2_Impl: Sized + ICorePointerInputSource_Impl {
     fn DispatcherQueue(&self) -> ::windows_core::Result<super::super::System::DispatcherQueue>;
@@ -359,11 +359,11 @@ impl ICorePointerInputSource2_Vtbl {
             DispatcherQueue: DispatcherQueue::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICorePointerInputSource2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICorePointerInputSource2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Core\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait ICorePointerRedirector_Impl: Sized {
     fn PointerRoutedAway(&self, handler: ::core::option::Option<&super::super::Foundation::TypedEventHandler<ICorePointerRedirector, PointerEventArgs>>) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>;
@@ -438,11 +438,11 @@ impl ICorePointerRedirector_Vtbl {
             RemovePointerRoutedReleased: RemovePointerRoutedReleased::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICorePointerRedirector as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICorePointerRedirector as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Core\"`, `\"Foundation_Collections\"`, `\"System\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`, `\"System\"`"]
 #[cfg(all(feature = "Foundation_Collections", feature = "System"))]
 pub trait ICoreWindow_Impl: Sized {
     fn AutomationHostProvider(&self) -> ::windows_core::Result<::windows_core::IInspectable>;
@@ -993,11 +993,10 @@ impl ICoreWindow_Vtbl {
             RemoveVisibilityChanged: RemoveVisibilityChanged::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICoreWindow as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICoreWindow as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Core\"`, `\"implement\"`*"]
 pub trait ICoreWindowEventArgs_Impl: Sized {
     fn Handled(&self) -> ::windows_core::Result<bool>;
     fn SetHandled(&self, value: bool) -> ::windows_core::Result<()>;
@@ -1029,11 +1028,10 @@ impl ICoreWindowEventArgs_Vtbl {
             SetHandled: SetHandled::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICoreWindowEventArgs as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICoreWindowEventArgs as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"UI_Core\"`, `\"implement\"`*"]
 pub trait IInitializeWithCoreWindow_Impl: Sized {
     fn Initialize(&self, window: ::core::option::Option<&CoreWindow>) -> ::windows_core::Result<()>;
 }
@@ -1052,7 +1050,7 @@ impl IInitializeWithCoreWindow_Vtbl {
             Initialize: Initialize::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IInitializeWithCoreWindow as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IInitializeWithCoreWindow as ::windows_core::ComInterface>::IID
     }
 }

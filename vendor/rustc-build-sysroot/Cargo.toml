@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "rustc-build-sysroot"
-version = "0.4.2"
+version = "0.4.4"
 authors = ["Ralf Jung"]
 description = "Build a rustc sysroot with custom flags"
 documentation = "https://docs.rs/rustc-build-sysroot"

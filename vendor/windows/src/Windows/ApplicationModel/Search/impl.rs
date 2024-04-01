@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"ApplicationModel_Search\"`, `\"deprecated\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 pub trait ISearchPaneQueryChangedEventArgs_Impl: Sized {
     fn QueryText(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -55,7 +55,7 @@ impl ISearchPaneQueryChangedEventArgs_Vtbl {
             LinguisticDetails: LinguisticDetails::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISearchPaneQueryChangedEventArgs as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISearchPaneQueryChangedEventArgs as ::windows_core::ComInterface>::IID
     }
 }

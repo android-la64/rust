@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_System_Threading\"`, `\"implement\"`*"]
 pub trait IRtwqAsyncCallback_Impl: Sized {
     fn GetParameters(&self, pdwflags: *mut u32, pdwqueue: *mut u32) -> ::windows_core::Result<()>;
     fn Invoke(&self, pasyncresult: ::core::option::Option<&IRtwqAsyncResult>) -> ::windows_core::Result<()>;
@@ -22,11 +21,10 @@ impl IRtwqAsyncCallback_Vtbl {
             Invoke: Invoke::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRtwqAsyncCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRtwqAsyncCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_Threading\"`, `\"implement\"`*"]
 pub trait IRtwqAsyncResult_Impl: Sized {
     fn GetState(&self) -> ::windows_core::Result<::windows_core::IUnknown>;
     fn GetStatus(&self) -> ::windows_core::Result<()>;
@@ -83,11 +81,10 @@ impl IRtwqAsyncResult_Vtbl {
             GetStateNoAddRef: GetStateNoAddRef::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRtwqAsyncResult as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRtwqAsyncResult as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_Threading\"`, `\"implement\"`*"]
 pub trait IRtwqPlatformEvents_Impl: Sized {
     fn InitializationComplete(&self) -> ::windows_core::Result<()>;
     fn ShutdownStart(&self) -> ::windows_core::Result<()>;
@@ -118,18 +115,17 @@ impl IRtwqPlatformEvents_Vtbl {
             ShutdownComplete: ShutdownComplete::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IRtwqPlatformEvents as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IRtwqPlatformEvents as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_Threading\"`, `\"implement\"`*"]
 pub trait RTWQASYNCRESULT_Impl: Sized + IRtwqAsyncResult_Impl {}
 impl ::windows_core::RuntimeName for RTWQASYNCRESULT {}
 impl RTWQASYNCRESULT_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: RTWQASYNCRESULT_Impl, const OFFSET: isize>() -> RTWQASYNCRESULT_Vtbl {
         Self { base__: IRtwqAsyncResult_Vtbl::new::<Identity, Impl, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<RTWQASYNCRESULT as ::windows_core::ComInterface>::IID || iid == &<IRtwqAsyncResult as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <RTWQASYNCRESULT as ::windows_core::ComInterface>::IID || *iid == <IRtwqAsyncResult as ::windows_core::ComInterface>::IID
     }
 }

@@ -70,7 +70,7 @@ hir_analysis_coercion_between_struct_same_note = expected coercion between the s
 hir_analysis_coercion_between_struct_single_note = expected a single field to be coerced, none found
 
 hir_analysis_const_bound_for_non_const_trait =
-    ~const can only be applied to `#[const_trait]` traits
+    `{$modifier}` can only be applied to `#[const_trait]` traits
 
 hir_analysis_const_impl_for_non_const_trait =
     const `impl` for trait `{$trait_name}` which is not marked with `#[const_trait]`
@@ -263,6 +263,10 @@ hir_analysis_must_implement_not_function_span_note = required by this annotation
 
 hir_analysis_must_implement_one_of_attribute = the `#[rustc_must_implement_one_of]` attribute must be used with at least 2 args
 
+hir_analysis_not_supported_delegation =
+    {$descr} is not supported yet
+    .label = callee defined here
+
 hir_analysis_only_current_traits_arbitrary = only traits defined in the current crate can be implemented for arbitrary types
 
 hir_analysis_only_current_traits_foreign = this is not defined in the current crate because this is a foreign trait
@@ -345,6 +349,25 @@ hir_analysis_start_not_target_feature = `#[start]` function is not allowed to ha
 
 hir_analysis_start_not_track_caller = `#[start]` function is not allowed to be `#[track_caller]`
     .label = `#[start]` function is not allowed to be `#[track_caller]`
+
+hir_analysis_static_mut_ref = creating a {$shared} reference to a mutable static
+    .label = {$shared} reference to mutable static
+    .note = {$shared ->
+        [shared] this shared reference has lifetime `'static`, but if the static ever gets mutated, or a mutable reference is created, then any further use of this shared reference is Undefined Behavior
+        *[mutable] this mutable reference has lifetime `'static`, but if the static gets accessed (read or written) by any other means, or any other reference is created, then any further use of this mutable reference is Undefined Behavior
+    }
+    .suggestion = use `addr_of!` instead to create a raw pointer
+    .suggestion_mut = use `addr_of_mut!` instead to create a raw pointer
+
+hir_analysis_static_mut_refs_lint = creating a {$shared} reference to mutable static is discouraged
+    .label = {$shared} reference to mutable static
+    .suggestion = use `addr_of!` instead to create a raw pointer
+    .suggestion_mut = use `addr_of_mut!` instead to create a raw pointer
+    .note = this will be a hard error in the 2024 edition
+    .why_note = {$shared ->
+        [shared] this shared reference has lifetime `'static`, but if the static ever gets mutated, or a mutable reference is created, then any further use of this shared reference is Undefined Behavior
+        *[mutable] this mutable reference has lifetime `'static`, but if the static gets accessed (read or written) by any other means, or any other reference is created, then any further use of this mutable reference is Undefined Behavior
+    }
 
 hir_analysis_static_specialize = cannot specialize on `'static` lifetime
 

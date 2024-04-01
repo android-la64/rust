@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Media_SpeechRecognition\"`, `\"implement\"`*"]
 pub trait ISpeechRecognitionConstraint_Impl: Sized {
     fn IsEnabled(&self) -> ::windows_core::Result<bool>;
     fn SetIsEnabled(&self, value: bool) -> ::windows_core::Result<()>;
@@ -84,7 +83,7 @@ impl ISpeechRecognitionConstraint_Vtbl {
             SetProbability: SetProbability::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISpeechRecognitionConstraint as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISpeechRecognitionConstraint as ::windows_core::ComInterface>::IID
     }
 }

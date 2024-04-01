@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_Networking_WindowsWebServices\"`, `\"implement\"`*"]
 pub trait IContentPrefetcherTaskTrigger_Impl: Sized {
     fn TriggerContentPrefetcherTask(&self, packagefullname: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
     fn IsRegisteredForContentPrefetch(&self, packagefullname: &::windows_core::PCWSTR) -> ::windows_core::Result<u8>;
@@ -28,7 +27,7 @@ impl IContentPrefetcherTaskTrigger_Vtbl {
             IsRegisteredForContentPrefetch: IsRegisteredForContentPrefetch::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IContentPrefetcherTaskTrigger as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IContentPrefetcherTaskTrigger as ::windows_core::ComInterface>::IID
     }
 }

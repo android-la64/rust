@@ -34,8 +34,8 @@ considersed as incompatible:
 * **Adding new values for enum-like fields** — Same as adding new fields. It
   keeps metadata evolving without stagnation.
 * **Changing opaque representations** — The inner representations of some
-  fields are implementation details. For example, fields related to "Package ID"
-  or "Source ID" are treated as opaque identifiers to differentiate packages or
+  fields are implementation details. For example, fields related to
+  "Source ID" are treated as opaque identifiers to differentiate packages or
   sources. Consumers shouldn't rely on those representations unless specified.
 
 ### JSON format
@@ -53,10 +53,10 @@ The JSON output has the following format:
             "name": "my-package",
             /* The version of the package. */
             "version": "0.1.0",
-            /* The Package ID, an opaque and unique identifier for referring to the
-               package. See "Compatibility" above for the stability guarantee.
+            /* The Package ID for referring to the
+               package within the document and as the `--package` argument to many commands
             */
-            "id": "my-package 0.1.0 (path+file:///path/to/my-package)",
+            "id": "file:///path/to/my-package#0.1.0",
             /* The license value from the manifest, or null. */
             "license": "MIT/Apache-2.0",
             /* The license-file value from the manifest, or null. */
@@ -242,13 +242,13 @@ The JSON output has the following format:
        Each entry is the Package ID for the package.
     */
     "workspace_members": [
-        "my-package 0.1.0 (path+file:///path/to/my-package)",
+        "file:///path/to/my-package#0.1.0",
     ],
     /* Array of default members of the workspace.
        Each entry is the Package ID for the package.
     */
     "workspace_default_members": [
-        "my-package 0.1.0 (path+file:///path/to/my-package)",
+        "file:///path/to/my-package#0.1.0",
     ],
     // The resolved dependency graph for the entire workspace. The enabled
     // features are based on the enabled features for the "current" package.
@@ -266,10 +266,10 @@ The JSON output has the following format:
         "nodes": [
             {
                 /* The Package ID of this node. */
-                "id": "my-package 0.1.0 (path+file:///path/to/my-package)",
+                "id": "file:///path/to/my-package#0.1.0",
                 /* The dependencies of this package, an array of Package IDs. */
                 "dependencies": [
-                    "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)"
+                    "https://github.com/rust-lang/crates.io-index#bitflags@1.0.4"
                 ],
                 /* The dependencies of this package. This is an alternative to
                    "dependencies" which contains additional information. In
@@ -283,7 +283,7 @@ The JSON output has the following format:
                         */
                         "name": "bitflags",
                         /* The Package ID of the dependency. */
-                        "pkg": "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+                        "pkg": "https://github.com/rust-lang/crates.io-index#bitflags@1.0.4"
                         /* Array of dependency kinds. Added in Cargo 1.40. */
                         "dep_kinds": [
                             {
@@ -309,7 +309,7 @@ The JSON output has the following format:
            This is null if this is a virtual workspace. Otherwise it is
            the Package ID of the root package.
         */
-        "root": "my-package 0.1.0 (path+file:///path/to/my-package)"
+        "root": "file:///path/to/my-package#0.1.0",
     },
     /* The absolute path to the build directory where Cargo places its output. */
     "target_directory": "/path/to/my-package/target",
@@ -330,6 +330,9 @@ The JSON output has the following format:
     }
 }
 ````
+
+Notes:
+- For `"id"` field syntax, see [Package ID Specifications] in the reference.
 
 ## OPTIONS
 
@@ -386,7 +389,6 @@ be specified multiple times, which enables all specified features.</dd>
 
 </dl>
 
-
 ### Display Options
 
 <dl>
@@ -416,7 +418,6 @@ terminal.</li>
 <p>May also be specified with the <code>term.color</code>
 <a href="../reference/config.html">config value</a>.</dd>
 
-
 </dl>
 
 ### Manifest Options
@@ -425,7 +426,6 @@ terminal.</li>
 <dt class="option-term" id="option-cargo-metadata---manifest-path"><a class="option-anchor" href="#option-cargo-metadata---manifest-path"></a><code>--manifest-path</code> <em>path</em></dt>
 <dd class="option-desc">Path to the <code>Cargo.toml</code> file. By default, Cargo searches for the
 <code>Cargo.toml</code> file in the current directory or any parent directory.</dd>
-
 
 
 <dt class="option-term" id="option-cargo-metadata---frozen"><a class="option-anchor" href="#option-cargo-metadata---frozen"></a><code>--frozen</code></dt>
@@ -450,7 +450,6 @@ if there might be a newer version as indicated in the local copy of the index.
 See the <a href="cargo-fetch.html">cargo-fetch(1)</a> command to download dependencies before going
 offline.</p>
 <p>May also be specified with the <code>net.offline</code> <a href="../reference/config.html">config value</a>.</dd>
-
 
 </dl>
 
@@ -494,18 +493,15 @@ requires the <code>-Z unstable-options</code> flag to enable (see
 
 </dl>
 
-
 ## ENVIRONMENT
 
 See [the reference](../reference/environment-variables.html) for
 details on environment variables that Cargo reads.
 
-
 ## EXIT STATUS
 
 * `0`: Cargo succeeded.
 * `101`: Cargo failed to complete.
-
 
 ## EXAMPLES
 
@@ -514,4 +510,8 @@ details on environment variables that Cargo reads.
        cargo metadata --format-version=1
 
 ## SEE ALSO
-[cargo(1)](cargo.html)
+
+[cargo(1)](cargo.html), [cargo-pkgid(1)](cargo-pkgid.html), [Package ID Specifications], [JSON messages]
+
+[Package ID Specifications]: ../reference/pkgid-spec.html
+[JSON messages]: ../reference/external-tools.html#json-messages

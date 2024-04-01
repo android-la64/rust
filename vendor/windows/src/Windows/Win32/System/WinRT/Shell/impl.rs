@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_System_WinRT_Shell\"`, `\"Win32_UI_Shell\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_UI_Shell\"`"]
 #[cfg(feature = "Win32_UI_Shell")]
 pub trait IDDEInitializer_Impl: Sized {
     fn Initialize(&self, fileextensionorprotocol: &::windows_core::PCWSTR, method: CreateProcessMethod, currentdirectory: &::windows_core::PCWSTR, exectarget: ::core::option::Option<&super::super::super::UI::Shell::IShellItem>, site: ::core::option::Option<&::windows_core::IUnknown>, application: &::windows_core::PCWSTR, targetfile: &::windows_core::PCWSTR, arguments: &::windows_core::PCWSTR, verb: &::windows_core::PCWSTR) -> ::windows_core::Result<()>;
@@ -15,7 +15,7 @@ impl IDDEInitializer_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), Initialize: Initialize::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDDEInitializer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDDEInitializer as ::windows_core::ComInterface>::IID
     }
 }

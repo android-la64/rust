@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Devices_Scanners\"`, `\"implement\"`*"]
 pub trait IImageScannerFormatConfiguration_Impl: Sized {
     fn DefaultFormat(&self) -> ::windows_core::Result<ImageScannerFormat>;
     fn Format(&self) -> ::windows_core::Result<ImageScannerFormat>;
@@ -56,11 +55,11 @@ impl IImageScannerFormatConfiguration_Vtbl {
             IsFormatSupported: IsFormatSupported::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IImageScannerFormatConfiguration as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IImageScannerFormatConfiguration as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Devices_Scanners\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IImageScannerSourceConfiguration_Impl: Sized + IImageScannerFormatConfiguration_Impl {
     fn MinScanArea(&self) -> ::windows_core::Result<super::super::Foundation::Size>;
@@ -416,7 +415,7 @@ impl IImageScannerSourceConfiguration_Vtbl {
             SetContrast: SetContrast::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IImageScannerSourceConfiguration as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IImageScannerSourceConfiguration as ::windows_core::ComInterface>::IID
     }
 }

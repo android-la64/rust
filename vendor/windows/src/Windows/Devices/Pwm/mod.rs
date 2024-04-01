@@ -1,15 +1,12 @@
 #[cfg(feature = "Devices_Pwm_Provider")]
+#[doc = "Required features: `\"Devices_Pwm_Provider\"`"]
 pub mod Provider;
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPwmController(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPwmController {
     type Vtable = IPwmController_Vtbl;
-}
-impl ::core::clone::Clone for IPwmController {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPwmController {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc45f5c85_d2e8_42cf_9bd6_cf5ed029e6a7);
@@ -27,14 +24,10 @@ pub struct IPwmController_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPwmControllerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPwmControllerStatics {
     type Vtable = IPwmControllerStatics_Vtbl;
-}
-impl ::core::clone::Clone for IPwmControllerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPwmControllerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4263bda1_8946_4404_bd48_81dd124af4d9);
@@ -50,14 +43,10 @@ pub struct IPwmControllerStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPwmControllerStatics2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPwmControllerStatics2 {
     type Vtable = IPwmControllerStatics2_Vtbl;
-}
-impl ::core::clone::Clone for IPwmControllerStatics2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPwmControllerStatics2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x44fc5b1f_f119_4bdd_97ad_f76ef986736d);
@@ -73,14 +62,10 @@ pub struct IPwmControllerStatics2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPwmControllerStatics3(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPwmControllerStatics3 {
     type Vtable = IPwmControllerStatics3_Vtbl;
-}
-impl ::core::clone::Clone for IPwmControllerStatics3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPwmControllerStatics3 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb2581871_0229_4344_ae3f_9b7cd0e66b94);
@@ -98,14 +83,10 @@ pub struct IPwmControllerStatics3_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPwmPin(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPwmPin {
     type Vtable = IPwmPin_Vtbl;
-}
-impl ::core::clone::Clone for IPwmPin {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPwmPin {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x22972dc8_c6cf_4821_b7f9_c6454fb6af79);
@@ -123,8 +104,8 @@ pub struct IPwmPin_Vtbl {
     pub Stop: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub IsStarted: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut bool) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Devices_Pwm\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PwmController(::windows_core::IUnknown);
 impl PwmController {
     pub fn PinCount(&self) -> ::windows_core::Result<i32> {
@@ -169,7 +150,7 @@ impl PwmController {
             (::windows_core::Interface::vtable(this).OpenPin)(::windows_core::Interface::as_raw(this), pinnumber, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Devices_Pwm_Provider\"`, `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Devices_Pwm_Provider\"`, `\"Foundation_Collections\"`"]
     #[cfg(all(feature = "Devices_Pwm_Provider", feature = "Foundation_Collections"))]
     pub fn GetControllersAsync<P0>(provider: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<super::super::Foundation::Collections::IVectorView<PwmController>>>
     where
@@ -180,7 +161,7 @@ impl PwmController {
             (::windows_core::Interface::vtable(this).GetControllersAsync)(::windows_core::Interface::as_raw(this), provider.try_into_param()?.abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn GetDefaultAsync() -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<PwmController>> {
         Self::IPwmControllerStatics2(|this| unsafe {
@@ -200,7 +181,7 @@ impl PwmController {
             (::windows_core::Interface::vtable(this).GetDeviceSelectorFromFriendlyName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(friendlyname), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FromIdAsync(deviceid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<PwmController>> {
         Self::IPwmControllerStatics3(|this| unsafe {
@@ -224,24 +205,8 @@ impl PwmController {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for PwmController {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PwmController {}
-impl ::core::fmt::Debug for PwmController {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PwmController").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PwmController {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.Pwm.PwmController;{c45f5c85-d2e8-42cf-9bd6-cf5ed029e6a7})");
-}
-impl ::core::clone::Clone for PwmController {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PwmController {
     type Vtable = IPwmController_Vtbl;
@@ -255,11 +220,11 @@ impl ::windows_core::RuntimeName for PwmController {
 ::windows_core::imp::interface_hierarchy!(PwmController, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PwmController {}
 unsafe impl ::core::marker::Sync for PwmController {}
-#[doc = "*Required features: `\"Devices_Pwm\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PwmPin(::windows_core::IUnknown);
 impl PwmPin {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Close(&self) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<super::super::Foundation::IClosable>(self)?;
@@ -310,24 +275,8 @@ impl PwmPin {
         }
     }
 }
-impl ::core::cmp::PartialEq for PwmPin {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PwmPin {}
-impl ::core::fmt::Debug for PwmPin {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PwmPin").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PwmPin {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.Pwm.PwmPin;{22972dc8-c6cf-4821-b7f9-c6454fb6af79})");
-}
-impl ::core::clone::Clone for PwmPin {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PwmPin {
     type Vtable = IPwmPin_Vtbl;
@@ -343,7 +292,6 @@ impl ::windows_core::RuntimeName for PwmPin {
 impl ::windows_core::CanTryInto<super::super::Foundation::IClosable> for PwmPin {}
 unsafe impl ::core::marker::Send for PwmPin {}
 unsafe impl ::core::marker::Sync for PwmPin {}
-#[doc = "*Required features: `\"Devices_Pwm\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct PwmPulsePolarity(pub i32);

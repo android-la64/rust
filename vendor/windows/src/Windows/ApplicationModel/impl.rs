@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait IEnteredBackgroundEventArgs_Impl: Sized {
     fn GetDeferral(&self) -> ::windows_core::Result<super::Foundation::Deferral>;
@@ -27,11 +27,11 @@ impl IEnteredBackgroundEventArgs_Vtbl {
             GetDeferral: GetDeferral::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IEnteredBackgroundEventArgs as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IEnteredBackgroundEventArgs as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait ILeavingBackgroundEventArgs_Impl: Sized {
     fn GetDeferral(&self) -> ::windows_core::Result<super::Foundation::Deferral>;
@@ -60,11 +60,10 @@ impl ILeavingBackgroundEventArgs_Vtbl {
             GetDeferral: GetDeferral::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ILeavingBackgroundEventArgs as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ILeavingBackgroundEventArgs as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel\"`, `\"implement\"`*"]
 pub trait IPackageCatalogStatics2_Impl: Sized {
     fn OpenForPackage(&self, package: ::core::option::Option<&Package>) -> ::windows_core::Result<PackageCatalog>;
 }
@@ -90,11 +89,10 @@ impl IPackageCatalogStatics2_Vtbl {
             OpenForPackage: OpenForPackage::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IPackageCatalogStatics2 as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IPackageCatalogStatics2 as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel\"`, `\"implement\"`*"]
 pub trait ISuspendingDeferral_Impl: Sized {
     fn Complete(&self) -> ::windows_core::Result<()>;
 }
@@ -110,11 +108,10 @@ impl ISuspendingDeferral_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, ISuspendingDeferral, OFFSET>(), Complete: Complete::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISuspendingDeferral as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISuspendingDeferral as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel\"`, `\"implement\"`*"]
 pub trait ISuspendingEventArgs_Impl: Sized {
     fn SuspendingOperation(&self) -> ::windows_core::Result<SuspendingOperation>;
 }
@@ -140,11 +137,11 @@ impl ISuspendingEventArgs_Vtbl {
             SuspendingOperation: SuspendingOperation::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISuspendingEventArgs as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISuspendingEventArgs as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait ISuspendingOperation_Impl: Sized {
     fn GetDeferral(&self) -> ::windows_core::Result<SuspendingDeferral>;
@@ -186,7 +183,7 @@ impl ISuspendingOperation_Vtbl {
             Deadline: Deadline::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISuspendingOperation as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISuspendingOperation as ::windows_core::ComInterface>::IID
     }
 }

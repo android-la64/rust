@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct INamedPolicyData(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for INamedPolicyData {
     type Vtable = INamedPolicyData_Vtbl;
-}
-impl ::core::clone::Clone for INamedPolicyData {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for INamedPolicyData {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x38dcb198_95ac_4077_a643_8078cae26400);
@@ -44,14 +40,10 @@ pub struct INamedPolicyData_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct INamedPolicyStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for INamedPolicyStatics {
     type Vtable = INamedPolicyStatics_Vtbl;
-}
-impl ::core::clone::Clone for INamedPolicyStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for INamedPolicyStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7f793be7_76c4_4058_8cad_67662cd05f0d);
@@ -66,7 +58,6 @@ pub struct INamedPolicyStatics_Vtbl {
     #[cfg(not(feature = "System"))]
     GetPolicyFromPathForUser: usize,
 }
-#[doc = "*Required features: `\"Management_Policies\"`*"]
 pub struct NamedPolicy;
 impl NamedPolicy {
     pub fn GetPolicyFromPath(area: &::windows_core::HSTRING, name: &::windows_core::HSTRING) -> ::windows_core::Result<NamedPolicyData> {
@@ -75,7 +66,7 @@ impl NamedPolicy {
             (::windows_core::Interface::vtable(this).GetPolicyFromPath)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(area), ::core::mem::transmute_copy(name), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"System\"`*"]
+    #[doc = "Required features: `\"System\"`"]
     #[cfg(feature = "System")]
     pub fn GetPolicyFromPathForUser<P0>(user: P0, area: &::windows_core::HSTRING, name: &::windows_core::HSTRING) -> ::windows_core::Result<NamedPolicyData>
     where
@@ -95,8 +86,8 @@ impl NamedPolicy {
 impl ::windows_core::RuntimeName for NamedPolicy {
     const NAME: &'static str = "Windows.Management.Policies.NamedPolicy";
 }
-#[doc = "*Required features: `\"Management_Policies\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct NamedPolicyData(::windows_core::IUnknown);
 impl NamedPolicyData {
     pub fn Area(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -134,7 +125,7 @@ impl NamedPolicyData {
             (::windows_core::Interface::vtable(this).IsUserPolicy)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"System\"`*"]
+    #[doc = "Required features: `\"System\"`"]
     #[cfg(feature = "System")]
     pub fn User(&self) -> ::windows_core::Result<super::super::System::User> {
         let this = self;
@@ -150,7 +141,7 @@ impl NamedPolicyData {
             (::windows_core::Interface::vtable(this).GetBoolean)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn GetBinary(&self) -> ::windows_core::Result<super::super::Storage::Streams::IBuffer> {
         let this = self;
@@ -180,7 +171,7 @@ impl NamedPolicyData {
             (::windows_core::Interface::vtable(this).GetString)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Changed<P0>(&self, changedhandler: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -192,31 +183,15 @@ impl NamedPolicyData {
             (::windows_core::Interface::vtable(this).Changed)(::windows_core::Interface::as_raw(this), changedhandler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveChanged(&self, cookie: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveChanged)(::windows_core::Interface::as_raw(this), cookie).ok() }
     }
 }
-impl ::core::cmp::PartialEq for NamedPolicyData {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for NamedPolicyData {}
-impl ::core::fmt::Debug for NamedPolicyData {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("NamedPolicyData").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for NamedPolicyData {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Management.Policies.NamedPolicyData;{38dcb198-95ac-4077-a643-8078cae26400})");
-}
-impl ::core::clone::Clone for NamedPolicyData {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for NamedPolicyData {
     type Vtable = INamedPolicyData_Vtbl;
@@ -230,7 +205,6 @@ impl ::windows_core::RuntimeName for NamedPolicyData {
 ::windows_core::imp::interface_hierarchy!(NamedPolicyData, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for NamedPolicyData {}
 unsafe impl ::core::marker::Sync for NamedPolicyData {}
-#[doc = "*Required features: `\"Management_Policies\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct NamedPolicyKind(pub i32);

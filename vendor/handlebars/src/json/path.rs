@@ -5,6 +5,7 @@ use pest::Parser;
 
 use crate::error::RenderError;
 use crate::grammar::{HandlebarsParser, Rule};
+use crate::RenderErrorReason;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum PathSeg {
@@ -38,7 +39,7 @@ impl Path {
                 let segs = parse_json_path_from_iter(&mut parsed.peekable(), raw.len());
                 Ok(Path::new(raw, segs))
             })
-            .map_err(|_| RenderError::new("Invalid JSON path"))?
+            .map_err(|_| RenderErrorReason::InvalidJsonPath(raw.to_owned()))?
     }
 
     pub(crate) fn raw(&self) -> &str {
@@ -71,7 +72,7 @@ impl Path {
 }
 
 fn get_local_path_and_level(paths: &[PathSeg]) -> Option<(usize, String)> {
-    paths.get(0).and_then(|seg| {
+    paths.first().and_then(|seg| {
         if seg == &PathSeg::Ruled(Rule::path_local) {
             let mut level = 0;
             while paths.get(level + 1)? == &PathSeg::Ruled(Rule::path_up) {

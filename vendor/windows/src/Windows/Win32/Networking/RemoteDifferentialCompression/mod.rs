@@ -1,5 +1,5 @@
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IFindSimilarResults(::windows_core::IUnknown);
 impl IFindSimilarResults {
     pub unsafe fn GetSize(&self) -> ::windows_core::Result<u32> {
@@ -11,24 +11,8 @@ impl IFindSimilarResults {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IFindSimilarResults, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IFindSimilarResults {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IFindSimilarResults {}
-impl ::core::fmt::Debug for IFindSimilarResults {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IFindSimilarResults").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IFindSimilarResults {
     type Vtable = IFindSimilarResults_Vtbl;
-}
-impl ::core::clone::Clone for IFindSimilarResults {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IFindSimilarResults {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a81_9dbc_11da_9e3f_0011114ae311);
@@ -40,11 +24,11 @@ pub struct IFindSimilarResults_Vtbl {
     pub GetSize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, size: *mut u32) -> ::windows_core::HRESULT,
     pub GetNextFileId: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, numtraitsmatched: *mut u32, similarityfileid: *mut SimilarityFileId) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRdcComparator(::windows_core::IUnknown);
 impl IRdcComparator {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Process<P0>(&self, endofinput: P0, endofoutput: *mut super::super::Foundation::BOOL, inputbuffer: *mut RdcBufferPointer, outputbuffer: *mut RdcNeedPointer, rdc_errorcode: *mut RDC_ErrorCode) -> ::windows_core::Result<()>
     where
@@ -54,24 +38,8 @@ impl IRdcComparator {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRdcComparator, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRdcComparator {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRdcComparator {}
-impl ::core::fmt::Debug for IRdcComparator {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRdcComparator").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRdcComparator {
     type Vtable = IRdcComparator_Vtbl;
-}
-impl ::core::clone::Clone for IRdcComparator {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRdcComparator {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a77_9dbc_11da_9e3f_0011114ae311);
@@ -85,15 +53,15 @@ pub struct IRdcComparator_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     Process: usize,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRdcFileReader(::windows_core::IUnknown);
 impl IRdcFileReader {
     pub unsafe fn GetFileSize(&self) -> ::windows_core::Result<u64> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetFileSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Read(&self, offsetfilestart: u64, bytestoread: u32, bytesactuallyread: *mut u32, buffer: *mut u8, eof: *mut super::super::Foundation::BOOL) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Read)(::windows_core::Interface::as_raw(self), offsetfilestart, bytestoread, bytesactuallyread, buffer, eof).ok()
@@ -104,24 +72,8 @@ impl IRdcFileReader {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRdcFileReader, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRdcFileReader {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRdcFileReader {}
-impl ::core::fmt::Debug for IRdcFileReader {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRdcFileReader").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRdcFileReader {
     type Vtable = IRdcFileReader_Vtbl;
-}
-impl ::core::clone::Clone for IRdcFileReader {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRdcFileReader {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a74_9dbc_11da_9e3f_0011114ae311);
@@ -137,15 +89,15 @@ pub struct IRdcFileReader_Vtbl {
     Read: usize,
     pub GetFilePosition: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, offsetfromstart: *mut u64) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRdcFileWriter(::windows_core::IUnknown);
 impl IRdcFileWriter {
     pub unsafe fn GetFileSize(&self) -> ::windows_core::Result<u64> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).base__.GetFileSize)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Read(&self, offsetfilestart: u64, bytestoread: u32, bytesactuallyread: *mut u32, buffer: *mut u8, eof: *mut super::super::Foundation::BOOL) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.Read)(::windows_core::Interface::as_raw(self), offsetfilestart, bytestoread, bytesactuallyread, buffer, eof).ok()
@@ -166,24 +118,8 @@ impl IRdcFileWriter {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRdcFileWriter, ::windows_core::IUnknown, IRdcFileReader);
-impl ::core::cmp::PartialEq for IRdcFileWriter {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRdcFileWriter {}
-impl ::core::fmt::Debug for IRdcFileWriter {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRdcFileWriter").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRdcFileWriter {
     type Vtable = IRdcFileWriter_Vtbl;
-}
-impl ::core::clone::Clone for IRdcFileWriter {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRdcFileWriter {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a75_9dbc_11da_9e3f_0011114ae311);
@@ -196,42 +132,26 @@ pub struct IRdcFileWriter_Vtbl {
     pub Truncate: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub DeleteOnClose: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRdcGenerator(::windows_core::IUnknown);
 impl IRdcGenerator {
     pub unsafe fn GetGeneratorParameters(&self, level: u32) -> ::windows_core::Result<IRdcGeneratorParameters> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).GetGeneratorParameters)(::windows_core::Interface::as_raw(self), level, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Process<P0>(&self, endofinput: P0, endofoutput: *mut super::super::Foundation::BOOL, inputbuffer: *mut RdcBufferPointer, outputbuffers: &mut [*mut RdcBufferPointer], rdc_errorcode: *mut RDC_ErrorCode) -> ::windows_core::Result<()>
     where
         P0: ::windows_core::IntoParam<super::super::Foundation::BOOL>,
     {
-        (::windows_core::Interface::vtable(self).Process)(::windows_core::Interface::as_raw(self), endofinput.into_param().abi(), endofoutput, inputbuffer, outputbuffers.len() as _, ::core::mem::transmute(outputbuffers.as_ptr()), rdc_errorcode).ok()
+        (::windows_core::Interface::vtable(self).Process)(::windows_core::Interface::as_raw(self), endofinput.into_param().abi(), endofoutput, inputbuffer, outputbuffers.len().try_into().unwrap(), ::core::mem::transmute(outputbuffers.as_ptr()), rdc_errorcode).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRdcGenerator, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRdcGenerator {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRdcGenerator {}
-impl ::core::fmt::Debug for IRdcGenerator {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRdcGenerator").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRdcGenerator {
     type Vtable = IRdcGenerator_Vtbl;
-}
-impl ::core::clone::Clone for IRdcGenerator {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRdcGenerator {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a73_9dbc_11da_9e3f_0011114ae311);
@@ -246,8 +166,8 @@ pub struct IRdcGenerator_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     Process: usize,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRdcGeneratorFilterMaxParameters(::windows_core::IUnknown);
 impl IRdcGeneratorFilterMaxParameters {
     pub unsafe fn GetHorizonSize(&self) -> ::windows_core::Result<u32> {
@@ -266,24 +186,8 @@ impl IRdcGeneratorFilterMaxParameters {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRdcGeneratorFilterMaxParameters, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRdcGeneratorFilterMaxParameters {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRdcGeneratorFilterMaxParameters {}
-impl ::core::fmt::Debug for IRdcGeneratorFilterMaxParameters {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRdcGeneratorFilterMaxParameters").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRdcGeneratorFilterMaxParameters {
     type Vtable = IRdcGeneratorFilterMaxParameters_Vtbl;
-}
-impl ::core::clone::Clone for IRdcGeneratorFilterMaxParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRdcGeneratorFilterMaxParameters {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a72_9dbc_11da_9e3f_0011114ae311);
@@ -297,8 +201,8 @@ pub struct IRdcGeneratorFilterMaxParameters_Vtbl {
     pub GetHashWindowSize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, hashwindowsize: *mut u32) -> ::windows_core::HRESULT,
     pub SetHashWindowSize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, hashwindowsize: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRdcGeneratorParameters(::windows_core::IUnknown);
 impl IRdcGeneratorParameters {
     pub unsafe fn GetGeneratorParametersType(&self) -> ::windows_core::Result<GeneratorParametersType> {
@@ -317,24 +221,8 @@ impl IRdcGeneratorParameters {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRdcGeneratorParameters, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRdcGeneratorParameters {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRdcGeneratorParameters {}
-impl ::core::fmt::Debug for IRdcGeneratorParameters {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRdcGeneratorParameters").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRdcGeneratorParameters {
     type Vtable = IRdcGeneratorParameters_Vtbl;
-}
-impl ::core::clone::Clone for IRdcGeneratorParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRdcGeneratorParameters {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a71_9dbc_11da_9e3f_0011114ae311);
@@ -348,8 +236,8 @@ pub struct IRdcGeneratorParameters_Vtbl {
     pub GetSerializeSize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, size: *mut u32) -> ::windows_core::HRESULT,
     pub Serialize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, size: u32, parametersblob: *mut u8, byteswritten: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRdcLibrary(::windows_core::IUnknown);
 impl IRdcLibrary {
     pub unsafe fn ComputeDefaultRecursionDepth(&self, filesize: u64) -> ::windows_core::Result<u32> {
@@ -366,7 +254,7 @@ impl IRdcLibrary {
     }
     pub unsafe fn CreateGenerator(&self, igeneratorparametersarray: &[::core::option::Option<IRdcGeneratorParameters>]) -> ::windows_core::Result<IRdcGenerator> {
         let mut result__ = ::std::mem::zeroed();
-        (::windows_core::Interface::vtable(self).CreateGenerator)(::windows_core::Interface::as_raw(self), igeneratorparametersarray.len() as _, ::core::mem::transmute(igeneratorparametersarray.as_ptr()), &mut result__).from_abi(result__)
+        (::windows_core::Interface::vtable(self).CreateGenerator)(::windows_core::Interface::as_raw(self), igeneratorparametersarray.len().try_into().unwrap(), ::core::mem::transmute(igeneratorparametersarray.as_ptr()), &mut result__).from_abi(result__)
     }
     pub unsafe fn CreateComparator<P0>(&self, iseedsignaturesfile: P0, comparatorbuffersize: u32) -> ::windows_core::Result<IRdcComparator>
     where
@@ -387,24 +275,8 @@ impl IRdcLibrary {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRdcLibrary, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRdcLibrary {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRdcLibrary {}
-impl ::core::fmt::Debug for IRdcLibrary {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRdcLibrary").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRdcLibrary {
     type Vtable = IRdcLibrary_Vtbl;
-}
-impl ::core::clone::Clone for IRdcLibrary {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRdcLibrary {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a78_9dbc_11da_9e3f_0011114ae311);
@@ -421,39 +293,23 @@ pub struct IRdcLibrary_Vtbl {
     pub CreateSignatureReader: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, ifilereader: *mut ::core::ffi::c_void, isignaturereader: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub GetRDCVersion: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, currentversion: *mut u32, minimumcompatibleappversion: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRdcSignatureReader(::windows_core::IUnknown);
 impl IRdcSignatureReader {
     pub unsafe fn ReadHeader(&self) -> ::windows_core::Result<RDC_ErrorCode> {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).ReadHeader)(::windows_core::Interface::as_raw(self), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn ReadSignatures(&self, rdcsignaturepointer: *mut RdcSignaturePointer, endofoutput: *mut super::super::Foundation::BOOL) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).ReadSignatures)(::windows_core::Interface::as_raw(self), rdcsignaturepointer, endofoutput).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRdcSignatureReader, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRdcSignatureReader {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRdcSignatureReader {}
-impl ::core::fmt::Debug for IRdcSignatureReader {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRdcSignatureReader").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRdcSignatureReader {
     type Vtable = IRdcSignatureReader_Vtbl;
-}
-impl ::core::clone::Clone for IRdcSignatureReader {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRdcSignatureReader {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a76_9dbc_11da_9e3f_0011114ae311);
@@ -468,8 +324,8 @@ pub struct IRdcSignatureReader_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     ReadSignatures: usize,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IRdcSimilarityGenerator(::windows_core::IUnknown);
 impl IRdcSimilarityGenerator {
     pub unsafe fn EnableSimilarity(&self) -> ::windows_core::Result<()> {
@@ -481,24 +337,8 @@ impl IRdcSimilarityGenerator {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IRdcSimilarityGenerator, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IRdcSimilarityGenerator {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IRdcSimilarityGenerator {}
-impl ::core::fmt::Debug for IRdcSimilarityGenerator {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IRdcSimilarityGenerator").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IRdcSimilarityGenerator {
     type Vtable = IRdcSimilarityGenerator_Vtbl;
-}
-impl ::core::clone::Clone for IRdcSimilarityGenerator {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IRdcSimilarityGenerator {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a80_9dbc_11da_9e3f_0011114ae311);
@@ -510,11 +350,11 @@ pub struct IRdcSimilarityGenerator_Vtbl {
     pub EnableSimilarity: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub Results: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, similaritydata: *mut SimilarityData) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISimilarity(::windows_core::IUnknown);
 impl ISimilarity {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateTable<P0, P1>(&self, path: P0, truncate: P1, securitydescriptor: *const u8, recordsize: u32) -> ::windows_core::Result<RdcCreatedTables>
     where
@@ -524,7 +364,7 @@ impl ISimilarity {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateTable)(::windows_core::Interface::as_raw(self), path.into_param().abi(), truncate.into_param().abi(), securitydescriptor, recordsize, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateTableIndirect<P0, P1, P2>(&self, mapping: P0, fileidfile: P1, truncate: P2, recordsize: u32) -> ::windows_core::Result<RdcCreatedTables>
     where
@@ -535,7 +375,7 @@ impl ISimilarity {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateTableIndirect)(::windows_core::Interface::as_raw(self), mapping.into_param().abi(), fileidfile.into_param().abi(), truncate.into_param().abi(), recordsize, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CloseTable<P0>(&self, isvalid: P0) -> ::windows_core::Result<()>
     where
@@ -563,24 +403,8 @@ impl ISimilarity {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ISimilarity, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ISimilarity {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ISimilarity {}
-impl ::core::fmt::Debug for ISimilarity {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISimilarity").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ISimilarity {
     type Vtable = ISimilarity_Vtbl;
-}
-impl ::core::clone::Clone for ISimilarity {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISimilarity {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a83_9dbc_11da_9e3f_0011114ae311);
@@ -606,11 +430,11 @@ pub struct ISimilarity_Vtbl {
     pub CopyAndSwap: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, newsimilaritytables: *mut ::core::ffi::c_void, reportprogress: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub GetRecordCount: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, recordcount: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISimilarityFileIdTable(::windows_core::IUnknown);
 impl ISimilarityFileIdTable {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateTable<P0, P1>(&self, path: P0, truncate: P1, securitydescriptor: *const u8, recordsize: u32) -> ::windows_core::Result<RdcCreatedTables>
     where
@@ -620,7 +444,7 @@ impl ISimilarityFileIdTable {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateTable)(::windows_core::Interface::as_raw(self), path.into_param().abi(), truncate.into_param().abi(), securitydescriptor, recordsize, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateTableIndirect<P0, P1>(&self, fileidfile: P0, truncate: P1, recordsize: u32) -> ::windows_core::Result<RdcCreatedTables>
     where
@@ -630,7 +454,7 @@ impl ISimilarityFileIdTable {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateTableIndirect)(::windows_core::Interface::as_raw(self), fileidfile.into_param().abi(), truncate.into_param().abi(), recordsize, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CloseTable<P0>(&self, isvalid: P0) -> ::windows_core::Result<()>
     where
@@ -654,24 +478,8 @@ impl ISimilarityFileIdTable {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ISimilarityFileIdTable, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ISimilarityFileIdTable {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ISimilarityFileIdTable {}
-impl ::core::fmt::Debug for ISimilarityFileIdTable {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISimilarityFileIdTable").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ISimilarityFileIdTable {
     type Vtable = ISimilarityFileIdTable_Vtbl;
-}
-impl ::core::clone::Clone for ISimilarityFileIdTable {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISimilarityFileIdTable {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a7f_9dbc_11da_9e3f_0011114ae311);
@@ -697,8 +505,8 @@ pub struct ISimilarityFileIdTable_Vtbl {
     pub Invalidate: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, similarityfileindex: u32) -> ::windows_core::HRESULT,
     pub GetRecordCount: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, recordcount: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISimilarityReportProgress(::windows_core::IUnknown);
 impl ISimilarityReportProgress {
     pub unsafe fn ReportProgress(&self, percentcompleted: u32) -> ::windows_core::Result<()> {
@@ -706,24 +514,8 @@ impl ISimilarityReportProgress {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ISimilarityReportProgress, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ISimilarityReportProgress {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ISimilarityReportProgress {}
-impl ::core::fmt::Debug for ISimilarityReportProgress {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISimilarityReportProgress").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ISimilarityReportProgress {
     type Vtable = ISimilarityReportProgress_Vtbl;
-}
-impl ::core::clone::Clone for ISimilarityReportProgress {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISimilarityReportProgress {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a7a_9dbc_11da_9e3f_0011114ae311);
@@ -734,35 +526,19 @@ pub struct ISimilarityReportProgress_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub ReportProgress: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, percentcompleted: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISimilarityTableDumpState(::windows_core::IUnknown);
 impl ISimilarityTableDumpState {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetNextData(&self, resultssize: u32, resultsused: *mut u32, eof: *mut super::super::Foundation::BOOL, results: *mut SimilarityDumpData) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).GetNextData)(::windows_core::Interface::as_raw(self), resultssize, resultsused, eof, results).ok()
     }
 }
 ::windows_core::imp::interface_hierarchy!(ISimilarityTableDumpState, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ISimilarityTableDumpState {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ISimilarityTableDumpState {}
-impl ::core::fmt::Debug for ISimilarityTableDumpState {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISimilarityTableDumpState").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ISimilarityTableDumpState {
     type Vtable = ISimilarityTableDumpState_Vtbl;
-}
-impl ::core::clone::Clone for ISimilarityTableDumpState {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISimilarityTableDumpState {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a7b_9dbc_11da_9e3f_0011114ae311);
@@ -776,8 +552,8 @@ pub struct ISimilarityTableDumpState_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     GetNextData: usize,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISimilarityTraitsMappedView(::windows_core::IUnknown);
 impl ISimilarityTraitsMappedView {
     pub unsafe fn Flush(&self) -> ::windows_core::Result<()> {
@@ -786,7 +562,7 @@ impl ISimilarityTraitsMappedView {
     pub unsafe fn Unmap(&self) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).Unmap)(::windows_core::Interface::as_raw(self)).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Get<P0>(&self, index: u64, dirty: P0, numelements: u32) -> ::windows_core::Result<SimilarityMappedViewInfo>
     where
@@ -800,24 +576,8 @@ impl ISimilarityTraitsMappedView {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ISimilarityTraitsMappedView, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ISimilarityTraitsMappedView {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ISimilarityTraitsMappedView {}
-impl ::core::fmt::Debug for ISimilarityTraitsMappedView {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISimilarityTraitsMappedView").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ISimilarityTraitsMappedView {
     type Vtable = ISimilarityTraitsMappedView_Vtbl;
-}
-impl ::core::clone::Clone for ISimilarityTraitsMappedView {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISimilarityTraitsMappedView {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a7c_9dbc_11da_9e3f_0011114ae311);
@@ -834,8 +594,8 @@ pub struct ISimilarityTraitsMappedView_Vtbl {
     Get: usize,
     pub GetView: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, mappedpagebegin: *mut *mut u8, mappedpageend: *mut *mut u8),
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISimilarityTraitsMapping(::windows_core::IUnknown);
 impl ISimilarityTraitsMapping {
     pub unsafe fn CloseMapping(&self) {
@@ -867,24 +627,8 @@ impl ISimilarityTraitsMapping {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ISimilarityTraitsMapping, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ISimilarityTraitsMapping {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ISimilarityTraitsMapping {}
-impl ::core::fmt::Debug for ISimilarityTraitsMapping {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISimilarityTraitsMapping").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ISimilarityTraitsMapping {
     type Vtable = ISimilarityTraitsMapping_Vtbl;
-}
-impl ::core::clone::Clone for ISimilarityTraitsMapping {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISimilarityTraitsMapping {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a7d_9dbc_11da_9e3f_0011114ae311);
@@ -901,11 +645,11 @@ pub struct ISimilarityTraitsMapping_Vtbl {
     pub GetPageSize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pagesize: *mut u32),
     pub CreateView: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, minimummappedpages: u32, accessmode: RdcMappingAccessMode, mappedview: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISimilarityTraitsTable(::windows_core::IUnknown);
 impl ISimilarityTraitsTable {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateTable<P0, P1>(&self, path: P0, truncate: P1, securitydescriptor: *const u8) -> ::windows_core::Result<RdcCreatedTables>
     where
@@ -915,7 +659,7 @@ impl ISimilarityTraitsTable {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateTable)(::windows_core::Interface::as_raw(self), path.into_param().abi(), truncate.into_param().abi(), securitydescriptor, &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateTableIndirect<P0, P1>(&self, mapping: P0, truncate: P1) -> ::windows_core::Result<RdcCreatedTables>
     where
@@ -925,7 +669,7 @@ impl ISimilarityTraitsTable {
         let mut result__ = ::std::mem::zeroed();
         (::windows_core::Interface::vtable(self).CreateTableIndirect)(::windows_core::Interface::as_raw(self), mapping.into_param().abi(), truncate.into_param().abi(), &mut result__).from_abi(result__)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CloseTable<P0>(&self, isvalid: P0) -> ::windows_core::Result<()>
     where
@@ -949,24 +693,8 @@ impl ISimilarityTraitsTable {
     }
 }
 ::windows_core::imp::interface_hierarchy!(ISimilarityTraitsTable, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for ISimilarityTraitsTable {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ISimilarityTraitsTable {}
-impl ::core::fmt::Debug for ISimilarityTraitsTable {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ISimilarityTraitsTable").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for ISimilarityTraitsTable {
     type Vtable = ISimilarityTraitsTable_Vtbl;
-}
-impl ::core::clone::Clone for ISimilarityTraitsTable {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISimilarityTraitsTable {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a7e_9dbc_11da_9e3f_0011114ae311);
@@ -992,133 +720,69 @@ pub struct ISimilarityTraitsTable_Vtbl {
     pub BeginDump: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, similaritytabledumpstate: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub GetLastIndex: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, fileindex: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const FindSimilarResults: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a93_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_DEFAULT_COMPAREBUFFER: u32 = 3200000u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_DEFAULT_HASHWINDOWSIZE_1: u32 = 48u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_DEFAULT_HASHWINDOWSIZE_N: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_DEFAULT_HORIZONSIZE_1: u32 = 1024u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_DEFAULT_HORIZONSIZE_N: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MAXIMUM_COMPAREBUFFER: u32 = 1073741824u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MAXIMUM_DEPTH: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MAXIMUM_HASHWINDOWSIZE: u32 = 96u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MAXIMUM_HORIZONSIZE: u32 = 16384u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MAXIMUM_MATCHESREQUIRED: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MAXIMUM_TRAITVALUE: u32 = 63u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MINIMUM_COMPAREBUFFER: u32 = 100000u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MINIMUM_COMPATIBLE_APP_VERSION: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MINIMUM_DEPTH: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MINIMUM_HASHWINDOWSIZE: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MINIMUM_HORIZONSIZE: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MINIMUM_INPUTBUFFERSIZE: u32 = 1024u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_MINIMUM_MATCHESREQUIRED: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_SIGNATURE_HASHSIZE: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const MSRDC_VERSION: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCE_TABLE_CORRUPT: u32 = 2147745794u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCE_TABLE_FULL: u32 = 2147745793u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCGENTYPE_FilterMax: GeneratorParametersType = GeneratorParametersType(1i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCGENTYPE_Unused: GeneratorParametersType = GeneratorParametersType(0i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCMAPPING_ReadOnly: RdcMappingAccessMode = RdcMappingAccessMode(1i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCMAPPING_ReadWrite: RdcMappingAccessMode = RdcMappingAccessMode(2i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCMAPPING_Undefined: RdcMappingAccessMode = RdcMappingAccessMode(0i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCNEED_SEED: RdcNeedType = RdcNeedType(2i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCNEED_SEED_MAX: RdcNeedType = RdcNeedType(255i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCNEED_SOURCE: RdcNeedType = RdcNeedType(0i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCNEED_TARGET: RdcNeedType = RdcNeedType(1i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCTABLE_Existing: RdcCreatedTables = RdcCreatedTables(1i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCTABLE_InvalidOrUnknown: RdcCreatedTables = RdcCreatedTables(0i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDCTABLE_New: RdcCreatedTables = RdcCreatedTables(2i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_Aborted: RDC_ErrorCode = RDC_ErrorCode(9i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_ApplicationError: RDC_ErrorCode = RDC_ErrorCode(8i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_DataMissingOrCorrupt: RDC_ErrorCode = RDC_ErrorCode(5i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_DataTooManyRecords: RDC_ErrorCode = RDC_ErrorCode(6i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_FileChecksumMismatch: RDC_ErrorCode = RDC_ErrorCode(7i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_HeaderMissingOrCorrupt: RDC_ErrorCode = RDC_ErrorCode(3i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_HeaderVersionNewer: RDC_ErrorCode = RDC_ErrorCode(1i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_HeaderVersionOlder: RDC_ErrorCode = RDC_ErrorCode(2i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_HeaderWrongType: RDC_ErrorCode = RDC_ErrorCode(4i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_NoError: RDC_ErrorCode = RDC_ErrorCode(0i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RDC_Win32Error: RDC_ErrorCode = RDC_ErrorCode(10i32);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RdcComparator: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a8b_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RdcFileReader: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a89_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RdcGenerator: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a88_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RdcGeneratorFilterMaxParameters: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a87_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RdcGeneratorParameters: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a86_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RdcLibrary: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a85_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RdcSignatureReader: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a8a_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const RdcSimilarityGenerator: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a92_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const Similarity: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a91_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const SimilarityFileIdMaxSize: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const SimilarityFileIdMinSize: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const SimilarityFileIdTable: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a90_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const SimilarityReportProgress: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a8d_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const SimilarityTableDumpState: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a8e_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const SimilarityTraitsMappedView: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a95_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const SimilarityTraitsMapping: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a94_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub const SimilarityTraitsTable: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96236a8f_9dbc_11da_9e3f_0011114ae311);
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct GeneratorParametersType(pub i32);
@@ -1141,7 +805,6 @@ impl ::core::fmt::Debug for GeneratorParametersType {
         f.debug_tuple("GeneratorParametersType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RDC_ErrorCode(pub i32);
@@ -1164,7 +827,6 @@ impl ::core::fmt::Debug for RDC_ErrorCode {
         f.debug_tuple("RDC_ErrorCode").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RdcCreatedTables(pub i32);
@@ -1187,7 +849,6 @@ impl ::core::fmt::Debug for RdcCreatedTables {
         f.debug_tuple("RdcCreatedTables").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RdcMappingAccessMode(pub i32);
@@ -1210,7 +871,6 @@ impl ::core::fmt::Debug for RdcMappingAccessMode {
         f.debug_tuple("RdcMappingAccessMode").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct RdcNeedType(pub i32);
@@ -1234,7 +894,6 @@ impl ::core::fmt::Debug for RdcNeedType {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct FindSimilarFileIndexResults {
     pub m_FileIndex: u32,
     pub m_MatchCount: u32,
@@ -1265,7 +924,6 @@ impl ::core::default::Default for FindSimilarFileIndexResults {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct RdcBufferPointer {
     pub m_Size: u32,
     pub m_Used: u32,
@@ -1297,7 +955,6 @@ impl ::core::default::Default for RdcBufferPointer {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct RdcNeed {
     pub m_BlockType: RdcNeedType,
     pub m_FileOffset: u64,
@@ -1329,7 +986,6 @@ impl ::core::default::Default for RdcNeed {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct RdcNeedPointer {
     pub m_Size: u32,
     pub m_Used: u32,
@@ -1361,7 +1017,6 @@ impl ::core::default::Default for RdcNeedPointer {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct RdcSignature {
     pub m_Signature: [u8; 16],
     pub m_BlockLength: u16,
@@ -1392,7 +1047,6 @@ impl ::core::default::Default for RdcSignature {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct RdcSignaturePointer {
     pub m_Size: u32,
     pub m_Used: u32,
@@ -1424,7 +1078,6 @@ impl ::core::default::Default for RdcSignaturePointer {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct SimilarityData {
     pub m_Data: [u8; 16],
 }
@@ -1454,7 +1107,6 @@ impl ::core::default::Default for SimilarityData {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct SimilarityDumpData {
     pub m_FileIndex: u32,
     pub m_Data: SimilarityData,
@@ -1485,7 +1137,6 @@ impl ::core::default::Default for SimilarityDumpData {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct SimilarityFileId {
     pub m_FileId: [u8; 32],
 }
@@ -1515,7 +1166,6 @@ impl ::core::default::Default for SimilarityFileId {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Networking_RemoteDifferentialCompression\"`*"]
 pub struct SimilarityMappedViewInfo {
     pub m_Data: *mut u8,
     pub m_Length: u32,

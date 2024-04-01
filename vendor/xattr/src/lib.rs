@@ -1,15 +1,16 @@
+#![allow(clippy::comparison_chain)]
 //! A pure-Rust library to manage extended attributes.
 //!
 //! It provides support for manipulating extended attributes
 //! (`xattrs`) on modern Unix filesystems. See the `attr(5)`
 //! manpage for more details.
 //!
-//! An extension trait [`FileExt`](::FileExt) is provided to directly work with
+//! An extension trait [`FileExt`] is provided to directly work with
 //! standard `File` objects and file descriptors.
 //!
-//! NOTE: In case of a symlink as path argument, all methods
-//! in this library work on the symlink itself **without**
-//! de-referencing it.
+//! If the path argument is a symlink, the get/set/list/remove functions
+//! operate on the symlink itself. To operate on the symlink target, use
+//! the _deref variant of these functions.
 //!
 //! ```rust
 //! let mut xattrs = xattr::list("/").unwrap().peekable();
@@ -25,8 +26,6 @@
 //! }
 //! ```
 
-extern crate libc;
-
 mod error;
 mod sys;
 mod util;
@@ -34,7 +33,7 @@ mod util;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io;
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::{AsRawFd, BorrowedFd};
 use std::path::Path;
 
 pub use error::UnsupportedPlatformError;
@@ -46,7 +45,16 @@ where
     P: AsRef<Path>,
     N: AsRef<OsStr>,
 {
-    util::extract_noattr(sys::get_path(path.as_ref(), name.as_ref()))
+    util::extract_noattr(sys::get_path(path.as_ref(), name.as_ref(), false))
+}
+
+/// Get an extended attribute for the specified file (dereference symlinks).
+pub fn get_deref<N, P>(path: P, name: N) -> io::Result<Option<Vec<u8>>>
+where
+    P: AsRef<Path>,
+    N: AsRef<OsStr>,
+{
+    util::extract_noattr(sys::get_path(path.as_ref(), name.as_ref(), true))
 }
 
 /// Set an extended attribute on the specified file.
@@ -55,7 +63,16 @@ where
     P: AsRef<Path>,
     N: AsRef<OsStr>,
 {
-    sys::set_path(path.as_ref(), name.as_ref(), value)
+    sys::set_path(path.as_ref(), name.as_ref(), value, false)
+}
+
+/// Set an extended attribute on the specified file (dereference symlinks).
+pub fn set_deref<N, P>(path: P, name: N, value: &[u8]) -> io::Result<()>
+where
+    P: AsRef<Path>,
+    N: AsRef<OsStr>,
+{
+    sys::set_path(path.as_ref(), name.as_ref(), value, true)
 }
 
 /// Remove an extended attribute from the specified file.
@@ -64,7 +81,16 @@ where
     P: AsRef<Path>,
     N: AsRef<OsStr>,
 {
-    sys::remove_path(path.as_ref(), name.as_ref())
+    sys::remove_path(path.as_ref(), name.as_ref(), false)
+}
+
+/// Remove an extended attribute from the specified file (dereference symlinks).
+pub fn remove_deref<N, P>(path: P, name: N) -> io::Result<()>
+where
+    P: AsRef<Path>,
+    N: AsRef<OsStr>,
+{
+    sys::remove_path(path.as_ref(), name.as_ref(), true)
 }
 
 /// List extended attributes attached to the specified file.
@@ -75,7 +101,15 @@ pub fn list<P>(path: P) -> io::Result<XAttrs>
 where
     P: AsRef<Path>,
 {
-    sys::list_path(path.as_ref())
+    sys::list_path(path.as_ref(), false)
+}
+
+/// List extended attributes attached to the specified file (dereference symlinks).
+pub fn list_deref<P>(path: P) -> io::Result<XAttrs>
+where
+    P: AsRef<Path>,
+{
+    sys::list_path(path.as_ref(), true)
 }
 
 /// Extension trait to manipulate extended attributes on `File`-like objects.
@@ -85,7 +119,9 @@ pub trait FileExt: AsRawFd {
     where
         N: AsRef<OsStr>,
     {
-        util::extract_noattr(sys::get_fd(self.as_raw_fd(), name.as_ref()))
+        // SAFETY: Implement I/O safety later.
+        let fd = unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) };
+        util::extract_noattr(sys::get_fd(fd, name.as_ref()))
     }
 
     /// Set an extended attribute on the specified file.
@@ -93,7 +129,8 @@ pub trait FileExt: AsRawFd {
     where
         N: AsRef<OsStr>,
     {
-        sys::set_fd(self.as_raw_fd(), name.as_ref(), value)
+        let fd = unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) };
+        sys::set_fd(fd, name.as_ref(), value)
     }
 
     /// Remove an extended attribute from the specified file.
@@ -101,7 +138,8 @@ pub trait FileExt: AsRawFd {
     where
         N: AsRef<OsStr>,
     {
-        sys::remove_fd(self.as_raw_fd(), name.as_ref())
+        let fd = unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) };
+        sys::remove_fd(fd, name.as_ref())
     }
 
     /// List extended attributes attached to the specified file.
@@ -109,7 +147,8 @@ pub trait FileExt: AsRawFd {
     /// Note: this may not list *all* attributes. Speficially, it definitely won't list any trusted
     /// attributes unless you are root and it may not list system attributes.
     fn list_xattr(&self) -> io::Result<XAttrs> {
-        sys::list_fd(self.as_raw_fd())
+        let fd = unsafe { BorrowedFd::borrow_raw(self.as_raw_fd()) };
+        sys::list_fd(fd)
     }
 }
 

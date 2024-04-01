@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICoreUserActivityManagerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICoreUserActivityManagerStatics {
     type Vtable = ICoreUserActivityManagerStatics_Vtbl;
-}
-impl ::core::clone::Clone for ICoreUserActivityManagerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICoreUserActivityManagerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xca3adb02_a4be_4d4d_bfa8_6795f4264efb);
@@ -22,7 +18,6 @@ pub struct ICoreUserActivityManagerStatics_Vtbl {
     #[cfg(not(feature = "Foundation"))]
     DeleteUserActivitySessionsInTimeRangeAsync: usize,
 }
-#[doc = "*Required features: `\"ApplicationModel_UserActivities_Core\"`*"]
 pub struct CoreUserActivityManager;
 impl CoreUserActivityManager {
     pub fn CreateUserActivitySessionInBackground<P0>(activity: P0) -> ::windows_core::Result<super::UserActivitySession>
@@ -34,7 +29,7 @@ impl CoreUserActivityManager {
             (::windows_core::Interface::vtable(this).CreateUserActivitySessionInBackground)(::windows_core::Interface::as_raw(this), activity.into_param().abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn DeleteUserActivitySessionsInTimeRangeAsync<P0>(channel: P0, starttime: super::super::super::Foundation::DateTime, endtime: super::super::super::Foundation::DateTime) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction>
     where

@@ -1,3 +1,9 @@
+# Ruzstd (a pure rust zstd decoder)
+
+[![Released API docs](https://docs.rs/ruzstd/badge.svg)](https://docs.rs/ruzstd)
+[![CI](https://github.com/killingspark/zstd-rs/workflows/CI/badge.svg)](https://github.com/killingspark/zstd-rs/actions?query=workflow%3ACI)
+
+
 # What is this
 
 A feature-complete decoder for the zstd compression format as defined in: [This document](https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md).
@@ -7,8 +13,6 @@ It is NOT a compressor. I don't plan on implementing that part either, at least 
 This crate might look like it is not active, this is because there isn't really anything to do anymore, unless a bug is found or a new API feature is requested. I will of course respond to and look into issues!
 
 # Current Status
-
-[![Actions Status](https://github.com/KillingSpark/zstd-rs/workflows/CI/badge.svg)](https://github.com/KillingSpark/zstd-rs/actions?query=workflow%3A"CI")
 
 This started as a toy project but it is in a usable state now.
 
@@ -25,6 +29,7 @@ Measuring with the 'time' utility the original zstd and my decoder both decoding
 1. Decode all the decode_corpus files (1000+) I created locally
 1. Calculate checksums
 1. Act as a `zstd -c -d` dropin replacement
+1. Can be compiled in a no-std environment that provides alloc
 
 ## Cannot do
 
@@ -68,12 +73,12 @@ Additionally to the descriptions and the docs you can have a look at the zstd / 
 
 The easiest is to wrap the io::Read into a StreamingDecoder which itself implements io::Read. It will decode blocks as necessary to fulfill the read requests
 
-```
+```rust
 let mut f = File::open(path).unwrap();
-let mut decoder = StreamingDecoder::new(&mut f);
+let mut decoder = StreamingDecoder::new(&mut f).unwrap();
 
 let mut result = Vec::new();
-decoder.read_to_end(&mut buffer).unwrap();
+decoder.read_to_end(&mut result).unwrap();
 ```
 
 This might be a problem if you are accepting user provided data. Frames can be REALLY big when decoded. If this is the case you should either check how big the frame

@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"Win32_Foundation\"`, `\"Win32_Media_Audio_DirectSound\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Media_Audio_DirectSound\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Media_Audio_DirectSound"))]
 pub trait IDirectMusic_Impl: Sized {
     fn EnumPort(&self, dwindex: u32, pportcaps: *mut DMUS_PORTCAPS) -> ::windows_core::Result<()>;
@@ -74,11 +74,11 @@ impl IDirectMusic_Vtbl {
             SetDirectSound: SetDirectSound::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusic as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusic as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"Win32_Foundation\"`, `\"Win32_Media_Audio_DirectSound\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Media_Audio_DirectSound\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Media_Audio_DirectSound"))]
 pub trait IDirectMusic8_Impl: Sized + IDirectMusic_Impl {
     fn SetExternalMasterClock(&self, pclock: ::core::option::Option<&super::super::IReferenceClock>) -> ::windows_core::Result<()>;
@@ -95,11 +95,10 @@ impl IDirectMusic8_Vtbl {
         }
         Self { base__: IDirectMusic_Vtbl::new::<Identity, Impl, OFFSET>(), SetExternalMasterClock: SetExternalMasterClock::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusic8 as ::windows_core::ComInterface>::IID || iid == &<IDirectMusic as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusic8 as ::windows_core::ComInterface>::IID || *iid == <IDirectMusic as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"implement\"`*"]
 pub trait IDirectMusicBuffer_Impl: Sized {
     fn Flush(&self) -> ::windows_core::Result<()>;
     fn TotalTime(&self, prttime: *mut i64) -> ::windows_core::Result<()>;
@@ -200,11 +199,10 @@ impl IDirectMusicBuffer_Vtbl {
             SetUsedBytes: SetUsedBytes::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicBuffer as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicBuffer as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"implement\"`*"]
 pub trait IDirectMusicCollection_Impl: Sized {
     fn GetInstrument(&self, dwpatch: u32) -> ::windows_core::Result<IDirectMusicInstrument>;
     fn EnumInstrument(&self, dwindex: u32, pdwpatch: *mut u32, pwszname: &::windows_core::PCWSTR, dwnamelen: u32) -> ::windows_core::Result<()>;
@@ -234,11 +232,10 @@ impl IDirectMusicCollection_Vtbl {
             EnumInstrument: EnumInstrument::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicCollection as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicCollection as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"implement\"`*"]
 pub trait IDirectMusicDownload_Impl: Sized {
     fn GetBuffer(&self, ppvbuffer: *mut *mut ::core::ffi::c_void, pdwsize: *mut u32) -> ::windows_core::Result<()>;
 }
@@ -252,22 +249,20 @@ impl IDirectMusicDownload_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), GetBuffer: GetBuffer::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicDownload as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicDownload as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"implement\"`*"]
 pub trait IDirectMusicDownloadedInstrument_Impl: Sized {}
 impl ::windows_core::RuntimeName for IDirectMusicDownloadedInstrument {}
 impl IDirectMusicDownloadedInstrument_Vtbl {
     pub const fn new<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectMusicDownloadedInstrument_Impl, const OFFSET: isize>() -> IDirectMusicDownloadedInstrument_Vtbl {
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>() }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicDownloadedInstrument as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicDownloadedInstrument as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"implement\"`*"]
 pub trait IDirectMusicInstrument_Impl: Sized {
     fn GetPatch(&self, pdwpatch: *mut u32) -> ::windows_core::Result<()>;
     fn SetPatch(&self, dwpatch: u32) -> ::windows_core::Result<()>;
@@ -291,11 +286,11 @@ impl IDirectMusicInstrument_Vtbl {
             SetPatch: SetPatch::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicInstrument as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicInstrument as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"Win32_Foundation\"`, `\"Win32_Media_Audio_DirectSound\"`, `\"Win32_System_IO\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Media_Audio_DirectSound\"`, `\"Win32_System_IO\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Media_Audio_DirectSound", feature = "Win32_System_IO"))]
 pub trait IDirectMusicPort_Impl: Sized {
     fn PlayBuffer(&self, pbuffer: ::core::option::Option<&IDirectMusicBuffer>) -> ::windows_core::Result<()>;
@@ -433,11 +428,10 @@ impl IDirectMusicPort_Vtbl {
             GetFormat: GetFormat::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicPort as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicPort as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"implement\"`*"]
 pub trait IDirectMusicPortDownload_Impl: Sized {
     fn GetBuffer(&self, dwdlid: u32) -> ::windows_core::Result<IDirectMusicDownload>;
     fn AllocateBuffer(&self, dwsize: u32) -> ::windows_core::Result<IDirectMusicDownload>;
@@ -501,17 +495,17 @@ impl IDirectMusicPortDownload_Vtbl {
             Unload: Unload::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicPortDownload as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicPortDownload as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDirectMusicSynth_Impl: Sized {
     fn Open(&self, pportparams: *mut DMUS_PORTPARAMS8) -> ::windows_core::Result<()>;
     fn Close(&self) -> ::windows_core::Result<()>;
     fn SetNumChannelGroups(&self, dwgroups: u32) -> ::windows_core::Result<()>;
-    fn Download(&self, phdownload: *mut super::super::super::Foundation::HANDLE, pvdata: *mut ::core::ffi::c_void, pbfree: *mut i32) -> ::windows_core::Result<()>;
+    fn Download(&self, phdownload: *mut super::super::super::Foundation::HANDLE, pvdata: *mut ::core::ffi::c_void, pbfree: *mut super::super::super::Foundation::BOOL) -> ::windows_core::Result<()>;
     fn Unload(&self, hdownload: super::super::super::Foundation::HANDLE, lpfreehandle: isize, huserdata: super::super::super::Foundation::HANDLE) -> ::windows_core::Result<()>;
     fn PlayBuffer(&self, rt: i64, pbbuffer: *mut u8, cbbuffer: u32) -> ::windows_core::Result<()>;
     fn GetRunningStats(&self, pstats: *mut DMUS_SYNTHSTATS) -> ::windows_core::Result<()>;
@@ -546,7 +540,7 @@ impl IDirectMusicSynth_Vtbl {
             let this = (*this).get_impl();
             this.SetNumChannelGroups(::core::mem::transmute_copy(&dwgroups)).into()
         }
-        unsafe extern "system" fn Download<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectMusicSynth_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, phdownload: *mut super::super::super::Foundation::HANDLE, pvdata: *mut ::core::ffi::c_void, pbfree: *mut i32) -> ::windows_core::HRESULT {
+        unsafe extern "system" fn Download<Identity: ::windows_core::IUnknownImpl<Impl = Impl>, Impl: IDirectMusicSynth_Impl, const OFFSET: isize>(this: *mut ::core::ffi::c_void, phdownload: *mut super::super::super::Foundation::HANDLE, pvdata: *mut ::core::ffi::c_void, pbfree: *mut super::super::super::Foundation::BOOL) -> ::windows_core::HRESULT {
             let this = (this as *const *const ()).offset(OFFSET) as *const Identity;
             let this = (*this).get_impl();
             this.Download(::core::mem::transmute_copy(&phdownload), ::core::mem::transmute_copy(&pvdata), ::core::mem::transmute_copy(&pbfree)).into()
@@ -643,11 +637,11 @@ impl IDirectMusicSynth_Vtbl {
             GetAppend: GetAppend::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicSynth as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicSynth as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait IDirectMusicSynth8_Impl: Sized + IDirectMusicSynth_Impl {
     fn PlayVoice(&self, rt: i64, dwvoiceid: u32, dwchannelgroup: u32, dwchannel: u32, dwdlid: u32, prpitch: i32, vrvolume: i32, stvoicestart: u64, stloopstart: u64, stloopend: u64) -> ::windows_core::Result<()>;
@@ -695,11 +689,11 @@ impl IDirectMusicSynth8_Vtbl {
             AssignChannelToBuses: AssignChannelToBuses::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicSynth8 as ::windows_core::ComInterface>::IID || iid == &<IDirectMusicSynth as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicSynth8 as ::windows_core::ComInterface>::IID || *iid == <IDirectMusicSynth as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"Win32_Foundation\"`, `\"Win32_Media_Audio_DirectSound\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_Media_Audio_DirectSound\"`"]
 #[cfg(all(feature = "Win32_Foundation", feature = "Win32_Media_Audio_DirectSound"))]
 pub trait IDirectMusicSynthSink_Impl: Sized {
     fn Init(&self, psynth: ::core::option::Option<&IDirectMusicSynth>) -> ::windows_core::Result<()>;
@@ -774,11 +768,10 @@ impl IDirectMusicSynthSink_Vtbl {
             GetDesiredBufferSize: GetDesiredBufferSize::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicSynthSink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicSynthSink as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_DirectMusic\"`, `\"implement\"`*"]
 pub trait IDirectMusicThru_Impl: Sized {
     fn ThruChannel(&self, dwsourcechannelgroup: u32, dwsourcechannel: u32, dwdestinationchannelgroup: u32, dwdestinationchannel: u32, pdestinationport: ::core::option::Option<&IDirectMusicPort>) -> ::windows_core::Result<()>;
 }
@@ -792,7 +785,7 @@ impl IDirectMusicThru_Vtbl {
         }
         Self { base__: ::windows_core::IUnknown_Vtbl::new::<Identity, OFFSET>(), ThruChannel: ThruChannel::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IDirectMusicThru as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IDirectMusicThru as ::windows_core::ComInterface>::IID
     }
 }

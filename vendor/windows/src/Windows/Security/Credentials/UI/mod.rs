@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICredentialPickerOptions(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICredentialPickerOptions {
     type Vtable = ICredentialPickerOptions_Vtbl;
-}
-impl ::core::clone::Clone for ICredentialPickerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICredentialPickerOptions {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x965a0b4c_95fa_467f_992b_0b22e5859bf6);
@@ -45,14 +41,10 @@ pub struct ICredentialPickerOptions_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICredentialPickerResults(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICredentialPickerResults {
     type Vtable = ICredentialPickerResults_Vtbl;
-}
-impl ::core::clone::Clone for ICredentialPickerResults {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICredentialPickerResults {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1948f99a_cc30_410c_9c38_cc0884c5b3d7);
@@ -74,14 +66,10 @@ pub struct ICredentialPickerResults_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICredentialPickerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICredentialPickerStatics {
     type Vtable = ICredentialPickerStatics_Vtbl;
-}
-impl ::core::clone::Clone for ICredentialPickerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICredentialPickerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xaa3a5c73_c9ea_4782_99fb_e6d7e938e12d);
@@ -105,14 +93,10 @@ pub struct ICredentialPickerStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUserConsentVerifierStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUserConsentVerifierStatics {
     type Vtable = IUserConsentVerifierStatics_Vtbl;
-}
-impl ::core::clone::Clone for IUserConsentVerifierStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUserConsentVerifierStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xaf4f3f91_564c_4ddc_b8b5_973447627c65);
@@ -130,10 +114,9 @@ pub struct IUserConsentVerifierStatics_Vtbl {
     #[cfg(not(feature = "Foundation"))]
     RequestVerificationAsync: usize,
 }
-#[doc = "*Required features: `\"Security_Credentials_UI\"`*"]
 pub struct CredentialPicker;
 impl CredentialPicker {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn PickWithOptionsAsync<P0>(options: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<CredentialPickerResults>>
     where
@@ -144,7 +127,7 @@ impl CredentialPicker {
             (::windows_core::Interface::vtable(this).PickWithOptionsAsync)(::windows_core::Interface::as_raw(this), options.into_param().abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn PickWithMessageAsync(targetname: &::windows_core::HSTRING, message: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<CredentialPickerResults>> {
         Self::ICredentialPickerStatics(|this| unsafe {
@@ -152,7 +135,7 @@ impl CredentialPicker {
             (::windows_core::Interface::vtable(this).PickWithMessageAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(targetname), ::core::mem::transmute_copy(message), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn PickWithCaptionAsync(targetname: &::windows_core::HSTRING, message: &::windows_core::HSTRING, caption: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<CredentialPickerResults>> {
         Self::ICredentialPickerStatics(|this| unsafe {
@@ -169,8 +152,8 @@ impl CredentialPicker {
 impl ::windows_core::RuntimeName for CredentialPicker {
     const NAME: &'static str = "Windows.Security.Credentials.UI.CredentialPicker";
 }
-#[doc = "*Required features: `\"Security_Credentials_UI\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CredentialPickerOptions(::windows_core::IUnknown);
 impl CredentialPickerOptions {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -246,7 +229,7 @@ impl CredentialPickerOptions {
             (::windows_core::Interface::vtable(this).CustomAuthenticationProtocol)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn SetPreviousCredential<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -255,7 +238,7 @@ impl CredentialPickerOptions {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetPreviousCredential)(::windows_core::Interface::as_raw(this), value.try_into_param()?.abi()).ok() }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn PreviousCredential(&self) -> ::windows_core::Result<super::super::super::Storage::Streams::IBuffer> {
         let this = self;
@@ -298,24 +281,8 @@ impl CredentialPickerOptions {
         }
     }
 }
-impl ::core::cmp::PartialEq for CredentialPickerOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CredentialPickerOptions {}
-impl ::core::fmt::Debug for CredentialPickerOptions {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CredentialPickerOptions").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CredentialPickerOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Credentials.UI.CredentialPickerOptions;{965a0b4c-95fa-467f-992b-0b22e5859bf6})");
-}
-impl ::core::clone::Clone for CredentialPickerOptions {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CredentialPickerOptions {
     type Vtable = ICredentialPickerOptions_Vtbl;
@@ -327,8 +294,8 @@ impl ::windows_core::RuntimeName for CredentialPickerOptions {
     const NAME: &'static str = "Windows.Security.Credentials.UI.CredentialPickerOptions";
 }
 ::windows_core::imp::interface_hierarchy!(CredentialPickerOptions, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Security_Credentials_UI\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CredentialPickerResults(::windows_core::IUnknown);
 impl CredentialPickerResults {
     pub fn ErrorCode(&self) -> ::windows_core::Result<u32> {
@@ -352,7 +319,7 @@ impl CredentialPickerResults {
             (::windows_core::Interface::vtable(this).CredentialSaved)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn Credential(&self) -> ::windows_core::Result<super::super::super::Storage::Streams::IBuffer> {
         let this = self;
@@ -383,24 +350,8 @@ impl CredentialPickerResults {
         }
     }
 }
-impl ::core::cmp::PartialEq for CredentialPickerResults {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CredentialPickerResults {}
-impl ::core::fmt::Debug for CredentialPickerResults {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CredentialPickerResults").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CredentialPickerResults {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Credentials.UI.CredentialPickerResults;{1948f99a-cc30-410c-9c38-cc0884c5b3d7})");
-}
-impl ::core::clone::Clone for CredentialPickerResults {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CredentialPickerResults {
     type Vtable = ICredentialPickerResults_Vtbl;
@@ -412,10 +363,9 @@ impl ::windows_core::RuntimeName for CredentialPickerResults {
     const NAME: &'static str = "Windows.Security.Credentials.UI.CredentialPickerResults";
 }
 ::windows_core::imp::interface_hierarchy!(CredentialPickerResults, ::windows_core::IUnknown, ::windows_core::IInspectable);
-#[doc = "*Required features: `\"Security_Credentials_UI\"`*"]
 pub struct UserConsentVerifier;
 impl UserConsentVerifier {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CheckAvailabilityAsync() -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<UserConsentVerifierAvailability>> {
         Self::IUserConsentVerifierStatics(|this| unsafe {
@@ -423,7 +373,7 @@ impl UserConsentVerifier {
             (::windows_core::Interface::vtable(this).CheckAvailabilityAsync)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RequestVerificationAsync(message: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<UserConsentVerificationResult>> {
         Self::IUserConsentVerifierStatics(|this| unsafe {
@@ -440,7 +390,6 @@ impl UserConsentVerifier {
 impl ::windows_core::RuntimeName for UserConsentVerifier {
     const NAME: &'static str = "Windows.Security.Credentials.UI.UserConsentVerifier";
 }
-#[doc = "*Required features: `\"Security_Credentials_UI\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct AuthenticationProtocol(pub i32);
@@ -475,7 +424,6 @@ impl ::core::fmt::Debug for AuthenticationProtocol {
 impl ::windows_core::RuntimeType for AuthenticationProtocol {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Credentials.UI.AuthenticationProtocol;i4)");
 }
-#[doc = "*Required features: `\"Security_Credentials_UI\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CredentialSaveOption(pub i32);
@@ -506,7 +454,6 @@ impl ::core::fmt::Debug for CredentialSaveOption {
 impl ::windows_core::RuntimeType for CredentialSaveOption {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Credentials.UI.CredentialSaveOption;i4)");
 }
-#[doc = "*Required features: `\"Security_Credentials_UI\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UserConsentVerificationResult(pub i32);
@@ -541,7 +488,6 @@ impl ::core::fmt::Debug for UserConsentVerificationResult {
 impl ::windows_core::RuntimeType for UserConsentVerificationResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Credentials.UI.UserConsentVerificationResult;i4)");
 }
-#[doc = "*Required features: `\"Security_Credentials_UI\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct UserConsentVerifierAvailability(pub i32);

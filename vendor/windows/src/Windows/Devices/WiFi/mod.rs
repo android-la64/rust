@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiAdapter(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiAdapter {
     type Vtable = IWiFiAdapter_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiAdapter {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiAdapter {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa6c4e423_3d75_43a4_b9de_11e26b72d9b0);
@@ -49,14 +45,10 @@ pub struct IWiFiAdapter_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiAdapter2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiAdapter2 {
     type Vtable = IWiFiAdapter2_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiAdapter2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiAdapter2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x5bc4501d_81e4_453d_9430_1fcafbadd6b6);
@@ -76,14 +68,10 @@ pub struct IWiFiAdapter2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiAdapterStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiAdapterStatics {
     type Vtable = IWiFiAdapterStatics_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiAdapterStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiAdapterStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xda25fddd_d24c_43e3_aabd_c4659f730f99);
@@ -108,14 +96,10 @@ pub struct IWiFiAdapterStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiAvailableNetwork(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiAvailableNetwork {
     type Vtable = IWiFiAvailableNetwork_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiAvailableNetwork {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiAvailableNetwork {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x26e96246_183e_4704_9826_71b4a2f0f668);
@@ -147,14 +131,10 @@ pub struct IWiFiAvailableNetwork_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiConnectionResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiConnectionResult {
     type Vtable = IWiFiConnectionResult_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiConnectionResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiConnectionResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x143bdfd9_c37d_40be_a5c8_857bce85a931);
@@ -167,14 +147,10 @@ pub struct IWiFiConnectionResult_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiNetworkReport(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiNetworkReport {
     type Vtable = IWiFiNetworkReport_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiNetworkReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiNetworkReport {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9524ded2_5911_445e_8194_be4f1a704895);
@@ -194,14 +170,10 @@ pub struct IWiFiNetworkReport_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiOnDemandHotspotConnectTriggerDetails(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiOnDemandHotspotConnectTriggerDetails {
     type Vtable = IWiFiOnDemandHotspotConnectTriggerDetails_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiOnDemandHotspotConnectTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiOnDemandHotspotConnectTriggerDetails {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa268eb58_68f5_59cf_8d38_35bf44b097ef);
@@ -220,14 +192,10 @@ pub struct IWiFiOnDemandHotspotConnectTriggerDetails_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiOnDemandHotspotConnectionResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiOnDemandHotspotConnectionResult {
     type Vtable = IWiFiOnDemandHotspotConnectionResult_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiOnDemandHotspotConnectionResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiOnDemandHotspotConnectionResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x911794a1_6c82_5de3_8a4a_f9ff22a4957a);
@@ -240,14 +208,10 @@ pub struct IWiFiOnDemandHotspotConnectionResult_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiOnDemandHotspotNetwork(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiOnDemandHotspotNetwork {
     type Vtable = IWiFiOnDemandHotspotNetwork_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiOnDemandHotspotNetwork {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiOnDemandHotspotNetwork {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x18dc7115_a04e_507c_bbaf_b78369d29fa7);
@@ -262,14 +226,10 @@ pub struct IWiFiOnDemandHotspotNetwork_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiOnDemandHotspotNetworkProperties(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiOnDemandHotspotNetworkProperties {
     type Vtable = IWiFiOnDemandHotspotNetworkProperties_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiOnDemandHotspotNetworkProperties {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiOnDemandHotspotNetworkProperties {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc810a1f2_c81d_5852_be50_e4bd4d81e98d);
@@ -313,14 +273,10 @@ pub struct IWiFiOnDemandHotspotNetworkProperties_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiOnDemandHotspotNetworkStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiOnDemandHotspotNetworkStatics {
     type Vtable = IWiFiOnDemandHotspotNetworkStatics_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiOnDemandHotspotNetworkStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiOnDemandHotspotNetworkStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x00f5b8ac_80e7_5054_871c_8739f374e3c9);
@@ -333,14 +289,10 @@ pub struct IWiFiOnDemandHotspotNetworkStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IWiFiWpsConfigurationResult(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IWiFiWpsConfigurationResult {
     type Vtable = IWiFiWpsConfigurationResult_Vtbl;
-}
-impl ::core::clone::Clone for IWiFiWpsConfigurationResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IWiFiWpsConfigurationResult {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x67b49871_17ee_42d1_b14f_5a11f1226fb5);
@@ -355,11 +307,11 @@ pub struct IWiFiWpsConfigurationResult_Vtbl {
     #[cfg(not(feature = "Foundation_Collections"))]
     SupportedWpsKinds: usize,
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct WiFiAdapter(::windows_core::IUnknown);
 impl WiFiAdapter {
-    #[doc = "*Required features: `\"Networking_Connectivity\"`*"]
+    #[doc = "Required features: `\"Networking_Connectivity\"`"]
     #[cfg(feature = "Networking_Connectivity")]
     pub fn NetworkAdapter(&self) -> ::windows_core::Result<super::super::Networking::Connectivity::NetworkAdapter> {
         let this = self;
@@ -368,7 +320,7 @@ impl WiFiAdapter {
             (::windows_core::Interface::vtable(this).NetworkAdapter)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ScanAsync(&self) -> ::windows_core::Result<super::super::Foundation::IAsyncAction> {
         let this = self;
@@ -384,7 +336,7 @@ impl WiFiAdapter {
             (::windows_core::Interface::vtable(this).NetworkReport)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn AvailableNetworksChanged<P0>(&self, args: P0) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>
     where
@@ -396,13 +348,13 @@ impl WiFiAdapter {
             (::windows_core::Interface::vtable(this).AvailableNetworksChanged)(::windows_core::Interface::as_raw(this), args.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveAvailableNetworksChanged(&self, eventcookie: super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveAvailableNetworksChanged)(::windows_core::Interface::as_raw(this), eventcookie).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ConnectAsync<P0>(&self, availablenetwork: P0, reconnectionkind: WiFiReconnectionKind) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<WiFiConnectionResult>>
     where
@@ -414,7 +366,7 @@ impl WiFiAdapter {
             (::windows_core::Interface::vtable(this).ConnectAsync)(::windows_core::Interface::as_raw(this), availablenetwork.into_param().abi(), reconnectionkind, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"Security_Credentials\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"Security_Credentials\"`"]
     #[cfg(all(feature = "Foundation", feature = "Security_Credentials"))]
     pub fn ConnectWithPasswordCredentialAsync<P0, P1>(&self, availablenetwork: P0, reconnectionkind: WiFiReconnectionKind, passwordcredential: P1) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<WiFiConnectionResult>>
     where
@@ -427,7 +379,7 @@ impl WiFiAdapter {
             (::windows_core::Interface::vtable(this).ConnectWithPasswordCredentialAsync)(::windows_core::Interface::as_raw(this), availablenetwork.into_param().abi(), reconnectionkind, passwordcredential.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"Security_Credentials\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"Security_Credentials\"`"]
     #[cfg(all(feature = "Foundation", feature = "Security_Credentials"))]
     pub fn ConnectWithPasswordCredentialAndSsidAsync<P0, P1>(&self, availablenetwork: P0, reconnectionkind: WiFiReconnectionKind, passwordcredential: P1, ssid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<WiFiConnectionResult>>
     where
@@ -444,7 +396,7 @@ impl WiFiAdapter {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).Disconnect)(::windows_core::Interface::as_raw(this)).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn GetWpsConfigurationAsync<P0>(&self, availablenetwork: P0) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<WiFiWpsConfigurationResult>>
     where
@@ -456,7 +408,7 @@ impl WiFiAdapter {
             (::windows_core::Interface::vtable(this).GetWpsConfigurationAsync)(::windows_core::Interface::as_raw(this), availablenetwork.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"Security_Credentials\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"Security_Credentials\"`"]
     #[cfg(all(feature = "Foundation", feature = "Security_Credentials"))]
     pub fn ConnectWithPasswordCredentialAndSsidAndConnectionMethodAsync<P0, P1>(&self, availablenetwork: P0, reconnectionkind: WiFiReconnectionKind, passwordcredential: P1, ssid: &::windows_core::HSTRING, connectionmethod: WiFiConnectionMethod) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<WiFiConnectionResult>>
     where
@@ -469,7 +421,7 @@ impl WiFiAdapter {
             (::windows_core::Interface::vtable(this).ConnectWithPasswordCredentialAndSsidAndConnectionMethodAsync)(::windows_core::Interface::as_raw(this), availablenetwork.into_param().abi(), reconnectionkind, passwordcredential.into_param().abi(), ::core::mem::transmute_copy(ssid), connectionmethod, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn FindAllAdaptersAsync() -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<super::super::Foundation::Collections::IVectorView<WiFiAdapter>>> {
         Self::IWiFiAdapterStatics(|this| unsafe {
@@ -483,7 +435,7 @@ impl WiFiAdapter {
             (::windows_core::Interface::vtable(this).GetDeviceSelector)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn FromIdAsync(deviceid: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<WiFiAdapter>> {
         Self::IWiFiAdapterStatics(|this| unsafe {
@@ -491,7 +443,7 @@ impl WiFiAdapter {
             (::windows_core::Interface::vtable(this).FromIdAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(deviceid), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RequestAccessAsync() -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<WiFiAccessStatus>> {
         Self::IWiFiAdapterStatics(|this| unsafe {
@@ -505,24 +457,8 @@ impl WiFiAdapter {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for WiFiAdapter {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for WiFiAdapter {}
-impl ::core::fmt::Debug for WiFiAdapter {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("WiFiAdapter").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for WiFiAdapter {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.WiFi.WiFiAdapter;{a6c4e423-3d75-43a4-b9de-11e26b72d9b0})");
-}
-impl ::core::clone::Clone for WiFiAdapter {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for WiFiAdapter {
     type Vtable = IWiFiAdapter_Vtbl;
@@ -536,11 +472,11 @@ impl ::windows_core::RuntimeName for WiFiAdapter {
 ::windows_core::imp::interface_hierarchy!(WiFiAdapter, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for WiFiAdapter {}
 unsafe impl ::core::marker::Sync for WiFiAdapter {}
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct WiFiAvailableNetwork(::windows_core::IUnknown);
 impl WiFiAvailableNetwork {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Uptime(&self) -> ::windows_core::Result<super::super::Foundation::TimeSpan> {
         let this = self;
@@ -598,7 +534,7 @@ impl WiFiAvailableNetwork {
             (::windows_core::Interface::vtable(this).PhyKind)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Networking_Connectivity\"`*"]
+    #[doc = "Required features: `\"Networking_Connectivity\"`"]
     #[cfg(feature = "Networking_Connectivity")]
     pub fn SecuritySettings(&self) -> ::windows_core::Result<super::super::Networking::Connectivity::NetworkSecuritySettings> {
         let this = self;
@@ -607,7 +543,7 @@ impl WiFiAvailableNetwork {
             (::windows_core::Interface::vtable(this).SecuritySettings)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn BeaconInterval(&self) -> ::windows_core::Result<super::super::Foundation::TimeSpan> {
         let this = self;
@@ -624,24 +560,8 @@ impl WiFiAvailableNetwork {
         }
     }
 }
-impl ::core::cmp::PartialEq for WiFiAvailableNetwork {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for WiFiAvailableNetwork {}
-impl ::core::fmt::Debug for WiFiAvailableNetwork {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("WiFiAvailableNetwork").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for WiFiAvailableNetwork {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.WiFi.WiFiAvailableNetwork;{26e96246-183e-4704-9826-71b4a2f0f668})");
-}
-impl ::core::clone::Clone for WiFiAvailableNetwork {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for WiFiAvailableNetwork {
     type Vtable = IWiFiAvailableNetwork_Vtbl;
@@ -655,8 +575,8 @@ impl ::windows_core::RuntimeName for WiFiAvailableNetwork {
 ::windows_core::imp::interface_hierarchy!(WiFiAvailableNetwork, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for WiFiAvailableNetwork {}
 unsafe impl ::core::marker::Sync for WiFiAvailableNetwork {}
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct WiFiConnectionResult(::windows_core::IUnknown);
 impl WiFiConnectionResult {
     pub fn ConnectionStatus(&self) -> ::windows_core::Result<WiFiConnectionStatus> {
@@ -667,24 +587,8 @@ impl WiFiConnectionResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for WiFiConnectionResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for WiFiConnectionResult {}
-impl ::core::fmt::Debug for WiFiConnectionResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("WiFiConnectionResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for WiFiConnectionResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.WiFi.WiFiConnectionResult;{143bdfd9-c37d-40be-a5c8-857bce85a931})");
-}
-impl ::core::clone::Clone for WiFiConnectionResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for WiFiConnectionResult {
     type Vtable = IWiFiConnectionResult_Vtbl;
@@ -698,11 +602,11 @@ impl ::windows_core::RuntimeName for WiFiConnectionResult {
 ::windows_core::imp::interface_hierarchy!(WiFiConnectionResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for WiFiConnectionResult {}
 unsafe impl ::core::marker::Sync for WiFiConnectionResult {}
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct WiFiNetworkReport(::windows_core::IUnknown);
 impl WiFiNetworkReport {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Timestamp(&self) -> ::windows_core::Result<super::super::Foundation::DateTime> {
         let this = self;
@@ -711,7 +615,7 @@ impl WiFiNetworkReport {
             (::windows_core::Interface::vtable(this).Timestamp)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn AvailableNetworks(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVectorView<WiFiAvailableNetwork>> {
         let this = self;
@@ -721,24 +625,8 @@ impl WiFiNetworkReport {
         }
     }
 }
-impl ::core::cmp::PartialEq for WiFiNetworkReport {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for WiFiNetworkReport {}
-impl ::core::fmt::Debug for WiFiNetworkReport {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("WiFiNetworkReport").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for WiFiNetworkReport {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.WiFi.WiFiNetworkReport;{9524ded2-5911-445e-8194-be4f1a704895})");
-}
-impl ::core::clone::Clone for WiFiNetworkReport {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for WiFiNetworkReport {
     type Vtable = IWiFiNetworkReport_Vtbl;
@@ -752,8 +640,8 @@ impl ::windows_core::RuntimeName for WiFiNetworkReport {
 ::windows_core::imp::interface_hierarchy!(WiFiNetworkReport, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for WiFiNetworkReport {}
 unsafe impl ::core::marker::Sync for WiFiNetworkReport {}
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct WiFiOnDemandHotspotConnectTriggerDetails(::windows_core::IUnknown);
 impl WiFiOnDemandHotspotConnectTriggerDetails {
     pub fn RequestedNetwork(&self) -> ::windows_core::Result<WiFiOnDemandHotspotNetwork> {
@@ -767,7 +655,7 @@ impl WiFiOnDemandHotspotConnectTriggerDetails {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).ReportError)(::windows_core::Interface::as_raw(this), status).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ConnectAsync(&self) -> ::windows_core::Result<super::super::Foundation::IAsyncOperation<WiFiOnDemandHotspotConnectionResult>> {
         let this = self;
@@ -784,24 +672,8 @@ impl WiFiOnDemandHotspotConnectTriggerDetails {
         }
     }
 }
-impl ::core::cmp::PartialEq for WiFiOnDemandHotspotConnectTriggerDetails {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for WiFiOnDemandHotspotConnectTriggerDetails {}
-impl ::core::fmt::Debug for WiFiOnDemandHotspotConnectTriggerDetails {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("WiFiOnDemandHotspotConnectTriggerDetails").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for WiFiOnDemandHotspotConnectTriggerDetails {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.WiFi.WiFiOnDemandHotspotConnectTriggerDetails;{a268eb58-68f5-59cf-8d38-35bf44b097ef})");
-}
-impl ::core::clone::Clone for WiFiOnDemandHotspotConnectTriggerDetails {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for WiFiOnDemandHotspotConnectTriggerDetails {
     type Vtable = IWiFiOnDemandHotspotConnectTriggerDetails_Vtbl;
@@ -815,8 +687,8 @@ impl ::windows_core::RuntimeName for WiFiOnDemandHotspotConnectTriggerDetails {
 ::windows_core::imp::interface_hierarchy!(WiFiOnDemandHotspotConnectTriggerDetails, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for WiFiOnDemandHotspotConnectTriggerDetails {}
 unsafe impl ::core::marker::Sync for WiFiOnDemandHotspotConnectTriggerDetails {}
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct WiFiOnDemandHotspotConnectionResult(::windows_core::IUnknown);
 impl WiFiOnDemandHotspotConnectionResult {
     pub fn Status(&self) -> ::windows_core::Result<WiFiOnDemandHotspotConnectStatus> {
@@ -827,24 +699,8 @@ impl WiFiOnDemandHotspotConnectionResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for WiFiOnDemandHotspotConnectionResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for WiFiOnDemandHotspotConnectionResult {}
-impl ::core::fmt::Debug for WiFiOnDemandHotspotConnectionResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("WiFiOnDemandHotspotConnectionResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for WiFiOnDemandHotspotConnectionResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.WiFi.WiFiOnDemandHotspotConnectionResult;{911794a1-6c82-5de3-8a4a-f9ff22a4957a})");
-}
-impl ::core::clone::Clone for WiFiOnDemandHotspotConnectionResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for WiFiOnDemandHotspotConnectionResult {
     type Vtable = IWiFiOnDemandHotspotConnectionResult_Vtbl;
@@ -858,8 +714,8 @@ impl ::windows_core::RuntimeName for WiFiOnDemandHotspotConnectionResult {
 ::windows_core::imp::interface_hierarchy!(WiFiOnDemandHotspotConnectionResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for WiFiOnDemandHotspotConnectionResult {}
 unsafe impl ::core::marker::Sync for WiFiOnDemandHotspotConnectionResult {}
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct WiFiOnDemandHotspotNetwork(::windows_core::IUnknown);
 impl WiFiOnDemandHotspotNetwork {
     pub fn GetProperties(&self) -> ::windows_core::Result<WiFiOnDemandHotspotNetworkProperties> {
@@ -895,24 +751,8 @@ impl WiFiOnDemandHotspotNetwork {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for WiFiOnDemandHotspotNetwork {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for WiFiOnDemandHotspotNetwork {}
-impl ::core::fmt::Debug for WiFiOnDemandHotspotNetwork {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("WiFiOnDemandHotspotNetwork").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for WiFiOnDemandHotspotNetwork {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.WiFi.WiFiOnDemandHotspotNetwork;{18dc7115-a04e-507c-bbaf-b78369d29fa7})");
-}
-impl ::core::clone::Clone for WiFiOnDemandHotspotNetwork {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for WiFiOnDemandHotspotNetwork {
     type Vtable = IWiFiOnDemandHotspotNetwork_Vtbl;
@@ -926,8 +766,8 @@ impl ::windows_core::RuntimeName for WiFiOnDemandHotspotNetwork {
 ::windows_core::imp::interface_hierarchy!(WiFiOnDemandHotspotNetwork, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for WiFiOnDemandHotspotNetwork {}
 unsafe impl ::core::marker::Sync for WiFiOnDemandHotspotNetwork {}
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct WiFiOnDemandHotspotNetworkProperties(::windows_core::IUnknown);
 impl WiFiOnDemandHotspotNetworkProperties {
     pub fn DisplayName(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -952,7 +792,7 @@ impl WiFiOnDemandHotspotNetworkProperties {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetAvailability)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemainingBatteryPercent(&self) -> ::windows_core::Result<super::super::Foundation::IReference<u32>> {
         let this = self;
@@ -961,7 +801,7 @@ impl WiFiOnDemandHotspotNetworkProperties {
             (::windows_core::Interface::vtable(this).RemainingBatteryPercent)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetRemainingBatteryPercent<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -970,7 +810,7 @@ impl WiFiOnDemandHotspotNetworkProperties {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetRemainingBatteryPercent)(::windows_core::Interface::as_raw(this), value.try_into_param()?.abi()).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CellularBars(&self) -> ::windows_core::Result<super::super::Foundation::IReference<WiFiOnDemandHotspotCellularBars>> {
         let this = self;
@@ -979,7 +819,7 @@ impl WiFiOnDemandHotspotNetworkProperties {
             (::windows_core::Interface::vtable(this).CellularBars)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetCellularBars<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -1010,7 +850,7 @@ impl WiFiOnDemandHotspotNetworkProperties {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetSsid)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
-    #[doc = "*Required features: `\"Security_Credentials\"`*"]
+    #[doc = "Required features: `\"Security_Credentials\"`"]
     #[cfg(feature = "Security_Credentials")]
     pub fn Password(&self) -> ::windows_core::Result<super::super::Security::Credentials::PasswordCredential> {
         let this = self;
@@ -1019,7 +859,7 @@ impl WiFiOnDemandHotspotNetworkProperties {
             (::windows_core::Interface::vtable(this).Password)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Security_Credentials\"`*"]
+    #[doc = "Required features: `\"Security_Credentials\"`"]
     #[cfg(feature = "Security_Credentials")]
     pub fn SetPassword<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -1029,24 +869,8 @@ impl WiFiOnDemandHotspotNetworkProperties {
         unsafe { (::windows_core::Interface::vtable(this).SetPassword)(::windows_core::Interface::as_raw(this), value.into_param().abi()).ok() }
     }
 }
-impl ::core::cmp::PartialEq for WiFiOnDemandHotspotNetworkProperties {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for WiFiOnDemandHotspotNetworkProperties {}
-impl ::core::fmt::Debug for WiFiOnDemandHotspotNetworkProperties {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("WiFiOnDemandHotspotNetworkProperties").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for WiFiOnDemandHotspotNetworkProperties {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.WiFi.WiFiOnDemandHotspotNetworkProperties;{c810a1f2-c81d-5852-be50-e4bd4d81e98d})");
-}
-impl ::core::clone::Clone for WiFiOnDemandHotspotNetworkProperties {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for WiFiOnDemandHotspotNetworkProperties {
     type Vtable = IWiFiOnDemandHotspotNetworkProperties_Vtbl;
@@ -1060,8 +884,8 @@ impl ::windows_core::RuntimeName for WiFiOnDemandHotspotNetworkProperties {
 ::windows_core::imp::interface_hierarchy!(WiFiOnDemandHotspotNetworkProperties, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for WiFiOnDemandHotspotNetworkProperties {}
 unsafe impl ::core::marker::Sync for WiFiOnDemandHotspotNetworkProperties {}
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct WiFiWpsConfigurationResult(::windows_core::IUnknown);
 impl WiFiWpsConfigurationResult {
     pub fn Status(&self) -> ::windows_core::Result<WiFiWpsConfigurationStatus> {
@@ -1071,7 +895,7 @@ impl WiFiWpsConfigurationResult {
             (::windows_core::Interface::vtable(this).Status)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn SupportedWpsKinds(&self) -> ::windows_core::Result<super::super::Foundation::Collections::IVectorView<WiFiWpsKind>> {
         let this = self;
@@ -1081,24 +905,8 @@ impl WiFiWpsConfigurationResult {
         }
     }
 }
-impl ::core::cmp::PartialEq for WiFiWpsConfigurationResult {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for WiFiWpsConfigurationResult {}
-impl ::core::fmt::Debug for WiFiWpsConfigurationResult {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("WiFiWpsConfigurationResult").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for WiFiWpsConfigurationResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.WiFi.WiFiWpsConfigurationResult;{67b49871-17ee-42d1-b14f-5a11f1226fb5})");
-}
-impl ::core::clone::Clone for WiFiWpsConfigurationResult {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for WiFiWpsConfigurationResult {
     type Vtable = IWiFiWpsConfigurationResult_Vtbl;
@@ -1112,7 +920,6 @@ impl ::windows_core::RuntimeName for WiFiWpsConfigurationResult {
 ::windows_core::imp::interface_hierarchy!(WiFiWpsConfigurationResult, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for WiFiWpsConfigurationResult {}
 unsafe impl ::core::marker::Sync for WiFiWpsConfigurationResult {}
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiAccessStatus(pub i32);
@@ -1144,7 +951,6 @@ impl ::core::fmt::Debug for WiFiAccessStatus {
 impl ::windows_core::RuntimeType for WiFiAccessStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiAccessStatus;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiConnectionMethod(pub i32);
@@ -1175,7 +981,6 @@ impl ::core::fmt::Debug for WiFiConnectionMethod {
 impl ::windows_core::RuntimeType for WiFiConnectionMethod {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiConnectionMethod;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiConnectionStatus(pub i32);
@@ -1210,7 +1015,6 @@ impl ::core::fmt::Debug for WiFiConnectionStatus {
 impl ::windows_core::RuntimeType for WiFiConnectionStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiConnectionStatus;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiNetworkKind(pub i32);
@@ -1241,7 +1045,6 @@ impl ::core::fmt::Debug for WiFiNetworkKind {
 impl ::windows_core::RuntimeType for WiFiNetworkKind {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiNetworkKind;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiOnDemandHotspotAvailability(pub i32);
@@ -1271,7 +1074,6 @@ impl ::core::fmt::Debug for WiFiOnDemandHotspotAvailability {
 impl ::windows_core::RuntimeType for WiFiOnDemandHotspotAvailability {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiOnDemandHotspotAvailability;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiOnDemandHotspotCellularBars(pub i32);
@@ -1305,7 +1107,6 @@ impl ::core::fmt::Debug for WiFiOnDemandHotspotCellularBars {
 impl ::windows_core::RuntimeType for WiFiOnDemandHotspotCellularBars {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiOnDemandHotspotCellularBars;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiOnDemandHotspotConnectStatus(pub i32);
@@ -1352,7 +1153,6 @@ impl ::core::fmt::Debug for WiFiOnDemandHotspotConnectStatus {
 impl ::windows_core::RuntimeType for WiFiOnDemandHotspotConnectStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiOnDemandHotspotConnectStatus;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiPhyKind(pub i32);
@@ -1392,7 +1192,6 @@ impl ::core::fmt::Debug for WiFiPhyKind {
 impl ::windows_core::RuntimeType for WiFiPhyKind {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiPhyKind;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiReconnectionKind(pub i32);
@@ -1422,7 +1221,6 @@ impl ::core::fmt::Debug for WiFiReconnectionKind {
 impl ::windows_core::RuntimeType for WiFiReconnectionKind {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiReconnectionKind;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiWpsConfigurationStatus(pub i32);
@@ -1453,7 +1251,6 @@ impl ::core::fmt::Debug for WiFiWpsConfigurationStatus {
 impl ::windows_core::RuntimeType for WiFiWpsConfigurationStatus {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Devices.WiFi.WiFiWpsConfigurationStatus;i4)");
 }
-#[doc = "*Required features: `\"Devices_WiFi\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct WiFiWpsKind(pub i32);

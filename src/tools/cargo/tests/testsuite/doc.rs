@@ -1021,7 +1021,7 @@ fn features() {
             "bar/build.rs",
             r#"
                 fn main() {
-                    println!("cargo:rustc-cfg=bar");
+                    println!("cargo::rustc-cfg=bar");
                 }
             "#,
         )
@@ -1706,7 +1706,7 @@ fn doc_message_format() {
                     "rendered": "{...}",
                     "spans": "{...}"
                 },
-                "package_id": "foo [..]",
+                "package_id": "path+file:///[..]/foo#0.0.1",
                 "manifest_path": "[..]",
                 "reason": "compiler-message",
                 "target": "{...}"
@@ -1729,7 +1729,7 @@ fn doc_json_artifacts() {
             r#"
 {
     "reason": "compiler-artifact",
-    "package_id": "foo 0.0.1 [..]",
+    "package_id": "path+file:///[..]/foo#0.0.1",
     "manifest_path": "[ROOT]/foo/Cargo.toml",
     "target":
     {
@@ -1751,7 +1751,7 @@ fn doc_json_artifacts() {
 
 {
     "reason": "compiler-artifact",
-    "package_id": "foo 0.0.1 [..]",
+    "package_id": "path+file:///[..]/foo#0.0.1",
     "manifest_path": "[ROOT]/foo/Cargo.toml",
     "target":
     {
@@ -1773,7 +1773,7 @@ fn doc_json_artifacts() {
 
 {
     "reason": "compiler-artifact",
-    "package_id": "foo 0.0.1 [..]",
+    "package_id": "path+file:///[..]/foo#0.0.1",
     "manifest_path": "[ROOT]/foo/Cargo.toml",
     "target":
     {

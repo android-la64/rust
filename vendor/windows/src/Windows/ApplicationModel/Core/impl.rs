@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"ApplicationModel_Core\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait ICoreApplicationUnhandledError_Impl: Sized {
     fn UnhandledErrorDetected(&self, handler: ::core::option::Option<&super::super::Foundation::EventHandler<UnhandledErrorDetectedEventArgs>>) -> ::windows_core::Result<super::super::Foundation::EventRegistrationToken>;
@@ -33,11 +33,11 @@ impl ICoreApplicationUnhandledError_Vtbl {
             RemoveUnhandledErrorDetected: RemoveUnhandledErrorDetected::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ICoreApplicationUnhandledError as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ICoreApplicationUnhandledError as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Core\"`, `\"UI_Core\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"UI_Core\"`"]
 #[cfg(feature = "UI_Core")]
 pub trait IFrameworkView_Impl: Sized {
     fn Initialize(&self, applicationview: ::core::option::Option<&CoreApplicationView>) -> ::windows_core::Result<()>;
@@ -87,11 +87,10 @@ impl IFrameworkView_Vtbl {
             Uninitialize: Uninitialize::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IFrameworkView as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IFrameworkView as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"ApplicationModel_Core\"`, `\"implement\"`*"]
 pub trait IFrameworkViewSource_Impl: Sized {
     fn CreateView(&self) -> ::windows_core::Result<IFrameworkView>;
 }
@@ -114,7 +113,7 @@ impl IFrameworkViewSource_Vtbl {
         }
         Self { base__: ::windows_core::IInspectable_Vtbl::new::<Identity, IFrameworkViewSource, OFFSET>(), CreateView: CreateView::<Identity, Impl, OFFSET> }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<IFrameworkViewSource as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <IFrameworkViewSource as ::windows_core::ComInterface>::IID
     }
 }

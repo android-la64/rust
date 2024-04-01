@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_Graphics_Direct2D_Common\"`, `\"implement\"`*"]
 pub trait ID2D1SimplifiedGeometrySink_Impl: Sized {
     fn SetFillMode(&self, fillmode: D2D1_FILL_MODE);
     fn SetSegmentFlags(&self, vertexflags: D2D1_PATH_SEGMENT);
@@ -57,7 +56,7 @@ impl ID2D1SimplifiedGeometrySink_Vtbl {
             Close: Close::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ID2D1SimplifiedGeometrySink as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ID2D1SimplifiedGeometrySink as ::windows_core::ComInterface>::IID
     }
 }

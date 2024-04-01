@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificate(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificate {
     type Vtable = ICertificate_Vtbl;
-}
-impl ::core::clone::Clone for ICertificate {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificate {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x333f740c_04d8_43b3_b278_8c5fcc9be5a0);
@@ -52,14 +48,10 @@ pub struct ICertificate_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificate2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificate2 {
     type Vtable = ICertificate2_Vtbl;
-}
-impl ::core::clone::Clone for ICertificate2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificate2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x17b8374c_8a25_4d96_a492_8fc29ac4fda6);
@@ -77,14 +69,10 @@ pub struct ICertificate2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificate3(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificate3 {
     type Vtable = ICertificate3_Vtbl;
-}
-impl ::core::clone::Clone for ICertificate3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificate3 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xbe51a966_ae5f_4652_ace7_c6d7e7724cf3);
@@ -99,14 +87,10 @@ pub struct ICertificate3_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateChain(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateChain {
     type Vtable = ICertificateChain_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateChain {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateChain {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x20bf5385_3691_4501_a62c_fd97278b31ee);
@@ -124,14 +108,10 @@ pub struct ICertificateChain_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateEnrollmentManagerStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateEnrollmentManagerStatics {
     type Vtable = ICertificateEnrollmentManagerStatics_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateEnrollmentManagerStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateEnrollmentManagerStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x8846ef3f_a986_48fb_9fd7_9aec06935bf1);
@@ -155,14 +135,10 @@ pub struct ICertificateEnrollmentManagerStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateEnrollmentManagerStatics2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateEnrollmentManagerStatics2 {
     type Vtable = ICertificateEnrollmentManagerStatics2_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateEnrollmentManagerStatics2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateEnrollmentManagerStatics2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xdc5b1c33_6429_4014_999c_5d9735802d1d);
@@ -179,14 +155,10 @@ pub struct ICertificateEnrollmentManagerStatics2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateEnrollmentManagerStatics3(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateEnrollmentManagerStatics3 {
     type Vtable = ICertificateEnrollmentManagerStatics3_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateEnrollmentManagerStatics3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateEnrollmentManagerStatics3 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfdec82be_617c_425a_b72d_398b26ac7264);
@@ -202,14 +174,10 @@ pub struct ICertificateEnrollmentManagerStatics3_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateExtension(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateExtension {
     type Vtable = ICertificateExtension_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateExtension {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateExtension {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x84cf0656_a9e6_454d_8e45_2ea7c4bcd53b);
@@ -228,14 +196,10 @@ pub struct ICertificateExtension_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateFactory(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateFactory {
     type Vtable = ICertificateFactory_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateFactory {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x17b4221c_4baf_44a2_9608_04fb62b16942);
@@ -251,14 +215,10 @@ pub struct ICertificateFactory_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateKeyUsages(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateKeyUsages {
     type Vtable = ICertificateKeyUsages_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateKeyUsages {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateKeyUsages {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x6ac6206f_e1cf_486a_b485_a69c83e46fd1);
@@ -286,14 +246,10 @@ pub struct ICertificateKeyUsages_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateQuery(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateQuery {
     type Vtable = ICertificateQuery_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateQuery {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateQuery {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x5b082a31_a728_4916_b5ee_ffcb8acf2417);
@@ -317,14 +273,10 @@ pub struct ICertificateQuery_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateQuery2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateQuery2 {
     type Vtable = ICertificateQuery2_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateQuery2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateQuery2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x935a0af7_0bd9_4f75_b8c2_e27a7f74eecd);
@@ -342,14 +294,10 @@ pub struct ICertificateQuery2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateRequestProperties(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateRequestProperties {
     type Vtable = ICertificateRequestProperties_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateRequestProperties {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateRequestProperties {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x487e84f6_94e2_4dce_8833_1a700a37a29a);
@@ -379,14 +327,10 @@ pub struct ICertificateRequestProperties_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateRequestProperties2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateRequestProperties2 {
     type Vtable = ICertificateRequestProperties2_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateRequestProperties2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateRequestProperties2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3da0c954_d73f_4ff3_a0a6_0677c0ada05b);
@@ -404,14 +348,10 @@ pub struct ICertificateRequestProperties2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateRequestProperties3(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateRequestProperties3 {
     type Vtable = ICertificateRequestProperties3_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateRequestProperties3 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateRequestProperties3 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe687f616_734d_46b1_9d4c_6edfdbfc845b);
@@ -433,14 +373,10 @@ pub struct ICertificateRequestProperties3_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateRequestProperties4(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateRequestProperties4 {
     type Vtable = ICertificateRequestProperties4_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateRequestProperties4 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateRequestProperties4 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4e429ad2_1c61_4fea_b8fe_135fb19cdce4);
@@ -461,14 +397,10 @@ pub struct ICertificateRequestProperties4_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateStore(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateStore {
     type Vtable = ICertificateStore_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateStore {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateStore {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xb0bff720_344e_4331_af14_a7f7a7ebc93a);
@@ -482,14 +414,10 @@ pub struct ICertificateStore_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateStore2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateStore2 {
     type Vtable = ICertificateStore2_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateStore2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateStore2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc7e68e4a_417d_4d1a_babd_15687e549974);
@@ -502,14 +430,10 @@ pub struct ICertificateStore2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateStoresStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateStoresStatics {
     type Vtable = ICertificateStoresStatics_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateStoresStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateStoresStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfbecc739_c6fe_4de7_99cf_74c3e596e032);
@@ -532,14 +456,10 @@ pub struct ICertificateStoresStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICertificateStoresStatics2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICertificateStoresStatics2 {
     type Vtable = ICertificateStoresStatics2_Vtbl;
-}
-impl ::core::clone::Clone for ICertificateStoresStatics2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICertificateStoresStatics2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfa900b79_a0d4_4b8c_bc55_c0a37eb141ed);
@@ -552,14 +472,10 @@ pub struct ICertificateStoresStatics2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IChainBuildingParameters(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IChainBuildingParameters {
     type Vtable = IChainBuildingParameters_Vtbl;
-}
-impl ::core::clone::Clone for IChainBuildingParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IChainBuildingParameters {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x422ba922_7c8d_47b7_b59b_b12703733ac3);
@@ -595,14 +511,10 @@ pub struct IChainBuildingParameters_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IChainValidationParameters(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IChainValidationParameters {
     type Vtable = IChainValidationParameters_Vtbl;
-}
-impl ::core::clone::Clone for IChainValidationParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IChainValidationParameters {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc4743b4a_7eb0_4b56_a040_b9c8e655ddf3);
@@ -624,14 +536,10 @@ pub struct IChainValidationParameters_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICmsAttachedSignature(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICmsAttachedSignature {
     type Vtable = ICmsAttachedSignature_Vtbl;
-}
-impl ::core::clone::Clone for ICmsAttachedSignature {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICmsAttachedSignature {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x61899d9d_3757_4ecb_bddc_0ca357d7a936);
@@ -653,14 +561,10 @@ pub struct ICmsAttachedSignature_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICmsAttachedSignatureFactory(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICmsAttachedSignatureFactory {
     type Vtable = ICmsAttachedSignatureFactory_Vtbl;
-}
-impl ::core::clone::Clone for ICmsAttachedSignatureFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICmsAttachedSignatureFactory {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xd0c8fc15_f757_4c64_a362_52cc1c77cffb);
@@ -676,14 +580,10 @@ pub struct ICmsAttachedSignatureFactory_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICmsAttachedSignatureStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICmsAttachedSignatureStatics {
     type Vtable = ICmsAttachedSignatureStatics_Vtbl;
-}
-impl ::core::clone::Clone for ICmsAttachedSignatureStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICmsAttachedSignatureStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x87989c8e_b0ad_498d_a7f5_78b59bce4b36);
@@ -699,14 +599,10 @@ pub struct ICmsAttachedSignatureStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICmsDetachedSignature(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICmsDetachedSignature {
     type Vtable = ICmsDetachedSignature_Vtbl;
-}
-impl ::core::clone::Clone for ICmsDetachedSignature {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICmsDetachedSignature {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0f1ef154_f65e_4536_8339_5944081db2ca);
@@ -730,14 +626,10 @@ pub struct ICmsDetachedSignature_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICmsDetachedSignatureFactory(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICmsDetachedSignatureFactory {
     type Vtable = ICmsDetachedSignatureFactory_Vtbl;
-}
-impl ::core::clone::Clone for ICmsDetachedSignatureFactory {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICmsDetachedSignatureFactory {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc4ab3503_ae7f_4387_ad19_00f150e48ebb);
@@ -753,14 +645,10 @@ pub struct ICmsDetachedSignatureFactory_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICmsDetachedSignatureStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICmsDetachedSignatureStatics {
     type Vtable = ICmsDetachedSignatureStatics_Vtbl;
-}
-impl ::core::clone::Clone for ICmsDetachedSignatureStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICmsDetachedSignatureStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x3d114cfd_bf9b_4682_9be6_91f57c053808);
@@ -776,14 +664,10 @@ pub struct ICmsDetachedSignatureStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICmsSignerInfo(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICmsSignerInfo {
     type Vtable = ICmsSignerInfo_Vtbl;
-}
-impl ::core::clone::Clone for ICmsSignerInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICmsSignerInfo {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x50d020db_1d2f_4c1a_b5c5_d0188ff91f47);
@@ -800,14 +684,10 @@ pub struct ICmsSignerInfo_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ICmsTimestampInfo(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ICmsTimestampInfo {
     type Vtable = ICmsTimestampInfo_Vtbl;
-}
-impl ::core::clone::Clone for ICmsTimestampInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ICmsTimestampInfo {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2f5f00f2_2c18_4f88_8435_c534086076f5);
@@ -828,14 +708,10 @@ pub struct ICmsTimestampInfo_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IKeyAlgorithmNamesStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IKeyAlgorithmNamesStatics {
     type Vtable = IKeyAlgorithmNamesStatics_Vtbl;
-}
-impl ::core::clone::Clone for IKeyAlgorithmNamesStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IKeyAlgorithmNamesStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x479065d7_7ac7_4581_8c3b_d07027140448);
@@ -855,14 +731,10 @@ pub struct IKeyAlgorithmNamesStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IKeyAlgorithmNamesStatics2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IKeyAlgorithmNamesStatics2 {
     type Vtable = IKeyAlgorithmNamesStatics2_Vtbl;
-}
-impl ::core::clone::Clone for IKeyAlgorithmNamesStatics2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IKeyAlgorithmNamesStatics2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc99b5686_e1fd_4a4a_893d_a26f33dd8bb4);
@@ -876,14 +748,10 @@ pub struct IKeyAlgorithmNamesStatics2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IKeyAttestationHelperStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IKeyAttestationHelperStatics {
     type Vtable = IKeyAttestationHelperStatics_Vtbl;
-}
-impl ::core::clone::Clone for IKeyAttestationHelperStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IKeyAttestationHelperStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x1648e246_f644_4326_88be_3af102d30e0c);
@@ -900,14 +768,10 @@ pub struct IKeyAttestationHelperStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IKeyAttestationHelperStatics2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IKeyAttestationHelperStatics2 {
     type Vtable = IKeyAttestationHelperStatics2_Vtbl;
-}
-impl ::core::clone::Clone for IKeyAttestationHelperStatics2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IKeyAttestationHelperStatics2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x9c590b2c_a6c6_4a5e_9e64_e85d5279df97);
@@ -923,14 +787,10 @@ pub struct IKeyAttestationHelperStatics2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IKeyStorageProviderNamesStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IKeyStorageProviderNamesStatics {
     type Vtable = IKeyStorageProviderNamesStatics_Vtbl;
-}
-impl ::core::clone::Clone for IKeyStorageProviderNamesStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IKeyStorageProviderNamesStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xaf186ae0_5529_4602_bd94_0aab91957b5c);
@@ -945,14 +805,10 @@ pub struct IKeyStorageProviderNamesStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IKeyStorageProviderNamesStatics2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IKeyStorageProviderNamesStatics2 {
     type Vtable = IKeyStorageProviderNamesStatics2_Vtbl;
-}
-impl ::core::clone::Clone for IKeyStorageProviderNamesStatics2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IKeyStorageProviderNamesStatics2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x262d743d_9c2e_41cc_8812_c4d971dd7c60);
@@ -965,14 +821,10 @@ pub struct IKeyStorageProviderNamesStatics2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IPfxImportParameters(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IPfxImportParameters {
     type Vtable = IPfxImportParameters_Vtbl;
-}
-impl ::core::clone::Clone for IPfxImportParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IPfxImportParameters {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x680d3511_9a08_47c8_864a_2edd4d8eb46c);
@@ -998,14 +850,10 @@ pub struct IPfxImportParameters_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IStandardCertificateStoreNamesStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IStandardCertificateStoreNamesStatics {
     type Vtable = IStandardCertificateStoreNamesStatics_Vtbl;
-}
-impl ::core::clone::Clone for IStandardCertificateStoreNamesStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IStandardCertificateStoreNamesStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0c154adb_a496_41f8_8fe5_9e96f36efbf8);
@@ -1020,14 +868,10 @@ pub struct IStandardCertificateStoreNamesStatics_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISubjectAlternativeNameInfo(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISubjectAlternativeNameInfo {
     type Vtable = ISubjectAlternativeNameInfo_Vtbl;
-}
-impl ::core::clone::Clone for ISubjectAlternativeNameInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISubjectAlternativeNameInfo {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x582859f1_569d_4c20_be7b_4e1c9a0bc52b);
@@ -1063,14 +907,10 @@ pub struct ISubjectAlternativeNameInfo_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ISubjectAlternativeNameInfo2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for ISubjectAlternativeNameInfo2 {
     type Vtable = ISubjectAlternativeNameInfo2_Vtbl;
-}
-impl ::core::clone::Clone for ISubjectAlternativeNameInfo2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for ISubjectAlternativeNameInfo2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x437a78c6_1c51_41ea_b34a_3d654398a370);
@@ -1107,14 +947,10 @@ pub struct ISubjectAlternativeNameInfo2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUserCertificateEnrollmentManager(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUserCertificateEnrollmentManager {
     type Vtable = IUserCertificateEnrollmentManager_Vtbl;
-}
-impl ::core::clone::Clone for IUserCertificateEnrollmentManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUserCertificateEnrollmentManager {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x96313718_22e1_4819_b20b_ab46a6eca06e);
@@ -1142,14 +978,10 @@ pub struct IUserCertificateEnrollmentManager_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUserCertificateEnrollmentManager2(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUserCertificateEnrollmentManager2 {
     type Vtable = IUserCertificateEnrollmentManager2_Vtbl;
-}
-impl ::core::clone::Clone for IUserCertificateEnrollmentManager2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUserCertificateEnrollmentManager2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0dad9cb1_65de_492a_b86d_fc5c482c3747);
@@ -1165,14 +997,10 @@ pub struct IUserCertificateEnrollmentManager2_Vtbl {
 }
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IUserCertificateStore(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IUserCertificateStore {
     type Vtable = IUserCertificateStore_Vtbl;
-}
-impl ::core::clone::Clone for IUserCertificateStore {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IUserCertificateStore {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc9fb1d83_789f_4b4e_9180_045a757aac6d);
@@ -1191,11 +1019,11 @@ pub struct IUserCertificateStore_Vtbl {
     RequestDeleteAsync: usize,
     pub Name: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut ::std::mem::MaybeUninit<::windows_core::HSTRING>) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct Certificate(::windows_core::IUnknown);
 impl Certificate {
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn BuildChainAsync<P0>(&self, certificates: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<CertificateChain>>
     where
@@ -1207,7 +1035,7 @@ impl Certificate {
             (::windows_core::Interface::vtable(this).BuildChainAsync)(::windows_core::Interface::as_raw(this), certificates.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn BuildChainWithParametersAsync<P0, P1>(&self, certificates: P0, parameters: P1) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<CertificateChain>>
     where
@@ -1241,7 +1069,7 @@ impl Certificate {
             (::windows_core::Interface::vtable(this).GetHashValueWithAlgorithm)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(hashalgorithmname), ::windows_core::Array::<u8>::set_abi_len(::std::mem::transmute(&mut result__)), result__.as_mut_ptr() as *mut _ as _).and_then(|| result__.assume_init())
         }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn GetCertificateBlob(&self) -> ::windows_core::Result<super::super::super::Storage::Streams::IBuffer> {
         let this = self;
@@ -1278,7 +1106,7 @@ impl Certificate {
             (::windows_core::Interface::vtable(this).IsStronglyProtected)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ValidFrom(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -1287,7 +1115,7 @@ impl Certificate {
             (::windows_core::Interface::vtable(this).ValidFrom)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ValidTo(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -1296,7 +1124,7 @@ impl Certificate {
             (::windows_core::Interface::vtable(this).ValidTo)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn EnhancedKeyUsages(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -1379,7 +1207,7 @@ impl Certificate {
             (::windows_core::Interface::vtable(this).KeyStorageProviderName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn CreateCertificate<P0>(certblob: P0) -> ::windows_core::Result<Certificate>
     where
@@ -1396,24 +1224,8 @@ impl Certificate {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for Certificate {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for Certificate {}
-impl ::core::fmt::Debug for Certificate {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("Certificate").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for Certificate {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.Certificate;{333f740c-04d8-43b3-b278-8c5fcc9be5a0})");
-}
-impl ::core::clone::Clone for Certificate {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for Certificate {
     type Vtable = ICertificate_Vtbl;
@@ -1427,8 +1239,8 @@ impl ::windows_core::RuntimeName for Certificate {
 ::windows_core::imp::interface_hierarchy!(Certificate, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for Certificate {}
 unsafe impl ::core::marker::Sync for Certificate {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CertificateChain(::windows_core::IUnknown);
 impl CertificateChain {
     pub fn Validate(&self) -> ::windows_core::Result<ChainValidationResult> {
@@ -1448,7 +1260,7 @@ impl CertificateChain {
             (::windows_core::Interface::vtable(this).ValidateWithParameters)(::windows_core::Interface::as_raw(this), parameter.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn GetCertificates(&self, includeroot: bool) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<Certificate>> {
         let this = self;
@@ -1458,24 +1270,8 @@ impl CertificateChain {
         }
     }
 }
-impl ::core::cmp::PartialEq for CertificateChain {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CertificateChain {}
-impl ::core::fmt::Debug for CertificateChain {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CertificateChain").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CertificateChain {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CertificateChain;{20bf5385-3691-4501-a62c-fd97278b31ee})");
-}
-impl ::core::clone::Clone for CertificateChain {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CertificateChain {
     type Vtable = ICertificateChain_Vtbl;
@@ -1489,10 +1285,9 @@ impl ::windows_core::RuntimeName for CertificateChain {
 ::windows_core::imp::interface_hierarchy!(CertificateChain, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CertificateChain {}
 unsafe impl ::core::marker::Sync for CertificateChain {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 pub struct CertificateEnrollmentManager;
 impl CertificateEnrollmentManager {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CreateRequestAsync<P0>(request: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<::windows_core::HSTRING>>
     where
@@ -1503,7 +1298,7 @@ impl CertificateEnrollmentManager {
             (::windows_core::Interface::vtable(this).CreateRequestAsync)(::windows_core::Interface::as_raw(this), request.into_param().abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn InstallCertificateAsync(certificate: &::windows_core::HSTRING, installoption: InstallOptions) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction> {
         Self::ICertificateEnrollmentManagerStatics(|this| unsafe {
@@ -1511,7 +1306,7 @@ impl CertificateEnrollmentManager {
             (::windows_core::Interface::vtable(this).InstallCertificateAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(certificate), installoption, &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ImportPfxDataAsync(pfxdata: &::windows_core::HSTRING, password: &::windows_core::HSTRING, exportable: ExportOption, keyprotectionlevel: KeyProtectionLevel, installoption: InstallOptions, friendlyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction> {
         Self::ICertificateEnrollmentManagerStatics(|this| unsafe {
@@ -1525,7 +1320,7 @@ impl CertificateEnrollmentManager {
             (::windows_core::Interface::vtable(this).UserCertificateEnrollmentManager)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ImportPfxDataToKspAsync(pfxdata: &::windows_core::HSTRING, password: &::windows_core::HSTRING, exportable: ExportOption, keyprotectionlevel: KeyProtectionLevel, installoption: InstallOptions, friendlyname: &::windows_core::HSTRING, keystorageprovider: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction> {
         Self::ICertificateEnrollmentManagerStatics2(|this| unsafe {
@@ -1533,7 +1328,7 @@ impl CertificateEnrollmentManager {
             (::windows_core::Interface::vtable(this).ImportPfxDataToKspAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(pfxdata), ::core::mem::transmute_copy(password), exportable, keyprotectionlevel, installoption, ::core::mem::transmute_copy(friendlyname), ::core::mem::transmute_copy(keystorageprovider), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ImportPfxDataToKspWithParametersAsync<P0>(pfxdata: &::windows_core::HSTRING, password: &::windows_core::HSTRING, pfximportparameters: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction>
     where
@@ -1563,8 +1358,8 @@ impl CertificateEnrollmentManager {
 impl ::windows_core::RuntimeName for CertificateEnrollmentManager {
     const NAME: &'static str = "Windows.Security.Cryptography.Certificates.CertificateEnrollmentManager";
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CertificateExtension(::windows_core::IUnknown);
 impl CertificateExtension {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -1609,27 +1404,11 @@ impl CertificateExtension {
     }
     pub fn SetValue(&self, value: &[u8]) -> ::windows_core::Result<()> {
         let this = self;
-        unsafe { (::windows_core::Interface::vtable(this).SetValue)(::windows_core::Interface::as_raw(this), value.len() as u32, value.as_ptr()).ok() }
-    }
-}
-impl ::core::cmp::PartialEq for CertificateExtension {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CertificateExtension {}
-impl ::core::fmt::Debug for CertificateExtension {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CertificateExtension").field(&self.0).finish()
+        unsafe { (::windows_core::Interface::vtable(this).SetValue)(::windows_core::Interface::as_raw(this), value.len().try_into().unwrap(), value.as_ptr()).ok() }
     }
 }
 impl ::windows_core::RuntimeType for CertificateExtension {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CertificateExtension;{84cf0656-a9e6-454d-8e45-2ea7c4bcd53b})");
-}
-impl ::core::clone::Clone for CertificateExtension {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CertificateExtension {
     type Vtable = ICertificateExtension_Vtbl;
@@ -1643,8 +1422,8 @@ impl ::windows_core::RuntimeName for CertificateExtension {
 ::windows_core::imp::interface_hierarchy!(CertificateExtension, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CertificateExtension {}
 unsafe impl ::core::marker::Sync for CertificateExtension {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CertificateKeyUsages(::windows_core::IUnknown);
 impl CertificateKeyUsages {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -1743,24 +1522,8 @@ impl CertificateKeyUsages {
         unsafe { (::windows_core::Interface::vtable(this).SetDigitalSignature)(::windows_core::Interface::as_raw(this), value).ok() }
     }
 }
-impl ::core::cmp::PartialEq for CertificateKeyUsages {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CertificateKeyUsages {}
-impl ::core::fmt::Debug for CertificateKeyUsages {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CertificateKeyUsages").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CertificateKeyUsages {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CertificateKeyUsages;{6ac6206f-e1cf-486a-b485-a69c83e46fd1})");
-}
-impl ::core::clone::Clone for CertificateKeyUsages {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CertificateKeyUsages {
     type Vtable = ICertificateKeyUsages_Vtbl;
@@ -1774,8 +1537,8 @@ impl ::windows_core::RuntimeName for CertificateKeyUsages {
 ::windows_core::imp::interface_hierarchy!(CertificateKeyUsages, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CertificateKeyUsages {}
 unsafe impl ::core::marker::Sync for CertificateKeyUsages {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CertificateQuery(::windows_core::IUnknown);
 impl CertificateQuery {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -1785,7 +1548,7 @@ impl CertificateQuery {
         static SHARED: ::windows_core::imp::FactoryCache<CertificateQuery, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn EnhancedKeyUsages(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = self;
@@ -1825,7 +1588,7 @@ impl CertificateQuery {
     }
     pub fn SetThumbprint(&self, value: &[u8]) -> ::windows_core::Result<()> {
         let this = self;
-        unsafe { (::windows_core::Interface::vtable(this).SetThumbprint)(::windows_core::Interface::as_raw(this), value.len() as u32, value.as_ptr()).ok() }
+        unsafe { (::windows_core::Interface::vtable(this).SetThumbprint)(::windows_core::Interface::as_raw(this), value.len().try_into().unwrap(), value.as_ptr()).ok() }
     }
     pub fn HardwareOnly(&self) -> ::windows_core::Result<bool> {
         let this = self;
@@ -1872,24 +1635,8 @@ impl CertificateQuery {
         unsafe { (::windows_core::Interface::vtable(this).SetStoreName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
 }
-impl ::core::cmp::PartialEq for CertificateQuery {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CertificateQuery {}
-impl ::core::fmt::Debug for CertificateQuery {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CertificateQuery").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CertificateQuery {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CertificateQuery;{5b082a31-a728-4916-b5ee-ffcb8acf2417})");
-}
-impl ::core::clone::Clone for CertificateQuery {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CertificateQuery {
     type Vtable = ICertificateQuery_Vtbl;
@@ -1903,8 +1650,8 @@ impl ::windows_core::RuntimeName for CertificateQuery {
 ::windows_core::imp::interface_hierarchy!(CertificateQuery, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CertificateQuery {}
 unsafe impl ::core::marker::Sync for CertificateQuery {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CertificateRequestProperties(::windows_core::IUnknown);
 impl CertificateRequestProperties {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -2072,7 +1819,7 @@ impl CertificateRequestProperties {
     }
     pub fn SetCurveParameters(&self, value: &[u8]) -> ::windows_core::Result<()> {
         let this = &::windows_core::ComInterface::cast::<ICertificateRequestProperties3>(self)?;
-        unsafe { (::windows_core::Interface::vtable(this).SetCurveParameters)(::windows_core::Interface::as_raw(this), value.len() as u32, value.as_ptr()).ok() }
+        unsafe { (::windows_core::Interface::vtable(this).SetCurveParameters)(::windows_core::Interface::as_raw(this), value.len().try_into().unwrap(), value.as_ptr()).ok() }
     }
     pub fn ContainerNamePrefix(&self) -> ::windows_core::Result<::windows_core::HSTRING> {
         let this = &::windows_core::ComInterface::cast::<ICertificateRequestProperties3>(self)?;
@@ -2107,7 +1854,7 @@ impl CertificateRequestProperties {
         let this = &::windows_core::ComInterface::cast::<ICertificateRequestProperties3>(self)?;
         unsafe { (::windows_core::Interface::vtable(this).SetUseExistingKey)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn SuppressedDefaults(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<ICertificateRequestProperties4>(self)?;
@@ -2123,7 +1870,7 @@ impl CertificateRequestProperties {
             (::windows_core::Interface::vtable(this).SubjectAlternativeName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Extensions(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<CertificateExtension>> {
         let this = &::windows_core::ComInterface::cast::<ICertificateRequestProperties4>(self)?;
@@ -2133,24 +1880,8 @@ impl CertificateRequestProperties {
         }
     }
 }
-impl ::core::cmp::PartialEq for CertificateRequestProperties {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CertificateRequestProperties {}
-impl ::core::fmt::Debug for CertificateRequestProperties {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CertificateRequestProperties").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CertificateRequestProperties {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CertificateRequestProperties;{487e84f6-94e2-4dce-8833-1a700a37a29a})");
-}
-impl ::core::clone::Clone for CertificateRequestProperties {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CertificateRequestProperties {
     type Vtable = ICertificateRequestProperties_Vtbl;
@@ -2164,8 +1895,8 @@ impl ::windows_core::RuntimeName for CertificateRequestProperties {
 ::windows_core::imp::interface_hierarchy!(CertificateRequestProperties, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CertificateRequestProperties {}
 unsafe impl ::core::marker::Sync for CertificateRequestProperties {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CertificateStore(::windows_core::IUnknown);
 impl CertificateStore {
     pub fn Add<P0>(&self, certificate: P0) -> ::windows_core::Result<()>
@@ -2190,24 +1921,8 @@ impl CertificateStore {
         }
     }
 }
-impl ::core::cmp::PartialEq for CertificateStore {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CertificateStore {}
-impl ::core::fmt::Debug for CertificateStore {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CertificateStore").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CertificateStore {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CertificateStore;{b0bff720-344e-4331-af14-a7f7a7ebc93a})");
-}
-impl ::core::clone::Clone for CertificateStore {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CertificateStore {
     type Vtable = ICertificateStore_Vtbl;
@@ -2221,10 +1936,9 @@ impl ::windows_core::RuntimeName for CertificateStore {
 ::windows_core::imp::interface_hierarchy!(CertificateStore, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CertificateStore {}
 unsafe impl ::core::marker::Sync for CertificateStore {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 pub struct CertificateStores;
 impl CertificateStores {
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn FindAllAsync() -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<super::super::super::Foundation::Collections::IVectorView<Certificate>>> {
         Self::ICertificateStoresStatics(|this| unsafe {
@@ -2232,7 +1946,7 @@ impl CertificateStores {
             (::windows_core::Interface::vtable(this).FindAllAsync)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn FindAllWithQueryAsync<P0>(query: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<super::super::super::Foundation::Collections::IVectorView<Certificate>>>
     where
@@ -2281,8 +1995,8 @@ impl CertificateStores {
 impl ::windows_core::RuntimeName for CertificateStores {
     const NAME: &'static str = "Windows.Security.Cryptography.Certificates.CertificateStores";
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ChainBuildingParameters(::windows_core::IUnknown);
 impl ChainBuildingParameters {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -2292,7 +2006,7 @@ impl ChainBuildingParameters {
         static SHARED: ::windows_core::imp::FactoryCache<ChainBuildingParameters, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn EnhancedKeyUsages(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = self;
@@ -2301,7 +2015,7 @@ impl ChainBuildingParameters {
             (::windows_core::Interface::vtable(this).EnhancedKeyUsages)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ValidationTimestamp(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -2310,7 +2024,7 @@ impl ChainBuildingParameters {
             (::windows_core::Interface::vtable(this).ValidationTimestamp)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn SetValidationTimestamp(&self, value: super::super::super::Foundation::DateTime) -> ::windows_core::Result<()> {
         let this = self;
@@ -2360,7 +2074,7 @@ impl ChainBuildingParameters {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetCurrentTimeValidationEnabled)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn ExclusiveTrustRoots(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<Certificate>> {
         let this = self;
@@ -2370,24 +2084,8 @@ impl ChainBuildingParameters {
         }
     }
 }
-impl ::core::cmp::PartialEq for ChainBuildingParameters {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ChainBuildingParameters {}
-impl ::core::fmt::Debug for ChainBuildingParameters {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ChainBuildingParameters").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for ChainBuildingParameters {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.ChainBuildingParameters;{422ba922-7c8d-47b7-b59b-b12703733ac3})");
-}
-impl ::core::clone::Clone for ChainBuildingParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for ChainBuildingParameters {
     type Vtable = IChainBuildingParameters_Vtbl;
@@ -2401,8 +2099,8 @@ impl ::windows_core::RuntimeName for ChainBuildingParameters {
 ::windows_core::imp::interface_hierarchy!(ChainBuildingParameters, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for ChainBuildingParameters {}
 unsafe impl ::core::marker::Sync for ChainBuildingParameters {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct ChainValidationParameters(::windows_core::IUnknown);
 impl ChainValidationParameters {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -2423,7 +2121,7 @@ impl ChainValidationParameters {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).SetCertificateChainPolicy)(::windows_core::Interface::as_raw(this), value).ok() }
     }
-    #[doc = "*Required features: `\"Networking\"`*"]
+    #[doc = "Required features: `\"Networking\"`"]
     #[cfg(feature = "Networking")]
     pub fn ServerDnsName(&self) -> ::windows_core::Result<super::super::super::Networking::HostName> {
         let this = self;
@@ -2432,7 +2130,7 @@ impl ChainValidationParameters {
             (::windows_core::Interface::vtable(this).ServerDnsName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Networking\"`*"]
+    #[doc = "Required features: `\"Networking\"`"]
     #[cfg(feature = "Networking")]
     pub fn SetServerDnsName<P0>(&self, value: P0) -> ::windows_core::Result<()>
     where
@@ -2442,24 +2140,8 @@ impl ChainValidationParameters {
         unsafe { (::windows_core::Interface::vtable(this).SetServerDnsName)(::windows_core::Interface::as_raw(this), value.into_param().abi()).ok() }
     }
 }
-impl ::core::cmp::PartialEq for ChainValidationParameters {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for ChainValidationParameters {}
-impl ::core::fmt::Debug for ChainValidationParameters {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("ChainValidationParameters").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for ChainValidationParameters {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.ChainValidationParameters;{c4743b4a-7eb0-4b56-a040-b9c8e655ddf3})");
-}
-impl ::core::clone::Clone for ChainValidationParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for ChainValidationParameters {
     type Vtable = IChainValidationParameters_Vtbl;
@@ -2473,11 +2155,11 @@ impl ::windows_core::RuntimeName for ChainValidationParameters {
 ::windows_core::imp::interface_hierarchy!(ChainValidationParameters, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for ChainValidationParameters {}
 unsafe impl ::core::marker::Sync for ChainValidationParameters {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CmsAttachedSignature(::windows_core::IUnknown);
 impl CmsAttachedSignature {
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Certificates(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<Certificate>> {
         let this = self;
@@ -2493,7 +2175,7 @@ impl CmsAttachedSignature {
             (::windows_core::Interface::vtable(this).Content)(::windows_core::Interface::as_raw(this), ::windows_core::Array::<u8>::set_abi_len(::std::mem::transmute(&mut result__)), result__.as_mut_ptr() as *mut _ as _).and_then(|| result__.assume_init())
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Signers(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<CmsSignerInfo>> {
         let this = self;
@@ -2509,7 +2191,7 @@ impl CmsAttachedSignature {
             (::windows_core::Interface::vtable(this).VerifySignature)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn CreateCmsAttachedSignature<P0>(inputblob: P0) -> ::windows_core::Result<CmsAttachedSignature>
     where
@@ -2520,7 +2202,7 @@ impl CmsAttachedSignature {
             (::windows_core::Interface::vtable(this).CreateCmsAttachedSignature)(::windows_core::Interface::as_raw(this), inputblob.try_into_param()?.abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`, `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`, `\"Storage_Streams\"`"]
     #[cfg(all(feature = "Foundation_Collections", feature = "Storage_Streams"))]
     pub fn GenerateSignatureAsync<P0, P1, P2>(data: P0, signers: P1, certificates: P2) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<super::super::super::Storage::Streams::IBuffer>>
     where
@@ -2544,24 +2226,8 @@ impl CmsAttachedSignature {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for CmsAttachedSignature {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CmsAttachedSignature {}
-impl ::core::fmt::Debug for CmsAttachedSignature {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CmsAttachedSignature").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CmsAttachedSignature {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CmsAttachedSignature;{61899d9d-3757-4ecb-bddc-0ca357d7a936})");
-}
-impl ::core::clone::Clone for CmsAttachedSignature {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CmsAttachedSignature {
     type Vtable = ICmsAttachedSignature_Vtbl;
@@ -2575,11 +2241,11 @@ impl ::windows_core::RuntimeName for CmsAttachedSignature {
 ::windows_core::imp::interface_hierarchy!(CmsAttachedSignature, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CmsAttachedSignature {}
 unsafe impl ::core::marker::Sync for CmsAttachedSignature {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CmsDetachedSignature(::windows_core::IUnknown);
 impl CmsDetachedSignature {
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Certificates(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<Certificate>> {
         let this = self;
@@ -2588,7 +2254,7 @@ impl CmsDetachedSignature {
             (::windows_core::Interface::vtable(this).Certificates)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Signers(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<CmsSignerInfo>> {
         let this = self;
@@ -2597,7 +2263,7 @@ impl CmsDetachedSignature {
             (::windows_core::Interface::vtable(this).Signers)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`, `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Foundation\"`, `\"Storage_Streams\"`"]
     #[cfg(all(feature = "Foundation", feature = "Storage_Streams"))]
     pub fn VerifySignatureAsync<P0>(&self, data: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<SignatureValidationResult>>
     where
@@ -2609,7 +2275,7 @@ impl CmsDetachedSignature {
             (::windows_core::Interface::vtable(this).VerifySignatureAsync)(::windows_core::Interface::as_raw(this), data.try_into_param()?.abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Storage_Streams\"`"]
     #[cfg(feature = "Storage_Streams")]
     pub fn CreateCmsDetachedSignature<P0>(inputblob: P0) -> ::windows_core::Result<CmsDetachedSignature>
     where
@@ -2620,7 +2286,7 @@ impl CmsDetachedSignature {
             (::windows_core::Interface::vtable(this).CreateCmsDetachedSignature)(::windows_core::Interface::as_raw(this), inputblob.try_into_param()?.abi(), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`, `\"Storage_Streams\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`, `\"Storage_Streams\"`"]
     #[cfg(all(feature = "Foundation_Collections", feature = "Storage_Streams"))]
     pub fn GenerateSignatureAsync<P0, P1, P2>(data: P0, signers: P1, certificates: P2) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<super::super::super::Storage::Streams::IBuffer>>
     where
@@ -2644,24 +2310,8 @@ impl CmsDetachedSignature {
         SHARED.call(callback)
     }
 }
-impl ::core::cmp::PartialEq for CmsDetachedSignature {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CmsDetachedSignature {}
-impl ::core::fmt::Debug for CmsDetachedSignature {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CmsDetachedSignature").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CmsDetachedSignature {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CmsDetachedSignature;{0f1ef154-f65e-4536-8339-5944081db2ca})");
-}
-impl ::core::clone::Clone for CmsDetachedSignature {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CmsDetachedSignature {
     type Vtable = ICmsDetachedSignature_Vtbl;
@@ -2675,8 +2325,8 @@ impl ::windows_core::RuntimeName for CmsDetachedSignature {
 ::windows_core::imp::interface_hierarchy!(CmsDetachedSignature, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CmsDetachedSignature {}
 unsafe impl ::core::marker::Sync for CmsDetachedSignature {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CmsSignerInfo(::windows_core::IUnknown);
 impl CmsSignerInfo {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -2719,24 +2369,8 @@ impl CmsSignerInfo {
         }
     }
 }
-impl ::core::cmp::PartialEq for CmsSignerInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CmsSignerInfo {}
-impl ::core::fmt::Debug for CmsSignerInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CmsSignerInfo").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CmsSignerInfo {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CmsSignerInfo;{50d020db-1d2f-4c1a-b5c5-d0188ff91f47})");
-}
-impl ::core::clone::Clone for CmsSignerInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CmsSignerInfo {
     type Vtable = ICmsSignerInfo_Vtbl;
@@ -2750,8 +2384,8 @@ impl ::windows_core::RuntimeName for CmsSignerInfo {
 ::windows_core::imp::interface_hierarchy!(CmsSignerInfo, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CmsSignerInfo {}
 unsafe impl ::core::marker::Sync for CmsSignerInfo {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct CmsTimestampInfo(::windows_core::IUnknown);
 impl CmsTimestampInfo {
     pub fn SigningCertificate(&self) -> ::windows_core::Result<Certificate> {
@@ -2761,7 +2395,7 @@ impl CmsTimestampInfo {
             (::windows_core::Interface::vtable(this).SigningCertificate)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Certificates(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<Certificate>> {
         let this = self;
@@ -2770,7 +2404,7 @@ impl CmsTimestampInfo {
             (::windows_core::Interface::vtable(this).Certificates)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn Timestamp(&self) -> ::windows_core::Result<super::super::super::Foundation::DateTime> {
         let this = self;
@@ -2780,24 +2414,8 @@ impl CmsTimestampInfo {
         }
     }
 }
-impl ::core::cmp::PartialEq for CmsTimestampInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for CmsTimestampInfo {}
-impl ::core::fmt::Debug for CmsTimestampInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("CmsTimestampInfo").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for CmsTimestampInfo {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.CmsTimestampInfo;{2f5f00f2-2c18-4f88-8435-c534086076f5})");
-}
-impl ::core::clone::Clone for CmsTimestampInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for CmsTimestampInfo {
     type Vtable = ICmsTimestampInfo_Vtbl;
@@ -2811,7 +2429,6 @@ impl ::windows_core::RuntimeName for CmsTimestampInfo {
 ::windows_core::imp::interface_hierarchy!(CmsTimestampInfo, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for CmsTimestampInfo {}
 unsafe impl ::core::marker::Sync for CmsTimestampInfo {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 pub struct KeyAlgorithmNames;
 impl KeyAlgorithmNames {
     pub fn Rsa() -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -2888,10 +2505,9 @@ impl KeyAlgorithmNames {
 impl ::windows_core::RuntimeName for KeyAlgorithmNames {
     const NAME: &'static str = "Windows.Security.Cryptography.Certificates.KeyAlgorithmNames";
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 pub struct KeyAttestationHelper;
 impl KeyAttestationHelper {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn DecryptTpmAttestationCredentialAsync(credential: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<::windows_core::HSTRING>> {
         Self::IKeyAttestationHelperStatics(|this| unsafe {
@@ -2905,7 +2521,7 @@ impl KeyAttestationHelper {
             (::windows_core::Interface::vtable(this).GetTpmAttestationCredentialId)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(credential), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn DecryptTpmAttestationCredentialWithContainerNameAsync(credential: &::windows_core::HSTRING, containername: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<::windows_core::HSTRING>> {
         Self::IKeyAttestationHelperStatics2(|this| unsafe {
@@ -2927,7 +2543,6 @@ impl KeyAttestationHelper {
 impl ::windows_core::RuntimeName for KeyAttestationHelper {
     const NAME: &'static str = "Windows.Security.Cryptography.Certificates.KeyAttestationHelper";
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 pub struct KeyStorageProviderNames;
 impl KeyStorageProviderNames {
     pub fn SoftwareKeyStorageProvider() -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -2968,8 +2583,8 @@ impl KeyStorageProviderNames {
 impl ::windows_core::RuntimeName for KeyStorageProviderNames {
     const NAME: &'static str = "Windows.Security.Cryptography.Certificates.KeyStorageProviderNames";
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct PfxImportParameters(::windows_core::IUnknown);
 impl PfxImportParameters {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -3057,24 +2672,8 @@ impl PfxImportParameters {
         unsafe { (::windows_core::Interface::vtable(this).SetReaderName)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(value)).ok() }
     }
 }
-impl ::core::cmp::PartialEq for PfxImportParameters {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for PfxImportParameters {}
-impl ::core::fmt::Debug for PfxImportParameters {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("PfxImportParameters").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for PfxImportParameters {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.PfxImportParameters;{680d3511-9a08-47c8-864a-2edd4d8eb46c})");
-}
-impl ::core::clone::Clone for PfxImportParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for PfxImportParameters {
     type Vtable = IPfxImportParameters_Vtbl;
@@ -3088,7 +2687,6 @@ impl ::windows_core::RuntimeName for PfxImportParameters {
 ::windows_core::imp::interface_hierarchy!(PfxImportParameters, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for PfxImportParameters {}
 unsafe impl ::core::marker::Sync for PfxImportParameters {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 pub struct StandardCertificateStoreNames;
 impl StandardCertificateStoreNames {
     pub fn Personal() -> ::windows_core::Result<::windows_core::HSTRING> {
@@ -3118,8 +2716,8 @@ impl StandardCertificateStoreNames {
 impl ::windows_core::RuntimeName for StandardCertificateStoreNames {
     const NAME: &'static str = "Windows.Security.Cryptography.Certificates.StandardCertificateStoreNames";
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct SubjectAlternativeNameInfo(::windows_core::IUnknown);
 impl SubjectAlternativeNameInfo {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -3129,7 +2727,7 @@ impl SubjectAlternativeNameInfo {
         static SHARED: ::windows_core::imp::FactoryCache<SubjectAlternativeNameInfo, ::windows_core::imp::IGenericFactory> = ::windows_core::imp::FactoryCache::new();
         SHARED.call(callback)
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn EmailName(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -3138,7 +2736,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).EmailName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn IPAddress(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -3147,7 +2745,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).IPAddress)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Url(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -3156,7 +2754,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).Url)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn DnsName(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -3165,7 +2763,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).DnsName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn DistinguishedName(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -3174,7 +2772,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).DistinguishedName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn PrincipalName(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVectorView<::windows_core::HSTRING>> {
         let this = self;
@@ -3183,7 +2781,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).PrincipalName)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn EmailNames(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<ISubjectAlternativeNameInfo2>(self)?;
@@ -3192,7 +2790,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).EmailNames)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn IPAddresses(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<ISubjectAlternativeNameInfo2>(self)?;
@@ -3201,7 +2799,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).IPAddresses)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn Urls(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<ISubjectAlternativeNameInfo2>(self)?;
@@ -3210,7 +2808,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).Urls)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn DnsNames(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<ISubjectAlternativeNameInfo2>(self)?;
@@ -3219,7 +2817,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).DnsNames)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn DistinguishedNames(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<ISubjectAlternativeNameInfo2>(self)?;
@@ -3228,7 +2826,7 @@ impl SubjectAlternativeNameInfo {
             (::windows_core::Interface::vtable(this).DistinguishedNames)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation_Collections\"`*"]
+    #[doc = "Required features: `\"Foundation_Collections\"`"]
     #[cfg(feature = "Foundation_Collections")]
     pub fn PrincipalNames(&self) -> ::windows_core::Result<super::super::super::Foundation::Collections::IVector<::windows_core::HSTRING>> {
         let this = &::windows_core::ComInterface::cast::<ISubjectAlternativeNameInfo2>(self)?;
@@ -3245,24 +2843,8 @@ impl SubjectAlternativeNameInfo {
         }
     }
 }
-impl ::core::cmp::PartialEq for SubjectAlternativeNameInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for SubjectAlternativeNameInfo {}
-impl ::core::fmt::Debug for SubjectAlternativeNameInfo {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("SubjectAlternativeNameInfo").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for SubjectAlternativeNameInfo {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.SubjectAlternativeNameInfo;{582859f1-569d-4c20-be7b-4e1c9a0bc52b})");
-}
-impl ::core::clone::Clone for SubjectAlternativeNameInfo {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for SubjectAlternativeNameInfo {
     type Vtable = ISubjectAlternativeNameInfo_Vtbl;
@@ -3276,11 +2858,11 @@ impl ::windows_core::RuntimeName for SubjectAlternativeNameInfo {
 ::windows_core::imp::interface_hierarchy!(SubjectAlternativeNameInfo, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for SubjectAlternativeNameInfo {}
 unsafe impl ::core::marker::Sync for SubjectAlternativeNameInfo {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct UserCertificateEnrollmentManager(::windows_core::IUnknown);
 impl UserCertificateEnrollmentManager {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn CreateRequestAsync<P0>(&self, request: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<::windows_core::HSTRING>>
     where
@@ -3292,7 +2874,7 @@ impl UserCertificateEnrollmentManager {
             (::windows_core::Interface::vtable(this).CreateRequestAsync)(::windows_core::Interface::as_raw(this), request.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn InstallCertificateAsync(&self, certificate: &::windows_core::HSTRING, installoption: InstallOptions) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction> {
         let this = self;
@@ -3301,7 +2883,7 @@ impl UserCertificateEnrollmentManager {
             (::windows_core::Interface::vtable(this).InstallCertificateAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(certificate), installoption, &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ImportPfxDataAsync(&self, pfxdata: &::windows_core::HSTRING, password: &::windows_core::HSTRING, exportable: ExportOption, keyprotectionlevel: KeyProtectionLevel, installoption: InstallOptions, friendlyname: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction> {
         let this = self;
@@ -3310,7 +2892,7 @@ impl UserCertificateEnrollmentManager {
             (::windows_core::Interface::vtable(this).ImportPfxDataAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(pfxdata), ::core::mem::transmute_copy(password), exportable, keyprotectionlevel, installoption, ::core::mem::transmute_copy(friendlyname), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ImportPfxDataToKspAsync(&self, pfxdata: &::windows_core::HSTRING, password: &::windows_core::HSTRING, exportable: ExportOption, keyprotectionlevel: KeyProtectionLevel, installoption: InstallOptions, friendlyname: &::windows_core::HSTRING, keystorageprovider: &::windows_core::HSTRING) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction> {
         let this = self;
@@ -3319,7 +2901,7 @@ impl UserCertificateEnrollmentManager {
             (::windows_core::Interface::vtable(this).ImportPfxDataToKspAsync)(::windows_core::Interface::as_raw(this), ::core::mem::transmute_copy(pfxdata), ::core::mem::transmute_copy(password), exportable, keyprotectionlevel, installoption, ::core::mem::transmute_copy(friendlyname), ::core::mem::transmute_copy(keystorageprovider), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn ImportPfxDataToKspWithParametersAsync<P0>(&self, pfxdata: &::windows_core::HSTRING, password: &::windows_core::HSTRING, pfximportparameters: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncAction>
     where
@@ -3332,24 +2914,8 @@ impl UserCertificateEnrollmentManager {
         }
     }
 }
-impl ::core::cmp::PartialEq for UserCertificateEnrollmentManager {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for UserCertificateEnrollmentManager {}
-impl ::core::fmt::Debug for UserCertificateEnrollmentManager {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("UserCertificateEnrollmentManager").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for UserCertificateEnrollmentManager {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.UserCertificateEnrollmentManager;{96313718-22e1-4819-b20b-ab46a6eca06e})");
-}
-impl ::core::clone::Clone for UserCertificateEnrollmentManager {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for UserCertificateEnrollmentManager {
     type Vtable = IUserCertificateEnrollmentManager_Vtbl;
@@ -3363,11 +2929,11 @@ impl ::windows_core::RuntimeName for UserCertificateEnrollmentManager {
 ::windows_core::imp::interface_hierarchy!(UserCertificateEnrollmentManager, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for UserCertificateEnrollmentManager {}
 unsafe impl ::core::marker::Sync for UserCertificateEnrollmentManager {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct UserCertificateStore(::windows_core::IUnknown);
 impl UserCertificateStore {
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RequestAddAsync<P0>(&self, certificate: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<bool>>
     where
@@ -3379,7 +2945,7 @@ impl UserCertificateStore {
             (::windows_core::Interface::vtable(this).RequestAddAsync)(::windows_core::Interface::as_raw(this), certificate.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RequestDeleteAsync<P0>(&self, certificate: P0) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<bool>>
     where
@@ -3399,24 +2965,8 @@ impl UserCertificateStore {
         }
     }
 }
-impl ::core::cmp::PartialEq for UserCertificateStore {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for UserCertificateStore {}
-impl ::core::fmt::Debug for UserCertificateStore {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("UserCertificateStore").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for UserCertificateStore {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Security.Cryptography.Certificates.UserCertificateStore;{c9fb1d83-789f-4b4e-9180-045a757aac6d})");
-}
-impl ::core::clone::Clone for UserCertificateStore {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for UserCertificateStore {
     type Vtable = IUserCertificateStore_Vtbl;
@@ -3430,7 +2980,6 @@ impl ::windows_core::RuntimeName for UserCertificateStore {
 ::windows_core::imp::interface_hierarchy!(UserCertificateStore, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for UserCertificateStore {}
 unsafe impl ::core::marker::Sync for UserCertificateStore {}
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct CertificateChainPolicy(pub i32);
@@ -3462,7 +3011,6 @@ impl ::core::fmt::Debug for CertificateChainPolicy {
 impl ::windows_core::RuntimeType for CertificateChainPolicy {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Cryptography.Certificates.CertificateChainPolicy;i4)");
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ChainValidationResult(pub i32);
@@ -3504,7 +3052,6 @@ impl ::core::fmt::Debug for ChainValidationResult {
 impl ::windows_core::RuntimeType for ChainValidationResult {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Cryptography.Certificates.ChainValidationResult;i4)");
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct EnrollKeyUsages(pub u32);
@@ -3570,7 +3117,6 @@ impl ::core::ops::Not for EnrollKeyUsages {
 impl ::windows_core::RuntimeType for EnrollKeyUsages {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Cryptography.Certificates.EnrollKeyUsages;u4)");
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ExportOption(pub i32);
@@ -3600,7 +3146,6 @@ impl ::core::fmt::Debug for ExportOption {
 impl ::windows_core::RuntimeType for ExportOption {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Cryptography.Certificates.ExportOption;i4)");
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct InstallOptions(pub u32);
@@ -3663,7 +3208,6 @@ impl ::core::ops::Not for InstallOptions {
 impl ::windows_core::RuntimeType for InstallOptions {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Cryptography.Certificates.InstallOptions;u4)");
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct KeyProtectionLevel(pub i32);
@@ -3695,7 +3239,6 @@ impl ::core::fmt::Debug for KeyProtectionLevel {
 impl ::windows_core::RuntimeType for KeyProtectionLevel {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Cryptography.Certificates.KeyProtectionLevel;i4)");
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct KeySize(pub i32);
@@ -3726,7 +3269,6 @@ impl ::core::fmt::Debug for KeySize {
 impl ::windows_core::RuntimeType for KeySize {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Security.Cryptography.Certificates.KeySize;i4)");
 }
-#[doc = "*Required features: `\"Security_Cryptography_Certificates\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct SignatureValidationResult(pub i32);

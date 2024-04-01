@@ -1,5 +1,5 @@
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInkCommitRequestHandler(::windows_core::IUnknown);
 impl IInkCommitRequestHandler {
     pub unsafe fn OnCommitRequested(&self) -> ::windows_core::Result<()> {
@@ -7,24 +7,8 @@ impl IInkCommitRequestHandler {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IInkCommitRequestHandler, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IInkCommitRequestHandler {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IInkCommitRequestHandler {}
-impl ::core::fmt::Debug for IInkCommitRequestHandler {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInkCommitRequestHandler").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IInkCommitRequestHandler {
     type Vtable = IInkCommitRequestHandler_Vtbl;
-}
-impl ::core::clone::Clone for IInkCommitRequestHandler {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInkCommitRequestHandler {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xfabea3fc_b108_45b6_a9fc_8d08fa9f85cf);
@@ -35,11 +19,11 @@ pub struct IInkCommitRequestHandler_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub OnCommitRequested: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInkD2DRenderer(::windows_core::IUnknown);
 impl IInkD2DRenderer {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Draw<P0, P1, P2>(&self, pd2d1devicecontext: P0, pinkstrokeiterable: P1, fhighcontrast: P2) -> ::windows_core::Result<()>
     where
@@ -51,24 +35,8 @@ impl IInkD2DRenderer {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IInkD2DRenderer, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IInkD2DRenderer {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IInkD2DRenderer {}
-impl ::core::fmt::Debug for IInkD2DRenderer {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInkD2DRenderer").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IInkD2DRenderer {
     type Vtable = IInkD2DRenderer_Vtbl;
-}
-impl ::core::clone::Clone for IInkD2DRenderer {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInkD2DRenderer {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x407fb1de_f85a_4150_97cf_b7fb274fb4f8);
@@ -82,8 +50,8 @@ pub struct IInkD2DRenderer_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     Draw: usize,
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInkD2DRenderer2(::windows_core::IUnknown);
 impl IInkD2DRenderer2 {
     pub unsafe fn Draw<P0, P1>(&self, pd2d1devicecontext: P0, pinkstrokeiterable: P1, highcontrastadjustment: INK_HIGH_CONTRAST_ADJUSTMENT) -> ::windows_core::Result<()>
@@ -95,24 +63,8 @@ impl IInkD2DRenderer2 {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IInkD2DRenderer2, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IInkD2DRenderer2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IInkD2DRenderer2 {}
-impl ::core::fmt::Debug for IInkD2DRenderer2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInkD2DRenderer2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IInkD2DRenderer2 {
     type Vtable = IInkD2DRenderer2_Vtbl;
-}
-impl ::core::clone::Clone for IInkD2DRenderer2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInkD2DRenderer2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x0a95dcd9_4578_4b71_b20b_bf664d4bfeee);
@@ -123,8 +75,8 @@ pub struct IInkD2DRenderer2_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub Draw: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pd2d1devicecontext: *mut ::core::ffi::c_void, pinkstrokeiterable: *mut ::core::ffi::c_void, highcontrastadjustment: INK_HIGH_CONTRAST_ADJUSTMENT) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInkDesktopHost(::windows_core::IUnknown);
 impl IInkDesktopHost {
     pub unsafe fn QueueWorkItem<P0>(&self, workitem: P0) -> ::windows_core::Result<()>
@@ -150,24 +102,8 @@ impl IInkDesktopHost {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IInkDesktopHost, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IInkDesktopHost {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IInkDesktopHost {}
-impl ::core::fmt::Debug for IInkDesktopHost {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInkDesktopHost").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IInkDesktopHost {
     type Vtable = IInkDesktopHost_Vtbl;
-}
-impl ::core::clone::Clone for IInkDesktopHost {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInkDesktopHost {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4ce7d875_a981_4140_a1ff_ad93258e8d59);
@@ -180,8 +116,8 @@ pub struct IInkDesktopHost_Vtbl {
     pub CreateInkPresenter: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, riid: *const ::windows_core::GUID, ppv: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
     pub CreateAndInitializeInkPresenter: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, rootvisual: *mut ::core::ffi::c_void, width: f32, height: f32, riid: *const ::windows_core::GUID, ppv: *mut *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInkHostWorkItem(::windows_core::IUnknown);
 impl IInkHostWorkItem {
     pub unsafe fn Invoke(&self) -> ::windows_core::Result<()> {
@@ -189,24 +125,8 @@ impl IInkHostWorkItem {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IInkHostWorkItem, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IInkHostWorkItem {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IInkHostWorkItem {}
-impl ::core::fmt::Debug for IInkHostWorkItem {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInkHostWorkItem").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IInkHostWorkItem {
     type Vtable = IInkHostWorkItem_Vtbl;
-}
-impl ::core::clone::Clone for IInkHostWorkItem {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInkHostWorkItem {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xccda0a9a_1b78_4632_bb96_97800662e26c);
@@ -217,8 +137,8 @@ pub struct IInkHostWorkItem_Vtbl {
     pub base__: ::windows_core::IUnknown_Vtbl,
     pub Invoke: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IInkPresenterDesktop(::windows_core::IUnknown);
 impl IInkPresenterDesktop {
     pub unsafe fn SetRootVisual<P0, P1>(&self, rootvisual: P0, device: P1) -> ::windows_core::Result<()>
@@ -245,24 +165,8 @@ impl IInkPresenterDesktop {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IInkPresenterDesktop, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IInkPresenterDesktop {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IInkPresenterDesktop {}
-impl ::core::fmt::Debug for IInkPresenterDesktop {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IInkPresenterDesktop").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IInkPresenterDesktop {
     type Vtable = IInkPresenterDesktop_Vtbl;
-}
-impl ::core::clone::Clone for IInkPresenterDesktop {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IInkPresenterDesktop {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x73f3c0d9_2e8b_48f3_895e_20cbd27b723b);
@@ -277,17 +181,11 @@ pub struct IInkPresenterDesktop_Vtbl {
     pub SetSize: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, width: f32, height: f32) -> ::windows_core::HRESULT,
     pub OnHighContrastChanged: unsafe extern "system" fn(this: *mut ::core::ffi::c_void) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 pub const InkD2DRenderer: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4044e60c_7b01_4671_a97c_04e0210a07a5);
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 pub const InkDesktopHost: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x062584a6_f830_4bdc_a4d2_0a10ab062b1d);
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 pub const USE_ORIGINAL_COLORS: INK_HIGH_CONTRAST_ADJUSTMENT = INK_HIGH_CONTRAST_ADJUSTMENT(2i32);
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 pub const USE_SYSTEM_COLORS: INK_HIGH_CONTRAST_ADJUSTMENT = INK_HIGH_CONTRAST_ADJUSTMENT(1i32);
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 pub const USE_SYSTEM_COLORS_WHEN_NECESSARY: INK_HIGH_CONTRAST_ADJUSTMENT = INK_HIGH_CONTRAST_ADJUSTMENT(0i32);
-#[doc = "*Required features: `\"Win32_UI_Input_Ink\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct INK_HIGH_CONTRAST_ADJUSTMENT(pub i32);

@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IClosedCaptionPropertiesStatics(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IClosedCaptionPropertiesStatics {
     type Vtable = IClosedCaptionPropertiesStatics_Vtbl;
-}
-impl ::core::clone::Clone for IClosedCaptionPropertiesStatics {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IClosedCaptionPropertiesStatics {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x10aa1f84_cc30_4141_b503_5272289e0c20);
@@ -38,7 +34,6 @@ pub struct IClosedCaptionPropertiesStatics_Vtbl {
     ComputedRegionColor: usize,
     pub RegionOpacity: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, result__: *mut ClosedCaptionOpacity) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Media_ClosedCaptioning\"`*"]
 pub struct ClosedCaptionProperties;
 impl ClosedCaptionProperties {
     pub fn FontColor() -> ::windows_core::Result<ClosedCaptionColor> {
@@ -47,7 +42,7 @@ impl ClosedCaptionProperties {
             (::windows_core::Interface::vtable(this).FontColor)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"UI\"`*"]
+    #[doc = "Required features: `\"UI\"`"]
     #[cfg(feature = "UI")]
     pub fn ComputedFontColor() -> ::windows_core::Result<super::super::UI::Color> {
         Self::IClosedCaptionPropertiesStatics(|this| unsafe {
@@ -85,7 +80,7 @@ impl ClosedCaptionProperties {
             (::windows_core::Interface::vtable(this).BackgroundColor)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"UI\"`*"]
+    #[doc = "Required features: `\"UI\"`"]
     #[cfg(feature = "UI")]
     pub fn ComputedBackgroundColor() -> ::windows_core::Result<super::super::UI::Color> {
         Self::IClosedCaptionPropertiesStatics(|this| unsafe {
@@ -105,7 +100,7 @@ impl ClosedCaptionProperties {
             (::windows_core::Interface::vtable(this).RegionColor)(::windows_core::Interface::as_raw(this), &mut result__).from_abi(result__)
         })
     }
-    #[doc = "*Required features: `\"UI\"`*"]
+    #[doc = "Required features: `\"UI\"`"]
     #[cfg(feature = "UI")]
     pub fn ComputedRegionColor() -> ::windows_core::Result<super::super::UI::Color> {
         Self::IClosedCaptionPropertiesStatics(|this| unsafe {
@@ -128,7 +123,6 @@ impl ClosedCaptionProperties {
 impl ::windows_core::RuntimeName for ClosedCaptionProperties {
     const NAME: &'static str = "Windows.Media.ClosedCaptioning.ClosedCaptionProperties";
 }
-#[doc = "*Required features: `\"Media_ClosedCaptioning\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ClosedCaptionColor(pub i32);
@@ -165,7 +159,6 @@ impl ::core::fmt::Debug for ClosedCaptionColor {
 impl ::windows_core::RuntimeType for ClosedCaptionColor {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Media.ClosedCaptioning.ClosedCaptionColor;i4)");
 }
-#[doc = "*Required features: `\"Media_ClosedCaptioning\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ClosedCaptionEdgeEffect(pub i32);
@@ -199,7 +192,6 @@ impl ::core::fmt::Debug for ClosedCaptionEdgeEffect {
 impl ::windows_core::RuntimeType for ClosedCaptionEdgeEffect {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Media.ClosedCaptioning.ClosedCaptionEdgeEffect;i4)");
 }
-#[doc = "*Required features: `\"Media_ClosedCaptioning\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ClosedCaptionOpacity(pub i32);
@@ -232,7 +224,6 @@ impl ::core::fmt::Debug for ClosedCaptionOpacity {
 impl ::windows_core::RuntimeType for ClosedCaptionOpacity {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Media.ClosedCaptioning.ClosedCaptionOpacity;i4)");
 }
-#[doc = "*Required features: `\"Media_ClosedCaptioning\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ClosedCaptionSize(pub i32);
@@ -265,7 +256,6 @@ impl ::core::fmt::Debug for ClosedCaptionSize {
 impl ::windows_core::RuntimeType for ClosedCaptionSize {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"enum(Windows.Media.ClosedCaptioning.ClosedCaptionSize;i4)");
 }
-#[doc = "*Required features: `\"Media_ClosedCaptioning\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct ClosedCaptionStyle(pub i32);

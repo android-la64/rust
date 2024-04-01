@@ -1073,17 +1073,15 @@ fn new_warning_with_corrupt_ws() {
     p.cargo("new bar")
         .with_stderr(
             "\
+[ERROR] expected `.`, `=`
+ --> Cargo.toml:1:5
+  |
+1 | asdf
+  |     ^
+  |
 [WARNING] compiling this new package may not work due to invalid workspace configuration
 
-failed to parse manifest at `[..]foo/Cargo.toml`
-
-Caused by:
-  TOML parse error at line 1, column 5
-    |
-  1 | asdf
-    |     ^
-  expected `.`, `=`
-     Created binary (application) `bar` package
+[CREATED] binary (application) `bar` package
 ",
         )
         .run();
@@ -1343,7 +1341,16 @@ fn error_if_parent_cargo_toml_is_invalid() {
     p.cargo("check")
         .cwd("bar")
         .with_status(101)
-        .with_stderr_contains("[ERROR] failed to parse manifest at `[..]`")
+        .with_stderr(
+            "\
+[ERROR] expected `.`, `=`
+ --> ../Cargo.toml:1:9
+  |
+1 | Totally not a TOML file
+  |         ^
+  |
+",
+        )
         .run();
 }
 
@@ -2186,7 +2193,7 @@ fn ws_rustc_err() {
 
 #[cargo_test]
 fn ws_err_unused() {
-    for key in &[
+    for table in &[
         "[lib]",
         "[[bin]]",
         "[[example]]",
@@ -2200,6 +2207,7 @@ fn ws_err_unused() {
         "[badges]",
         "[lints]",
     ] {
+        let key = table.trim_start_matches('[').trim_end_matches(']');
         let p = project()
             .file(
                 "Cargo.toml",
@@ -2208,9 +2216,8 @@ fn ws_err_unused() {
                     [workspace]
                     members = ["a"]
 
-                    {}
+                    {table}
                     "#,
-                    key
                 ),
             )
             .file("a/Cargo.toml", &basic_lib_manifest("a"))
@@ -2223,9 +2230,8 @@ fn ws_err_unused() {
 [ERROR] failed to parse manifest at `[..]/foo/Cargo.toml`
 
 Caused by:
-  this virtual manifest specifies a {} section, which is not allowed
+  this virtual manifest specifies a `{key}` section, which is not allowed
 ",
-                key
             ))
             .run();
     }

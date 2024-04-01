@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"System_Implementation_FileExplorer\"`, `\"Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`"]
 #[cfg(feature = "Foundation")]
 pub trait ISysStorageProviderEventSource_Impl: Sized {
     fn EventReceived(&self, handler: ::core::option::Option<&super::super::super::Foundation::TypedEventHandler<ISysStorageProviderEventSource, SysStorageProviderEventReceivedEventArgs>>) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>;
@@ -33,11 +33,10 @@ impl ISysStorageProviderEventSource_Vtbl {
             RemoveEventReceived: RemoveEventReceived::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISysStorageProviderEventSource as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISysStorageProviderEventSource as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"System_Implementation_FileExplorer\"`, `\"implement\"`*"]
 pub trait ISysStorageProviderHandlerFactory_Impl: Sized {
     fn GetHttpRequestProvider(&self, syncrootid: &::windows_core::HSTRING) -> ::windows_core::Result<ISysStorageProviderHttpRequestProvider>;
     fn GetEventSource(&self, syncrootid: &::windows_core::HSTRING, eventname: &::windows_core::HSTRING) -> ::windows_core::Result<ISysStorageProviderEventSource>;
@@ -77,11 +76,11 @@ impl ISysStorageProviderHandlerFactory_Vtbl {
             GetEventSource: GetEventSource::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISysStorageProviderHandlerFactory as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISysStorageProviderHandlerFactory as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"System_Implementation_FileExplorer\"`, `\"Foundation\"`, `\"Web_Http\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`, `\"Web_Http\"`"]
 #[cfg(all(feature = "Foundation", feature = "Web_Http"))]
 pub trait ISysStorageProviderHttpRequestProvider_Impl: Sized {
     fn SendRequestAsync(&self, request: ::core::option::Option<&super::super::super::Web::Http::HttpRequestMessage>) -> ::windows_core::Result<super::super::super::Foundation::IAsyncOperation<super::super::super::Web::Http::HttpResponseMessage>>;
@@ -110,7 +109,7 @@ impl ISysStorageProviderHttpRequestProvider_Vtbl {
             SendRequestAsync: SendRequestAsync::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISysStorageProviderHttpRequestProvider as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISysStorageProviderHttpRequestProvider as ::windows_core::ComInterface>::IID
     }
 }

@@ -1,4 +1,4 @@
-#[doc = "*Required features: `\"Devices_Sms\"`, `\"deprecated\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"deprecated\"`"]
 #[cfg(feature = "deprecated")]
 pub trait ISmsBinaryMessage_Impl: Sized + ISmsMessage_Impl {
     fn Format(&self) -> ::windows_core::Result<SmsDataFormat>;
@@ -55,11 +55,11 @@ impl ISmsBinaryMessage_Vtbl {
             SetData: SetData::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISmsBinaryMessage as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISmsBinaryMessage as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Devices_Sms\"`, `\"Foundation\"`, `\"deprecated\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation\"`, `\"deprecated\"`"]
 #[cfg(all(feature = "Foundation", feature = "deprecated"))]
 pub trait ISmsDevice_Impl: Sized {
     fn SendMessageAsync(&self, message: ::core::option::Option<&ISmsMessage>) -> ::windows_core::Result<SendSmsMessageOperation>;
@@ -195,11 +195,10 @@ impl ISmsDevice_Vtbl {
             RemoveSmsDeviceStatusChanged: RemoveSmsDeviceStatusChanged::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISmsDevice as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISmsDevice as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Devices_Sms\"`, `\"implement\"`*"]
 pub trait ISmsMessage_Impl: Sized {
     fn Id(&self) -> ::windows_core::Result<u32>;
     fn MessageClass(&self) -> ::windows_core::Result<SmsMessageClass>;
@@ -237,11 +236,10 @@ impl ISmsMessage_Vtbl {
             MessageClass: MessageClass::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISmsMessage as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISmsMessage as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Devices_Sms\"`, `\"implement\"`*"]
 pub trait ISmsMessageBase_Impl: Sized {
     fn MessageType(&self) -> ::windows_core::Result<SmsMessageType>;
     fn DeviceId(&self) -> ::windows_core::Result<::windows_core::HSTRING>;
@@ -320,11 +318,11 @@ impl ISmsMessageBase_Vtbl {
             SimIccId: SimIccId::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISmsMessageBase as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISmsMessageBase as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Devices_Sms\"`, `\"Foundation_Collections\"`, `\"deprecated\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Foundation_Collections\"`, `\"deprecated\"`"]
 #[cfg(all(feature = "Foundation_Collections", feature = "deprecated"))]
 pub trait ISmsTextMessage_Impl: Sized + ISmsMessage_Impl {
     fn Timestamp(&self) -> ::windows_core::Result<super::super::Foundation::DateTime>;
@@ -488,7 +486,7 @@ impl ISmsTextMessage_Vtbl {
             ToBinaryMessages: ToBinaryMessages::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ISmsTextMessage as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ISmsTextMessage as ::windows_core::ComInterface>::IID
     }
 }

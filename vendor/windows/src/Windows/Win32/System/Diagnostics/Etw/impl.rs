@@ -1,4 +1,3 @@
-#[doc = "*Required features: `\"Win32_System_Diagnostics_Etw\"`, `\"implement\"`*"]
 pub trait ITraceEvent_Impl: Sized {
     fn Clone(&self) -> ::windows_core::Result<ITraceEvent>;
     fn GetUserContext(&self) -> ::windows_core::Result<*mut ::core::ffi::c_void>;
@@ -110,11 +109,10 @@ impl ITraceEvent_Vtbl {
             SetProviderId: SetProviderId::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITraceEvent as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITraceEvent as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_Diagnostics_Etw\"`, `\"implement\"`*"]
 pub trait ITraceEventCallback_Impl: Sized {
     fn OnBeginProcessTrace(&self, headerevent: ::core::option::Option<&ITraceEvent>, relogger: ::core::option::Option<&ITraceRelogger>) -> ::windows_core::Result<()>;
     fn OnFinalizeProcessTrace(&self, relogger: ::core::option::Option<&ITraceRelogger>) -> ::windows_core::Result<()>;
@@ -145,11 +143,11 @@ impl ITraceEventCallback_Vtbl {
             OnEvent: OnEvent::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITraceEventCallback as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITraceEventCallback as ::windows_core::ComInterface>::IID
     }
 }
-#[doc = "*Required features: `\"Win32_System_Diagnostics_Etw\"`, `\"Win32_Foundation\"`, `\"implement\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub trait ITraceRelogger_Impl: Sized {
     fn AddLogfileTraceStream(&self, logfilename: &::windows_core::BSTR, usercontext: *const ::core::ffi::c_void) -> ::windows_core::Result<RELOGSTREAM_HANDLE>;
@@ -243,7 +241,7 @@ impl ITraceRelogger_Vtbl {
             Cancel: Cancel::<Identity, Impl, OFFSET>,
         }
     }
-    pub fn matches(iid: &::windows_core::GUID) -> bool {
-        iid == &<ITraceRelogger as ::windows_core::ComInterface>::IID
+    pub unsafe fn matches(iid: *const ::windows_core::GUID) -> bool {
+        *iid == <ITraceRelogger as ::windows_core::ComInterface>::IID
     }
 }

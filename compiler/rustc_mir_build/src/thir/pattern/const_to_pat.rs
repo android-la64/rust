@@ -185,16 +185,16 @@ impl<'tcx> ConstToPat<'tcx> {
                     let e = if let ty::Adt(def, ..) = non_sm_ty.kind() {
                         if def.is_union() {
                             let err = UnionPattern { span: self.span };
-                            self.tcx().sess.emit_err(err)
+                            self.tcx().dcx().emit_err(err)
                         } else {
                             // fatal avoids ICE from resolution of nonexistent method (rare case).
                             self.tcx()
-                                .sess
+                                .dcx()
                                 .emit_fatal(TypeNotStructural { span: self.span, non_sm_ty })
                         }
                     } else {
                         let err = InvalidPattern { span: self.span, non_sm_ty };
-                        self.tcx().sess.emit_err(err)
+                        self.tcx().dcx().emit_err(err)
                     };
                     // All branches above emitted an error. Don't print any more lints.
                     // We errored. Signal that in the pattern, so that follow up errors can be silenced.
@@ -207,14 +207,14 @@ impl<'tcx> ConstToPat<'tcx> {
                     // This is because `mir::Const::ty` has already been handled by `Self::recur`
                     // and the invalid types may be ignored.
                     let err = TypeNotStructural { span: self.span, non_sm_ty };
-                    let e = self.tcx().sess.emit_err(err);
+                    let e = self.tcx().dcx().emit_err(err);
                     let kind = PatKind::Error(e);
                     return Box::new(Pat { span: self.span, ty: cv.ty(), kind });
                 } else if !self.saw_const_match_lint.get() {
                     if let Some(mir_structural_match_violation) = mir_structural_match_violation {
                         match non_sm_ty.kind() {
                             ty::Adt(..) if mir_structural_match_violation => {
-                                self.tcx().emit_spanned_lint(
+                                self.tcx().emit_node_span_lint(
                                     lint::builtin::INDIRECT_STRUCTURAL_MATCH,
                                     self.id,
                                     self.span,
@@ -233,7 +233,7 @@ impl<'tcx> ConstToPat<'tcx> {
             } else if !have_valtree && !self.saw_const_match_lint.get() {
                 // The only way valtree construction can fail without the structural match
                 // checker finding a violation is if there is a pointer somewhere.
-                self.tcx().emit_spanned_lint(
+                self.tcx().emit_node_span_lint(
                     lint::builtin::POINTER_STRUCTURAL_MATCH,
                     self.id,
                     self.span,
@@ -244,7 +244,7 @@ impl<'tcx> ConstToPat<'tcx> {
             // Always check for `PartialEq`, even if we emitted other lints. (But not if there were
             // any errors.) This ensures it shows up in cargo's future-compat reports as well.
             if !self.type_has_partial_eq_impl(cv.ty()) {
-                self.tcx().emit_spanned_lint(
+                self.tcx().emit_node_span_lint(
                     lint::builtin::CONST_PATTERNS_WITHOUT_PARTIAL_EQ,
                     self.id,
                     self.span,
@@ -319,7 +319,7 @@ impl<'tcx> ConstToPat<'tcx> {
         let kind = match ty.kind() {
             ty::Float(_) => {
                 self.saw_const_match_lint.set(true);
-                tcx.emit_spanned_lint(
+                tcx.emit_node_span_lint(
                     lint::builtin::ILLEGAL_FLOATING_POINT_LITERAL_PATTERN,
                     id,
                     span,
@@ -339,7 +339,7 @@ impl<'tcx> ConstToPat<'tcx> {
             ty::Adt(..) if !self.type_marked_structural(ty) && self.behind_reference.get() => {
                 if self.saw_const_match_error.get().is_none() && !self.saw_const_match_lint.get() {
                     self.saw_const_match_lint.set(true);
-                    tcx.emit_spanned_lint(
+                    tcx.emit_node_span_lint(
                         lint::builtin::INDIRECT_STRUCTURAL_MATCH,
                         id,
                         span,
@@ -352,7 +352,7 @@ impl<'tcx> ConstToPat<'tcx> {
                 return Err(FallbackToOpaqueConst);
             }
             ty::FnDef(..) => {
-                let e = tcx.sess.emit_err(InvalidPattern { span, non_sm_ty: ty });
+                let e = tcx.dcx().emit_err(InvalidPattern { span, non_sm_ty: ty });
                 self.saw_const_match_error.set(Some(e));
                 // We errored. Signal that in the pattern, so that follow up errors can be silenced.
                 PatKind::Error(e)
@@ -360,7 +360,7 @@ impl<'tcx> ConstToPat<'tcx> {
             ty::Adt(adt_def, _) if !self.type_marked_structural(ty) => {
                 debug!("adt_def {:?} has !type_marked_structural for cv.ty: {:?}", adt_def, ty,);
                 let err = TypeNotStructural { span, non_sm_ty: ty };
-                let e = tcx.sess.emit_err(err);
+                let e = tcx.dcx().emit_err(err);
                 self.saw_const_match_error.set(Some(e));
                 // We errored. Signal that in the pattern, so that follow up errors can be silenced.
                 PatKind::Error(e)
@@ -435,7 +435,7 @@ impl<'tcx> ConstToPat<'tcx> {
                             && !self.saw_const_match_lint.get()
                         {
                             self.saw_const_match_lint.set(true);
-                            tcx.emit_spanned_lint(
+                            tcx.emit_node_span_lint(
                                 lint::builtin::INDIRECT_STRUCTURAL_MATCH,
                                 self.id,
                                 span,
@@ -449,7 +449,7 @@ impl<'tcx> ConstToPat<'tcx> {
                             PatKind::Error(e)
                         } else {
                             let err = TypeNotStructural { span, non_sm_ty: *pointee_ty };
-                            let e = tcx.sess.emit_err(err);
+                            let e = tcx.dcx().emit_err(err);
                             self.saw_const_match_error.set(Some(e));
                             // We errored. Signal that in the pattern, so that follow up errors can be silenced.
                             PatKind::Error(e)
@@ -462,7 +462,7 @@ impl<'tcx> ConstToPat<'tcx> {
                 _ => {
                     if !pointee_ty.is_sized(tcx, param_env) && !pointee_ty.is_slice() {
                         let err = UnsizedPattern { span, non_sm_ty: *pointee_ty };
-                        let e = tcx.sess.emit_err(err);
+                        let e = tcx.dcx().emit_err(err);
                         // We errored. Signal that in the pattern, so that follow up errors can be silenced.
                         PatKind::Error(e)
                     } else {
@@ -498,7 +498,7 @@ impl<'tcx> ConstToPat<'tcx> {
             }
             _ => {
                 let err = InvalidPattern { span, non_sm_ty: ty };
-                let e = tcx.sess.emit_err(err);
+                let e = tcx.dcx().emit_err(err);
                 self.saw_const_match_error.set(Some(e));
                 // We errored. Signal that in the pattern, so that follow up errors can be silenced.
                 PatKind::Error(e)
@@ -516,7 +516,7 @@ impl<'tcx> ConstToPat<'tcx> {
             && let Some(non_sm_ty) = traits::search_for_structural_match_violation(span, tcx, ty)
         {
             self.saw_const_match_lint.set(true);
-            tcx.emit_spanned_lint(
+            tcx.emit_node_span_lint(
                 lint::builtin::NONTRIVIAL_STRUCTURAL_MATCH,
                 id,
                 span,

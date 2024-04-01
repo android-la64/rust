@@ -1,8 +1,8 @@
-#[doc = "*Required features: `\"Win32_System_Com_ChannelCredentials\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IChannelCredentials(::windows_core::IUnknown);
 impl IChannelCredentials {
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetWindowsCredential<P0, P1, P2, P3>(&self, domain: P0, username: P1, password: P2, impersonationlevel: i32, allowntlm: P3) -> ::windows_core::Result<()>
     where
@@ -20,7 +20,7 @@ impl IChannelCredentials {
     {
         (::windows_core::Interface::vtable(self).SetUserNameCredential)(::windows_core::Interface::as_raw(self), username.into_param().abi(), password.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn SetClientCertificateFromStore<P0, P1, P2>(&self, storelocation: P0, storename: P1, findyype: P2, findvalue: super::super::Variant::VARIANT) -> ::windows_core::Result<()>
     where
@@ -46,7 +46,7 @@ impl IChannelCredentials {
     {
         (::windows_core::Interface::vtable(self).SetClientCertificateFromFile)(::windows_core::Interface::as_raw(self), filename.into_param().abi(), password.into_param().abi(), keystorageflags.into_param().abi()).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`, `\"Win32_System_Ole\"`, `\"Win32_System_Variant\"`"]
     #[cfg(all(feature = "Win32_Foundation", feature = "Win32_System_Ole", feature = "Win32_System_Variant"))]
     pub unsafe fn SetDefaultServiceCertificateFromStore<P0, P1, P2>(&self, storelocation: P0, storename: P1, findtype: P2, findvalue: super::super::Variant::VARIANT) -> ::windows_core::Result<()>
     where
@@ -90,24 +90,8 @@ impl IChannelCredentials {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IChannelCredentials, ::windows_core::IUnknown, super::IDispatch);
-impl ::core::cmp::PartialEq for IChannelCredentials {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IChannelCredentials {}
-impl ::core::fmt::Debug for IChannelCredentials {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IChannelCredentials").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IChannelCredentials {
     type Vtable = IChannelCredentials_Vtbl;
-}
-impl ::core::clone::Clone for IChannelCredentials {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IChannelCredentials {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x181b448c_c17c_4b17_ac6d_06699b93198f);

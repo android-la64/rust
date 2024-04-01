@@ -1,38 +1,33 @@
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[inline]
 pub unsafe fn CreateAudioReverb() -> ::windows_core::Result<::windows_core::IUnknown> {
     ::windows_targets::link!("xaudio2_8.dll" "system" fn CreateAudioReverb(ppapo : *mut * mut::core::ffi::c_void) -> ::windows_core::HRESULT);
     let mut result__ = ::std::mem::zeroed();
     CreateAudioReverb(&mut result__).from_abi(result__)
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[inline]
 pub unsafe fn CreateAudioVolumeMeter() -> ::windows_core::Result<::windows_core::IUnknown> {
     ::windows_targets::link!("xaudio2_8.dll" "system" fn CreateAudioVolumeMeter(ppapo : *mut * mut::core::ffi::c_void) -> ::windows_core::HRESULT);
     let mut result__ = ::std::mem::zeroed();
     CreateAudioVolumeMeter(&mut result__).from_abi(result__)
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[inline]
 pub unsafe fn CreateFX(clsid: *const ::windows_core::GUID, peffect: *mut ::core::option::Option<::windows_core::IUnknown>, pinitdat: ::core::option::Option<*const ::core::ffi::c_void>, initdatabytesize: u32) -> ::windows_core::Result<()> {
     ::windows_targets::link!("xaudio2_8.dll" "cdecl" fn CreateFX(clsid : *const ::windows_core::GUID, peffect : *mut * mut::core::ffi::c_void, pinitdat : *const ::core::ffi::c_void, initdatabytesize : u32) -> ::windows_core::HRESULT);
     CreateFX(clsid, ::core::mem::transmute(peffect), ::core::mem::transmute(pinitdat.unwrap_or(::std::ptr::null())), initdatabytesize).ok()
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[inline]
 pub unsafe fn CreateHrtfApo(init: *const HrtfApoInit) -> ::windows_core::Result<IXAPO> {
     ::windows_targets::link!("hrtfapo.dll" "system" fn CreateHrtfApo(init : *const HrtfApoInit, xapo : *mut * mut::core::ffi::c_void) -> ::windows_core::HRESULT);
     let mut result__ = ::std::mem::zeroed();
     CreateHrtfApo(init, &mut result__).from_abi(result__)
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[inline]
 pub unsafe fn XAudio2CreateWithVersionInfo(ppxaudio2: *mut ::core::option::Option<IXAudio2>, flags: u32, xaudio2processor: u32, ntddiversion: u32) -> ::windows_core::Result<()> {
     ::windows_targets::link!("xaudio2_8.dll" "system" fn XAudio2CreateWithVersionInfo(ppxaudio2 : *mut * mut::core::ffi::c_void, flags : u32, xaudio2processor : u32, ntddiversion : u32) -> ::windows_core::HRESULT);
     XAudio2CreateWithVersionInfo(::core::mem::transmute(ppxaudio2), flags, xaudio2processor, ntddiversion).ok()
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAPO(::windows_core::IUnknown);
 impl IXAPO {
     pub unsafe fn GetRegistrationProperties(&self) -> ::windows_core::Result<*mut XAPO_REGISTRATION_PROPERTIES> {
@@ -52,18 +47,18 @@ impl IXAPO {
         (::windows_core::Interface::vtable(self).Reset)(::windows_core::Interface::as_raw(self))
     }
     pub unsafe fn LockForProcess(&self, pinputlockedparameters: ::core::option::Option<&[XAPO_LOCKFORPROCESS_PARAMETERS]>, poutputlockedparameters: ::core::option::Option<&[XAPO_LOCKFORPROCESS_PARAMETERS]>) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).LockForProcess)(::windows_core::Interface::as_raw(self), pinputlockedparameters.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(pinputlockedparameters.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), poutputlockedparameters.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(poutputlockedparameters.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr()))).ok()
+        (::windows_core::Interface::vtable(self).LockForProcess)(::windows_core::Interface::as_raw(self), pinputlockedparameters.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), ::core::mem::transmute(pinputlockedparameters.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), poutputlockedparameters.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), ::core::mem::transmute(poutputlockedparameters.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr()))).ok()
     }
     pub unsafe fn UnlockForProcess(&self) {
         (::windows_core::Interface::vtable(self).UnlockForProcess)(::windows_core::Interface::as_raw(self))
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn Process<P0>(&self, pinputprocessparameters: ::core::option::Option<&[XAPO_PROCESS_BUFFER_PARAMETERS]>, poutputprocessparameters: ::core::option::Option<&mut [XAPO_PROCESS_BUFFER_PARAMETERS]>, isenabled: P0)
     where
         P0: ::windows_core::IntoParam<super::super::super::Foundation::BOOL>,
     {
-        (::windows_core::Interface::vtable(self).Process)(::windows_core::Interface::as_raw(self), pinputprocessparameters.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(pinputprocessparameters.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), poutputprocessparameters.as_deref().map_or(0, |slice| slice.len() as _), ::core::mem::transmute(poutputprocessparameters.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), isenabled.into_param().abi())
+        (::windows_core::Interface::vtable(self).Process)(::windows_core::Interface::as_raw(self), pinputprocessparameters.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), ::core::mem::transmute(pinputprocessparameters.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), poutputprocessparameters.as_deref().map_or(0, |slice| slice.len().try_into().unwrap()), ::core::mem::transmute(poutputprocessparameters.as_deref().map_or(::core::ptr::null(), |slice| slice.as_ptr())), isenabled.into_param().abi())
     }
     pub unsafe fn CalcInputFrames(&self, outputframecount: u32) -> u32 {
         (::windows_core::Interface::vtable(self).CalcInputFrames)(::windows_core::Interface::as_raw(self), outputframecount)
@@ -73,24 +68,8 @@ impl IXAPO {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXAPO, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXAPO {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAPO {}
-impl ::core::fmt::Debug for IXAPO {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAPO").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAPO {
     type Vtable = IXAPO_Vtbl;
-}
-impl ::core::clone::Clone for IXAPO {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXAPO {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xa410b984_9839_4819_a0be_2856ae6b3adb);
@@ -113,8 +92,8 @@ pub struct IXAPO_Vtbl {
     pub CalcInputFrames: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, outputframecount: u32) -> u32,
     pub CalcOutputFrames: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, inputframecount: u32) -> u32,
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAPOHrtfParameters(::windows_core::IUnknown);
 impl IXAPOHrtfParameters {
     pub unsafe fn SetSourcePosition(&self, position: *const HrtfPosition) -> ::windows_core::Result<()> {
@@ -131,24 +110,8 @@ impl IXAPOHrtfParameters {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXAPOHrtfParameters, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXAPOHrtfParameters {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAPOHrtfParameters {}
-impl ::core::fmt::Debug for IXAPOHrtfParameters {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAPOHrtfParameters").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAPOHrtfParameters {
     type Vtable = IXAPOHrtfParameters_Vtbl;
-}
-impl ::core::clone::Clone for IXAPOHrtfParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXAPOHrtfParameters {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x15b3cd66_e9de_4464_b6e6_2bc3cf63d455);
@@ -162,8 +125,8 @@ pub struct IXAPOHrtfParameters_Vtbl {
     pub SetSourceGain: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, gain: f32) -> ::windows_core::HRESULT,
     pub SetEnvironment: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, environment: HrtfEnvironment) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAPOParameters(::windows_core::IUnknown);
 impl IXAPOParameters {
     pub unsafe fn SetParameters(&self, pparameters: *const ::core::ffi::c_void, parameterbytesize: u32) {
@@ -174,24 +137,8 @@ impl IXAPOParameters {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXAPOParameters, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXAPOParameters {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAPOParameters {}
-impl ::core::fmt::Debug for IXAPOParameters {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAPOParameters").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAPOParameters {
     type Vtable = IXAPOParameters_Vtbl;
-}
-impl ::core::clone::Clone for IXAPOParameters {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXAPOParameters {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x26d95c66_80f2_499a_ad54_5ae7f01c6d98);
@@ -203,8 +150,8 @@ pub struct IXAPOParameters_Vtbl {
     pub SetParameters: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pparameters: *const ::core::ffi::c_void, parameterbytesize: u32),
     pub GetParameters: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pparameters: *mut ::core::ffi::c_void, parameterbytesize: u32),
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAudio2(::windows_core::IUnknown);
 impl IXAudio2 {
     pub unsafe fn RegisterForCallbacks<P0>(&self, pcallback: P0) -> ::windows_core::Result<()>
@@ -219,7 +166,7 @@ impl IXAudio2 {
     {
         (::windows_core::Interface::vtable(self).UnregisterForCallbacks)(::windows_core::Interface::as_raw(self), pcallback.into_param().abi())
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateSourceVoice<P0>(&self, ppsourcevoice: *mut ::core::option::Option<IXAudio2SourceVoice>, psourceformat: *const super::WAVEFORMATEX, flags: u32, maxfrequencyratio: f32, pcallback: P0, psendlist: ::core::option::Option<*const XAUDIO2_VOICE_SENDS>, peffectchain: ::core::option::Option<*const XAUDIO2_EFFECT_CHAIN>) -> ::windows_core::Result<()>
     where
@@ -227,12 +174,12 @@ impl IXAudio2 {
     {
         (::windows_core::Interface::vtable(self).CreateSourceVoice)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(ppsourcevoice), psourceformat, flags, maxfrequencyratio, pcallback.into_param().abi(), ::core::mem::transmute(psendlist.unwrap_or(::std::ptr::null())), ::core::mem::transmute(peffectchain.unwrap_or(::std::ptr::null()))).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateSubmixVoice(&self, ppsubmixvoice: *mut ::core::option::Option<IXAudio2SubmixVoice>, inputchannels: u32, inputsamplerate: u32, flags: u32, processingstage: u32, psendlist: ::core::option::Option<*const XAUDIO2_VOICE_SENDS>, peffectchain: ::core::option::Option<*const XAUDIO2_EFFECT_CHAIN>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).CreateSubmixVoice)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(ppsubmixvoice), inputchannels, inputsamplerate, flags, processingstage, ::core::mem::transmute(psendlist.unwrap_or(::std::ptr::null())), ::core::mem::transmute(peffectchain.unwrap_or(::std::ptr::null()))).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn CreateMasteringVoice<P0>(&self, ppmasteringvoice: *mut ::core::option::Option<IXAudio2MasteringVoice>, inputchannels: u32, inputsamplerate: u32, flags: u32, szdeviceid: P0, peffectchain: ::core::option::Option<*const XAUDIO2_EFFECT_CHAIN>, streamcategory: super::AUDIO_STREAM_CATEGORY) -> ::windows_core::Result<()>
     where
@@ -252,31 +199,15 @@ impl IXAudio2 {
     pub unsafe fn GetPerformanceData(&self, pperfdata: *mut XAUDIO2_PERFORMANCE_DATA) {
         (::windows_core::Interface::vtable(self).GetPerformanceData)(::windows_core::Interface::as_raw(self), pperfdata)
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetDebugConfiguration(&self, pdebugconfiguration: ::core::option::Option<*const XAUDIO2_DEBUG_CONFIGURATION>, preserved: ::core::option::Option<*const ::core::ffi::c_void>) {
         (::windows_core::Interface::vtable(self).SetDebugConfiguration)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(pdebugconfiguration.unwrap_or(::std::ptr::null())), ::core::mem::transmute(preserved.unwrap_or(::std::ptr::null())))
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXAudio2, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXAudio2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAudio2 {}
-impl ::core::fmt::Debug for IXAudio2 {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAudio2").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAudio2 {
     type Vtable = IXAudio2_Vtbl;
-}
-impl ::core::clone::Clone for IXAudio2 {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXAudio2 {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x2b02e3cf_2e0b_4ec3_be45_1b2a3fe7210d);
@@ -308,8 +239,8 @@ pub struct IXAudio2_Vtbl {
     #[cfg(not(feature = "Win32_Foundation"))]
     SetDebugConfiguration: usize,
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAudio2EngineCallback(::std::ptr::NonNull<::std::ffi::c_void>);
 impl IXAudio2EngineCallback {
     pub unsafe fn OnProcessingPassStart(&self) {
@@ -322,24 +253,8 @@ impl IXAudio2EngineCallback {
         (::windows_core::Interface::vtable(self).OnCriticalError)(::windows_core::Interface::as_raw(self), error)
     }
 }
-impl ::core::cmp::PartialEq for IXAudio2EngineCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAudio2EngineCallback {}
-impl ::core::fmt::Debug for IXAudio2EngineCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAudio2EngineCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAudio2EngineCallback {
     type Vtable = IXAudio2EngineCallback_Vtbl;
-}
-impl ::core::clone::Clone for IXAudio2EngineCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[repr(C)]
 #[doc(hidden)]
@@ -348,8 +263,8 @@ pub struct IXAudio2EngineCallback_Vtbl {
     pub OnProcessingPassEnd: unsafe extern "system" fn(this: *mut ::core::ffi::c_void),
     pub OnCriticalError: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, error: ::windows_core::HRESULT),
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAudio2Extension(::windows_core::IUnknown);
 impl IXAudio2Extension {
     pub unsafe fn GetProcessingQuantum(&self, quantumnumerator: *mut u32, quantumdenominator: *mut u32) {
@@ -360,24 +275,8 @@ impl IXAudio2Extension {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXAudio2Extension, ::windows_core::IUnknown);
-impl ::core::cmp::PartialEq for IXAudio2Extension {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAudio2Extension {}
-impl ::core::fmt::Debug for IXAudio2Extension {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAudio2Extension").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAudio2Extension {
     type Vtable = IXAudio2Extension_Vtbl;
-}
-impl ::core::clone::Clone for IXAudio2Extension {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IXAudio2Extension {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x84ac29bb_d619_44d2_b197_e4acf7df3ed6);
@@ -389,8 +288,8 @@ pub struct IXAudio2Extension_Vtbl {
     pub GetProcessingQuantum: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, quantumnumerator: *mut u32, quantumdenominator: *mut u32),
     pub GetProcessor: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, processor: *mut u32),
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAudio2MasteringVoice(::std::ptr::NonNull<::std::ffi::c_void>);
 impl IXAudio2MasteringVoice {
     pub unsafe fn GetVoiceDetails(&self) -> XAUDIO2_VOICE_DETAILS {
@@ -401,7 +300,7 @@ impl IXAudio2MasteringVoice {
     pub unsafe fn SetOutputVoices(&self, psendlist: ::core::option::Option<*const XAUDIO2_VOICE_SENDS>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetOutputVoices)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(psendlist.unwrap_or(::std::ptr::null()))).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetEffectChain(&self, peffectchain: ::core::option::Option<*const XAUDIO2_EFFECT_CHAIN>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetEffectChain)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(peffectchain.unwrap_or(::std::ptr::null()))).ok()
@@ -412,7 +311,7 @@ impl IXAudio2MasteringVoice {
     pub unsafe fn DisableEffect(&self, effectindex: u32, operationset: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.DisableEffect)(::windows_core::Interface::as_raw(self), effectindex, operationset).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetEffectState(&self, effectindex: u32) -> super::super::super::Foundation::BOOL {
         let mut result__ = ::std::mem::zeroed();
@@ -456,10 +355,10 @@ impl IXAudio2MasteringVoice {
         ::std::mem::transmute(result__)
     }
     pub unsafe fn SetChannelVolumes(&self, pvolumes: &[f32], operationset: u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).base__.SetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len() as _, ::core::mem::transmute(pvolumes.as_ptr()), operationset).ok()
+        (::windows_core::Interface::vtable(self).base__.SetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len().try_into().unwrap(), ::core::mem::transmute(pvolumes.as_ptr()), operationset).ok()
     }
     pub unsafe fn GetChannelVolumes(&self, pvolumes: &mut [f32]) {
-        (::windows_core::Interface::vtable(self).base__.GetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len() as _, ::core::mem::transmute(pvolumes.as_ptr()))
+        (::windows_core::Interface::vtable(self).base__.GetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len().try_into().unwrap(), ::core::mem::transmute(pvolumes.as_ptr()))
     }
     pub unsafe fn SetOutputMatrix<P0>(&self, pdestinationvoice: P0, sourcechannels: u32, destinationchannels: u32, plevelmatrix: *const f32, operationset: u32) -> ::windows_core::Result<()>
     where
@@ -484,24 +383,8 @@ impl IXAudio2MasteringVoice {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXAudio2MasteringVoice, IXAudio2Voice);
-impl ::core::cmp::PartialEq for IXAudio2MasteringVoice {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAudio2MasteringVoice {}
-impl ::core::fmt::Debug for IXAudio2MasteringVoice {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAudio2MasteringVoice").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAudio2MasteringVoice {
     type Vtable = IXAudio2MasteringVoice_Vtbl;
-}
-impl ::core::clone::Clone for IXAudio2MasteringVoice {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[repr(C)]
 #[doc(hidden)]
@@ -509,8 +392,8 @@ pub struct IXAudio2MasteringVoice_Vtbl {
     pub base__: IXAudio2Voice_Vtbl,
     pub GetChannelMask: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pchannelmask: *mut u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAudio2SourceVoice(::std::ptr::NonNull<::std::ffi::c_void>);
 impl IXAudio2SourceVoice {
     pub unsafe fn GetVoiceDetails(&self) -> XAUDIO2_VOICE_DETAILS {
@@ -521,7 +404,7 @@ impl IXAudio2SourceVoice {
     pub unsafe fn SetOutputVoices(&self, psendlist: ::core::option::Option<*const XAUDIO2_VOICE_SENDS>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetOutputVoices)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(psendlist.unwrap_or(::std::ptr::null()))).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetEffectChain(&self, peffectchain: ::core::option::Option<*const XAUDIO2_EFFECT_CHAIN>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetEffectChain)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(peffectchain.unwrap_or(::std::ptr::null()))).ok()
@@ -532,7 +415,7 @@ impl IXAudio2SourceVoice {
     pub unsafe fn DisableEffect(&self, effectindex: u32, operationset: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.DisableEffect)(::windows_core::Interface::as_raw(self), effectindex, operationset).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetEffectState(&self, effectindex: u32) -> super::super::super::Foundation::BOOL {
         let mut result__ = ::std::mem::zeroed();
@@ -576,10 +459,10 @@ impl IXAudio2SourceVoice {
         ::std::mem::transmute(result__)
     }
     pub unsafe fn SetChannelVolumes(&self, pvolumes: &[f32], operationset: u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).base__.SetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len() as _, ::core::mem::transmute(pvolumes.as_ptr()), operationset).ok()
+        (::windows_core::Interface::vtable(self).base__.SetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len().try_into().unwrap(), ::core::mem::transmute(pvolumes.as_ptr()), operationset).ok()
     }
     pub unsafe fn GetChannelVolumes(&self, pvolumes: &mut [f32]) {
-        (::windows_core::Interface::vtable(self).base__.GetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len() as _, ::core::mem::transmute(pvolumes.as_ptr()))
+        (::windows_core::Interface::vtable(self).base__.GetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len().try_into().unwrap(), ::core::mem::transmute(pvolumes.as_ptr()))
     }
     pub unsafe fn SetOutputMatrix<P0>(&self, pdestinationvoice: P0, sourcechannels: u32, destinationchannels: u32, plevelmatrix: *const f32, operationset: u32) -> ::windows_core::Result<()>
     where
@@ -632,24 +515,8 @@ impl IXAudio2SourceVoice {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXAudio2SourceVoice, IXAudio2Voice);
-impl ::core::cmp::PartialEq for IXAudio2SourceVoice {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAudio2SourceVoice {}
-impl ::core::fmt::Debug for IXAudio2SourceVoice {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAudio2SourceVoice").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAudio2SourceVoice {
     type Vtable = IXAudio2SourceVoice_Vtbl;
-}
-impl ::core::clone::Clone for IXAudio2SourceVoice {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[repr(C)]
 #[doc(hidden)]
@@ -666,8 +533,8 @@ pub struct IXAudio2SourceVoice_Vtbl {
     pub GetFrequencyRatio: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pratio: *mut f32),
     pub SetSourceSampleRate: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, newsourcesamplerate: u32) -> ::windows_core::HRESULT,
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAudio2SubmixVoice(::std::ptr::NonNull<::std::ffi::c_void>);
 impl IXAudio2SubmixVoice {
     pub unsafe fn GetVoiceDetails(&self) -> XAUDIO2_VOICE_DETAILS {
@@ -678,7 +545,7 @@ impl IXAudio2SubmixVoice {
     pub unsafe fn SetOutputVoices(&self, psendlist: ::core::option::Option<*const XAUDIO2_VOICE_SENDS>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetOutputVoices)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(psendlist.unwrap_or(::std::ptr::null()))).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetEffectChain(&self, peffectchain: ::core::option::Option<*const XAUDIO2_EFFECT_CHAIN>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.SetEffectChain)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(peffectchain.unwrap_or(::std::ptr::null()))).ok()
@@ -689,7 +556,7 @@ impl IXAudio2SubmixVoice {
     pub unsafe fn DisableEffect(&self, effectindex: u32, operationset: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).base__.DisableEffect)(::windows_core::Interface::as_raw(self), effectindex, operationset).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetEffectState(&self, effectindex: u32) -> super::super::super::Foundation::BOOL {
         let mut result__ = ::std::mem::zeroed();
@@ -733,10 +600,10 @@ impl IXAudio2SubmixVoice {
         ::std::mem::transmute(result__)
     }
     pub unsafe fn SetChannelVolumes(&self, pvolumes: &[f32], operationset: u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).base__.SetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len() as _, ::core::mem::transmute(pvolumes.as_ptr()), operationset).ok()
+        (::windows_core::Interface::vtable(self).base__.SetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len().try_into().unwrap(), ::core::mem::transmute(pvolumes.as_ptr()), operationset).ok()
     }
     pub unsafe fn GetChannelVolumes(&self, pvolumes: &mut [f32]) {
-        (::windows_core::Interface::vtable(self).base__.GetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len() as _, ::core::mem::transmute(pvolumes.as_ptr()))
+        (::windows_core::Interface::vtable(self).base__.GetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len().try_into().unwrap(), ::core::mem::transmute(pvolumes.as_ptr()))
     }
     pub unsafe fn SetOutputMatrix<P0>(&self, pdestinationvoice: P0, sourcechannels: u32, destinationchannels: u32, plevelmatrix: *const f32, operationset: u32) -> ::windows_core::Result<()>
     where
@@ -757,32 +624,16 @@ impl IXAudio2SubmixVoice {
     }
 }
 ::windows_core::imp::interface_hierarchy!(IXAudio2SubmixVoice, IXAudio2Voice);
-impl ::core::cmp::PartialEq for IXAudio2SubmixVoice {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAudio2SubmixVoice {}
-impl ::core::fmt::Debug for IXAudio2SubmixVoice {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAudio2SubmixVoice").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAudio2SubmixVoice {
     type Vtable = IXAudio2SubmixVoice_Vtbl;
-}
-impl ::core::clone::Clone for IXAudio2SubmixVoice {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[repr(C)]
 #[doc(hidden)]
 pub struct IXAudio2SubmixVoice_Vtbl {
     pub base__: IXAudio2Voice_Vtbl,
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAudio2Voice(::std::ptr::NonNull<::std::ffi::c_void>);
 impl IXAudio2Voice {
     pub unsafe fn GetVoiceDetails(&self) -> XAUDIO2_VOICE_DETAILS {
@@ -793,7 +644,7 @@ impl IXAudio2Voice {
     pub unsafe fn SetOutputVoices(&self, psendlist: ::core::option::Option<*const XAUDIO2_VOICE_SENDS>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).SetOutputVoices)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(psendlist.unwrap_or(::std::ptr::null()))).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn SetEffectChain(&self, peffectchain: ::core::option::Option<*const XAUDIO2_EFFECT_CHAIN>) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).SetEffectChain)(::windows_core::Interface::as_raw(self), ::core::mem::transmute(peffectchain.unwrap_or(::std::ptr::null()))).ok()
@@ -804,7 +655,7 @@ impl IXAudio2Voice {
     pub unsafe fn DisableEffect(&self, effectindex: u32, operationset: u32) -> ::windows_core::Result<()> {
         (::windows_core::Interface::vtable(self).DisableEffect)(::windows_core::Interface::as_raw(self), effectindex, operationset).ok()
     }
-    #[doc = "*Required features: `\"Win32_Foundation\"`*"]
+    #[doc = "Required features: `\"Win32_Foundation\"`"]
     #[cfg(feature = "Win32_Foundation")]
     pub unsafe fn GetEffectState(&self, effectindex: u32) -> super::super::super::Foundation::BOOL {
         let mut result__ = ::std::mem::zeroed();
@@ -848,10 +699,10 @@ impl IXAudio2Voice {
         ::std::mem::transmute(result__)
     }
     pub unsafe fn SetChannelVolumes(&self, pvolumes: &[f32], operationset: u32) -> ::windows_core::Result<()> {
-        (::windows_core::Interface::vtable(self).SetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len() as _, ::core::mem::transmute(pvolumes.as_ptr()), operationset).ok()
+        (::windows_core::Interface::vtable(self).SetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len().try_into().unwrap(), ::core::mem::transmute(pvolumes.as_ptr()), operationset).ok()
     }
     pub unsafe fn GetChannelVolumes(&self, pvolumes: &mut [f32]) {
-        (::windows_core::Interface::vtable(self).GetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len() as _, ::core::mem::transmute(pvolumes.as_ptr()))
+        (::windows_core::Interface::vtable(self).GetChannelVolumes)(::windows_core::Interface::as_raw(self), pvolumes.len().try_into().unwrap(), ::core::mem::transmute(pvolumes.as_ptr()))
     }
     pub unsafe fn SetOutputMatrix<P0>(&self, pdestinationvoice: P0, sourcechannels: u32, destinationchannels: u32, plevelmatrix: *const f32, operationset: u32) -> ::windows_core::Result<()>
     where
@@ -871,24 +722,8 @@ impl IXAudio2Voice {
         (::windows_core::Interface::vtable(self).DestroyVoice)(::windows_core::Interface::as_raw(self))
     }
 }
-impl ::core::cmp::PartialEq for IXAudio2Voice {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAudio2Voice {}
-impl ::core::fmt::Debug for IXAudio2Voice {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAudio2Voice").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAudio2Voice {
     type Vtable = IXAudio2Voice_Vtbl;
-}
-impl ::core::clone::Clone for IXAudio2Voice {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[repr(C)]
 #[doc(hidden)]
@@ -919,8 +754,8 @@ pub struct IXAudio2Voice_Vtbl {
     pub GetOutputMatrix: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pdestinationvoice: *mut ::core::ffi::c_void, sourcechannels: u32, destinationchannels: u32, plevelmatrix: *mut f32),
     pub DestroyVoice: unsafe extern "system" fn(this: *mut ::core::ffi::c_void),
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IXAudio2VoiceCallback(::std::ptr::NonNull<::std::ffi::c_void>);
 impl IXAudio2VoiceCallback {
     pub unsafe fn OnVoiceProcessingPassStart(&self, bytesrequired: u32) {
@@ -945,24 +780,8 @@ impl IXAudio2VoiceCallback {
         (::windows_core::Interface::vtable(self).OnVoiceError)(::windows_core::Interface::as_raw(self), pbuffercontext, error)
     }
 }
-impl ::core::cmp::PartialEq for IXAudio2VoiceCallback {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for IXAudio2VoiceCallback {}
-impl ::core::fmt::Debug for IXAudio2VoiceCallback {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("IXAudio2VoiceCallback").field(&self.0).finish()
-    }
-}
 unsafe impl ::windows_core::Interface for IXAudio2VoiceCallback {
     type Vtable = IXAudio2VoiceCallback_Vtbl;
-}
-impl ::core::clone::Clone for IXAudio2VoiceCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 #[repr(C)]
 #[doc(hidden)]
@@ -975,501 +794,253 @@ pub struct IXAudio2VoiceCallback_Vtbl {
     pub OnLoopEnd: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbuffercontext: *mut ::core::ffi::c_void),
     pub OnVoiceError: unsafe extern "system" fn(this: *mut ::core::ffi::c_void, pbuffercontext: *mut ::core::ffi::c_void, error: ::windows_core::HRESULT),
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const AudioReverb: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc2633b16_471b_4498_b8c5_4f0959e2ec09);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const AudioVolumeMeter: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x4fc3b166_972a_40cf_bc37_7db03db2fba3);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const BandPassFilter: XAUDIO2_FILTER_TYPE = XAUDIO2_FILTER_TYPE(1i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Cardioid: HrtfDirectivityType = HrtfDirectivityType(1i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Cone: HrtfDirectivityType = HrtfDirectivityType(2i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const CustomDecay: HrtfDistanceDecayType = HrtfDistanceDecayType(1i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FACILITY_XAPO: u32 = 2199u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FACILITY_XAUDIO2: u32 = 2198u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_DEFAULT_DELAY: f32 = 500f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_DEFAULT_FEEDBACK: f32 = 0.5f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_DEFAULT_WETDRYMIX: f32 = 0.5f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_MAX_DELAY: f32 = 2000f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_MAX_FEEDBACK: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_MAX_WETDRYMIX: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_MIN_DELAY: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_MIN_FEEDBACK: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXECHO_MIN_WETDRYMIX: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xf5e01117_d6c4_485a_a3f5_695196f3dbfa);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_DEFAULT_BANDWIDTH: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_DEFAULT_FREQUENCY_CENTER_0: f32 = 100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_DEFAULT_FREQUENCY_CENTER_1: f32 = 800f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_DEFAULT_FREQUENCY_CENTER_2: f32 = 2000f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_DEFAULT_FREQUENCY_CENTER_3: f32 = 10000f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_DEFAULT_GAIN: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_MAX_BANDWIDTH: f32 = 2f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_MAX_FRAMERATE: u32 = 48000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_MAX_FREQUENCY_CENTER: f32 = 20000f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_MAX_GAIN: f32 = 7.94f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_MIN_BANDWIDTH: f32 = 0.1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_MIN_FRAMERATE: u32 = 22000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_MIN_FREQUENCY_CENTER: f32 = 20f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEQ_MIN_GAIN: f32 = 0.126f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXEcho: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x5039d740_f736_449a_84d3_a56202557b87);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXLOUDNESS_DEFAULT_MOMENTARY_MS: u32 = 400u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXLOUDNESS_DEFAULT_SHORTTERM_MS: u32 = 3000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXMASTERINGLIMITER_DEFAULT_LOUDNESS: u32 = 1000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXMASTERINGLIMITER_DEFAULT_RELEASE: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXMASTERINGLIMITER_MAX_LOUDNESS: u32 = 1800u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXMASTERINGLIMITER_MAX_RELEASE: u32 = 20u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXMASTERINGLIMITER_MIN_LOUDNESS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXMASTERINGLIMITER_MIN_RELEASE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXMasteringLimiter: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xc4137916_2be1_46fd_8599_441536f49856);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXREVERB_DEFAULT_DIFFUSION: f32 = 0.9f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXREVERB_DEFAULT_ROOMSIZE: f32 = 0.6f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXREVERB_MAX_DIFFUSION: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXREVERB_MAX_ROOMSIZE: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXREVERB_MIN_DIFFUSION: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXREVERB_MIN_ROOMSIZE: f32 = 0.0001f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const FXReverb: ::windows_core::GUID = ::windows_core::GUID::from_u128(0x7d9aca56_cb68_4807_b632_b137352e8596);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const HRTF_DEFAULT_UNITY_GAIN_DISTANCE: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const HRTF_MAX_GAIN_LIMIT: f32 = 12f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const HRTF_MIN_GAIN_LIMIT: f32 = -96f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const HRTF_MIN_UNITY_GAIN_DISTANCE: f32 = 0.05f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const HighPassFilter: XAUDIO2_FILTER_TYPE = XAUDIO2_FILTER_TYPE(2i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const HighPassOnePoleFilter: XAUDIO2_FILTER_TYPE = XAUDIO2_FILTER_TYPE(5i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Large: HrtfEnvironment = HrtfEnvironment(2i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const LowPassFilter: XAUDIO2_FILTER_TYPE = XAUDIO2_FILTER_TYPE(0i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const LowPassOnePoleFilter: XAUDIO2_FILTER_TYPE = XAUDIO2_FILTER_TYPE(4i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Medium: HrtfEnvironment = HrtfEnvironment(1i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const NaturalDecay: HrtfDistanceDecayType = HrtfDistanceDecayType(0i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const NotchFilter: XAUDIO2_FILTER_TYPE = XAUDIO2_FILTER_TYPE(3i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const OmniDirectional: HrtfDirectivityType = HrtfDirectivityType(0i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Outdoors: HrtfEnvironment = HrtfEnvironment(3i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor1: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor10: u32 = 512u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor11: u32 = 1024u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor12: u32 = 2048u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor13: u32 = 4096u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor14: u32 = 8192u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor15: u32 = 16384u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor16: u32 = 32768u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor17: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor18: u32 = 131072u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor19: u32 = 262144u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor2: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor20: u32 = 524288u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor21: u32 = 1048576u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor22: u32 = 2097152u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor23: u32 = 4194304u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor24: u32 = 8388608u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor25: u32 = 16777216u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor26: u32 = 33554432u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor27: u32 = 67108864u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor28: u32 = 134217728u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor29: u32 = 268435456u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor3: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor30: u32 = 536870912u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor31: u32 = 1073741824u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor32: u32 = 2147483648u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor4: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor5: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor6: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor7: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor8: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Processor9: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const SPEAKER_MONO: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const Small: HrtfEnvironment = HrtfEnvironment(0i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_2PI: f32 = 6.2831855f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_CALCULATE_DELAY: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_CALCULATE_DOPPLER: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_CALCULATE_EMITTER_ANGLE: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_CALCULATE_LPF_DIRECT: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_CALCULATE_LPF_REVERB: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_CALCULATE_MATRIX: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_CALCULATE_REDIRECT_TO_LFE: u32 = 131072u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_CALCULATE_REVERB: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_CALCULATE_ZEROCENTER: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_HANDLE_BYTESIZE: u32 = 20u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_PI: f32 = 3.1415927f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const X3DAUDIO_SPEED_OF_SOUND: f32 = 343.5f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_BUFFER_SILENT: XAPO_BUFFER_FLAGS = XAPO_BUFFER_FLAGS(0i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_BUFFER_VALID: XAPO_BUFFER_FLAGS = XAPO_BUFFER_FLAGS(1i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_E_FORMAT_UNSUPPORTED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2003369983i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_FLAG_BITSPERSAMPLE_MUST_MATCH: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_FLAG_BUFFERCOUNT_MUST_MATCH: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_FLAG_CHANNELS_MUST_MATCH: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_FLAG_FRAMERATE_MUST_MATCH: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_FLAG_INPLACE_REQUIRED: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_FLAG_INPLACE_SUPPORTED: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_MAX_CHANNELS: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_MAX_FRAMERATE: u32 = 200000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_MIN_CHANNELS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_MIN_FRAMERATE: u32 = 1000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAPO_REGISTRATION_STRING_LENGTH: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2D_DLL: ::windows_core::PCWSTR = ::windows_core::w!("xaudio2_9d.dll");
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2D_DLL_A: ::windows_core::PCSTR = ::windows_core::s!("xaudio2_9d.dll");
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2D_DLL_W: ::windows_core::PCWSTR = ::windows_core::w!("xaudio2_9d.dll");
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_7POINT1_REAR_DELAY: u32 = 20u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_7POINT1_SIDE_DELAY: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_DECAY_TIME: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_DENSITY: f32 = 100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_DISABLE_LATE_FIELD: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_EARLY_DIFFUSION: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_HIGH_EQ_CUTOFF: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_HIGH_EQ_GAIN: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_LATE_DIFFUSION: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_LOW_EQ_CUTOFF: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_LOW_EQ_GAIN: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_POSITION: u32 = 6u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_POSITION_MATRIX: u32 = 27u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_REAR_DELAY: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_REFLECTIONS_DELAY: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_REFLECTIONS_GAIN: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_REVERB_DELAY: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_REVERB_GAIN: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_ROOM_FILTER_FREQ: f32 = 5000f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_ROOM_FILTER_HF: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_ROOM_FILTER_MAIN: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_ROOM_SIZE: f32 = 100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_DEFAULT_WET_DRY_MIX: f32 = 100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_7POINT1_REAR_DELAY: u32 = 20u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_7POINT1_SIDE_DELAY: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_DENSITY: f32 = 100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_DIFFUSION: u32 = 15u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_FRAMERATE: u32 = 48000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_HIGH_EQ_CUTOFF: u32 = 14u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_HIGH_EQ_GAIN: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_LOW_EQ_CUTOFF: u32 = 9u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_LOW_EQ_GAIN: u32 = 12u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_POSITION: u32 = 30u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_REAR_DELAY: u32 = 5u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_REFLECTIONS_DELAY: u32 = 300u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_REFLECTIONS_GAIN: f32 = 20f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_REVERB_DELAY: u32 = 85u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_REVERB_GAIN: f32 = 20f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_ROOM_FILTER_FREQ: f32 = 20000f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_ROOM_FILTER_HF: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_ROOM_FILTER_MAIN: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_ROOM_SIZE: f32 = 100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MAX_WET_DRY_MIX: f32 = 100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_7POINT1_REAR_DELAY: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_7POINT1_SIDE_DELAY: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_DECAY_TIME: f32 = 0.1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_DENSITY: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_DIFFUSION: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_FRAMERATE: u32 = 20000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_HIGH_EQ_CUTOFF: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_HIGH_EQ_GAIN: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_LOW_EQ_CUTOFF: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_LOW_EQ_GAIN: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_POSITION: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_REAR_DELAY: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_REFLECTIONS_DELAY: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_REFLECTIONS_GAIN: f32 = -100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_REVERB_DELAY: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_REVERB_GAIN: f32 = -100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_ROOM_FILTER_FREQ: f32 = 20f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_ROOM_FILTER_HF: f32 = -100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_ROOM_FILTER_MAIN: f32 = -100f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_ROOM_SIZE: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2FX_REVERB_MIN_WET_DRY_MIX: f32 = 0f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_1024_QUANTUM: u32 = 32768u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_ANY_PROCESSOR: u32 = 4294967295u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_COMMIT_ALL: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_COMMIT_NOW: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DEBUG_ENGINE: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DEFAULT_CHANNELS: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DEFAULT_FILTER_FREQUENCY: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DEFAULT_FILTER_ONEOVERQ: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DEFAULT_FREQ_RATIO: f32 = 2f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DEFAULT_PROCESSOR: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DEFAULT_SAMPLERATE: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DLL: ::windows_core::PCWSTR = ::windows_core::w!("xaudio2_9.dll");
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DLL_A: ::windows_core::PCSTR = ::windows_core::s!("xaudio2_9.dll");
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_DLL_W: ::windows_core::PCWSTR = ::windows_core::w!("xaudio2_9.dll");
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_END_OF_STREAM: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_E_DEVICE_INVALIDATED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2003435516i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_E_INVALID_CALL: ::windows_core::HRESULT = ::windows_core::HRESULT(-2003435519i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_E_XAPO_CREATION_FAILED: ::windows_core::HRESULT = ::windows_core::HRESULT(-2003435517i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_E_XMA_DECODER_ERROR: ::windows_core::HRESULT = ::windows_core::HRESULT(-2003435518i32);
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_API_CALLS: u32 = 16u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_DETAIL: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_ERRORS: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_FUNC_CALLS: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_INFO: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_LOCKS: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_MEMORY: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_STREAMING: u32 = 4096u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_TIMING: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOG_WARNINGS: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_LOOP_INFINITE: u32 = 255u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_AUDIO_CHANNELS: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_BUFFERS_SYSTEM: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_BUFFER_BYTES: u32 = 2147483648u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_FILTER_FREQUENCY: f32 = 1f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_FILTER_ONEOVERQ: f32 = 1.5f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_FREQ_RATIO: f32 = 1024f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_INSTANCES: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_LOOP_COUNT: u32 = 254u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_QUEUED_BUFFERS: u32 = 64u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_RATIO_TIMES_RATE_XMA_MONO: u32 = 600000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_RATIO_TIMES_RATE_XMA_MULTICHANNEL: u32 = 300000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_SAMPLE_RATE: u32 = 200000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MAX_VOLUME_LEVEL: f32 = 16777216f32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_MIN_SAMPLE_RATE: u32 = 1000u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_NO_LOOP_REGION: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_NO_VIRTUAL_AUDIO_CLIENT: u32 = 65536u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_PLAY_TAILS: u32 = 32u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_QUANTUM_DENOMINATOR: u32 = 100u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_QUANTUM_NUMERATOR: u32 = 1u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_SEND_USEFILTER: u32 = 128u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_STOP_ENGINE_WHEN_IDLE: u32 = 8192u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_USE_DEFAULT_PROCESSOR: u32 = 0u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_VOICE_NOPITCH: u32 = 2u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_VOICE_NOSAMPLESPLAYED: u32 = 256u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_VOICE_NOSRC: u32 = 4u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub const XAUDIO2_VOICE_USEFILTER: u32 = 8u32;
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct HrtfDirectivityType(pub i32);
@@ -1492,7 +1063,6 @@ impl ::core::fmt::Debug for HrtfDirectivityType {
         f.debug_tuple("HrtfDirectivityType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct HrtfDistanceDecayType(pub i32);
@@ -1515,7 +1085,6 @@ impl ::core::fmt::Debug for HrtfDistanceDecayType {
         f.debug_tuple("HrtfDistanceDecayType").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct HrtfEnvironment(pub i32);
@@ -1538,7 +1107,6 @@ impl ::core::fmt::Debug for HrtfEnvironment {
         f.debug_tuple("HrtfEnvironment").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct XAPO_BUFFER_FLAGS(pub i32);
@@ -1561,7 +1129,6 @@ impl ::core::fmt::Debug for XAPO_BUFFER_FLAGS {
         f.debug_tuple("XAPO_BUFFER_FLAGS").field(&self.0).finish()
     }
 }
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct XAUDIO2_FILTER_TYPE(pub i32);
@@ -1585,7 +1152,6 @@ impl ::core::fmt::Debug for XAUDIO2_FILTER_TYPE {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct FXECHO_INITDATA {
     pub MaxDelay: f32,
 }
@@ -1604,7 +1170,6 @@ impl ::core::default::Default for FXECHO_INITDATA {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct FXECHO_PARAMETERS {
     pub WetDryMix: f32,
     pub Feedback: f32,
@@ -1625,7 +1190,6 @@ impl ::core::default::Default for FXECHO_PARAMETERS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct FXEQ_PARAMETERS {
     pub FrequencyCenter0: f32,
     pub Gain0: f32,
@@ -1655,7 +1219,6 @@ impl ::core::default::Default for FXEQ_PARAMETERS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct FXMASTERINGLIMITER_PARAMETERS {
     pub Release: u32,
     pub Loudness: u32,
@@ -1675,7 +1238,6 @@ impl ::core::default::Default for FXMASTERINGLIMITER_PARAMETERS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct FXREVERB_PARAMETERS {
     pub Diffusion: f32,
     pub RoomSize: f32,
@@ -1695,7 +1257,6 @@ impl ::core::default::Default for FXREVERB_PARAMETERS {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct HrtfApoInit {
     pub distanceDecay: *mut HrtfDistanceDecay,
     pub directivity: *mut HrtfDirectivity,
@@ -1726,7 +1287,6 @@ impl ::core::default::Default for HrtfApoInit {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct HrtfDirectivity {
     pub r#type: HrtfDirectivityType,
     pub scaling: f32,
@@ -1757,7 +1317,6 @@ impl ::core::default::Default for HrtfDirectivity {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct HrtfDirectivityCardioid {
     pub directivity: HrtfDirectivity,
     pub order: f32,
@@ -1788,7 +1347,6 @@ impl ::core::default::Default for HrtfDirectivityCardioid {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct HrtfDirectivityCone {
     pub directivity: HrtfDirectivity,
     pub innerAngle: f32,
@@ -1820,7 +1378,6 @@ impl ::core::default::Default for HrtfDirectivityCone {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct HrtfDistanceDecay {
     pub r#type: HrtfDistanceDecayType,
     pub maxGain: f32,
@@ -1854,7 +1411,6 @@ impl ::core::default::Default for HrtfDistanceDecay {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct HrtfOrientation {
     pub element: [f32; 9],
 }
@@ -1884,7 +1440,6 @@ impl ::core::default::Default for HrtfOrientation {
     }
 }
 #[repr(C)]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct HrtfPosition {
     pub x: f32,
     pub y: f32,
@@ -1916,7 +1471,6 @@ impl ::core::default::Default for HrtfPosition {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAPO_LOCKFORPROCESS_PARAMETERS {
     pub pFormat: *const super::WAVEFORMATEX,
     pub MaxFrameCount: u32,
@@ -1936,7 +1490,6 @@ impl ::core::default::Default for XAPO_LOCKFORPROCESS_PARAMETERS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAPO_PROCESS_BUFFER_PARAMETERS {
     pub pBuffer: *mut ::core::ffi::c_void,
     pub BufferFlags: XAPO_BUFFER_FLAGS,
@@ -1957,7 +1510,6 @@ impl ::core::default::Default for XAPO_PROCESS_BUFFER_PARAMETERS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAPO_REGISTRATION_PROPERTIES {
     pub clsid: ::windows_core::GUID,
     pub FriendlyName: [u16; 256],
@@ -1985,7 +1537,6 @@ impl ::core::default::Default for XAPO_REGISTRATION_PROPERTIES {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2FX_REVERB_I3DL2_PARAMETERS {
     pub WetDryMix: f32,
     pub Room: i32,
@@ -2016,7 +1567,7 @@ impl ::core::default::Default for XAUDIO2FX_REVERB_I3DL2_PARAMETERS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct XAUDIO2FX_REVERB_PARAMETERS {
     pub WetDryMix: f32,
@@ -2063,7 +1614,6 @@ impl ::core::default::Default for XAUDIO2FX_REVERB_PARAMETERS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2FX_VOLUMEMETER_LEVELS {
     pub pPeakLevels: *mut f32,
     pub pRMSLevels: *mut f32,
@@ -2084,7 +1634,6 @@ impl ::core::default::Default for XAUDIO2FX_VOLUMEMETER_LEVELS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2_BUFFER {
     pub Flags: u32,
     pub AudioBytes: u32,
@@ -2111,7 +1660,6 @@ impl ::core::default::Default for XAUDIO2_BUFFER {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2_BUFFER_WMA {
     pub pDecodedPacketCumulativeBytes: *const u32,
     pub PacketCount: u32,
@@ -2131,7 +1679,7 @@ impl ::core::default::Default for XAUDIO2_BUFFER_WMA {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct XAUDIO2_DEBUG_CONFIGURATION {
     pub TraceMask: u32,
@@ -2160,7 +1708,7 @@ impl ::core::default::Default for XAUDIO2_DEBUG_CONFIGURATION {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct XAUDIO2_EFFECT_CHAIN {
     pub EffectCount: u32,
@@ -2185,7 +1733,7 @@ impl ::core::default::Default for XAUDIO2_EFFECT_CHAIN {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`, `\"Win32_Foundation\"`*"]
+#[doc = "Required features: `\"Win32_Foundation\"`"]
 #[cfg(feature = "Win32_Foundation")]
 pub struct XAUDIO2_EFFECT_DESCRIPTOR {
     pub pEffect: ::std::mem::ManuallyDrop<::core::option::Option<::windows_core::IUnknown>>,
@@ -2203,7 +1751,6 @@ impl ::core::default::Default for XAUDIO2_EFFECT_DESCRIPTOR {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2_FILTER_PARAMETERS {
     pub Type: XAUDIO2_FILTER_TYPE,
     pub Frequency: f32,
@@ -2224,7 +1771,6 @@ impl ::core::default::Default for XAUDIO2_FILTER_PARAMETERS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2_PERFORMANCE_DATA {
     pub AudioCyclesSinceLastQuery: u64,
     pub TotalCyclesSinceLastQuery: u64,
@@ -2256,7 +1802,6 @@ impl ::core::default::Default for XAUDIO2_PERFORMANCE_DATA {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2_SEND_DESCRIPTOR {
     pub Flags: u32,
     pub pOutputVoice: ::std::mem::ManuallyDrop<::core::option::Option<IXAudio2Voice>>,
@@ -2270,7 +1815,6 @@ impl ::core::default::Default for XAUDIO2_SEND_DESCRIPTOR {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2_VOICE_DETAILS {
     pub CreationFlags: u32,
     pub ActiveFlags: u32,
@@ -2292,7 +1836,6 @@ impl ::core::default::Default for XAUDIO2_VOICE_DETAILS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2_VOICE_SENDS {
     pub SendCount: u32,
     pub pSends: *mut XAUDIO2_SEND_DESCRIPTOR,
@@ -2312,7 +1855,6 @@ impl ::core::default::Default for XAUDIO2_VOICE_SENDS {
     }
 }
 #[repr(C, packed(1))]
-#[doc = "*Required features: `\"Win32_Media_Audio_XAudio2\"`*"]
 pub struct XAUDIO2_VOICE_STATE {
     pub pCurrentBufferContext: *mut ::core::ffi::c_void,
     pub BuffersQueued: u32,

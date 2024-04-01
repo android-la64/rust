@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-credentials"
-version = "0.22.0"
+version = "0.23.1"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -40,25 +40,25 @@ version = "0.2.1"
 optional = true
 
 [dependencies.gix-command]
-version = "^0.3.0"
+version = "^0.3.2"
 
 [dependencies.gix-config-value]
-version = "^0.14.1"
+version = "^0.14.3"
 
 [dependencies.gix-path]
-version = "^0.10.1"
+version = "^0.10.3"
 
 [dependencies.gix-prompt]
-version = "^0.8.0"
+version = "^0.8.2"
 
 [dependencies.gix-sec]
-version = "^0.10.1"
+version = "^0.10.3"
 
 [dependencies.gix-trace]
-version = "^0.1.4"
+version = "^0.1.6"
 
 [dependencies.gix-url]
-version = "^0.25.2"
+version = "^0.26.1"
 
 [dependencies.serde]
 version = "1.0.114"

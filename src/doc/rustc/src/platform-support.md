@@ -72,6 +72,12 @@ ensure that each tier 2 target can be used as build target after each change. Au
 not always run so it's not guaranteed to produce a working build, but tier 2
 targets often work to quite a good degree and patches are always welcome!
 
+Tier 2 target-specific code is not closely scrutinized by Rust team(s) when
+modifications are made. Bugs are possible in all code, but the level of quality
+control for these targets is likely to be lower. See [library team
+policy](https://std-dev-guide.rust-lang.org/policy/target-code.html) for
+details on the review practices for standard library code.
+
 Tier 2 targets with host tools additionally support running tools like `rustc`
 and `cargo` natively on the target, and automated builds ensure that the host
 tools build as well. This allows the target to be used as a development
@@ -121,6 +127,12 @@ The `std` column in the table below has the following meanings:
 
 [`no_std`]: https://rust-embedded.github.io/book/intro/no-std.html
 
+Tier 2 target-specific code is not closely scrutinized by Rust team(s) when
+modifications are made. Bugs are possible in all code, but the level of quality
+control for these targets is likely to be lower. See [library team
+policy](https://std-dev-guide.rust-lang.org/policy/target-code.html) for
+details on the review practices for standard library code.
+
 **NOTE:** The `rust-docs` component is not usually built for tier 2 targets,
 so Rustup may install the documentation for a similar tier 1 target instead.
 
@@ -151,7 +163,6 @@ target | std | notes
 `i586-pc-windows-msvc` | * | 32-bit Windows w/o SSE [^x86_32-floats-x87]
 `i586-unknown-linux-gnu` | ✓ | 32-bit Linux w/o SSE (kernel 3.2, glibc 2.17) [^x86_32-floats-x87]
 `i586-unknown-linux-musl` | ✓ | 32-bit Linux w/o SSE, MUSL [^x86_32-floats-x87]
-[`i586-unknown-netbsd`](platform-support/netbsd.md) |  ✓ | 32-bit x86, restricted to Pentium
 [`i686-linux-android`](platform-support/android.md) | ✓ | 32-bit x86 Android [^x86_32-floats-return-ABI]
 `i686-unknown-freebsd` | ✓ | 32-bit FreeBSD [^x86_32-floats-return-ABI]
 `i686-unknown-linux-musl` | ✓ | 32-bit Linux with MUSL [^x86_32-floats-return-ABI]
@@ -161,7 +172,9 @@ target | std | notes
 [`nvptx64-nvidia-cuda`](platform-support/nvptx64-nvidia-cuda.md) | * | --emit=asm generates PTX code that [runs on NVIDIA GPUs]
 [`riscv32imac-unknown-none-elf`](platform-support/riscv32imac-unknown-none-elf.md) | * | Bare RISC-V (RV32IMAC ISA)
 [`riscv32i-unknown-none-elf`](platform-support/riscv32imac-unknown-none-elf.md) | * | Bare RISC-V (RV32I ISA)
+[`riscv32im-unknown-none-elf`](platform-support/riscv32imac-unknown-none-elf.md) | * |  | Bare RISC-V (RV32IM ISA)
 [`riscv32imc-unknown-none-elf`](platform-support/riscv32imac-unknown-none-elf.md) | * | Bare RISC-V (RV32IMC ISA)
+[`riscv32imafc-unknown-none-elf`](platform-support/riscv32imac-unknown-none-elf.md) | * | Bare RISC-V (RV32IMAFC ISA)
 `riscv64gc-unknown-none-elf` | * | Bare RISC-V (RV64IMAFDC ISA)
 `riscv64imac-unknown-none-elf` | * | Bare RISC-V (RV64IMAC ISA)
 `sparc64-unknown-linux-gnu` | ✓ | SPARC Linux (kernel 4.4, glibc 2.23)
@@ -210,6 +223,12 @@ The `std` column in the table below has the following meanings:
 
 [`no_std`]: https://rust-embedded.github.io/book/intro/no-std.html
 
+Tier 3 target-specific code is not closely scrutinized by Rust team(s) when
+modifications are made. Bugs are possible in all code, but the level of quality
+control for these targets is likely to be lower. See [library team
+policy](https://std-dev-guide.rust-lang.org/policy/target-code.html) for
+details on the review practices for standard library code.
+
 The `host` column indicates whether the codebase includes support for building
 host tools.
 
@@ -230,6 +249,7 @@ target | std | host | notes
 [`aarch64-unknown-nto-qnx710`](platform-support/nto-qnx.md) | ✓ |  | ARM64 QNX Neutrino 7.1 RTOS |
 `aarch64-unknown-freebsd` | ✓ | ✓ | ARM64 FreeBSD
 [`aarch64-unknown-hermit`](platform-support/hermit.md) | ✓ |  | ARM64 Hermit
+`aarch64-unknown-illumos` | ✓ | ✓ | ARM64 illumos
 `aarch64-unknown-linux-gnu_ilp32` | ✓ | ✓ | ARM64 Linux (ILP32 ABI)
 [`aarch64-unknown-netbsd`](platform-support/netbsd.md) | ✓ | ✓ | ARM64 NetBSD
 [`aarch64-unknown-openbsd`](platform-support/openbsd.md) | ✓ | ✓ | ARM64 OpenBSD
@@ -265,9 +285,11 @@ target | std | host | notes
 `bpfel-unknown-none` | * |  | BPF (little endian)
 `csky-unknown-linux-gnuabiv2` | ✓ |  | C-SKY abiv2 Linux (little endian)
 `csky-unknown-linux-gnuabiv2hf` | ✓ |  | C-SKY abiv2 Linux, hardfloat (little endian)
+[`hexagon-unknown-none-elf`](platform-support/hexagon-unknown-none-elf.md)| * | Bare Hexagon (v60+, HVX)
 `hexagon-unknown-linux-musl` | ? |  |
 `i386-apple-ios` | ✓ |  | 32-bit x86 iOS [^x86_32-floats-return-ABI]
 [`i586-pc-nto-qnx700`](platform-support/nto-qnx.md) | * |  | 32-bit x86 QNX Neutrino 7.0 RTOS  [^x86_32-floats-return-ABI]
+[`i586-unknown-netbsd`](platform-support/netbsd.md) | ✓ |  | 32-bit x86, restricted to Pentium
 `i686-apple-darwin` | ✓ | ✓ | 32-bit macOS (10.12+, Sierra+) [^x86_32-floats-return-ABI]
 `i686-pc-windows-msvc` | * |  | 32-bit Windows XP support [^x86_32-floats-return-ABI]
 [`i686-pc-windows-gnullvm`](platform-support/pc-windows-gnullvm.md) | ✓ | ✓ | [^x86_32-floats-return-ABI]
@@ -316,11 +338,11 @@ target | std | host | notes
 [`powerpc64-ibm-aix`](platform-support/aix.md) | ? |  | 64-bit AIX (7.2 and newer)
 `riscv32gc-unknown-linux-gnu` |   |   | RISC-V Linux (kernel 5.4, glibc 2.33)
 `riscv32gc-unknown-linux-musl` |   |   | RISC-V Linux (kernel 5.4, musl + RISCV32 support patches)
-[`riscv32imafc-unknown-none-elf`](platform-support/riscv32imac-unknown-none-elf.md) | * | Bare RISC-V (RV32IMAFC ISA)
-[`riscv32im-unknown-none-elf`](platform-support/riscv32imac-unknown-none-elf.md) | * |  | Bare RISC-V (RV32IM ISA)
+[`riscv32im-risc0-zkvm-elf`](platform-support/riscv32im-risc0-zkvm-elf.md) | ? |  | RISC Zero's zero-knowledge Virtual Machine (RV32IM ISA)
 [`riscv32imac-unknown-xous-elf`](platform-support/riscv32imac-unknown-xous-elf.md) | ? |  | RISC-V Xous (RV32IMAC ISA)
 [`riscv32imc-esp-espidf`](platform-support/esp-idf.md) | ✓ |  | RISC-V ESP-IDF
 [`riscv32imac-esp-espidf`](platform-support/esp-idf.md) | ✓ |  | RISC-V ESP-IDF
+[`riscv32imafc-esp-espidf`](platform-support/esp-idf.md) | ✓ |  | RISC-V ESP-IDF
 [`riscv64gc-unknown-hermit`](platform-support/hermit.md) | ✓ |   | RISC-V Hermit
 `riscv64gc-unknown-freebsd` |   |   | RISC-V FreeBSD
 `riscv64gc-unknown-fuchsia` |   |   | RISC-V Fuchsia

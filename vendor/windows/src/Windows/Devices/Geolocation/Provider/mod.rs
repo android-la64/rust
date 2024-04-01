@@ -1,13 +1,9 @@
 #[doc(hidden)]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct IGeolocationProvider(::windows_core::IUnknown);
 unsafe impl ::windows_core::Interface for IGeolocationProvider {
     type Vtable = IGeolocationProvider_Vtbl;
-}
-impl ::core::clone::Clone for IGeolocationProvider {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::ComInterface for IGeolocationProvider {
     const IID: ::windows_core::GUID = ::windows_core::GUID::from_u128(0xe4cf071d_3f64_509f_8dc2_0b74a059829d);
@@ -28,8 +24,8 @@ pub struct IGeolocationProvider_Vtbl {
     #[cfg(not(feature = "Foundation"))]
     RemoveIsOverriddenChanged: usize,
 }
-#[doc = "*Required features: `\"Devices_Geolocation_Provider\"`*"]
 #[repr(transparent)]
+#[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
 pub struct GeolocationProvider(::windows_core::IUnknown);
 impl GeolocationProvider {
     pub fn new() -> ::windows_core::Result<Self> {
@@ -57,7 +53,7 @@ impl GeolocationProvider {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).ClearOverridePosition)(::windows_core::Interface::as_raw(this)).ok() }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn IsOverriddenChanged<P0>(&self, handler: P0) -> ::windows_core::Result<super::super::super::Foundation::EventRegistrationToken>
     where
@@ -69,31 +65,15 @@ impl GeolocationProvider {
             (::windows_core::Interface::vtable(this).IsOverriddenChanged)(::windows_core::Interface::as_raw(this), handler.into_param().abi(), &mut result__).from_abi(result__)
         }
     }
-    #[doc = "*Required features: `\"Foundation\"`*"]
+    #[doc = "Required features: `\"Foundation\"`"]
     #[cfg(feature = "Foundation")]
     pub fn RemoveIsOverriddenChanged(&self, token: super::super::super::Foundation::EventRegistrationToken) -> ::windows_core::Result<()> {
         let this = self;
         unsafe { (::windows_core::Interface::vtable(this).RemoveIsOverriddenChanged)(::windows_core::Interface::as_raw(this), token).ok() }
     }
 }
-impl ::core::cmp::PartialEq for GeolocationProvider {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl ::core::cmp::Eq for GeolocationProvider {}
-impl ::core::fmt::Debug for GeolocationProvider {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_tuple("GeolocationProvider").field(&self.0).finish()
-    }
-}
 impl ::windows_core::RuntimeType for GeolocationProvider {
     const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(b"rc(Windows.Devices.Geolocation.Provider.GeolocationProvider;{e4cf071d-3f64-509f-8dc2-0b74a059829d})");
-}
-impl ::core::clone::Clone for GeolocationProvider {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
 }
 unsafe impl ::windows_core::Interface for GeolocationProvider {
     type Vtable = IGeolocationProvider_Vtbl;
@@ -107,7 +87,6 @@ impl ::windows_core::RuntimeName for GeolocationProvider {
 ::windows_core::imp::interface_hierarchy!(GeolocationProvider, ::windows_core::IUnknown, ::windows_core::IInspectable);
 unsafe impl ::core::marker::Send for GeolocationProvider {}
 unsafe impl ::core::marker::Sync for GeolocationProvider {}
-#[doc = "*Required features: `\"Devices_Geolocation_Provider\"`*"]
 #[repr(transparent)]
 #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
 pub struct LocationOverrideStatus(pub i32);
